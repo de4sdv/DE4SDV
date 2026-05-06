@@ -1,6 +1,6 @@
-# Systems Engineering for Software-Defined Vehicle
+# Digital Engineering for Software-Defined Vehicle
 
-An open-source starter repository for **model-based systems engineering of Software-Defined Vehicles (SDV)** with emphasis on:
+An open-source starter repository for **digital engineering of Software-Defined Vehicle (SDV)** with emphasis on:
 
 - SysML v2 modeling and SysML v2 API integration
 - Feature-based Product Line Engineering / Model-Based Product Line Engineering
