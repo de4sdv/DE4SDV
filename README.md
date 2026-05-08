@@ -1,5 +1,5 @@
 # Vision
-DE4SDV envisions a digitally engineered and configurable software defined vehicle product line, that is continously certified.
+DE4SDV envisions a digitally engineered and configurable software defined vehicle product line, that is continuously certified.
 
 # Digital Engineering for Software-Defined Vehicle
 
