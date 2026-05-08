@@ -1,6 +1,9 @@
+# Vision
+DE4SDV envisions a digitally engineered and configurable software defined vehicle product line, that is continously certified.
+
 # Digital Engineering for Software-Defined Vehicle
 
-An open-source starter repository for **digital engineering of Software-Defined Vehicle (SDV)** with emphasis on:
+An open-source starter repository for **Digital Engineering of Software-Defined Vehicle (SDV)** with emphasis on:
 
 - SysML v2 modeling and SysML v2 API integration
 - Feature-based Product Line Engineering / Model-Based Product Line Engineering
@@ -9,16 +12,6 @@ An open-source starter repository for **digital engineering of Software-Defined 
 - Safety, security, UNECE-oriented compliance, and continuous homologation
 - DevSecOps practices for regulated cyber-physical systems
 
-> Status: early project scaffold. The repository is intentionally documentation-first so contributors and AI coding agents can understand the domain before generating code.
-
-## Who this is for
-
-- Systems engineers working on SDV architecture
-- MBSE / SysML practitioners
-- Product line engineering and variant management engineers
-- Digital twin and simulation engineers
-- Safety, security, and compliance contributors
-- Open-source maintainers building reusable SDV engineering assets
 
 ## Repository map
 
@@ -43,18 +36,6 @@ An open-source starter repository for **digital engineering of Software-Defined 
 | `specs/` | Short, current specifications for humans and AI agents |
 | `.github/agents/` | Task-specific AI agent instructions |
 
-## Minimum local workflow
-
-```bash
-python scripts/check_repo.py
-python scripts/smoke_test.py
-```
-
-Optional if you install markdownlint:
-
-```bash
-npx markdownlint "**/*.md"
-```
 
 ## Contribution model
 
