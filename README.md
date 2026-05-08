@@ -1,3 +1,6 @@
+# Contact
+Get in touch with us: https://join.slack.com/t/sdv-sysmlv2/shared_invite/zt-3xeu04a3n-o7_6M46QNAoXKhEiLbb0gw
+
 # Vision
 DE4SDV envisions a digitally engineered and configurable software defined vehicle product line, that is continuously certified.
 
