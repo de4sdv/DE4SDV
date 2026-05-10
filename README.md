@@ -4,6 +4,10 @@ Get in touch with us: https://join.slack.com/t/sdv-sysmlv2/shared_invite/zt-3xeu
 # Vision
 DE4SDV envisions a digitally engineered and configurable software defined vehicle product line, that is continuously certified.
 
+# System-of-Interest
+
+The System of Interest is a project-governed, open-source, model-based SDV Product-Line Engineering and Assurance System. It incrementally realizes SDV use cases by specifying configurable product-line architectures, managing variability, integrating project-owned and selected external OSS assets through controlled interfaces and adapters, executing verification, validation, simulation, and digital-twin workflows, and maintaining continuous certification evidence baselines for SDV variants. Independently governed OSS projects remain outside the SoI unless they are forked, wrapped, configured, or baselined as part of the project-controlled architecture; otherwise, they interact with the SoI at the external ecosystem boundary.
+
 # Digital Engineering for Software-Defined Vehicle
 
 An open-source starter repository for **Digital Engineering of Software-Defined Vehicle (SDV)** with emphasis on:
