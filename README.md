@@ -52,7 +52,7 @@ Start here:
 
 1. Read `CONTRIBUTING.md`
 2. Read `AGENTS.md` if you use an AI coding assistant
-3. Check `docs/project-goals/project-charter.md`
+3. Read the [Project Charter](docs/project-goals/project-charter.md)
 4. Open an issue using the templates in `.github/ISSUE_TEMPLATE/`
 5. Submit a focused pull request using the PR checklist
 
