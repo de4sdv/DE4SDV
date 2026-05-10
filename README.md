@@ -50,7 +50,7 @@ This project welcomes contributions beyond code: documentation, examples, safety
 
 Start here:
 
-1. Read `CONTRIBUTING.md`
+1. Read the practical contributor guide: `CONTRIBUTING.md`
 2. Read `AGENTS.md` if you use an AI coding assistant
 3. Check `docs/project-goals/project-charter.md`
 4. Open an issue using the templates in `.github/ISSUE_TEMPLATE/`
