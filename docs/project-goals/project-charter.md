@@ -6,7 +6,7 @@ DE4SDV exists to provide an open, model-based reference foundation for engineeri
 
 ## Problem statement
 
-SDV programs must coordinate architecture, software, variability, simulation, safety, cybersecurity, compliance, and lifecycle evidence. In practice, these activities are fragmented across tools and teams, which creates traceability gaps, duplicated effort, and late certification risk. DE4SDV addresses this by offering an open structure, shared methods, and reusable artifacts that connect engineering decisions to compliance evidence.
+Software-Defined Vehicles (SDVs) require coordinated engineering across many domains - architecture, variants, software, safety, security, compliance, simulation, digital twins, and lifecycle traceability. Yet many teams do not have an open reference framework that links these concerns. At the same time, an ever-growing portion of SDV-related technology is being released as open source. As a result, a holistic approach for integrating these disparate technologies into configurable stacks is essential.
 
 ## Target users / personas
 
