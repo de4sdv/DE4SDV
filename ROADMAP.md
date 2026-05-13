@@ -27,6 +27,9 @@ Issue links:
 - Initial repository structure documented and adopted (#2)
 - Contributor workflow and review expectations documented in CONTRIBUTING.md (#4)
 - Roadmap and milestone scope explicitly defined and synchronized in ROADMAP.md (#3)
+- Initial process set for DE4SDV engineering workflow is documented.
+- Initial ontology baseline is defined.
+- System context view is defined and published.
 
 ### Blocking order and dependencies
 
