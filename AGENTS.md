@@ -44,7 +44,7 @@ Before proposing a completed change:
 
 - Prefer short, concrete Markdown documents.
 - Explain the user problem first, then the technical solution.
-- Define domain terms in `docs/terminology/glossary.md`.
+- Define domain terms in [`docs/terminology/glossary.md`](docs/terminology/glossary.md).
 - Use Architecture Decision Records in `docs/architecture-decisions/`.
 - Avoid inventing compliance claims. Mark evidence as `draft`, `example`, or `not yet validated`.
 
@@ -79,4 +79,4 @@ Never:
 
 ## Tool-specific files
 
-`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and `.cursor/rules/*.mdc` should reference this file as the source of truth to avoid duplicated instructions.
+[`CLAUDE.md`](CLAUDE.md), `.cursorrules`, [`.github/copilot-instructions.md`](.github/copilot-instructions.md), and `.cursor/rules/*.mdc` should reference this file as the source of truth to avoid duplicated instructions.
