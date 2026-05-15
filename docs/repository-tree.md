@@ -93,9 +93,9 @@ implementation/
 implementation/README.md
 methodologies/
 methodologies/README.md
-model/
-model/README.md
-model/example-system-model.sysml
+textual-notation-of-model/
+textual-notation-of-model/README.md
+textual-notation-of-model/example-system-model.sysml
 model-based-product-line-engineering/
 model-based-product-line-engineering/README.md
 model-based-product-line-engineering/feature-configurations/

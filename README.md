@@ -29,7 +29,7 @@ An open-source starter repository for **Digital Engineering of Software-Defined 
 | `standards/` | Standards map and interpretation notes |
 | `approach/` | Process set, framework, ontology, viewpoints |
 | `methodologies/` | Method guidance and reusable engineering methods |
-| `model/` | System model assets and examples |
+| `textual-notation-of-model/` | System model assets and examples |
 | `digital-continuity/` | OSLC, digital thread, traceability, lifecycle integration |
 | `digital-twin/` | Digital twin concepts, parameters, and runtime alignment |
 | `simulation/` | FMI/FMU/SSP simulation integration assets |

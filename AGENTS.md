@@ -24,7 +24,7 @@ npx markdownlint "**/*.md"
 - `docs/` — human-facing documentation
 - `specs/` — short authoritative specifications; update these when behavior or architecture changes
 - `implementation/` — reference implementation code
-- `model/` — system model assets
+- `textual-notation-of-model/` — system model assets
 - `sysmlv2-api/` — SysML v2 API integration assets
 - `simulation/` — FMU/FMI/SSP integration assets
 - `model-based-product-line-engineering/` — feature models, configurations, shared assets, product models
