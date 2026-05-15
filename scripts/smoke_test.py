@@ -18,7 +18,7 @@ def main() -> int:
     # Core folders
     for rel in [
         "docs",
-        "model",
+        "textual-notation-of-model",
         "simulation",
         "compliance",
         "devsecops",
