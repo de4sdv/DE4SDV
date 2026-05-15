@@ -1,0 +1,42 @@
+name: Simulation increment (FMI/FMU/SSP)
+description: Add or improve simulation examples and interoperability guidance
+title: "[Simulation] <short summary>"
+labels: ["lane:simulation", "size:M"]
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What simulation capability or guidance is being added?
+    validations:
+      required: true
+  - type: textarea
+    id: assumptions
+    attributes:
+      label: Tool/version assumptions
+      description: State FMI/FMU/SSP versions and tool compatibility assumptions
+      placeholder: "FMI 2.0 Co-Simulation, SSP 1.0, tool XYZ version ..."
+    validations:
+      required: true
+  - type: textarea
+    id: assets
+    attributes:
+      label: Affected assets
+      description: Files under simulation/, model/, docs/, specs/
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation approach
+      description: How behavior and assumptions are validated
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Contribution size
+      options: [XS, S, M, L]
+      default: 2
+    validations:
+      required: true

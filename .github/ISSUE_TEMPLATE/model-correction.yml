@@ -1,0 +1,58 @@
+name: Model correction
+description: Correct a specific SysML/model element or relationship
+title: "[Model Correction] <short summary>"
+labels: ["lane:modeling", "size:XS"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for focused corrections to existing model elements.
+  - type: input
+    id: location
+    attributes:
+      label: Model element location
+      description: File/path and element identifier(s)
+      placeholder: "model/example-system-model.sysml :: package::block::attribute"
+    validations:
+      required: true
+  - type: textarea
+    id: current_state
+    attributes:
+      label: Current state
+      description: What is currently wrong/inconsistent?
+    validations:
+      required: true
+  - type: textarea
+    id: expected_state
+    attributes:
+      label: Expected state
+      description: What should be true after correction?
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacted artifacts
+      description: Docs/specs/simulation/compliance artifacts likely impacted
+      placeholder: docs/terminology/glossary.md, specs/repository-spec.md
+  - type: dropdown
+    id: size
+    attributes:
+      label: Contribution size
+      options:
+        - XS
+        - S
+        - M
+        - L
+      default: 0
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I verified no unsupported compliance/certification claims are introduced
+          required: true
+        - label: I listed impacted artifacts to preserve traceability
+          required: true

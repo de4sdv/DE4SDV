@@ -1,0 +1,51 @@
+name: Model use-case increment
+description: Add or expand a use-case slice with SysML and linked artifacts
+title: "[Use Case Increment] <use case name>"
+labels: ["lane:modeling", "size:S"]
+body:
+  - type: input
+    id: usecase
+    attributes:
+      label: Use case name
+      placeholder: "UC-XXX: Emergency lane change"
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope of increment
+      description: Which new behaviors, actors, interfaces, or constraints are added?
+    validations:
+      required: true
+  - type: textarea
+    id: model_changes
+    attributes:
+      label: Planned model changes
+      description: Target files/packages/elements
+      placeholder: "model/... and/or model-based-product-line-engineering/..."
+    validations:
+      required: true
+  - type: textarea
+    id: traceability
+    attributes:
+      label: Traceability links
+      description: Links to requirements, tests, safety/security, or evidence registers
+  - type: dropdown
+    id: size
+    attributes:
+      label: Contribution size
+      options: [XS, S, M, L]
+      default: 1
+    validations:
+      required: true
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: Definition of done check
+      options:
+        - label: Updated relevant docs/specs for changed assumptions or terminology
+          required: true
+        - label: Included verification approach (how this increment will be validated)
+          required: true
+        - label: No unsupported compliance/certification claims
+          required: true
