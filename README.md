@@ -50,8 +50,8 @@ This project welcomes contributions beyond code: documentation, examples, safety
 
 Start here:
 
-1. Read the practical contributor guide: `CONTRIBUTING.md`
-2. Read `AGENTS.md` if you use an AI coding assistant
+1. Read the practical contributor guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+2. Read [`AGENTS.md`](AGENTS.md) if you use an AI coding assistant
 3. Read the [Project Charter](docs/project-goals/project-charter.md)
 4. Open an issue using the templates in `.github/ISSUE_TEMPLATE/`
 5. Submit a focused pull request using the PR checklist

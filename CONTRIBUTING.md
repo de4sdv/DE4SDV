@@ -58,7 +58,7 @@ A contribution is done when:
 
 - Clear user/project value is documented.
 - Traceability to project goals and impacted artifacts is explicit.
-- Terminology is consistent with `docs/terminology/glossary.md`.
+- Terminology is consistent with [`docs/terminology/glossary.md`](docs/terminology/glossary.md).
 - Relevant docs/specs are updated when assumptions or structure change.
 - No secrets or unsupported compliance/certification claims are introduced.
 - Repository checks pass.
@@ -178,7 +178,7 @@ A PR may receive requests for changes before approval.
 
 At this stage, project maintainers are responsible for final approval and merge decisions.
 
-As governance evolves, additional contributor roles and explicit authority levels may be defined in `GOVERNANCE.md`.
+As governance evolves, additional contributor roles and explicit authority levels may be defined in [`GOVERNANCE.md`](GOVERNANCE.md).
 
 ## What to avoid for now
 
@@ -194,7 +194,7 @@ Please avoid:
 
 By participating in this project, you agree to follow the Code of Conduct:
 
-- `CODE_OF_CONDUCT.md`
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 
 ## Thank you
 
