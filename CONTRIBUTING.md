@@ -4,6 +4,28 @@ Thank you for your interest in contributing to DE4SDV (Digital Engineering for S
 
 DE4SDV is an open-source effort focused on model-based, product-line, and continuously certifiable SDV engineering. We welcome contributions from systems engineers, software engineers, safety/compliance specialists, and documentation contributors.
 
+## Contribution sizes
+
+Use these size classes to keep work reviewable:
+
+- **XS (correction):** Correct one specific model/documentation element (naming, relation, typo, constraint mismatch).
+- **S (increment):** Add one focused use-case or documentation/methodology slice.
+- **M (capability):** Add a new cross-file capability (traceability rule, simulation integration, evidence mapping, etc.).
+- **L (epic):** End-to-end changes spanning model + docs + specs + evidence structures.
+
+## Contribution lanes
+
+Contributors can work in one or more lanes:
+
+- **Modeling** — SysML v2 model additions, corrections, and refactoring
+- **Methodology** — process definitions, modeling method guidance
+- **Documentation** — tutorials, onboarding, terminology, architecture notes
+- **Simulation** — FMU/FMI/SSP examples and interoperability guidance
+- **Traceability** — lifecycle links between requirements, model, tests, and evidence
+- **Compliance** — safety/security/regulatory evidence structure and quality
+- **DevSecOps** — repository checks, CI, automation, policy-as-code notes
+- **Community** — issue triage, roadmap grooming, mentoring and onboarding
+
 ## Ways to contribute
 
 Contributions are welcome in all of the following areas:
@@ -19,6 +41,38 @@ Contributions are welcome in all of the following areas:
 - Issue triage, bug reports, gap analysis, and proposal discussion
 
 If you are unsure where to start, open an issue and describe your background and interests.
+
+## Model correction protocol (XS)
+
+When correcting existing model elements:
+
+1. Identify the exact model element(s) and file location.
+2. Describe current vs expected state.
+3. List impacted artifacts (docs/specs/tests/evidence registers).
+4. Apply the smallest focused correction.
+5. Verify consistency with terminology and traceability.
+
+## Definition of Done (DoD)
+
+A contribution is done when:
+
+- Clear user/project value is documented.
+- Traceability to project goals and impacted artifacts is explicit.
+- Terminology is consistent with `docs/terminology/glossary.md`.
+- Relevant docs/specs are updated when assumptions or structure change.
+- No secrets or unsupported compliance/certification claims are introduced.
+- Repository checks pass.
+
+Lane-specific DoD additions:
+
+- **Modeling:** changed element rationale + impacted links documented.
+- **Methodology:** process change includes usage guidance and boundaries.
+- **Documentation:** includes examples and avoids ambiguous language.
+- **Simulation:** states FMI/FMU/SSP version/tool assumptions.
+- **Traceability:** links are bidirectional where applicable.
+- **Compliance:** marks evidence as draft/example when not validated.
+- **DevSecOps:** CI/check changes include expected outcomes.
+- **Community:** issue/PR metadata supports discoverability and onboarding.
 
 ## Before you start
 

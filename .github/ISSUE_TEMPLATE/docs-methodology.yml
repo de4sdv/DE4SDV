@@ -1,0 +1,44 @@
+name: Documentation / methodology update
+description: Improve documentation, onboarding, process, or methodology assets
+title: "[Docs/Methodology] <short summary>"
+labels: ["lane:docs", "size:S"]
+body:
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Primary lane
+      options:
+        - docs
+        - methodology
+        - onboarding
+        - terminology
+        - governance
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What is unclear, missing, inconsistent, or hard to use today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Files/sections to create or modify
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How we know this is done and useful
+  - type: dropdown
+    id: size
+    attributes:
+      label: Contribution size
+      options: [XS, S, M, L]
+      default: 1
+    validations:
+      required: true
