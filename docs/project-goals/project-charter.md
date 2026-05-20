@@ -24,10 +24,13 @@ Software-Defined Vehicles (SDVs) require coordinated engineering across many dom
 - Define a practical, open repository structure for SDV digital engineering assets.
 - Establish end-to-end traceability across requirements, models, variants, tests, and compliance evidence.
 - Enable configurable SDV product-line engineering with reusable patterns.
+- Enable certified freedom: support configurable vehicle feature tailoring within clearly defined safety, security, and compliance guardrails.
 - Support simulation-backed engineering decisions and digital twin readiness.
 - Integrate safety, security, and regulatory evidence into everyday development.
+- Promote ecosystem diversity by enabling systematic comparison of alternative open-source subsystem stacks rather than mandating a single stack.
 - Provide AI-ready, machine-readable documentation and governance artifacts.
 - Build a contributor community around transparent, standards-aware practices.
+- Improve openness and trust through explicit data-handling transparency and user-control-oriented design patterns for vehicle and user data.
 
 ## Non-goals (current scope)
 
@@ -41,9 +44,12 @@ Software-Defined Vehicles (SDVs) require coordinated engineering across many dom
 
 - Open by default: methods and artifacts should be reusable and reviewable.
 - Model-centered: architecture and behavior are defined through structured models.
+- Ecosystem diversity over lock-in: evaluate and compose multiple open-source alternatives instead of prescribing a single technical stack.
 - Traceability first: every important claim should be linkable to evidence.
 - Variant-aware: product-line variability is explicit, governed, and testable.
+- Certified freedom with guardrails: configurable vehicle features are enabled within clearly defined safety, security, and compliance boundaries.
 - Compliance as flow: assurance evidence is created continuously, not at the end.
+- Data openness and user control: data handling should be transparent, with meaningful user control where applicable.
 - Automation with accountability: CI/CD and AI assist, humans remain responsible.
 - Incremental evolution: start simple, baseline often, mature through iteration.
 
