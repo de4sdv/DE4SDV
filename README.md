@@ -2,7 +2,10 @@
 Get in touch with us: https://join.slack.com/t/sdv-sysmlv2/shared_invite/zt-3xeu04a3n-o7_6M46QNAoXKhEiLbb0gw
 
 # Vision
-DE4SDV envisions a digitally engineered and configurable software defined vehicle product line, that is continuously certified.
+DE4SDV envisions a digitally engineered, continuously certifiable software-defined vehicle product line that embraces ecosystem diversity rather than locking into a single stack.
+Across subsystems such as ADAS, operating systems, and core software, multiple open-source alternatives already exist. DE4SDV applies product line engineering to model this variability explicitly as configurable architectures, enabling systematic comparison of alternatives, transparent trade-off decisions, and lifecycle-wide assurance.
+
+In this future, OEM differentiation will likely extend beyond traditional choices such as color, trim packages, sensors, and assistance systems. A central differentiator will likely be **certified freedom**: the ability to customize vehicle features within clearly defined guardrails that preserve safety, security, and compliance. Equally important are openness and trust, including transparency over how vehicle and user data is handled, and meaningful user control over that data.
 
 # System-of-Interest
 
@@ -58,4 +61,9 @@ Start here:
 
 ## License
 
-Default scaffold license: **Apache License 2.0**. Replace it if your project needs another license before publishing.
+**Apache License 2.0**. 
+## References
+
+- [Systems Engineering Demystified](https://learning.oreilly.com/library/view/systems-engineering-demystified/9781804610688/?gad_source=1&gad_campaignid=23742776561&gbraid=0AAAAADHuAxNBmd6bXR-CuqaYVK8kCM07z&gclid=CjwKCAjwt7XQBhBkEiwAtStpp9dW4nDzh9uyPGeoQo-P6k2hbAfEzWpXXpt_584OR0DJHNQX7y6pehoCPKwQAvD_BwE)
+- [Model‐Based Product Line Engineering (MBPLE): The Feature‐Based Path to Product Lines Success](https://onlinelibrary.wiley.com/doi/book/10.1002/9781394204694)
+- [SYSMOD — Systems Modeling with SysML](https://mbse4u.com/sysmod/)
