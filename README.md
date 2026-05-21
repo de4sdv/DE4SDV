@@ -2,7 +2,7 @@
 Get in touch with us: https://join.slack.com/t/sdv-sysmlv2/shared_invite/zt-3xeu04a3n-o7_6M46QNAoXKhEiLbb0gw
 
 # Vision
-DE4SDV envisions a digitally engineered, continuously certifiable software-defined vehicle product line that embraces ecosystem diversity rather than locking into a single stack.
+Digital Engineering for Software-defined Vehicle (DE4SDV) envisions a digitally engineered, continuously certifiable software-defined vehicle product line that embraces ecosystem diversity rather than locking into a single stack.
 Across subsystems such as ADAS, operating systems, and core software, multiple open-source alternatives already exist. DE4SDV applies product line engineering to model this variability explicitly as configurable architectures, enabling systematic comparison of alternatives, transparent trade-off decisions, and lifecycle-wide assurance.
 
 In this future, OEM differentiation will likely extend beyond traditional choices such as color, trim packages, sensors, and assistance systems. A central differentiator will likely be **certified freedom**: the ability to customize vehicle features within clearly defined guardrails that preserve safety, security, and compliance. Equally important are openness and trust, including transparency over how vehicle and user data is handled, and meaningful user control over that data.
