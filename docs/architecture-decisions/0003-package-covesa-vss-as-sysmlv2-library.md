@@ -1,4 +1,4 @@
-# ADR 0002: Package COVESA VSS as a draft SysML v2 library
+# ADR 0003: Package COVESA VSS as a draft SysML v2 library
 
 ## Status
 
