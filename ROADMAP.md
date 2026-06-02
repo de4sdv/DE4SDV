@@ -30,6 +30,7 @@ Issue links:
 - Initial process set for DE4SDV engineering workflow is documented.
 - Initial ontology baseline is defined.
 - System context view is defined and published.
+- ASELCM-aligned System 1/System 2/System 3 scope framing is documented.
 
 ### Blocking order and dependencies
 
@@ -66,5 +67,6 @@ v0.1 Foundation is done when all of the following are true:
 After v0.1, priority shifts from governance/setup to executable technical assets:
 - Conceptual framework consolidation (ontology, viewpoints, ADRs, standards mapping)
 - Reference SysML v2 and MBPLE examples
+- A small SysML v2 context model for the ASELCM-aligned DE4SDV System 1/System 2/System 3 framing
 - Simulation interoperability examples (FMI/FMUs/SSP)
 - Digital continuity and continuous compliance workflows
