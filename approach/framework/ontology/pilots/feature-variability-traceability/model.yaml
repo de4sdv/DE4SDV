@@ -1,0 +1,158 @@
+product_line:
+  id: PL-DE4SDV
+  name: DE4SDV product line
+  description: >
+    Example product line used to test feature variability traceability for a
+    digitally engineered software-defined vehicle product-line concept.
+
+source_terms:
+  - id: SRC-ISO-IEC-26580-FEATURE
+    source: ISO/IEC 26580:2021
+    note: >
+      Feature semantics are based on the idea that features distinguish member
+      products; common characteristics are not modeled as features.
+  - id: SRC-ISO-IEC-26580-FEATURE-CATALOGUE
+    source: ISO/IEC 26580:2021
+    note: >
+      Feature catalogue, bill-of-features, shared asset superset, and variation
+      point are used as product-line vocabulary anchors.
+
+member_products:
+  - id: MP-BASE-SDV
+    name: BaseSDV
+    description: Baseline member product for the pilot.
+  - id: MP-PREMIUM-SDV
+    name: PremiumSDV
+    description: Member product with additional recoverability behavior.
+
+common_capabilities:
+  - id: CAP-OTA-UPDATE
+    name: OTA update support
+    definition: >
+      Ability to receive, install, and report over-the-air software updates.
+    included_in:
+      - MP-BASE-SDV
+      - MP-PREMIUM-SDV
+    rationale: >
+      Included in every example member product, so it is a common capability,
+      not a feature.
+
+features:
+  - id: FEAT-OTA-ROLLBACK
+    name: Automatic rollback for OTA update
+    definition: >
+      Distinguishing characteristic of the PremiumSDV member product that
+      restores the last known-good software baseline when a post-install health
+      check fails.
+    included_in:
+      - MP-PREMIUM-SDV
+    excludes_from:
+      - MP-BASE-SDV
+    distinguishes_from:
+      - MP-BASE-SDV
+    source_term:
+      - SRC-ISO-IEC-26580-FEATURE
+    derived_from:
+      - NEED-OTA-RECOVERABLE
+    specified_by:
+      - REQ-OTA-ROLLBACK-001
+    realized_by:
+      - ARCH-ROLLBACK-MANAGER
+    variation_points:
+      - VP-OTA-RECOVERY-BEHAVIOR
+    verified_by:
+      - EVID-ROLLBACK-FAILURE-INJECTION
+    certification_impact:
+      - CERT-OTA-RELEASE-EVIDENCE
+
+feature_catalogue:
+  id: FC-DE4SDV-PILOT
+  name: DE4SDV pilot feature catalogue
+  contains_features:
+    - FEAT-OTA-ROLLBACK
+  contains_constraints:
+    - CONSTRAINT-ROLLBACK-REQUIRES-OTA
+
+feature_constraints:
+  - id: CONSTRAINT-ROLLBACK-REQUIRES-OTA
+    name: OTA rollback requires OTA update support
+    kind: requires
+    if_selected: FEAT-OTA-ROLLBACK
+    requires_capability: CAP-OTA-UPDATE
+
+bills_of_features:
+  - id: BOF-BASE-SDV
+    member_product: MP-BASE-SDV
+    selected_features: []
+  - id: BOF-PREMIUM-SDV
+    member_product: MP-PREMIUM-SDV
+    selected_features:
+      - FEAT-OTA-ROLLBACK
+
+needs:
+  - id: NEED-OTA-RECOVERABLE
+    text: >
+      The product line needs recoverable OTA installation behavior so failed
+      updates do not leave selected member products in an unusable or unsafe
+      software state.
+
+requirements:
+  - id: REQ-OTA-ROLLBACK-001
+    text: >
+      When an OTA update installation completes but the post-install health
+      check fails, selected member products shall restore the last known-good
+      software baseline and report rollback status.
+    applies_to_features:
+      - FEAT-OTA-ROLLBACK
+
+architecture_elements:
+  - id: ARCH-ROLLBACK-MANAGER
+    name: Rollback manager service
+    kind: software service
+    realizes:
+      - REQ-OTA-ROLLBACK-001
+
+shared_asset_supersets:
+  - id: SAS-OTA-REQUIREMENTS
+    name: OTA requirements superset
+    asset_kind: requirements
+    includes_variation_points:
+      - VP-OTA-RECOVERY-BEHAVIOR
+  - id: SAS-OTA-ARCHITECTURE
+    name: OTA architecture superset
+    asset_kind: architecture model
+    includes_variation_points:
+      - VP-OTA-RECOVERY-BEHAVIOR
+
+variation_points:
+  - id: VP-OTA-RECOVERY-BEHAVIOR
+    name: OTA recovery behavior variation point
+    location: OTA requirements and architecture shared asset supersets
+    configured_by:
+      - FEAT-OTA-ROLLBACK
+    variants:
+      - id: VAR-NO-AUTO-ROLLBACK
+        applies_when_feature_absent: FEAT-OTA-ROLLBACK
+      - id: VAR-AUTO-ROLLBACK
+        applies_when_feature_selected: FEAT-OTA-ROLLBACK
+
+evidence_artifacts:
+  - id: EVID-ROLLBACK-FAILURE-INJECTION
+    name: Rollback failure-injection verification result
+    kind: planned verification evidence
+    verifies:
+      - REQ-OTA-ROLLBACK-001
+    supports_features:
+      - FEAT-OTA-ROLLBACK
+
+certification_impacts:
+  - id: CERT-OTA-RELEASE-EVIDENCE
+    name: OTA release evidence impact
+    description: >
+      Selected member products with automatic rollback require evidence that
+      failed installations restore a known-good software baseline and report
+      rollback status.
+    impacted_by:
+      - FEAT-OTA-ROLLBACK
+      - REQ-OTA-ROLLBACK-001
+      - EVID-ROLLBACK-FAILURE-INJECTION
