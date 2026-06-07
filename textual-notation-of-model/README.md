@@ -10,6 +10,18 @@ current adoption step documents the upstream SYSMOD SysML v2 reference and
 tailoring approach; future increments may add local packages such as a DE4SDV
 tailoring package and context model.
 
+## Validation
+
+All generated or modified `.sysml` textual notation in this directory must be
+validated before the modeling step is considered complete:
+
+```bash
+python scripts/validate_sysml.py
+```
+
+The validation wrapper uses Sensmetry SysIDE Modeler CLI (`syside check`) and
+reports a clean no-op when the repository has no `.sysml` files yet.
+
 ## Libraries
 
 - [`libraries/covesa-vss-sysmlv2`](libraries/covesa-vss-sysmlv2/) — draft
