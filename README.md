@@ -9,7 +9,22 @@ In this future, OEM differentiation will likely extend beyond traditional choice
 
 # System-of-Interest
 
-The System of Interest is a project-governed, open-source, model-based SDV Product-Line Engineering and Assurance System. It incrementally realizes SDV use cases by specifying configurable product-line architectures, managing variability, integrating project-owned and selected external OSS assets through controlled interfaces and adapters, executing verification, validation, simulation, and digital-twin workflows, and maintaining continuous certification evidence baselines for SDV variants. Independently governed OSS projects remain outside the SoI unless they are forked, wrapped, configured, or baselined as part of the project-controlled architecture; otherwise, they interact with the SoI at the external ecosystem boundary.
+The System of Interest (SoI) is the project-governed, open-source, model-based SDV Product-Line Engineering and Assurance *management system* that DE4SDV controls and continuously improves.
+
+Inside the SoI boundary:
+- Product-line architecture and variability definitions under DE4SDV governance
+- Project-controlled integration assets (adapters, wrappers, interface contracts, baselines)
+- Verification, validation, simulation, and digital-twin workflow assets managed by the project
+- Lifecycle evidence, metadata, and traceability artifacts needed for continuous certification claims
+
+Outside the SoI boundary (but connected through interfaces):
+- Independently governed upstream OSS projects and external toolchains
+- Partner, supplier, enterprise, or ecosystem systems not governed by DE4SDV
+- Runtime/operational environments that consume SoI outputs but are not project-controlled
+
+Boundary rule: an element is part of the SoI only when DE4SDV governs its configuration, change control, and evidence/traceability obligations. Otherwise, it is treated as an external system at the ecosystem boundary and is integrated through explicit interface and assurance contracts.
+
+This boundary definition aligns the project with digital-twin reference-model practice by making the managed twin boundary explicit and by separating internal consistency-management responsibilities from external business/ecosystem processes.
 
 # Digital Engineering for Software-Defined Vehicle
 
