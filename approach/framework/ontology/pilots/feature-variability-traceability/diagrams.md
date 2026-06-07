@@ -78,6 +78,26 @@ flowchart LR
     VP -->|configured content| PRODUCT
 ```
 
+## Future SysML v2 semantic stack
+
+```mermaid
+flowchart TD
+    K[KerML semantic libraries]
+    S[SysML v2 semantic libraries]
+    D[DE4SDV product-line domain library]
+    M[Semantic metadata / user-defined keywords]
+    U[Concrete DE4SDV model usage]
+
+    K --> S
+    S --> D
+    D --> M
+    M --> U
+    D --> U
+```
+
+Metadata and user-defined keywords are shown as shorthand over the domain
+library, not as the source of semantics.
+
 ## Pilot quality gates
 
 ```mermaid

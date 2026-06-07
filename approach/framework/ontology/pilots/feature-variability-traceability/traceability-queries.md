@@ -20,6 +20,9 @@ this pilot proves useful.
 - If `FEAT-OTA-ROLLBACK` changes, which member products, requirements,
   architecture elements, evidence artifacts, and release/certification impacts
   are affected?
+- Which affected member products can be derived from a changed feature,
+  requirement, architecture element, or evidence artifact rather than asserted
+  directly?
 
 ## Requirements and architecture traceability
 
@@ -28,6 +31,8 @@ this pilot proves useful.
   `FEAT-OTA-ROLLBACK`?
 - Which variation points are configured by `FEAT-OTA-ROLLBACK`?
 - Which shared asset supersets contain those variation points?
+- Which trace links are asserted directly, and which are derived from other
+  model relationships?
 
 ## Evidence and assurance
 

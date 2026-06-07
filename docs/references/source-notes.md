@@ -56,6 +56,10 @@ pilot:
 - SysML v2 and KerML specifications. Candidate system-modeling alignment targets
   for later mapping work; the first pilot intentionally avoids `.sysml`
   artifacts.
+- SysML v2 domain-specific modeling tutorial video, `Ay3-a3NkGF0`. Used as
+  background for the distinction between SysML v1-style profiles and SysML v2
+  model-library/semantic-metadata based domain-specific modeling, and for
+  interoperability cautions around unmanaged DSML proliferation.
 - COVESA VSS/VSSo, SOSA/SSN, and OSLC. Candidate external alignment vocabularies
   for later SDV signal, observation, and lifecycle-federation work; not imported
   by the first pilot PR.

@@ -61,3 +61,6 @@ ontology artifacts.
 - Do not introduce external ontology libraries or generated artifacts without
   license and upstream-review notes.
 - Do not treat candidate notation examples as adopted DE4SDV practice.
+- Do not create project-local SysML v2 DSML keywords for every modeling
+  preference. Domain-specific SysML v2 extensions should be standardized with
+  collaborators where possible and grounded in semantic model libraries.

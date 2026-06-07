@@ -62,6 +62,20 @@ Every `BillOfFeatures` shall satisfy the feature constraints declared in the
 Every `VariationPoint` in a shared asset superset shall identify the feature
 selection or configuration condition that configures it.
 
+## Future SysML v2 semantic grounding
+
+### RULE-011 — Semantic keyword grounding
+
+Any future SysML v2 user-defined keyword or semantic metadata annotation shall
+resolve to a domain concept defined in a DE4SDV model library or an accepted
+upstream library. Keywords shall not be introduced as ungrounded labels.
+
+### RULE-012 — Interoperable domain-specific modeling
+
+DE4SDV-specific SysML v2 shorthand shall remain understandable when viewed as
+plain SysML v2 and shall not replace the underlying library-defined semantics.
+Project-local keyword proliferation is a modeling risk, not a feature.
+
 ## Future implementation options
 
 - YAML schema could check required fields and ID references.

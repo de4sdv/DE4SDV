@@ -69,12 +69,37 @@ Limits:
 - adding `.sysml` artifacts would require SysML validation and would turn this
   PR into a tooling PR.
 
+#### SysML v2 domain-specific modeling path
+
+If DE4SDV later maps this pilot into SysML v2, the preferred path is a
+domain model library with explicit semantics, not a SysML v1-style profile or a
+collection of decorative stereotypes.
+
+Useful SysML v2 alignment principles for later work:
+
+- define DE4SDV product-line concepts in a domain model library first;
+- use semantic metadata and user-defined keywords only as shorthand over those
+  library-defined concepts;
+- require each semantic keyword or metadata annotation to resolve to a base
+  semantic type or accepted upstream library concept;
+- avoid project-local keyword proliferation that would make DE4SDV models hard
+  to exchange or understand outside one tool setup;
+- keep the model readable as plain SysML v2 even when DE4SDV shorthand is used.
+
+For future SysML v2 product-line libraries, define both reusable domain
+definitions and reusable base usages where appropriate. Definitions keep the
+concepts stable; base usages provide contextual anchors that member-product
+models can specialize, redefine, or configure.
+
 ## Recommended pilot sequence
 
-1. Use Markdown, YAML, and Mermaid in this PR. 2. If reviewers accept the
-concept, add RDF/Turtle, SHACL, and SPARQL as a follow-up experiment. 3.
-Evaluate OML/openCAESAR only after the pilot has a clear engineering payoff. 4.
-Map selected concepts to SysML v2 only after the semantics stabilize.
+1. Use Markdown, YAML, and Mermaid in this PR.
+2. If reviewers accept the concept, add RDF/Turtle, SHACL, and SPARQL as a
+   follow-up experiment.
+3. Evaluate OML/openCAESAR only after the pilot has a clear engineering payoff.
+4. Map selected concepts to SysML v2 only after the semantics stabilize.
+5. When SysML v2 mapping starts, prefer semantic domain libraries before adding
+   user-defined keywords or metadata shorthand.
 
 ## Possible future mapping
 
