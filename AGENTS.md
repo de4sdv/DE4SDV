@@ -11,6 +11,7 @@ This repository develops open-source reference assets for systems engineering of
 ```bash
 python scripts/check_repo.py
 python scripts/smoke_test.py
+python scripts/validate_sysml.py
 ```
 
 Optional when available:
@@ -37,8 +38,33 @@ Before proposing a completed change:
 
 1. Run `python scripts/check_repo.py`
 2. Run `python scripts/smoke_test.py`
-3. Update relevant files in `specs/` or `docs/` if the change affects architecture, workflow, terminology, safety, security, or compliance assumptions
-4. Include test evidence in the pull request description
+3. For any change that creates or modifies SysML v2 textual notation, run
+   `python scripts/validate_sysml.py` and include the Sensmetry SysIDE
+   Modeler CLI validation evidence
+4. Update relevant files in `specs/` or `docs/` if the change affects
+   architecture, workflow, terminology, safety, security, or compliance
+   assumptions
+5. Include test evidence in the pull request description
+
+## SysML v2 textual notation validation
+
+All generated or modified `.sysml` files under `textual-notation-of-model/`
+must be validated before the modeling step is treated as complete.
+
+Use the repository wrapper:
+
+```bash
+python scripts/validate_sysml.py
+```
+
+The wrapper runs Sensmetry SysIDE Modeler CLI validation equivalent to:
+
+```bash
+syside check textual-notation-of-model/
+```
+
+If validation fails, keep the modeling work in draft state and document the
+failure instead of presenting the SysML v2 textual notation as complete.
 
 ## Documentation style
 
