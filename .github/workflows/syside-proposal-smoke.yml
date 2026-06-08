@@ -8,6 +8,8 @@ on:
 
 jobs:
   syside-smoke:
+    env:
+      SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
