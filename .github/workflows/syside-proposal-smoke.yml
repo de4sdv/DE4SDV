@@ -1,0 +1,31 @@
+name: Syside proposal smoke check
+
+on:
+  push:
+    branches:
+      - ci/syside-proposal-smoke-check
+  workflow_dispatch:
+
+jobs:
+  syside-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Syside Python package
+        run: python -m pip install --upgrade pip syside==0.10.0
+
+      - name: Show Syside CLI help
+        run: syside --help
+
+      - name: Run Syside check on PR1/PR2 smoke proposals
+        run: |
+          syside check \
+            textual-notation-of-model/proposals/covesa-vss-pr1-metadata-smoke.sysml \
+            textual-notation-of-model/proposals/covesa-vss-pr2-enum-smoke.sysml
