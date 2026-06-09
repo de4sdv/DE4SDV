@@ -21,7 +21,6 @@ import subprocess
 
 import yaml
 
-
 UNIT_MAP: dict[str, tuple[str, str]] = {
     "A": ("ISQ::electricCurrent", "SI::ampere"),
     "Ah": ("ISQ::electricCharge", "SI::ampereHour"),
@@ -60,7 +59,6 @@ UNIT_MAP: dict[str, tuple[str, str]] = {
     "rpm": ("ISQ::angularVelocity", "SI-derived revolutionPerMinute"),
     "s": ("ISQ::time", "SI::second"),
 }
-
 
 def add_prefix(name: str, prefix: str | None) -> str:
     if not prefix:
@@ -109,8 +107,66 @@ def sysml_scalar_type(vss_datatype: str) -> str:
     return "ScalarValues::ScalarValue"
 
 
+def datatype_token(vss_datatype: str) -> str:
+    return vss_datatype or "unspecified"
+
+
+def kind_token(vss_kind: str) -> str:
+    return vss_kind or "unspecified"
+
+
 def compact(value: object) -> str:
-    return " ".join(str(value or "").split())
+    if value is None:
+        return ""
+    return " ".join(str(value).split())
+
+
+def sysml_string(value: object) -> str:
+    text = compact(value)
+    return '"' + text.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def doc_block(text: str, indent: str = "    ") -> list[str]:
+    if not text:
+        return []
+    return [f"{indent}doc /* {text.replace('*/', '* /')} */"]
+
+
+def metadata_block(value: dict, path: str, safe_name: str, quantity_ref: str, unit_ref: str) -> list[str]:
+    about = safe_name
+    lines = [
+        f"  @VssSignalMetadata about {about} {{",
+        f"    path = {sysml_string(path)};",
+        f"    kind = {sysml_string(kind_token(value.get('type', 'unspecified')))};",
+        f"    datatype = {sysml_string(datatype_token(value.get('datatype', '')))};",
+        f"    sourceDescription = {sysml_string(value.get('description', ''))};",
+        f"    sourceComment = {sysml_string(value.get('comment', ''))};",
+        "  }",
+    ]
+    if quantity_ref or unit_ref:
+        lines.extend([
+            f"  @VssQuantityMetadata about {about} {{",
+            f"    quantityReference = {sysml_string(quantity_ref)};",
+            f"    unitReference = {sysml_string(unit_ref)};",
+            "  }",
+        ])
+    if "min" in value or "max" in value:
+        lines.extend([
+            f"  @VssRangeMetadata about {about} {{",
+            f"    minValue = {sysml_string(value.get('min', ''))};",
+            f"    maxValue = {sysml_string(value.get('max', ''))};",
+            "  }",
+        ])
+    if "allowed" in value:
+        allowed = value.get("allowed") or []
+        if not isinstance(allowed, list):
+            allowed = [allowed]
+        lines.extend([
+            f"  @VssAllowedValuesMetadata about {about} {{",
+            f"    allowedValues = {sysml_string(', '.join(str(item) for item in allowed))};",
+            "  }",
+        ])
+    return lines
 
 
 def git_commit(repo: Path) -> str:
@@ -118,6 +174,39 @@ def git_commit(repo: Path) -> str:
         return subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
     except Exception:
         return "unknown"
+
+
+def metadata_definitions() -> list[str]:
+    return [
+        "package MetadataDefinitions {",
+        "  metadata def VssSignalMetadata :> SemanticMetadata {",
+        "    ref :>> annotatedElement : SysML::AttributeDefinition;",
+        "    attribute path : String;",
+        "    attribute kind : String;",
+        "    attribute datatype : String;",
+        "    attribute sourceDescription : String;",
+        "    attribute sourceComment : String;",
+        "  }",
+        "",
+        "  metadata def VssQuantityMetadata :> SemanticMetadata {",
+        "    ref :>> annotatedElement : SysML::AttributeDefinition;",
+        "    attribute quantityReference : String;",
+        "    attribute unitReference : String;",
+        "  }",
+        "",
+        "  metadata def VssRangeMetadata :> SemanticMetadata {",
+        "    ref :>> annotatedElement : SysML::AttributeDefinition;",
+        "    attribute minValue : String;",
+        "    attribute maxValue : String;",
+        "  }",
+        "",
+        "  metadata def VssAllowedValuesMetadata :> SemanticMetadata {",
+        "    ref :>> annotatedElement : SysML::AttributeDefinition;",
+        "    attribute allowedValues : String;",
+        "  }",
+        "}",
+        "",
+    ]
 
 
 def generate(vss_repo: Path, output: Path) -> tuple[int, int, str]:
@@ -135,38 +224,33 @@ def generate(vss_repo: Path, output: Path) -> tuple[int, int, str]:
         " * Scope: leaf VSS attributes, sensors, and actuators reachable from spec/VehicleSignalSpecification.vspec.",
         " * Unit policy: VSS unit/quantity YAML files are not imported; unit references below point to SysML v2 standard",
         " * quantity/unit libraries (ISQ/SI/USCustomaryUnits) or derived expressions over those libraries.",
+        " * Semantics policy: VSS path, kind, datatype, description, comment, quantity/unit, range, and allowed-value",
+        " * fields are promoted into SysML metadata annotations instead of being kept only in comments.",
         " */",
         "",
         "package COVESA_VSS {",
         "",
-        "import ScalarValues::*;",
-        "import ISQ::*;",
-        "import SI::*;",
-        "import USCustomaryUnits::*;",
+        "private import ScalarValues::*;",
+        "private import ISQ::*;",
+        "private import SI::*;",
+        "private import USCustomaryUnits::*;",
+        "private import Metaobjects::SemanticMetadata;",
         "",
-        "package SignalDefinitions {",
     ]
+    lines.extend(metadata_definitions())
+    lines.extend([
+        "package SignalDefinitions {",
+        "  private import COVESA_VSS::MetadataDefinitions::*;",
+        "",
+    ])
 
     for path in sorted(leaves):
         value = leaves[path]
         unit = value.get("unit", "")
         quantity_ref, unit_ref = UNIT_MAP.get(unit, ("", "")) if unit else ("", "")
-        lines.append(f"  /* VSS path: {path}")
-        lines.append(f"   * VSS kind: {value.get('type', 'unspecified')}")
-        lines.append(f"   * VSS datatype: {value.get('datatype', 'unspecified')}")
-        if unit:
-            lines.append(f"   * Standard quantity reference: {quantity_ref}")
-            lines.append(f"   * Standard unit reference: {unit_ref}")
-        if compact(value.get("description")):
-            lines.append(f"   * Description: {compact(value.get('description'))}")
-        if compact(value.get("comment")):
-            lines.append(f"   * Comment: {compact(value.get('comment'))}")
-        if "allowed" in value:
-            lines.append(f"   * Allowed values: {value['allowed']}")
-        if "min" in value or "max" in value:
-            lines.append(f"   * Value range: min={value.get('min', '')}, max={value.get('max', '')}")
-        lines.append("   */")
-        lines.append(f"  attribute def {sysml_identifier(path)} : {sysml_scalar_type(value.get('datatype', ''))};")
+        safe = sysml_identifier(path)
+        lines.append(f"  attribute def {safe} :> {sysml_scalar_type(value.get('datatype', ''))};")
+        lines.extend(metadata_block(value, path, safe, quantity_ref, unit_ref))
         lines.append("")
 
     lines.extend(["}", "", "package BranchDefinitions {"])

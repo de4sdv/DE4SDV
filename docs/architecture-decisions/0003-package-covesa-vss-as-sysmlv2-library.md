@@ -34,8 +34,9 @@ The package:
 - imports SysML v2 standard scalar, quantity, and unit packages
   (`ScalarValues`, `ISQ`, `SI`, and `USCustomaryUnits`);
 - does not import or copy VSS `units.yaml` or `quantities.yaml`;
-- records VSS unit tokens as comments mapped to SysML v2 standard
-  quantity/unit references or derived expressions over standard units;
+- records VSS source fields as SysML v2 metadata annotations rather than
+  leaving path, kind, datatype, quantity/unit references, ranges, allowed
+  values, descriptions, and source comments only in comments;
 - marks generated source derived from VSS as `SPDX-License-Identifier:
   MPL-2.0`.
 

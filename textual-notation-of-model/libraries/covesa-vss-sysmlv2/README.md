@@ -10,14 +10,25 @@ Signal Specification `spec/` tree.
 - Generated leaves: 626 (280 sensors, 246 actuators, 100 attributes)
 - Generated branches: 139
 
-## Unit and quantity policy
+## Semantic metadata policy
 
-The generated package intentionally does **not** import `spec/units.yaml` or
-`spec/quantities.yaml` from the VSS repository. Unit comments in
-`COVESA_VSS.sysml` map VSS unit tokens to SysML v2 standard quantity/unit
-library references such as `ISQ::*`, `SI::*`, and `USCustomaryUnits::*`, or
-to derived expressions over those standard units where a direct named unit may
-not be available.
+The generated package intentionally does **not** leave VSS semantics only in
+comments. Stable VSS source fields are promoted into SysML v2 metadata
+annotations:
+
+- VSS path, kind, datatype, description, and source comment use
+  `VssSignalMetadata`.
+- VSS unit tokens map to SysML v2 standard quantity/unit references through
+  `VssQuantityMetadata`.
+- VSS min/max bounds use `VssRangeMetadata`.
+- VSS allowed-value lists use `VssAllowedValuesMetadata` for now; a later
+  generation increment may promote stable allowed-value lists into enum types.
+
+The package intentionally does **not** import `spec/units.yaml` or
+`spec/quantities.yaml` from the VSS repository. Quantity/unit metadata points
+to SysML v2 standard quantity/unit library references such as `ISQ::*`,
+`SI::*`, and `USCustomaryUnits::*`, or to derived expressions over those
+standard units where a direct named unit may not be available.
 
 ## Regeneration
 
