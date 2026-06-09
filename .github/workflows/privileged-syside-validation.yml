@@ -1,0 +1,94 @@
+name: Privileged Syside Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or commit SHA to validate after maintainer review"
+        required: true
+        default: "main"
+      model_path:
+        description: "Model file or directory to validate"
+        required: true
+        default: "textual-notation-of-model"
+  push:
+    branches: [ main ]
+    paths:
+      - "textual-notation-of-model/**/*.sysml"
+      - "textual-notation-of-model/**/.project.json"
+      - "textual-notation-of-model/**/.meta.json"
+      - ".github/workflows/privileged-syside-validation.yml"
+  schedule:
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  syside-validation:
+    name: Licensed SysML validation
+    runs-on: ubuntu-latest
+    env:
+      SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+      MODEL_PATH: ${{ inputs.model_path || 'textual-notation-of-model' }}
+    steps:
+      - name: Checkout reviewed ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+
+      - name: Check licensed Syside secret
+        id: syside-secret
+        run: |
+          if [ -z "${SYSIDE_LICENSE_KEY}" ]; then
+            echo "available=false" >> "${GITHUB_OUTPUT}"
+            echo "SYSIDE_LICENSE_KEY is not configured as a repository secret." >&2
+            echo "Add it under Settings -> Secrets and variables -> Actions before running privileged validation." >&2
+            if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+              exit 1
+            fi
+            echo "Skipping licensed validation for ${GITHUB_EVENT_NAME} until the secret is configured."
+            exit 0
+          fi
+          echo "available=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Python
+        if: steps.syside-secret.outputs.available == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Syside CLI
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install syside==0.10.0
+
+      - name: Validate model path input
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          model_path = os.environ["MODEL_PATH"]
+          if not re.fullmatch(r"[A-Za-z0-9._/-]+", model_path):
+              print(f"Unsafe model_path input: {model_path}", file=sys.stderr)
+              sys.exit(1)
+          candidate = Path(model_path)
+          if candidate.is_absolute() or ".." in candidate.parts:
+              print(f"Unsafe model_path input: {model_path}", file=sys.stderr)
+              sys.exit(1)
+          if not candidate.exists():
+              print(f"Model path does not exist: {model_path}", file=sys.stderr)
+              sys.exit(1)
+          PY
+
+      - name: Run Syside validation
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          echo "Running licensed Syside validation for: ${MODEL_PATH}"
+          syside check "${MODEL_PATH}"

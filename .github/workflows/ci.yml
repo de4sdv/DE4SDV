@@ -17,6 +17,12 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Explain public validation scope
+        run: |
+          echo "Public CI runs repository and smoke checks without licensed tools or repository secrets."
+          echo "Licensed Syside validation is maintainer-triggered after initial PR review."
+          echo "Contributors with Syside access may validate locally with the Syside Editor VS Code extension."
+
       - name: Run repository checks
         run: python scripts/check_repo.py
 

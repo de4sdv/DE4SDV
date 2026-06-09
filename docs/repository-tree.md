@@ -12,6 +12,7 @@
 .github/agents/test-agent.md
 .github/copilot-instructions.md
 .github/workflows/ci.yml
+.github/workflows/privileged-syside-validation.yml
 AGENTS.md
 CLAUDE.md
 CODE_OF_CONDUCT.md
@@ -47,6 +48,7 @@ digital-continuity/oslc/README.md
 digital-twin/README.md
 docs/architecture-decisions/0001-use-documentation-first-scaffold.md
 docs/architecture-decisions/0002-adopt-sysmod-sysmlv2-library.md
+docs/architecture-decisions/0003-package-covesa-vss-as-sysmlv2-library.md
 docs/getting-started/naming-note.md
 docs/project-goals/project-charter.md
 docs/references/source-notes.md
@@ -66,11 +68,19 @@ model-based-product-line-engineering/product-models/README.md
 model-based-product-line-engineering/shared-assets/README.md
 scripts/check_repo.py
 scripts/smoke_test.py
+scripts/validate_sysml.py
 simulation/README.md
 simulation/fmu/README.md
 simulation/ssp/README.md
 standards/README.md
 sysmlv2-api/README.md
 textual-notation-of-model/README.md
+textual-notation-of-model/libraries/covesa-vss-sysmlv2/.gitignore
+textual-notation-of-model/libraries/covesa-vss-sysmlv2/.meta.json
+textual-notation-of-model/libraries/covesa-vss-sysmlv2/.project.json
+textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml
+textual-notation-of-model/libraries/covesa-vss-sysmlv2/LICENSES/MPL-2.0.txt
+textual-notation-of-model/libraries/covesa-vss-sysmlv2/README.md
 tools/README.md
+tools/generate_covesa_vss_sysmlv2.py
 ```
