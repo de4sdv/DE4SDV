@@ -37,6 +37,8 @@ The package:
 - records VSS source fields as SysML v2 metadata annotations rather than
   leaving path, kind, datatype, quantity/unit references, ranges, allowed
   values, descriptions, and source comments only in comments;
+- promotes VSS allowed-value lists into generated SysML v2 `enum def` value
+  types while retaining the original allowed strings as metadata provenance;
 - marks generated source derived from VSS as `SPDX-License-Identifier:
   MPL-2.0`.
 

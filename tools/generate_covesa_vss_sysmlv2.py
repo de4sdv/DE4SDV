@@ -19,8 +19,6 @@ import argparse
 import re
 import subprocess
 
-import yaml
-
 UNIT_MAP: dict[str, tuple[str, str]] = {
     "A": ("ISQ::electricCurrent", "SI::ampere"),
     "Ah": ("ISQ::electricCharge", "SI::ampereHour"),
@@ -76,6 +74,8 @@ def resolve_include(spec_root: Path, base_file: str, include_path: str) -> str:
 
 
 def load_vspec(spec_root: Path, rel_path: str, prefix: str | None = None) -> dict[str, dict]:
+    import yaml
+
     text = (spec_root / rel_path).read_text(encoding="utf-8")
     data = yaml.safe_load(text) or {}
     items: dict[str, dict] = {}
@@ -105,6 +105,51 @@ def sysml_scalar_type(vss_datatype: str) -> str:
     if re.fullmatch(r"u?int(8|16|32|64)", vss_datatype or ""):
         return "Integer"
     return "ScalarValues::ScalarValue"
+
+
+def enum_type_name(path: str) -> str:
+    return f"{sysml_identifier(path)}_AllowedValue"
+
+
+def enum_literal_name(value: object) -> str:
+    literal = re.sub(r"[^A-Za-z0-9_]", "_", compact(value)).strip("_")
+    literal = re.sub(r"_+", "_", literal)
+    if not literal:
+        literal = "VALUE"
+    if not re.match(r"[A-Za-z_]", literal):
+        literal = f"V_{literal}"
+    return literal
+
+
+def allowed_values(value: dict) -> list[object]:
+    allowed = value.get("allowed") or []
+    if not isinstance(allowed, list):
+        allowed = [allowed]
+    return allowed
+
+
+def enum_definition_block(path: str, allowed: list[object]) -> list[str]:
+    lines = [f"  enum def {enum_type_name(path)} {{"]
+    used: dict[str, int] = {}
+    for item in allowed:
+        literal = enum_literal_name(item)
+        count = used.get(literal, 0)
+        used[literal] = count + 1
+        if count:
+            literal = f"{literal}_{count + 1}"
+        lines.append(f"    {literal};")
+    lines.append("  }")
+    return lines
+
+
+def has_allowed_values(value: dict) -> bool:
+    return bool(allowed_values(value))
+
+
+def sysml_type(path: str, value: dict) -> str:
+    if has_allowed_values(value):
+        return enum_type_name(path)
+    return sysml_scalar_type(value.get("datatype", ""))
 
 
 def datatype_token(vss_datatype: str) -> str:
@@ -158,9 +203,7 @@ def metadata_block(value: dict, path: str, safe_name: str, quantity_ref: str, un
             "  }",
         ])
     if "allowed" in value:
-        allowed = value.get("allowed") or []
-        if not isinstance(allowed, list):
-            allowed = [allowed]
+        allowed = allowed_values(value)
         lines.extend([
             f"  @VssAllowedValuesMetadata about {about} {{",
             f"    allowedValues = {sysml_string(', '.join(str(item) for item in allowed))};",
@@ -239,8 +282,20 @@ def generate(vss_repo: Path, output: Path) -> tuple[int, int, str]:
     ]
     lines.extend(metadata_definitions())
     lines.extend([
+        "package AllowedValueDefinitions {",
+    ])
+    for path in sorted(leaves):
+        value = leaves[path]
+        allowed = allowed_values(value)
+        if allowed:
+            lines.extend(enum_definition_block(path, allowed))
+            lines.append("")
+    lines.extend([
+        "}",
+        "",
         "package SignalDefinitions {",
         "  private import COVESA_VSS::MetadataDefinitions::*;",
+        "  private import COVESA_VSS::AllowedValueDefinitions::*;",
         "",
     ])
 
@@ -249,7 +304,7 @@ def generate(vss_repo: Path, output: Path) -> tuple[int, int, str]:
         unit = value.get("unit", "")
         quantity_ref, unit_ref = UNIT_MAP.get(unit, ("", "")) if unit else ("", "")
         safe = sysml_identifier(path)
-        lines.append(f"  attribute def {safe} :> {sysml_scalar_type(value.get('datatype', ''))};")
+        lines.append(f"  attribute def {safe} :> {sysml_type(path, value)};")
         lines.extend(metadata_block(value, path, safe, quantity_ref, unit_ref))
         lines.append("")
 
