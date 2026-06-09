@@ -45,8 +45,530 @@ package MetadataDefinitions {
   }
 }
 
+package ValueTypes {
+  enum def Vehicle_ADAS_ActiveAutonomyLevel_AllowedValue {
+    SAE_0;
+    SAE_1;
+    SAE_2_DISENGAGING;
+    SAE_2;
+    SAE_3_DISENGAGING;
+    SAE_3;
+    SAE_4_DISENGAGING;
+    SAE_4;
+    SAE_5_DISENGAGING;
+    SAE_5;
+  }
+
+  enum def Vehicle_ADAS_ObstacleDetection_WarningType_AllowedValue {
+    UNDEFINED;
+    CROSS_TRAFFIC;
+    BLIND_SPOT;
+  }
+
+  enum def Vehicle_ADAS_SupportedAutonomyLevel_AllowedValue {
+    SAE_0;
+    SAE_1;
+    SAE_2;
+    SAE_3;
+    SAE_4;
+    SAE_5;
+  }
+
+  enum def Vehicle_Body_Hood_Switch_AllowedValue {
+    INACTIVE;
+    CLOSE;
+    OPEN;
+    ONE_SHOT_CLOSE;
+    ONE_SHOT_OPEN;
+  }
+
+  enum def Vehicle_Body_Lights_Brake_IsActive_AllowedValue {
+    INACTIVE;
+    ACTIVE;
+    ADAPTIVE;
+  }
+
+  enum def Vehicle_Body_Lights_LightSwitch_AllowedValue {
+    OFF;
+    POSITION;
+    DAYTIME_RUNNING_LIGHTS;
+    AUTO;
+    BEAM;
+  }
+
+  enum def Vehicle_Body_Trunk_Switch_AllowedValue {
+    INACTIVE;
+    CLOSE;
+    OPEN;
+    ONE_SHOT_CLOSE;
+    ONE_SHOT_OPEN;
+  }
+
+  enum def Vehicle_Body_Windshield_Wiping_Mode_AllowedValue {
+    OFF;
+    SLOW;
+    MEDIUM;
+    FAST;
+    INTERVAL;
+    RAIN_SENSOR;
+  }
+
+  enum def Vehicle_Body_Windshield_Wiping_System_Mode_AllowedValue {
+    STOP_HOLD;
+    WIPE;
+    PLANT_MODE;
+    EMERGENCY_STOP;
+  }
+
+  enum def Vehicle_Cabin_Convertible_Status_AllowedValue {
+    UNDEFINED;
+    CLOSED;
+    OPEN;
+    CLOSING;
+    OPENING;
+    STALLED;
+  }
+
+  enum def Vehicle_Cabin_Door_Shade_Switch_AllowedValue {
+    INACTIVE;
+    CLOSE;
+    OPEN;
+    ONE_SHOT_CLOSE;
+    ONE_SHOT_OPEN;
+  }
+
+  enum def Vehicle_Cabin_Door_Switch_AllowedValue {
+    INACTIVE;
+    CLOSE;
+    OPEN;
+    ONE_SHOT_CLOSE;
+    ONE_SHOT_OPEN;
+  }
+
+  enum def Vehicle_Cabin_Door_Window_Switch_AllowedValue {
+    INACTIVE;
+    CLOSE;
+    OPEN;
+    ONE_SHOT_CLOSE;
+    ONE_SHOT_OPEN;
+  }
+
+  enum def Vehicle_Cabin_DriverPosition_AllowedValue {
+    LEFT;
+    MIDDLE;
+    RIGHT;
+  }
+
+  enum def Vehicle_Cabin_HVAC_Station_AirDistribution_AllowedValue {
+    UP;
+    MIDDLE;
+    DOWN;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_DateFormat_AllowedValue {
+    YYYY_MM_DD;
+    DD_MM_YYYY;
+    MM_DD_YYYY;
+    YY_MM_DD;
+    DD_MM_YY;
+    MM_DD_YY;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_DayNightMode_AllowedValue {
+    DAY;
+    NIGHT;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_DistanceUnit_AllowedValue {
+    MILES;
+    KILOMETERS;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_EVEconomyUnits_AllowedValue {
+    MILES_PER_KILOWATT_HOUR;
+    KILOMETERS_PER_KILOWATT_HOUR;
+    KILOWATT_HOURS_PER_100_MILES;
+    KILOWATT_HOURS_PER_100_KILOMETERS;
+    WATT_HOURS_PER_MILE;
+    WATT_HOURS_PER_KILOMETER;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_EVEnergyUnits_AllowedValue {
+    WATT_HOURS;
+    AMPERE_HOURS;
+    KILOWATT_HOURS;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_FontSize_AllowedValue {
+    STANDARD;
+    LARGE;
+    EXTRA_LARGE;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_FuelEconomyUnits_AllowedValue {
+    MPG_UK;
+    MPG_US;
+    MILES_PER_LITER;
+    KILOMETERS_PER_LITER;
+    LITERS_PER_100_KILOMETERS;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_FuelVolumeUnit_AllowedValue {
+    LITER;
+    GALLON_US;
+    GALLON_UK;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_SpeedUnit_AllowedValue {
+    METERS_PER_SECOND;
+    MILES_PER_HOUR;
+    KILOMETERS_PER_HOUR;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_TemperatureUnit_AllowedValue {
+    C;
+    F;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_TimeFormat_AllowedValue {
+    HR_12;
+    HR_24;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_HMI_TirePressureUnit_AllowedValue {
+    PSI;
+    KPA;
+    BAR;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_Media_Action_AllowedValue {
+    UNKNOWN;
+    STOP;
+    PLAY;
+    FAST_FORWARD;
+    FAST_BACKWARD;
+    SKIP_FORWARD;
+    SKIP_BACKWARD;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_Media_Played_Source_AllowedValue {
+    UNKNOWN;
+    SIRIUS_XM;
+    AM;
+    FM;
+    DAB;
+    TV;
+    CD;
+    DVD;
+    AUX;
+    USB;
+    DISK;
+    BLUETOOTH;
+    INTERNET;
+    VOICE;
+    BEEP;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_Navigation_GuidanceVoice_AllowedValue {
+    STANDARD_MALE;
+    STANDARD_FEMALE;
+    ETC;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_Navigation_Mute_AllowedValue {
+    MUTED;
+    ALERT_ONLY;
+    UNMUTED;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_SmartphoneProjection_Active_AllowedValue {
+    NONE;
+    ACTIVE;
+    INACTIVE;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_SmartphoneProjection_Source_AllowedValue {
+    USB;
+    BLUETOOTH;
+    WIFI;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_SmartphoneProjection_SupportedMode_AllowedValue {
+    ANDROID_AUTO;
+    APPLE_CARPLAY;
+    MIRROR_LINK;
+    OTHER;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Active_AllowedValue {
+    NONE;
+    ACTIVE;
+    INACTIVE;
+  }
+
+  enum def Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Source_AllowedValue {
+    USB;
+    BLUETOOTH;
+    WIFI;
+  }
+
+  enum def Vehicle_Cabin_RearShade_Switch_AllowedValue {
+    INACTIVE;
+    CLOSE;
+    OPEN;
+    ONE_SHOT_CLOSE;
+    ONE_SHOT_OPEN;
+  }
+
+  enum def Vehicle_Cabin_Seat_Massage_Status_AllowedValue {
+    ON;
+    OFF;
+  }
+
+  enum def Vehicle_Cabin_Seat_OccupancyStatus_AllowedValue {
+    UNKNOWN;
+    OCCUPIED;
+    EMPTY;
+  }
+
+  enum def Vehicle_Cabin_Sunroof_Shade_Switch_AllowedValue {
+    INACTIVE;
+    CLOSE;
+    OPEN;
+    ONE_SHOT_CLOSE;
+    ONE_SHOT_OPEN;
+  }
+
+  enum def Vehicle_Cabin_Sunroof_Switch_AllowedValue {
+    INACTIVE;
+    CLOSE;
+    OPEN;
+    ONE_SHOT_CLOSE;
+    ONE_SHOT_OPEN;
+    TILT_UP;
+    TILT_DOWN;
+  }
+
+  enum def Vehicle_CurrentLocation_GNSSReceiver_FixType_AllowedValue {
+    NONE;
+    TWO_D;
+    TWO_D_SATELLITE_BASED_AUGMENTATION;
+    TWO_D_GROUND_BASED_AUGMENTATION;
+    TWO_D_SATELLITE_AND_GROUND_BASED_AUGMENTATION;
+    THREE_D;
+    THREE_D_SATELLITE_BASED_AUGMENTATION;
+    THREE_D_GROUND_BASED_AUGMENTATION;
+    THREE_D_SATELLITE_AND_GROUND_BASED_AUGMENTATION;
+  }
+
+  enum def Vehicle_Exterior_RoadSurfaceCondition_AllowedValue {
+    UNKNOWN;
+    DRY;
+    WET;
+    SNOW;
+    ICE;
+    SLUSH;
+    WET_ICE;
+    LOOSE_GRAVEL;
+  }
+
+  enum def Vehicle_LowVoltageSystemState_AllowedValue {
+    UNDEFINED;
+    LOCK;
+    OFF;
+    ACC;
+    ON;
+    START;
+  }
+
+  enum def Vehicle_Powertrain_CombustionEngine_AspirationType_AllowedValue {
+    UNKNOWN;
+    NATURAL;
+    SUPERCHARGER;
+    TURBOCHARGER;
+  }
+
+  enum def Vehicle_Powertrain_CombustionEngine_Configuration_AllowedValue {
+    UNKNOWN;
+    STRAIGHT;
+    V;
+    BOXER;
+    W;
+    ROTARY;
+    RADIAL;
+    SQUARE;
+    H;
+    U;
+    OPPOSED;
+    X;
+  }
+
+  enum def Vehicle_Powertrain_CombustionEngine_EngineCoolant_Level_AllowedValue {
+    CRITICALLY_LOW;
+    LOW;
+    NORMAL;
+  }
+
+  enum def Vehicle_Powertrain_CombustionEngine_EngineOil_Level_AllowedValue {
+    CRITICALLY_LOW;
+    LOW;
+    NORMAL;
+    HIGH;
+    CRITICALLY_HIGH;
+  }
+
+  enum def Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus_AllowedValue {
+    NORMAL;
+    WARNING;
+    ALERT;
+    ERROR;
+  }
+
+  enum def Vehicle_Powertrain_ElectricMotor_EngineCoolant_Level_AllowedValue {
+    CRITICALLY_LOW;
+    LOW;
+    NORMAL;
+  }
+
+  enum def Vehicle_Powertrain_FuelSystem_HybridType_AllowedValue {
+    UNKNOWN;
+    NOT_APPLICABLE;
+    STOP_START;
+    BELT_ISG;
+    CIMG;
+    PHEV;
+  }
+
+  enum def Vehicle_Powertrain_FuelSystem_RefuelPortPosition_AllowedValue {
+    FRONT_LEFT;
+    FRONT_MIDDLE;
+    FRONT_RIGHT;
+    REAR_LEFT;
+    REAR_MIDDLE;
+    REAR_RIGHT;
+    LEFT_FRONT;
+    LEFT_MIDDLE;
+    LEFT_REAR;
+    RIGHT_FRONT;
+    RIGHT_MIDDLE;
+    RIGHT_REAR;
+  }
+
+  enum def Vehicle_Powertrain_FuelSystem_SupportedFuel_AllowedValue {
+    E5_95;
+    E5_98;
+    E10_95;
+    E10_98;
+    E85;
+    B7;
+    B10;
+    B20;
+    B30;
+    B100;
+    XTL;
+    LPG;
+    CNG;
+    LNG;
+    H2;
+    OTHER;
+  }
+
+  enum def Vehicle_Powertrain_FuelSystem_SupportedFuelTypes_AllowedValue {
+    GASOLINE;
+    DIESEL;
+    E85;
+    LPG;
+    CNG;
+    LNG;
+    H2;
+    OTHER;
+  }
+
+  enum def Vehicle_Powertrain_RangeExtender_OperatingMode_AllowedValue {
+    CHARGE_DEPLETING;
+    CHARGE_SUSTAINING;
+    BLENDED;
+  }
+
+  enum def Vehicle_Powertrain_TractionBattery_BatteryConditioning_RequestedMode_AllowedValue {
+    INACTIVE;
+    FAST_CHARGING_PREPARATION;
+    DRIVING_PREPARATION;
+  }
+
+  enum def Vehicle_Powertrain_TractionBattery_Charging_ChargingPort_SupportedInletTypes_AllowedValue {
+    IEC_TYPE_1_AC;
+    IEC_TYPE_2_AC;
+    IEC_TYPE_3_AC;
+    IEC_TYPE_4_DC;
+    IEC_TYPE_1_CCS_DC;
+    IEC_TYPE_2_CCS_DC;
+    TESLA_ROADSTER;
+    TESLA_HPWC;
+    TESLA_SUPERCHARGER;
+    GBT_AC;
+    GBT_DC;
+    OTHER;
+  }
+
+  enum def Vehicle_Powertrain_TractionBattery_Charging_StartStopCharging_AllowedValue {
+    START;
+    STOP;
+  }
+
+  enum def Vehicle_Powertrain_TractionBattery_Charging_Timer_Mode_AllowedValue {
+    INACTIVE;
+    START_TIME;
+    END_TIME;
+  }
+
+  enum def Vehicle_Powertrain_Transmission_DriveType_AllowedValue {
+    UNKNOWN;
+    FORWARD_WHEEL_DRIVE;
+    REAR_WHEEL_DRIVE;
+    ALL_WHEEL_DRIVE;
+  }
+
+  enum def Vehicle_Powertrain_Transmission_GearChangeMode_AllowedValue {
+    MANUAL;
+    AUTOMATIC;
+  }
+
+  enum def Vehicle_Powertrain_Transmission_PerformanceMode_AllowedValue {
+    NORMAL;
+    SPORT;
+    ECONOMY;
+    SNOW;
+    RAIN;
+  }
+
+  enum def Vehicle_Powertrain_Transmission_Type_AllowedValue {
+    UNKNOWN;
+    SEQUENTIAL;
+    H;
+    AUTOMATIC;
+    DSG;
+    CVT;
+  }
+
+  enum def Vehicle_Powertrain_Type_AllowedValue {
+    COMBUSTION;
+    HYBRID;
+    ELECTRIC;
+  }
+
+  enum def Vehicle_Safety_Rollover_AllowedValue {
+    UNKNOWN;
+    NONE;
+    RISK;
+    DETECTED;
+  }
+
+}
+
 package SignalDefinitions {
   private import COVESA_VSS::MetadataDefinitions::*;
+  private import COVESA_VSS::ValueTypes::*;
 
   attribute def Vehicle_ADAS_ABS_IsEnabled :> Boolean;
   @VssSignalMetadata about Vehicle_ADAS_ABS_IsEnabled {
@@ -75,7 +597,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_ADAS_ActiveAutonomyLevel :> String;
+  attribute def Vehicle_ADAS_ActiveAutonomyLevel :> Vehicle_ADAS_ActiveAutonomyLevel_AllowedValue;
   @VssSignalMetadata about Vehicle_ADAS_ActiveAutonomyLevel {
     path = "Vehicle.ADAS.ActiveAutonomyLevel";
     kind = "sensor";
@@ -423,7 +945,7 @@ package SignalDefinitions {
     unitReference = "SI::millisecond";
   }
 
-  attribute def Vehicle_ADAS_ObstacleDetection_WarningType :> String;
+  attribute def Vehicle_ADAS_ObstacleDetection_WarningType :> Vehicle_ADAS_ObstacleDetection_WarningType_AllowedValue;
   @VssSignalMetadata about Vehicle_ADAS_ObstacleDetection_WarningType {
     path = "Vehicle.ADAS.ObstacleDetection.WarningType";
     kind = "sensor";
@@ -448,7 +970,7 @@ package SignalDefinitions {
     maxValue = "10";
   }
 
-  attribute def Vehicle_ADAS_SupportedAutonomyLevel :> String;
+  attribute def Vehicle_ADAS_SupportedAutonomyLevel :> Vehicle_ADAS_SupportedAutonomyLevel_AllowedValue;
   @VssSignalMetadata about Vehicle_ADAS_SupportedAutonomyLevel {
     path = "Vehicle.ADAS.SupportedAutonomyLevel";
     kind = "attribute";
@@ -613,7 +1135,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Body_Hood_Switch :> String;
+  attribute def Vehicle_Body_Hood_Switch :> Vehicle_Body_Hood_Switch_AllowedValue;
   @VssSignalMetadata about Vehicle_Body_Hood_Switch {
     path = "Vehicle.Body.Hood.Switch";
     kind = "actuator";
@@ -679,7 +1201,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Body_Lights_Brake_IsActive :> String;
+  attribute def Vehicle_Body_Lights_Brake_IsActive :> Vehicle_Body_Lights_Brake_IsActive_AllowedValue;
   @VssSignalMetadata about Vehicle_Body_Lights_Brake_IsActive {
     path = "Vehicle.Body.Lights.Brake.IsActive";
     kind = "actuator";
@@ -781,7 +1303,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Body_Lights_LightSwitch :> String;
+  attribute def Vehicle_Body_Lights_LightSwitch :> Vehicle_Body_Lights_LightSwitch_AllowedValue;
   @VssSignalMetadata about Vehicle_Body_Lights_LightSwitch {
     path = "Vehicle.Body.Lights.LightSwitch";
     kind = "actuator";
@@ -998,7 +1520,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Body_Trunk_Switch :> String;
+  attribute def Vehicle_Body_Trunk_Switch :> Vehicle_Body_Trunk_Switch_AllowedValue;
   @VssSignalMetadata about Vehicle_Body_Trunk_Switch {
     path = "Vehicle.Body.Trunk.Switch";
     kind = "actuator";
@@ -1063,7 +1585,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Body_Windshield_Wiping_Mode :> String;
+  attribute def Vehicle_Body_Windshield_Wiping_Mode :> Vehicle_Body_Windshield_Wiping_Mode_AllowedValue;
   @VssSignalMetadata about Vehicle_Body_Windshield_Wiping_Mode {
     path = "Vehicle.Body.Windshield.Wiping.Mode";
     kind = "actuator";
@@ -1168,7 +1690,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Body_Windshield_Wiping_System_Mode :> String;
+  attribute def Vehicle_Body_Windshield_Wiping_System_Mode :> Vehicle_Body_Windshield_Wiping_System_Mode_AllowedValue;
   @VssSignalMetadata about Vehicle_Body_Windshield_Wiping_System_Mode {
     path = "Vehicle.Body.Windshield.Wiping.System.Mode";
     kind = "actuator";
@@ -1210,7 +1732,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Cabin_Convertible_Status :> String;
+  attribute def Vehicle_Cabin_Convertible_Status :> Vehicle_Cabin_Convertible_Status_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Convertible_Status {
     path = "Vehicle.Cabin.Convertible.Status";
     kind = "sensor";
@@ -1292,7 +1814,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Cabin_Door_Shade_Switch :> String;
+  attribute def Vehicle_Cabin_Door_Shade_Switch :> Vehicle_Cabin_Door_Shade_Switch_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Door_Shade_Switch {
     path = "Vehicle.Cabin.Door.Shade.Switch";
     kind = "actuator";
@@ -1304,7 +1826,7 @@ package SignalDefinitions {
     allowedValues = "INACTIVE, CLOSE, OPEN, ONE_SHOT_CLOSE, ONE_SHOT_OPEN";
   }
 
-  attribute def Vehicle_Cabin_Door_Switch :> String;
+  attribute def Vehicle_Cabin_Door_Switch :> Vehicle_Cabin_Door_Switch_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Door_Switch {
     path = "Vehicle.Cabin.Door.Switch";
     kind = "actuator";
@@ -1342,7 +1864,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Cabin_Door_Window_Switch :> String;
+  attribute def Vehicle_Cabin_Door_Window_Switch :> Vehicle_Cabin_Door_Window_Switch_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Door_Window_Switch {
     path = "Vehicle.Cabin.Door.Window.Switch";
     kind = "actuator";
@@ -1363,7 +1885,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Cabin_DriverPosition :> String;
+  attribute def Vehicle_Cabin_DriverPosition :> Vehicle_Cabin_DriverPosition_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_DriverPosition {
     path = "Vehicle.Cabin.DriverPosition";
     kind = "attribute";
@@ -1446,7 +1968,7 @@ package SignalDefinitions {
     maxValue = "10";
   }
 
-  attribute def Vehicle_Cabin_HVAC_Station_AirDistribution :> String;
+  attribute def Vehicle_Cabin_HVAC_Station_AirDistribution :> Vehicle_Cabin_HVAC_Station_AirDistribution_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_HVAC_Station_AirDistribution {
     path = "Vehicle.Cabin.HVAC.Station.AirDistribution";
     kind = "actuator";
@@ -1514,7 +2036,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_DateFormat :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_DateFormat :> Vehicle_Cabin_Infotainment_HMI_DateFormat_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_DateFormat {
     path = "Vehicle.Cabin.Infotainment.HMI.DateFormat";
     kind = "actuator";
@@ -1526,7 +2048,7 @@ package SignalDefinitions {
     allowedValues = "YYYY_MM_DD, DD_MM_YYYY, MM_DD_YYYY, YY_MM_DD, DD_MM_YY, MM_DD_YY";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_DayNightMode :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_DayNightMode :> Vehicle_Cabin_Infotainment_HMI_DayNightMode_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_DayNightMode {
     path = "Vehicle.Cabin.Infotainment.HMI.DayNightMode";
     kind = "actuator";
@@ -1551,7 +2073,7 @@ package SignalDefinitions {
     unitReference = "SI::second";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_DistanceUnit :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_DistanceUnit :> Vehicle_Cabin_Infotainment_HMI_DistanceUnit_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_DistanceUnit {
     path = "Vehicle.Cabin.Infotainment.HMI.DistanceUnit";
     kind = "actuator";
@@ -1563,7 +2085,7 @@ package SignalDefinitions {
     allowedValues = "MILES, KILOMETERS";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_EVEconomyUnits :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_EVEconomyUnits :> Vehicle_Cabin_Infotainment_HMI_EVEconomyUnits_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_EVEconomyUnits {
     path = "Vehicle.Cabin.Infotainment.HMI.EVEconomyUnits";
     kind = "actuator";
@@ -1575,7 +2097,7 @@ package SignalDefinitions {
     allowedValues = "MILES_PER_KILOWATT_HOUR, KILOMETERS_PER_KILOWATT_HOUR, KILOWATT_HOURS_PER_100_MILES, KILOWATT_HOURS_PER_100_KILOMETERS, WATT_HOURS_PER_MILE, WATT_HOURS_PER_KILOMETER";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_EVEnergyUnits :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_EVEnergyUnits :> Vehicle_Cabin_Infotainment_HMI_EVEnergyUnits_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_EVEnergyUnits {
     path = "Vehicle.Cabin.Infotainment.HMI.EVEnergyUnits";
     kind = "actuator";
@@ -1587,7 +2109,7 @@ package SignalDefinitions {
     allowedValues = "WATT_HOURS, AMPERE_HOURS, KILOWATT_HOURS";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_FontSize :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_FontSize :> Vehicle_Cabin_Infotainment_HMI_FontSize_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_FontSize {
     path = "Vehicle.Cabin.Infotainment.HMI.FontSize";
     kind = "actuator";
@@ -1599,7 +2121,7 @@ package SignalDefinitions {
     allowedValues = "STANDARD, LARGE, EXTRA_LARGE";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_FuelEconomyUnits :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_FuelEconomyUnits :> Vehicle_Cabin_Infotainment_HMI_FuelEconomyUnits_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_FuelEconomyUnits {
     path = "Vehicle.Cabin.Infotainment.HMI.FuelEconomyUnits";
     kind = "actuator";
@@ -1611,7 +2133,7 @@ package SignalDefinitions {
     allowedValues = "MPG_UK, MPG_US, MILES_PER_LITER, KILOMETERS_PER_LITER, LITERS_PER_100_KILOMETERS";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_FuelVolumeUnit :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_FuelVolumeUnit :> Vehicle_Cabin_Infotainment_HMI_FuelVolumeUnit_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_FuelVolumeUnit {
     path = "Vehicle.Cabin.Infotainment.HMI.FuelVolumeUnit";
     kind = "actuator";
@@ -1645,7 +2167,7 @@ package SignalDefinitions {
     unitReference = "ISO 8601 lexical date/time string";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_SpeedUnit :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_SpeedUnit :> Vehicle_Cabin_Infotainment_HMI_SpeedUnit_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_SpeedUnit {
     path = "Vehicle.Cabin.Infotainment.HMI.SpeedUnit";
     kind = "actuator";
@@ -1657,7 +2179,7 @@ package SignalDefinitions {
     allowedValues = "METERS_PER_SECOND, MILES_PER_HOUR, KILOMETERS_PER_HOUR";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_TemperatureUnit :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_TemperatureUnit :> Vehicle_Cabin_Infotainment_HMI_TemperatureUnit_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_TemperatureUnit {
     path = "Vehicle.Cabin.Infotainment.HMI.TemperatureUnit";
     kind = "actuator";
@@ -1669,7 +2191,7 @@ package SignalDefinitions {
     allowedValues = "C, F";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_TimeFormat :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_TimeFormat :> Vehicle_Cabin_Infotainment_HMI_TimeFormat_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_TimeFormat {
     path = "Vehicle.Cabin.Infotainment.HMI.TimeFormat";
     kind = "actuator";
@@ -1681,7 +2203,7 @@ package SignalDefinitions {
     allowedValues = "HR_12, HR_24";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_HMI_TirePressureUnit :> String;
+  attribute def Vehicle_Cabin_Infotainment_HMI_TirePressureUnit :> Vehicle_Cabin_Infotainment_HMI_TirePressureUnit_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_HMI_TirePressureUnit {
     path = "Vehicle.Cabin.Infotainment.HMI.TirePressureUnit";
     kind = "actuator";
@@ -1702,7 +2224,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_Media_Action :> String;
+  attribute def Vehicle_Cabin_Infotainment_Media_Action :> Vehicle_Cabin_Infotainment_Media_Action_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_Media_Action {
     path = "Vehicle.Cabin.Infotainment.Media.Action";
     kind = "actuator";
@@ -1759,7 +2281,7 @@ package SignalDefinitions {
     sourceComment = "The normal playback rate is multiplied by this value to obtain the current rate, so a value of 1.0 indicates normal speed. Values of lower than 1.0 make the media play slower than normal. Values of higher than 1.0 make the media play faster than normal.";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_Media_Played_Source :> String;
+  attribute def Vehicle_Cabin_Infotainment_Media_Played_Source :> Vehicle_Cabin_Infotainment_Media_Played_Source_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_Media_Played_Source {
     path = "Vehicle.Cabin.Infotainment.Media.Played.Source";
     kind = "actuator";
@@ -1849,7 +2371,7 @@ package SignalDefinitions {
     maxValue = "180";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_Navigation_GuidanceVoice :> String;
+  attribute def Vehicle_Cabin_Infotainment_Navigation_GuidanceVoice :> Vehicle_Cabin_Infotainment_Navigation_GuidanceVoice_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_Navigation_GuidanceVoice {
     path = "Vehicle.Cabin.Infotainment.Navigation.GuidanceVoice";
     kind = "actuator";
@@ -1870,7 +2392,7 @@ package SignalDefinitions {
     sourceComment = "If true, then auto-scaling mode is used. If false, then manual-scaling mode is used.";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_Navigation_Mute :> String;
+  attribute def Vehicle_Cabin_Infotainment_Navigation_Mute :> Vehicle_Cabin_Infotainment_Navigation_Mute_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_Navigation_Mute {
     path = "Vehicle.Cabin.Infotainment.Navigation.Mute";
     kind = "actuator";
@@ -1912,7 +2434,7 @@ package SignalDefinitions {
     maxValue = "10";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_SmartphoneProjection_Active :> String;
+  attribute def Vehicle_Cabin_Infotainment_SmartphoneProjection_Active :> Vehicle_Cabin_Infotainment_SmartphoneProjection_Active_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_SmartphoneProjection_Active {
     path = "Vehicle.Cabin.Infotainment.SmartphoneProjection.Active";
     kind = "actuator";
@@ -1924,7 +2446,7 @@ package SignalDefinitions {
     allowedValues = "NONE, ACTIVE, INACTIVE";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_SmartphoneProjection_Source :> String;
+  attribute def Vehicle_Cabin_Infotainment_SmartphoneProjection_Source :> Vehicle_Cabin_Infotainment_SmartphoneProjection_Source_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_SmartphoneProjection_Source {
     path = "Vehicle.Cabin.Infotainment.SmartphoneProjection.Source";
     kind = "actuator";
@@ -1936,7 +2458,7 @@ package SignalDefinitions {
     allowedValues = "USB, BLUETOOTH, WIFI";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_SmartphoneProjection_SupportedMode :> String;
+  attribute def Vehicle_Cabin_Infotainment_SmartphoneProjection_SupportedMode :> Vehicle_Cabin_Infotainment_SmartphoneProjection_SupportedMode_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_SmartphoneProjection_SupportedMode {
     path = "Vehicle.Cabin.Infotainment.SmartphoneProjection.SupportedMode";
     kind = "attribute";
@@ -1948,7 +2470,7 @@ package SignalDefinitions {
     allowedValues = "ANDROID_AUTO, APPLE_CARPLAY, MIRROR_LINK, OTHER";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Active :> String;
+  attribute def Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Active :> Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Active_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Active {
     path = "Vehicle.Cabin.Infotainment.SmartphoneScreenMirroring.Active";
     kind = "actuator";
@@ -1960,7 +2482,7 @@ package SignalDefinitions {
     allowedValues = "NONE, ACTIVE, INACTIVE";
   }
 
-  attribute def Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Source :> String;
+  attribute def Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Source :> Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Source_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Infotainment_SmartphoneScreenMirroring_Source {
     path = "Vehicle.Cabin.Infotainment.SmartphoneScreenMirroring.Source";
     kind = "actuator";
@@ -2178,7 +2700,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Cabin_RearShade_Switch :> String;
+  attribute def Vehicle_Cabin_RearShade_Switch :> Vehicle_Cabin_RearShade_Switch_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_RearShade_Switch {
     path = "Vehicle.Cabin.RearShade.Switch";
     kind = "actuator";
@@ -2705,7 +3227,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Cabin_Seat_Massage_Status :> String;
+  attribute def Vehicle_Cabin_Seat_Massage_Status :> Vehicle_Cabin_Seat_Massage_Status_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Seat_Massage_Status {
     path = "Vehicle.Cabin.Seat.Massage.Status";
     kind = "sensor";
@@ -2769,7 +3291,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Cabin_Seat_OccupancyStatus :> String;
+  attribute def Vehicle_Cabin_Seat_OccupancyStatus :> Vehicle_Cabin_Seat_OccupancyStatus_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Seat_OccupancyStatus {
     path = "Vehicle.Cabin.Seat.OccupancyStatus";
     kind = "sensor";
@@ -2971,7 +3493,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Cabin_Sunroof_Shade_Switch :> String;
+  attribute def Vehicle_Cabin_Sunroof_Shade_Switch :> Vehicle_Cabin_Sunroof_Shade_Switch_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Sunroof_Shade_Switch {
     path = "Vehicle.Cabin.Sunroof.Shade.Switch";
     kind = "actuator";
@@ -2983,7 +3505,7 @@ package SignalDefinitions {
     allowedValues = "INACTIVE, CLOSE, OPEN, ONE_SHOT_CLOSE, ONE_SHOT_OPEN";
   }
 
-  attribute def Vehicle_Cabin_Sunroof_Switch :> String;
+  attribute def Vehicle_Cabin_Sunroof_Switch :> Vehicle_Cabin_Sunroof_Switch_AllowedValue;
   @VssSignalMetadata about Vehicle_Cabin_Sunroof_Switch {
     path = "Vehicle.Cabin.Sunroof.Switch";
     kind = "actuator";
@@ -3608,7 +4130,7 @@ package SignalDefinitions {
     unitReference = "SI::metre";
   }
 
-  attribute def Vehicle_CurrentLocation_GNSSReceiver_FixType :> String;
+  attribute def Vehicle_CurrentLocation_GNSSReceiver_FixType :> Vehicle_CurrentLocation_GNSSReceiver_FixType_AllowedValue;
   @VssSignalMetadata about Vehicle_CurrentLocation_GNSSReceiver_FixType {
     path = "Vehicle.CurrentLocation.GNSSReceiver.FixType";
     kind = "sensor";
@@ -3922,7 +4444,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Exterior_RoadSurfaceCondition :> String;
+  attribute def Vehicle_Exterior_RoadSurfaceCondition :> Vehicle_Exterior_RoadSurfaceCondition_AllowedValue;
   @VssSignalMetadata about Vehicle_Exterior_RoadSurfaceCondition {
     path = "Vehicle.Exterior.RoadSurfaceCondition";
     kind = "sensor";
@@ -4052,7 +4574,7 @@ package SignalDefinitions {
     unitReference = "SI::volt";
   }
 
-  attribute def Vehicle_LowVoltageSystemState :> String;
+  attribute def Vehicle_LowVoltageSystemState :> Vehicle_LowVoltageSystemState_AllowedValue;
   @VssSignalMetadata about Vehicle_LowVoltageSystemState {
     path = "Vehicle.LowVoltageSystemState";
     kind = "sensor";
@@ -5063,7 +5585,7 @@ package SignalDefinitions {
     unitReference = "SI::kilowattHour";
   }
 
-  attribute def Vehicle_Powertrain_CombustionEngine_AspirationType :> String;
+  attribute def Vehicle_Powertrain_CombustionEngine_AspirationType :> Vehicle_Powertrain_CombustionEngine_AspirationType_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_CombustionEngine_AspirationType {
     path = "Vehicle.Powertrain.CombustionEngine.AspirationType";
     kind = "attribute";
@@ -5097,7 +5619,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Powertrain_CombustionEngine_Configuration :> String;
+  attribute def Vehicle_Powertrain_CombustionEngine_Configuration :> Vehicle_Powertrain_CombustionEngine_Configuration_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_CombustionEngine_Configuration {
     path = "Vehicle.Powertrain.CombustionEngine.Configuration";
     kind = "attribute";
@@ -5248,7 +5770,7 @@ package SignalDefinitions {
     unitReference = "SI::litre";
   }
 
-  attribute def Vehicle_Powertrain_CombustionEngine_EngineCoolant_Level :> String;
+  attribute def Vehicle_Powertrain_CombustionEngine_EngineCoolant_Level :> Vehicle_Powertrain_CombustionEngine_EngineCoolant_Level_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_CombustionEngine_EngineCoolant_Level {
     path = "Vehicle.Powertrain.CombustionEngine.EngineCoolant.Level";
     kind = "sensor";
@@ -5312,7 +5834,7 @@ package SignalDefinitions {
     unitReference = "SI::litre";
   }
 
-  attribute def Vehicle_Powertrain_CombustionEngine_EngineOil_Level :> String;
+  attribute def Vehicle_Powertrain_CombustionEngine_EngineOil_Level :> Vehicle_Powertrain_CombustionEngine_EngineOil_Level_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_CombustionEngine_EngineOil_Level {
     path = "Vehicle.Powertrain.CombustionEngine.EngineOil.Level";
     kind = "sensor";
@@ -5337,7 +5859,7 @@ package SignalDefinitions {
     unitReference = "SI::second";
   }
 
-  attribute def Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus :> String;
+  attribute def Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus :> Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus {
     path = "Vehicle.Powertrain.CombustionEngine.EngineOil.PressureStatus";
     kind = "sensor";
@@ -5545,7 +6067,7 @@ package SignalDefinitions {
     unitReference = "SI::litre";
   }
 
-  attribute def Vehicle_Powertrain_ElectricMotor_EngineCoolant_Level :> String;
+  attribute def Vehicle_Powertrain_ElectricMotor_EngineCoolant_Level :> Vehicle_Powertrain_ElectricMotor_EngineCoolant_Level_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_ElectricMotor_EngineCoolant_Level {
     path = "Vehicle.Powertrain.ElectricMotor.EngineCoolant.Level";
     kind = "sensor";
@@ -5795,7 +6317,7 @@ package SignalDefinitions {
     unitReference = "SI-derived kilometre/litre";
   }
 
-  attribute def Vehicle_Powertrain_FuelSystem_HybridType :> String;
+  attribute def Vehicle_Powertrain_FuelSystem_HybridType :> Vehicle_Powertrain_FuelSystem_HybridType_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_FuelSystem_HybridType {
     path = "Vehicle.Powertrain.FuelSystem.HybridType";
     kind = "attribute";
@@ -5886,7 +6408,7 @@ package SignalDefinitions {
     unitReference = "SI::metre";
   }
 
-  attribute def Vehicle_Powertrain_FuelSystem_RefuelPortPosition :> String;
+  attribute def Vehicle_Powertrain_FuelSystem_RefuelPortPosition :> Vehicle_Powertrain_FuelSystem_RefuelPortPosition_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_FuelSystem_RefuelPortPosition {
     path = "Vehicle.Powertrain.FuelSystem.RefuelPortPosition";
     kind = "attribute";
@@ -5915,7 +6437,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Powertrain_FuelSystem_SupportedFuel :> String;
+  attribute def Vehicle_Powertrain_FuelSystem_SupportedFuel :> Vehicle_Powertrain_FuelSystem_SupportedFuel_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_FuelSystem_SupportedFuel {
     path = "Vehicle.Powertrain.FuelSystem.SupportedFuel";
     kind = "attribute";
@@ -5927,7 +6449,7 @@ package SignalDefinitions {
     allowedValues = "E5_95, E5_98, E10_95, E10_98, E85, B7, B10, B20, B30, B100, XTL, LPG, CNG, LNG, H2, OTHER";
   }
 
-  attribute def Vehicle_Powertrain_FuelSystem_SupportedFuelTypes :> String;
+  attribute def Vehicle_Powertrain_FuelSystem_SupportedFuelTypes :> Vehicle_Powertrain_FuelSystem_SupportedFuelTypes_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_FuelSystem_SupportedFuelTypes {
     path = "Vehicle.Powertrain.FuelSystem.SupportedFuelTypes";
     kind = "attribute";
@@ -6065,7 +6587,7 @@ package SignalDefinitions {
     unitReference = "SI-derived kilometre/litre";
   }
 
-  attribute def Vehicle_Powertrain_RangeExtender_OperatingMode :> String;
+  attribute def Vehicle_Powertrain_RangeExtender_OperatingMode :> Vehicle_Powertrain_RangeExtender_OperatingMode_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_RangeExtender_OperatingMode {
     path = "Vehicle.Powertrain.RangeExtender.OperatingMode";
     kind = "sensor";
@@ -6160,7 +6682,7 @@ package SignalDefinitions {
     sourceComment = "When battery conditioning is active, but temperature is already within acceptable range so that no cooling or heating is needed then IsOngoing shall report False.";
   }
 
-  attribute def Vehicle_Powertrain_TractionBattery_BatteryConditioning_RequestedMode :> String;
+  attribute def Vehicle_Powertrain_TractionBattery_BatteryConditioning_RequestedMode :> Vehicle_Powertrain_TractionBattery_BatteryConditioning_RequestedMode_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_TractionBattery_BatteryConditioning_RequestedMode {
     path = "Vehicle.Powertrain.TractionBattery.BatteryConditioning.RequestedMode";
     kind = "actuator";
@@ -6438,7 +6960,7 @@ package SignalDefinitions {
     sourceComment = "True = at least one flap of this port is open, False = All flaps of this port are closed.";
   }
 
-  attribute def Vehicle_Powertrain_TractionBattery_Charging_ChargingPort_SupportedInletTypes :> String;
+  attribute def Vehicle_Powertrain_TractionBattery_Charging_ChargingPort_SupportedInletTypes :> Vehicle_Powertrain_TractionBattery_Charging_ChargingPort_SupportedInletTypes_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_TractionBattery_Charging_ChargingPort_SupportedInletTypes {
     path = "Vehicle.Powertrain.TractionBattery.Charging.ChargingPort.SupportedInletTypes";
     kind = "attribute";
@@ -6602,7 +7124,7 @@ package SignalDefinitions {
     unitReference = "SI::watt";
   }
 
-  attribute def Vehicle_Powertrain_TractionBattery_Charging_StartStopCharging :> String;
+  attribute def Vehicle_Powertrain_TractionBattery_Charging_StartStopCharging :> Vehicle_Powertrain_TractionBattery_Charging_StartStopCharging_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_TractionBattery_Charging_StartStopCharging {
     path = "Vehicle.Powertrain.TractionBattery.Charging.StartStopCharging";
     kind = "actuator";
@@ -6640,7 +7162,7 @@ package SignalDefinitions {
     unitReference = "SI::second";
   }
 
-  attribute def Vehicle_Powertrain_TractionBattery_Charging_Timer_Mode :> String;
+  attribute def Vehicle_Powertrain_TractionBattery_Charging_Timer_Mode :> Vehicle_Powertrain_TractionBattery_Charging_Timer_Mode_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_TractionBattery_Charging_Timer_Mode {
     path = "Vehicle.Powertrain.TractionBattery.Charging.Timer.Mode";
     kind = "actuator";
@@ -7059,7 +7581,7 @@ package SignalDefinitions {
     maxValue = "100";
   }
 
-  attribute def Vehicle_Powertrain_Transmission_DriveType :> String;
+  attribute def Vehicle_Powertrain_Transmission_DriveType :> Vehicle_Powertrain_Transmission_DriveType_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_Transmission_DriveType {
     path = "Vehicle.Powertrain.Transmission.DriveType";
     kind = "attribute";
@@ -7071,7 +7593,7 @@ package SignalDefinitions {
     allowedValues = "UNKNOWN, FORWARD_WHEEL_DRIVE, REAR_WHEEL_DRIVE, ALL_WHEEL_DRIVE";
   }
 
-  attribute def Vehicle_Powertrain_Transmission_GearChangeMode :> String;
+  attribute def Vehicle_Powertrain_Transmission_GearChangeMode :> Vehicle_Powertrain_Transmission_GearChangeMode_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_Transmission_GearChangeMode {
     path = "Vehicle.Powertrain.Transmission.GearChangeMode";
     kind = "actuator";
@@ -7119,7 +7641,7 @@ package SignalDefinitions {
     sourceComment = "";
   }
 
-  attribute def Vehicle_Powertrain_Transmission_PerformanceMode :> String;
+  attribute def Vehicle_Powertrain_Transmission_PerformanceMode :> Vehicle_Powertrain_Transmission_PerformanceMode_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_Transmission_PerformanceMode {
     path = "Vehicle.Powertrain.Transmission.PerformanceMode";
     kind = "actuator";
@@ -7183,7 +7705,7 @@ package SignalDefinitions {
     unitReference = "SI::kilometre";
   }
 
-  attribute def Vehicle_Powertrain_Transmission_Type :> String;
+  attribute def Vehicle_Powertrain_Transmission_Type :> Vehicle_Powertrain_Transmission_Type_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_Transmission_Type {
     path = "Vehicle.Powertrain.Transmission.Type";
     kind = "attribute";
@@ -7195,7 +7717,7 @@ package SignalDefinitions {
     allowedValues = "UNKNOWN, SEQUENTIAL, H, AUTOMATIC, DSG, CVT";
   }
 
-  attribute def Vehicle_Powertrain_Type :> String;
+  attribute def Vehicle_Powertrain_Type :> Vehicle_Powertrain_Type_AllowedValue;
   @VssSignalMetadata about Vehicle_Powertrain_Type {
     path = "Vehicle.Powertrain.Type";
     kind = "attribute";
@@ -7238,7 +7760,7 @@ package SignalDefinitions {
     sourceComment = "Determination method is implementation specific. May be derived from pressure sensors, water contact sensors, door seal sensors, or anomalous rain detection intensity readings. Primary consumers: emergency dispatch and first responder systems. Related to VSS issue #877 (Connected Safety signals).";
   }
 
-  attribute def Vehicle_Safety_Rollover :> String;
+  attribute def Vehicle_Safety_Rollover :> Vehicle_Safety_Rollover_AllowedValue;
   @VssSignalMetadata about Vehicle_Safety_Rollover {
     path = "Vehicle.Safety.Rollover";
     kind = "sensor";

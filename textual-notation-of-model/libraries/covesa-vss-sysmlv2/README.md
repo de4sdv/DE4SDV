@@ -8,6 +8,7 @@ Signal Specification `spec/` tree.
 - Source commit: `6fb1dac2630a8910ee996863b2af02b310dcd7ce`
 - Source entry point: `spec/VehicleSignalSpecification.vspec`
 - Generated leaves: 626 (280 sensors, 246 actuators, 100 attributes)
+- Generated allowed-value enum types: 65
 - Generated branches: 139
 
 ## Semantic metadata policy
@@ -21,8 +22,9 @@ annotations:
 - VSS unit tokens map to SysML v2 standard quantity/unit references through
   `VssQuantityMetadata`.
 - VSS min/max bounds use `VssRangeMetadata`.
-- VSS allowed-value lists use `VssAllowedValuesMetadata` for now; a later
-  generation increment may promote stable allowed-value lists into enum types.
+- VSS allowed-value lists are promoted into generated SysML v2 `enum def`
+  types and also retained in `VssAllowedValuesMetadata` for source
+  provenance.
 
 The package intentionally does **not** import `spec/units.yaml` or
 `spec/quantities.yaml` from the VSS repository. Quantity/unit metadata points
