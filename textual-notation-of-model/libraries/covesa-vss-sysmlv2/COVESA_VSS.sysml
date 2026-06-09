@@ -45,7 +45,7 @@ package MetadataDefinitions {
   }
 }
 
-package ValueTypes {
+package AllowedValueDefinitions {
   enum def Vehicle_ADAS_ActiveAutonomyLevel_AllowedValue {
     SAE_0;
     SAE_1;
@@ -568,7 +568,7 @@ package ValueTypes {
 
 package SignalDefinitions {
   private import COVESA_VSS::MetadataDefinitions::*;
-  private import COVESA_VSS::ValueTypes::*;
+  private import COVESA_VSS::AllowedValueDefinitions::*;
 
   attribute def Vehicle_ADAS_ABS_IsEnabled :> Boolean;
   @VssSignalMetadata about Vehicle_ADAS_ABS_IsEnabled {

@@ -282,7 +282,7 @@ def generate(vss_repo: Path, output: Path) -> tuple[int, int, str]:
     ]
     lines.extend(metadata_definitions())
     lines.extend([
-        "package ValueTypes {",
+        "package AllowedValueDefinitions {",
     ])
     for path in sorted(leaves):
         value = leaves[path]
@@ -295,7 +295,7 @@ def generate(vss_repo: Path, output: Path) -> tuple[int, int, str]:
         "",
         "package SignalDefinitions {",
         "  private import COVESA_VSS::MetadataDefinitions::*;",
-        "  private import COVESA_VSS::ValueTypes::*;",
+        "  private import COVESA_VSS::AllowedValueDefinitions::*;",
         "",
     ])
 
