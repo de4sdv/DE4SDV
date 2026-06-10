@@ -1,0 +1,291 @@
+status: draft_pilot
+purpose: >
+  Minimal DE4SDV ontology vocabulary for starting actual modeling while keeping
+  the first ontology PR stack-neutral. This is a semantic starter, not an
+  adopted RDF/OWL/OML/SysML v2 implementation.
+
+modeling_principles:
+  - id: PRINCIPLE-SEMANTIC-BACKBONE
+    statement: >
+      The ontology defines the meaning layer of the DE4SDV domain-specific
+      engineering language; concrete notations such as YAML, RDF, OML, and
+      SysML v2 are implementation choices over that meaning layer.
+  - id: PRINCIPLE-SYSMOD-COMPATIBLE
+    statement: >
+      Ontology concepts shall support SYSMOD-style progression from system idea,
+      objectives, stakeholders, requirements, context, use cases, behavior,
+      domain knowledge, architecture, and verification evidence.
+  - id: PRINCIPLE-STACK-NEUTRAL-FIRST
+    statement: >
+      This pilot records concepts and relations before selecting RDF, SHACL,
+      OML/openCAESAR, or SysML v2 mapping technology.
+
+namespaces:
+  de4: https://de4sdv.org/ontology#
+  model: https://de4sdv.org/model/
+
+modules:
+  - id: de4sdv-core
+    purpose: Shared identity, source, rationale, stakeholder, concern, and view concepts.
+    classes:
+      - id: IdentifiedElement
+        definition: Any ontology element with a stable DE4SDV identifier.
+      - id: NamedElement
+        definition: An identified element with a human-readable name.
+      - id: SourceReference
+        definition: Reference to a source used to justify a concept, rule, or model element.
+      - id: Rationale
+        definition: Explanation of why a modeling decision was made.
+      - id: Stakeholder
+        definition: Person, role, organization, or community with concerns about the system.
+      - id: Concern
+        definition: Matter of interest to one or more stakeholders.
+      - id: Viewpoint
+        definition: Framing that defines how selected concerns are addressed in a view.
+      - id: View
+        definition: Representation of the system from a viewpoint.
+      - id: SystemOfInterest
+        definition: The system whose boundary and behavior are under analysis.
+
+  - id: de4sdv-sysmod-method
+    purpose: Minimal method concepts needed to fit SYSMOD-style modeling.
+    classes:
+      - id: ProblemStatement
+        definition: Statement of the problem or opportunity motivating the model.
+      - id: SystemIdea
+        definition: Early description of the intended system and its value proposition.
+      - id: SystemObjective
+        definition: Desired outcome or objective the system should satisfy.
+      - id: ContextBoundary
+        definition: Boundary separating the system of interest from external actors and systems.
+      - id: ExternalActor
+        definition: Actor or external system interacting with the system of interest.
+      - id: UseCase
+        definition: Goal-oriented interaction between actors and the system of interest.
+      - id: Scenario
+        definition: Concrete path through a use case or operational situation.
+      - id: Process
+        definition: Behavior, activity, or workflow relevant to the system model.
+      - id: DomainConcept
+        definition: Domain knowledge concept used to define model semantics.
+      - id: ArchitectureDecision
+        definition: Recorded decision shaping the architecture or modeling approach.
+      - id: VerificationPlan
+        definition: Planned method for checking requirements or model claims.
+
+  - id: de4sdv-product-line
+    purpose: Product-line and variability concepts for configurable SDV member products.
+    classes:
+      - id: ProductLine
+        definition: Managed family of related SDV member products.
+      - id: MemberProduct
+        definition: Product belonging to the product line.
+      - id: VariantConfiguration
+        definition: Selection of features and configuration choices for a member product.
+      - id: Feature
+        definition: >
+          Distinguishing characteristic selected for at least one member product
+          and not all member products.
+      - id: CommonCapability
+        definition: Capability or characteristic present in all member products.
+      - id: FeatureCatalogue
+        definition: Catalogue of available product-line features and constraints.
+      - id: BillOfFeatures
+        definition: Selected feature set for one member product.
+      - id: FeatureConstraint
+        definition: Rule governing compatible, required, or excluded feature selections.
+      - id: SharedAssetSuperset
+        definition: Shared lifecycle artifact containing reusable content for member products.
+      - id: VariationPoint
+        definition: Location in a shared asset configured by feature or variant choices.
+      - id: ProductAssetInstance
+        definition: Configured asset instance derived from a shared asset superset.
+
+  - id: de4sdv-requirements
+    purpose: Need, requirement, constraint, and satisfaction semantics.
+    classes:
+      - id: StakeholderNeed
+        definition: Stakeholder problem, expectation, or desired outcome.
+      - id: Requirement
+        definition: Verifiable statement specifying expected system or product-line behavior.
+      - id: Constraint
+        definition: Limitation or rule restricting acceptable solutions or configurations.
+      - id: Assumption
+        definition: Statement treated as true for a model increment until verified or revised.
+      - id: Satisfaction
+        definition: Relationship showing that a model element satisfies a requirement.
+
+  - id: de4sdv-architecture
+    purpose: Architecture concepts that can later map to SysML v2 model elements.
+    classes:
+      - id: ArchitectureElement
+        definition: Any element participating in the architecture description.
+      - id: Function
+        definition: Capability or behavior the system performs.
+      - id: LogicalComponent
+        definition: Technology-independent component allocation target.
+      - id: SoftwareComponent
+        definition: Software element, service, application, or platform function.
+      - id: HardwareElement
+        definition: Physical or electronic element relevant to the SDV architecture.
+      - id: Interface
+        definition: Contract for interaction between architecture elements or externals.
+      - id: Signal
+        definition: Named exchanged information item or observable value.
+      - id: Service
+        definition: Provided software-defined capability exposed through an interface.
+
+  - id: de4sdv-assurance
+    purpose: Verification, validation, evidence, and release/certification impact concepts.
+    classes:
+      - id: VerificationCase
+        definition: Method or case used to verify a requirement or design claim.
+      - id: ValidationScenario
+        definition: Scenario used to validate stakeholder need satisfaction.
+      - id: EvidenceArtifact
+        definition: Artifact supporting verification, validation, assurance, or release decisions.
+      - id: Hazard
+        definition: Potential source of harm relevant to safety analysis.
+      - id: Threat
+        definition: Potential cybersecurity or misuse concern.
+      - id: Mitigation
+        definition: Design or process measure reducing a hazard or threat.
+      - id: AssuranceClaim
+        definition: Claim about acceptable system behavior, risk, or evidence sufficiency.
+      - id: ReleaseImpact
+        definition: Effect of a feature, requirement, or evidence change on release readiness.
+      - id: CertificationImpact
+        definition: Effect of a feature, requirement, or evidence change on certification or homologation reasoning.
+
+relations:
+  - id: has_source
+    domain: IdentifiedElement
+    range: SourceReference
+    meaning: Links an element to the source used to justify it.
+  - id: has_rationale
+    domain: IdentifiedElement
+    range: Rationale
+    meaning: Records the reason for a modeling decision.
+  - id: addresses_concern
+    domain: Viewpoint
+    range: Concern
+    meaning: States that a viewpoint frames one or more stakeholder concerns.
+  - id: has_member_product
+    domain: ProductLine
+    range: MemberProduct
+    meaning: Declares membership in the product line.
+  - id: has_common_capability
+    domain: MemberProduct
+    range: CommonCapability
+    meaning: Declares capability present in a member product and intended to be common.
+  - id: selects_feature
+    domain: BillOfFeatures
+    range: Feature
+    meaning: Selects a feature for a member product.
+  - id: distinguishes_from
+    domain: Feature
+    range: MemberProduct
+    meaning: Shows the member product contrast that makes the characteristic a feature.
+  - id: configured_by
+    domain: VariationPoint
+    range: Feature
+    meaning: Identifies the feature or condition configuring a shared asset variation point.
+  - id: derived_from_need
+    domain: Feature
+    range: StakeholderNeed
+    meaning: Links a feature to the need motivating it.
+  - id: specified_by
+    domain: Feature
+    range: Requirement
+    meaning: Links a feature to requirements or constraints specifying expected behavior.
+  - id: realized_by
+    domain: Requirement
+    range: ArchitectureElement
+    meaning: Links a requirement to architecture elements intended to satisfy it.
+  - id: verified_by
+    domain: Requirement
+    range: EvidenceArtifact
+    meaning: Links a requirement to planned or actual verification evidence.
+  - id: impacts_release
+    domain: Feature
+    range: ReleaseImpact
+    meaning: Links a feature to release-readiness impact.
+  - id: impacts_certification
+    domain: Feature
+    range: CertificationImpact
+    meaning: Links a feature to certification or homologation impact.
+
+minimum_modeling_slice:
+  description: >
+    The smallest useful DE4SDV ontology-backed model should connect a product-line
+    characteristic to member-product variability, requirement, architecture, and
+    evidence.
+  required_elements:
+    - ProductLine
+    - MemberProduct
+    - Feature or CommonCapability
+    - StakeholderNeed
+    - Requirement
+    - ArchitectureElement
+    - EvidenceArtifact
+  required_relations:
+    - has_member_product
+    - distinguishes_from
+    - derived_from_need
+    - specified_by
+    - realized_by
+    - verified_by
+
+sysmod_alignment:
+  problem_statement: ProblemStatement
+  system_idea: SystemIdea
+  objectives: SystemObjective
+  stakeholders_and_concerns:
+    - Stakeholder
+    - Concern
+    - Viewpoint
+  requirements:
+    - StakeholderNeed
+    - Requirement
+    - Constraint
+  context:
+    - SystemOfInterest
+    - ContextBoundary
+    - ExternalActor
+    - Interface
+  use_cases:
+    - UseCase
+    - Scenario
+  processes_and_behavior:
+    - Process
+    - Function
+  domain_knowledge:
+    - DomainConcept
+    - ProductLine
+    - Feature
+    - CommonCapability
+  architecture:
+    - ArchitectureElement
+    - LogicalComponent
+    - SoftwareComponent
+    - HardwareElement
+    - Service
+    - Signal
+  verification_and_evidence:
+    - VerificationPlan
+    - VerificationCase
+    - ValidationScenario
+    - EvidenceArtifact
+    - AssuranceClaim
+
+pilot_constraints:
+  - id: ONT-RULE-001
+    statement: Feature and CommonCapability are disjoint modeling categories.
+  - id: ONT-RULE-002
+    statement: A Feature must distinguish at least one member product from another.
+  - id: ONT-RULE-003
+    statement: A CommonCapability should be present in every member product in the analyzed product-line scope.
+  - id: ONT-RULE-004
+    statement: Every Feature in the pilot should link to a need, requirement, architecture element, and evidence artifact.
+  - id: ONT-RULE-005
+    statement: A VariationPoint should state the feature or configuration condition that configures it.

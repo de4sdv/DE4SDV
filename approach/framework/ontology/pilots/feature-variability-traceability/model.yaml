@@ -1,9 +1,57 @@
 product_line:
   id: PL-DE4SDV
   name: DE4SDV product line
+  ontology_type: ProductLine
   description: >
     Example product line used to test feature variability traceability for a
     digitally engineered software-defined vehicle product-line concept.
+
+ontology_reference:
+  vocabulary: basic-ontology.yaml
+  minimum_slice:
+    - ProductLine
+    - MemberProduct
+    - Feature
+    - CommonCapability
+    - StakeholderNeed
+    - Requirement
+    - ArchitectureElement
+    - EvidenceArtifact
+
+sysmod_context:
+  problem_statement:
+    id: PROBLEM-OTA-RECOVERY
+    ontology_type: ProblemStatement
+    text: >
+      Failed OTA updates can leave selected software-defined vehicle member
+      products in an unusable or unsafe software state if recovery behavior is
+      not specified, realized, and evidenced.
+  system_idea:
+    id: IDEA-CONFIGURABLE-SDV-LINE
+    ontology_type: SystemIdea
+    text: >
+      DE4SDV models a configurable software-defined vehicle product line whose
+      member products can select different update recovery behavior while
+      preserving traceability to requirements, architecture, and evidence.
+  objectives:
+    - id: OBJ-RECOVERABLE-OTA
+      ontology_type: SystemObjective
+      text: >
+        Selected member products recover to a last known-good software baseline
+        when post-install health checks fail.
+  stakeholders:
+    - id: STK-VEHICLE-OWNER
+      ontology_type: Stakeholder
+      name: Vehicle owner
+    - id: STK-FLEET-OPERATOR
+      ontology_type: Stakeholder
+      name: Fleet operator
+  concerns:
+    - id: CONCERN-UPDATE-RECOVERY
+      ontology_type: Concern
+      text: >
+        OTA update failures should not leave selected member products unusable
+        or without accountable release evidence.
 
 source_terms:
   - id: SRC-ISO-IEC-26580-FEATURE

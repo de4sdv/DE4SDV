@@ -3,6 +3,49 @@
 These Mermaid diagrams are intentionally lightweight. They are review artifacts,
 not generated ontology output.
 
+## Basic ontology modules
+
+```mermaid
+flowchart TD
+    CORE[de4sdv-core]
+    METHOD[de4sdv-sysmod-method]
+    PL[de4sdv-product-line]
+    REQ[de4sdv-requirements]
+    ARCH[de4sdv-architecture]
+    ASSURE[de4sdv-assurance]
+
+    CORE --> METHOD
+    CORE --> PL
+    CORE --> REQ
+    CORE --> ARCH
+    CORE --> ASSURE
+    METHOD --> PL
+    METHOD --> REQ
+    METHOD --> ARCH
+    METHOD --> ASSURE
+    PL --> REQ
+    REQ --> ARCH
+    ARCH --> ASSURE
+```
+
+## SYSMOD-style modeling chain
+
+```mermaid
+flowchart LR
+    P[ProblemStatement]
+    I[SystemIdea]
+    O[SystemObjective]
+    S[Stakeholder / Concern]
+    R[Requirement / Constraint]
+    C[ContextBoundary / ExternalActor]
+    U[UseCase / Scenario]
+    B[Process / Function]
+    A[ArchitectureElement]
+    E[VerificationCase / EvidenceArtifact]
+
+    P --> I --> O --> S --> R --> C --> U --> B --> A --> E
+```
+
 ## Feature vs common capability
 
 ```mermaid

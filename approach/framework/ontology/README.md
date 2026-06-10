@@ -46,9 +46,10 @@ feature
   -> release/certification impact
 ```
 
-The pilot uses Markdown, YAML, and Mermaid only. It intentionally does not
-introduce RDF, SHACL, SPARQL, OML/openCAESAR, SysML v2 mappings, or generated
-ontology artifacts.
+The pilot uses Markdown, YAML, and Mermaid only. It adds a minimal
+`basic-ontology.yaml` vocabulary and a SYSMOD alignment note, but intentionally
+does not introduce RDF, SHACL, SPARQL, OML/openCAESAR, SysML v2 mappings, or
+generated ontology artifacts.
 
 ## Adoption guardrails
 

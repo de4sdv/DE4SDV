@@ -6,9 +6,10 @@ ontology stack.
 
 ## Engineering question
 
-Can DE4SDV represent a product-line feature as a distinguishing characteristic
-of selected member products and trace that feature to requirements,
-architecture, verification evidence, and release/certification impact?
+Can DE4SDV start with a very small ontology that supports actual modeling of a
+product-line feature as a distinguishing characteristic of selected member
+products, while still fitting a SYSMOD-style progression from problem framing to
+requirements, context, architecture, and verification evidence?
 
 ## Source basis
 
@@ -54,7 +55,11 @@ the variability semantics that feature-based PLE needs.
 
 ## Pilot artifacts
 
+- [`basic-ontology.yaml`](basic-ontology.yaml) — minimal DE4SDV ontology
+  vocabulary for starting actual modeling.
 - [`model.yaml`](model.yaml) — reviewable source model for the example slice.
+- [`sysmod-alignment.md`](sysmod-alignment.md) — mapping from SYSMOD-style
+  method steps to the starter ontology concepts.
 - [`diagrams.md`](diagrams.md) — Mermaid diagrams for the ontology views.
 - [`validation-rules.md`](validation-rules.md) — plain-language model quality
   rules.
@@ -64,6 +69,26 @@ the variability semantics that feature-based PLE needs.
   notes.
 
 ## Concepts in this pilot
+
+The starter ontology in [`basic-ontology.yaml`](basic-ontology.yaml) groups
+concepts into six small modules:
+
+- `de4sdv-core` — identity, source, rationale, stakeholder, concern, viewpoint,
+  view, and system-of-interest concepts.
+- `de4sdv-sysmod-method` — problem statement, system idea, objectives, context,
+  use case, scenario, process, domain concept, architecture decision, and
+  verification plan concepts.
+- `de4sdv-product-line` — product line, member product, feature, common
+  capability, feature catalogue, bill-of-features, shared assets, and variation
+  points.
+- `de4sdv-requirements` — stakeholder needs, requirements, constraints,
+  assumptions, and satisfaction.
+- `de4sdv-architecture` — architecture elements, functions, components,
+  interfaces, signals, and services.
+- `de4sdv-assurance` — verification, validation, evidence, hazard/threat,
+  mitigation, assurance, and release/certification impact concepts.
+
+The example model in [`model.yaml`](model.yaml) uses a subset of those concepts:
 
 - `ProductLine` — the managed family of similar products.
 - `MemberProduct` — one product belonging to the product line.

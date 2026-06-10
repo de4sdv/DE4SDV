@@ -3,6 +3,19 @@
 These are pilot rules for review. They are not yet DE4SDV-wide governance rules
 and are not implemented in CI.
 
+## Starter ontology integrity
+
+### RULE-000 — Ontology type grounding
+
+Every example element that claims an `ontology_type` shall use a concept defined
+in `basic-ontology.yaml`.
+
+### RULE-000A — Method-to-model trace
+
+The pilot model should preserve a visible SYSMOD-style chain from problem
+statement to system idea, objectives, stakeholder concern, requirement,
+architecture element, and evidence artifact.
+
 ## Product-line semantics
 
 ### RULE-001 — Feature distinction
