@@ -25,12 +25,15 @@ python scripts/check_repo.py
 python scripts/smoke_test.py
 ```
 
-For `.sysml` changes, add one of the following:
+For `.sysml` changes, choose one validation path:
 
-- Local validation evidence from the Syside Editor VS Code extension, if
-  available
-- Local CLI evidence from `python scripts/validate_sysml.py`, if available
-- A request for maintainer-run privileged Syside CI validation
+1. Local validation, if Syside is available:
+   - Syside Editor VS Code extension evidence, or
+   - `python scripts/validate_sysml.py` output
+2. Maintainer-run privileged validation:
+   - Request the `Privileged Syside Validation` workflow after initial review.
+     Include the branch, tag, or commit SHA to validate and the model path if it
+     is not `textual-notation-of-model`.
 
 ## SysML validation
 

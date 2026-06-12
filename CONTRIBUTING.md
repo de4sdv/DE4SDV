@@ -116,24 +116,33 @@ python scripts/smoke_test.py
 For public pull requests, CI runs these repository checks without requiring
 licensed tools or repository secrets.
 
-### SysML v2 local validation
+### SysML v2 validation gate
 
 Public CI does not run licensed Syside validation on untrusted pull requests.
-If you have access to Syside, we recommend validating changed `.sysml` files
-locally with the **Syside Editor VS Code extension** or the repository wrapper
-before submitting or updating a PR:
+For pull requests that create or modify `.sysml` files, use one of two
+validation paths:
+
+1. **Local validation, if you have Syside access.** Validate changed `.sysml`
+   files with the **Syside Editor VS Code extension** or the repository wrapper
+   before submitting or updating a PR:
 
 ```bash
 python scripts/validate_sysml.py
 ```
 
+1. **Maintainer-run privileged validation.** If local Syside validation is not
+   available, request maintainer-run licensed Syside validation in the PR after
+   initial review. Include the branch, tag, or commit SHA to validate and the
+   model path if it is not `textual-notation-of-model`.
+
 Local Syside validation is recommended when available, but it is not a
-prerequisite for contributing. Maintainers can run the privileged licensed
-Syside validation workflow in CI after initial PR review.
+prerequisite for contributing.
 
 Maintainer-run validation uses the `Privileged Syside Validation` workflow. It
 requires the `SYSIDE_LICENSE_KEY` repository secret and validates a reviewed
 branch, tag, or commit SHA without exposing the key to contributors.
+Maintainers run it from GitHub Actions by selecting the workflow, choosing
+**Run workflow**, and entering the reviewed `ref` and `model_path`.
 
 1. Open a pull request with:
    - Clear title
