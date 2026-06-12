@@ -132,7 +132,8 @@ python scripts/validate_sysml.py
 
 1. **Maintainer-run privileged validation.** If local Syside validation is not
    available, request maintainer-run licensed Syside validation in the PR after
-   initial review.
+   initial review. Include the branch, tag, or commit SHA to validate and the
+   model path if it is not `textual-notation-of-model`.
 
 Local Syside validation is recommended when available, but it is not a
 prerequisite for contributing.
@@ -140,6 +141,8 @@ prerequisite for contributing.
 Maintainer-run validation uses the `Privileged Syside Validation` workflow. It
 requires the `SYSIDE_LICENSE_KEY` repository secret and validates a reviewed
 branch, tag, or commit SHA without exposing the key to contributors.
+Maintainers run it from GitHub Actions by selecting the workflow, choosing
+**Run workflow**, and entering the reviewed `ref` and `model_path`.
 
 1. Open a pull request with:
    - Clear title

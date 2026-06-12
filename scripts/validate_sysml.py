@@ -30,7 +30,7 @@ def main() -> int:
         print(
             "Install the CLI and rerun: python scripts/validate_sysml.py\n"
             "If you use VS Code and have Syside access, you can also validate changed "
-            ".sysml files locally with the Syside Editor extension.\n"
+            ".sysml files locally with the Syside Editor VS Code extension.\n"
             "Documentation: https://docs.sensmetry.com/modeler/cli/commands.html",
             file=sys.stderr,
         )

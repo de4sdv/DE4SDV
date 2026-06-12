@@ -31,7 +31,9 @@ For `.sysml` changes, choose one validation path:
    - Syside Editor VS Code extension evidence, or
    - `python scripts/validate_sysml.py` output
 2. Maintainer-run privileged validation:
-   - Request the `Privileged Syside Validation` workflow after initial review
+   - Request the `Privileged Syside Validation` workflow after initial review.
+     Include the branch, tag, or commit SHA to validate and the model path if it
+     is not `textual-notation-of-model`.
 
 ## SysML validation
 

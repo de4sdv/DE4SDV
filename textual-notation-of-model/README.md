@@ -16,8 +16,8 @@ All generated or modified `.sysml` textual notation in this directory must be
 validated before the modeling step is considered complete. Use one of two
 validation paths:
 
-1. Local validation, if Syside is available, using the Syside Editor or the
-   repository wrapper:
+1. Local validation, if Syside is available, using the Syside Editor VS Code
+   extension or the repository wrapper:
 
 ```bash
 python scripts/validate_sysml.py
@@ -27,7 +27,9 @@ The validation wrapper uses Sensmetry SysIDE Modeler CLI (`syside check`) and
 reports a clean no-op when the repository has no `.sysml` files yet.
 
 1. Maintainer-run privileged validation, requested from the pull request after
-   initial review, using the `Privileged Syside Validation` workflow.
+   initial review. Maintainers run the `Privileged Syside Validation` workflow
+   from GitHub Actions with the reviewed branch, tag, or commit SHA and the
+   model path to validate.
 
 ## Libraries
 

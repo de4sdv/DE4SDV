@@ -39,9 +39,9 @@ Before proposing a completed change:
 1. Run `python scripts/check_repo.py`
 2. Run `python scripts/smoke_test.py`
 3. For any change that creates or modifies SysML v2 textual notation, document
-   one SysML validation path: local validation evidence from the Syside Editor or
-   `python scripts/validate_sysml.py`, or a request for maintainer-run
-   privileged Syside validation after review
+   one SysML validation path: local validation evidence from the Syside Editor
+   VS Code extension or `python scripts/validate_sysml.py`, or a request for
+   maintainer-run privileged Syside validation after review
 4. Update relevant files in `specs/` or `docs/` if the change affects
    architecture, workflow, terminology, safety, security, or compliance
    assumptions
@@ -54,8 +54,8 @@ must be validated before the modeling step is treated as complete.
 
 Use one of the two validation paths:
 
-1. Local validation, if Syside is available, using the Syside Editor or the
-   repository wrapper:
+1. Local validation, if Syside is available, using the Syside Editor VS Code
+   extension or the repository wrapper:
 
 ```bash
 python scripts/validate_sysml.py
@@ -68,7 +68,9 @@ syside check textual-notation-of-model/
 ```
 
 1. Maintainer-run privileged validation, requested from the pull request after
-   initial review, using the `Privileged Syside Validation` workflow.
+   initial review. Maintainers run the `Privileged Syside Validation` workflow
+   from GitHub Actions with the reviewed branch, tag, or commit SHA and the
+   model path to validate.
 
 If validation fails, keep the modeling work in draft state and document the
 failure instead of presenting the SysML v2 textual notation as complete.
