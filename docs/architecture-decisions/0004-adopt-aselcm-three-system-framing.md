@@ -70,3 +70,14 @@ This ADR does not:
 
 A later PR may add a small SysML v2 context model that captures the same
 three-system scope in textual notation.
+
+## Links
+
+- INCOSE/OMG MBSE Wiki: Schindel, Bill, and Rick Dove, *Introduction to the
+  Agile Systems Engineering Life Cycle MBSE Pattern*, v1.6.6, presented at the
+  26th Annual INCOSE International Symposium, 2016. The paper describes the
+  ASELCM reference boundaries for System 1 as the target system, System 2 as the
+  target-system life-cycle domain system, and System 3 as the system of
+  innovation. [PDF][aselcm-pattern]
+
+[aselcm-pattern]: https://www.omgwiki.org/MBSE/lib/exe/fetch.php?media=mbse:patterns:intro_to_the_aselcm_pattern_v1.6.6.pdf
