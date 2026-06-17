@@ -132,9 +132,3 @@ Start here:
 ## License
 
 **Apache License 2.0**.
-
-## References
-
-- [Systems Engineering Demystified](https://learning.oreilly.com/library/view/systems-engineering-demystified/9781804610688/?gad_source=1&gad_campaignid=23742776561&gbraid=0AAAAADHuAxNBmd6bXR-CuqaYVK8kCM07z&gclid=CjwKCAjwt7XQBhBkEiwAtStpp9dW4nDzh9uyPGeoQo-P6k2hbAfEzWpXXpt_584OR0DJHNQX7y6pehoCPKwQAvD_BwE)
-- [Model‐Based Product Line Engineering (MBPLE): The Feature‐Based Path to Product Lines Success](https://onlinelibrary.wiley.com/doi/book/10.1002/9781394204694)
-- [SYSMOD — Systems Modeling with SysML](https://mbse4u.com/sysmod/)

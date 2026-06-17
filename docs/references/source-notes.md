@@ -29,6 +29,18 @@ Additional model-library references:
 - Sysand User Guide: installation and project workflow for creating a SysML v2
   or KerML interchange project and building the library KPAR.
 
+Foundational book and method references:
+
+- Systems Engineering Demystified: general systems-engineering framing,
+  lifecycle thinking, architecture, requirements, verification, validation, and
+  stakeholder-oriented engineering practice. See the [O'Reilly entry][se-demystified].
+- Model-Based Product Line Engineering: feature-based product-line engineering,
+  variability modeling, product configuration, and product-line adoption
+  guidance. See the [Wiley entry][mbple-book].
+- SYSMOD — Systems Modeling with SysML: method guidance for SysML-based systems
+  modeling, including context, requirements, architecture, and model structure.
+  See the [MBSE4U SYSMOD page][sysmod-book].
+
 Methodology references added during DE4SDV modeling-method development:
 
 - MBSE4U `sysmod-sysmlv2`: public Apache-2.0 SysML v2 library for SYSMOD
@@ -39,3 +51,6 @@ Keep this file updated as new external references are added.
 
 [covesa-vss-library]: ../../textual-notation-of-model/libraries/covesa-vss-sysmlv2/
 [aselcm-pattern]: https://www.omgwiki.org/MBSE/lib/exe/fetch.php?media=mbse:patterns:intro_to_the_aselcm_pattern_v1.6.6.pdf
+[se-demystified]: https://learning.oreilly.com/library/view/systems-engineering-demystified/9781804610688/
+[mbple-book]: https://onlinelibrary.wiley.com/doi/book/10.1002/9781394204694
+[sysmod-book]: https://mbse4u.com/sysmod/
