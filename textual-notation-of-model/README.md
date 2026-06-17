@@ -10,6 +10,19 @@ current adoption step documents the upstream SYSMOD SysML v2 reference and
 tailoring approach; future increments may add local packages such as a DE4SDV
 tailoring package and context model.
 
+## Context modeling scope
+
+Future context models should preserve the ASELCM-aligned DE4SDV scope:
+
+- System 1: configurable SDV product line and configured vehicle/software
+  variants.
+- System 2: DE4SDV life-cycle engineering and assurance system.
+- System 3: DE4SDV open innovation ecosystem.
+
+A later small example may add
+`textual-notation-of-model/context/de4sdv_aselcm_context.sysml` to capture this
+framing in SysML v2 textual notation.
+
 ## Validation
 
 All generated or modified `.sysml` textual notation in this directory must be

@@ -8,6 +8,23 @@ DE4SDV exists to provide an open, model-based reference foundation for engineeri
 
 Software-Defined Vehicles (SDVs) require coordinated engineering across many domains - architecture, variants, software, safety, security, compliance, simulation, digital twins, and lifecycle traceability. Yet many teams do not have an open reference framework that links these concerns. At the same time, an ever-growing portion of SDV-related technology is being released as open source. As a result, a holistic approach for integrating these disparate technologies into configurable stacks is essential.
 
+## ASELCM scope framing
+
+DE4SDV uses a three-system scope framing to separate the product line being engineered, the engineering system that manages it, and the ecosystem that evolves that engineering system.
+
+- **System 1: configurable SDV product line and configured vehicle/software variants.**
+  This is the engineered system whose features, architectures, interfaces,
+  behaviors, safety/security boundaries, and compliance constraints are modeled
+  and assessed.
+- **System 2: DE4SDV life-cycle engineering and assurance system.** This is the
+  primary repository System-of-Interest. It includes the model-based product-line
+  engineering, SysML v2, simulation, digital-thread, digital-twin,
+  configuration-management, evidence, and continuous-homologation capabilities
+  used to manage System 1 across its life cycle.
+- **System 3: DE4SDV open innovation ecosystem.** This includes the governance,
+  standards, methodology, contributor, toolchain, upstream, and review ecosystem
+  that evolves System 2.
+
 ## Target users / personas
 
 - Systems engineers and solution architects designing SDV system structures.
@@ -21,16 +38,29 @@ Software-Defined Vehicles (SDVs) require coordinated engineering across many dom
 
 ## Goals
 
+### System 1 goals
+
+- Enable configurable SDV product-line architectures with explicit commonality and variability.
+- Support certified freedom: configurable vehicle feature tailoring within clearly defined safety, security, and compliance guardrails.
+- Promote ecosystem diversity by enabling systematic comparison of alternative open-source subsystem stacks rather than mandating a single stack.
+- Improve openness and trust through explicit data-handling transparency and user-control-oriented design patterns for vehicle and user data.
+
+### System 2 goals
+
 - Define a practical, open repository structure for SDV digital engineering assets.
 - Establish end-to-end traceability across requirements, models, variants, tests, and compliance evidence.
 - Enable configurable SDV product-line engineering with reusable patterns.
-- Enable certified freedom: support configurable vehicle feature tailoring within clearly defined safety, security, and compliance guardrails.
 - Support simulation-backed engineering decisions and digital twin readiness.
 - Integrate safety, security, and regulatory evidence into everyday development.
-- Promote ecosystem diversity by enabling systematic comparison of alternative open-source subsystem stacks rather than mandating a single stack.
 - Provide AI-ready, machine-readable documentation and governance artifacts.
+- Maintain evidence and configuration baselines that are clear about their scope and maturity.
+
+### System 3 goals
+
 - Build a contributor community around transparent, standards-aware practices.
-- Improve openness and trust through explicit data-handling transparency and user-control-oriented design patterns for vehicle and user data.
+- Govern methodology and architecture changes through reviewable decision records.
+- Coordinate with upstream projects, standards communities, and maintainers before deep adoption or vendoring of external assets.
+- Improve the DE4SDV life-cycle engineering system through incremental, reviewable releases.
 
 ## Non-goals (current scope)
 
@@ -52,12 +82,13 @@ Software-Defined Vehicles (SDVs) require coordinated engineering across many dom
 - Data openness and user control: data handling should be transparent, with meaningful user control where applicable.
 - Automation with accountability: CI/CD and AI assist, humans remain responsible.
 - Incremental evolution: start simple, baseline often, mature through iteration.
+- Scope clarity: distinguish System 1 product variants, System 2 engineering capabilities, and System 3 ecosystem governance.
 
 ## Relationship to key technical domains
 
 - SysML v2: primary modeling language and API ecosystem for formal system definition and exchange.
-- MBPLE: mechanism to represent features, variability, and configured product models.
-- Digital twin: runtime-informed engineering objective connected to model and simulation assets.
+- MBPLE: mechanism to represent System 1 features, variability, and configured product models.
+- Digital twin: System 2 capability connected to model, simulation, runtime data, credibility, and evidence assumptions for System 1.
 - Simulation (FMI/FMU/SSP): interoperability layer for verification, validation, and design-space exploration.
 - Compliance (safety, security, UNECE-oriented): structured evidence domains linked to engineered artifacts.
 - DevSecOps: delivery and assurance automation backbone for reproducible engineering workflows.
