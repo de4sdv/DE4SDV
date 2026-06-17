@@ -10,9 +10,12 @@ This scaffold was informed by:
   boundaries.
 - Mykhailo Chalyi's "Making Your Repository AI-Ready": feedback loops, entry
   points, specs, progressive disclosure, skills, and testing documentation.
-- ASELCM three-system framing: distinction between the engineered system, its
-  life-cycle domain system, and the innovation ecosystem that evolves that
-  life-cycle domain system.
+- ASELCM three-system framing: Schindel and Dove's *Introduction to the Agile
+  Systems Engineering Life Cycle MBSE Pattern*, v1.6.6, published and used by
+  INCOSE with permission. The paper describes ASELCM reference boundaries for
+  System 1 as the target system, System 2 as the target-system life-cycle domain
+  system, and System 3 as the system of innovation. See the [INCOSE/OMG MBSE
+  Wiki PDF][aselcm-pattern].
 - Digital-twin reference guidance: purpose, use case, managed boundary,
   credibility, consistency management, and digital-thread context for digital
   twins.
@@ -35,3 +38,4 @@ Methodology references added during DE4SDV modeling-method development:
 Keep this file updated as new external references are added.
 
 [covesa-vss-library]: ../../textual-notation-of-model/libraries/covesa-vss-sysmlv2/
+[aselcm-pattern]: https://www.omgwiki.org/MBSE/lib/exe/fetch.php?media=mbse:patterns:intro_to_the_aselcm_pattern_v1.6.6.pdf
