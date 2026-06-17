@@ -1,6 +1,8 @@
 # ADR 0004: Adopt ASELCM three-system framing for DE4SDV
 
-Status: proposed
+## Status
+
+Accepted
 
 ## Context
 

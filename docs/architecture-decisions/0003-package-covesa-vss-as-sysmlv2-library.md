@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft for review.
+Accepted
 
 ## Context
 
