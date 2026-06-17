@@ -42,6 +42,10 @@ Contributions are welcome in all of the following areas:
 
 If you are unsure where to start, open an issue and describe your background and interests.
 
+For chat access, see [`COMMUNICATION.md`](COMMUNICATION.md). Mattermost is
+invite-only; request an invite through the **Mattermost invite request** issue
+template when real-time coordination would help a contribution.
+
 ## Model correction protocol (XS)
 
 When correcting existing model elements:
