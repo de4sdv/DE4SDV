@@ -1,0 +1,37 @@
+name: Mattermost invite request
+description: Request invite-only access to the DE4SDV Mattermost workspace
+title: "[Mattermost invite] <your name or affiliation>"
+labels: ["area:community", "question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Mattermost is used for lightweight coordination. GitHub remains the source of truth for issues, pull requests, decisions, and project documentation.
+  - type: input
+    id: name
+    attributes:
+      label: Name / affiliation
+      description: Tell us who you are and, if relevant, your organization or project context.
+    validations:
+      required: true
+  - type: textarea
+    id: interest
+    attributes:
+      label: Contribution or discussion interest
+      description: What do you want to contribute, ask, review, or coordinate?
+    validations:
+      required: true
+  - type: textarea
+    id: chat_need
+    attributes:
+      label: Why Mattermost access helps
+      description: Why is real-time chat useful instead of only using GitHub issues or pull requests?
+    validations:
+      required: true
+  - type: checkboxes
+    id: expectations
+    attributes:
+      label: Expectations
+      options:
+        - label: I understand that project decisions should be captured back in GitHub issues, pull requests, ADRs, or repository documentation.
+          required: true

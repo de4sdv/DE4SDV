@@ -1,5 +1,14 @@
 # Contact
-Get in touch with us: https://join.slack.com/t/sdv-sysmlv2/shared_invite/zt-3xeu04a3n-o7_6M46QNAoXKhEiLbb0gw
+
+Use GitHub issues and pull requests for project work, questions, proposals,
+and decisions that need a durable public record.
+
+DE4SDV also uses Mattermost for lightweight coordination at
+<https://chat.de4sdv.org>. Access is invite-only. To request an invite, open a
+GitHub issue using the **Mattermost invite request** template and briefly say who
+you are, what you want to contribute or discuss, and why chat access would help.
+
+See [`COMMUNICATION.md`](COMMUNICATION.md) for the full communication policy.
 
 # Vision
 Digital Engineering for Software-defined Vehicle (DE4SDV) envisions a digitally engineered, continuously certifiable software-defined vehicle product line that embraces ecosystem diversity rather than locking into a single stack.
