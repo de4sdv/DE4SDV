@@ -1,19 +1,23 @@
 {
   "view_id": "de4sdv.system-context",
-  "status": "api-bootstrap-synced",
-  "sysml_project": "DE4SDV",
-  "sysml_branch": "main",
-  "sysml_commit": "a57a9088-01c0-4c9d-8eb0-c845d52df4ae",
+  "status": "syson-spike-exported",
   "model_slice": "DE4SDV::Context",
-  "gui_tool": "Eclipse SysON",
-  "renderer": "pending-syson-or-sysmlv2-view-exporter",
+  "source_tool": "Eclipse SysON",
+  "source_tool_version": "v2026.5.0",
+  "syson_project_name": "DE4SDV",
+  "syson_project_id": "e71112e1-978f-4372-9f48-14857768fb08",
+  "syson_editing_context_id": "87bfdce0-4794-40b3-a05a-40e3175ea50b",
+  "syson_document_id": "8c397141-fed6-4e24-9cc7-ca3b799d8f33",
+  "syson_representation_id": "f7aad90b-c396-4784-988a-5b28cca3eb16",
+  "syson_representation_metadata_id": "87bfdce0-4794-40b3-a05a-40e3175ea50b#f7aad90b-c396-4784-988a-5b28cca3eb16",
+  "export_format": "svg",
+  "export_method": "manual-ui",
   "outputs": [
     "system-context.svg"
   ],
+  "validation_status": "blocked-local-syside-on-arm64",
   "notes": [
-    "Bootstrap placeholder for the SysML v2 API repository + SysON pilot.",
-    "Synced to a real SysML v2 API project/commit; rendered SVG remains a bootstrap placeholder."
-  ],
-  "sysml_project_id": "1eda9e22-d73e-483a-b265-a69b3441e6d7",
-  "sync_source": "SysML v2 API Services pilot"
+    "SysON General View was used for the spike export.",
+    "Dependencies were used as lightweight visual links because the available relationship palette was limited; subclassification was intentionally not used."
+  ]
 }
