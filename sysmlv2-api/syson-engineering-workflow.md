@@ -32,8 +32,11 @@ The SysON v2026.5.0 documentation and source indicate:
   also mentioned in current release notes.
 
 Consequence: SysON should not yet be treated as a direct replacement for the OMG
-SysML v2 API Services repository. The bridge for DE4SDV should initially be
-file/GraphQL based:
+SysML v2 API Services repository. The GraphQL/Sirius API is a SysON-specific
+automation surface used only because SysON's standard SysML v2 REST API
+round-trip is not ready enough for the DE4SDV workflow.
+
+The bridge for DE4SDV should initially be file/GraphQL based:
 
 ```text
 GitHub reviewed .sysml snapshot
@@ -42,7 +45,12 @@ GitHub reviewed .sysml snapshot
   -> SysON textual export + diagram SVG export
   -> generated GitHub draft PR
   -> review/validation/merge
+  -> import/update live SysML v2 API repository when the exported model is accepted
 ```
+
+This is not automatic live synchronization. A change made inside SysON is pilot
+state until it is exported, validated, committed through a GitHub pull request,
+and then imported/synced into the live SysML v2 API repository.
 
 ## Local pilot stack
 
