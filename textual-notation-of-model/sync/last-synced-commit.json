@@ -1,0 +1,13 @@
+{
+  "sysml_project": "DE4SDV",
+  "sysml_project_id": "1eda9e22-d73e-483a-b265-a69b3441e6d7",
+  "sysml_branch": "main",
+  "sysml_commit": "a57a9088-01c0-4c9d-8eb0-c845d52df4ae",
+  "commit_name": "bootstrap DE4SDV context model",
+  "commit_description": "Bootstrap ASELCM System 1-2-3 context packages for the DE4SDV SysML v2 API pilot.",
+  "source": "SysML v2 API Services pilot",
+  "limitations": [
+    "Textual .sysml export/import is not implemented in this MVP.",
+    "SysON rendering/export is not connected in this MVP."
+  ]
+}
