@@ -1,0 +1,38 @@
+# Local Eclipse SysON pilot stack for DE4SDV.
+#
+# ARM/aarch64 hosts: run with
+#   DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f tools/syson/compose.yaml up -d
+#
+# This is a local pilot stack, not production infrastructure.
+services:
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+    volumes:
+      - syson-postgres-data:/var/lib/postgresql/data
+    networks:
+      - syson
+
+  app:
+    image: "${SYSON_IMAGE_TAG:-eclipsesyson/syson:v2026.5.0}"
+    ports:
+      - "${SYSON_PORT:-8080}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database/postgres
+      SPRING_DATASOURCE_USERNAME: username
+      SPRING_DATASOURCE_PASSWORD: password
+      SIRIUS_COMPONENTS_CORS_ALLOWEDORIGINPATTERNS: "*"
+      SERVER_PORT: 8080
+    depends_on:
+      - database
+    networks:
+      - syson
+
+volumes:
+  syson-postgres-data:
+
+networks:
+  syson:

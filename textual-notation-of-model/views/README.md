@@ -23,8 +23,7 @@ bootstrap placeholder step.
 The intended steady-state update path is:
 
 ```text
-SysML v2 repository commit
-  -> view renderer
+SysON diagram SVG export or view renderer
   -> SVG/PNG + manifest
   -> GitHub draft pull request
 ```
