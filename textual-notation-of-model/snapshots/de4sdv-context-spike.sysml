@@ -24,4 +24,26 @@ package DE4SDV {
       ref part governedLifecycleSystem : LifecycleEngineeringSystem;
     }
   }
+
+  package RelationshipIntents {
+    dependency 'governs / evolves'
+      from Context::OpenInnovationEcosystem
+      to Context::LifecycleEngineeringSystem;
+
+    dependency 'engineers / assures'
+      from Context::LifecycleEngineeringSystem
+      to Context::ConfigurableSDVProductLine;
+
+    dependency 'manages model baselines'
+      from Context::LifecycleEngineeringSystem
+      to EngineeringAssets::ModelRepository;
+
+    dependency 'executes validation'
+      from Context::LifecycleEngineeringSystem
+      to EngineeringAssets::ValidationPipeline;
+
+    dependency 'maintains assurance evidence'
+      from Context::LifecycleEngineeringSystem
+      to EngineeringAssets::EvidenceBaseline;
+  }
 }
