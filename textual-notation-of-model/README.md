@@ -23,6 +23,30 @@ A later small example may add
 `textual-notation-of-model/context/de4sdv_aselcm_context.sysml` to capture this
 framing in SysML v2 textual notation.
 
+## Live repository and generated views
+
+DE4SDV is piloting a SysML v2 API repository as the live model store. Eclipse
+SysON is the preferred GUI tool for the initial graphical modeling path.
+GitHub remains the reviewed publication baseline for textual snapshots,
+generated views, documentation, and validation evidence.
+
+The initial pilot views are bootstrap placeholders until the SysML v2 API
+repository, SysON editing path, and view renderer/exporter are connected:
+
+### System context
+
+![DE4SDV System Context](views/system-context/system-context.svg)
+
+Source metadata:
+[`views/system-context/manifest.json`](views/system-context/manifest.json)
+
+### Life-cycle engineering system
+
+![DE4SDV Life-Cycle Engineering System](views/lifecycle-engineering-system/lifecycle-engineering-system.svg)
+
+Source metadata:
+[`views/lifecycle-engineering-system/manifest.json`](views/lifecycle-engineering-system/manifest.json)
+
 ## Validation
 
 All generated or modified `.sysml` textual notation in this directory must be
