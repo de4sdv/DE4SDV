@@ -1,9 +1,9 @@
 {
   "view_id": "de4sdv.system-context",
-  "status": "pilot-placeholder",
+  "status": "api-bootstrap-synced",
   "sysml_project": "DE4SDV",
   "sysml_branch": "main",
-  "sysml_commit": "pending-live-repository-bootstrap",
+  "sysml_commit": "a57a9088-01c0-4c9d-8eb0-c845d52df4ae",
   "model_slice": "DE4SDV::Context",
   "gui_tool": "Eclipse SysON",
   "renderer": "pending-syson-or-sysmlv2-view-exporter",
@@ -11,6 +11,9 @@
     "system-context.svg"
   ],
   "notes": [
-    "Bootstrap placeholder for the SysML v2 API repository + SysON pilot."
-  ]
+    "Bootstrap placeholder for the SysML v2 API repository + SysON pilot.",
+    "Synced to a real SysML v2 API project/commit; rendered SVG remains a bootstrap placeholder."
+  ],
+  "sysml_project_id": "1eda9e22-d73e-483a-b265-a69b3441e6d7",
+  "sync_source": "SysML v2 API Services pilot"
 }

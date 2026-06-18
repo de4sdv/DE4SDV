@@ -43,6 +43,9 @@ The first two publication views are:
 The view definitions and publication placeholders live under
 [`../textual-notation-of-model/views/`](../textual-notation-of-model/views/).
 
+The current bootstrap procedure is documented in
+[`bootstrap-de4sdv-context.md`](bootstrap-de4sdv-context.md).
+
 ## Proposed sync loop
 
 ```text
