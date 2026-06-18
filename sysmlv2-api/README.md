@@ -44,18 +44,20 @@ The view definitions and publication placeholders live under
 [`../textual-notation-of-model/views/`](../textual-notation-of-model/views/).
 
 The current bootstrap procedure is documented in
-[`bootstrap-de4sdv-context.md`](bootstrap-de4sdv-context.md).
+[`bootstrap-de4sdv-context.md`](bootstrap-de4sdv-context.md). The SysON pilot
+workflow is documented in
+[`syson-engineering-workflow.md`](syson-engineering-workflow.md).
 
 ## Proposed sync loop
 
 ```text
-SysON or API tool edit
-  -> SysML v2 repository commit
+SysON GUI edit or API tool edit
   -> export textual snapshot and rendered views
-  -> update manifests with SysML project, branch, and commit metadata
+  -> update manifests with SysML/SysON project, document, view, and commit metadata
   -> open a draft GitHub pull request
   -> run repository checks and maintainer review
   -> merge to main
+  -> privileged/import job updates the live SysML v2 API repository when needed
 ```
 
 The sync pipeline must not push generated model updates directly to `main`.
