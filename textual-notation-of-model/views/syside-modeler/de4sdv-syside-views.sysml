@@ -4,7 +4,7 @@ package DE4SDV_SysideModelerViews {
   part def DE4SDVViewSet {
     view systemContext {
       expose DE4SDV::Context::*;
-      attribute depth = 1;
+      attribute depth = 2;
       attribute fileName = "system-context";
       attribute fileType = "SVG";
       render asTreeDiagram;
@@ -13,7 +13,7 @@ package DE4SDV_SysideModelerViews {
     view lifecycleEngineeringSystem {
       expose DE4SDV::Context::LifecycleEngineeringSystem;
       expose DE4SDV::EngineeringAssets::*;
-      attribute depth = 1;
+      attribute depth = 2;
       attribute fileName = "lifecycle-engineering-system";
       attribute fileType = "SVG";
       render asTreeDiagram;
