@@ -1,0 +1,24 @@
+id: de4sdv.lifecycle-engineering-system
+title: DE4SDV Life-Cycle Engineering System
+status: pilot-placeholder
+purpose: >
+  Show DE4SDV as the System 2 life-cycle engineering and assurance system that
+  manages the configurable SDV product line across modeling, product-line
+  engineering, simulation, evidence, baselines, and continuous homologation.
+source:
+  sysml_project: DE4SDV
+  sysml_branch: main
+  sysml_commit: pending-live-repository-bootstrap
+  model_slice: DE4SDV::LifecycleEngineeringSystem
+  gui_tool: Eclipse SysON
+renderer:
+  tool: pending-syson-or-sysmlv2-view-exporter
+  preferred_format: svg
+outputs:
+  - lifecycle-engineering-system.svg
+embed:
+  markdown:
+    - textual-notation-of-model/README.md
+notes:
+  - This is a pilot view definition. The SVG is a bootstrap placeholder until
+    the live SysML v2 repository and SysON rendering/export path are connected.

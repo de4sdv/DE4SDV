@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="460" viewBox="0 0 960 460" role="img" aria-labelledby="title desc">
+  <title id="title">DE4SDV Life-Cycle Engineering System</title>
+  <desc id="desc">Bootstrap placeholder for a SysML v2 repository-rendered life-cycle engineering system view.</desc>
+  <rect width="960" height="460" fill="#0f172a"/>
+  <text x="480" y="42" text-anchor="middle" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">DE4SDV Life-Cycle Engineering System</text>
+  <text x="480" y="72" text-anchor="middle" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="14">System 2 pilot placeholder — generated view will come from SysML v2 repository + SysON/export pipeline</text>
+  <g font-family="Inter, Arial, sans-serif">
+    <rect x="320" y="130" width="320" height="185" rx="20" fill="#1e293b" stroke="#a78bfa" stroke-width="2.5"/>
+    <text x="480" y="172" text-anchor="middle" fill="#f8fafc" font-size="20" font-weight="700">DE4SDV System 2</text>
+    <text x="480" y="202" text-anchor="middle" fill="#cbd5e1" font-size="15">modeling • product-line engineering</text>
+    <text x="480" y="226" text-anchor="middle" fill="#cbd5e1" font-size="15">simulation • evidence • baselines</text>
+    <text x="480" y="250" text-anchor="middle" fill="#cbd5e1" font-size="15">continuous homologation workflow</text>
+    <rect x="62" y="120" width="210" height="80" rx="14" fill="#172554" stroke="#38bdf8"/>
+    <text x="167" y="153" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="700">System 1 variants</text>
+    <text x="167" y="178" text-anchor="middle" fill="#cbd5e1" font-size="13">configured SDV products</text>
+    <rect x="688" y="120" width="210" height="80" rx="14" fill="#052e2b" stroke="#34d399"/>
+    <text x="793" y="153" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="700">System 3 ecosystem</text>
+    <text x="793" y="178" text-anchor="middle" fill="#cbd5e1" font-size="13">governance + contributors</text>
+    <rect x="62" y="285" width="210" height="80" rx="14" fill="#312e81" stroke="#818cf8"/>
+    <text x="167" y="318" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="700">Evidence baseline</text>
+    <text x="167" y="343" text-anchor="middle" fill="#cbd5e1" font-size="13">traceability + assurance</text>
+    <rect x="688" y="285" width="210" height="80" rx="14" fill="#3b2506" stroke="#f59e0b"/>
+    <text x="793" y="318" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="700">Toolchain services</text>
+    <text x="793" y="343" text-anchor="middle" fill="#cbd5e1" font-size="13">API • CI • validation</text>
+    <path d="M272 160 L320 205" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)"/>
+    <path d="M640 205 L688 160" stroke="#34d399" stroke-width="3" marker-end="url(#arrow)"/>
+    <path d="M320 255 L272 325" stroke="#818cf8" stroke-width="3" marker-end="url(#arrow)"/>
+    <path d="M640 255 L688 325" stroke="#f59e0b" stroke-width="3" marker-end="url(#arrow)"/>
+  </g>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#e2e8f0"/>
+    </marker>
+  </defs>
+</svg>
