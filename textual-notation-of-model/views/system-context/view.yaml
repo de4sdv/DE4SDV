@@ -1,18 +1,18 @@
 id: de4sdv.system-context
 title: DE4SDV System Context
-status: pilot-placeholder
+status: syson-spike-exported
 purpose: >
-  Show the DE4SDV context using the ASELCM three-system framing: System 1 as the
-  configurable SDV product line, System 2 as the DE4SDV life-cycle engineering
-  and assurance system, and System 3 as the open innovation ecosystem.
+  Show the DE4SDV context using the ASELCM three-system framing: the
+  configurable SDV product line, the DE4SDV life-cycle engineering and assurance
+  system, and the open innovation ecosystem.
 source:
   sysml_project: DE4SDV
   sysml_branch: main
-  sysml_commit: pending-live-repository-bootstrap
+  sysml_commit: spike-local
   model_slice: DE4SDV::Context
   gui_tool: Eclipse SysON
 renderer:
-  tool: pending-syson-or-sysmlv2-view-exporter
+  tool: Eclipse SysON General View
   preferred_format: svg
 outputs:
   - system-context.svg
@@ -20,5 +20,5 @@ embed:
   markdown:
     - textual-notation-of-model/README.md
 notes:
-  - This is a pilot view definition. The SVG is a bootstrap placeholder until
-    the live SysML v2 repository and SysON rendering/export path are connected.
+  - Exported manually from the SysON v2026.5.0 UI during the round-trip spike.
+  - Dependencies are lightweight visual links in this spike view; they are not a final semantic relationship model.
