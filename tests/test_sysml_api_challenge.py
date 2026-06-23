@@ -13,26 +13,31 @@ class SysmlApiChallengeTests(unittest.TestCase):
     def test_context_challenge_uses_stable_ids_and_relationship_payloads(self):
         model = challenge.context_challenge_model()
 
-        self.assertIn("de4sdv-context-lifecycle-engineering-system", model.elements)
-        self.assertIn("de4sdv-relationship-engineers-assures", model.elements)
+        lifecycle_id = challenge.stable_id("partdef.DE4SDV.Context.LifecycleEngineeringSystem")
+        product_line_id = challenge.stable_id("partdef.DE4SDV.Context.ConfigurableSDVProductLine")
+        relationship_id = challenge.stable_id("dependency.DE4SDV.RelationshipIntents.engineers-assures")
 
-        relationship = model.elements["de4sdv-relationship-engineers-assures"]
+        self.assertIn(lifecycle_id, model.elements)
+        self.assertIn(relationship_id, model.elements)
+
+        relationship = model.elements[relationship_id]
         self.assertEqual(relationship["@type"], "Dependency")
         self.assertEqual(
             relationship["source"],
-            [{"@id": "de4sdv-context-lifecycle-engineering-system"}],
+            [{"@id": lifecycle_id}],
         )
         self.assertEqual(
             relationship["target"],
-            [{"@id": "de4sdv-context-configurable-sdv-product-line"}],
+            [{"@id": product_line_id}],
         )
 
     def test_challenge_report_marks_missing_expected_element_as_failure(self):
         model = challenge.context_challenge_model()
+        missing_id = challenge.stable_id("dependency.DE4SDV.RelationshipIntents.engineers-assures")
         observed = {
             element_id: payload
             for element_id, payload in model.elements.items()
-            if element_id != "de4sdv-relationship-engineers-assures"
+            if element_id != missing_id
         }
 
         report = challenge.build_challenge_report(model, observed, source="unit-test")
@@ -40,13 +45,49 @@ class SysmlApiChallengeTests(unittest.TestCase):
         self.assertEqual(report["summary"]["status"], "failed")
         self.assertIn(
             {
-                "id": "de4sdv-relationship-engineers-assures",
+                "id": missing_id,
                 "type": "Dependency",
                 "name": "engineers / assures",
                 "reason": "expected element missing from observed API graph",
             },
             report["failed"],
         )
+
+    def test_challenge_report_matches_semantic_element_when_api_reassigns_id(self):
+        model = challenge.context_challenge_model()
+        expected_id = challenge.stable_id("partdef.DE4SDV.Context.LifecycleEngineeringSystem")
+        observed = {
+            "api-generated-id": {
+                **model.elements[expected_id],
+                "@id": "api-generated-id",
+                "elementId": "api-generated-id",
+            }
+        }
+
+        report = challenge.build_challenge_report(
+            challenge.ChallengeModel(
+                name="single",
+                description="single",
+                elements={expected_id: model.elements[expected_id]},
+                capabilities=[],
+                gap_questions=[],
+            ),
+            observed,
+            source="unit-test",
+        )
+
+        self.assertEqual(report["summary"]["status"], "passed-with-warnings")
+        self.assertEqual(report["summary"]["warnings"], 1)
+        self.assertIn("API reassigned @id", report["warnings"][0]["reason"])
+
+    def test_textual_snapshot_export_renders_dependency_relationships(self):
+        model = challenge.context_challenge_model()
+        text = challenge.render_textual_snapshot(model.elements)
+
+        self.assertIn("package DE4SDV", text)
+        self.assertIn("dependency 'engineers / assures'", text)
+        self.assertIn("from Context::LifecycleEngineeringSystem", text)
+        self.assertIn("to Context::ConfigurableSDVProductLine", text)
 
     def test_dry_run_report_is_json_serializable_and_records_api_gap_questions(self):
         model = challenge.context_challenge_model()

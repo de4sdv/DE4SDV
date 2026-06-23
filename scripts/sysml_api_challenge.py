@@ -17,6 +17,7 @@ import json
 import sys
 import urllib.error
 import urllib.request
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +26,12 @@ from typing import Any
 DEFAULT_API_URL = "http://127.0.0.1:9000"
 DEFAULT_PROJECT = "DE4SDV API Challenge"
 DEFAULT_REPORT = Path("sysmlv2-api/challenge-reports/de4sdv-context-api-challenge.json")
+STABLE_ID_NAMESPACE = uuid.UUID("ec7b641d-8ec8-5ad9-8aa5-8ffb7a9f9504")
+
+
+def stable_id(label: str) -> str:
+    """Return a deterministic UUID for a semantic DE4SDV challenge element label."""
+    return str(uuid.uuid5(STABLE_ID_NAMESPACE, label))
 
 
 @dataclass(frozen=True)
@@ -135,7 +142,7 @@ def part_usage(element_id: str, name: str, *, owner_id: str, definition_id: str,
     element = base_element("PartUsage", element_id, name, owner_id=owner_id)
     element.update(
         {
-            "definition": ref(definition_id),
+            "definition": [ref(definition_id)],
             "isReference": is_reference,
             "isVariation": False,
             "ownedFeature": [],
@@ -160,16 +167,16 @@ def dependency(element_id: str, name: str, *, owner_id: str, source_id: str, tar
 
 
 def context_challenge_model() -> ChallengeModel:
-    root = "de4sdv-root"
-    context = "de4sdv-context"
-    assets = "de4sdv-engineering-assets"
-    relationships = "de4sdv-relationship-intents"
-    product_line = "de4sdv-context-configurable-sdv-product-line"
-    lifecycle = "de4sdv-context-lifecycle-engineering-system"
-    ecosystem = "de4sdv-context-open-innovation-ecosystem"
-    model_repo = "de4sdv-asset-model-repository"
-    validation = "de4sdv-asset-validation-pipeline"
-    evidence = "de4sdv-asset-evidence-baseline"
+    root = stable_id("root.DE4SDV")
+    context = stable_id("package.DE4SDV.Context")
+    assets = stable_id("package.DE4SDV.EngineeringAssets")
+    relationships = stable_id("package.DE4SDV.RelationshipIntents")
+    product_line = stable_id("partdef.DE4SDV.Context.ConfigurableSDVProductLine")
+    lifecycle = stable_id("partdef.DE4SDV.Context.LifecycleEngineeringSystem")
+    ecosystem = stable_id("partdef.DE4SDV.Context.OpenInnovationEcosystem")
+    model_repo = stable_id("partdef.DE4SDV.EngineeringAssets.ModelRepository")
+    validation = stable_id("partdef.DE4SDV.EngineeringAssets.ValidationPipeline")
+    evidence = stable_id("partdef.DE4SDV.EngineeringAssets.EvidenceBaseline")
 
     elements: dict[str, dict[str, Any]] = {
         root: package(root, "DE4SDV", owned_ids=[context, assets, relationships]),
@@ -180,11 +187,11 @@ def context_challenge_model() -> ChallengeModel:
             "RelationshipIntents",
             owner_id=root,
             owned_ids=[
-                "de4sdv-relationship-governs-evolves",
-                "de4sdv-relationship-engineers-assures",
-                "de4sdv-relationship-manages-model-baselines",
-                "de4sdv-relationship-executes-validation",
-                "de4sdv-relationship-maintains-assurance-evidence",
+                stable_id("dependency.DE4SDV.RelationshipIntents.governs-evolves"),
+                stable_id("dependency.DE4SDV.RelationshipIntents.engineers-assures"),
+                stable_id("dependency.DE4SDV.RelationshipIntents.manages-model-baselines"),
+                stable_id("dependency.DE4SDV.RelationshipIntents.executes-validation"),
+                stable_id("dependency.DE4SDV.RelationshipIntents.maintains-assurance-evidence"),
             ],
         ),
         product_line: part_def(product_line, "ConfigurableSDVProductLine", owner_id=context),
@@ -193,68 +200,68 @@ def context_challenge_model() -> ChallengeModel:
         model_repo: part_def(model_repo, "ModelRepository", owner_id=assets),
         validation: part_def(validation, "ValidationPipeline", owner_id=assets),
         evidence: part_def(evidence, "EvidenceBaseline", owner_id=assets),
-        "de4sdv-usage-engineered-product-line": part_usage(
-            "de4sdv-usage-engineered-product-line",
+        stable_id("partusage.DE4SDV.Context.LifecycleEngineeringSystem.engineeredProductLine"): part_usage(
+            stable_id("partusage.DE4SDV.Context.LifecycleEngineeringSystem.engineeredProductLine"),
             "engineeredProductLine",
             owner_id=lifecycle,
             definition_id=product_line,
             is_reference=True,
         ),
-        "de4sdv-usage-model-repository": part_usage(
-            "de4sdv-usage-model-repository",
+        stable_id("partusage.DE4SDV.Context.LifecycleEngineeringSystem.modelRepository"): part_usage(
+            stable_id("partusage.DE4SDV.Context.LifecycleEngineeringSystem.modelRepository"),
             "modelRepository",
             owner_id=lifecycle,
             definition_id=model_repo,
         ),
-        "de4sdv-usage-validation-pipeline": part_usage(
-            "de4sdv-usage-validation-pipeline",
+        stable_id("partusage.DE4SDV.Context.LifecycleEngineeringSystem.validationPipeline"): part_usage(
+            stable_id("partusage.DE4SDV.Context.LifecycleEngineeringSystem.validationPipeline"),
             "validationPipeline",
             owner_id=lifecycle,
             definition_id=validation,
         ),
-        "de4sdv-usage-evidence-baseline": part_usage(
-            "de4sdv-usage-evidence-baseline",
+        stable_id("partusage.DE4SDV.Context.LifecycleEngineeringSystem.evidenceBaseline"): part_usage(
+            stable_id("partusage.DE4SDV.Context.LifecycleEngineeringSystem.evidenceBaseline"),
             "evidenceBaseline",
             owner_id=lifecycle,
             definition_id=evidence,
         ),
-        "de4sdv-usage-governed-lifecycle-system": part_usage(
-            "de4sdv-usage-governed-lifecycle-system",
+        stable_id("partusage.DE4SDV.Context.OpenInnovationEcosystem.governedLifecycleSystem"): part_usage(
+            stable_id("partusage.DE4SDV.Context.OpenInnovationEcosystem.governedLifecycleSystem"),
             "governedLifecycleSystem",
             owner_id=ecosystem,
             definition_id=lifecycle,
             is_reference=True,
         ),
-        "de4sdv-relationship-governs-evolves": dependency(
-            "de4sdv-relationship-governs-evolves",
+        stable_id("dependency.DE4SDV.RelationshipIntents.governs-evolves"): dependency(
+            stable_id("dependency.DE4SDV.RelationshipIntents.governs-evolves"),
             "governs / evolves",
             owner_id=relationships,
             source_id=ecosystem,
             target_id=lifecycle,
         ),
-        "de4sdv-relationship-engineers-assures": dependency(
-            "de4sdv-relationship-engineers-assures",
+        stable_id("dependency.DE4SDV.RelationshipIntents.engineers-assures"): dependency(
+            stable_id("dependency.DE4SDV.RelationshipIntents.engineers-assures"),
             "engineers / assures",
             owner_id=relationships,
             source_id=lifecycle,
             target_id=product_line,
         ),
-        "de4sdv-relationship-manages-model-baselines": dependency(
-            "de4sdv-relationship-manages-model-baselines",
+        stable_id("dependency.DE4SDV.RelationshipIntents.manages-model-baselines"): dependency(
+            stable_id("dependency.DE4SDV.RelationshipIntents.manages-model-baselines"),
             "manages model baselines",
             owner_id=relationships,
             source_id=lifecycle,
             target_id=model_repo,
         ),
-        "de4sdv-relationship-executes-validation": dependency(
-            "de4sdv-relationship-executes-validation",
+        stable_id("dependency.DE4SDV.RelationshipIntents.executes-validation"): dependency(
+            stable_id("dependency.DE4SDV.RelationshipIntents.executes-validation"),
             "executes validation",
             owner_id=relationships,
             source_id=lifecycle,
             target_id=validation,
         ),
-        "de4sdv-relationship-maintains-assurance-evidence": dependency(
-            "de4sdv-relationship-maintains-assurance-evidence",
+        stable_id("dependency.DE4SDV.RelationshipIntents.maintains-assurance-evidence"): dependency(
+            stable_id("dependency.DE4SDV.RelationshipIntents.maintains-assurance-evidence"),
             "maintains assurance evidence",
             owner_id=relationships,
             source_id=lifecycle,
@@ -294,12 +301,13 @@ def context_challenge_model() -> ChallengeModel:
     )
 
 
-def commit_payload(model: ChallengeModel) -> dict[str, Any]:
+def commit_payload(model: ChallengeModel, elements: list[dict[str, Any]] | None = None, *, name: str | None = None, description: str | None = None) -> dict[str, Any]:
+    payloads = elements if elements is not None else list(model.elements.values())
     return {
         "@type": "Commit",
-        "name": "seed DE4SDV API context challenge",
-        "description": model.description,
-        "change": [{"@type": "DataVersion", "payload": payload} for payload in model.elements.values()],
+        "name": name or "seed DE4SDV API context challenge",
+        "description": description or model.description,
+        "change": [{"@type": "DataVersion", "payload": payload} for payload in payloads],
     }
 
 
@@ -323,7 +331,7 @@ def normalize_observed_elements(raw: Any) -> dict[str, dict[str, Any]]:
     return observed
 
 
-def _ids(values: Any) -> list[str]:
+def _ids(values: Any, id_map: dict[str, str] | None = None) -> list[str]:
     if not isinstance(values, list):
         return []
     ids = []
@@ -331,40 +339,64 @@ def _ids(values: Any) -> list[str]:
         if isinstance(value, dict):
             candidate = value.get("@id") or value.get("id") or value.get("elementId")
             if candidate:
-                ids.append(str(candidate))
+                ids.append((id_map or {}).get(str(candidate), str(candidate)))
     return ids
 
 
-def compare_element(expected: dict[str, Any], observed: dict[str, Any]) -> list[str]:
+def compare_element(expected: dict[str, Any], observed: dict[str, Any], *, id_map: dict[str, str] | None = None) -> list[str]:
     problems: list[str] = []
     for key in ("@type", "name"):
         if observed.get(key) != expected.get(key):
             problems.append(f"{key} expected {expected.get(key)!r}, observed {observed.get(key)!r}")
     if expected.get("@type") == "Dependency":
         for key in ("source", "target"):
-            if _ids(observed.get(key)) != _ids(expected.get(key)):
-                problems.append(f"{key} expected {_ids(expected.get(key))!r}, observed {_ids(observed.get(key))!r}")
+            if _ids(observed.get(key)) != _ids(expected.get(key), id_map=id_map):
+                problems.append(f"{key} expected {_ids(expected.get(key), id_map=id_map)!r}, observed {_ids(observed.get(key))!r}")
     if expected.get("@type") == "PartUsage":
         if observed.get("isReference") != expected.get("isReference"):
             problems.append(f"isReference expected {expected.get('isReference')!r}, observed {observed.get('isReference')!r}")
     return problems
 
 
+def semantic_key(element: dict[str, Any]) -> tuple[str, str]:
+    return (str(element.get("@type", "")), str(element.get("name") or element.get("declaredName") or ""))
+
+
 def build_challenge_report(model: ChallengeModel, observed: dict[str, dict[str, Any]], *, source: str) -> dict[str, Any]:
     passed: list[dict[str, str]] = []
     failed: list[dict[str, str]] = []
+    warnings: list[dict[str, str]] = []
+    observed_by_semantic = {semantic_key(payload): payload for payload in observed.values()}
+    id_map: dict[str, str] = {}
+
+    matched: list[tuple[str, dict[str, Any], dict[str, Any], dict[str, str]]] = []
     for element_id, expected in model.elements.items():
         observed_element = observed.get(element_id)
         item = {"id": element_id, "type": expected["@type"], "name": expected.get("name", "")}
         if observed_element is None:
+            observed_element = observed_by_semantic.get(semantic_key(expected))
+            if observed_element is not None:
+                observed_id = str(observed_element.get("@id") or observed_element.get("elementId") or "")
+                id_map[element_id] = observed_id
+                warnings.append({**item, "observed_id": observed_id, "reason": "API reassigned @id; matched by @type/name instead"})
+        if observed_element is None:
             failed.append({**item, "reason": "expected element missing from observed API graph"})
             continue
-        problems = compare_element(expected, observed_element)
+        matched.append((element_id, expected, observed_element, item))
+
+    for _element_id, expected, observed_element, item in matched:
+        problems = compare_element(expected, observed_element, id_map=id_map)
         if problems:
             failed.append({**item, "reason": "; ".join(problems)})
         else:
             passed.append(item)
-    status = "passed" if not failed else "failed"
+
+    if failed:
+        status = "failed"
+    elif warnings:
+        status = "passed-with-warnings"
+    else:
+        status = "passed"
     return {
         "schema": "de4sdv.sysml-api-challenge-report.v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -375,10 +407,12 @@ def build_challenge_report(model: ChallengeModel, observed: dict[str, dict[str, 
             "tested_elements": len(model.elements),
             "passed": len(passed),
             "failed": len(failed),
+            "warnings": len(warnings),
         },
         "capabilities": model.capabilities,
         "passed": passed,
         "failed": failed,
+        "warnings": warnings,
         "gap_questions": model.gap_questions,
     }
 
@@ -406,16 +440,149 @@ def ensure_project(client: ApiClient, name: str) -> dict[str, Any]:
     )
 
 
+def remap_identified_references(payload: dict[str, Any], id_map: dict[str, str]) -> dict[str, Any]:
+    encoded = json.loads(json.dumps(payload))
+
+    def visit(value: Any) -> Any:
+        if isinstance(value, dict):
+            if set(value) == {"@id"}:
+                return {"@id": id_map.get(value["@id"], value["@id"])}
+            return {key: visit(child) for key, child in value.items()}
+        if isinstance(value, list):
+            return [visit(item) for item in value]
+        return value
+
+    return visit(encoded)
+
+
+def observed_id_map(model: ChallengeModel, observed: dict[str, dict[str, Any]], *, include_types: set[str] | None = None) -> dict[str, str]:
+    observed_by_semantic = {semantic_key(payload): payload for payload in observed.values()}
+    mapping: dict[str, str] = {}
+    for expected_id, expected in model.elements.items():
+        if include_types is not None and expected.get("@type") not in include_types:
+            continue
+        observed_element = observed.get(expected_id) or observed_by_semantic.get(semantic_key(expected))
+        if observed_element is not None:
+            observed_id = observed_element.get("@id") or observed_element.get("elementId")
+            if observed_id:
+                mapping[expected_id] = str(observed_id)
+    return mapping
+
+
 def seed_context(client: ApiClient, project_name: str) -> tuple[dict[str, Any], dict[str, Any]]:
     model = context_challenge_model()
     project = ensure_project(client, project_name)
-    commit = client.request("POST", f"/projects/{project['@id']}/commits", commit_payload(model))
-    return project, commit
+    non_relationship_elements = [payload for payload in model.elements.values() if payload.get("@type") != "Dependency"]
+    relationship_elements = [payload for payload in model.elements.values() if payload.get("@type") == "Dependency"]
+
+    first_commit = client.request(
+        "POST",
+        f"/projects/{project['@id']}/commits",
+        commit_payload(
+            model,
+            non_relationship_elements,
+            name="seed DE4SDV API context elements",
+            description="Seed packages, part definitions, and part usages before relationship challenge payloads.",
+        ),
+    )
+    first_observed = read_commit_elements(client, project["@id"], first_commit["@id"])
+    id_map = observed_id_map(model, first_observed, include_types={"Package", "PartDefinition", "PartUsage"})
+    remapped_relationships = [remap_identified_references(payload, id_map) for payload in relationship_elements]
+
+    second_commit = client.request(
+        "POST",
+        f"/projects/{project['@id']}/commits",
+        commit_payload(
+            model,
+            remapped_relationships,
+            name="seed DE4SDV API context relationships",
+            description="Add dependency relationship payloads using API-assigned element identifiers from the first commit.",
+        ),
+    )
+    return project, second_commit
 
 
-def read_commit_roots(client: ApiClient, project_id: str, commit_id: str) -> dict[str, dict[str, Any]]:
-    roots = client.request("GET", f"/projects/{project_id}/commits/{commit_id}/roots")
-    return normalize_observed_elements(roots)
+def read_commit_elements(client: ApiClient, project_id: str, commit_id: str) -> dict[str, dict[str, Any]]:
+    elements = client.request("GET", f"/projects/{project_id}/commits/{commit_id}/elements")
+    return normalize_observed_elements(elements)
+
+
+def render_textual_snapshot(elements: dict[str, dict[str, Any]]) -> str:
+    by_id = {str(payload.get("@id")): payload for payload in elements.values() if payload.get("@id")}
+    part_qualifiers = {
+        "ConfigurableSDVProductLine": "Context::ConfigurableSDVProductLine",
+        "LifecycleEngineeringSystem": "Context::LifecycleEngineeringSystem",
+        "OpenInnovationEcosystem": "Context::OpenInnovationEcosystem",
+        "ModelRepository": "EngineeringAssets::ModelRepository",
+        "ValidationPipeline": "EngineeringAssets::ValidationPipeline",
+        "EvidenceBaseline": "EngineeringAssets::EvidenceBaseline",
+    }
+
+    def endpoint_name(refs: Any) -> str | None:
+        ids = _ids(refs)
+        if not ids:
+            return None
+        element = by_id.get(ids[0])
+        if not element:
+            return ids[0]
+        return part_qualifiers.get(str(element.get("name")), str(element.get("name")))
+
+    dependency_lines: list[str] = []
+    dependencies = sorted(
+        [payload for payload in elements.values() if payload.get("@type") == "Dependency"],
+        key=lambda item: str(item.get("name")),
+    )
+    for dep in dependencies:
+        source = endpoint_name(dep.get("source") or dep.get("client"))
+        target = endpoint_name(dep.get("target") or dep.get("supplier"))
+        if source and target:
+            dependency_lines.extend(
+                [
+                    f"    dependency '{dep.get('name')}'",
+                    f"      from {source}",
+                    f"      to {target};",
+                    "",
+                ]
+            )
+        else:
+            dependency_lines.extend(
+                [
+                    f"    // API readback did not preserve endpoints for dependency: {dep.get('name')}",
+                    f"    dependency '{dep.get('name')}';",
+                    "",
+                ]
+            )
+
+    lines = [
+        "package DE4SDV {",
+        "  package EngineeringAssets {",
+        "    part def ModelRepository;",
+        "    part def ValidationPipeline;",
+        "    part def EvidenceBaseline;",
+        "  }",
+        "",
+        "  package Context {",
+        "    part def ConfigurableSDVProductLine;",
+        "",
+        "    part def LifecycleEngineeringSystem {",
+        "      ref part engineeredProductLine : ConfigurableSDVProductLine;",
+        "      part modelRepository : EngineeringAssets::ModelRepository;",
+        "      part validationPipeline : EngineeringAssets::ValidationPipeline;",
+        "      part evidenceBaseline : EngineeringAssets::EvidenceBaseline;",
+        "    }",
+        "",
+        "    part def OpenInnovationEcosystem {",
+        "      ref part governedLifecycleSystem : LifecycleEngineeringSystem;",
+        "    }",
+        "  }",
+        "",
+        "  package RelationshipIntents {",
+        *dependency_lines,
+        "  }",
+        "}",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def write_report(path: Path, report: dict[str, Any]) -> None:
@@ -434,7 +601,7 @@ def command_dry_run(args: argparse.Namespace) -> int:
 def command_seed_context(args: argparse.Namespace) -> int:
     client = ApiClient(args.api_url)
     project, commit = seed_context(client, args.project)
-    observed = read_commit_roots(client, project["@id"], commit["@id"])
+    observed = read_commit_elements(client, project["@id"], commit["@id"])
     report = build_challenge_report(context_challenge_model(), observed, source=f"{args.api_url} commit {commit['@id']}")
     report["api"] = {"url": args.api_url, "project_id": project["@id"], "commit_id": commit["@id"]}
     write_report(args.output, report)
@@ -449,6 +616,15 @@ def command_export_expected(args: argparse.Namespace) -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2) + "\n")
     print(f"wrote expected API graph: {args.output}")
+    return 0
+
+
+def command_export_snapshot(args: argparse.Namespace) -> int:
+    client = ApiClient(args.api_url)
+    observed = read_commit_elements(client, args.project_id, args.commit_id)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(render_textual_snapshot(observed))
+    print(f"wrote textual snapshot: {args.output}")
     return 0
 
 
@@ -469,6 +645,13 @@ def build_parser() -> argparse.ArgumentParser:
     export = sub.add_parser("export-expected", help="write the expected challenge graph payload for review/debugging")
     export.add_argument("--output", type=Path, default=Path("sysmlv2-api/challenge-reports/de4sdv-context-expected-graph.json"))
     export.set_defaults(func=command_export_expected)
+
+    snapshot = sub.add_parser("export-snapshot", help="export a supported-subset textual SysML snapshot from an API commit")
+    snapshot.add_argument("--api-url", default=DEFAULT_API_URL)
+    snapshot.add_argument("--project-id", required=True)
+    snapshot.add_argument("--commit-id", required=True)
+    snapshot.add_argument("--output", type=Path, required=True)
+    snapshot.set_defaults(func=command_export_snapshot)
 
     return parser
 

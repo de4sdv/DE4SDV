@@ -21,6 +21,7 @@ import requests
 GRAPHQL_ENDPOINT = "/api/graphql"
 GRAPHQL_UPLOAD_ENDPOINT = "/api/graphql/upload"
 DOWNLOAD_ENDPOINT = "/api/editingcontexts/{editing_context_id}/documents/{document_id}"
+DOWNLOAD_MEDIA_TYPE = "text/html"
 
 FETCH_PROJECTS_QUERY = """
 query FetchProjects {
@@ -176,7 +177,7 @@ def insert_text(url: str, project_id: str, object_id: str, file_path: Path) -> d
             "id": str(uuid.uuid4()),
             "editingContextId": context_id,
             "objectId": object_id,
-            "text": text,
+            "textualContent": text,
         }
     }
     return post_graphql(url, INSERT_TEXTUAL_SYSML_MUTATION, variables)
@@ -184,9 +185,12 @@ def insert_text(url: str, project_id: str, object_id: str, file_path: Path) -> d
 
 def download_document(url: str, project_id: str, document_id: str, output_path: Path) -> None:
     context_id = editing_context(url, project_id)
-    response = requests.get(download_url(url, context_id, document_id), headers={"Accept": "text/plain"}, timeout=120)
+    response = requests.get(download_url(url, context_id, document_id), headers={"Accept": DOWNLOAD_MEDIA_TYPE}, timeout=180)
     if response.status_code != 200:
         raise RuntimeError(f"Download HTTP {response.status_code}: {response.text[:2000]}")
+    content_type = response.headers.get("content-type", "")
+    if "text/html" not in content_type:
+        raise RuntimeError(f"Unexpected download content type {content_type!r}; SysON v2026.5.0 exporter is registered for {DOWNLOAD_MEDIA_TYPE}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(response.content)
 
