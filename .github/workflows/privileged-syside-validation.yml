@@ -18,8 +18,6 @@ on:
       - "textual-notation-of-model/**/.project.json"
       - "textual-notation-of-model/**/.meta.json"
       - ".github/workflows/privileged-syside-validation.yml"
-  schedule:
-    - cron: "0 3 * * *"
 
 permissions:
   contents: read
