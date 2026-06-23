@@ -11,6 +11,12 @@ on:
         description: "Model file or directory to validate"
         required: true
         default: "textual-notation-of-model"
+  pull_request:
+    paths:
+      - "textual-notation-of-model/**/*.sysml"
+      - "textual-notation-of-model/**/.project.json"
+      - "textual-notation-of-model/**/.meta.json"
+      - ".github/workflows/privileged-syside-validation.yml"
   push:
     branches: [ main ]
     paths:
@@ -18,8 +24,6 @@ on:
       - "textual-notation-of-model/**/.project.json"
       - "textual-notation-of-model/**/.meta.json"
       - ".github/workflows/privileged-syside-validation.yml"
-  schedule:
-    - cron: "0 3 * * *"
 
 permissions:
   contents: read
@@ -27,6 +31,12 @@ permissions:
 jobs:
   syside-validation:
     name: Licensed SysML validation
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON('["orkunyilmaz", "de4sdv"]'), github.event.pull_request.user.login)
+      )
     runs-on: ubuntu-latest
     env:
       SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
