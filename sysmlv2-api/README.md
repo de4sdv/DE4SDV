@@ -44,20 +44,35 @@ The view definitions and publication placeholders live under
 [`../textual-notation-of-model/views/`](../textual-notation-of-model/views/).
 
 The current bootstrap procedure is documented in
-[`bootstrap-de4sdv-context.md`](bootstrap-de4sdv-context.md). The SysON pilot
-workflow is documented in
-[`syson-engineering-workflow.md`](syson-engineering-workflow.md).
+[`bootstrap-de4sdv-context.md`](bootstrap-de4sdv-context.md). The native API
+challenge harness is documented in
+[`api-challenge-harness.md`](api-challenge-harness.md). The SysON pilot workflow
+is documented in [`syson-engineering-workflow.md`](syson-engineering-workflow.md).
 
-## Proposed sync loop
+## API-centered sync loop
 
 ```text
-SysON GUI edit or API tool edit
-  -> export textual snapshot and rendered views
+GitHub reviewed baseline
+  -> API import/export harness
+  -> SysML v2 API repository under test
+  -> generated textual snapshots, view artifacts, and challenge reports
+  -> draft GitHub pull request
+  -> repository checks and maintainer review
+```
+
+SysON should plug into this loop as a GUI/tool adapter, not replace the native
+SysML v2 API repository as the challenged integration boundary.
+
+## Proposed SysON/tool adapter loop
+
+```text
+API-derived textual snapshot
+  -> SysON GUI edit or other tool edit
+  -> exported textual snapshot and rendered views
   -> update manifests with SysML/SysON project, document, view, and commit metadata
-  -> open a draft GitHub pull request
-  -> run repository checks and maintainer review
-  -> merge to main
-  -> privileged/import job updates the live SysML v2 API repository when needed
+  -> draft GitHub pull request
+  -> review/validation
+  -> import accepted delta back into the SysML v2 API repository
 ```
 
 The sync pipeline must not push generated model updates directly to `main`.
