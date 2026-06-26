@@ -98,6 +98,33 @@ class SysmlApiChallengeTests(unittest.TestCase):
         self.assertIn("diagram layout/view representation", encoded)
         self.assertEqual(report["summary"]["status"], "passed")
         self.assertGreaterEqual(report["summary"]["tested_elements"], 10)
+    def test_supported_graph_reports_missing_expected_elements(self):
+        model = challenge.context_challenge_model()
+        graph = {
+            "schema": "de4sdv.syson-supported-graph.v1",
+            "elements": [
+                {"type": payload["@type"], "name": payload["name"]}
+                for payload in model.elements.values()
+                if payload["name"] != "engineers / assures"
+            ],
+        }
+
+        missing = challenge.supported_graph_missing_expected(graph, model)
+
+        self.assertIn(
+            {
+                "type": "Dependency",
+                "name": "engineers / assures",
+                "reason": "expected semantic element missing from supported graph",
+            },
+            missing,
+        )
+
+    def test_seed_supported_graph_rejects_incomplete_graph_before_api_call(self):
+        graph = {"schema": "de4sdv.syson-supported-graph.v1", "elements": []}
+
+        with self.assertRaisesRegex(RuntimeError, "supported graph is incomplete"):
+            challenge.seed_supported_graph(None, graph, "unused")  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

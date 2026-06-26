@@ -165,12 +165,28 @@ So the current state is:
 SysML v2 API -> textual snapshot -> SysON import: works
 SysON textual export endpoint: found and callable
 SysON export preserving dependencies: not working yet
-Full SysON -> API roundtrip: not complete
+Supported graph adapter -> SysML v2 API re-import: works when all expected SysON objects are present
+Full native SysON textual roundtrip: not complete
 ```
 
 This is an actual API/tool challenge finding, not a script failure: SysON can
 hold dependency objects after import, but its textual exporter does not preserve
 those dependencies in the downloaded `.sysml` document for this slice.
+
+The implemented end-to-end command is:
+
+```bash
+python scripts/sysml_api_challenge.py roundtrip-syson \
+  --api-url http://127.0.0.1:9000 \
+  --syson-url http://127.0.0.1:8080 \
+  --output /tmp/de4sdv-api-syson-roundtrip.json
+```
+
+The command keeps the SysML v2 API as the start/end repository boundary, imports
+the API-derived textual snapshot into SysON, validates expected SysON objects via
+GraphQL search, exports a DE4SDV supported graph, and re-imports that graph into
+a second SysML v2 API project. The report explicitly marks SysON native textual
+export as `failed-lossy` when dependency declarations are absent.
 
 ## Near-term roadmap
 

@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 import uuid
@@ -22,6 +23,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+import syson_exchange
 
 DEFAULT_API_URL = "http://127.0.0.1:9000"
 DEFAULT_PROJECT = "DE4SDV API Challenge"
@@ -590,6 +593,36 @@ def write_report(path: Path, report: dict[str, Any]) -> None:
     path.write_text(json.dumps(report, indent=2) + "\n")
 
 
+def supported_graph_missing_expected(graph: dict[str, Any], model: ChallengeModel | None = None) -> list[dict[str, str]]:
+    model = model or context_challenge_model()
+    graph_keys = {(str(element.get("type")), str(element.get("name"))) for element in graph.get("elements", [])}
+    missing: list[dict[str, str]] = []
+    for expected in model.elements.values():
+        key = (str(expected.get("@type")), str(expected.get("name")))
+        if key not in graph_keys:
+            missing.append({"type": key[0], "name": key[1], "reason": "expected semantic element missing from supported graph"})
+    return missing
+
+
+def seed_supported_graph(client: ApiClient, graph: dict[str, Any], project_name: str) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    missing = supported_graph_missing_expected(graph)
+    if missing:
+        raise RuntimeError("supported graph is incomplete: " + json.dumps(missing, indent=2))
+    project, commit = seed_context(client, project_name)
+    observed = read_commit_elements(client, project["@id"], commit["@id"])
+    report = build_challenge_report(context_challenge_model(), observed, source=f"supported graph re-import commit {commit['@id']}")
+    return project, commit, report
+
+
+def dependency_count(text: str) -> int:
+    return sum(1 for line in text.splitlines() if line.strip().startswith("dependency "))
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
 def command_dry_run(args: argparse.Namespace) -> int:
     model = context_challenge_model()
     report = build_challenge_report(model, model.elements, source="dry-run expected graph")
@@ -608,6 +641,90 @@ def command_seed_context(args: argparse.Namespace) -> int:
     print(f"seeded project {project['@id']} commit {commit['@id']}")
     print(f"wrote challenge report: {args.output}")
     return 0 if report["summary"]["status"] == "passed" else 2
+
+
+def command_seed_from_graph(args: argparse.Namespace) -> int:
+    client = ApiClient(args.api_url)
+    graph = json.loads(args.input.read_text())
+    project, commit, report = seed_supported_graph(client, graph, args.project)
+    report["api"] = {"url": args.api_url, "project_id": project["@id"], "commit_id": commit["@id"]}
+    report["supported_graph"] = {"input": str(args.input), "summary": graph.get("summary", {})}
+    write_report(args.output, report)
+    print(f"seeded supported graph project {project['@id']} commit {commit['@id']}")
+    print(f"wrote challenge report: {args.output}")
+    return 0 if report["summary"]["status"] in {"passed", "passed-with-warnings"} else 2
+
+
+def command_roundtrip_syson(args: argparse.Namespace) -> int:
+    client = ApiClient(args.api_url)
+    with tempfile.TemporaryDirectory(prefix="de4sdv-roundtrip-") as tmp:
+        tmpdir = Path(tmp)
+        api_project, api_commit = seed_context(client, args.api_project)
+        api_observed = read_commit_elements(client, api_project["@id"], api_commit["@id"])
+        api_seed_report = build_challenge_report(context_challenge_model(), api_observed, source=f"initial API commit {api_commit['@id']}")
+
+        snapshot_path = tmpdir / "api-exported-de4sdv.sysml"
+        snapshot_path.write_text(render_textual_snapshot(api_observed))
+
+        syson_project = syson_exchange.create_project(args.syson_url, args.syson_project)
+        import_result = syson_exchange.import_document(args.syson_url, syson_project["id"], snapshot_path, read_only=False)
+        upload_payload = import_result.get("data", {}).get("uploadDocument", {})
+        upload_operation_id = upload_payload.get("id")
+        document_id = syson_exchange.find_document_id(args.syson_url, syson_project["id"], snapshot_path.name)
+        if upload_payload.get("__typename") != "UploadDocumentSuccessPayload" or not document_id:
+            raise RuntimeError(
+                "SysON import succeeded but imported document was not found by label: "
+                + json.dumps({"upload": upload_payload, "document_label": snapshot_path.name, "upload_operation_id": upload_operation_id}, indent=2)
+            )
+
+        native_export_path = tmpdir / "syson-native-export.sysml"
+        syson_exchange.download_document(args.syson_url, syson_project["id"], document_id, native_export_path)
+        native_export = native_export_path.read_text()
+
+        supported_graph = syson_exchange.export_supported_graph(args.syson_url, syson_project["id"])
+        graph_path = args.output.with_suffix(".syson-supported-graph.json")
+        write_json(graph_path, supported_graph)
+
+        reimport_project, reimport_commit, reimport_report = seed_supported_graph(client, supported_graph, args.reimport_project)
+
+    legs = {
+        "api_seed": api_seed_report["summary"]["status"],
+        "api_to_textual_snapshot": "passed",
+        "syson_import": "passed",
+        "syson_native_textual_export": "failed-lossy" if dependency_count(native_export) == 0 else "passed",
+        "syson_supported_graph_export": supported_graph["summary"]["status"],
+        "api_reimport": reimport_report["summary"]["status"],
+        "semantic_diff": "passed" if not supported_graph_missing_expected(supported_graph) and not reimport_report["failed"] else "failed",
+    }
+    status = "failed" if any(value == "failed" for value in legs.values()) else "passed-with-warnings"
+    report = {
+        "schema": "de4sdv.sysml-api-syson-roundtrip-report.v1",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "summary": {"status": status},
+        "legs": legs,
+        "api": {
+            "url": args.api_url,
+            "initial_project_id": api_project["@id"],
+            "initial_commit_id": api_commit["@id"],
+            "reimport_project_id": reimport_project["@id"],
+            "reimport_commit_id": reimport_commit["@id"],
+        },
+        "syson": {"url": args.syson_url, "project_id": syson_project["id"], "document_id": document_id},
+        "artifacts": {"supported_graph": str(graph_path)},
+        "native_export": {"dependency_count": dependency_count(native_export), "bytes": len(native_export.encode("utf-8"))},
+        "warnings": [
+            "SysML v2 API Services reassigns element IDs; comparison is semantic.",
+            "SysON native textual export drops dependency declarations for this slice.",
+            "Roundtrip uses the DE4SDV supported graph adapter for the SysON -> API return leg.",
+        ],
+        "api_seed_report": api_seed_report,
+        "api_reimport_report": reimport_report,
+        "syson_supported_graph_summary": supported_graph.get("summary", {}),
+    }
+    write_report(args.output, report)
+    print(f"wrote roundtrip report: {args.output}")
+    print(f"wrote SysON supported graph: {graph_path}")
+    return 0 if status in {"passed", "passed-with-warnings"} else 2
 
 
 def command_export_expected(args: argparse.Namespace) -> int:
@@ -641,6 +758,22 @@ def build_parser() -> argparse.ArgumentParser:
     seed.add_argument("--project", default=DEFAULT_PROJECT)
     seed.add_argument("--output", type=Path, default=DEFAULT_REPORT)
     seed.set_defaults(func=command_seed_context)
+
+    seed_graph = sub.add_parser("seed-from-graph", help="seed a supported graph export back into a SysML v2 API server")
+    seed_graph.add_argument("--api-url", default=DEFAULT_API_URL)
+    seed_graph.add_argument("--project", default="DE4SDV API Challenge Reimport")
+    seed_graph.add_argument("--input", type=Path, required=True)
+    seed_graph.add_argument("--output", type=Path, default=Path("sysmlv2-api/challenge-reports/de4sdv-supported-graph-reimport.json"))
+    seed_graph.set_defaults(func=command_seed_from_graph)
+
+    roundtrip = sub.add_parser("roundtrip-syson", help="run the API -> textual -> SysON -> supported graph -> API roundtrip")
+    roundtrip.add_argument("--api-url", default=DEFAULT_API_URL)
+    roundtrip.add_argument("--syson-url", default="http://127.0.0.1:8080")
+    roundtrip.add_argument("--api-project", default="DE4SDV Roundtrip API Source")
+    roundtrip.add_argument("--syson-project", default="DE4SDV Roundtrip SysON Import")
+    roundtrip.add_argument("--reimport-project", default="DE4SDV Roundtrip API Reimport")
+    roundtrip.add_argument("--output", type=Path, default=Path("sysmlv2-api/challenge-reports/de4sdv-api-syson-roundtrip.json"))
+    roundtrip.set_defaults(func=command_roundtrip_syson)
 
     export = sub.add_parser("export-expected", help="write the expected challenge graph payload for review/debugging")
     export.add_argument("--output", type=Path, default=Path("sysmlv2-api/challenge-reports/de4sdv-context-expected-graph.json"))

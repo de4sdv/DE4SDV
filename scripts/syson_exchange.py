@@ -41,6 +41,30 @@ query FetchProjects {
 }
 """
 
+CREATE_PROJECT_MUTATION = """
+mutation CreateProject($input: CreateProjectInput!) {
+  createProject(input: $input) {
+    __typename
+    ... on CreateProjectSuccessPayload {
+      id
+      project {
+        id
+        name
+        currentEditingContext {
+          id
+        }
+      }
+    }
+    ... on ErrorPayload {
+      messages {
+        body
+        level
+      }
+    }
+  }
+}
+"""
+
 FETCH_EDITING_CONTEXT_QUERY = """
 query FetchEditingContext($projectId: ID!) {
   viewer {
@@ -67,6 +91,33 @@ mutation UploadDocument($input: UploadDocumentInput!) {
       messages {
         body
         level
+      }
+    }
+  }
+}
+"""
+
+SEARCH_QUERY = """
+query SearchObjects($editingContextId: ID!, $query: SearchQuery!) {
+  viewer {
+    editingContext(editingContextId: $editingContextId) {
+      search(query: $query) {
+        __typename
+        ... on SearchSuccessPayload {
+          result {
+            matches {
+              id
+              label
+              kind
+            }
+          }
+        }
+        ... on ErrorPayload {
+          messages {
+            body
+            level
+          }
+        }
       }
     }
   }
@@ -118,6 +169,103 @@ def post_graphql(url: str, query: str, variables: dict[str, Any] | None = None) 
     if data.get("errors"):
         raise RuntimeError("GraphQL errors: " + json.dumps(data["errors"], indent=2))
     return data
+
+
+SUPPORTED_ELEMENTS = [
+    {"semantic_id": "Package:DE4SDV", "type": "Package", "name": "DE4SDV"},
+    {"semantic_id": "Package:EngineeringAssets", "type": "Package", "name": "EngineeringAssets"},
+    {"semantic_id": "Package:Context", "type": "Package", "name": "Context"},
+    {"semantic_id": "Package:RelationshipIntents", "type": "Package", "name": "RelationshipIntents"},
+    {"semantic_id": "PartDefinition:ConfigurableSDVProductLine", "type": "PartDefinition", "name": "ConfigurableSDVProductLine"},
+    {"semantic_id": "PartDefinition:LifecycleEngineeringSystem", "type": "PartDefinition", "name": "LifecycleEngineeringSystem"},
+    {"semantic_id": "PartDefinition:OpenInnovationEcosystem", "type": "PartDefinition", "name": "OpenInnovationEcosystem"},
+    {"semantic_id": "PartDefinition:ModelRepository", "type": "PartDefinition", "name": "ModelRepository"},
+    {"semantic_id": "PartDefinition:ValidationPipeline", "type": "PartDefinition", "name": "ValidationPipeline"},
+    {"semantic_id": "PartDefinition:EvidenceBaseline", "type": "PartDefinition", "name": "EvidenceBaseline"},
+    {"semantic_id": "PartUsage:engineeredProductLine", "type": "PartUsage", "name": "engineeredProductLine", "definition": "ConfigurableSDVProductLine", "is_reference": True},
+    {"semantic_id": "PartUsage:modelRepository", "type": "PartUsage", "name": "modelRepository", "definition": "ModelRepository", "is_reference": False},
+    {"semantic_id": "PartUsage:validationPipeline", "type": "PartUsage", "name": "validationPipeline", "definition": "ValidationPipeline", "is_reference": False},
+    {"semantic_id": "PartUsage:evidenceBaseline", "type": "PartUsage", "name": "evidenceBaseline", "definition": "EvidenceBaseline", "is_reference": False},
+    {"semantic_id": "PartUsage:governedLifecycleSystem", "type": "PartUsage", "name": "governedLifecycleSystem", "definition": "LifecycleEngineeringSystem", "is_reference": True},
+    {"semantic_id": "Dependency:governs / evolves", "type": "Dependency", "name": "governs / evolves", "source": "OpenInnovationEcosystem", "target": "LifecycleEngineeringSystem"},
+    {"semantic_id": "Dependency:engineers / assures", "type": "Dependency", "name": "engineers / assures", "source": "LifecycleEngineeringSystem", "target": "ConfigurableSDVProductLine"},
+    {"semantic_id": "Dependency:manages model baselines", "type": "Dependency", "name": "manages model baselines", "source": "LifecycleEngineeringSystem", "target": "ModelRepository"},
+    {"semantic_id": "Dependency:executes validation", "type": "Dependency", "name": "executes validation", "source": "LifecycleEngineeringSystem", "target": "ValidationPipeline"},
+    {"semantic_id": "Dependency:maintains assurance evidence", "type": "Dependency", "name": "maintains assurance evidence", "source": "LifecycleEngineeringSystem", "target": "EvidenceBaseline"},
+]
+
+
+def kind_entity(kind: str) -> str:
+    if "entity=" in kind:
+        return kind.rsplit("entity=", 1)[-1]
+    return kind
+
+
+def create_project(url: str, name: str, *, template_id: str = "sysmlv2-template", library_ids: list[str] | None = None) -> dict[str, Any]:
+    variables = {"input": {"id": str(uuid.uuid4()), "name": name, "templateId": template_id, "libraryIds": library_ids or []}}
+    data = post_graphql(url, CREATE_PROJECT_MUTATION, variables)
+    payload = data.get("data", {}).get("createProject", {})
+    if payload.get("__typename") != "CreateProjectSuccessPayload":
+        raise RuntimeError("Create project failed: " + json.dumps(payload, indent=2))
+    return payload["project"]
+
+
+def search_objects(url: str, project_id: str, text: str) -> list[dict[str, Any]]:
+    context_id = editing_context(url, project_id)
+    variables = {
+        "editingContextId": context_id,
+        "query": {
+            "text": text,
+            "matchCase": False,
+            "matchWholeWord": True,
+            "useRegularExpression": False,
+            "searchInAttributes": True,
+            "searchInLibraries": False,
+        },
+    }
+    data = post_graphql(url, SEARCH_QUERY, variables)
+    payload = data.get("data", {}).get("viewer", {}).get("editingContext", {}).get("search", {})
+    if payload.get("__typename") != "SearchSuccessPayload":
+        raise RuntimeError("Search failed: " + json.dumps(payload, indent=2))
+    return payload.get("result", {}).get("matches", [])
+
+
+def find_document_id(url: str, project_id: str, document_label: str) -> str | None:
+    matches = search_objects(url, project_id, document_label)
+    for match in matches:
+        if match.get("label") == document_label and not match.get("kind"):
+            return str(match.get("id"))
+    return None
+
+
+def export_supported_graph(url: str, project_id: str) -> dict[str, Any]:
+    """Export the DE4SDV supported subset from SysON search evidence."""
+    exported: list[dict[str, Any]] = []
+    missing: list[dict[str, str]] = []
+    for expected in SUPPORTED_ELEMENTS:
+        matches = search_objects(url, project_id, expected["name"])
+        expected_type = expected["type"]
+        typed_matches = [m for m in matches if kind_entity(m.get("kind", "")) == expected_type and m.get("label") == expected["name"]]
+        if not typed_matches:
+            missing.append({"semantic_id": expected["semantic_id"], "type": expected_type, "name": expected["name"]})
+            continue
+        match = typed_matches[0]
+        exported.append({**expected, "syson": {"id": match.get("id", ""), "kind": match.get("kind", ""), "label": match.get("label", "")}})
+    status = "failed" if missing else "passed-with-warnings"
+    return {
+        "schema": "de4sdv.syson-supported-graph.v1",
+        "source": "SysON GraphQL search plus DE4SDV supported-subset canonical relationships",
+        "project_id": project_id,
+        "editing_context_id": editing_context(url, project_id),
+        "summary": {"status": status, "exported": len(exported), "missing": len(missing)},
+        "elements": exported,
+        "missing": missing,
+        "warnings": [
+            "SysON v2026.5.0 native textual export drops dependency declarations for this slice.",
+            "SysON GraphQL search confirms dependency objects exist, but dependency endpoints are not exposed through queryBasedObjects for source/target/client/supplier.",
+            "This supported graph adapter validates SysON object presence and carries canonical DE4SDV supported-subset dependency endpoints for API re-import.",
+        ],
+    }
 
 
 def list_projects(url: str) -> list[dict[str, Any]]:
@@ -202,6 +350,14 @@ def main() -> int:
 
     sub.add_parser("list-projects")
 
+    create_parser = sub.add_parser("create-project")
+    create_parser.add_argument("name")
+    create_parser.add_argument("--template-id", default="sysmlv2-template")
+
+    export_graph_parser = sub.add_parser("export-supported-graph")
+    export_graph_parser.add_argument("project_id")
+    export_graph_parser.add_argument("output", type=Path)
+
     import_parser = sub.add_parser("import-document")
     import_parser.add_argument("project_id")
     import_parser.add_argument("file", type=Path)
@@ -220,6 +376,15 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "list-projects":
         print(json.dumps(list_projects(args.url), indent=2))
+    elif args.command == "create-project":
+        print(json.dumps(create_project(args.url, args.name, template_id=args.template_id), indent=2))
+    elif args.command == "export-supported-graph":
+        graph = export_supported_graph(args.url, args.project_id)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(graph, indent=2) + "\n")
+        print(f"wrote supported graph: {args.output}")
+        if graph["summary"]["status"] == "failed":
+            return 2
     elif args.command == "import-document":
         print(json.dumps(import_document(args.url, args.project_id, args.file, read_only=args.read_only), indent=2))
     elif args.command == "insert-text":
