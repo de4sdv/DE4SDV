@@ -10,7 +10,9 @@ SysON document back to a file.
 from __future__ import annotations
 
 import argparse
+import html
 import json
+import subprocess
 import sys
 import uuid
 from pathlib import Path
@@ -132,6 +134,71 @@ query SearchObjects($editingContextId: ID!, $query: SearchQuery!) {
 }
 """
 
+LIST_REPRESENTATIONS_QUERY = """
+query ListRepresentations($editingContextId: ID!) {
+  viewer {
+    editingContext(editingContextId: $editingContextId) {
+      representations(first: 100) {
+        edges {
+          node {
+            id
+            label
+            kind
+            description {
+              id
+              label
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+REPRESENTATION_DESCRIPTIONS_QUERY = """
+query RepresentationDescriptions($editingContextId: ID!, $objectId: ID!) {
+  viewer {
+    editingContext(editingContextId: $editingContextId) {
+      representationDescriptions(objectId: $objectId) {
+        edges {
+          node {
+            id
+            label
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+CREATE_REPRESENTATION_MUTATION = """
+mutation CreateRepresentation($input: CreateRepresentationInput!) {
+  createRepresentation(input: $input) {
+    __typename
+    ... on CreateRepresentationSuccessPayload {
+      id
+      representation {
+        id
+        label
+        kind
+        description {
+          id
+          label
+        }
+      }
+    }
+    ... on ErrorPayload {
+      messages {
+        body
+        level
+      }
+    }
+  }
+}
+"""
+
 INSERT_TEXTUAL_SYSML_MUTATION = """
 mutation InsertTextualSysMLv2($input: InsertTextualSysMLv2Input!) {
   insertTextualSysMLv2(input: $input) {
@@ -245,6 +312,149 @@ def find_document_id(url: str, project_id: str, document_label: str) -> str | No
         if match.get("label") == document_label and not match.get("kind"):
             return str(match.get("id"))
     return None
+
+
+def list_views(url: str, project_id: str) -> list[dict[str, Any]]:
+    context_id = editing_context(url, project_id)
+    data = post_graphql(url, LIST_REPRESENTATIONS_QUERY, {"editingContextId": context_id})
+    edges = data.get("data", {}).get("viewer", {}).get("editingContext", {}).get("representations", {}).get("edges", [])
+    return [{**edge["node"], "editingContextId": context_id} for edge in edges]
+
+
+def representation_descriptions(url: str, project_id: str, object_id: str) -> list[dict[str, Any]]:
+    context_id = editing_context(url, project_id)
+    data = post_graphql(url, REPRESENTATION_DESCRIPTIONS_QUERY, {"editingContextId": context_id, "objectId": object_id})
+    edges = data.get("data", {}).get("viewer", {}).get("editingContext", {}).get("representationDescriptions", {}).get("edges", [])
+    return [edge["node"] for edge in edges]
+
+
+def create_representation(url: str, project_id: str, object_id: str, description_id: str, name: str) -> dict[str, Any]:
+    context_id = editing_context(url, project_id)
+    variables = {
+        "input": {
+            "id": str(uuid.uuid4()),
+            "editingContextId": context_id,
+            "objectId": object_id,
+            "representationDescriptionId": description_id,
+            "representationName": name,
+        }
+    }
+    data = post_graphql(url, CREATE_REPRESENTATION_MUTATION, variables)
+    payload = data.get("data", {}).get("createRepresentation", {})
+    if payload.get("__typename") != "CreateRepresentationSuccessPayload":
+        raise RuntimeError("Create representation failed: " + json.dumps(payload, indent=2))
+    return {**payload["representation"], "editingContextId": context_id}
+
+
+def psql_representation_content(
+    editing_context_id: str,
+    representation_id: str,
+    *,
+    container: str,
+    user: str,
+    database: str,
+) -> dict[str, Any]:
+    row_id = f"{editing_context_id}#{representation_id}"
+    safe_row_id = row_id.replace("'", "''")
+    sql = f"select content from representation_content where id = '{safe_row_id}'"
+    command = ["docker", "exec", "-i", container, "psql", "-U", user, "-d", database, "-t", "-A", "-c", sql]
+    result = subprocess.run(command, text=True, capture_output=True, check=False)
+    if result.returncode != 0:
+        raise RuntimeError(f"psql representation export failed: {result.stderr.strip()}")
+    content = result.stdout.strip()
+    if not content:
+        raise RuntimeError(f"representation content not found in SysON database for {row_id}")
+    return json.loads(content)
+
+
+def _walk_nodes(nodes: list[dict[str, Any]], level: int = 0) -> list[dict[str, Any]]:
+    flattened: list[dict[str, Any]] = []
+    for node in nodes:
+        flattened.append({**node, "_level": level})
+        flattened.extend(_walk_nodes(node.get("childNodes", []) + node.get("borderNodes", []), level + 1))
+    return flattened
+
+
+def _label(value: dict[str, Any]) -> str:
+    inside = value.get("insideLabel") or {}
+    if inside.get("text"):
+        return str(inside["text"])
+    labels = value.get("outsideLabels") or []
+    if labels and labels[0].get("text"):
+        return str(labels[0]["text"])
+    if value.get("centerLabel", {}).get("text"):
+        return str(value["centerLabel"]["text"])
+    return str(value.get("targetObjectId") or value.get("id") or "")
+
+
+def render_view_svg(view: dict[str, Any]) -> str:
+    nodes = _walk_nodes(view.get("nodes", []))
+    layout = view.get("layoutData", {})
+    layout_by_id = {item.get("id"): item for item in (layout.get("nodeLayoutData") or {}).values()} if isinstance(layout.get("nodeLayoutData"), dict) else {}
+    width = max(900, 220 + 220 * max(1, len(nodes)))
+    height = max(260, 140 + 90 * max(1, len(nodes)))
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<style>text{font-family:Inter,Arial,sans-serif}.title{font-size:22px;font-weight:700}.meta{font-size:12px;fill:#667}.box{fill:#f8fbff;stroke:#446;stroke-width:1.5}.empty{fill:#fff7e6;stroke:#a66}</style>',
+        f'<text class="title" x="24" y="36">{html.escape(str(view.get("label") or view.get("id") or "SysON view"))}</text>',
+        f'<text class="meta" x="24" y="58">SysON representation {html.escape(str(view.get("id", "")))}</text>',
+    ]
+    if not nodes:
+        parts.extend([
+            '<rect class="empty" x="24" y="90" width="620" height="90" rx="10"/>',
+            '<text x="44" y="126" font-size="16">No diagram nodes are currently visible in this SysON view.</text>',
+            '<text x="44" y="152" class="meta">Open the view in SysON, add/reveal elements, then re-run export-view.</text>',
+        ])
+    else:
+        node_pos: dict[str, tuple[float, float, float, float]] = {}
+        for index, node in enumerate(nodes):
+            node_id = node.get("id")
+            layout_item = layout_by_id.get(node_id, {})
+            position = layout_item.get("position", {})
+            size = layout_item.get("size", {})
+            x = float(position.get("x", 40 + (index % 4) * 220))
+            y = float(position.get("y", 90 + (index // 4) * 110))
+            w = float(size.get("width", node.get("defaultWidth") or 180))
+            h = float(size.get("height", node.get("defaultHeight") or 70))
+            node_pos[str(node_id)] = (x, y, w, h)
+            parts.append(f'<rect class="box" x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="8"/>')
+            parts.append(f'<text x="{x + 12:.1f}" y="{y + 28:.1f}" font-size="14">{html.escape(_label(node))}</text>')
+            parts.append(f'<text class="meta" x="{x + 12:.1f}" y="{y + h - 12:.1f}">{html.escape(str(node.get("type", "")))}</text>')
+        for edge in view.get("edges", []):
+            source = node_pos.get(str(edge.get("sourceId")))
+            target = node_pos.get(str(edge.get("targetId")))
+            if not source or not target:
+                continue
+            sx, sy, sw, sh = source
+            tx, ty, tw, th = target
+            x1, y1 = sx + sw, sy + sh / 2
+            x2, y2 = tx, ty + th / 2
+            parts.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="#668" stroke-width="1.5" marker-end="url(#arrow)"/>')
+            label = _label(edge)
+            if label:
+                parts.append(f'<text class="meta" x="{(x1+x2)/2:.1f}" y="{(y1+y2)/2 - 6:.1f}">{html.escape(label)}</text>')
+    parts.insert(2, '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#668"/></marker></defs>')
+    parts.append("</svg>")
+    return "\n".join(parts) + "\n"
+
+
+def export_view_artifacts(view: dict[str, Any], output_dir: Path, stem: str) -> dict[str, str]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / f"{stem}.view.json"
+    svg_path = output_dir / f"{stem}.svg"
+    manifest_path = output_dir / f"{stem}.manifest.json"
+    json_path.write_text(json.dumps(view, indent=2) + "\n")
+    svg_path.write_text(render_view_svg(view))
+    manifest = {
+        "schema": "de4sdv.syson-view-publication.v1",
+        "representation_id": view.get("id"),
+        "target_object_id": view.get("targetObjectId"),
+        "label": view.get("label"),
+        "artifacts": {"json": str(json_path), "svg": str(svg_path)},
+        "note": "Tool-specific SysON/Sirius diagram publication artifact; not native SysML v2 API view evidence.",
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    return {"json": str(json_path), "svg": str(svg_path), "manifest": str(manifest_path)}
 
 
 def export_supported_graph(url: str, project_id: str) -> dict[str, Any]:
@@ -365,6 +575,28 @@ def main() -> int:
     create_parser.add_argument("name")
     create_parser.add_argument("--template-id", default="sysmlv2-template")
 
+    list_views_parser = sub.add_parser("list-views")
+    list_views_parser.add_argument("project_id")
+
+    describe_view_parser = sub.add_parser("representation-descriptions")
+    describe_view_parser.add_argument("project_id")
+    describe_view_parser.add_argument("object_id")
+
+    create_view_parser = sub.add_parser("create-view")
+    create_view_parser.add_argument("project_id")
+    create_view_parser.add_argument("object_id")
+    create_view_parser.add_argument("description_id")
+    create_view_parser.add_argument("name")
+
+    export_view_parser = sub.add_parser("export-view")
+    export_view_parser.add_argument("project_id")
+    export_view_parser.add_argument("representation_id")
+    export_view_parser.add_argument("output_dir", type=Path)
+    export_view_parser.add_argument("--stem", default="syson-view")
+    export_view_parser.add_argument("--postgres-container", default="syson-database-1")
+    export_view_parser.add_argument("--postgres-user", default="username")
+    export_view_parser.add_argument("--postgres-db", default="postgres")
+
     export_graph_parser = sub.add_parser("export-supported-graph")
     export_graph_parser.add_argument("project_id")
     export_graph_parser.add_argument("output", type=Path)
@@ -389,6 +621,28 @@ def main() -> int:
         print(json.dumps(list_projects(args.url), indent=2))
     elif args.command == "create-project":
         print(json.dumps(create_project(args.url, args.name, template_id=args.template_id), indent=2))
+    elif args.command == "list-views":
+        print(json.dumps(list_views(args.url, args.project_id), indent=2))
+    elif args.command == "representation-descriptions":
+        print(json.dumps(representation_descriptions(args.url, args.project_id, args.object_id), indent=2))
+    elif args.command == "create-view":
+        print(json.dumps(create_representation(args.url, args.project_id, args.object_id, args.description_id, args.name), indent=2))
+    elif args.command == "export-view":
+        context_id = editing_context(args.url, args.project_id)
+        view = psql_representation_content(
+            context_id,
+            args.representation_id,
+            container=args.postgres_container,
+            user=args.postgres_user,
+            database=args.postgres_db,
+        )
+        for metadata in list_views(args.url, args.project_id):
+            if metadata.get("id") == args.representation_id:
+                view.setdefault("label", metadata.get("label"))
+                view.setdefault("metadata", metadata)
+                break
+        artifacts = export_view_artifacts(view, args.output_dir, args.stem)
+        print(json.dumps(artifacts, indent=2))
     elif args.command == "export-supported-graph":
         graph = export_supported_graph(args.url, args.project_id)
         args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import sysml_api_challenge as challenge
+import syson_exchange
 
 
 class SysmlApiChallengeTests(unittest.TestCase):
@@ -125,6 +126,55 @@ class SysmlApiChallengeTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "supported graph is incomplete"):
             challenge.seed_supported_graph(None, graph, "unused")  # type: ignore[arg-type]
+
+    def test_syson_view_svg_renders_nodes_and_edges(self):
+        view = {
+            "id": "view-1",
+            "label": "DE4SDV Context View",
+            "nodes": [
+                {
+                    "id": "n1",
+                    "type": "node:package",
+                    "targetObjectId": "semantic-1",
+                    "insideLabel": {"text": "LifecycleEngineeringSystem"},
+                    "outsideLabels": [],
+                    "childNodes": [],
+                    "borderNodes": [],
+                    "defaultWidth": 180,
+                    "defaultHeight": 70,
+                },
+                {
+                    "id": "n2",
+                    "type": "node:package",
+                    "targetObjectId": "semantic-2",
+                    "insideLabel": {"text": "ValidationPipeline"},
+                    "outsideLabels": [],
+                    "childNodes": [],
+                    "borderNodes": [],
+                    "defaultWidth": 180,
+                    "defaultHeight": 70,
+                },
+            ],
+            "edges": [{"id": "e1", "sourceId": "n1", "targetId": "n2", "centerLabel": {"text": "executes validation"}}],
+            "layoutData": {
+                "nodeLayoutData": {
+                    "n1": {"id": "n1", "position": {"x": 40, "y": 90}, "size": {"width": 180, "height": 70}},
+                    "n2": {"id": "n2", "position": {"x": 300, "y": 90}, "size": {"width": 180, "height": 70}},
+                }
+            },
+        }
+
+        svg = syson_exchange.render_view_svg(view)
+
+        self.assertIn("LifecycleEngineeringSystem", svg)
+        self.assertIn("ValidationPipeline", svg)
+        self.assertIn("executes validation", svg)
+        self.assertIn("<svg", svg)
+
+    def test_syson_view_svg_marks_empty_views(self):
+        svg = syson_exchange.render_view_svg({"id": "empty", "label": "Empty", "nodes": [], "edges": []})
+
+        self.assertIn("No diagram nodes are currently visible", svg)
 
 
 if __name__ == "__main__":

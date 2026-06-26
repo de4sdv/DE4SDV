@@ -188,6 +188,42 @@ GraphQL search, exports a DE4SDV supported graph, and re-imports that graph into
 a second SysML v2 API project. The report explicitly marks SysON native textual
 export as `failed-lossy` when dependency declarations are absent.
 
+## SysON view publication spike
+
+The current API roundtrip does **not** make SysON/Sirius diagrams native SysML v2
+API objects. SysON views are tool-specific representation state. For the practical
+"edit a view in SysON and publish it to GitHub" loop, the helper now exposes a
+bounded publication path:
+
+```bash
+# Inspect SysON views for a project.
+python scripts/syson_exchange.py --url http://127.0.0.1:8080 list-views \
+  <syson-project-id>
+
+# Export the current SysON representation content into GitHub-reviewable files.
+python scripts/syson_exchange.py --url http://127.0.0.1:8080 export-view \
+  <syson-project-id> \
+  <representation-id> \
+  docs/views/syson \
+  --stem de4sdv-context
+```
+
+`export-view` writes:
+
+```text
+docs/views/syson/de4sdv-context.view.json
+docs/views/syson/de4sdv-context.svg
+docs/views/syson/de4sdv-context.manifest.json
+```
+
+This gives a reviewable GitHub publication artifact after a human changes the
+view in SysON and reruns the export command. It deliberately labels the output as
+SysON/Sirius tool-specific representation evidence, not a native SysML v2 API
+view roundtrip. The current implementation reads `representation_content` from
+the local SysON PostgreSQL container because the public GraphQL query surface only
+lists representation metadata; the full diagram payload is delivered through the
+Sirius Web diagram subscription/runtime path.
+
 ## Near-term roadmap
 
 1. Run `dry-run` in CI as a deterministic evidence/report smoke path.
