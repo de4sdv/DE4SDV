@@ -16,12 +16,20 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-import requests
+
 
 GRAPHQL_ENDPOINT = "/api/graphql"
 GRAPHQL_UPLOAD_ENDPOINT = "/api/graphql/upload"
 DOWNLOAD_ENDPOINT = "/api/editingcontexts/{editing_context_id}/documents/{document_id}"
 DOWNLOAD_MEDIA_TYPE = "text/html"
+
+
+def http_requests() -> Any:
+    try:
+        import requests
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("SysON exchange commands require the optional 'requests' package") from exc
+    return requests
 
 FETCH_PROJECTS_QUERY = """
 query FetchProjects {
@@ -162,6 +170,7 @@ def download_url(url: str, editing_context_id: str, document_id: str) -> str:
 
 
 def post_graphql(url: str, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+    requests = http_requests()
     response = requests.post(graphql_url(url), json={"query": query, "variables": variables or {}}, timeout=30)
     if response.status_code != 200:
         raise RuntimeError(f"GraphQL HTTP {response.status_code}: {response.text[:2000]}")
@@ -302,6 +311,7 @@ def import_document(url: str, project_id: str, file_path: Path, *, read_only: bo
         },
     }
     file_map = {"0": "variables.file"}
+    requests = http_requests()
     with file_path.open("rb") as handle:
         response = requests.post(
             graphql_upload_url(url),
@@ -333,6 +343,7 @@ def insert_text(url: str, project_id: str, object_id: str, file_path: Path) -> d
 
 def download_document(url: str, project_id: str, document_id: str, output_path: Path) -> None:
     context_id = editing_context(url, project_id)
+    requests = http_requests()
     response = requests.get(download_url(url, context_id, document_id), headers={"Accept": DOWNLOAD_MEDIA_TYPE}, timeout=180)
     if response.status_code != 200:
         raise RuntimeError(f"Download HTTP {response.status_code}: {response.text[:2000]}")
