@@ -219,11 +219,18 @@ It fixes the selected/deferred viewpoint subsets, first-slice scope, feature/com
 
 Recommended next increment after that framing baseline:
 
-1. draft the first operational context and scenario view,
+1. create the structured operational context and reviewer-facing operational story,
 2. create AEBS traceability YAML using the basic ontology terms,
 3. register candidate AEBS terms and source references,
 4. add requirement-quality and V&V planning attributes,
 5. only then add SysML v2 context/requirements artifacts with validation evidence.
+
+The operational-domain increment is captured in:
+
+```text
+methodologies/sysmod-sysmlv2/pilots/aebs-operational-context.yaml
+methodologies/sysmod-sysmlv2/pilots/aebs-operational-story.md
+```
 
 ## Exit criteria for the pilot
 
