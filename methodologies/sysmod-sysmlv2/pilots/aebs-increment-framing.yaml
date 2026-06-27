@@ -1,0 +1,292 @@
+schema: de4sdv.increment-framing.v0
+id: INC-AEBS-001
+name: AEBS operational-to-functional pilot framing
+status: draft
+type: FeatureIncrement
+owner: DE4SDV maintainers
+
+purpose: >-
+  Establish the first reviewable framing baseline for incrementally developing
+  the AEBS pilot from operational context toward the functional domain. This
+  file is intentionally machine-readable so later checks can validate viewpoint
+  selection, scope boundaries, feature/common-capability classification, V&V
+  planning fields, and evidence status.
+
+engineering_question: >-
+  Can DE4SDV model an AEBS-oriented SDV product-line slice from stakeholder
+  concerns and regulatory/source constraints through operational context,
+  functional behavior, requirements, V&V planning, and VSS signal candidates
+  without making premature compliance or implementation claims?
+
+lifecycle_decision_supported:
+  decision: approve_increment_scope_for_operational_to_functional_modeling
+  description: >-
+    Decide whether the AEBS pilot is framed tightly enough to start the next
+    operational-domain increment without dragging in logical realization,
+    physical/software realization, or compliance claims.
+
+system_layers:
+  system_1:
+    name: Configured SDV variant with AEBS-related behavior
+    role: >-
+      The product-line member product or variant whose vehicle-target forward
+      collision risk mitigation behavior will eventually be modeled.
+  system_2:
+    name: DE4SDV engineering and assurance system for AEBS modeling
+    role: >-
+      The DE4SDV method, model, traceability, V&V, and evidence workflow used
+      to represent and review the AEBS slice.
+  system_3:
+    name: DE4SDV open-source governance and review ecosystem
+    role: >-
+      The contributor/reviewer system that accepts, rejects, or improves the
+      method and model increments through GitHub review.
+
+method_stack:
+  saf:
+    role: viewpoint_selection
+    note: Selects the smallest useful set of views needed to answer stakeholder concerns.
+  sysmod:
+    role: method_flow
+    note: Guides progression from context and concerns toward needs, requirements, architecture, and V&V/evidence.
+  de4sdv_ontology:
+    role: semantic_kernel
+    note: Keeps feature/common-capability, requirement, evidence, gap, and traceability terms consistent.
+  sysml_v2:
+    role: model_expression
+    note: Will be introduced in later increments after this framing baseline.
+  vss:
+    role: candidate_signal_catalog
+    note: Used only when functional interface signal candidates are needed.
+
+selected_viewpoint_subsets:
+  - id: increment_framing
+    label: Increment framing subset
+    purpose: Define terms, source references, stakeholder concerns, traceability shell, and review scope.
+  - id: operational_feature
+    label: Operational feature subset
+    purpose: Define operational context, operational story, capability intent, and stakeholder needs.
+  - id: functional_system
+    label: Functional system subset
+    purpose: Derive system boundary, draft requirements, functional behavior, interfaces, and requirement traceability.
+
+deferred_viewpoint_subsets:
+  - id: logical_realization
+    label: Logical realization subset
+    reason: Do not allocate AEBS functions to logical services/components until operational and functional slices are reviewed.
+  - id: physical_software_realization
+    label: Physical/software realization subset
+    reason: Do not model ECU, sensor, network, or deployment topology in the framing increment.
+  - id: full_safety_security
+    label: Full safety/security subset
+    reason: Capture safety/security concerns and evidence gaps only; do not claim a complete safety or cybersecurity case.
+  - id: full_compliance_case
+    label: Full compliance/regulatory case
+    reason: Register candidate regulatory constraints only; do not claim UNECE R152 compliance or clause-level interpretation.
+
+first_slice_scope:
+  in_scope:
+    - vehicle-target forward collision risk mitigation as the first AEBS behavior slice
+    - stakeholder concerns and needs needed to start operational modeling
+    - selected SAF viewpoint subsets and explicitly deferred subsets
+    - feature/common-capability hypotheses for product-line classification
+    - V&V planning policy and evidence status vocabulary
+    - candidate VSS signal-catalog usage policy for later functional interfaces
+    - gaps and assumptions that must remain visible in the next increment
+  out_of_scope:
+    - complete UNECE R152 compliance claim
+    - clause-by-clause regulatory interpretation
+    - pedestrian-target AEBS behavior
+    - bicycle-target AEBS behavior
+    - production ECU architecture
+    - detailed sensor physics or perception performance model
+    - logical component allocation
+    - physical/software deployment architecture
+    - complete functional safety case
+    - complete cybersecurity case
+    - vehicle test results
+
+stakeholders:
+  - id: STK-PRODUCT-LINE-ENGINEER
+    role: Product-line engineer
+    concerns:
+      - AEBS-related capabilities and features must not confuse common capabilities with variant-distinguishing features.
+      - Applicability and variation choices must be explicit across member products.
+  - id: STK-SYSTEMS-ENGINEER
+    role: Systems engineer
+    concerns:
+      - AEBS context, boundaries, behavior, interfaces, requirements, and evidence links must be reviewable.
+  - id: STK-SAFETY-ENGINEER
+    role: Safety engineer
+    concerns:
+      - Safety-relevant assumptions, hazards, mitigations, and evidence gaps must not be hidden inside feature prose.
+  - id: STK-COMPLIANCE-ENGINEER
+    role: Compliance engineer
+    concerns:
+      - Regulatory source assumptions and gaps must be visible without implying certification or approval.
+  - id: STK-VERIFICATION-ENGINEER
+    role: Verification engineer
+    concerns:
+      - Requirements must trace to verification methods, acceptance criteria, scenarios, and evidence artifacts or explicit gaps.
+  - id: STK-VALIDATION-STAKEHOLDER
+    role: Validation stakeholder
+    concerns:
+      - The pilot must show how stakeholder fitness-for-use will be assessed, not only how requirements will be checked.
+  - id: STK-OSS-MAINTAINER
+    role: Open-source maintainer
+    concerns:
+      - The pilot must stay small, reviewable, license-safe, and free of uncontrolled regulatory text or unvalidated tool output.
+
+source_anchors:
+  - id: SRC-UNECE-R152
+    label: UNECE Regulation No. 152, Revision 2
+    role: candidate_regulatory_anchor
+    use_policy: >-
+      Use for terminology, scope awareness, and future clause-level mapping.
+      Do not copy regulatory text into DE4SDV and do not claim compliance in
+      this framing increment.
+    reviewed_scope_notes:
+      - AEBS is associated with M1/N1 vehicles in the reviewed revision.
+      - The reviewed revision includes vehicle, pedestrian, and bicycle target scope.
+      - The first DE4SDV slice deliberately narrows to vehicle-target behavior.
+  - id: SRC-COVESA-VSS
+    label: COVESA Vehicle Signal Specification SysML v2 library
+    role: candidate_signal_catalog
+    repository_artifact: textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml
+    use_policy: >-
+      Use as a candidate signal catalog for functional interface typing/mapping
+      after interface needs are known. Do not treat VSS as architecture topology
+      or implementation ownership.
+
+feature_classification_hypotheses:
+  - id: CAP-AEBS-FCRM
+    label: Forward collision risk mitigation
+    classification: candidate_common_capability
+    rationale: >-
+      If every target member product provides this capability, it is common
+      product-line capability rather than a feature.
+  - id: FEAT-AEBS-VEHICLE-TARGET
+    label: Vehicle-target AEBS support
+    classification: candidate_feature_or_common_capability
+    rationale: >-
+      It is a feature only if it distinguishes member products or selectable
+      regulatory/market configurations.
+  - id: FEAT-AEBS-PEDESTRIAN-TARGET
+    label: Pedestrian-target AEBS support
+    classification: deferred_feature_candidate
+    rationale: >-
+      It is in the reviewed regulatory scope but deferred from the first slice.
+  - id: FEAT-AEBS-BICYCLE-TARGET
+    label: Bicycle-target AEBS support
+    classification: deferred_feature_candidate
+    rationale: >-
+      It is in the reviewed regulatory scope but deferred from the first slice.
+  - id: VP-AEBS-SENSOR-PACKAGE
+    label: AEBS sensor package selection
+    classification: variation_point
+    rationale: Camera, radar, fusion, and other sensing choices affect realization and evidence.
+  - id: VP-AEBS-EVIDENCE-LEVEL
+    label: AEBS evidence level
+    classification: variation_point
+    rationale: Simulation, HIL, vehicle test, and inspection evidence provide different confidence levels.
+
+vss_policy:
+  role: candidate_signal_catalog
+  allowed_uses:
+    - identify candidate signal names for functional interface inputs/outputs
+    - type or map functional interface signal candidates after interface boundaries are known
+    - record source path and candidate status in traceability artifacts
+  prohibited_uses:
+    - using the VSS tree as AEBS architecture topology
+    - implying signal ownership, source/sink role, or deployment boundary from VSS alone
+    - treating draft signal mappings as normative without review
+  first_candidate_signal_needs:
+    - vehicle longitudinal speed
+    - brake command or braking intervention request
+    - brake/driver override input or status
+    - driver warning output candidate
+    - self-check/failure indication candidate
+    - evidence/event logging candidate
+
+vv_policy:
+  need_validation: stakeholder fitness-for-use in operational context
+  requirement_verification: requirement satisfaction under stated conditions
+  required_fields_for_later_requirements:
+    - verification_method
+    - acceptance_criterion
+    - validation_reference
+    - evidence_status
+    - gap_if_missing
+  allowed_evidence_statuses:
+    - draft
+    - planned
+    - simulated
+    - tested
+    - inspected
+    - analyzed
+    - accepted
+    - rejected
+    - gap
+  forbidden_status_without_authority:
+    - certified
+    - compliant
+    - approved
+
+assumptions:
+  - id: ASM-AEBS-001
+    statement: The first AEBS slice focuses on vehicle-target forward collision risk mitigation.
+  - id: ASM-AEBS-002
+    statement: Pedestrian and bicycle target behavior are deferred even though the reviewed regulatory scope includes them.
+  - id: ASM-AEBS-003
+    statement: VSS signal references are candidates until signal names, direction, ownership, and system boundary are confirmed.
+  - id: ASM-AEBS-004
+    statement: SysML v2 model files will be added only in later increments with explicit validation evidence or draft-status blockers.
+
+gaps:
+  - id: GAP-AEBS-001
+    statement: Clause-level UNECE R152 interpretation is not yet performed.
+  - id: GAP-AEBS-002
+    statement: Operational scenario parameters and acceptance criteria are not yet defined.
+  - id: GAP-AEBS-003
+    statement: Candidate VSS signal mappings have not yet been inspected against the generated VSS package.
+  - id: GAP-AEBS-004
+    statement: No SysML v2 AEBS operational or functional package exists yet.
+  - id: GAP-AEBS-005
+    statement: No executable simulation, HIL, vehicle test, or evidence artifact exists for AEBS behavior yet.
+
+next_increments:
+  - id: INC-AEBS-002
+    name: AEBS operational context and story
+    expected_outputs:
+      - operational context
+      - operational story
+      - stakeholder needs
+      - validation scenario seed
+  - id: INC-AEBS-003
+    name: AEBS needs and draft requirements
+    expected_outputs:
+      - needs table
+      - draft design-input requirements
+      - verification method placeholders
+      - acceptance criterion placeholders
+  - id: INC-AEBS-004
+    name: AEBS functional behavior, interfaces, and VSS candidates
+    expected_outputs:
+      - functional behavior model
+      - functional interface candidates
+      - inspected VSS signal candidate mappings
+      - evidence gaps
+
+acceptance_criteria:
+  - id: AC-AEBS-FRAME-001
+    statement: The increment identifies selected and deferred SAF viewpoint subsets.
+  - id: AC-AEBS-FRAME-002
+    statement: The first AEBS slice is scoped to vehicle-target forward collision risk mitigation.
+  - id: AC-AEBS-FRAME-003
+    statement: Feature/common-capability hypotheses are explicit and do not assume AEBS is always a feature.
+  - id: AC-AEBS-FRAME-004
+    statement: VSS is introduced only as a candidate signal catalog, not architecture topology.
+  - id: AC-AEBS-FRAME-005
+    statement: V&V policy separates need validation from requirement verification and records evidence status/gaps.
+  - id: AC-AEBS-FRAME-006
+    statement: No compliance, certification, or implementation-readiness claim is made.
