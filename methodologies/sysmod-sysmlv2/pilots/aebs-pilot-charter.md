@@ -209,21 +209,29 @@ Candidate validation scenarios should focus on fitness-for-use: whether the mode
 
 ## First deliverables after this charter
 
-The first concrete deliverable is the machine-readable framing record:
+The first concrete deliverable is the machine-readable framing record and its initial SysML v2 model slice:
 
 ```text
 methodologies/sysmod-sysmlv2/pilots/aebs-increment-framing.yaml
+textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml
 ```
 
 It fixes the selected/deferred viewpoint subsets, first-slice scope, feature/common-capability hypotheses, VSS usage policy, V&V policy, assumptions, gaps, next increments, and acceptance criteria before operational modeling starts.
 
 Recommended next increment after that framing baseline:
 
-1. draft the first operational context and scenario view,
+1. create the structured operational context and reviewer-facing operational story,
 2. create AEBS traceability YAML using the basic ontology terms,
 3. register candidate AEBS terms and source references,
 4. add requirement-quality and V&V planning attributes,
 5. only then add SysML v2 context/requirements artifacts with validation evidence.
+
+The operational-domain increment is captured in:
+
+```text
+methodologies/sysmod-sysmlv2/pilots/aebs-operational-context.yaml
+methodologies/sysmod-sysmlv2/pilots/aebs-operational-story.md
+```
 
 ## Exit criteria for the pilot
 

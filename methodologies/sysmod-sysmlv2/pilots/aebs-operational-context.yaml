@@ -1,0 +1,321 @@
+schema: de4sdv.operational-context.v0
+id: INC-AEBS-002
+name: AEBS operational context and story
+status: draft
+type: FeatureIncrement
+parent_increment: INC-AEBS-001
+owner: DE4SDV maintainers
+
+purpose: >-
+  Define the first operational-domain slice for the AEBS pilot before deriving
+  design-input requirements or SysML v2 functional model artifacts. This slice
+  keeps the focus on stakeholder-visible context, actors, operational story,
+  capability intent, validation scenario seed, assumptions, and gaps.
+
+source_alignment:
+  - source_id: SRC-UNECE-R152
+    use: candidate_regulatory_anchor
+    notes:
+      - The reviewed source describes AEBS for M1/N1 vehicles.
+      - The reviewed source includes vehicle, pedestrian, and bicycle target scope.
+      - This increment deliberately models only vehicle-target rear-end in-lane collision context.
+      - This increment does not perform clause-level interpretation or make compliance claims.
+  - source_id: INC-AEBS-001
+    use: framing_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/aebs-increment-framing.yaml
+
+selected_viewpoints:
+  - id: common_terms_definition
+    saf_domain: Common
+    output: operational term candidates
+  - id: common_standards_definition
+    saf_domain: Common
+    output: regulatory/source anchor notes
+  - id: ea_traceability
+    saf_domain: Common
+    output: source-to-story-to-need trace links
+  - id: stakeholder_identification
+    saf_domain: Operational
+    output: stakeholder/concern coverage
+  - id: operational_context_definition
+    saf_domain: Operational
+    output: actors, external systems, environment, boundary
+  - id: operational_story
+    saf_domain: Operational
+    output: first AEBS vehicle-target story
+  - id: operational_capability_definition
+    saf_domain: Operational
+    output: capability statement and scope limits
+  - id: operational_process
+    saf_domain: Operational
+    output: scenario step sequence
+
+deferred_viewpoints:
+  - id: system_requirement_definition
+    reason: Requirements will be derived in INC-AEBS-003 after operational context review.
+  - id: system_interface_definition
+    reason: Functional interfaces and VSS candidates belong in INC-AEBS-004.
+  - id: logical_structure_definition
+    reason: Logical realization is deferred until operational and functional slices are accepted.
+  - id: physical_structure_definition
+    reason: Physical/software realization is out of scope for this operational increment.
+  - id: full_safety_security_case
+    reason: Safety/security concerns may be recorded, but no complete case is claimed.
+
+system_layers:
+  system_1:
+    system_of_interest: Configured SDV variant with AEBS-related behavior
+    operational_role: Subject vehicle in the first operational story.
+  system_2:
+    system_of_interest: DE4SDV engineering and assurance system
+    operational_role: Captures the operational slice, source assumptions, validation seed, and evidence gaps.
+  system_3:
+    system_of_interest: DE4SDV open-source governance ecosystem
+    operational_role: Reviews whether the operational slice is narrow, traceable, and safe to model further.
+
+operational_boundary:
+  in_scope:
+    - subject vehicle traveling in-lane behind a passenger-car target
+    - imminent forward collision risk with vehicle target
+    - collision warning behavior at operational-story level
+    - emergency braking behavior at operational-story level
+    - driver conscious override as an operational assumption
+    - system failure shall not endanger safe operation as an operational concern
+    - evidence-relevant event recording as a System 2 concern
+  out_of_scope:
+    - pedestrian-target operational story
+    - bicycle-target operational story
+    - multi-lane cut-in/cut-out traffic choreography
+    - detailed weather, road adhesion, infrastructure degradation, or false-reaction scenarios
+    - perception algorithm or sensor physics model
+    - braking controller design
+    - complete UNECE R152 test procedure
+    - compliance or type-approval assertion
+
+actors_and_external_systems:
+  - id: ACT-SUBJECT-VEHICLE
+    name: Subject vehicle
+    kind: system_1_member_product
+    description: Configured SDV variant whose AEBS-related behavior is under consideration.
+  - id: ACT-DRIVER
+    name: Driver
+    kind: human_actor
+    description: Vehicle operator who may receive a warning and can consciously override the intervention.
+  - id: ACT-VEHICLE-TARGET
+    name: Vehicle target
+    kind: external_traffic_actor
+    description: Passenger-car target in the same lane for the first slice.
+  - id: ACT-ROAD-ENVIRONMENT
+    name: Road environment
+    kind: environment
+    description: Operational road context; detailed road adhesion/weather/infrastructure factors are deferred.
+  - id: ACT-DE4SDV-EVIDENCE-BASELINE
+    name: DE4SDV evidence baseline
+    kind: system_2_artifact_system
+    description: Reviewable System 2 target for recording assumptions, gaps, validation seeds, and later evidence artifacts.
+  - id: ACT-OPEN-SOURCE-REVIEWER
+    name: DE4SDV reviewer
+    kind: system_3_actor
+    description: Contributor/reviewer checking that the operational slice is traceable and not overclaimed.
+
+operational_capability:
+  id: CAP-AEBS-FCRM
+  label: Forward collision risk mitigation
+  classification_hypothesis: candidate_common_capability
+  statement: >-
+    A configured SDV variant should reduce the risk or severity of a forward
+    rear-end in-lane collision with a vehicle target under selected operating
+    conditions by detecting imminent collision risk, warning the driver when
+    required, and commanding emergency braking when activation conditions are met.
+  notes:
+    - This is an operational capability statement, not a final requirement.
+    - Whether the capability is common or variable depends on member-product applicability.
+
+operational_story:
+  id: STORY-AEBS-VEHICLE-TARGET-001
+  title: Vehicle-target forward collision risk mitigation
+  status: draft
+  narrative: >-
+    A configured SDV variant travels in-lane behind a passenger-car target. The
+    relative motion creates an imminent forward collision risk under stated
+    operating conditions. The AEBS-related behavior detects the risk, provides
+    an appropriate driver warning when required, and commands emergency braking
+    if activation conditions are met. The driver can consciously override the
+    intervention. The DE4SDV System 2 baseline records assumptions, gaps, and
+    evidence-relevant event expectations for later review.
+  preconditions:
+    - subject vehicle is active and traveling in-lane
+    - vehicle target is ahead in the same lane
+    - selected operating conditions are in scope for the scenario seed
+    - AEBS-related behavior is available for the configured variant
+  trigger:
+    - imminent forward collision risk emerges between subject vehicle and vehicle target
+  nominal_sequence:
+    - step: 1
+      actor: ACT-SUBJECT-VEHICLE
+      action: travels in-lane behind ACT-VEHICLE-TARGET
+    - step: 2
+      actor: AEBS-related behavior
+      action: detects imminent forward collision risk under selected operating conditions
+    - step: 3
+      actor: AEBS-related behavior
+      action: provides collision warning to ACT-DRIVER when warning is required by the selected behavior profile
+    - step: 4
+      actor: ACT-DRIVER
+      action: may consciously override the intervention
+    - step: 5
+      actor: AEBS-related behavior
+      action: commands emergency braking when activation conditions are met and no overriding condition prevents intervention
+    - step: 6
+      actor: ACT-DE4SDV-EVIDENCE-BASELINE
+      action: records planned evidence expectations, assumptions, and gaps for later verification and validation increments
+  alternate_paths:
+    - id: ALT-AEBS-OVERRIDE
+      description: Driver consciously overrides the AEBS action; later increments must define override conditions and evidence expectations.
+    - id: ALT-AEBS-FAILURE
+      description: AEBS-related behavior has a detected failure; later increments must define failure indication and safe-operation expectations.
+    - id: ALT-AEBS-NO-ACTIVATION
+      description: Collision risk does not satisfy selected activation conditions; later increments must define non-activation criteria.
+  postconditions:
+    - collision risk mitigation action or non-action is explainable against selected assumptions
+    - evidence and gaps needed for later V&V are visible
+
+stakeholder_needs_seed:
+  - id: N-AEBS-OP-001
+    stakeholder: STK-VALIDATION-STAKEHOLDER
+    statement: Road users and vehicle occupants need the configured SDV variant to reduce forward rear-end in-lane collision risk with a vehicle target under defined operating conditions.
+    source: STORY-AEBS-VEHICLE-TARGET-001
+    status: draft
+    validation_reference: VAL-AEBS-OP-001
+  - id: N-AEBS-OP-002
+    stakeholder: STK-SYSTEMS-ENGINEER
+    statement: Systems engineers need the AEBS operational boundary, actors, assumptions, and out-of-scope cases to be explicit before requirements are derived.
+    source: INC-AEBS-001
+    status: draft
+    validation_reference: VAL-AEBS-OP-002
+  - id: N-AEBS-OP-003
+    stakeholder: STK-PRODUCT-LINE-ENGINEER
+    statement: Product-line engineers need the AEBS operational capability to stay separate from feature/common-capability classification until member-product applicability is known.
+    source: INC-AEBS-001
+    status: draft
+    validation_reference: VAL-AEBS-OP-003
+  - id: N-AEBS-OP-004
+    stakeholder: STK-COMPLIANCE-ENGINEER
+    statement: Compliance engineers need regulatory source assumptions and operational-scope gaps to be visible without implying UNECE R152 compliance.
+    source: SRC-UNECE-R152
+    status: draft
+    validation_reference: VAL-AEBS-OP-004
+  - id: N-AEBS-OP-005
+    stakeholder: STK-VERIFICATION-ENGINEER
+    statement: Verification engineers need the operational story to identify later verification targets without pretending that acceptance criteria already exist.
+    source: STORY-AEBS-VEHICLE-TARGET-001
+    status: draft
+    validation_reference: VAL-AEBS-OP-005
+
+validation_scenarios_seed:
+  - id: VAL-AEBS-OP-001
+    validates_need: N-AEBS-OP-001
+    status: planned
+    method: stakeholder scenario review
+    scenario_question: >-
+      Does the vehicle-target operational story represent a meaningful
+      stakeholder-visible collision-risk mitigation situation without exceeding
+      the first-slice scope?
+    evidence_artifact: planned operational-story review record
+  - id: VAL-AEBS-OP-002
+    validates_need: N-AEBS-OP-002
+    status: planned
+    method: inspection
+    scenario_question: Are actors, boundary, assumptions, and out-of-scope cases explicit enough to derive draft requirements next?
+    evidence_artifact: planned operational-context review checklist
+  - id: VAL-AEBS-OP-003
+    validates_need: N-AEBS-OP-003
+    status: planned
+    method: inspection
+    scenario_question: Does the capability statement avoid prematurely classifying AEBS as a feature when it may be common?
+    evidence_artifact: planned feature/common-capability review note
+  - id: VAL-AEBS-OP-004
+    validates_need: N-AEBS-OP-004
+    status: planned
+    method: inspection
+    scenario_question: Are regulatory assumptions visible without compliance wording or copied source text?
+    evidence_artifact: planned source-assumption review note
+  - id: VAL-AEBS-OP-005
+    validates_need: N-AEBS-OP-005
+    status: planned
+    method: inspection
+    scenario_question: Does the operational story identify later verification targets while keeping acceptance criteria as future work?
+    evidence_artifact: planned V&V planning review note
+
+traceability:
+  - from: SRC-UNECE-R152
+    relation: constrains_scope_of
+    to: STORY-AEBS-VEHICLE-TARGET-001
+    status: draft_interpretation
+  - from: INC-AEBS-001
+    relation: frames
+    to: INC-AEBS-002
+    status: accepted_input
+  - from: STORY-AEBS-VEHICLE-TARGET-001
+    relation: seeds
+    to: N-AEBS-OP-001
+    status: draft
+  - from: CAP-AEBS-FCRM
+    relation: contextualized_by
+    to: STORY-AEBS-VEHICLE-TARGET-001
+    status: draft
+  - from: N-AEBS-OP-001
+    relation: validated_by
+    to: VAL-AEBS-OP-001
+    status: planned
+
+assumptions:
+  - id: ASM-AEBS-OP-001
+    statement: The first operational story is limited to a passenger-car vehicle target ahead in the same lane.
+  - id: ASM-AEBS-OP-002
+    statement: Operating-condition parameters are intentionally not quantified in this increment.
+  - id: ASM-AEBS-OP-003
+    statement: Driver override is captured as an operational path, not a detailed control-interface design.
+  - id: ASM-AEBS-OP-004
+    statement: Failure handling is captured as an operational concern, not a complete safety analysis.
+  - id: ASM-AEBS-OP-005
+    statement: VSS candidate signals will be inspected only in the later functional-interface increment.
+
+model_artifacts:
+  - id: MODEL-AEBS-FRAMING-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml
+    status: draft
+    purpose: Initial SysML v2 model slice for INC-AEBS-001 framing concepts.
+  - id: MODEL-AEBS-OPERATIONAL-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml
+    status: draft
+    purpose: Initial SysML v2 model slice for INC-AEBS-002 operational context concepts.
+
+gaps:
+  - id: GAP-AEBS-OP-001
+    statement: Operating speed, distance, road, weather, and target-condition parameters remain undefined.
+  - id: GAP-AEBS-OP-002
+    statement: Activation, warning, braking, override, and non-activation criteria remain undefined.
+  - id: GAP-AEBS-OP-003
+    statement: No design-input requirements are derived in this operational increment.
+  - id: GAP-AEBS-OP-004
+    statement: No VSS signal mappings are selected in this operational increment.
+  - id: GAP-AEBS-OP-005
+    statement: SysML v2 operational package is a draft structural slice; semantic validation and richer relationships remain future work.
+
+acceptance_criteria:
+  - id: AC-AEBS-OP-001
+    statement: The operational boundary identifies actors, in-scope behavior, and out-of-scope behavior.
+  - id: AC-AEBS-OP-002
+    statement: The operational story remains vehicle-target focused and does not include pedestrian or bicycle behavior.
+  - id: AC-AEBS-OP-003
+    statement: Stakeholder needs are kept separate from design-input requirements.
+  - id: AC-AEBS-OP-004
+    statement: Validation scenario seeds are recorded for each stakeholder need.
+  - id: AC-AEBS-OP-005
+    statement: Gaps are explicit and no compliance, certification, or implementation-readiness claim is made.
+
+next_increment:
+  id: INC-AEBS-003
+  name: AEBS needs and draft requirements
+  entry_condition: INC-AEBS-002 operational context is reviewed and accepted as a sufficient basis for draft requirements.
