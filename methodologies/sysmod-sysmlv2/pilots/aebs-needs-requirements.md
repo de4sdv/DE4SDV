@@ -52,9 +52,24 @@ Functional decomposition and VSS signal selection start only in the next increme
 | `N-AEBS-004` | compliance engineer | Compliance engineers need regulatory assumptions, source references, and open interpretation gaps to be visible without implying UNECE R152 compliance or type approval. |
 | `N-AEBS-005` | verification engineer | Verification engineers need each draft AEBS requirement to carry a planned verification method, validation reference, evidence status, and explicit gap when acceptance criteria are not yet quantified. |
 
-## Draft requirements baseline
+## Requirement quality gate
 
-| ID | Type | Draft requirement | Verification | Evidence status |
+The statements below are **requirement candidates**, not accepted design-input requirements.
+
+They preserve the trace chain from the operational story, but several still fail or defer quality checks from the requirements-writing rule set:
+
+- explicit operating conditions are missing;
+- quantitative ranges/thresholds are missing;
+- warning and braking timing are not yet measurable;
+- temporal dependencies are not yet explicit;
+- failure-handling success criteria are not yet defined;
+- verification success criteria are still mostly `TBD`.
+
+Promotion rule: a candidate can become an accepted design-input requirement only after the relevant rule findings are closed or explicitly accepted with rationale.
+
+## Draft requirement candidates baseline
+
+| ID | Type | Candidate requirement | Verification | Evidence status |
 |---|---|---|---|---|
 | `REQ-AEBS-001` | functional | Applicable SDV product-line member products shall realize the common AEBS capability by detecting imminent forward collision risk with a vehicle target under selected operating conditions. | analysis | planned |
 | `REQ-AEBS-002` | functional | Applicable SDV product-line member products shall realize the common AEBS capability by providing a collision warning to the driver when selected warning conditions are met. | demonstration | planned |
@@ -106,6 +121,7 @@ Functional decomposition and VSS signal selection start only in the next increme
 | `QF-AEBS-REQ-002` | controlled scope | Requirements are vehicle-target only; pedestrian and bicycle target requirements must be separate future increments. |
 | `QF-AEBS-REQ-003` | controlled scope | Requirements avoid VSS signal names until functional interfaces are modeled. |
 | `QF-AEBS-REQ-004` | controlled scope | Regulatory alignment is captured as a source constraint, not as compliance evidence. |
+| `QF-AEBS-REQ-005` | correction | SysML v2 model representation must use native requirement definitions/usages rather than modeling requirements only as generic parts. |
 
 ## SysML v2 model artifact
 

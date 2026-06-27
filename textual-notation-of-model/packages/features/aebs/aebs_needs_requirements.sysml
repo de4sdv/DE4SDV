@@ -6,6 +6,11 @@
  * It is a draft needs/requirements and V&V planning slice only: no functional
  * decomposition, VSS signal mapping, logical realization, physical/software
  * realization, or UNECE R152 compliance claim is made here.
+ *
+ * Requirements are represented with native SysML v2 requirement definitions
+ * and usages. The statements remain requirement candidates because several
+ * GtWR-style quality checks still fail until operating conditions, thresholds,
+ * timing, and acceptance criteria are quantified.
  */
 
 package DE4SDV {
@@ -14,27 +19,30 @@ package DE4SDV {
       package NeedsRequirements {
         part def NeedsRequirementsIncrement;
         part def StakeholderNeed;
-        part def DesignInputRequirement;
-        part def FunctionalRequirement :> DesignInputRequirement;
-        part def SafetyConstraintRequirement :> DesignInputRequirement;
-        part def ProductLineConstraintRequirement :> DesignInputRequirement;
-        part def TraceabilityConstraintRequirement :> DesignInputRequirement;
-
+        part def ValidationScenario;
         part def VerificationMethod;
         part def AnalysisMethod :> VerificationMethod;
         part def DemonstrationMethod :> VerificationMethod;
         part def SimulationMethod :> VerificationMethod;
         part def InspectionMethod :> VerificationMethod;
-
-        part def ValidationScenario;
         part def EvidenceStatus;
         part def PlannedEvidence :> EvidenceStatus;
         part def GapEvidence :> EvidenceStatus;
         part def AcceptanceCriterion;
         part def Gap;
         part def RequirementQualityFinding;
+        part def ApplicableMemberProduct;
+        part def AEBSEvidenceBaseline;
+
+        requirement def RequirementCandidate;
+        requirement def FunctionalRequirementCandidate :> RequirementCandidate;
+        requirement def SafetyConstraintRequirementCandidate :> RequirementCandidate;
+        requirement def ProductLineConstraintRequirementCandidate :> RequirementCandidate;
+        requirement def TraceabilityConstraintRequirementCandidate :> RequirementCandidate;
 
         part incAEBS003 : NeedsRequirementsIncrement;
+        part applicableMemberProduct : ApplicableMemberProduct;
+        part aebsEvidenceBaseline : AEBSEvidenceBaseline;
 
         part needCommonAEBSCapability : StakeholderNeed;
         part needExplicitOperationalBoundary : StakeholderNeed;
@@ -42,13 +50,41 @@ package DE4SDV {
         part needVisibleRegulatoryAssumptions : StakeholderNeed;
         part needRequirementVVPlanning : StakeholderNeed;
 
-        part reqDetectForwardCollisionRisk : FunctionalRequirement;
-        part reqProvideCollisionWarning : FunctionalRequirement;
-        part reqCommandEmergencyBraking : FunctionalRequirement;
-        part reqAllowDriverOverride : FunctionalRequirement;
-        part reqSupportFailureIndication : SafetyConstraintRequirement;
-        part reqKeepProductLineClassificationExplicit : ProductLineConstraintRequirement;
-        part reqTraceRequirementVVAndGaps : TraceabilityConstraintRequirement;
+        requirement reqDetectForwardCollisionRisk : FunctionalRequirementCandidate {
+          doc /* REQ-AEBS-001 candidate: Applicable SDV product-line member products shall realize the common AEBS capability by detecting imminent forward collision risk with a vehicle target under selected operating conditions. */
+        }
+
+        requirement reqProvideCollisionWarning : FunctionalRequirementCandidate {
+          doc /* REQ-AEBS-002 candidate: Applicable SDV product-line member products shall realize the common AEBS capability by providing a collision warning to the driver when selected warning conditions are met. */
+        }
+
+        requirement reqCommandEmergencyBraking : FunctionalRequirementCandidate {
+          doc /* REQ-AEBS-003 candidate: Applicable SDV product-line member products shall realize the common AEBS capability by commanding emergency braking when selected activation conditions are met and no overriding condition prevents intervention. */
+        }
+
+        requirement reqAllowDriverOverride : FunctionalRequirementCandidate {
+          doc /* REQ-AEBS-004 candidate: Applicable SDV product-line member products shall allow conscious driver override of AEBS intervention under defined override conditions. */
+        }
+
+        requirement reqSupportFailureIndication : SafetyConstraintRequirementCandidate {
+          doc /* REQ-AEBS-005 candidate: Applicable SDV product-line member products shall support detection or indication of AEBS-related failure conditions without hiding safe-operation concerns. */
+        }
+
+        requirement reqKeepProductLineClassificationExplicit : ProductLineConstraintRequirementCandidate {
+          doc /* REQ-AEBS-006 candidate: The AEBS model baseline shall keep common-capability, feature, and variation-point classifications explicit for each AEBS behavior or scope element. */
+        }
+
+        requirement reqTraceRequirementVVAndGaps : TraceabilityConstraintRequirementCandidate {
+          doc /* REQ-AEBS-007 candidate: The DE4SDV AEBS increment shall trace each draft AEBS requirement to its source assumption, stakeholder need, validation reference, planned verification method, evidence status, and unresolved gap when applicable. */
+        }
+
+        satisfy reqDetectForwardCollisionRisk by applicableMemberProduct;
+        satisfy reqProvideCollisionWarning by applicableMemberProduct;
+        satisfy reqCommandEmergencyBraking by applicableMemberProduct;
+        satisfy reqAllowDriverOverride by applicableMemberProduct;
+        satisfy reqSupportFailureIndication by applicableMemberProduct;
+        satisfy reqKeepProductLineClassificationExplicit by aebsEvidenceBaseline;
+        satisfy reqTraceRequirementVVAndGaps by aebsEvidenceBaseline;
 
         part analysisVerification : AnalysisMethod;
         part demonstrationVerification : DemonstrationMethod;
@@ -86,6 +122,7 @@ package DE4SDV {
         part findingVehicleTargetOnly : RequirementQualityFinding;
         part findingVSSDeferred : RequirementQualityFinding;
         part findingNoComplianceClaim : RequirementQualityFinding;
+        part findingNativeSysMLRequirementNotationRequired : RequirementQualityFinding;
       }
     }
   }

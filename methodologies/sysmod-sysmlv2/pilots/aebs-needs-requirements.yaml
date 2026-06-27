@@ -112,10 +112,34 @@ needs:
     validation_reference: VAL-AEBS-005
     rationale: Prevents weak requirement statements from entering functional modeling without visible V&V debt.
 
+requirement_quality_gate:
+  source: INCOSE GtWR v4 summary-sheet private grounding
+  decision: >-
+    The statements in this increment are requirement candidates, not accepted
+    design-input requirements. They preserve the trace chain but still fail or
+    defer several quality checks until operating conditions, thresholds, timing,
+    and success criteria are defined.
+  enforced_rules:
+    - R1 structured statements
+    - R2 active voice with responsible entity as subject
+    - R4 defined terms
+    - R7 avoid vague terms
+    - R18 single thought
+    - R27 explicit conditions
+    - R33 value ranges where quantities are used
+    - R34 measurable performance targets
+    - R35 explicit temporal dependencies
+    - R36 consistent terms and units
+  promotion_rule: >-
+    A candidate can be promoted to an accepted design-input requirement only
+    after the relevant rule findings are closed or explicitly accepted with
+    rationale.
+
 requirements:
   - id: REQ-AEBS-001
     type: functional
     status: draft
+    maturity: requirement_candidate
     statement: >-
       Applicable SDV product-line member products shall realize the common AEBS
       capability by detecting imminent forward collision risk with a vehicle
@@ -132,6 +156,7 @@ requirements:
   - id: REQ-AEBS-002
     type: functional
     status: draft
+    maturity: requirement_candidate
     statement: >-
       Applicable SDV product-line member products shall realize the common AEBS
       capability by providing a collision warning to the driver when selected
@@ -147,6 +172,7 @@ requirements:
   - id: REQ-AEBS-003
     type: functional
     status: draft
+    maturity: requirement_candidate
     statement: >-
       Applicable SDV product-line member products shall realize the common AEBS
       capability by commanding emergency braking when selected activation
@@ -163,6 +189,7 @@ requirements:
   - id: REQ-AEBS-004
     type: functional
     status: draft
+    maturity: requirement_candidate
     statement: >-
       Applicable SDV product-line member products shall allow conscious driver
       override of AEBS intervention under defined override conditions.
@@ -178,6 +205,7 @@ requirements:
   - id: REQ-AEBS-005
     type: safety_constraint
     status: draft
+    maturity: requirement_candidate
     statement: >-
       Applicable SDV product-line member products shall support detection or
       indication of AEBS-related failure conditions without hiding
@@ -194,6 +222,7 @@ requirements:
   - id: REQ-AEBS-006
     type: product_line_constraint
     status: draft
+    maturity: requirement_candidate
     statement: >-
       The AEBS model baseline shall keep common-capability, feature, and
       variation-point classifications explicit for each AEBS behavior or scope
@@ -209,6 +238,7 @@ requirements:
   - id: REQ-AEBS-007
     type: traceability_constraint
     status: draft
+    maturity: requirement_candidate
     statement: >-
       The DE4SDV AEBS increment shall trace each draft AEBS requirement to its
       source assumption, stakeholder need, validation reference, planned
@@ -323,6 +353,9 @@ quality_findings:
   - id: QF-AEBS-REQ-004
     severity: controlled_scope
     finding: Regulatory alignment is captured as a source constraint, not as compliance evidence.
+  - id: QF-AEBS-REQ-005
+    severity: correction
+    finding: SysML v2 model representation must use native requirement definitions/usages rather than modeling requirements only as generic parts.
 
 model_artifacts:
   - id: MODEL-AEBS-NEEDS-REQ-SYSML
