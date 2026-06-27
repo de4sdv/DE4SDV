@@ -25,7 +25,7 @@ The pilot should be useful even before detailed SysML v2 modeling starts.
 
 ## Candidate external reference
 
-UNECE Regulation No. 152 is a candidate regulatory anchor for AEBS terminology, scenarios, and performance constraints. This charter does not assert compliance with UNECE R152 and does not copy regulatory requirements into the repository. Any future regulatory mapping must cite the exact source, version, and clause-level interpretation.
+UNECE Regulation No. 152 is a candidate regulatory anchor for AEBS terminology, scenarios, and performance constraints. The reviewed revision identifies AEBS for M1/N1 vehicles and includes vehicle, pedestrian, and bicycle target scope. This charter does not assert compliance with UNECE R152 and does not copy regulatory requirements into the repository. Any future regulatory mapping must cite the exact source, version, clause-level interpretation, and evidence status.
 
 ## System framing
 
@@ -48,6 +48,7 @@ Can DE4SDV model an AEBS-oriented product-line increment in a way that preserves
 In scope for the first pilot:
 
 - forward collision risk mitigation / AEBS-oriented behavior as a product-line modeling slice,
+- first scope slice focused on vehicle-target rear-end in-lane collision unless a later increment selects pedestrian or bicycle target scope,
 - stakeholder concerns and needs,
 - feature vs common-capability classification,
 - selected SAF viewpoint set,
@@ -58,7 +59,7 @@ Out of scope for the first pilot:
 
 - claim of UNECE R152 compliance,
 - complete clause-by-clause regulatory interpretation,
-- pedestrian/cyclist/VRU behavior unless explicitly selected later,
+- pedestrian/cyclist/VRU behavior unless explicitly selected later, even though the candidate regulation includes those target classes,
 - complete sensor physics or perception performance modeling,
 - production ECU architecture,
 - complete functional safety case,
@@ -74,7 +75,8 @@ Out of scope for the first pilot:
 | Safety engineer | AEBS hazards, mitigations, and verification evidence must be distinguishable from informal feature descriptions. |
 | Compliance engineer | Regulatory assumptions and evidence gaps must be visible without claiming approval. |
 | Software architect | Functions and logical/software responsibilities must be allocated clearly enough for implementation planning. |
-| Verification engineer | Scenarios, requirements, and evidence artifacts must be linked. |
+| Verification engineer | Verification methods, acceptance criteria, scenarios, and evidence artifacts must be linked. |
+| Validation stakeholder | The pilot must show how stakeholder fitness-for-use would be assessed, not only whether requirements can be checked. |
 | Open-source maintainer | The pilot must remain small enough to review and must not import uncontrolled regulatory text or unvalidated tool outputs. |
 
 ## Selected SAF viewpoints
@@ -110,6 +112,21 @@ The pilot must not assume that "AEBS" is automatically a DE4SDV feature. Classif
 | Sensor package selection | VariationPoint | Camera/radar/fusion differences affect realization and evidence. |
 | Evidence level | VariationPoint | Simulation-only vs HIL vs vehicle-test evidence affects release/certification confidence. |
 
+## Candidate operational story
+
+The first AEBS slice should be expressed as an operational story before detailed requirements:
+
+```text
+A configured SDV variant travels in-lane behind a passenger-car target.
+The relative motion creates a forward collision risk under stated operating conditions.
+The AEBS-related behavior detects the imminent collision risk, warns the driver when required,
+and commands emergency braking if activation conditions are met.
+The driver remains able to override through a conscious action.
+The system records evidence-relevant information for later review.
+```
+
+This story is a modeling seed, not a complete regulatory test procedure.
+
 ## Draft needs
 
 | ID | Need statement | Source/rationale |
@@ -117,8 +134,19 @@ The pilot must not assume that "AEBS" is automatically a DE4SDV feature. Classif
 | N-AEBS-001 | Road users and vehicle occupants need the configured SDV variant to reduce forward collision risk under defined operating conditions. | AEBS pilot intent; regulatory alignment candidate. |
 | N-AEBS-002 | Systems engineers need AEBS behavior and boundaries to be described in reviewable model artifacts. | DE4SDV modeling workflow. |
 | N-AEBS-003 | Product-line engineers need AEBS applicability and variation choices to be explicit across member products. | Product-line governance. |
-| N-AEBS-004 | Verification engineers need AEBS requirements to trace to scenarios and evidence artifacts. | Continuous evidence baseline. |
+| N-AEBS-004 | Verification engineers need AEBS requirements to trace to verification methods, acceptance criteria, scenarios, and evidence artifacts. | Continuous evidence baseline. |
 | N-AEBS-005 | Compliance engineers need regulatory assumptions and gaps to be visible without implying certification. | Compliance guardrail. |
+
+## Need validation and requirement verification split
+
+The pilot should keep two checks separate:
+
+| Check | Purpose | AEBS pilot example |
+|---|---|---|
+| Need validation | assess whether the modeled capability addresses stakeholder fitness-for-use in context | scenario review with road-user, safety, compliance, and product-line concerns |
+| Requirement verification | check whether each design-input requirement is satisfied under stated conditions | inspection, analysis, simulation, demonstration, or test with acceptance criteria |
+
+A requirement can be verified and still fail validation if it does not address the stakeholder need in the intended context. A need can be valid while its derived requirements are still incomplete.
 
 ## Candidate requirements direction
 
@@ -129,7 +157,7 @@ These are direction-setting placeholders, not final requirements:
 | REQ-AEBS-001 | The configured SDV variant shall identify forward collision risk under selected AEBS operational design conditions. | Needs regulation/source refinement before thresholds. |
 | REQ-AEBS-002 | The configured SDV variant shall command an emergency braking intervention when selected activation conditions are met. | Must be tied to scenario and interface assumptions. |
 | REQ-AEBS-003 | The configured SDV variant shall provide driver warning behavior when required by the selected AEBS behavior profile. | Warning modality is a variation point candidate. |
-| REQ-AEBS-004 | The AEBS feature increment shall link each requirement to at least one verification case or open evidence gap. | System 2 requirement for DE4SDV evidence discipline. |
+| REQ-AEBS-004 | The AEBS feature increment shall link each requirement to at least one verification method, acceptance criterion, evidence artifact, or open evidence gap. | System 2 requirement for DE4SDV evidence discipline. |
 | REQ-AEBS-005 | The AEBS feature increment shall record regulatory source assumptions and status for each regulatory constraint used. | Prevents hidden compliance claims. |
 
 ## Candidate architecture elements
@@ -156,18 +184,28 @@ Logical candidates:
 
 Physical/software candidates are deferred until a later increment.
 
-## Candidate verification and evidence
+## Candidate verification, validation, and evidence
 
-| Evidence area | Candidate artifact |
-|---|---|
-| Requirements quality | requirements review checklist |
-| Scenario coverage | AEBS scenario catalog stub |
-| Model traceability | traceability YAML/table |
-| Functional behavior | simulation or test-case placeholder |
-| Interface behavior | brake-command and warning-interface test placeholder |
-| Regulatory alignment | clause/source mapping with status field |
+| Evidence area | Candidate artifact | Candidate status |
+|---|---|---|
+| Needs validation | stakeholder/scenario review record | `planned` |
+| Requirements quality | requirements review checklist | `planned` |
+| Scenario coverage | AEBS scenario catalog stub | `draft` |
+| Model traceability | traceability YAML/table | `draft` |
+| Functional behavior | simulation or test-case placeholder | `gap` until executable scenario exists |
+| Interface behavior | brake-command and warning-interface test placeholder | `gap` until interface assumptions exist |
+| Regulatory alignment | clause/source mapping with interpretation and status field | `draft` |
 
-Evidence statuses should use explicit labels such as `draft`, `planned`, `simulated`, `tested`, `reviewed`, or `accepted`. Do not use `certified` or `compliant` without formal basis.
+Evidence statuses should use explicit labels such as `draft`, `planned`, `simulated`, `tested`, `inspected`, `analyzed`, `accepted`, `rejected`, or `gap`. Do not use `certified` or `compliant` without formal basis.
+
+Candidate verification methods for later requirements:
+
+- inspection for traceability, source registration, and model-quality rules,
+- analysis for timing, threshold, or coverage arguments where executable tests do not yet exist,
+- simulation for scenario behavior under declared assumptions,
+- demonstration/test only when a concrete implementation or executable model exists.
+
+Candidate validation scenarios should focus on fitness-for-use: whether the modeled AEBS behavior, assumptions, and evidence structure actually answer road-user, safety, compliance, and product-line stakeholder concerns.
 
 ## First deliverables after this charter
 
@@ -176,7 +214,8 @@ Recommended next increment:
 1. create AEBS traceability YAML using the basic ontology terms,
 2. register candidate AEBS terms and source references,
 3. draft the first operational context and scenario view,
-4. only then add SysML v2 context/requirements artifacts with validation evidence.
+4. add requirement-quality and V&V planning attributes,
+5. only then add SysML v2 context/requirements artifacts with validation evidence.
 
 ## Exit criteria for the pilot
 
@@ -185,5 +224,5 @@ The pilot is useful if it proves:
 - the generic increment workflow works for a real SDV feature slice,
 - SAF viewpoint selection is lightweight and reviewable,
 - feature/common-capability classification prevents terminology drift,
-- requirements and evidence links can be represented before detailed architecture,
+- needs, requirements, verification, validation, acceptance criteria, and evidence status can be represented before detailed architecture,
 - open compliance gaps are visible rather than hidden.

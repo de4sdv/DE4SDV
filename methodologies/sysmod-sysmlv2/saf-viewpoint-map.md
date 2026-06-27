@@ -12,7 +12,7 @@ For each increment:
 2. select the smallest useful set of viewpoints,
 3. produce the matching DE4SDV artifacts,
 4. record omitted viewpoints as out of scope,
-5. add trace links to needs, requirements, architecture, evidence, and baselines where relevant.
+5. add trace links to needs, requirements, verification cases, validation scenarios, architecture, evidence, and baselines where relevant.
 
 Do not require all viewpoints for every increment.
 
@@ -36,7 +36,7 @@ Use for every increment.
 |---|---|---|
 | Common Terms Definition Viewpoint | define terms introduced by the increment | glossary additions or terminology section |
 | Common Standards Definition Viewpoint | register standards/regulations used as constraints or references | standards/source notes |
-| EA Traceability Viewpoint | show how increment artifacts link together | traceability table or YAML |
+| EA Traceability Viewpoint | show how increment artifacts link together | traceability table or YAML with gaps/status |
 | Stakeholder Identification Viewpoint | identify roles affected by the increment | stakeholder/concern list |
 
 ### 2. Operational feature subset
@@ -49,7 +49,7 @@ Use when the increment changes an SDV product-line capability or feature.
 | Operational Story Viewpoint | tell the scenario in stakeholder language | scenario narrative |
 | Operational Capability Definition Viewpoint | describe operational capability expected from the product line | capability description |
 | Operational Process Viewpoint | describe operational flow or lifecycle process | process/behavior sketch |
-| Stakeholder Requirement Definition Viewpoint | capture stakeholder-level requirements/needs | needs and stakeholder requirements |
+| Stakeholder Requirement Definition Viewpoint | capture stakeholder-level needs and validation intent | needs, validation scenarios, stakeholder requirements where appropriate |
 
 ### 3. Functional system subset
 
@@ -63,8 +63,8 @@ Use when deriving system behavior, requirements, or interfaces.
 | System Functional Breakdown Structure Viewpoint | decompose functions | functional breakdown |
 | System Process Viewpoint | describe behavior/process sequencing | process/state model |
 | System Interface Definition Viewpoint | define interfaces and exchanged items | interface model |
-| System Requirement Definition Viewpoint | define design input requirements | requirements model/table |
-| System Requirement Traceability Viewpoint | trace requirements to needs, model, evidence | traceability report |
+| System Requirement Definition Viewpoint | define design input requirements and verification intent | requirements model/table with methods and acceptance criteria |
+| System Requirement Traceability Viewpoint | trace requirements to needs, model, V&V, evidence, and gaps | traceability report |
 
 ### 4. Safety/security subset
 
@@ -76,9 +76,9 @@ Use when the increment affects safety, cybersecurity, or assurance claims.
 | Security Context Viewpoint | identify security boundary and context | security context notes/model |
 | Security Risk Analysis Viewpoint | capture threat/risk analysis | risk table / threat model draft |
 | Threat Szenario Viewpoint | describe threat scenarios | threat scenario narratives |
-| Argumentation Assurance Viewpoint | link claims, arguments, and evidence | assurance argument/evidence stub |
+| Argumentation Assurance Viewpoint | link claims, arguments, evidence, and gaps | assurance argument/evidence stub |
 
-Safety analysis should distinguish hazard analysis, risk assessment, safety requirements, and evidence. Security analysis should distinguish threat modeling, vulnerability management, mitigation, and evidence.
+Safety analysis should distinguish hazard analysis, risk assessment, safety requirements, verification evidence, and validation evidence. Security analysis should distinguish threat modeling, vulnerability management, mitigation, and evidence.
 
 ### 5. Logical realization subset
 
@@ -130,3 +130,4 @@ Out of scope for the first AEBS pilot:
 - Viewpoints should be chosen because they answer stakeholder concerns, not because they are available.
 - A missing viewpoint is acceptable when explicitly out of scope.
 - Compliance-oriented viewpoints may register constraints and evidence gaps, but must not imply regulatory approval.
+- Verification viewpoints check requirement satisfaction; validation viewpoints check stakeholder fitness-for-use in context. Keep both visible.

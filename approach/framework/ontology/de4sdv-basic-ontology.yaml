@@ -62,6 +62,18 @@ classes:
     definition: A scenario used to assess stakeholder fitness for intended use.
   EvidenceArtifact:
     definition: A reviewable artifact that supports a verification, validation, assurance, or release decision.
+  VerificationMethod:
+    definition: A method used to check requirement satisfaction, such as inspection, analysis, demonstration, simulation, or test.
+  AcceptanceCriterion:
+    definition: A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.
+  EvidenceStatus:
+    definition: A lifecycle status for evidence, such as draft, planned, simulated, tested, inspected, analyzed, accepted, rejected, or gap.
+  Assumption:
+    definition: A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.
+  Gap:
+    definition: A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden.
+  AssuranceClaim:
+    definition: A claim about safety, security, compliance alignment, release readiness, or fitness-for-use that requires argument and evidence before acceptance.
   Viewpoint:
     definition: A specification of stakeholder concerns, conventions, and expected view content.
   View:
@@ -111,11 +123,32 @@ relationships:
   verifiedBy:
     domain: Requirement
     range: VerificationCase
+  usesVerificationMethod:
+    domain: VerificationCase
+    range: VerificationMethod
+  hasAcceptanceCriterion:
+    domain: VerificationCase
+    range: AcceptanceCriterion
   validatedBy:
     domain: Need
     range: ValidationScenario
+  validatesFitnessForUse:
+    domain: ValidationScenario
+    range: Need
   hasEvidence:
     domain: VerificationCase
+    range: EvidenceArtifact
+  hasEvidenceStatus:
+    domain: EvidenceArtifact
+    range: EvidenceStatus
+  recordsAssumption:
+    domain: EngineeringIncrement
+    range: Assumption
+  recordsGap:
+    domain: EngineeringIncrement
+    range: Gap
+  supportedByEvidence:
+    domain: AssuranceClaim
     range: EvidenceArtifact
   appliesToMemberProduct:
     domain: FeatureConfiguration
@@ -149,10 +182,24 @@ validation_rules:
   - id: DE4SDV-ONT-R005
     statement: Common capabilities shall not be modeled as Features unless they distinguish member products.
     candidate_check: review plus feature configuration query.
+  - id: DE4SDV-ONT-R006
+    statement: Every VerificationCase shall identify a verification method and at least one acceptance criterion or open gap.
+    candidate_check: traceability table or YAML validation.
+  - id: DE4SDV-ONT-R007
+    statement: Every ValidationScenario shall identify the Need or stakeholder concern whose fitness-for-use it evaluates.
+    candidate_check: traceability table or YAML validation.
+  - id: DE4SDV-ONT-R008
+    statement: Every EvidenceArtifact shall carry an explicit status value.
+    candidate_check: evidence register status field.
+  - id: DE4SDV-ONT-R009
+    statement: Every AssuranceClaim shall be supported by evidence or recorded as an open gap.
+    candidate_check: assurance/traceability review.
 
 pilot_queries:
   - Which selected features lack requirements?
-  - Which selected features lack verification cases or evidence artifacts?
+  - Which selected features lack verification cases, validation scenarios, acceptance criteria, or evidence artifacts?
   - Which requirements are constrained by a regulation or standard source?
   - Which member products are affected when a variation point changes?
   - Which views were produced for each selected SAF viewpoint?
+  - Which evidence artifacts are still draft, planned, or gaps?
+  - Which assurance claims are unsupported by accepted evidence?
