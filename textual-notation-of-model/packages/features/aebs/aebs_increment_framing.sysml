@@ -7,8 +7,8 @@
  * UNECE R152 compliance claim.
  *
  * Semantic repair: feature-specific stakeholder concerns are framed by reusable
- * SAF-aligned viewpoint definitions. Concrete AEBS view usages select those
- * viewpoints for this increment; the viewpoints themselves are not AEBS-specific.
+ * DE4SDV method viewpoint definitions imported from DE4SDV_MethodViewpoints.
+ * Concrete AEBS view usages select those viewpoints for this increment.
  */
 
 package DE4SDV {
@@ -16,6 +16,7 @@ package DE4SDV {
     package AEBS {
       package IncrementFraming {
         private import Views::*;
+        private import DE4SDV_MethodViewpoints::*;
 
         part def EngineeringIncrement;
         part def FeatureIncrement :> EngineeringIncrement;
@@ -51,7 +52,7 @@ package DE4SDV {
         part def Gap;
         part def AcceptanceCriterion;
 
-        concern productLineCapabilityClassificationConcern {
+        concern productLineCapabilityClassificationConcern : ProductLineCapabilityClassificationConcern {
           doc /*
            * Reviewers need AEBS scope elements to distinguish common product-line
            * capabilities from features and later variation points.
@@ -62,7 +63,7 @@ package DE4SDV {
           stakeholder reviewer : OpenSourceReviewer;
         }
 
-        concern regulatoryScopeWithoutComplianceClaimConcern {
+        concern regulatoryScopeWithoutComplianceClaimConcern : RegulatoryScopeWithoutComplianceClaimConcern {
           doc /*
            * Reviewers need the UNECE R152 regulatory anchor and open compliance
            * assumptions to be visible without treating this increment as evidence
@@ -74,7 +75,7 @@ package DE4SDV {
           stakeholder reviewer : OpenSourceReviewer;
         }
 
-        concern incrementBoundaryConcern {
+        concern incrementBoundaryConcern : IncrementBoundaryConcern {
           doc /*
            * Reviewers need a small increment boundary that separates framing,
            * operational context, functional modeling, logical realization,
@@ -86,7 +87,7 @@ package DE4SDV {
           stakeholder reviewer : OpenSourceReviewer;
         }
 
-        concern methodStackConcern {
+        concern methodStackConcern : MethodStackConcern {
           doc /*
            * Reviewers need to see how SAF viewpoint selection, SYSMOD method flow,
            * DE4SDV ontology terms, SysML v2 model expression, and VSS signal
@@ -95,61 +96,6 @@ package DE4SDV {
           subject;
           stakeholder systemsEngineer : SystemsEngineer;
           stakeholder reviewer : OpenSourceReviewer;
-        }
-
-        viewpoint safIncrementFramingViewpoint {
-          frame productLineCapabilityClassificationConcern;
-          frame regulatoryScopeWithoutComplianceClaimConcern;
-          frame incrementBoundaryConcern;
-          frame methodStackConcern;
-
-          require constraint {
-            doc /*
-             * An AEBS increment framing view shall show the selected concerns,
-             * system layers, method-stack elements, feature/common-capability
-             * classification hypotheses, scope boundary, deferred scope, and no
-             * compliance-claim guardrails for the current increment.
-             */
-          }
-        }
-
-        viewpoint safProductLineClassificationViewpoint {
-          frame productLineCapabilityClassificationConcern;
-
-          require constraint {
-            doc /*
-             * A product-line classification view shall separate common
-             * capabilities from candidate features and variation points for the
-             * AEBS pilot before downstream functional/VSS modeling starts.
-             */
-          }
-        }
-
-        viewpoint safRegulatoryScopeViewpoint {
-          frame regulatoryScopeWithoutComplianceClaimConcern;
-
-          require constraint {
-            doc /*
-             * A regulatory-scope view shall identify regulatory anchors and
-             * assumptions while explicitly avoiding compliance or type-approval
-             * claims.
-             */
-          }
-        }
-
-        view def IncrementFramingView {
-          satisfy safIncrementFramingViewpoint;
-          render asTreeDiagram;
-        }
-
-        view def ProductLineClassificationView {
-          satisfy safProductLineClassificationViewpoint;
-          render asTreeDiagram;
-        }
-
-        view def RegulatoryScopeView {
-          satisfy safRegulatoryScopeViewpoint;
-          render asTreeDiagram;
         }
 
         part incAEBS001 : FeatureIncrement;
@@ -183,14 +129,32 @@ package DE4SDV {
         part vssAsSignalCatalogOnlyCriterion : AcceptanceCriterion;
         part featureClassificationExplicitCriterion : AcceptanceCriterion;
 
-        view aebsIncrementFramingView : IncrementFramingView {
+        view aebsIncrementFramingView {
+          viewpoint selectedIncrementFramingViewpoint : IncrementFramingViewpoint {
+            frame productLineCapabilityClassificationConcern;
+            frame regulatoryScopeWithoutComplianceClaimConcern;
+            frame incrementBoundaryConcern;
+            frame methodStackConcern;
+          }
+
           expose IncrementFraming::*;
+          render asTreeDiagram;
         }
-        view aebsProductLineClassificationView : ProductLineClassificationView {
+        view aebsProductLineClassificationView {
+          viewpoint selectedProductLineClassificationViewpoint : ProductLineClassificationViewpoint {
+            frame productLineCapabilityClassificationConcern;
+          }
+
           expose IncrementFraming::*;
+          render asTreeDiagram;
         }
-        view aebsRegulatoryScopeView : RegulatoryScopeView {
+        view aebsRegulatoryScopeView {
+          viewpoint selectedRegulatoryScopeViewpoint : RegulatoryScopeViewpoint {
+            frame regulatoryScopeWithoutComplianceClaimConcern;
+          }
+
           expose IncrementFraming::*;
+          render asTreeDiagram;
         }
       }
     }
