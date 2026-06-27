@@ -30,7 +30,7 @@ This document uses regulatory source knowledge only as private grounding. It doe
 
 | Layer | Meaning in this story |
 |---|---|
-| System 1 | configured SDV variant with AEBS-related vehicle-target behavior |
+| System 1 | SDV product line with applicable member products realizing AEBS-related vehicle-target behavior |
 | System 2 | DE4SDV engineering/evidence workflow that captures the story, assumptions, gaps, and later V&V links |
 | System 3 | DE4SDV open-source review ecosystem that accepts or rejects the modeling increment |
 
@@ -62,7 +62,7 @@ This document uses regulatory source knowledge only as private grounding. It doe
 
 | ID | Actor/system | Role |
 |---|---|---|
-| `ACT-SUBJECT-VEHICLE` | Subject vehicle | configured SDV variant under consideration |
+| `ACT-SUBJECT-VEHICLE` | Subject vehicle | applicable SDV product-line member product under consideration |
 | `ACT-DRIVER` | Driver | receives warning and may consciously override intervention |
 | `ACT-VEHICLE-TARGET` | Vehicle target | passenger-car target ahead in same lane |
 | `ACT-ROAD-ENVIRONMENT` | Road environment | operational context; detailed conditions deferred |
@@ -73,7 +73,7 @@ This document uses regulatory source knowledge only as private grounding. It doe
 
 `CAP-AEBS-FCRM` — **Forward collision risk mitigation**
 
-A configured SDV variant should reduce the risk or severity of a forward rear-end in-lane collision with a vehicle target under selected operating conditions by detecting imminent collision risk, warning the driver when required, and commanding emergency braking when activation conditions are met.
+The SDV product line should provide a common AEBS capability that reduces the risk or severity of a forward rear-end in-lane collision with a vehicle target across applicable member products under selected operating conditions by detecting imminent collision risk, warning the driver when required, and commanding emergency braking when activation conditions are met.
 
 This is an operational capability statement, not a final requirement.
 
@@ -83,7 +83,7 @@ Whether this is a common product-line capability or a feature depends on member-
 
 `STORY-AEBS-VEHICLE-TARGET-001`
 
-A configured SDV variant travels in-lane behind a passenger-car target. The relative motion creates an imminent forward collision risk under stated operating conditions. The AEBS-related behavior detects the risk, provides an appropriate driver warning when required, and commands emergency braking if activation conditions are met. The driver can consciously override the intervention. The DE4SDV System 2 baseline records assumptions, gaps, and evidence-relevant event expectations for later review.
+An applicable SDV product-line member product travels in-lane behind a passenger-car target while realizing the product-line AEBS common capability. The relative motion creates an imminent forward collision risk under stated operating conditions. The AEBS-related behavior detects the risk, provides an appropriate driver warning when required, and commands emergency braking if activation conditions are met. The driver can consciously override the intervention. The DE4SDV System 2 baseline records assumptions, gaps, and evidence-relevant event expectations for later review.
 
 ## Preconditions
 
@@ -119,7 +119,7 @@ Imminent forward collision risk emerges between the subject vehicle and the vehi
 
 | ID | Stakeholder | Need |
 |---|---|---|
-| `N-AEBS-OP-001` | Validation stakeholder | Road users and vehicle occupants need the configured SDV variant to reduce forward rear-end in-lane collision risk with a vehicle target under defined operating conditions. |
+| `N-AEBS-OP-001` | Validation stakeholder | Road users and vehicle occupants need the SDV product line to provide a common AEBS capability that reduces forward rear-end in-lane collision risk with a vehicle target across applicable member products under defined operating conditions. |
 | `N-AEBS-OP-002` | Systems engineer | Systems engineers need the AEBS operational boundary, actors, assumptions, and out-of-scope cases to be explicit before requirements are derived. |
 | `N-AEBS-OP-003` | Product-line engineer | Product-line engineers need the AEBS operational capability to stay separate from feature/common-capability classification until member-product applicability is known. |
 | `N-AEBS-OP-004` | Compliance engineer | Compliance engineers need regulatory source assumptions and operational-scope gaps to be visible without implying UNECE R152 compliance. |

@@ -123,10 +123,11 @@ operational_capability:
   label: Forward collision risk mitigation
   classification_hypothesis: candidate_common_capability
   statement: >-
-    A configured SDV variant should reduce the risk or severity of a forward
-    rear-end in-lane collision with a vehicle target under selected operating
-    conditions by detecting imminent collision risk, warning the driver when
-    required, and commanding emergency braking when activation conditions are met.
+    The SDV product line should provide a common AEBS capability that reduces
+    the risk or severity of a forward rear-end in-lane collision with a vehicle
+    target across applicable member products under selected operating conditions
+    by detecting imminent collision risk, warning the driver when required, and
+    commanding emergency braking when activation conditions are met.
   notes:
     - This is an operational capability statement, not a final requirement.
     - Whether the capability is common or variable depends on member-product applicability.
@@ -136,13 +137,14 @@ operational_story:
   title: Vehicle-target forward collision risk mitigation
   status: draft
   narrative: >-
-    A configured SDV variant travels in-lane behind a passenger-car target. The
-    relative motion creates an imminent forward collision risk under stated
-    operating conditions. The AEBS-related behavior detects the risk, provides
-    an appropriate driver warning when required, and commands emergency braking
-    if activation conditions are met. The driver can consciously override the
-    intervention. The DE4SDV System 2 baseline records assumptions, gaps, and
-    evidence-relevant event expectations for later review.
+    An applicable SDV product-line member product travels in-lane behind a
+    passenger-car target while realizing the product-line AEBS common
+    capability. The relative motion creates an imminent forward collision risk
+    under stated operating conditions. The AEBS-related behavior detects the
+    risk, provides an appropriate driver warning when required, and commands
+    emergency braking if activation conditions are met. The driver can
+    consciously override the intervention. The DE4SDV System 2 baseline records
+    assumptions, gaps, and evidence-relevant event expectations for later review.
   preconditions:
     - subject vehicle is active and traveling in-lane
     - vehicle target is ahead in the same lane
@@ -183,7 +185,7 @@ operational_story:
 stakeholder_needs_seed:
   - id: N-AEBS-OP-001
     stakeholder: STK-VALIDATION-STAKEHOLDER
-    statement: Road users and vehicle occupants need the configured SDV variant to reduce forward rear-end in-lane collision risk with a vehicle target under defined operating conditions.
+    statement: Road users and vehicle occupants need the SDV product line to provide a common AEBS capability that reduces forward rear-end in-lane collision risk with a vehicle target across applicable member products under defined operating conditions.
     source: STORY-AEBS-VEHICLE-TARGET-001
     status: draft
     validation_reference: VAL-AEBS-OP-001

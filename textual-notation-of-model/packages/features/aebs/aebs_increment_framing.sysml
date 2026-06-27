@@ -15,7 +15,7 @@ package DE4SDV {
         part def FeatureIncrement :> EngineeringIncrement;
 
         part def SystemLayer;
-        part def System1ConfiguredSDVVariant :> SystemLayer;
+        part def System1SDVProductLine :> SystemLayer;
         part def System2EngineeringAndAssuranceSystem :> SystemLayer;
         part def System3OpenSourceGovernanceEcosystem :> SystemLayer;
 
@@ -52,7 +52,7 @@ package DE4SDV {
 
         part incAEBS001 : FeatureIncrement;
 
-        part system1ConfiguredSDVVariant : System1ConfiguredSDVVariant;
+        part system1SDVProductLine : System1SDVProductLine;
         part system2EngineeringAndAssuranceSystem : System2EngineeringAndAssuranceSystem;
         part system3OpenSourceGovernanceEcosystem : System3OpenSourceGovernanceEcosystem;
 

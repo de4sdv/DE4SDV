@@ -117,7 +117,7 @@ The pilot must not assume that "AEBS" is automatically a DE4SDV feature. Classif
 The first AEBS slice should be expressed as an operational story before detailed requirements:
 
 ```text
-A configured SDV variant travels in-lane behind a passenger-car target.
+An SDV product-line member product travels in-lane behind a passenger-car target while realizing the product-line AEBS common capability.
 The relative motion creates a forward collision risk under stated operating conditions.
 The AEBS-related behavior detects the imminent collision risk, warns the driver when required,
 and commands emergency braking if activation conditions are met.
@@ -131,7 +131,7 @@ This story is a modeling seed, not a complete regulatory test procedure.
 
 | ID | Need statement | Source/rationale |
 |---|---|---|
-| N-AEBS-001 | Road users and vehicle occupants need the configured SDV variant to reduce forward collision risk under defined operating conditions. | AEBS pilot intent; regulatory alignment candidate. |
+| N-AEBS-001 | Road users and vehicle occupants need the SDV product line to provide a common AEBS capability that reduces forward collision risk under defined operating conditions across applicable member products. | AEBS pilot intent; regulatory alignment candidate. |
 | N-AEBS-002 | Systems engineers need AEBS behavior and boundaries to be described in reviewable model artifacts. | DE4SDV modeling workflow. |
 | N-AEBS-003 | Product-line engineers need AEBS applicability and variation choices to be explicit across member products. | Product-line governance. |
 | N-AEBS-004 | Verification engineers need AEBS requirements to trace to verification methods, acceptance criteria, scenarios, and evidence artifacts. | Continuous evidence baseline. |
@@ -154,9 +154,9 @@ These are direction-setting placeholders, not final requirements:
 
 | ID | Draft direction | Notes |
 |---|---|---|
-| REQ-AEBS-001 | The configured SDV variant shall identify forward collision risk under selected AEBS operational design conditions. | Needs regulation/source refinement before thresholds. |
-| REQ-AEBS-002 | The configured SDV variant shall command an emergency braking intervention when selected activation conditions are met. | Must be tied to scenario and interface assumptions. |
-| REQ-AEBS-003 | The configured SDV variant shall provide driver warning behavior when required by the selected AEBS behavior profile. | Warning modality is a variation point candidate. |
+| REQ-AEBS-001 | Applicable SDV product-line member products shall realize the common AEBS capability by identifying forward collision risk under selected AEBS operational design conditions. | Needs regulation/source refinement before thresholds. |
+| REQ-AEBS-002 | Applicable SDV product-line member products shall realize the common AEBS capability by commanding an emergency braking intervention when selected activation conditions are met. | Must be tied to scenario and interface assumptions. |
+| REQ-AEBS-003 | Applicable SDV product-line member products shall realize the common AEBS capability by providing driver warning behavior when required by the selected AEBS behavior profile. | Warning modality is a variation point candidate. |
 | REQ-AEBS-004 | The AEBS feature increment shall link each requirement to at least one verification method, acceptance criterion, evidence artifact, or open evidence gap. | System 2 requirement for DE4SDV evidence discipline. |
 | REQ-AEBS-005 | The AEBS feature increment shall record regulatory source assumptions and status for each regulatory constraint used. | Prevents hidden compliance claims. |
 
