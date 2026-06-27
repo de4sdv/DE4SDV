@@ -34,5 +34,8 @@ This repository is in a foundation phase. The first adoption step is documentati
 
 - [`upstream.md`](upstream.md) records the upstream repository, inspected commit, license, and adoption caveats.
 - [`de4sdv-tailoring.md`](de4sdv-tailoring.md) explains how DE4SDV specializes the upstream library concepts.
+- [`increment-workflow.md`](increment-workflow.md) defines the generic repeatable increment workflow for features, architecture, toolchain, and evidence work.
+- [`saf-viewpoint-map.md`](saf-viewpoint-map.md) maps GfSE SAF viewpoint families to DE4SDV increment outputs.
 - [`artifact-map.md`](artifact-map.md) maps method concepts to DE4SDV repository artifacts.
 - [`review-checklist.md`](review-checklist.md) provides a checklist for future method/model contributions.
+- [`pilots/aebs-pilot-charter.md`](pilots/aebs-pilot-charter.md) applies the method to an AEBS regulatory-aligned feature pilot without claiming compliance.
