@@ -57,3 +57,15 @@ Future SysML v2 or structured ontology artifacts may introduce elements such as:
 - `ArchitectureDecisionRecord`
 
 These names are draft conceptual terms, not yet a normative model vocabulary.
+
+## Minimal increment ontology kernel
+
+[`de4sdv-basic-ontology.yaml`](de4sdv-basic-ontology.yaml) defines the current
+minimal vocabulary for SYSMOD/SysML v2 increments. It is intentionally lightweight:
+
+- no OWL/OML/openCAESAR toolchain is adopted by this file,
+- no formal reasoning or SHACL validation is enabled yet,
+- terms exist to keep feature increments, SAF viewpoints, requirements,
+  architecture elements, evidence, and baselines semantically consistent.
+
+Use it as a reviewable semantic kernel before creating richer ontology tooling.

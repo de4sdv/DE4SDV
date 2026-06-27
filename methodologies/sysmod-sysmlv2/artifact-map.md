@@ -58,8 +58,11 @@ Relevant existing artifacts:
 ## Suggested contribution sequence
 
 1. Adopt upstream reference and tailoring policy.
-2. Add a small DE4SDV tailoring package.
-3. Add a System of Interest context model.
-4. Add stakeholder and requirement slices.
-5. Add product-line variability and configured-product slices.
-6. Add verification/evidence traceability slices.
+2. Define the generic increment workflow and SAF viewpoint selection map.
+3. Maintain a minimal ontology kernel for increment traceability and product-line semantics.
+4. Use a small pilot, such as AEBS, to test the workflow before expanding model scope.
+5. Add a small DE4SDV tailoring package after dependency/tooling policy is agreed.
+6. Add a System of Interest context model.
+7. Add stakeholder and requirement slices.
+8. Add product-line variability and configured-product slices.
+9. Add verification/evidence traceability slices.

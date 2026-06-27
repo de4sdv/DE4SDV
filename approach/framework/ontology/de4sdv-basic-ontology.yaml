@@ -1,0 +1,205 @@
+schema: de4sdv.basic-ontology.v0
+status: draft
+purpose: >-
+  Minimal semantic kernel for DE4SDV increment planning. This is not a formal
+  OWL/OML ontology and does not introduce an ontology toolchain. It defines the
+  initial vocabulary and trace relationships used by SYSMOD/SysML v2 increments.
+source_notes:
+  - DE4SDV uses ISO/IEC 26580-aligned feature terminology: a feature distinguishes member products in a product line.
+  - SAF provides viewpoint selection for stakeholder concerns and views.
+  - SYSMOD provides the method flow from context and needs toward requirements and architecture.
+
+classes:
+  EngineeringIncrement:
+    definition: A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge.
+    examples: [AEBSFeatureIncrement, SysONViewPublicationIncrement]
+  FeatureIncrement:
+    definition: An engineering increment focused on a product-line feature, common capability, or variation point.
+    subClassOf: EngineeringIncrement
+  ProductLine:
+    definition: A family of related member products managed through shared assets and variability.
+  MemberProduct:
+    definition: A configured product or product variant that belongs to a product line.
+  Feature:
+    definition: A distinguishing characteristic expressing variability among member products in the product line.
+    disjointWith: [CommonCapability]
+  CommonCapability:
+    definition: A capability or characteristic present in all relevant member products; not a feature unless it distinguishes variants.
+    disjointWith: [Feature]
+  VariationPoint:
+    definition: A point where a product-line model permits controlled variation among member products or configurations.
+  FeatureConfiguration:
+    definition: A selection of features, common capabilities, and variation choices for a member product or scenario.
+  Stakeholder:
+    definition: A role, person, organization, or community with concerns about the system or increment.
+  Concern:
+    definition: An interest or issue that matters to a stakeholder and motivates views, needs, requirements, or evidence.
+  Need:
+    definition: Stakeholder-expressed problem-space intent, before conversion into design input requirements.
+  Requirement:
+    definition: A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions.
+  RegulatoryConstraint:
+    definition: A constraint or reference derived from a standard, regulation, or homologation-relevant source.
+  ArchitectureElement:
+    definition: Any model element used to describe system context, function, logical realization, physical/software realization, interface, or behavior.
+  Function:
+    definition: A behavior or transformation expected from the system or product-line architecture.
+    subClassOf: ArchitectureElement
+  LogicalElement:
+    definition: A logical service, component, or responsibility grouping that realizes functions.
+    subClassOf: ArchitectureElement
+  PhysicalElement:
+    definition: A physical, software, hardware, deployment, or platform element that realizes logical elements or functions.
+    subClassOf: ArchitectureElement
+  Interface:
+    definition: A boundary or interaction point through which items, signals, services, or information are exchanged.
+    subClassOf: ArchitectureElement
+  Scenario:
+    definition: A bounded operational, validation, test, or threat situation used to reason about behavior and evidence.
+  VerificationCase:
+    definition: A planned or executed check that evaluates whether a requirement or model claim is satisfied.
+  ValidationScenario:
+    definition: A scenario used to assess stakeholder fitness for intended use.
+  EvidenceArtifact:
+    definition: A reviewable artifact that supports a verification, validation, assurance, or release decision.
+  VerificationMethod:
+    definition: A method used to check requirement satisfaction, such as inspection, analysis, demonstration, simulation, or test.
+  AcceptanceCriterion:
+    definition: A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.
+  EvidenceStatus:
+    definition: A lifecycle status for evidence, such as draft, planned, simulated, tested, inspected, analyzed, accepted, rejected, or gap.
+  Assumption:
+    definition: A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.
+  Gap:
+    definition: A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden.
+  AssuranceClaim:
+    definition: A claim about safety, security, compliance alignment, release readiness, or fitness-for-use that requires argument and evidence before acceptance.
+  Viewpoint:
+    definition: A specification of stakeholder concerns, conventions, and expected view content.
+  View:
+    definition: A representation produced according to a viewpoint for stakeholder review.
+  TraceLink:
+    definition: A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.
+  Baseline:
+    definition: A reviewed and controlled state of model, evidence, configuration, or publication artifacts.
+
+relationships:
+  addressesConcern:
+    domain: EngineeringIncrement
+    range: Concern
+  hasStakeholder:
+    domain: EngineeringIncrement
+    range: Stakeholder
+  selectedViewpoint:
+    domain: EngineeringIncrement
+    range: Viewpoint
+  producesView:
+    domain: EngineeringIncrement
+    range: View
+  derivesNeedFromConcern:
+    domain: Need
+    range: Concern
+  derivesRequirementFromNeed:
+    domain: Requirement
+    range: Need
+  constrainedBy:
+    domain: Requirement
+    range: RegulatoryConstraint
+  specifiesFeature:
+    domain: Requirement
+    range: Feature
+  specifiesCommonCapability:
+    domain: Requirement
+    range: CommonCapability
+  realizedBy:
+    domain: Requirement
+    range: ArchitectureElement
+  allocatedTo:
+    domain: Function
+    range: LogicalElement
+  deployedTo:
+    domain: LogicalElement
+    range: PhysicalElement
+  verifiedBy:
+    domain: Requirement
+    range: VerificationCase
+  usesVerificationMethod:
+    domain: VerificationCase
+    range: VerificationMethod
+  hasAcceptanceCriterion:
+    domain: VerificationCase
+    range: AcceptanceCriterion
+  validatedBy:
+    domain: Need
+    range: ValidationScenario
+  validatesFitnessForUse:
+    domain: ValidationScenario
+    range: Need
+  hasEvidence:
+    domain: VerificationCase
+    range: EvidenceArtifact
+  hasEvidenceStatus:
+    domain: EvidenceArtifact
+    range: EvidenceStatus
+  recordsAssumption:
+    domain: EngineeringIncrement
+    range: Assumption
+  recordsGap:
+    domain: EngineeringIncrement
+    range: Gap
+  supportedByEvidence:
+    domain: AssuranceClaim
+    range: EvidenceArtifact
+  appliesToMemberProduct:
+    domain: FeatureConfiguration
+    range: MemberProduct
+  selectsFeature:
+    domain: FeatureConfiguration
+    range: Feature
+  includesCommonCapability:
+    domain: FeatureConfiguration
+    range: CommonCapability
+  variesAt:
+    domain: Feature
+    range: VariationPoint
+  capturedInBaseline:
+    domain: EvidenceArtifact
+    range: Baseline
+
+validation_rules:
+  - id: DE4SDV-ONT-R001
+    statement: Every Feature shall distinguish at least one member product from another member product.
+    candidate_check: SHACL or repository script over feature configuration records.
+  - id: DE4SDV-ONT-R002
+    statement: Every FeatureIncrement shall identify selected SAF viewpoints and out-of-scope viewpoints.
+    candidate_check: Markdown/YAML checklist review.
+  - id: DE4SDV-ONT-R003
+    statement: Every Requirement in a feature increment shall trace to at least one Need, RegulatoryConstraint, or ArchitectureDecisionRecord.
+    candidate_check: traceability table or YAML validation.
+  - id: DE4SDV-ONT-R004
+    statement: Every compliance-oriented claim shall be marked as draft, planned, example, verified, or accepted.
+    candidate_check: evidence register status field.
+  - id: DE4SDV-ONT-R005
+    statement: Common capabilities shall not be modeled as Features unless they distinguish member products.
+    candidate_check: review plus feature configuration query.
+  - id: DE4SDV-ONT-R006
+    statement: Every VerificationCase shall identify a verification method and at least one acceptance criterion or open gap.
+    candidate_check: traceability table or YAML validation.
+  - id: DE4SDV-ONT-R007
+    statement: Every ValidationScenario shall identify the Need or stakeholder concern whose fitness-for-use it evaluates.
+    candidate_check: traceability table or YAML validation.
+  - id: DE4SDV-ONT-R008
+    statement: Every EvidenceArtifact shall carry an explicit status value.
+    candidate_check: evidence register status field.
+  - id: DE4SDV-ONT-R009
+    statement: Every AssuranceClaim shall be supported by evidence or recorded as an open gap.
+    candidate_check: assurance/traceability review.
+
+pilot_queries:
+  - Which selected features lack requirements?
+  - Which selected features lack verification cases, validation scenarios, acceptance criteria, or evidence artifacts?
+  - Which requirements are constrained by a regulation or standard source?
+  - Which member products are affected when a variation point changes?
+  - Which views were produced for each selected SAF viewpoint?
+  - Which evidence artifacts are still draft, planned, or gaps?
+  - Which assurance claims are unsupported by accepted evidence?
