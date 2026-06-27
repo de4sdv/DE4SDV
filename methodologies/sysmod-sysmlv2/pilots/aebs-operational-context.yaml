@@ -281,6 +281,16 @@ assumptions:
   - id: ASM-AEBS-OP-005
     statement: VSS candidate signals will be inspected only in the later functional-interface increment.
 
+model_artifacts:
+  - id: MODEL-AEBS-FRAMING-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml
+    status: draft
+    purpose: Initial SysML v2 model slice for INC-AEBS-001 framing concepts.
+  - id: MODEL-AEBS-OPERATIONAL-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml
+    status: draft
+    purpose: Initial SysML v2 model slice for INC-AEBS-002 operational context concepts.
+
 gaps:
   - id: GAP-AEBS-OP-001
     statement: Operating speed, distance, road, weather, and target-condition parameters remain undefined.
@@ -291,7 +301,7 @@ gaps:
   - id: GAP-AEBS-OP-004
     statement: No VSS signal mappings are selected in this operational increment.
   - id: GAP-AEBS-OP-005
-    statement: No SysML v2 operational package exists yet; this is a structured pre-modeling baseline.
+    statement: SysML v2 operational package is a draft structural slice; semantic validation and richer relationships remain future work.
 
 acceptance_criteria:
   - id: AC-AEBS-OP-001

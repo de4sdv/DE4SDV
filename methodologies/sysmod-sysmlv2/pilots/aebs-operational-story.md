@@ -143,7 +143,18 @@ Imminent forward collision risk emerges between the subject vehicle and the vehi
 | `GAP-AEBS-OP-002` | Activation, warning, braking, override, and non-activation criteria remain undefined. |
 | `GAP-AEBS-OP-003` | No design-input requirements are derived in this operational increment. |
 | `GAP-AEBS-OP-004` | No VSS signal mappings are selected in this operational increment. |
-| `GAP-AEBS-OP-005` | No SysML v2 operational package exists yet; this is a structured pre-modeling baseline. |
+| `GAP-AEBS-OP-005` | The SysML v2 package is a draft structural slice; richer semantic relationships remain future work. |
+
+## SysML v2 model artifacts
+
+This operational increment is represented both as structured YAML and as initial SysML v2 model slices:
+
+```text
+textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml
+textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml
+```
+
+The SysML v2 files intentionally stay structural and operational. They do not derive design-input requirements, select VSS signal mappings, allocate logical components, or claim compliance.
 
 ## Acceptance criteria
 

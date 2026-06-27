@@ -209,10 +209,11 @@ Candidate validation scenarios should focus on fitness-for-use: whether the mode
 
 ## First deliverables after this charter
 
-The first concrete deliverable is the machine-readable framing record:
+The first concrete deliverable is the machine-readable framing record and its initial SysML v2 model slice:
 
 ```text
 methodologies/sysmod-sysmlv2/pilots/aebs-increment-framing.yaml
+textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml
 ```
 
 It fixes the selected/deferred viewpoint subsets, first-slice scope, feature/common-capability hypotheses, VSS usage policy, V&V policy, assumptions, gaps, next increments, and acceptance criteria before operational modeling starts.

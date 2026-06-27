@@ -42,3 +42,5 @@ This repository is in a foundation phase. The first adoption step is documentati
 - [`pilots/aebs-increment-framing.yaml`](pilots/aebs-increment-framing.yaml) records the first machine-readable AEBS increment framing baseline before operational and functional modeling starts.
 - [`pilots/aebs-operational-context.yaml`](pilots/aebs-operational-context.yaml) defines the first structured AEBS operational-domain slice.
 - [`pilots/aebs-operational-story.md`](pilots/aebs-operational-story.md) presents the same operational slice in reviewer-facing narrative form.
+- [`../../textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml) provides the initial SysML v2 model slice for the AEBS increment framing baseline.
+- [`../../textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml) provides the initial SysML v2 operational context model slice.
