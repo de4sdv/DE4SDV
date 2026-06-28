@@ -2,16 +2,17 @@
 
 ## Status
 
-Draft needs and requirements increment for `INC-AEBS-003`. This is not a functional design, VSS mapping, logical architecture, test procedure, or UNECE R152 compliance claim.
+Draft needs and requirements increment for `INC-AEBS-003`. This is not a functional design, VSS mapping, logical architecture, test procedure, or UNECE R152 compliance/type-approval claim. UNECE R152 is treated here as a regulatory driver for the common AEBS capability, not as fulfilled evidence.
 
 ## Purpose
 
-This increment turns the accepted AEBS operational slice into a small needs and draft design-input requirements baseline.
+This increment turns the accepted AEBS operational slice into a small problem-statement, needs, and draft design-input requirements baseline.
 
 The intent is to create the bridge:
 
 ```text
 operational story
+  -> problem statement / system context
   -> stakeholder needs
   -> draft design-input requirements
   -> V&V planning fields
@@ -19,6 +20,14 @@ operational story
 ```
 
 Functional decomposition and VSS signal selection start only in the next increment.
+
+## Problem statement
+
+This increment adapts the SYSMOD/SysML v2 problem-statement pattern into a DE4SDV method context. It does not implement or vendor the full upstream method library.
+
+> How can DE4SDV define an AEBS needs and draft requirements baseline for the SDV product-line common AEBS capability required across member products that preserves the vehicle-target collision-risk mitigation intent, keeps operational boundaries and regulatory assumptions visible, and exposes requirement quality gaps without claiming functional realization, VSS signal mapping, or UNECE R152 compliance/type-approval fulfillment?
+
+The SysML v2 model represents this as a `ProblemStatement` requirement inside a DE4SDV `SystemContext` with stakeholder roles and the SDV product line as the system of interest for this common-capability slice.
 
 ## Scope
 
@@ -46,9 +55,9 @@ Functional decomposition and VSS signal selection start only in the next increme
 
 | ID | Stakeholder | Need |
 |---|---|---|
-| `N-AEBS-001` | road users and vehicle occupants | Road users and vehicle occupants need the SDV product line to provide a common AEBS capability that reduces forward rear-end in-lane collision risk with a vehicle target across applicable member products under defined operating conditions. |
+| `N-AEBS-001` | road users and vehicle occupants | Road users and vehicle occupants need the SDV product line to define AEBS as a common capability required across member products to reduce forward rear-end in-lane collision risk with a vehicle target under defined operating conditions. |
 | `N-AEBS-002` | systems engineer | Systems engineers need the AEBS operational boundary, assumptions, source constraints, and out-of-scope cases to stay explicit while draft requirements are derived. |
-| `N-AEBS-003` | product-line engineer | Product-line engineers need AEBS to remain classified as a product-line common capability candidate until member-product applicability and variation points are modeled explicitly. |
+| `N-AEBS-003` | product-line engineer | Product-line engineers need AEBS to remain classified as a product-line common capability required across member products, with variation points modeled separately instead of weakening the common-capability classification. |
 | `N-AEBS-004` | compliance engineer | Compliance engineers need regulatory assumptions, source references, and open interpretation gaps to be visible without implying UNECE R152 compliance or type approval. |
 | `N-AEBS-005` | verification engineer | Verification engineers need each draft AEBS requirement to carry a planned verification method, validation reference, evidence status, and explicit gap when acceptance criteria are not yet quantified. |
 
@@ -63,7 +72,8 @@ They preserve the trace chain from the operational story, but several still fail
 - warning and braking timing are not yet measurable;
 - temporal dependencies are not yet explicit;
 - failure-handling success criteria are not yet defined;
-- verification success criteria are still mostly `TBD`.
+- verification success criteria are still mostly `TBD`;
+- satisfaction is intentionally deferred until a functional/logical realization model contains concrete satisfying features.
 
 Promotion rule: a candidate can become an accepted design-input requirement only after the relevant rule findings are closed or explicitly accepted with rationale.
 
@@ -71,11 +81,11 @@ Promotion rule: a candidate can become an accepted design-input requirement only
 
 | ID | Type | Candidate requirement | Verification | Evidence status |
 |---|---|---|---|---|
-| `REQ-AEBS-001` | functional | Applicable SDV product-line member products shall realize the common AEBS capability by detecting imminent forward collision risk with a vehicle target under selected operating conditions. | analysis | planned |
-| `REQ-AEBS-002` | functional | Applicable SDV product-line member products shall realize the common AEBS capability by providing a collision warning to the driver when selected warning conditions are met. | demonstration | planned |
-| `REQ-AEBS-003` | functional | Applicable SDV product-line member products shall realize the common AEBS capability by commanding emergency braking when selected activation conditions are met and no overriding condition prevents intervention. | simulation | planned |
-| `REQ-AEBS-004` | functional | Applicable SDV product-line member products shall allow conscious driver override of AEBS intervention under defined override conditions. | demonstration | planned |
-| `REQ-AEBS-005` | safety constraint | Applicable SDV product-line member products shall support detection or indication of AEBS-related failure conditions without hiding safe-operation concerns. | inspection | gap |
+| `REQ-AEBS-001` | functional | Each SDV product-line member product shall realize the common AEBS capability by detecting imminent forward collision risk with a vehicle target under selected operating conditions. | analysis | planned |
+| `REQ-AEBS-002` | functional | Each SDV product-line member product shall realize the common AEBS capability by providing a collision warning to the driver when selected warning conditions are met. | demonstration | planned |
+| `REQ-AEBS-003` | functional | Each SDV product-line member product shall realize the common AEBS capability by commanding emergency braking when selected activation conditions are met and no overriding condition prevents intervention. | simulation | planned |
+| `REQ-AEBS-004` | functional | Each SDV product-line member product shall allow conscious driver override of AEBS intervention under defined override conditions. | demonstration | planned |
+| `REQ-AEBS-005` | safety constraint | Each SDV product-line member product shall support detection or indication of AEBS-related failure conditions without hiding safe-operation concerns. | inspection | gap |
 | `REQ-AEBS-006` | product-line constraint | The AEBS model baseline shall keep common-capability, feature, and variation-point classifications explicit for each AEBS behavior or scope element. | inspection | planned |
 | `REQ-AEBS-007` | traceability constraint | The DE4SDV AEBS increment shall trace each draft AEBS requirement to its source assumption, stakeholder need, validation reference, planned verification method, evidence status, and unresolved gap when applicable. | inspection | planned |
 
@@ -110,7 +120,7 @@ Promotion rule: a candidate can become an accepted design-input requirement only
 | `GAP-AEBS-REQ-005` | Non-activation and false-reaction constraints remain undefined. |
 | `GAP-AEBS-REQ-006` | Conscious driver override inputs and resulting behavior remain undefined. |
 | `GAP-AEBS-REQ-007` | AEBS failure detection, indication, and safe-operation criteria remain undefined. |
-| `GAP-AEBS-REQ-008` | Product-line variation points and member-product applicability are not yet modeled. |
+| `GAP-AEBS-REQ-008` | Product-line variation points are not yet modeled; they must not weaken the common AEBS capability obligation across member products. |
 | `GAP-AEBS-REQ-009` | VSS signal candidates are intentionally deferred until the functional-interface increment. |
 
 ## Requirement quality findings
@@ -129,16 +139,19 @@ Promotion rule: a candidate can become an accepted design-input requirement only
 textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml
 ```
 
-The SysML v2 slice models needs, draft requirements, validation scenarios, verification methods, evidence status, gaps, and acceptance criteria as an initial model backbone. It intentionally does not introduce functional decomposition or VSS signal references.
+The SysML v2 slice models the adapted DE4SDV method context, problem statement, stakeholder needs, and draft requirements with native SysML v2 constructs. Stakeholder needs are specified only as requirement-like usages typed by `StakeholderNeedCandidate` specializations; they are not duplicated as concerns. Stakeholder parameters use shared DE4SDV stakeholder role definitions, draft requirements carry required constraint bodies, and satisfaction links are intentionally deferred until a later functional/logical realization model contains concrete satisfying features. V&V planning, evidence status, gaps, and quality findings remain in the Markdown/YAML reviewer artifacts for this PR; they are not modeled as generic SysML part taxonomies in the needs/requirements slice. The slice intentionally does not introduce functional decomposition or VSS signal references.
 
 ## Acceptance criteria
 
 This increment is acceptable if:
 
+- a DE4SDV method-context problem statement anchors the needs/requirements slice;
 - needs remain separate from design-input requirements;
-- AEBS remains framed as an SDV product-line common capability across applicable member products;
+- AEBS remains framed as an SDV product-line common capability required across member products;
 - each draft requirement has derived needs, verification method, validation reference, evidence status, and known gaps;
 - requirements do not introduce VSS signal mappings, functional decomposition, logical realization, or compliance claims;
+- the SysML v2 requirements slice uses native requirement definitions/usages for needs and requirement candidates;
+- the model avoids satisfaction assertions until concrete satisfying features exist;
 - the SysML v2 requirements slice is present and validated by the available validation path.
 
 ## Next increment

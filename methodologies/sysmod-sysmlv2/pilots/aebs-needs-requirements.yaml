@@ -7,14 +7,16 @@ parent_increment: INC-AEBS-002
 owner: DE4SDV maintainers
 
 purpose: >-
-  Convert the accepted AEBS operational slice into a small draft needs and
-  design-input requirements baseline with explicit verification and validation
-  planning fields. This increment remains pre-functional: it does not decompose
-  functions, allocate logical components, select VSS signals, or claim UNECE
-  R152 compliance.
+  Convert the accepted AEBS operational slice into a small problem-statement,
+  draft needs, and design-input requirements baseline with explicit verification
+  and validation planning fields. This increment remains pre-functional: it does
+  not decompose functions, allocate logical components, select VSS signals, or
+  claim UNECE R152 compliance/type-approval fulfillment. UNECE R152 is treated
+  as a regulatory driver for a common AEBS capability, not as fulfilled evidence.
 
 scope:
   in_scope:
+    - problem statement and DE4SDV system context
     - product-line common AEBS capability need
     - vehicle-target rear-end in-lane collision risk slice
     - draft design-input requirement candidates
@@ -38,6 +40,12 @@ source_alignment:
   - source_id: INC-AEBS-002
     use: operational_context_baseline
     artifact: methodologies/sysmod-sysmlv2/pilots/aebs-operational-context.yaml
+  - source_id: MBSE4U-SYSMOD-PROBLEM-STATEMENT
+    use: method_pattern
+    artifact: https://mbse4u.com/2024/12/01/sysmod-with-sysml-v2-problem-statement/
+    notes:
+      - Used as a source-backed method pattern for modeling the problem statement as a SysML v2 requirement in a system context.
+      - DE4SDV adapts the pattern selectively and does not vendor or implement the full upstream method library.
   - source_id: SRC-UNECE-R152
     use: candidate_regulatory_anchor
     notes:
@@ -45,19 +53,33 @@ source_alignment:
       - This file does not copy source text and does not assert compliance.
 
 system_of_interest:
-  system_1: SDV product line with applicable member products realizing the AEBS common capability.
+  system_1: SDV product line whose member products are required to realize the AEBS common capability.
   system_2: DE4SDV engineering and assurance system maintaining traceability, V&V planning, gaps, and model artifacts.
   system_3: DE4SDV governance and review ecosystem deciding whether the draft baseline is good enough for functional modeling.
+
+problem_statement:
+  id: PS-AEBS-REQ-001
+  type: de4sdv_method_context_problem_statement
+  source_pattern: MBSE4U-SYSMOD-PROBLEM-STATEMENT
+  statement: >-
+    How can DE4SDV define an AEBS needs and draft requirements baseline for
+    the SDV product-line common AEBS capability required across member products
+    that preserves the vehicle-target collision-risk mitigation intent, keeps
+    operational boundaries and regulatory assumptions visible, and exposes
+    requirement quality gaps without claiming functional realization, VSS signal
+    mapping, or UNECE R152 compliance/type-approval fulfillment?
+  status: draft
+  model_element: DE4SDV::Features::AEBS::NeedsRequirements::aebsNeedsRequirementsSystemContext::aebsNeedsRequirementsProblemStatement
 
 needs:
   - id: N-AEBS-001
     stakeholder: road_users_and_vehicle_occupants
     type: stakeholder_need
     statement: >-
-      Road users and vehicle occupants need the SDV product line to provide a
-      common AEBS capability that reduces forward rear-end in-lane collision
-      risk with a vehicle target across applicable member products under
-      defined operating conditions.
+      Road users and vehicle occupants need the SDV product line to define AEBS as a
+      common capability required across member products to reduce forward
+      rear-end in-lane collision risk with a vehicle target under defined
+      operating conditions.
     source: STORY-AEBS-VEHICLE-TARGET-001
     priority: high
     status: draft
@@ -80,8 +102,9 @@ needs:
     type: product_line_need
     statement: >-
       Product-line engineers need AEBS to remain classified as a product-line
-      common capability candidate until member-product applicability and
-      variation points are modeled explicitly.
+      common capability required across member products, with variation points
+      modeled separately instead of weakening the common-capability
+      classification.
     source: INC-AEBS-001
     priority: high
     status: draft
@@ -141,7 +164,7 @@ requirements:
     status: draft
     maturity: requirement_candidate
     statement: >-
-      Applicable SDV product-line member products shall realize the common AEBS
+      Each SDV product-line member product shall realize the common AEBS
       capability by detecting imminent forward collision risk with a vehicle
       target under selected operating conditions.
     derived_from:
@@ -158,7 +181,7 @@ requirements:
     status: draft
     maturity: requirement_candidate
     statement: >-
-      Applicable SDV product-line member products shall realize the common AEBS
+      Each SDV product-line member product shall realize the common AEBS
       capability by providing a collision warning to the driver when selected
       warning conditions are met.
     derived_from:
@@ -174,7 +197,7 @@ requirements:
     status: draft
     maturity: requirement_candidate
     statement: >-
-      Applicable SDV product-line member products shall realize the common AEBS
+      Each SDV product-line member product shall realize the common AEBS
       capability by commanding emergency braking when selected activation
       conditions are met and no overriding condition prevents intervention.
     derived_from:
@@ -191,7 +214,7 @@ requirements:
     status: draft
     maturity: requirement_candidate
     statement: >-
-      Applicable SDV product-line member products shall allow conscious driver
+      Each SDV product-line member product shall allow conscious driver
       override of AEBS intervention under defined override conditions.
     derived_from:
       - N-AEBS-001
@@ -207,7 +230,7 @@ requirements:
     status: draft
     maturity: requirement_candidate
     statement: >-
-      Applicable SDV product-line member products shall support detection or
+      Each SDV product-line member product shall support detection or
       indication of AEBS-related failure conditions without hiding
       safe-operation concerns.
     derived_from:
@@ -235,6 +258,7 @@ requirements:
     acceptance_criterion: Each AEBS behavior/scope element has an explicit common-capability, feature-candidate, or variation-point classification.
     known_gaps:
       - GAP-AEBS-REQ-008
+      - GAP-AEBS-REQ-010
   - id: REQ-AEBS-007
     type: traceability_constraint
     status: draft
@@ -301,9 +325,11 @@ gaps:
   - id: GAP-AEBS-REQ-007
     statement: AEBS failure detection, indication, and safe-operation criteria remain undefined.
   - id: GAP-AEBS-REQ-008
-    statement: Product-line variation points and member-product applicability are not yet modeled.
+    statement: Product-line variation points are not yet modeled; they must not weaken the common AEBS capability obligation across member products.
   - id: GAP-AEBS-REQ-009
     statement: VSS signal candidates are intentionally deferred until the functional-interface increment.
+  - id: GAP-AEBS-REQ-010
+    statement: Requirement satisfaction assertions are intentionally deferred until a functional/logical realization model contains concrete satisfying features.
 
 traceability:
   - from: INC-AEBS-002
@@ -356,24 +382,41 @@ quality_findings:
   - id: QF-AEBS-REQ-005
     severity: correction
     finding: SysML v2 model representation must use native requirement definitions/usages rather than modeling requirements only as generic parts.
+  - id: QF-AEBS-REQ-006
+    severity: controlled_scope
+    finding: SysML v2 requirement satisfaction is deferred because the current increment has no functional/logical realization elements that can honestly satisfy the candidate requirements.
 
 model_artifacts:
   - id: MODEL-AEBS-NEEDS-REQ-SYSML
     path: textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml
     status: draft
-    purpose: Initial SysML v2 needs/requirements model slice for INC-AEBS-003.
+    purpose: SysML v2 needs/requirements model slice using an adapted DE4SDV method context, native requirement definitions/usages for stakeholder needs and candidate requirements, and deferred satisfaction until realization elements exist.
+  - id: MODEL-DE4SDV-METHOD-CONTEXT-SYSML
+    path: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    status: draft
+    purpose: Selective DE4SDV adaptation of the SYSMOD/SysML v2 problem-statement pattern; not a full SYSMOD implementation or vendored upstream library.
+  - id: MODEL-DE4SDV-STAKEHOLDERS-SYSML
+    path: textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml
+    status: draft
+    purpose: Shared SysML v2 stakeholder role definitions used by requirement stakeholder parameters.
 
 acceptance_criteria:
   - id: AC-AEBS-REQ-001
-    statement: Needs remain separate from design-input requirements.
+    statement: DE4SDV method-context problem statement anchors the needs/requirements slice.
   - id: AC-AEBS-REQ-002
-    statement: AEBS remains framed as an SDV product-line common capability across applicable member products.
+    statement: Needs remain separate from design-input requirements.
   - id: AC-AEBS-REQ-003
-    statement: Each draft requirement has derived needs, verification method, validation reference, evidence status, and known gaps.
+    statement: AEBS remains framed as an SDV product-line common capability required across member products.
   - id: AC-AEBS-REQ-004
-    statement: Requirements do not introduce VSS signal mappings, functional decomposition, logical realization, or compliance claims.
+    statement: Each draft requirement has derived needs, verification method, validation reference, evidence status, and known gaps.
   - id: AC-AEBS-REQ-005
+    statement: Requirements do not introduce VSS signal mappings, functional decomposition, logical realization, or compliance claims.
+  - id: AC-AEBS-REQ-006
     statement: SysML v2 requirements slice is present and validated by the available validation path.
+  - id: AC-AEBS-REQ-007
+    statement: Stakeholder needs and requirement candidates are modeled with native SysML v2 requirement definitions/usages rather than generic parts.
+  - id: AC-AEBS-REQ-008
+    statement: SysML v2 satisfaction assertions are absent until functional/logical realization elements exist.
 
 next_increment:
   id: INC-AEBS-004
