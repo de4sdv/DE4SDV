@@ -10,6 +10,19 @@ current adoption step documents the upstream SYSMOD SysML v2 reference and
 tailoring approach; future increments may add local packages such as a DE4SDV
 tailoring package and context model.
 
+## Method packages
+
+- [`packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`](packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml)
+  defines the current reusable DE4SDV method concern/viewpoint kernel as the
+  top-level `DE4SDV_MethodViewpoints` package. Feature packages should
+  import/select these `concern def` and `viewpoint def` elements, then add
+  feature-specific concern usages inside the feature package and view-local
+  viewpoint usages inside concrete views. Reusable `view def` elements are
+  deferred until DE4SDV has cross-feature view construction recipes with real
+  filters/rendering/composition logic. These are not claimed as SAF-native
+  viewpoints yet; they are DE4SDV workflow viewpoints that should be mapped to
+  SAF in a later method-alignment increment.
+
 ## Context modeling scope
 
 Future context models should preserve the ASELCM-aligned DE4SDV scope:
