@@ -13,7 +13,7 @@ It does **not** define logical components, ECUs, services, sensors, networks, de
 The goal is narrower:
 
 ```text
-requirements → functional responsibilities → functional information items → candidate VSS paths → explicit gaps
+requirements → functional responsibilities → functional information items → generated VSS reuse + DE4SDV VSS extensions → explicit review gaps
 ```
 
 ## Normalization before functional modeling
@@ -68,22 +68,24 @@ Outputs:
 
 `REQ-AEBS-006` constrains the full slice: common-capability, feature-candidate, and native variation/variant classifications must remain explicit.
 
-## Candidate VSS mapping
+## VSS reuse and DE4SDV extensions
 
-These mappings are **draft catalog candidates**. They are not architecture topology and not implementation ownership.
+The functional SysML slice reuses generated COVESA VSS signal definitions where they exist. When the generated VSS snapshot lacks an AEBS-specific signal needed by this functional slice, this PR adds a DE4SDV candidate extension signal in `DE4SDV_VSS_Extensions.sysml`.
 
-| Functional item | Candidate VSS path(s) | Status | Gap |
+These signal definitions are still semantic catalog references. They are not architecture topology and not implementation ownership.
+
+| Functional item | Generated COVESA VSS reuse | DE4SDV VSS extension | Review gap |
 |---|---|---|---|
-| `VehicleMotionState` | `Vehicle.Speed`, `Vehicle.Acceleration.Longitudinal` | candidate | units/sampling/conditions still open |
-| `ForwardTargetState` | `Vehicle.ADAS.ObstacleDetection.Distance`, `Vehicle.ADAS.ObstacleDetection.TimeGap` | candidate | target typing and source semantics open |
-| `CollisionRiskAssessment` | `Vehicle.ADAS.ObstacleDetection.IsWarning`, `Vehicle.ADAS.ObstacleDetection.WarningType` | weak candidate | risk threshold/TTC/activation logic missing |
-| `DriverWarningRequest` | `Vehicle.ADAS.ObstacleDetection.IsWarning`, `Vehicle.ADAS.ObstacleDetection.WarningType` | candidate | modality/timing/observability missing |
-| `EmergencyBrakingCommand` | `Vehicle.ADAS.EBA.IsEngaged`, `Vehicle.Body.Lights.Brake.IsActive` | weak candidate | status/indicator candidates, not normative command interface |
-| `DriverOverrideInput` | none identified | gap | direct AEBS override path missing |
-| `DriverOverrideDecision` | none identified | gap | derived functional decision; no direct catalog path expected yet |
-| `AEBSFailureStatus` | `Vehicle.ADAS.EBA.IsError`, `Vehicle.ADAS.ABS.IsError` | weak candidate | subsystem errors, not reviewed AEBS failure model |
-| `FailureIndicationRequest` | none identified | gap | HMI/diagnostic indication model missing |
-| `AEBSEvidenceEvent` | none identified | gap | event schema/logging semantics missing |
+| `VehicleMotionState` | `Vehicle.Speed`, `Vehicle.Acceleration.Longitudinal` | — | units/sampling/conditions still open |
+| `ForwardTargetState` | `Vehicle.ADAS.ObstacleDetection.Distance`, `Vehicle.ADAS.ObstacleDetection.TimeGap` | — | target typing and source semantics open |
+| `CollisionRiskAssessment` | `Vehicle.ADAS.ObstacleDetection.IsWarning`, `Vehicle.ADAS.ObstacleDetection.WarningType` | `Vehicle.ADAS.AEBS.CollisionRisk.IsDetected` | threshold/TTC/activation logic and extension suitability open |
+| `DriverWarningRequest` | `Vehicle.ADAS.ObstacleDetection.IsWarning`, `Vehicle.ADAS.ObstacleDetection.WarningType` | `Vehicle.ADAS.AEBS.DriverWarning.IsActive` | modality/timing/observability and extension suitability open |
+| `EmergencyBrakingCommand` | `Vehicle.ADAS.EBA.IsEngaged`, `Vehicle.Body.Lights.Brake.IsActive` | `Vehicle.ADAS.AEBS.EmergencyBraking.IsCommanded` | command semantics and upstream suitability open |
+| `DriverOverrideInput` | — | `Vehicle.ADAS.AEBS.DriverOverride.IsActive` | override semantics and upstream suitability open |
+| `DriverOverrideDecision` | — | `Vehicle.ADAS.AEBS.DriverOverride.IsActive` | derived decision semantics open |
+| `AEBSFailureStatus` | `Vehicle.ADAS.EBA.IsError`, `Vehicle.ADAS.ABS.IsError` | `Vehicle.ADAS.AEBS.IsError` | accepted AEBS failure model open |
+| `FailureIndicationRequest` | — | `Vehicle.ADAS.AEBS.FailureIndication.IsActive` | HMI/diagnostic indication semantics open |
+| `AEBSEvidenceEvent` | — | `Vehicle.ADAS.AEBS.EvidenceEvent.IsRecorded` | event schema/logging/upstream suitability open |
 
 ## Non-claims
 
@@ -94,7 +96,7 @@ This increment does not claim:
 - physical sensor choice;
 - ECU/software deployment;
 - logical component allocation;
-- accepted VSS interface mapping;
+- accepted VSS interface mapping or accepted upstream VSS extension;
 - accepted braking performance thresholds;
 - accepted evidence level or evidence sufficiency.
 
@@ -102,7 +104,7 @@ This increment does not claim:
 
 The next useful step after review is one of two paths:
 
-1. **Functional interface refinement** — turn candidate items into reviewed functional interfaces and decide which VSS paths are acceptable candidates.
+1. **Functional interface refinement** — turn generated/extended VSS-backed items into reviewed functional interfaces and decide which extension signals should be proposed upstream.
 2. **Logical realization** — only after interface boundaries are clear, allocate functions to logical responsibilities/services.
 
 Do not jump to physical/software architecture before the interface semantics are reviewed.

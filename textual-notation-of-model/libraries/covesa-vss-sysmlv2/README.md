@@ -11,6 +11,21 @@ Signal Specification `spec/` tree.
 - Generated allowed-value enum types: 65
 - Generated branches: 139
 
+## DE4SDV candidate extensions
+
+[`DE4SDV_VSS_Extensions.sysml`](DE4SDV_VSS_Extensions.sysml) contains
+DE4SDV candidate signal definitions for AEBS semantics that were needed by the
+functional behavior slice but were not present in the generated COVESA VSS
+snapshot.
+
+Keep this extension package separate from `COVESA_VSS.sysml`:
+
+- `COVESA_VSS.sysml` is generated from the pinned upstream COVESA source commit.
+- `DE4SDV_VSS_Extensions.sysml` is DE4SDV candidate vocabulary for review,
+  interface refinement, and possible upstream proposal.
+- Extension paths are not accepted upstream COVESA VSS paths unless and until
+  upstream accepts them.
+
 ## Semantic metadata policy
 
 The generated package intentionally does **not** leave VSS semantics only in

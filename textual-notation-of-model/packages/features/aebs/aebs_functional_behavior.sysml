@@ -7,9 +7,10 @@
  * physical/software realization, accepted VSS interface mapping, or UNECE R152
  * compliance/type-approval claim is made here.
  *
- * Candidate VSS signal paths are recorded in the companion YAML/Markdown
- * artifacts as catalog mappings. They are intentionally not used here as
- * architecture topology or implementation ownership.
+ * Functional information items reuse generated COVESA VSS signal definitions
+ * where available and DE4SDV candidate VSS extension definitions where gaps
+ * exist. These signal definitions are semantic catalog references; they are
+ * not used here as architecture topology or implementation ownership.
  */
 
 package DE4SDV {
@@ -18,6 +19,8 @@ package DE4SDV {
       package FunctionalBehavior {
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
+        private import COVESA_VSS::*;
+        private import DE4SDV_VSS_Extensions::*;
 
         part incAEBS004 : FeatureIncrement;
         part sdvProductLine : SDVProductLine;
@@ -25,43 +28,63 @@ package DE4SDV {
         part aebsCommonCapability : CommonProductLineCapability;
 
         item def VehicleMotionState {
-          doc /* Abstract subject-vehicle motion state for AEBS functional reasoning; candidate VSS paths are recorded in the companion YAML. */
+          doc /* Abstract subject-vehicle motion state for AEBS functional reasoning. */
+          attribute vehicleSpeed : Vehicle_Speed;
+          attribute longitudinalAcceleration : Vehicle_Acceleration_Longitudinal;
         }
 
         item def ForwardTargetState {
           doc /* Abstract state of the vehicle target ahead of the subject vehicle. */
+          attribute obstacleDistance : Vehicle_ADAS_ObstacleDetection_Distance;
+          attribute obstacleTimeGap : Vehicle_ADAS_ObstacleDetection_TimeGap;
         }
 
         item def CollisionRiskAssessment {
           doc /* Functional assessment that forward collision risk is imminent under selected operating conditions. */
+          attribute obstacleWarning : Vehicle_ADAS_ObstacleDetection_IsWarning;
+          attribute obstacleWarningType : Vehicle_ADAS_ObstacleDetection_WarningType;
+          attribute aebsCollisionRiskDetected : Vehicle_ADAS_AEBS_CollisionRisk_IsDetected;
         }
 
         item def DriverWarningRequest {
           doc /* Functional request to warn the driver when selected warning conditions are met. */
+          attribute obstacleWarning : Vehicle_ADAS_ObstacleDetection_IsWarning;
+          attribute obstacleWarningType : Vehicle_ADAS_ObstacleDetection_WarningType;
+          attribute aebsDriverWarningActive : Vehicle_ADAS_AEBS_DriverWarning_IsActive;
         }
 
         item def DriverOverrideInput {
           doc /* Functional input representing conscious driver override of AEBS intervention. */
+          attribute aebsDriverOverrideActive : Vehicle_ADAS_AEBS_DriverOverride_IsActive;
         }
 
         item def DriverOverrideDecision {
           doc /* Functional decision describing whether override prevents or modifies AEBS intervention. */
+          attribute aebsDriverOverrideActive : Vehicle_ADAS_AEBS_DriverOverride_IsActive;
         }
 
         item def EmergencyBrakingCommand {
           doc /* Functional command expectation for emergency braking when activation conditions are met and no override prevents intervention. */
+          attribute aebsEmergencyBrakingCommanded : Vehicle_ADAS_AEBS_EmergencyBraking_IsCommanded;
+          attribute ebaEngaged : Vehicle_ADAS_EBA_IsEngaged;
+          attribute brakeLightActive : Vehicle_Body_Lights_Brake_IsActive;
         }
 
         item def AEBSFailureStatus {
           doc /* Functional status for detected AEBS-related failure conditions. */
+          attribute aebsError : Vehicle_ADAS_AEBS_IsError;
+          attribute ebaError : Vehicle_ADAS_EBA_IsError;
+          attribute absError : Vehicle_ADAS_ABS_IsError;
         }
 
         item def FailureIndicationRequest {
           doc /* Functional request to indicate AEBS-related failure without hiding safe-operation concerns. */
+          attribute aebsFailureIndicationActive : Vehicle_ADAS_AEBS_FailureIndication_IsActive;
         }
 
         item def AEBSEvidenceEvent {
           doc /* Functional event record seed for later V&V/evidence-baseline work. */
+          attribute aebsEvidenceEventRecorded : Vehicle_ADAS_AEBS_EvidenceEvent_IsRecorded;
         }
 
         action def AcquireVehicleAndTargetState {
