@@ -3,9 +3,12 @@
  *
  * This package keeps product-line vocabulary out of feature-specific slices.
  * It follows the DE4SDV/ISO 26580-aligned distinction that common capabilities
- * are not features unless they distinguish member products. SysML v2 native
- * variation/variant constructs are intentionally not wrapped here until their
- * exact use is specified and reviewed.
+ * are not features unless they distinguish member products.
+ *
+ * SysML v2 variability is modeled with native `variation` / `variant` notation:
+ * a variation marks the varying definition or usage, and its owned variant
+ * usages enumerate allowed choices. Do not introduce a project-local
+ * variation-point part definition in place of native SysML v2 variation semantics.
  */
 
 package DE4SDV_ProductLine {
@@ -22,7 +25,7 @@ package DE4SDV_ProductLine {
   }
 
   part def ProductLineCharacteristic {
-    doc /* Product-line classification concept for common capabilities, feature candidates, and deferred variability decisions. */
+    doc /* Product-line classification concept for common capabilities, feature candidates, deferred scope, and native SysML v2 variation choices. */
   }
 
   part def CommonProductLineCapability :> ProductLineCharacteristic {
@@ -37,7 +40,21 @@ package DE4SDV_ProductLine {
     doc /* Scope deliberately deferred from the current increment. */
   }
 
-  part def DeferredVariabilityDecision :> ProductLineCharacteristic {
-    doc /* Variability topic recorded for later modeling with native SysML v2 variation/variant semantics after syntax and intent are reviewed. */
+  part def ProductLineVariantChoice :> ProductLineCharacteristic {
+    doc /* Descriptive project vocabulary for variant choices in YAML/Markdown traces. Concrete SysML variant usages should be represented with native `variant` membership and should not rely on this type as a substitute for variation semantics. */
+  }
+
+  part def DeferredVariantChoice :> ProductLineVariantChoice {
+    doc /* Descriptive vocabulary for unresolved variant choices outside a concrete SysML variation body; not an accepted product configuration choice. */
+  }
+
+  /*
+   * Generic native variation definition for unresolved product-line choices.
+   *
+   * SysML v2 requires the owned members of a variation definition/usage to be
+   * variant usages. Keep the body limited to `variant` usages.
+   */
+  variation part def DeferredProductLineVariation {
+    variant part deferredChoice;
   }
 }

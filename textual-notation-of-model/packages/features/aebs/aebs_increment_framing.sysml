@@ -84,8 +84,20 @@ package DE4SDV {
         part vehicleTargetAEBSSupport : CommonProductLineCapability;
         part pedestrianTargetAEBSScope : DeferredProductLineScope;
         part bicycleTargetAEBSScope : DeferredProductLineScope;
-        part aebsSensorPackageVariability : DeferredVariabilityDecision;
-        part aebsEvidenceLevelVariability : DeferredVariabilityDecision;
+
+        /*
+         * Native SysML v2 variation usages record unresolved AEBS variability
+         * topics without inventing a project-local variation-point part definition. The only variants
+         * in this framing slice are deferred choices; concrete sensor/evidence
+         * variants require later functional/evidence increments.
+         */
+        variation part aebsSensorPackageSelection {
+          variant part sensorPackageChoiceDeferred;
+        }
+
+        variation part aebsEvidenceLevelSelection {
+          variant part evidenceLevelChoiceDeferred;
+        }
 
         part firstSliceScope : OperationalScopeBoundary;
         part vehicleTargetForwardCollisionRiskMitigationScope : InScopeItem;

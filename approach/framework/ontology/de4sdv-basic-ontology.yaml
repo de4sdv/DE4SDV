@@ -14,7 +14,7 @@ classes:
     definition: A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge.
     examples: [AEBSFeatureIncrement, SysONViewPublicationIncrement]
   FeatureIncrement:
-    definition: An engineering increment focused on a product-line feature, common capability, or variation point.
+    definition: An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice.
     subClassOf: EngineeringIncrement
   ProductLine:
     definition: A family of related member products managed through shared assets and variability.
@@ -27,7 +27,11 @@ classes:
     definition: A capability or characteristic present in all relevant member products; not a feature unless it distinguishes variants.
     disjointWith: [Feature]
   VariationPoint:
-    definition: A point where a product-line model permits controlled variation among member products or configurations.
+    definition: A native SysML v2 `variation` definition or usage that identifies an element whose allowed instances vary across product-line configurations.
+    notation: Use SysML v2 `variation`; do not model this as a generic variation-point part definition.
+  Variant:
+    definition: A native SysML v2 `variant` usage owned by a variation point and representing one allowed choice for that variation.
+    notation: Use SysML v2 `variant`; variants are usages, not reusable product-line classes by themselves.
   FeatureConfiguration:
     definition: A selection of features, common capabilities, and variation choices for a member product or scenario.
   Stakeholder:
@@ -162,6 +166,9 @@ relationships:
   variesAt:
     domain: Feature
     range: VariationPoint
+  selectsVariant:
+    domain: FeatureConfiguration
+    range: Variant
   capturedInBaseline:
     domain: EvidenceArtifact
     range: Baseline
@@ -194,12 +201,15 @@ validation_rules:
   - id: DE4SDV-ONT-R009
     statement: Every AssuranceClaim shall be supported by evidence or recorded as an open gap.
     candidate_check: assurance/traceability review.
+  - id: DE4SDV-ONT-R010
+    statement: Product-line variation points represented in SysML v2 shall use native `variation` with owned `variant` usages; do not substitute a generic variation-point part taxonomy.
+    candidate_check: semantic review plus targeted SysML text scan for fake variation-point classes.
 
 pilot_queries:
   - Which selected features lack requirements?
   - Which selected features lack verification cases, validation scenarios, acceptance criteria, or evidence artifacts?
   - Which requirements are constrained by a regulation or standard source?
-  - Which member products are affected when a variation point changes?
+  - Which member products are affected when a variation point or selected variant changes?
   - Which views were produced for each selected SAF viewpoint?
   - Which evidence artifacts are still draft, planned, or gaps?
   - Which assurance claims are unsupported by accepted evidence?
