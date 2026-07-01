@@ -6,9 +6,10 @@
  * It is a framing/model-governance slice, not an AEBS design baseline or
  * UNECE R152 compliance claim.
  *
- * Semantic repair: feature-specific stakeholder concerns are framed by reusable
- * DE4SDV method viewpoint definitions imported from DE4SDV_MethodViewpoints.
- * Concrete AEBS view usages select those viewpoints for this increment.
+ * Shared DE4SDV method, stakeholder, product-line, and viewpoint definitions
+ * are imported from reusable method packages. This feature package keeps only
+ * AEBS-specific concern usages, product-line classification usages, scope
+ * usages, and concrete views.
  */
 
 package DE4SDV {
@@ -16,46 +17,15 @@ package DE4SDV {
     package AEBS {
       package IncrementFraming {
         private import Views::*;
+        private import DE4SDV_MethodContext::*;
+        private import DE4SDV_Stakeholders::*;
+        private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
-
-        part def EngineeringIncrement;
-        part def FeatureIncrement :> EngineeringIncrement;
-
-        part def SystemLayer;
-        part def System1SDVProductLine :> SystemLayer;
-        part def System2EngineeringAndAssuranceSystem :> SystemLayer;
-        part def System3OpenSourceGovernanceEcosystem :> SystemLayer;
-
-        part def SystemsEngineer;
-        part def ProductLineEngineer;
-        part def ComplianceEngineer;
-        part def VerificationEngineer;
-        part def OpenSourceReviewer;
-
-        part def MethodStackElement;
-        part def SAFViewpointSelection :> MethodStackElement;
-        part def SYSMODMethodFlow :> MethodStackElement;
-        part def DE4SDVOntologyKernel :> MethodStackElement;
-        part def SysMLv2ModelExpression :> MethodStackElement;
-        part def VSSCandidateSignalCatalog :> MethodStackElement;
-
-        part def ProductLineCharacteristic;
-        part def CandidateCommonCapability :> ProductLineCharacteristic;
-        part def CandidateFeatureOrCommonCapability :> ProductLineCharacteristic;
-        part def DeferredFeatureCandidate :> ProductLineCharacteristic;
-        part def VariationPoint :> ProductLineCharacteristic;
-
-        part def OperationalScopeBoundary;
-        part def InScopeItem;
-        part def OutOfScopeItem;
-        part def Assumption;
-        part def Gap;
-        part def AcceptanceCriterion;
 
         concern productLineCapabilityClassificationConcern : ProductLineCapabilityClassificationConcern {
           doc /*
            * Reviewers need AEBS scope elements to distinguish common product-line
-           * capabilities from features and later variation points.
+           * capabilities from candidate features and later variability decisions.
            */
           subject;
           stakeholder productLineEngineer : ProductLineEngineer;
@@ -110,12 +80,12 @@ package DE4SDV {
         part sysmlv2ModelExpression : SysMLv2ModelExpression;
         part vssCandidateSignalCatalog : VSSCandidateSignalCatalog;
 
-        part forwardCollisionRiskMitigation : CandidateCommonCapability;
-        part vehicleTargetAEBSSupport : CandidateFeatureOrCommonCapability;
-        part pedestrianTargetAEBSSupport : DeferredFeatureCandidate;
-        part bicycleTargetAEBSSupport : DeferredFeatureCandidate;
-        part aebsSensorPackageSelection : VariationPoint;
-        part aebsEvidenceLevel : VariationPoint;
+        part forwardCollisionRiskMitigation : CommonProductLineCapability;
+        part vehicleTargetAEBSSupport : CommonProductLineCapability;
+        part pedestrianTargetAEBSScope : DeferredProductLineScope;
+        part bicycleTargetAEBSScope : DeferredProductLineScope;
+        part aebsSensorPackageVariability : DeferredVariabilityDecision;
+        part aebsEvidenceLevelVariability : DeferredVariabilityDecision;
 
         part firstSliceScope : OperationalScopeBoundary;
         part vehicleTargetForwardCollisionRiskMitigationScope : InScopeItem;
@@ -124,10 +94,6 @@ package DE4SDV {
         part complianceClaimOutOfScope : OutOfScopeItem;
         part logicalRealizationOutOfScope : OutOfScopeItem;
         part physicalSoftwareRealizationOutOfScope : OutOfScopeItem;
-
-        part noComplianceClaimCriterion : AcceptanceCriterion;
-        part vssAsSignalCatalogOnlyCriterion : AcceptanceCriterion;
-        part featureClassificationExplicitCriterion : AcceptanceCriterion;
 
         view aebsIncrementFramingView {
           viewpoint selectedIncrementFramingViewpoint : IncrementFramingViewpoint {

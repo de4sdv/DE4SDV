@@ -31,9 +31,11 @@ The semantic repair in this increment uses the public SysML v2 release materials
 
 | File | Status | Finding | Action |
 |---|---|---|---|
-| `textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml` | repaired in this PR | Previously modeled operational actors, story, and steps almost entirely as generic parts. That was syntax-valid but semantically weak because behavior was represented as structure. | Reworked the operational story into use case and action constructs while preserving assumptions, gaps, validation seeds, and acceptance criteria as lightweight placeholders. |
+| `textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml` | repaired and refactored | Previously modeled operational actors, story, and steps almost entirely as generic parts. Later repair moved behavior to native use case/action constructs but still kept needs, validation scenarios, assumptions, gaps, and acceptance criteria as generic part placeholders. | Operational actors/context entities are now imported from `DE4SDV_OperationalContext`; stakeholder/reviewer roles are imported from `DE4SDV_Stakeholders`; generic ontology-as-part placeholders were removed from the SysML slice and remain in YAML/Markdown until a dedicated V&V/evidence model slice exists. |
 | `textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml` | added in this PR | Reusable DE4SDV method concern and viewpoint definitions did not exist as shared model assets. PR #44 temporarily kept method-like viewpoint definitions inside the AEBS feature package, and the first PR #45 draft left AEBS concerns as untyped concern usages. | Added a small shared method kernel with reusable `concern def` and `viewpoint def` elements for increment framing, product-line classification, regulatory scope, increment boundary, and method-stack review. Reusable `view def` elements are intentionally deferred until there are real cross-feature view construction recipes. These are not claimed as SAF-native viewpoints yet. |
-| `textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml` | repaired in PR #44 and refactored in this PR | Previously represented method stack, viewpoints, concerns, product-line classifications, scope, and gaps mostly as generic parts. The first repair draft made the viewpoints AEBS-specific, which would not scale across features. | AEBS now imports reusable DE4SDV method concern/viewpoint definitions, uses typed AEBS concern usages, nests feature-specific viewpoint usages inside concrete views, and exposes AEBS content through those views. |
+| `textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml` | added in this cleanup | Product-line/common-capability/feature-candidate vocabulary was defined inside the AEBS feature package. That made AEBS appear to own DE4SDV-wide product-line semantics and used `VariationPoint` as a generic part despite SysML v2 having native variation/variant concepts that require a separate spec-checked treatment. | Added a reusable product-line semantic kernel with `ProductLine`, `SDVProductLine`, `ProductLineMemberProduct`, `CommonProductLineCapability`, candidate/deferred scope terms, and `DeferredVariabilityDecision` as a conservative placeholder until native variation/variant syntax is reviewed. |
+| `textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml` | added in this cleanup | Operational actors such as subject vehicle, driver, road environment, evidence baseline, and vehicle target were defined inside the AEBS operational context even though they are reusable across SDV feature increments. | Added a reusable operational-context kernel imported by AEBS operational slices. |
+| `textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml` | repaired in PR #44 and refactored in this cleanup | Previously represented method stack, viewpoints, concerns, product-line classifications, scope, and gaps mostly as generic parts. The first repair draft made the viewpoints AEBS-specific, and later still kept DE4SDV-wide method/product-line vocabulary inside the AEBS package. | AEBS now imports reusable DE4SDV method, stakeholder, product-line, and viewpoint definitions; keeps only AEBS-specific concern usages, product-line classification usages, scope usages, and concrete views; and avoids fake `VariationPoint` part definitions. |
 | `textual-notation-of-model/snapshots/de4sdv-context-spike.sysml` | obsolete spike candidate | Minimal context sketch with only part definitions and no relationships. It is useful as historical evidence but weak as a current baseline. | Either retire from baseline documentation or upgrade into a real context model. |
 | `textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml` | mostly appropriate catalog layer | Uses attributes, enums, and metadata for generated signal/catalog semantics. Branches are represented as part definitions, which is acceptable only if documented as catalog grouping rather than architecture topology. | Follow-up should document catalog-layer semantics and avoid using the library as architecture interconnection evidence. |
 | `textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml` | added in PR #42 update | The AEBS needs/requirements slice was SYSMOD-inspired but had no explicit problem statement or system context anchor. | Added a small DE4SDV method context package adapting the SYSMOD/SysML v2 problem-statement pattern with `ProblemStatement` and `SystemContext`. A generic `ProjectContext` layer is intentionally not introduced. This is not a full upstream SYSMOD implementation. |
@@ -44,21 +46,25 @@ The semantic repair in this increment uses the public SysML v2 release materials
 
 The operational context file now distinguishes:
 
+- **shared operational actors/context entities** imported from `DE4SDV_OperationalContext`;
 - **operational subject and actors** via a SysML v2 use case;
 - **operational behavior** via action definitions and an action usage;
 - **information passed between operational actions** via item definitions and flows;
 - **nominal sequencing** via `first ... then ...` successions;
-- **open assumptions/gaps/criteria** as explicit placeholders rather than hidden completeness claims.
+- **open assumptions/gaps/criteria** in the companion YAML/Markdown artifacts rather than generic SysML part placeholders.
 
 The increment framing file now distinguishes:
 
+- **reusable DE4SDV method/increment/scope definitions** imported from `DE4SDV_MethodContext`;
+- **reusable DE4SDV stakeholder roles** imported from `DE4SDV_Stakeholders`;
+- **reusable DE4SDV product-line classification definitions** imported from `DE4SDV_ProductLine`;
 - **reusable DE4SDV method concern definitions** and **typed AEBS concern usages** via native `concern def` / `concern` constructs;
 - **reusable DE4SDV method viewpoint definitions** in `DE4SDV_MethodViewpoints`;
 - **view-local feature viewpoint usages** nested inside concrete AEBS views so they are satisfied by the containing view without polluting the package namespace;
 - **feature-specific view selections** via concrete `view` usages that expose the AEBS package content and declare the current rendering directly;
-- **method stack and product-line classification records** as lightweight model elements that remain intentionally less formal than executable architecture.
+- **deferred variability decisions** without pretending that a generic `part def VariationPoint` is the right SysML v2 representation.
 
-This does not make the AEBS model complete. It fixes two clear bad modeling patterns: behavior-as-parts and concerns/viewpoints-as-parts, without creating one-off viewpoint definitions per feature.
+This does not make the AEBS model complete. It fixes clear bad modeling patterns: behavior-as-parts, concerns/viewpoints-as-parts, feature-local common vocabulary, and ontology-as-part placeholders in the operational context slice.
 
 The needs/requirements file now distinguishes:
 
@@ -73,8 +79,8 @@ The V&V planning fields, evidence status, gaps, and requirement quality findings
 ## Remaining semantic debt
 
 - Requirement candidates still need quality refinement before becoming accepted design-input requirements.
-- Operational assumptions and gaps may need a richer representation after the project decides whether to model them as metadata, concerns, requirements, constraints, or governance records.
-- Increment framing still uses lightweight parts for method-stack and product-line classification records; that may be acceptable for framing, but later product-line variability modeling should use stronger semantics.
+- Operational assumptions and gaps remain in YAML/Markdown until a dedicated V&V/evidence SysML slice chooses native representation.
+- Native SysML v2 variation/variant syntax still needs a separate spec-checked modeling decision before DE4SDV introduces formal variability model elements in SysML.
 - VSS remains a catalog/library layer; functional interfaces and signal mappings must be added in a separate adapter/model slice.
 
 ## Acceptance criteria for semantic repairs
@@ -82,7 +88,7 @@ The V&V planning fields, evidence status, gaps, and requirement quality findings
 A semantic repair should meet all of these before being treated as complete:
 
 - the construct choice is tied to engineering meaning;
-- syntax validation passes locally or in privileged CI;
+- repository non-SysML checks pass and privileged SysML validation evidence is reported separately when available;
 - the PR description states what validation proves and does not prove;
 - the repair is small enough to review;
 - deferred semantic debt remains explicit.
