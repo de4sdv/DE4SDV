@@ -27,9 +27,10 @@ pattern it adapts and the DE4SDV-specific tailoring.
   risk/effort/category metadata for native SysML v2 `stakeholder` parameters.
 - [`packages/methods/de4sdv/de4sdv_product_line.sysml`](packages/methods/de4sdv/de4sdv_product_line.sysml)
   defines reusable product-line semantics such as `SDVProductLine`,
-  `ProductLineMemberProduct`, `CommonProductLineCapability`, and conservative
-  deferred variability-decision placeholders. Feature packages should import
-  these rather than redefining product-line/common-capability vocabulary locally.
+  `ProductLineMemberProduct`, `CommonProductLineCapability`, and native SysML v2
+  `variation` / `variant` patterns for deferred product-line choices. Feature
+  packages should import these rather than redefining product-line/common-
+  capability vocabulary locally or inventing generic variation-point part definitions.
 - [`packages/methods/de4sdv/de4sdv_operational_context.sysml`](packages/methods/de4sdv/de4sdv_operational_context.sysml)
   defines reusable operational context entities such as `SubjectVehicle`,
   `Driver`, `RoadEnvironment`, `VehicleTarget`, and `DE4SDVEvidenceBaseline`
@@ -84,24 +85,28 @@ Source metadata:
 
 ## Validation
 
-All generated or modified `.sysml` textual notation in this directory must be
-validated before the modeling step is considered complete. Use one of two
-validation paths:
+Do not treat local SysML validation as a routine contributor or agent gate for
+DE4SDV. Repository work should separate:
 
-1. Local validation, if Syside is available, using the Syside Editor VS Code
-   extension or the repository wrapper:
+1. **Public repository checks** that contributors and agents can run without
+   privileged secrets:
 
 ```bash
-python scripts/validate_sysml.py
+python scripts/check_repo.py
+python scripts/smoke_test.py
+git diff --check
 ```
 
-The validation wrapper uses Sensmetry SysIDE Modeler CLI (`syside check`) and
-reports a clean no-op when the repository has no `.sysml` files yet.
+2. **Semantic review** against the SysML v2 specification, DE4SDV ontology, and
+   project modeling rules.
 
-1. Maintainer-run privileged validation, requested from the pull request after
-   initial review. Maintainers run the `Privileged Syside Validation` workflow
-   from GitHub Actions with the reviewed branch, tag, or commit SHA and the
-   model path to validate.
+3. **Privileged SysML validation evidence**, when available from GitHub Actions
+   or a maintainer-run environment. Report this evidence separately from
+   semantic quality.
+
+Local SysML validation with Sensmetry SysIDE/SysML tooling may still be useful
+for a maintainer on a supported host, but Hermes should not run local SysML
+validation unless explicitly asked.
 
 ## Libraries
 
