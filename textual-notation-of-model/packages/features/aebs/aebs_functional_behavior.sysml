@@ -27,64 +27,71 @@ package DE4SDV {
         part memberProduct : ProductLineMemberProduct;
         part aebsCommonCapability : CommonProductLineCapability;
 
+        package VSSSignalReuse {
+          doc /*
+           * Local aliases for generated COVESA VSS signals and DE4SDV candidate
+           * extension signals reused by the AEBS functional behavior slice.
+           * These aliases keep VSS reuse explicit without treating catalog
+           * definitions as architecture-owned ports, connectors, or components.
+           */
+          alias vehicleSpeedSignal for COVESA_VSS::Vehicle_Speed;
+          alias longitudinalAccelerationSignal for COVESA_VSS::Vehicle_Acceleration_Longitudinal;
+          alias obstacleDistanceSignal for COVESA_VSS::Vehicle_ADAS_ObstacleDetection_Distance;
+          alias obstacleTimeGapSignal for COVESA_VSS::Vehicle_ADAS_ObstacleDetection_TimeGap;
+          alias obstacleWarningSignal for COVESA_VSS::Vehicle_ADAS_ObstacleDetection_IsWarning;
+          alias obstacleWarningTypeSignal for COVESA_VSS::Vehicle_ADAS_ObstacleDetection_WarningType;
+          alias ebaEngagedSignal for COVESA_VSS::Vehicle_ADAS_EBA_IsEngaged;
+          alias brakeLightActiveSignal for COVESA_VSS::Vehicle_Body_Lights_Brake_IsActive;
+          alias ebaErrorSignal for COVESA_VSS::Vehicle_ADAS_EBA_IsError;
+          alias absErrorSignal for COVESA_VSS::Vehicle_ADAS_ABS_IsError;
+
+          alias aebsCollisionRiskDetectedSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_CollisionRisk_IsDetected;
+          alias aebsDriverWarningActiveSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_DriverWarning_IsActive;
+          alias aebsDriverOverrideActiveSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_DriverOverride_IsActive;
+          alias aebsEmergencyBrakingCommandedSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_EmergencyBraking_IsCommanded;
+          alias aebsErrorSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_IsError;
+          alias aebsFailureIndicationActiveSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_FailureIndication_IsActive;
+          alias aebsEvidenceEventRecordedSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_EvidenceEvent_IsRecorded;
+        }
+
         item def VehicleMotionState {
-          doc /* Abstract subject-vehicle motion state for AEBS functional reasoning. */
-          attribute vehicleSpeed :> COVESA_VSS::Vehicle_Speed;
-          attribute longitudinalAcceleration :> COVESA_VSS::Vehicle_Acceleration_Longitudinal;
+          doc /* Reuses VSSSignalReuse::vehicleSpeedSignal and VSSSignalReuse::longitudinalAccelerationSignal for AEBS vehicle-motion semantics. */
         }
 
         item def ForwardTargetState {
-          doc /* Abstract state of the vehicle target ahead of the subject vehicle. */
-          attribute obstacleDistance :> COVESA_VSS::Vehicle_ADAS_ObstacleDetection_Distance;
-          attribute obstacleTimeGap :> COVESA_VSS::Vehicle_ADAS_ObstacleDetection_TimeGap;
+          doc /* Reuses VSSSignalReuse::obstacleDistanceSignal and VSSSignalReuse::obstacleTimeGapSignal for forward-target semantics. */
         }
 
         item def CollisionRiskAssessment {
-          doc /* Functional assessment that forward collision risk is imminent under selected operating conditions. */
-          attribute obstacleWarning :> COVESA_VSS::Vehicle_ADAS_ObstacleDetection_IsWarning;
-          attribute obstacleWarningType :> COVESA_VSS::Vehicle_ADAS_ObstacleDetection_WarningType;
-          attribute aebsCollisionRiskDetected :> DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_CollisionRisk_IsDetected;
+          doc /* Reuses generated obstacle warning signals plus VSSSignalReuse::aebsCollisionRiskDetectedSignal for AEBS-specific risk semantics. */
         }
 
         item def DriverWarningRequest {
-          doc /* Functional request to warn the driver when selected warning conditions are met. */
-          attribute obstacleWarning :> COVESA_VSS::Vehicle_ADAS_ObstacleDetection_IsWarning;
-          attribute obstacleWarningType :> COVESA_VSS::Vehicle_ADAS_ObstacleDetection_WarningType;
-          attribute aebsDriverWarningActive :> DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_DriverWarning_IsActive;
+          doc /* Reuses generated obstacle warning signals plus VSSSignalReuse::aebsDriverWarningActiveSignal for AEBS-specific driver warning semantics. */
         }
 
         item def DriverOverrideInput {
-          doc /* Functional input representing conscious driver override of AEBS intervention. */
-          attribute aebsDriverOverrideActive :> DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_DriverOverride_IsActive;
+          doc /* Reuses VSSSignalReuse::aebsDriverOverrideActiveSignal for conscious AEBS driver override semantics. */
         }
 
         item def DriverOverrideDecision {
-          doc /* Functional decision describing whether override prevents or modifies AEBS intervention. */
-          attribute aebsDriverOverrideActive :> DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_DriverOverride_IsActive;
+          doc /* Derived functional decision based on VSSSignalReuse::aebsDriverOverrideActiveSignal and risk assessment semantics. */
         }
 
         item def EmergencyBrakingCommand {
-          doc /* Functional command expectation for emergency braking when activation conditions are met and no override prevents intervention. */
-          attribute aebsEmergencyBrakingCommanded :> DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_EmergencyBraking_IsCommanded;
-          attribute ebaEngaged :> COVESA_VSS::Vehicle_ADAS_EBA_IsEngaged;
-          attribute brakeLightActive :> COVESA_VSS::Vehicle_Body_Lights_Brake_IsActive;
+          doc /* Reuses VSSSignalReuse::aebsEmergencyBrakingCommandedSignal plus generated EBA/brake-light status signals. */
         }
 
         item def AEBSFailureStatus {
-          doc /* Functional status for detected AEBS-related failure conditions. */
-          attribute aebsError :> DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_IsError;
-          attribute ebaError :> COVESA_VSS::Vehicle_ADAS_EBA_IsError;
-          attribute absError :> COVESA_VSS::Vehicle_ADAS_ABS_IsError;
+          doc /* Reuses VSSSignalReuse::aebsErrorSignal plus generated EBA/ABS error status signals. */
         }
 
         item def FailureIndicationRequest {
-          doc /* Functional request to indicate AEBS-related failure without hiding safe-operation concerns. */
-          attribute aebsFailureIndicationActive :> DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_FailureIndication_IsActive;
+          doc /* Reuses VSSSignalReuse::aebsFailureIndicationActiveSignal for AEBS-specific failure indication semantics. */
         }
 
         item def AEBSEvidenceEvent {
-          doc /* Functional event record seed for later V&V/evidence-baseline work. */
-          attribute aebsEvidenceEventRecorded :> DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_EvidenceEvent_IsRecorded;
+          doc /* Reuses VSSSignalReuse::aebsEvidenceEventRecordedSignal for AEBS evidence-event recording semantics. */
         }
 
         action def AcquireVehicleAndTargetState {
