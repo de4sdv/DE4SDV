@@ -9,6 +9,7 @@
  */
 
 package DE4SDV_VSS_Extensions {
+  private import ScalarValues::*;
   private import COVESA_VSS::*;
   private import COVESA_VSS::MetadataDefinitions::*;
 
