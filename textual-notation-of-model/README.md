@@ -25,6 +25,15 @@ pattern it adapts and the DE4SDV-specific tailoring.
 - [`packages/methods/de4sdv/de4sdv_stakeholders.sysml`](packages/methods/de4sdv/de4sdv_stakeholders.sysml)
   defines reusable DE4SDV stakeholder role definitions and lightweight
   risk/effort/category metadata for native SysML v2 `stakeholder` parameters.
+- [`packages/methods/de4sdv/de4sdv_product_line.sysml`](packages/methods/de4sdv/de4sdv_product_line.sysml)
+  defines reusable product-line semantics such as `SDVProductLine`,
+  `ProductLineMemberProduct`, `CommonProductLineCapability`, and conservative
+  deferred variability-decision placeholders. Feature packages should import
+  these rather than redefining product-line/common-capability vocabulary locally.
+- [`packages/methods/de4sdv/de4sdv_operational_context.sysml`](packages/methods/de4sdv/de4sdv_operational_context.sysml)
+  defines reusable operational context entities such as `SubjectVehicle`,
+  `Driver`, `RoadEnvironment`, `VehicleTarget`, and `DE4SDVEvidenceBaseline`
+  for feature operational-context slices.
 - [`packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`](packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml)
   defines the current reusable DE4SDV method concern/viewpoint kernel as the
   top-level `DE4SDV_MethodViewpoints` package. Feature packages should

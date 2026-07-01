@@ -19,11 +19,8 @@ package DE4SDV {
       package NeedsRequirements {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
+        private import DE4SDV_ProductLine::*;
 
-        part def NeedsRequirementsIncrement;
-        part def SDVProductLine;
-        part def ProductLineMemberProduct;
-        part def CommonProductLineCapability;
         part def AEBSCapability :> CommonProductLineCapability;
 
         requirement def StakeholderNeedCandidate;

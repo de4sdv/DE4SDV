@@ -36,4 +36,5 @@ package DE4SDV_Stakeholders {
   part def ProductLineEngineer :> Stakeholder;
   part def ComplianceEngineer :> Stakeholder;
   part def VerificationEngineer :> Stakeholder;
+  part def OpenSourceReviewer :> Stakeholder;
 }

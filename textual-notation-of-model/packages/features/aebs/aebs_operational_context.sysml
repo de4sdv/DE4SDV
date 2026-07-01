@@ -7,20 +7,18 @@
  * VSS signal mapping, logical realization, physical/software realization, or
  * UNECE R152 compliance claim is made here.
  *
- * Semantic repair: the operational story is represented with SysML v2 use case
- * and action constructs instead of modeling behavior only as generic parts.
+ * Shared operational actors/context entities are imported from
+ * DE4SDV_OperationalContext. Needs, validation scenarios, assumptions, gaps,
+ * and acceptance criteria remain in the companion YAML/Markdown artifacts until
+ * a dedicated V&V/evidence SysML slice exists.
  */
 
 package DE4SDV {
   package Features {
     package AEBS {
       package OperationalContext {
-        part def SubjectVehicle;
-        part def Driver;
-        part def VehicleTarget;
-        part def RoadEnvironment;
-        part def DE4SDVEvidenceBaseline;
-        part def DE4SDVReviewer;
+        private import DE4SDV_OperationalContext::*;
+        private import DE4SDV_Stakeholders::*;
 
         item def VehicleTargetObservation;
         item def ForwardCollisionRiskEstimate;
@@ -125,7 +123,7 @@ package DE4SDV {
           actor vehicleTarget : VehicleTarget;
           actor roadEnvironment : RoadEnvironment;
           actor evidenceBaseline : DE4SDVEvidenceBaseline;
-          actor reviewer : DE4SDVReviewer;
+          actor reviewer : OpenSourceReviewer;
 
           objective {
             doc /*
@@ -144,7 +142,7 @@ package DE4SDV {
         part vehicleTarget : VehicleTarget;
         part roadEnvironment : RoadEnvironment;
         part de4sdvEvidenceBaseline : DE4SDVEvidenceBaseline;
-        part de4sdvReviewer : DE4SDVReviewer;
+        part de4sdvReviewer : OpenSourceReviewer;
 
         use case vehicleTargetForwardCollisionStory : MitigateVehicleTargetForwardCollisionRisk {
           subject subjectVehicle = OperationalContext::subjectVehicle;
@@ -157,42 +155,6 @@ package DE4SDV {
 
         action vehicleTargetForwardCollisionMitigationFlow : VehicleTargetForwardCollisionMitigationFlow;
         action detectedFailureConcern : IndicateAEBSFailureConcern;
-
-        part def StakeholderNeed;
-        part def ValidationScenario;
-        part def Assumption;
-        part def Gap;
-        part def AcceptanceCriterion;
-
-        part needReduceForwardCollisionRisk : StakeholderNeed;
-        part needExplicitOperationalBoundary : StakeholderNeed;
-        part needSeparateCapabilityFromFeatureClassification : StakeholderNeed;
-        part needVisibleRegulatoryAssumptions : StakeholderNeed;
-        part needLaterVerificationTargets : StakeholderNeed;
-
-        part validationScenarioForCollisionRiskNeed : ValidationScenario;
-        part validationScenarioForBoundaryNeed : ValidationScenario;
-        part validationScenarioForProductLineNeed : ValidationScenario;
-        part validationScenarioForComplianceNeed : ValidationScenario;
-        part validationScenarioForVerificationNeed : ValidationScenario;
-
-        part assumptionVehicleTargetOnly : Assumption;
-        part assumptionNoQuantifiedOperatingConditionsYet : Assumption;
-        part assumptionDriverOverrideIsOperationalPath : Assumption;
-        part assumptionFailureHandlingIsConcernOnly : Assumption;
-        part assumptionVSSDeferredToFunctionalInterfaces : Assumption;
-
-        part gapOperatingParametersUndefined : Gap;
-        part gapActivationCriteriaUndefined : Gap;
-        part gapNoDesignInputRequirementsYet : Gap;
-        part gapNoVSSSignalMappingsYet : Gap;
-        part gapNoExecutableEvidenceYet : Gap;
-
-        part criterionBoundaryExplicit : AcceptanceCriterion;
-        part criterionVehicleTargetFocused : AcceptanceCriterion;
-        part criterionNeedsSeparateFromRequirements : AcceptanceCriterion;
-        part criterionValidationSeedsRecorded : AcceptanceCriterion;
-        part criterionNoComplianceClaim : AcceptanceCriterion;
       }
     }
   }

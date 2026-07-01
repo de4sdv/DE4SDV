@@ -24,7 +24,7 @@ package DE4SDV_MethodViewpoints {
     require constraint {
       doc /*
        * Reviewers need model content to distinguish common product-line
-       * capabilities from features, candidate features, variation points, and
+       * capabilities from features, candidate features, variability decisions, and
        * deferred variability decisions.
        */
     }
@@ -74,7 +74,7 @@ package DE4SDV_MethodViewpoints {
     require constraint {
       doc /*
        * A product-line classification view shall separate common product-line
-       * capabilities from features, candidate features, variation points, and
+       * capabilities from features, candidate features, variability decisions, and
        * deferred variability decisions before downstream functional modeling
        * starts.
        */
