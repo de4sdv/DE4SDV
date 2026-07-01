@@ -19,8 +19,8 @@ package DE4SDV {
       package FunctionalBehavior {
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
-        private import COVESA_VSS::*;
-        private import DE4SDV_VSS_Extensions::*;
+        private import COVESA_VSS::**;
+        private import DE4SDV_VSS_Extensions::**;
 
         part incAEBS004 : FeatureIncrement;
         part sdvProductLine : SDVProductLine;
@@ -34,24 +34,24 @@ package DE4SDV {
            * These aliases keep VSS reuse explicit without treating catalog
            * definitions as architecture-owned ports, connectors, or components.
            */
-          alias vehicleSpeedSignal for COVESA_VSS::Vehicle_Speed;
-          alias longitudinalAccelerationSignal for COVESA_VSS::Vehicle_Acceleration_Longitudinal;
-          alias obstacleDistanceSignal for COVESA_VSS::Vehicle_ADAS_ObstacleDetection_Distance;
-          alias obstacleTimeGapSignal for COVESA_VSS::Vehicle_ADAS_ObstacleDetection_TimeGap;
-          alias obstacleWarningSignal for COVESA_VSS::Vehicle_ADAS_ObstacleDetection_IsWarning;
-          alias obstacleWarningTypeSignal for COVESA_VSS::Vehicle_ADAS_ObstacleDetection_WarningType;
-          alias ebaEngagedSignal for COVESA_VSS::Vehicle_ADAS_EBA_IsEngaged;
-          alias brakeLightActiveSignal for COVESA_VSS::Vehicle_Body_Lights_Brake_IsActive;
-          alias ebaErrorSignal for COVESA_VSS::Vehicle_ADAS_EBA_IsError;
-          alias absErrorSignal for COVESA_VSS::Vehicle_ADAS_ABS_IsError;
+          alias vehicleSpeedSignal for Vehicle_Speed;
+          alias longitudinalAccelerationSignal for Vehicle_Acceleration_Longitudinal;
+          alias obstacleDistanceSignal for Vehicle_ADAS_ObstacleDetection_Distance;
+          alias obstacleTimeGapSignal for Vehicle_ADAS_ObstacleDetection_TimeGap;
+          alias obstacleWarningSignal for Vehicle_ADAS_ObstacleDetection_IsWarning;
+          alias obstacleWarningTypeSignal for Vehicle_ADAS_ObstacleDetection_WarningType;
+          alias ebaEngagedSignal for Vehicle_ADAS_EBA_IsEngaged;
+          alias brakeLightActiveSignal for Vehicle_Body_Lights_Brake_IsActive;
+          alias ebaErrorSignal for Vehicle_ADAS_EBA_IsError;
+          alias absErrorSignal for Vehicle_ADAS_ABS_IsError;
 
-          alias aebsCollisionRiskDetectedSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_CollisionRisk_IsDetected;
-          alias aebsDriverWarningActiveSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_DriverWarning_IsActive;
-          alias aebsDriverOverrideActiveSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_DriverOverride_IsActive;
-          alias aebsEmergencyBrakingCommandedSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_EmergencyBraking_IsCommanded;
-          alias aebsErrorSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_IsError;
-          alias aebsFailureIndicationActiveSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_FailureIndication_IsActive;
-          alias aebsEvidenceEventRecordedSignal for DE4SDV_VSS_Extensions::Vehicle_ADAS_AEBS_EvidenceEvent_IsRecorded;
+          alias aebsCollisionRiskDetectedSignal for Vehicle_ADAS_AEBS_CollisionRisk_IsDetected;
+          alias aebsDriverWarningActiveSignal for Vehicle_ADAS_AEBS_DriverWarning_IsActive;
+          alias aebsDriverOverrideActiveSignal for Vehicle_ADAS_AEBS_DriverOverride_IsActive;
+          alias aebsEmergencyBrakingCommandedSignal for Vehicle_ADAS_AEBS_EmergencyBraking_IsCommanded;
+          alias aebsErrorSignal for Vehicle_ADAS_AEBS_IsError;
+          alias aebsFailureIndicationActiveSignal for Vehicle_ADAS_AEBS_FailureIndication_IsActive;
+          alias aebsEvidenceEventRecordedSignal for Vehicle_ADAS_AEBS_EvidenceEvent_IsRecorded;
         }
 
         item def VehicleMotionState {
