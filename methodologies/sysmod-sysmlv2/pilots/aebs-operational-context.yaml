@@ -64,7 +64,7 @@ deferred_viewpoints:
 
 system_layers:
   system_1:
-    system_of_interest: Configured SDV variant with AEBS-related behavior
+    system_of_interest: SDV product-line member product with AEBS-related behavior
     operational_role: Subject vehicle in the first operational story.
   system_2:
     system_of_interest: DE4SDV engineering and assurance system
@@ -95,8 +95,8 @@ operational_boundary:
 actors_and_external_systems:
   - id: ACT-SUBJECT-VEHICLE
     name: Subject vehicle
-    kind: system_1_member_product
-    description: Configured SDV variant whose AEBS-related behavior is under consideration.
+    kind: product_line_member_product
+    description: SDV product-line member product whose AEBS-related behavior is under consideration.
   - id: ACT-DRIVER
     name: Driver
     kind: human_actor
@@ -125,19 +125,19 @@ operational_capability:
   statement: >-
     The SDV product line should provide a common AEBS capability that reduces
     the risk or severity of a forward rear-end in-lane collision with a vehicle
-    target across applicable member products under selected operating conditions
+    target across member products under selected operating conditions
     by detecting imminent collision risk, warning the driver when required, and
     commanding emergency braking when activation conditions are met.
   notes:
     - This is an operational capability statement, not a final requirement.
-    - Whether the capability is common or variable depends on member-product applicability.
+    - AEBS is treated as a common product-line capability in this slice; variable realization choices are modeled separately with native SysML v2 variation/variant semantics.
 
 operational_story:
   id: STORY-AEBS-VEHICLE-TARGET-001
   title: Vehicle-target forward collision risk mitigation
   status: draft
   narrative: >-
-    An applicable SDV product-line member product travels in-lane behind a
+    An SDV product-line member product travels in-lane behind a
     passenger-car target while realizing the product-line AEBS common
     capability. The relative motion creates an imminent forward collision risk
     under stated operating conditions. The AEBS-related behavior detects the
@@ -149,7 +149,7 @@ operational_story:
     - subject vehicle is active and traveling in-lane
     - vehicle target is ahead in the same lane
     - selected operating conditions are in scope for the scenario seed
-    - AEBS-related behavior is available for the configured variant
+    - AEBS-related behavior is available as realization of the common AEBS capability
   trigger:
     - imminent forward collision risk emerges between subject vehicle and vehicle target
   nominal_sequence:
@@ -185,7 +185,7 @@ operational_story:
 stakeholder_needs_seed:
   - id: N-AEBS-OP-001
     stakeholder: STK-VALIDATION-STAKEHOLDER
-    statement: Road users and vehicle occupants need the SDV product line to provide a common AEBS capability that reduces forward rear-end in-lane collision risk with a vehicle target across applicable member products under defined operating conditions.
+    statement: Road users and vehicle occupants need the SDV product line to provide a common AEBS capability that reduces forward rear-end in-lane collision risk with a vehicle target across member products under defined operating conditions.
     source: STORY-AEBS-VEHICLE-TARGET-001
     status: draft
     validation_reference: VAL-AEBS-OP-001
@@ -234,7 +234,7 @@ validation_scenarios_seed:
     validates_need: N-AEBS-OP-003
     status: planned
     method: inspection
-    scenario_question: Does the capability statement avoid prematurely classifying AEBS as a feature when it may be common?
+    scenario_question: Does the capability statement keep AEBS classified as a common capability while deferring variant choices to native variation/variant modeling?
     evidence_artifact: planned feature/common-capability review note
   - id: VAL-AEBS-OP-004
     validates_need: N-AEBS-OP-004

@@ -28,7 +28,11 @@ DE4SDV does not redefine SYSMOD from scratch. It references the upstream MBSE4U 
 
 ## Current maturity
 
-This repository is in a foundation phase. The first adoption step is documentation and decision capture only. Future increments may add a local tailoring package and small SysML v2 examples after toolchain validation.
+This repository is in an incremental modeling phase. The AEBS pilot now carries
+reviewed framing, operational context, needs/requirements, and functional
+behavior slices in YAML/Markdown plus matching SysML v2 model artifacts. Later
+increments should continue from these small reviewable slices rather than
+jumping directly to logical/physical realization or compliance claims.
 
 ## Files
 
@@ -44,6 +48,9 @@ This repository is in a foundation phase. The first adoption step is documentati
 - [`pilots/aebs-operational-story.md`](pilots/aebs-operational-story.md) presents the same operational slice in reviewer-facing narrative form.
 - [`pilots/aebs-needs-requirements.yaml`](pilots/aebs-needs-requirements.yaml) records the AEBS needs, draft requirements, traceability, V&V planning, gaps, and acceptance criteria.
 - [`pilots/aebs-needs-requirements.md`](pilots/aebs-needs-requirements.md) presents the same needs/requirements slice in reviewer-facing form.
+- [`pilots/aebs-functional-behavior.yaml`](pilots/aebs-functional-behavior.yaml) records the AEBS functional responsibilities, functional items, draft requirement trace, candidate VSS mappings, and gaps.
+- [`pilots/aebs-functional-behavior.md`](pilots/aebs-functional-behavior.md) presents the same functional behavior and candidate signal slice in reviewer-facing form.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml) provides the initial SysML v2 model slice for the AEBS increment framing baseline.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml) provides the initial SysML v2 operational context model slice.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml) provides the initial SysML v2 needs and draft requirements model slice.
+- [`../../textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml) provides the initial SysML v2 functional behavior model slice.

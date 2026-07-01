@@ -37,6 +37,7 @@ The semantic repair in this increment uses the public SysML v2 release materials
 | `textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml` | refactored for native variability | Product-line/common-capability/feature-candidate vocabulary was originally defined inside the AEBS feature package. PR #46 extracted it but kept variability as conservative deferred-decision placeholders pending syntax review. | The product-line kernel now documents native SysML v2 `variation` / `variant` semantics, provides descriptive variant-choice types, and includes a native `variation part def DeferredProductLineVariation` pattern for unresolved product-line choices. Feature packages must not introduce generic variation-point part definitions. |
 | `textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml` | added in this cleanup | Operational actors such as subject vehicle, driver, road environment, evidence baseline, and vehicle target were defined inside the AEBS operational context even though they are reusable across SDV feature increments. | Added a reusable operational-context kernel imported by AEBS operational slices. |
 | `textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml` | repaired/refactored | Previously represented method stack, viewpoints, concerns, product-line classifications, scope, and gaps mostly as generic parts. The first repair draft made the viewpoints AEBS-specific, and later still kept DE4SDV-wide method/product-line vocabulary inside the AEBS package. | AEBS now imports reusable DE4SDV method, stakeholder, product-line, and viewpoint definitions; keeps only AEBS-specific concern usages, product-line classification usages, scope usages, and concrete views; and records unresolved sensor-package/evidence-level variability as native SysML v2 `variation part` usages with deferred `variant part` choices instead of fake `VariationPoint` classes. |
+| `textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml` | added in this PR | The AEBS chain had framing, operational context, and needs/requirements slices, but no functional behavior slice connecting draft requirements to functions/items before VSS candidates. | Adds a functional-domain action/item/flow model for vehicle-target AEBS behavior. Candidate VSS paths remain in YAML/Markdown as catalog mappings; no logical/physical realization, accepted interface mapping, or compliance claim is made. |
 | `textual-notation-of-model/snapshots/de4sdv-context-spike.sysml` | obsolete spike candidate | Minimal context sketch with only part definitions and no relationships. It is useful as historical evidence but weak as a current baseline. | Either retire from baseline documentation or upgrade into a real context model. |
 | `textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml` | mostly appropriate catalog layer | Uses attributes, enums, and metadata for generated signal/catalog semantics. Branches are represented as part definitions, which is acceptable only if documented as catalog grouping rather than architecture topology. | Follow-up should document catalog-layer semantics and avoid using the library as architecture interconnection evidence. |
 | `textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml` | added in PR #42 update | The AEBS needs/requirements slice was SYSMOD-inspired but had no explicit problem statement or system context anchor. | Added a small DE4SDV method context package adapting the SYSMOD/SysML v2 problem-statement pattern with `ProblemStatement` and `SystemContext`. A generic `ProjectContext` layer is intentionally not introduced. This is not a full upstream SYSMOD implementation. |
@@ -75,6 +76,13 @@ The needs/requirements file now distinguishes:
 - **requirement candidates** as native requirement usages with `require constraint` bodies rather than prose-only placeholders;
 - **satisfaction assertions** as deferred until a later functional/logical realization model contains concrete satisfying features.
 
+The functional behavior file now distinguishes:
+
+- **functional responsibilities** via native `action def` / `action` elements;
+- **functional information items** via native `item def` elements;
+- **functional sequencing and information movement** via `flow` and `first ... then ...`;
+- **candidate VSS signal paths** as YAML/Markdown catalog mappings, not as architecture topology or implementation ownership.
+
 The V&V planning fields, evidence status, gaps, and requirement quality findings remain in the Markdown/YAML reviewer artifacts for PR #42. They are intentionally not modeled as generic SysML part taxonomies in `aebs_needs_requirements.sysml`.
 
 ## Remaining semantic debt
@@ -82,7 +90,7 @@ The V&V planning fields, evidence status, gaps, and requirement quality findings
 - Requirement candidates still need quality refinement before becoming accepted design-input requirements.
 - Operational assumptions and gaps remain in YAML/Markdown until a dedicated V&V/evidence SysML slice chooses native representation.
 - Native SysML v2 variation/variant usage is now introduced only for deferred product-line choices; concrete AEBS sensor-package and evidence-level variants still require traceable functional/evidence increments before becoming accepted product-line choices.
-- VSS remains a catalog/library layer; functional interfaces and signal mappings must be added in a separate adapter/model slice.
+- VSS candidate signal mappings now exist for the functional slice, but remain catalog candidates; accepted functional interfaces and signal ownership need a separate interface/refinement increment.
 
 ## Acceptance criteria for semantic repairs
 

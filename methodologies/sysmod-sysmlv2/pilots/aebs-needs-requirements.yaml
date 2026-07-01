@@ -102,9 +102,7 @@ needs:
     type: product_line_need
     statement: >-
       Product-line engineers need AEBS to remain classified as a product-line
-      common capability required across member products, with variation points
-      modeled separately instead of weakening the common-capability
-      classification.
+      common capability required across member products, with native SysML v2 variation/variant choices modeled separately instead of weakening the common-capability classification.
     source: INC-AEBS-001
     priority: high
     status: draft
@@ -247,15 +245,14 @@ requirements:
     status: draft
     maturity: requirement_candidate
     statement: >-
-      The AEBS model baseline shall keep common-capability, feature, and
-      variation-point classifications explicit for each AEBS behavior or scope
+      The AEBS model baseline shall keep common-capability, feature, and native variation/variant classifications explicit for each AEBS behavior or scope
       element.
     derived_from:
       - N-AEBS-003
     verification_method: inspection
     validation_reference: VAL-AEBS-003
     evidence_status: planned
-    acceptance_criterion: Each AEBS behavior/scope element has an explicit common-capability, feature-candidate, or variation-point classification.
+    acceptance_criterion: Each AEBS behavior/scope element has an explicit common-capability, feature-candidate, or native variation/variant classification.
     known_gaps:
       - GAP-AEBS-REQ-008
       - GAP-AEBS-REQ-010
@@ -294,7 +291,7 @@ validation_scenarios:
     validates_need: N-AEBS-003
     method: inspection
     status: planned
-    question: Does the requirement set keep AEBS framed as product-line common capability before variation modeling?
+    question: Does the requirement set keep AEBS framed as product-line common capability while deferring variable realization choices to native variation/variant modeling?
     evidence_artifact: planned product-line classification review note
   - id: VAL-AEBS-004
     validates_need: N-AEBS-004

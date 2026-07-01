@@ -1,0 +1,341 @@
+schema: de4sdv.functional-behavior.v0
+id: INC-AEBS-004
+name: AEBS functional behavior and VSS candidate signals
+status: draft
+type: FeatureIncrement
+parent_increment: INC-AEBS-003
+owner: DE4SDV maintainers
+
+purpose: >-
+  Define the first functional-domain slice for the AEBS pilot after the
+  operational context and needs/requirements baselines. This increment identifies
+  abstract AEBS functions, functional information items, draft requirement trace,
+  and candidate COVESA VSS signal paths without claiming logical realization,
+  physical/software architecture, implementation ownership, or UNECE R152
+  compliance/type-approval fulfillment.
+
+normalization_inputs:
+  - artifact: methodologies/sysmod-sysmlv2/pilots/aebs-increment-framing.yaml
+    changes:
+      - AEBS vehicle-target behavior is normalized as common capability scope, not unresolved feature/common-capability ambiguity.
+      - Deferred pedestrian/bicycle target entries are normalized as deferred product-line scope, not accepted features.
+      - Sensor-package and evidence-level choices are normalized as native SysML v2 variation/variant choices.
+      - SysML v2 model-expression wording is updated to reflect the existing reviewed SysML baseline.
+  - artifact: methodologies/sysmod-sysmlv2/pilots/aebs-operational-context.yaml
+    changes:
+      - Capability and story wording now says across member products without subset/applicability weakening.
+      - System 1 is treated as a product-line member product realizing the common AEBS capability.
+      - Variable realization choices are deferred to native SysML v2 variation/variant modeling.
+  - artifact: methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml
+    changes:
+      - Requirement/need text now says native variation/variant classifications where variable choices are intended.
+      - AEBS remains a common product-line capability required across member products.
+
+scope:
+  in_scope:
+    - abstract functional behavior for vehicle-target forward collision risk mitigation
+    - functional information items crossing the AEBS behavior boundary
+    - trace from draft requirements to functional responsibilities
+    - candidate VSS signal paths as draft catalog mappings
+    - explicit gaps where VSS has no direct AEBS/override/failure mapping
+    - SysML v2 functional behavior model slice
+  out_of_scope:
+    - logical component allocation
+    - physical/software deployment architecture
+    - sensor package selection as an accepted variant
+    - evidence-level selection as an accepted variant
+    - calibrated activation thresholds, speed ranges, TTC values, or deceleration profiles
+    - regulatory clause-level compliance interpretation
+    - certification, homologation, or type-approval claim
+
+source_alignment:
+  - source_id: INC-AEBS-001
+    use: normalized_framing_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/aebs-increment-framing.yaml
+  - source_id: INC-AEBS-002
+    use: normalized_operational_context_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/aebs-operational-context.yaml
+  - source_id: INC-AEBS-003
+    use: needs_requirements_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml
+  - source_id: SRC-COVESA-VSS
+    use: candidate_signal_catalog
+    artifact: textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml
+    notes:
+      - VSS candidate paths are signal/catalog references only.
+      - VSS hierarchy is not used as architecture topology.
+      - VSS candidate mappings do not imply implementation ownership or interface completeness.
+
+system_of_interest:
+  system_1: SDV product-line member product realizing the common AEBS capability.
+  system_2: DE4SDV engineering and assurance baseline recording functional behavior, trace, candidate VSS mappings, and gaps.
+  system_3: DE4SDV governance/review ecosystem deciding whether the functional slice is good enough for later logical/interface modeling.
+
+functional_boundary:
+  subject: AEBS common capability functional behavior for the vehicle-target slice
+  inputs:
+    - VehicleMotionState
+    - ForwardTargetState
+    - DriverOverrideInput
+    - AEBSFailureStatus
+  outputs:
+    - CollisionRiskAssessment
+    - DriverWarningRequest
+    - EmergencyBrakingCommand
+    - FailureIndicationRequest
+    - AEBSEvidenceEvent
+  constraints:
+    - Functional items are abstract and do not select sensors, ECUs, services, buses, or message formats.
+    - Candidate VSS mappings are non-normative until reviewed in a dedicated interface/modeling increment.
+
+functional_items:
+  - id: ITEM-AEBS-001
+    name: VehicleMotionState
+    description: Abstract state needed to reason about subject-vehicle motion for the AEBS vehicle-target slice.
+    candidate_vss_paths:
+      - Vehicle.Speed
+      - Vehicle.Acceleration.Longitudinal
+    mapping_status: candidate
+    gap_if_missing: GAP-AEBS-FUNC-001
+  - id: ITEM-AEBS-002
+    name: ForwardTargetState
+    description: Abstract state of the vehicle target ahead of the subject vehicle.
+    candidate_vss_paths:
+      - Vehicle.ADAS.ObstacleDetection.Distance
+      - Vehicle.ADAS.ObstacleDetection.TimeGap
+    mapping_status: candidate
+    gap_if_missing: GAP-AEBS-FUNC-002
+  - id: ITEM-AEBS-003
+    name: CollisionRiskAssessment
+    description: Functional assessment that forward collision risk is imminent under selected operating conditions.
+    candidate_vss_paths:
+      - Vehicle.ADAS.ObstacleDetection.IsWarning
+      - Vehicle.ADAS.ObstacleDetection.WarningType
+    mapping_status: weak_candidate
+    gap_if_missing: GAP-AEBS-FUNC-003
+  - id: ITEM-AEBS-004
+    name: DriverWarningRequest
+    description: Functional request to warn the driver when selected warning conditions are met.
+    candidate_vss_paths:
+      - Vehicle.ADAS.ObstacleDetection.IsWarning
+      - Vehicle.ADAS.ObstacleDetection.WarningType
+    mapping_status: candidate
+    gap_if_missing: GAP-AEBS-FUNC-004
+  - id: ITEM-AEBS-005
+    name: EmergencyBrakingCommand
+    description: Functional command expectation for emergency braking when activation conditions are met and no override prevents intervention.
+    candidate_vss_paths:
+      - Vehicle.ADAS.EBA.IsEngaged
+      - Vehicle.Body.Lights.Brake.IsActive
+    mapping_status: weak_candidate
+    gap_if_missing: GAP-AEBS-FUNC-005
+  - id: ITEM-AEBS-006
+    name: DriverOverrideInput
+    description: Functional input indicating conscious driver override of AEBS intervention.
+    candidate_vss_paths: []
+    mapping_status: gap
+    gap_if_missing: GAP-AEBS-FUNC-006
+  - id: ITEM-AEBS-007
+    name: DriverOverrideDecision
+    description: Functional decision describing whether conscious driver override prevents or modifies AEBS intervention.
+    candidate_vss_paths: []
+    mapping_status: gap
+    gap_if_missing: GAP-AEBS-FUNC-006
+  - id: ITEM-AEBS-008
+    name: AEBSFailureStatus
+    description: Functional status indicating detected AEBS-related failure conditions.
+    candidate_vss_paths:
+      - Vehicle.ADAS.EBA.IsError
+      - Vehicle.ADAS.ABS.IsError
+    mapping_status: weak_candidate
+    gap_if_missing: GAP-AEBS-FUNC-007
+  - id: ITEM-AEBS-009
+    name: FailureIndicationRequest
+    description: Functional request to indicate AEBS-related failure without hiding safe-operation concerns.
+    candidate_vss_paths: []
+    mapping_status: gap
+    gap_if_missing: GAP-AEBS-FUNC-008
+  - id: ITEM-AEBS-010
+    name: AEBSEvidenceEvent
+    description: Functional event record seed for later verification, validation, and evidence-baseline work.
+    candidate_vss_paths: []
+    mapping_status: gap
+    gap_if_missing: GAP-AEBS-FUNC-009
+
+functions:
+  - id: FUNC-AEBS-001
+    name: AcquireVehicleAndTargetState
+    responsibility: Acquire abstract vehicle-motion and forward-target state needed by the vehicle-target AEBS slice.
+    inputs: []
+    outputs:
+      - VehicleMotionState
+      - ForwardTargetState
+    derived_from:
+      - REQ-AEBS-001
+    known_gaps:
+      - GAP-AEBS-FUNC-001
+      - GAP-AEBS-FUNC-002
+  - id: FUNC-AEBS-002
+    name: AssessForwardCollisionRisk
+    responsibility: Determine whether forward collision risk is imminent under selected operating conditions.
+    inputs:
+      - VehicleMotionState
+      - ForwardTargetState
+    outputs:
+      - CollisionRiskAssessment
+    derived_from:
+      - REQ-AEBS-001
+    known_gaps:
+      - GAP-AEBS-FUNC-003
+  - id: FUNC-AEBS-003
+    name: RequestDriverWarning
+    responsibility: Request driver warning when selected warning conditions are met.
+    inputs:
+      - CollisionRiskAssessment
+    outputs:
+      - DriverWarningRequest
+    derived_from:
+      - REQ-AEBS-002
+    known_gaps:
+      - GAP-AEBS-FUNC-004
+  - id: FUNC-AEBS-004
+    name: EvaluateDriverOverride
+    responsibility: Evaluate whether conscious driver override prevents or modifies AEBS intervention.
+    inputs:
+      - DriverOverrideInput
+      - CollisionRiskAssessment
+    outputs:
+      - DriverOverrideDecision
+    derived_from:
+      - REQ-AEBS-004
+    known_gaps:
+      - GAP-AEBS-FUNC-006
+  - id: FUNC-AEBS-005
+    name: RequestEmergencyBraking
+    responsibility: Request emergency braking when activation conditions are met and no overriding condition prevents intervention.
+    inputs:
+      - CollisionRiskAssessment
+      - DriverOverrideDecision
+    outputs:
+      - EmergencyBrakingCommand
+    derived_from:
+      - REQ-AEBS-003
+    known_gaps:
+      - GAP-AEBS-FUNC-005
+  - id: FUNC-AEBS-006
+    name: MonitorAEBSFailureStatus
+    responsibility: Monitor AEBS-related failure status relevant to safe-operation concerns.
+    inputs:
+      - AEBSFailureStatus
+    outputs:
+      - FailureIndicationRequest
+    derived_from:
+      - REQ-AEBS-005
+    known_gaps:
+      - GAP-AEBS-FUNC-007
+      - GAP-AEBS-FUNC-008
+  - id: FUNC-AEBS-007
+    name: RecordAEBSEvidenceEvent
+    responsibility: Record evidence-relevant event expectations for later V&V/evidence slices.
+    inputs:
+      - CollisionRiskAssessment
+      - DriverWarningRequest
+      - EmergencyBrakingCommand
+      - FailureIndicationRequest
+    outputs:
+      - AEBSEvidenceEvent
+    derived_from:
+      - REQ-AEBS-007
+    known_gaps:
+      - GAP-AEBS-FUNC-009
+
+traceability:
+  - from: REQ-AEBS-001
+    relation: allocated_to_function_candidate
+    to:
+      - FUNC-AEBS-001
+      - FUNC-AEBS-002
+    status: draft
+  - from: REQ-AEBS-002
+    relation: allocated_to_function_candidate
+    to:
+      - FUNC-AEBS-003
+    status: draft
+  - from: REQ-AEBS-003
+    relation: allocated_to_function_candidate
+    to:
+      - FUNC-AEBS-005
+    status: draft
+  - from: REQ-AEBS-004
+    relation: allocated_to_function_candidate
+    to:
+      - FUNC-AEBS-004
+    status: draft
+  - from: REQ-AEBS-005
+    relation: allocated_to_function_candidate
+    to:
+      - FUNC-AEBS-006
+    status: draft
+  - from: REQ-AEBS-006
+    relation: constrains_functional_slice
+    to:
+      - FUNC-AEBS-001
+      - FUNC-AEBS-002
+      - FUNC-AEBS-003
+      - FUNC-AEBS-004
+      - FUNC-AEBS-005
+      - FUNC-AEBS-006
+      - FUNC-AEBS-007
+    status: draft
+  - from: REQ-AEBS-007
+    relation: allocated_to_function_candidate
+    to:
+      - FUNC-AEBS-007
+    status: draft
+
+gaps:
+  - id: GAP-AEBS-FUNC-001
+    statement: Vehicle motion state needs reviewed units, sampling assumptions, and operating-condition boundaries before interface modeling.
+    status: open
+  - id: GAP-AEBS-FUNC-002
+    statement: Forward target state needs reviewed target typing, relative-distance/relative-speed assumptions, and object-source semantics.
+    status: open
+  - id: GAP-AEBS-FUNC-003
+    statement: Collision-risk assessment has no accepted threshold, TTC criterion, or activation logic.
+    status: open
+  - id: GAP-AEBS-FUNC-004
+    statement: Driver warning request needs modality, timing, and observability criteria.
+    status: open
+  - id: GAP-AEBS-FUNC-005
+    statement: Emergency braking command mapping is weak because VSS candidates expose engagement/brake-light status rather than a normative AEBS command interface.
+    status: open
+  - id: GAP-AEBS-FUNC-006
+    statement: No direct candidate VSS path for conscious AEBS driver override was identified in the generated catalog scan.
+    status: open
+  - id: GAP-AEBS-FUNC-007
+    statement: Failure status candidates are subsystem-level EBA/ABS errors, not a reviewed AEBS failure model.
+    status: open
+  - id: GAP-AEBS-FUNC-008
+    statement: Failure indication request needs an accepted driver/HMI or diagnostic signaling model.
+    status: open
+  - id: GAP-AEBS-FUNC-009
+    statement: Evidence event recording has no accepted event schema, log destination, timing, or retention semantics.
+    status: open
+
+acceptance_criteria:
+  - id: AC-AEBS-FUNC-001
+    criterion: Each draft requirement from INC-AEBS-003 maps to at least one function or explicit constraint in this increment.
+  - id: AC-AEBS-FUNC-002
+    criterion: Each functional information item has candidate VSS paths or an explicit gap.
+  - id: AC-AEBS-FUNC-003
+    criterion: The SysML v2 slice uses functional action/item/flow constructs and avoids logical/physical realization claims.
+  - id: AC-AEBS-FUNC-004
+    criterion: No VSS candidate is described as normative architecture topology or implementation ownership.
+
+validation:
+  public_checks:
+    - python scripts/check_repo.py
+    - python scripts/smoke_test.py
+    - git diff --check
+  local_sysml_validation: not_run_by_policy
+  privileged_sysml_validation: expected_from_github_when_pr_runs

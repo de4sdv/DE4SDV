@@ -27,10 +27,11 @@ lifecycle_decision_supported:
 
 system_layers:
   system_1:
-    name: Configured SDV variant with AEBS-related behavior
+    name: SDV product-line member product with AEBS-related behavior
     role: >-
-      The product-line member product or variant whose vehicle-target forward
-      collision risk mitigation behavior will eventually be modeled.
+      The product-line member product whose vehicle-target forward
+      collision risk mitigation behavior will be modeled as realization of
+      the common AEBS capability.
   system_2:
     name: DE4SDV engineering and assurance system for AEBS modeling
     role: >-
@@ -54,7 +55,7 @@ method_stack:
     note: Keeps feature/common-capability, requirement, evidence, gap, and traceability terms consistent.
   sysml_v2:
     role: model_expression
-    note: Will be introduced in later increments after this framing baseline.
+    note: Expresses the reviewed model baseline for framing, operational context, needs/requirements, and later functional slices.
   vss:
     role: candidate_signal_catalog
     note: Used only when functional interface signal candidates are needed.
@@ -111,7 +112,7 @@ stakeholders:
     role: Product-line engineer
     concerns:
       - AEBS-related capabilities and features must not confuse common capabilities with variant-distinguishing features.
-      - Applicability and variation choices must be explicit across member products.
+      - Common-capability realization and native SysML v2 variation/variant choices must be explicit across member products.
   - id: STK-SYSTEMS-ENGINEER
     role: Systems engineer
     concerns:
@@ -161,34 +162,32 @@ source_anchors:
 feature_classification_hypotheses:
   - id: CAP-AEBS-FCRM
     label: Forward collision risk mitigation
-    classification: candidate_common_capability
+    classification: common_capability
     rationale: >-
-      If every target member product provides this capability, it is common
-      product-line capability rather than a feature.
+      AEBS forward collision risk mitigation is treated as a common product-line capability for the first vehicle-target slice; feature-level variation is modeled separately.
   - id: FEAT-AEBS-VEHICLE-TARGET
     label: Vehicle-target AEBS support
-    classification: candidate_feature_or_common_capability
+    classification: common_capability
     rationale: >-
-      It is a feature only if it distinguishes member products or selectable
-      regulatory/market configurations.
+      Vehicle-target AEBS support is part of the common capability in the first slice; selectable regulatory/market differences must be modeled separately as native variation choices.
   - id: FEAT-AEBS-PEDESTRIAN-TARGET
     label: Pedestrian-target AEBS support
-    classification: deferred_feature_candidate
+    classification: deferred_product_line_scope
     rationale: >-
       It is in the reviewed regulatory scope but deferred from the first slice.
   - id: FEAT-AEBS-BICYCLE-TARGET
     label: Bicycle-target AEBS support
-    classification: deferred_feature_candidate
+    classification: deferred_product_line_scope
     rationale: >-
       It is in the reviewed regulatory scope but deferred from the first slice.
   - id: VP-AEBS-SENSOR-PACKAGE
     label: AEBS sensor package selection
-    classification: variation_point
-    rationale: Camera, radar, fusion, and other sensing choices affect realization and evidence.
+    classification: native_sysml_variation
+    rationale: Camera, radar, fusion, and other sensing choices are deferred native SysML v2 variation/variant choices affecting later realization and evidence.
   - id: VP-AEBS-EVIDENCE-LEVEL
     label: AEBS evidence level
-    classification: variation_point
-    rationale: Simulation, HIL, vehicle test, and inspection evidence provide different confidence levels.
+    classification: native_sysml_variation
+    rationale: Simulation, HIL, vehicle test, and inspection evidence choices are deferred native SysML v2 variation/variant choices affecting later evidence planning.
 
 vss_policy:
   role: candidate_signal_catalog
