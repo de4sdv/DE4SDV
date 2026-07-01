@@ -2,95 +2,85 @@
 
 ## Tailoring principle
 
-DE4SDV should use the upstream SYSMOD SysML v2 library as the method-language foundation and add a thin DE4SDV-specific layer for SDV product-line engineering and assurance.
+DE4SDV uses SYSMOD SysML v2 material as a source-backed method reference, not as a method to implement wholesale.
+
+The rule is:
+
+```text
+Reuse selected external method patterns
+  -> adapt them through DE4SDV method packages
+  -> extend only where DE4SDV needs SDV product-line, evidence, governance, or open-source workflow semantics
+  -> keep the source mapping and tailoring rationale explicit
+```
 
 Conceptually:
 
 ```text
-MBSE4U SYSMOD.sysml
-  -> generic SYSMOD method concepts in SysML v2
-DE4SDV tailoring package
-  -> SDV product-line, traceability, evidence, and baseline concepts
+MBSE4U SYSMOD / SysML v2 examples
+  -> source-backed method patterns
+DE4SDV method packages
+  -> selectively adapted problem-statement, context, stakeholder, concern, viewpoint, and traceability concepts
 DE4SDV model packages
   -> project-specific context, requirements, architecture, variability, and assurance views
 ```
 
-## Recommended tailoring package
+This avoids two bad outcomes:
 
-A future model increment should add a small package such as:
+- inventing an incompatible DE4SDV-only method vocabulary when a useful external pattern exists;
+- cloning or vendoring a full upstream method library before DE4SDV actually needs it.
+
+## Current local method packages
+
+Current DE4SDV method packages live under:
 
 ```text
-textual-notation-of-model/packages/de4sdv_sysmod_tailoring.sysml
+textual-notation-of-model/packages/methods/de4sdv/
 ```
 
-The package should import the upstream library and specialize concepts instead of editing the upstream package:
+| Package | Purpose | Source relationship |
+|---|---|---|
+| `DE4SDV_MethodContext` | Defines `ProblemStatement` and `SystemContext` for increment anchoring. It intentionally avoids a generic `ProjectContext` layer. | Selective adaptation of the SYSMOD/SysML v2 problem-statement pattern. |
+| `DE4SDV_Stakeholders` | Defines reusable stakeholder role part definitions and lightweight risk/effort/category metadata. | Aligns with SysML v2 stakeholder-parameter semantics and the SYSMOD stakeholder-property pattern. |
+| `DE4SDV_MethodViewpoints` | Defines reusable DE4SDV concern and viewpoint definitions for method review. | DE4SDV method layer; SAF mapping remains follow-up work, not a claim of SAF-native viewpoint definitions. |
 
-```sysml
-package DE4SDV_SYSMOD_Tailoring {
-    public import SYSMOD::*;
+## Adoption rule
 
-    occurrence def DE4SDVProject :> Project;
-    part def DE4SDVSystemContext :> SystemContext;
+A new external method concept may enter DE4SDV only when the PR states:
 
-    part def ProductLineEngineer :> ExtendedStakeholder;
-    part def SafetyEngineer :> ExtendedStakeholder;
-    part def SecurityEngineer :> ExtendedStakeholder;
-    part def ComplianceEngineer :> ExtendedStakeholder;
-    part def SimulationEngineer :> ExtendedStakeholder;
-    part def DigitalTwinEngineer :> ExtendedStakeholder;
-    part def OpenSourceContributor :> ExtendedStakeholder;
-    part def Maintainer :> ExtendedStakeholder;
-
-    requirement def TraceabilityRequirement :> ExtendedRequirement;
-    requirement def ProductLineRequirement :> ExtendedRequirement;
-    requirement def OSSIntegrationRequirement :> ExtendedRequirement;
-    requirement def ConfigurationBaselineRequirement :> ExtendedRequirement;
-    requirement def EvidenceBaselineRequirement :> ExtendedRequirement;
-}
-```
-
-This snippet is illustrative and should be validated before being treated as executable project syntax.
-
-## Mapping upstream project structure to DE4SDV
-
-- `brownfieldContext`: existing SDV engineering ecosystem, external OSS assets, toolchains, standards, and organizational workflows.
-- `problemStatement`: fragmented SDV product-line engineering, traceability, verification, and evidence management across lifecycle domains.
-- `projectStakeholders`: systems engineers, product-line engineers, safety/security/compliance roles, simulation and digital-twin engineers, DevSecOps engineers, maintainers, and contributors.
-- `systemIdeaContext`: DE4SDV as a project-governed, open-source, model-based SDV Product-Line Engineering and Assurance System.
-- `specificationContext`: DE4SDV System of Interest boundary, external actors, interfaces, use cases, and requirements.
-- `solutionContext`: DE4SDV reference architecture, lifecycle assets, and governed integration patterns.
-- `functionalContext`: capabilities and functions DE4SDV provides.
-- `logicalContext`: logical services, repositories, registries, and workflows.
-- `productContext`: configured SDV product models, feature configurations, and product-line variants.
+1. source concept or pattern;
+2. DE4SDV construct being added;
+3. reason DE4SDV needs it now;
+4. tailoring or extension from the source;
+5. explicit non-claims, such as “not a full upstream implementation” or “not compliance evidence”.
 
 ## Relationship to SAF
 
 The GfSE System Architecture Framework can be used as the viewpoint and architecture-description layer around this method:
 
 ```text
-SAF viewpoint
+SAF viewpoint / concern framing
   -> identifies stakeholder concern and required view
-SYSMOD concept
-  -> provides method/model structure
-DE4SDV tailoring
-  -> specializes it for SDV product-line assurance
+Selected SYSMOD/SysML v2 method pattern
+  -> provides method/model structure where useful
+DE4SDV method package
+  -> adapts the pattern for SDV product-line assurance and open-source governance
 DE4SDV artifact
-  -> implements it in Markdown and/or SysML v2 textual notation
+  -> implements it in Markdown, YAML, and/or SysML v2 textual notation
 ```
 
 Example:
 
 ```text
-SAF System Context Definition viewpoint
-  -> SYSMOD::SystemContext
-  -> DE4SDVSystemContext
-  -> textual-notation-of-model/packages/de4sdv_context.sysml
+SYSMOD problem-statement pattern
+  -> DE4SDV_MethodContext::ProblemStatement
+  -> AEBS needs/requirements system context
 ```
 
 ## Guardrails
 
-- Keep the first model increments small and reviewable.
+- Keep method packages small and reviewable.
+- Do not claim that DE4SDV implements full SYSMOD unless the project explicitly decides that and validates the upstream dependency/toolchain.
+- Do not vendor or import upstream method libraries casually; consume selected concepts through DE4SDV packages first.
+- Preserve traceability from stakeholder concerns to needs, requirements, model elements, evidence, and baselines.
 - Do not claim certification or homologation compliance from the presence of model artifacts alone.
-- Separate upstream library content from DE4SDV-specific specializations.
-- Preserve traceability from stakeholder concerns to requirements, model elements, evidence, and baselines.
-- Prefer commit-pinned dependencies over floating references when executable tooling is introduced.
+- Prefer commit-pinned dependencies over floating references if executable upstream tooling is introduced later.

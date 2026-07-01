@@ -12,6 +12,19 @@ tailoring package and context model.
 
 ## Method packages
 
+DE4SDV method packages reuse external method patterns selectively. They are not
+full implementations of upstream methods; each package should state the source
+pattern it adapts and the DE4SDV-specific tailoring.
+
+- [`packages/methods/de4sdv/de4sdv_method_context.sysml`](packages/methods/de4sdv/de4sdv_method_context.sysml)
+  adapts the SYSMOD/SysML v2 problem-statement pattern for DE4SDV. It defines a
+  small `DE4SDV_MethodContext` package with `ProblemStatement` and
+  `SystemContext` concepts used to anchor increments before needs and
+  requirements. It deliberately avoids a generic `ProjectContext` abstraction.
+  It is not a vendored upstream `SYSMOD.sysml` implementation.
+- [`packages/methods/de4sdv/de4sdv_stakeholders.sysml`](packages/methods/de4sdv/de4sdv_stakeholders.sysml)
+  defines reusable DE4SDV stakeholder role definitions and lightweight
+  risk/effort/category metadata for native SysML v2 `stakeholder` parameters.
 - [`packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`](packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml)
   defines the current reusable DE4SDV method concern/viewpoint kernel as the
   top-level `DE4SDV_MethodViewpoints` package. Feature packages should

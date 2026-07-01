@@ -171,4 +171,12 @@ This operational slice is acceptable for the next increment if:
 
 `INC-AEBS-003` — AEBS needs and draft requirements.
 
+Artifacts:
+
+```text
+methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml
+methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.md
+textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml
+```
+
 Entry condition: this operational context is reviewed and accepted as a sufficient basis for deriving draft requirements.
