@@ -257,19 +257,6 @@ package DE4SDV {
           port aebsEvidenceEventOut : AEBSEvidenceEventOutbound;
 
           perform vehicleTargetAEBSFunctionalFlow : VehicleTargetAEBSFunctionalFlow;
-
-          flow from driverOverrideInputIn.driverOverrideInput
-            to vehicleTargetAEBSFunctionalFlow.driverOverrideInput;
-          flow from aebsFailureStatusIn.aebsFailureStatus
-            to vehicleTargetAEBSFunctionalFlow.aebsFailureStatus;
-          flow from vehicleTargetAEBSFunctionalFlow.driverWarningRequest
-            to driverWarningRequestOut.driverWarningRequest;
-          flow from vehicleTargetAEBSFunctionalFlow.emergencyBrakingCommand
-            to emergencyBrakingCommandOut.emergencyBrakingCommand;
-          flow from vehicleTargetAEBSFunctionalFlow.failureIndicationRequest
-            to failureIndicationRequestOut.failureIndicationRequest;
-          flow from vehicleTargetAEBSFunctionalFlow.aebsEvidenceEvent
-            to aebsEvidenceEventOut.aebsEvidenceEvent;
         }
 
         part vehicleTargetAEBSFunctionalChain : VehicleTargetAEBSFunctionalChain;
