@@ -1,0 +1,380 @@
+schema: de4sdv.functional-interfaces.v0
+id: INC-AEBS-005
+name: AEBS functional interface refinement
+status: draft
+type: FeatureIncrement
+parent_increment: INC-AEBS-004
+owner: DE4SDV maintainers
+
+purpose: >-
+  Refine the INC-AEBS-004 functional behavior boundary into typed functional
+  interface ports. classify signal character and direction for each functional
+  information item, and record upstreaming posture for each DE4SDV candidate
+  VSS extension signal. This increment does not allocate logical components,
+  physical/software architecture, or accepted VSS interface mapping.
+  The port definitions and functional chain are added to the existing
+  aebs_functional_behavior.sysml file inside the FunctionalBehavior package,
+  not in a separate file, because SysIDE does not support cross-file sibling
+  package imports within the same DE4SDV namespace.
+
+scope:
+  in_scope:
+    - functional interface port definitions typed by INC-AEBS-004 item defs
+    - direction (in/out) at the AEBS functional boundary
+    - signal character classification for each VSS signal attribute
+    - producer/consumer mapping at the functional level
+    - upstreaming posture for each DE4SDV candidate VSS extension signal
+    - composite flow performed by a functional chain part with typed ports
+    - explicit gaps for interface acceptance, sensor ownership, and upstream review
+    - SysML v2 functional interface model slice
+  out_of_scope:
+    - logical component allocation
+    - physical/software deployment architecture
+    - sensor package selection as an accepted variant
+    - evidence-level selection as an accepted variant
+    - calibrated activation thresholds, speed ranges, TTC values, or deceleration profiles
+    - regulatory clause-level compliance interpretation
+    - certification, homologation, or type-approval claim
+    - accepted upstream COVESA VSS extension
+
+source_alignment:
+  - source_id: INC-AEBS-004
+    use: functional_behavior_baseline
+    artifact: textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml
+    notes:
+      - Item defs, action defs, and composite flow are imported from INC-AEBS-004.
+      - VSS signal attributes inside item defs are reused as structural catalog references.
+      - No new VSS extension signals are introduced in this increment.
+  - source_id: SRC-COVESA-VSS
+    use: generated_signal_catalog
+    artifact: textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml
+  - source_id: DE4SDV-VSS-EXT
+    use: candidate_signal_extension
+    artifact: textual-notation-of-model/libraries/covesa-vss-sysmlv2/DE4SDV_VSS_Extensions.sysml
+
+system_of_interest:
+  system_1: SDV product-line member product realizing the common AEBS capability.
+  system_2: DE4SDV engineering and assurance baseline recording functional interfaces, signal character, and upstreaming posture.
+  system_3: DE4SDV governance/review ecosystem deciding whether functional interfaces are good enough for logical realization.
+
+functional_boundary_ports:
+  inbound:
+    - id: PORT-AEBS-IN-001
+      name: DriverOverrideInputInbound
+      item_type: DriverOverrideInput
+      direction: in
+      signal_character: observation
+      rationale: Driver override is an observed input from the driver; the functional chain does not own or command it.
+      open_review: GAP-AEBS-INT-006
+    - id: PORT-AEBS-IN-002
+      name: AEBSFailureStatusInbound
+      item_type: AEBSFailureStatus
+      direction: in
+      signal_character: status
+      rationale: Failure status is monitored from subsystem-level and AEBS-specific error sources; the functional chain does not produce it.
+      open_review: GAP-AEBS-INT-007
+  outbound:
+    - id: PORT-AEBS-OUT-001
+      name: DriverWarningRequestOutbound
+      item_type: DriverWarningRequest
+      direction: out
+      signal_character: command
+      rationale: Warning request is a functional command to the HMI/warning subsystem; the chain owns the request but not the rendering.
+      open_review: GAP-AEBS-INT-004
+    - id: PORT-AEBS-OUT-002
+      name: EmergencyBrakingCommandOutbound
+      item_type: EmergencyBrakingCommand
+      direction: out
+      signal_character: command
+      rationale: Emergency braking command is a functional command to the braking subsystem; the chain owns the decision but not the actuation.
+      open_review: GAP-AEBS-INT-005
+    - id: PORT-AEBS-OUT-003
+      name: FailureIndicationRequestOutbound
+      item_type: FailureIndicationRequest
+      direction: out
+      signal_character: command
+      rationale: Failure indication request is a functional command to the HMI/diagnostic subsystem.
+      open_review: GAP-AEBS-INT-008
+    - id: PORT-AEBS-OUT-004
+      name: AEBSEvidenceEventOutbound
+      item_type: AEBSEvidenceEvent
+      direction: out
+      signal_character: event
+      rationale: Evidence event is a recorded observation for later V&V/evidence work; the chain owns the event seed but not the storage.
+      open_review: GAP-AEBS-INT-009
+
+internal_items_not_on_boundary:
+  - id: ITEM-INTERNAL-001
+    name: VehicleMotionState
+    rationale: Currently acquired internally by AcquireVehicleAndTargetState with no inbound port. Whether this should become an external inbound interface depends on sensor-ownership decisions.
+    open_review: GAP-AEBS-INT-010
+  - id: ITEM-INTERNAL-002
+    name: ForwardTargetState
+    rationale: Same as VehicleMotionState — acquired internally; external interface depends on sensor-ownership decisions.
+    open_review: GAP-AEBS-INT-010
+  - id: ITEM-INTERNAL-003
+    name: CollisionRiskAssessment
+    rationale: Internal functional assessment produced by AssessForwardCollisionRisk and consumed by three downstream actions. Not a boundary item.
+    open_review: GAP-AEBS-INT-003
+  - id: ITEM-INTERNAL-004
+    name: DriverOverrideDecision
+    rationale: Internal decision produced by EvaluateDriverOverride and consumed by RequestEmergencyBraking. Not a boundary item.
+    open_review: GAP-AEBS-INT-006
+
+signal_classification:
+  - item: VehicleMotionState
+    attribute: vehicleSpeed
+    vss_path: Vehicle.Speed
+    vss_source: generated
+    signal_character: observation
+    producer_function: AcquireVehicleAndTargetState
+    consumer_function: AssessForwardCollisionRisk
+    direction_at_boundary: internal
+    upstreaming_posture: not_applicable
+  - item: VehicleMotionState
+    attribute: longitudinalAcceleration
+    vss_path: Vehicle.Acceleration.Longitudinal
+    vss_source: generated
+    signal_character: observation
+    producer_function: AcquireVehicleAndTargetState
+    consumer_function: AssessForwardCollisionRisk
+    direction_at_boundary: internal
+    upstreaming_posture: not_applicable
+  - item: ForwardTargetState
+    attribute: obstacleDistance
+    vss_path: Vehicle.ADAS.ObstacleDetection.Distance
+    vss_source: generated
+    signal_character: observation
+    producer_function: AcquireVehicleAndTargetState
+    consumer_function: AssessForwardCollisionRisk
+    direction_at_boundary: internal
+    upstreaming_posture: not_applicable
+  - item: ForwardTargetState
+    attribute: obstacleTimeGap
+    vss_path: Vehicle.ADAS.ObstacleDetection.TimeGap
+    vss_source: generated
+    signal_character: observation
+    producer_function: AcquireVehicleAndTargetState
+    consumer_function: AssessForwardCollisionRisk
+    direction_at_boundary: internal
+    upstreaming_posture: not_applicable
+  - item: CollisionRiskAssessment
+    attribute: obstacleWarning
+    vss_path: Vehicle.ADAS.ObstacleDetection.IsWarning
+    vss_source: generated
+    signal_character: observation
+    producer_function: AssessForwardCollisionRisk
+    consumer_function: RequestDriverWarning, EvaluateDriverOverride, RequestEmergencyBraking, RecordAEBSEvidenceEvent
+    direction_at_boundary: internal
+    upstreaming_posture: not_applicable
+  - item: CollisionRiskAssessment
+    attribute: obstacleWarningType
+    vss_path: Vehicle.ADAS.ObstacleDetection.WarningType
+    vss_source: generated
+    signal_character: observation
+    producer_function: AssessForwardCollisionRisk
+    consumer_function: RequestDriverWarning, RecordAEBSEvidenceEvent
+    direction_at_boundary: internal
+    upstreaming_posture: not_applicable
+  - item: CollisionRiskAssessment
+    attribute: collisionRiskDetected
+    vss_path: Vehicle.ADAS.AEBS.CollisionRisk.IsDetected
+    vss_source: de4sdv_extension
+    signal_character: assessment
+    producer_function: AssessForwardCollisionRisk
+    consumer_function: RequestDriverWarning, EvaluateDriverOverride, RequestEmergencyBraking, RecordAEBSEvidenceEvent
+    direction_at_boundary: internal
+    upstreaming_posture: extension_candidate_for_upstream
+  - item: DriverWarningRequest
+    attribute: obstacleWarning
+    vss_path: Vehicle.ADAS.ObstacleDetection.IsWarning
+    vss_source: generated
+    signal_character: observation
+    producer_function: RequestDriverWarning
+    consumer_function: RecordAEBSEvidenceEvent
+    direction_at_boundary: out
+    upstreaming_posture: not_applicable
+  - item: DriverWarningRequest
+    attribute: obstacleWarningType
+    vss_path: Vehicle.ADAS.ObstacleDetection.WarningType
+    vss_source: generated
+    signal_character: observation
+    producer_function: RequestDriverWarning
+    consumer_function: RecordAEBSEvidenceEvent
+    direction_at_boundary: out
+    upstreaming_posture: not_applicable
+  - item: DriverWarningRequest
+    attribute: driverWarningActive
+    vss_path: Vehicle.ADAS.AEBS.DriverWarning.IsActive
+    vss_source: de4sdv_extension
+    signal_character: command
+    producer_function: RequestDriverWarning
+    consumer_function: external HMI/warning subsystem
+    direction_at_boundary: out
+    upstreaming_posture: extension_candidate_for_upstream
+  - item: DriverOverrideInput
+    attribute: driverOverrideActive
+    vss_path: Vehicle.ADAS.AEBS.DriverOverride.IsActive
+    vss_source: de4sdv_extension
+    signal_character: observation
+    producer_function: external driver/vehicle
+    consumer_function: EvaluateDriverOverride
+    direction_at_boundary: in
+    upstreaming_posture: extension_candidate_for_upstream
+  - item: DriverOverrideDecision
+    attribute: driverOverrideActive
+    vss_path: Vehicle.ADAS.AEBS.DriverOverride.IsActive
+    vss_source: de4sdv_extension
+    signal_character: assessment
+    producer_function: EvaluateDriverOverride
+    consumer_function: RequestEmergencyBraking
+    direction_at_boundary: internal
+    upstreaming_posture: extension_candidate_for_upstream
+  - item: EmergencyBrakingCommand
+    attribute: ebaEngaged
+    vss_path: Vehicle.ADAS.EBA.IsEngaged
+    vss_source: generated
+    signal_character: status
+    producer_function: RequestEmergencyBraking
+    consumer_function: external braking subsystem, RecordAEBSEvidenceEvent
+    direction_at_boundary: out
+    upstreaming_posture: not_applicable
+  - item: EmergencyBrakingCommand
+    attribute: brakeLightActive
+    vss_path: Vehicle.Body.Lights.Brake.IsActive
+    vss_source: generated
+    signal_character: status
+    producer_function: RequestEmergencyBraking
+    consumer_function: external lighting subsystem, RecordAEBSEvidenceEvent
+    direction_at_boundary: out
+    upstreaming_posture: not_applicable
+  - item: EmergencyBrakingCommand
+    attribute: emergencyBrakingCommanded
+    vss_path: Vehicle.ADAS.AEBS.EmergencyBraking.IsCommanded
+    vss_source: de4sdv_extension
+    signal_character: command
+    producer_function: RequestEmergencyBraking
+    consumer_function: external braking subsystem
+    direction_at_boundary: out
+    upstreaming_posture: extension_candidate_for_upstream
+  - item: AEBSFailureStatus
+    attribute: ebaError
+    vss_path: Vehicle.ADAS.EBA.IsError
+    vss_source: generated
+    signal_character: status
+    producer_function: external EBA subsystem
+    consumer_function: MonitorAEBSFailureStatus
+    direction_at_boundary: in
+    upstreaming_posture: not_applicable
+  - item: AEBSFailureStatus
+    attribute: absError
+    vss_path: Vehicle.ADAS.ABS.IsError
+    vss_source: generated
+    signal_character: status
+    producer_function: external ABS subsystem
+    consumer_function: MonitorAEBSFailureStatus
+    direction_at_boundary: in
+    upstreaming_posture: not_applicable
+  - item: AEBSFailureStatus
+    attribute: aebsError
+    vss_path: Vehicle.ADAS.AEBS.IsError
+    vss_source: de4sdv_extension
+    signal_character: status
+    producer_function: external AEBS subsystem
+    consumer_function: MonitorAEBSFailureStatus
+    direction_at_boundary: in
+    upstreaming_posture: extension_candidate_for_upstream
+  - item: FailureIndicationRequest
+    attribute: failureIndicationActive
+    vss_path: Vehicle.ADAS.AEBS.FailureIndication.IsActive
+    vss_source: de4sdv_extension
+    signal_character: command
+    producer_function: MonitorAEBSFailureStatus
+    consumer_function: external HMI/diagnostic subsystem
+    direction_at_boundary: out
+    upstreaming_posture: extension_candidate_for_upstream
+  - item: AEBSEvidenceEvent
+    attribute: evidenceEventRecorded
+    vss_path: Vehicle.ADAS.AEBS.EvidenceEvent.IsRecorded
+    vss_source: de4sdv_extension
+    signal_character: event
+    producer_function: RecordAEBSEvidenceEvent
+    consumer_function: external evidence/logging subsystem
+    direction_at_boundary: out
+    upstreaming_posture: extension_candidate_for_upstream
+
+upstreaming_proposals:
+  - vss_path: Vehicle.ADAS.AEBS.CollisionRisk.IsDetected
+    posture: extension_candidate_for_upstream
+    rationale: AEBS-specific collision risk detection does not exist in the generated COVESA VSS snapshot. The AEBS functional chain produces this as an assessment output; it could be useful as a standard VSS signal for ADAS collision risk.
+    review_priority: medium
+  - vss_path: Vehicle.ADAS.AEBS.DriverWarning.IsActive
+    posture: extension_candidate_for_upstream
+    rationale: AEBS-specific driver warning activation does not exist in the generated snapshot. It distinguishes AEBS-triggered warnings from generic obstacle detection warnings.
+    review_priority: medium
+  - vss_path: Vehicle.ADAS.AEBS.DriverOverride.IsActive
+    posture: extension_candidate_for_upstream
+    rationale: No COVESA VSS signal captures conscious driver override of AEBS intervention. This is a functional input, not a derived quantity. Upstream proposal would fill a real gap.
+    review_priority: high
+  - vss_path: Vehicle.ADAS.AEBS.EmergencyBraking.IsCommanded
+    posture: extension_candidate_for_upstream
+    rationale: Generated VSS has EBA.IsEngaged (status) but no AEBS-specific braking command signal. The distinction between EBA engagement status and AEBS commanded intervention matters for functional safety.
+    review_priority: high
+  - vss_path: Vehicle.ADAS.AEBS.IsError
+    posture: extension_candidate_for_upstream
+    rationale: Generated VSS has subsystem-level EBA.IsError and ABS.IsError but no AEBS-specific error signal. An AEBS-level error aggregate could be useful upstream.
+    review_priority: medium
+  - vss_path: Vehicle.ADAS.AEBS.FailureIndication.IsActive
+    posture: extension_candidate_for_upstream
+    rationale: No generated VSS signal covers AEBS-specific failure indication to the driver. The general Check Control signals do not distinguish AEBS failure from other system failures.
+    review_priority: low
+  - vss_path: Vehicle.ADAS.AEBS.EvidenceEvent.IsRecorded
+    posture: extension_candidate_for_upstream
+    rationale: Evidence event recording is an AEBS-specific functional concern. It may be too DE4SDV-specific for upstream VSS but is included as a candidate for review.
+    review_priority: low
+
+gaps:
+  - id: GAP-AEBS-INT-003
+    statement: Collision-risk assessment has no accepted threshold, TTC criterion, or activation logic. The interface port exists but the functional semantics of the assessment remain open.
+    status: open
+  - id: GAP-AEBS-INT-004
+    statement: Driver warning request needs modality, timing, and observability criteria. The outbound port is typed but the warning interface contract is not yet reviewed.
+    status: open
+  - id: GAP-AEBS-INT-005
+    statement: Emergency braking command uses generated EBA/brake-light status signals plus a DE4SDV AEBS command extension. The command interface contract (authority, priority, arbitration) remains open.
+    status: open
+  - id: GAP-AEBS-INT-006
+    statement: Driver override input and decision use a DE4SDV VSS extension signal. Override semantics (conscious vs unconscious, threshold, duration) and upstream suitability remain open.
+    status: open
+  - id: GAP-AEBS-INT-007
+    statement: AEBS failure status aggregates EBA, ABS, and AEBS-specific error signals. The accepted failure model and which errors are in-scope for AEBS safe-operation remain open.
+    status: open
+  - id: GAP-AEBS-INT-008
+    statement: Failure indication request uses a DE4SDV VSS extension signal. HMI/diagnostic indication semantics and whether this should be a standard VSS signal remain open.
+    status: open
+  - id: GAP-AEBS-INT-009
+    statement: Evidence event output uses a DE4SDV VSS extension signal. Event schema, log destination, timing, retention, and upstream suitability remain open.
+    status: open
+  - id: GAP-AEBS-INT-010
+    statement: VehicleMotionState and ForwardTargetState are currently acquired internally by AcquireVehicleAndTargetState with no inputs. Whether these should become external inbound interface ports depends on sensor-ownership decisions deferred to logical realization. This gap asks whether the functional boundary should be widened.
+    status: open
+
+acceptance_criteria:
+  - id: AC-AEBS-INT-001
+    criterion: Each boundary-crossing functional item from INC-AEBS-004 has a typed port definition with explicit direction.
+  - id: AC-AEBS-INT-002
+    criterion: Each VSS signal attribute in the functional items is classified with signal character, producer, consumer, and direction at the boundary.
+  - id: AC-AEBS-INT-003
+    criterion: Each DE4SDV candidate VSS extension signal has an upstreaming posture with rationale and review priority.
+  - id: AC-AEBS-INT-004
+    criterion: The functional chain part performs the composite flow from INC-AEBS-004 and binds its boundary params to typed ports.
+  - id: AC-AEBS-INT-005
+    criterion: No port or interface definition claims logical component allocation, physical/software deployment, or accepted VSS interface mapping.
+
+validation:
+  public_checks:
+    - python scripts/check_repo.py
+    - python scripts/smoke_test.py
+    - git diff --check
+  local_sysml_validation: not_run_by_policy
+  privileged_sysml_validation: expected_from_github_when_pr_runs
