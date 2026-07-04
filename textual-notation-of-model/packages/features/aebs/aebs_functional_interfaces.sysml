@@ -36,7 +36,7 @@ package DE4SDV_FunctionalInterfaces {
   // The functional behavior file declares them inside
   // DE4SDV::Features::AEBS::FunctionalBehavior; SysIDE merges this into
   // the global namespace, so a recursive import from here resolves them.
-  private import DE4SDV::Features::AEBS::FunctionalBehavior::**;
+  import DE4SDV::Features::AEBS::FunctionalBehavior::**;
 
   part incAEBS005 : FeatureIncrement;
   part incAEBS004 : FeatureIncrement;
