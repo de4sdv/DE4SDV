@@ -200,6 +200,79 @@ package DE4SDV {
         }
 
         action vehicleTargetAEBSFunctionalFlow : VehicleTargetAEBSFunctionalFlow;
+
+        // ─── Functional interface ports (INC-AEBS-005) ───
+
+        part incAEBS005 : FeatureIncrement;
+
+        // Inbound interface port definitions
+
+        port def DriverOverrideInputInbound {
+          doc /* Inbound port for conscious driver override of AEBS intervention. */
+          in item driverOverrideInput : DriverOverrideInput;
+        }
+
+        port def AEBSFailureStatusInbound {
+          doc /* Inbound port for detected AEBS-related failure conditions. */
+          in item aebsFailureStatus : AEBSFailureStatus;
+        }
+
+        // Outbound interface port definitions
+
+        port def DriverWarningRequestOutbound {
+          doc /* Outbound port for driver warning requests when warning conditions are met. */
+          out item driverWarningRequest : DriverWarningRequest;
+        }
+
+        port def EmergencyBrakingCommandOutbound {
+          doc /* Outbound port for emergency braking commands when activation conditions are met. */
+          out item emergencyBrakingCommand : EmergencyBrakingCommand;
+        }
+
+        port def FailureIndicationRequestOutbound {
+          doc /* Outbound port for AEBS failure indication requests. */
+          out item failureIndicationRequest : FailureIndicationRequest;
+        }
+
+        port def AEBSEvidenceEventOutbound {
+          doc /* Outbound port for AEBS evidence event records for later V&V work. */
+          out item aebsEvidenceEvent : AEBSEvidenceEvent;
+        }
+
+        // Functional chain with typed boundary ports
+
+        part def VehicleTargetAEBSFunctionalChain {
+          doc /*
+           * Functional chain part owning the AEBS vehicle-target interface ports.
+           * Not a logical component allocation — no ECU, software, sensor, or bus
+           * assignment is implied. The chain performs the composite functional
+           * flow from INC-AEBS-004 and exposes its boundary as typed ports.
+           */
+
+          port driverOverrideInputIn : DriverOverrideInputInbound;
+          port aebsFailureStatusIn : AEBSFailureStatusInbound;
+          port driverWarningRequestOut : DriverWarningRequestOutbound;
+          port emergencyBrakingCommandOut : EmergencyBrakingCommandOutbound;
+          port failureIndicationRequestOut : FailureIndicationRequestOutbound;
+          port aebsEvidenceEventOut : AEBSEvidenceEventOutbound;
+
+          perform vehicleTargetAEBSFunctionalFlow : VehicleTargetAEBSFunctionalFlow;
+
+          flow from driverOverrideInputIn.driverOverrideInput
+            to vehicleTargetAEBSFunctionalFlow.driverOverrideInput;
+          flow from aebsFailureStatusIn.aebsFailureStatus
+            to vehicleTargetAEBSFunctionalFlow.aebsFailureStatus;
+          flow from vehicleTargetAEBSFunctionalFlow.driverWarningRequest
+            to driverWarningRequestOut.driverWarningRequest;
+          flow from vehicleTargetAEBSFunctionalFlow.emergencyBrakingCommand
+            to emergencyBrakingCommandOut.emergencyBrakingCommand;
+          flow from vehicleTargetAEBSFunctionalFlow.failureIndicationRequest
+            to failureIndicationRequestOut.failureIndicationRequest;
+          flow from vehicleTargetAEBSFunctionalFlow.aebsEvidenceEvent
+            to aebsEvidenceEventOut.aebsEvidenceEvent;
+        }
+
+        part vehicleTargetAEBSFunctionalChain : VehicleTargetAEBSFunctionalChain;
       }
     }
   }
