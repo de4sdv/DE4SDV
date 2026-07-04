@@ -113,4 +113,8 @@ validation unless explicitly asked.
 - [`libraries/covesa-vss-sysmlv2`](libraries/covesa-vss-sysmlv2/) — draft
   Sysand-managed SysML v2 interchange project for COVESA VSS leaf signals.
   The generated package uses SysML v2 standard quantity/unit library references
-  instead of copying the VSS unit and quantity YAML definitions.
+  instead of copying the VSS unit and quantity YAML definitions. The adjacent
+  `DE4SDV_VSS_Extensions` package contains DE4SDV candidate extension signals
+  for reviewed gaps such as AEBS-specific override, command, failure, and
+  evidence-event semantics; keep those separate from the generated upstream
+  snapshot until they are reviewed and, where appropriate, proposed upstream.
