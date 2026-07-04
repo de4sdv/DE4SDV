@@ -70,7 +70,7 @@ Outputs:
 
 ## VSS reuse and DE4SDV extensions
 
-The functional SysML slice aliases generated COVESA VSS signal definitions where they exist. When the generated VSS snapshot lacks an AEBS-specific signal needed by this functional slice, this PR adds a DE4SDV candidate extension signal in `DE4SDV_VSS_Extensions.sysml`.
+The functional SysML slice uses generated COVESA VSS signal definitions as attribute types inside item defs where available (via recursive import). When the generated VSS snapshot lacks an AEBS-specific signal needed by this functional slice, this PR adds a DE4SDV candidate extension signal in `DE4SDV_VSS_Extensions.sysml` and uses it as an attribute type in the relevant item def.
 
 These signal definitions are still semantic catalog references. They are not architecture topology and not implementation ownership.
 
