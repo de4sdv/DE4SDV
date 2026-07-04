@@ -23,7 +23,16 @@ INC-AEBS-005 introduces:
 
 The port definitions and functional chain are added to the existing `aebs_functional_behavior.sysml` file inside the `FunctionalBehavior` package, not in a separate file. SysIDE does not support cross-file sibling package imports within the same `DE4SDV` namespace.
 
-Flow bindings between chain ports and performed action parameters were removed because SysIDE rejects them as direction-redefinition errors. Port types match the composite flow boundary param types; explicit flow connections between ports and the performed action's parameters should be established at logical realization when the full binding semantics are known.
+Port-to-action bindings use the `perform` block parameter binding pattern from the SysML v2 Pilot Implementation corpus: inside a `perform` body, bind performed action parameters to port items using `=` assignment.
+
+```sysml
+perform vehicleTargetAEBSFunctionalFlow : VehicleTargetAEBSFunctionalFlow {
+    in item driverOverrideInput = driverOverrideInputIn.driverOverrideInput;
+    out item emergencyBrakingCommand = emergencyBrakingCommandOut.emergencyBrakingCommand;
+}
+```
+
+This is the correct SysML v2 construct for binding performed action parameters to port items. The earlier `flow from port.x to action.x` pattern was rejected by SysIDE as a direction-redefinition error.
 
 ## Functional boundary ports
 
