@@ -18,9 +18,12 @@ INC-AEBS-005 introduces:
 
 1. **Port definitions** — each boundary-crossing item now has a typed `port def` with explicit `in`/`out` direction.
 2. **Functional chain part** — `VehicleTargetAEBSFunctionalChain` performs the INC-AEBS-004 composite flow and owns the boundary ports.
-3. **Port-to-flow bindings** — `flow` declarations connect chain ports to the composite flow boundary parameters.
-4. **Signal classification** — every VSS signal attribute in every functional item is classified.
-5. **Upstreaming posture** — every DE4SDV candidate VSS extension signal has a proposed upstreaming stance with rationale and review priority.
+3. **Signal classification** — every VSS signal attribute in every functional item is classified.
+4. **Upstreaming posture** — every DE4SDV candidate VSS extension signal has a proposed upstreaming stance with rationale and review priority.
+
+The port definitions and functional chain are added to the existing `aebs_functional_behavior.sysml` file inside the `FunctionalBehavior` package, not in a separate file. SysIDE does not support cross-file sibling package imports within the same `DE4SDV` namespace.
+
+Flow bindings between chain ports and performed action parameters were removed because SysIDE rejects them as direction-redefinition errors. Port types match the composite flow boundary param types; explicit flow connections between ports and the performed action's parameters should be established at logical realization when the full binding semantics are known.
 
 ## Functional boundary ports
 

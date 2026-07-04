@@ -12,6 +12,10 @@ purpose: >-
   information item, and record upstreaming posture for each DE4SDV candidate
   VSS extension signal. This increment does not allocate logical components,
   physical/software architecture, or accepted VSS interface mapping.
+  The port definitions and functional chain are added to the existing
+  aebs_functional_behavior.sysml file inside the FunctionalBehavior package,
+  not in a separate file, because SysIDE does not support cross-file sibling
+  package imports within the same DE4SDV namespace.
 
 scope:
   in_scope:
