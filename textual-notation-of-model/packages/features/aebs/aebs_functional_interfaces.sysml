@@ -27,7 +27,7 @@ package DE4SDV {
       package FunctionalInterfaces {
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
-        private import DE4SDV::Features::AEBS::FunctionalBehavior::*;
+        private import FunctionalBehavior::*;
 
         part incAEBS005 : FeatureIncrement;
         part incAEBS004 : FeatureIncrement;
