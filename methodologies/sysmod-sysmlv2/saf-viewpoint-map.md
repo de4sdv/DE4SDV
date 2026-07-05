@@ -124,6 +124,31 @@ Out of scope for the first AEBS pilot:
 - complete UNECE R152 compliance claim,
 - complete safety case or cybersecurity case.
 
+## SysML cross-references
+
+The `DE4SDV_MethodViewpoints` SysML package
+(`textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`)
+defines reusable concern and viewpoint definitions that implement this mapping.
+Each engineering-domain viewpoint def carries a `doc` comment naming its SAF source.
+
+| SysML viewpoint def | SAF viewpoint | AEBS SysML slice with concrete view |
+|---|---|---|
+| `IncrementFramingViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsIncrementFramingView` |
+| `ProductLineClassificationViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsProductLineClassificationView` |
+| `RegulatoryScopeViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsRegulatoryScopeView` |
+| `OperationalContextViewpoint` | SAF-tailored: Operational Context Definition Viewpoint | `aebs_operational_context.sysml` → `aebsOperationalContextView` |
+| `StakeholderNeedsViewpoint` | SAF-tailored: Stakeholder Requirement Definition Viewpoint | `aebs_needs_requirements.sysml` → `aebsStakeholderNeedsView` |
+| `RequirementTraceViewpoint` | SAF-tailored: System Requirement Definition + Traceability Viewpoints | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
+| `FunctionalBehaviorViewpoint` | SAF-tailored: System Functional Breakdown Structure + System Process Viewpoints | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
+| `FunctionalInterfaceViewpoint` | SAF-tailored: System Interface Definition Viewpoint | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
+
+Each concrete `view` uses targeted `expose` with specific element names (not
+`expose *`) so a human reviewer sees only the elements relevant to the viewpoint.
+
+Rendering uses `render asTreeDiagram` — the only renderer validated in SysIDE.
+Views serve as filtered model queries for human navigation; rendered SVGs
+currently show ownership hierarchy, not relationship diagrams.
+
 ## Guardrails
 
 - SAF selects views; it does not replace SYSMOD method flow.
