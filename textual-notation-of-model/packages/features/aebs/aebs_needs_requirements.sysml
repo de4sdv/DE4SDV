@@ -21,6 +21,7 @@ package DE4SDV {
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
+        private import SAF_Viewpoints::*;
         private import Views::*;
 
         part def AEBSCapability :> CommonProductLineCapability;
@@ -228,7 +229,7 @@ package DE4SDV {
         }
 
         view aebsStakeholderNeedsView {
-          viewpoint selectedStakeholderNeedsViewpoint : StakeholderNeedsViewpoint {
+          viewpoint selectedStakeholderNeedsViewpoint : StakeholderRequirementDefinitionViewpoint {
             frame stakeholderNeedsConcern;
           }
 
@@ -237,7 +238,7 @@ package DE4SDV {
         }
 
         view aebsRequirementTraceView {
-          viewpoint selectedRequirementTraceViewpoint : RequirementTraceViewpoint {
+          viewpoint selectedRequirementTraceViewpoint : SystemRequirementTraceabilityViewpoint {
             frame requirementTraceConcern;
           }
 

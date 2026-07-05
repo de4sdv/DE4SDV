@@ -131,16 +131,21 @@ The `DE4SDV_MethodViewpoints` SysML package
 defines reusable concern and viewpoint definitions that implement this mapping.
 Each engineering-domain viewpoint def carries a `doc` comment naming its SAF source.
 
-| SysML viewpoint def | SAF viewpoint | AEBS SysML slice with concrete view |
-|---|---|---|
-| `IncrementFramingViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsIncrementFramingView` |
-| `ProductLineClassificationViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsProductLineClassificationView` |
-| `RegulatoryScopeViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsRegulatoryScopeView` |
-| `OperationalContextViewpoint` | SAF-tailored: Operational Context Definition Viewpoint | `aebs_operational_context.sysml` → `aebsOperationalContextView` |
-| `StakeholderNeedsViewpoint` | SAF-tailored: Stakeholder Requirement Definition Viewpoint | `aebs_needs_requirements.sysml` → `aebsStakeholderNeedsView` |
-| `RequirementTraceViewpoint` | SAF-tailored: System Requirement Definition + Traceability Viewpoints | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
-| `FunctionalBehaviorViewpoint` | SAF-tailored: System Functional Breakdown Structure + System Process Viewpoints | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
-| `FunctionalInterfaceViewpoint` | SAF-tailored: System Interface Definition Viewpoint | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
+| SysML package | Viewpoint def | Source | AEBS SysML slice with concrete view |
+|---|---|---|---|
+| `SAF_Viewpoints` | `OperationalContextDefinitionViewpoint` | SAF Operational Domain | `aebs_operational_context.sysml` → `aebsOperationalContextView` |
+| `SAF_Viewpoints` | `StakeholderRequirementDefinitionViewpoint` | SAF Operational Domain | `aebs_needs_requirements.sysml` → `aebsStakeholderNeedsView` |
+| `SAF_Viewpoints` | `SystemRequirementDefinitionViewpoint` | SAF Functional Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
+| `SAF_Viewpoints` | `SystemRequirementTraceabilityViewpoint` | SAF Functional Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
+| `SAF_Viewpoints` | `SystemFunctionalBreakdownStructureViewpoint` | SAF Functional Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
+| `SAF_Viewpoints` | `SystemInterfaceDefinitionViewpoint` | SAF Functional Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
+| `DE4SDV_MethodViewpoints` | `IncrementFramingViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsIncrementFramingView` |
+| `DE4SDV_MethodViewpoints` | `ProductLineClassificationViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsProductLineClassificationView` |
+| `DE4SDV_MethodViewpoints` | `RegulatoryScopeViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsRegulatoryScopeView` |
+
+SAF viewpoints are in `textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml`.
+DE4SDV method-governance viewpoints are in `textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`.
+New SAF viewpoints are added to `SAF_Viewpoints` incrementally as DE4SDV increments need them.
 
 Each concrete `view` uses a `viewpoint` selection with `frame` bindings to
 concerns, and `expose Package::*` to render the package content. SysML v2

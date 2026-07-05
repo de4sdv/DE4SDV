@@ -22,6 +22,7 @@ package DE4SDV {
         private import COVESA_VSS::**;
         private import DE4SDV_VSS_Extensions::**;
         private import DE4SDV_MethodViewpoints::*;
+        private import SAF_Viewpoints::*;
         private import DE4SDV_Stakeholders::*;
         private import Views::*;
 
@@ -292,7 +293,7 @@ package DE4SDV {
         }
 
         view aebsFunctionalBehaviorView {
-          viewpoint selectedFunctionalBehaviorViewpoint : FunctionalBehaviorViewpoint {
+          viewpoint selectedFunctionalBehaviorViewpoint : SystemFunctionalBreakdownStructureViewpoint {
             frame functionalBehaviorConcern;
           }
 
@@ -301,7 +302,7 @@ package DE4SDV {
         }
 
         view aebsFunctionalInterfaceView {
-          viewpoint selectedFunctionalInterfaceViewpoint : FunctionalInterfaceViewpoint {
+          viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
             frame functionalInterfaceConcern;
           }
 

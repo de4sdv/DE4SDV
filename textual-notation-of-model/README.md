@@ -36,15 +36,22 @@ pattern it adapts and the DE4SDV-specific tailoring.
   `Driver`, `RoadEnvironment`, `VehicleTarget`, and `DE4SDVEvidenceBaseline`
   for feature operational-context slices.
 - [`packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`](packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml)
-  defines the current reusable DE4SDV method concern/viewpoint kernel as the
-  top-level `DE4SDV_MethodViewpoints` package. Feature packages should
-  import/select these `concern def` and `viewpoint def` elements, then add
-  feature-specific concern usages inside the feature package and view-local
-  viewpoint usages inside concrete views. Reusable `view def` elements are
-  deferred until DE4SDV has cross-feature view construction recipes with real
-  filters/rendering/composition logic. These are not claimed as SAF-native
-  viewpoints yet; they are DE4SDV workflow viewpoints that should be mapped to
-  SAF in a later method-alignment increment.
+  defines the DE4SDV method-governance viewpoint kernel as the top-level
+  `DE4SDV_MethodViewpoints` package. It contains DE4SDV-specific viewpoints
+  that do not map to any published SAF viewpoint: increment framing,
+  product-line classification, and regulatory scope without compliance claim.
+- [`packages/methods/saf/SAF_Viewpoints.sysml`](packages/methods/saf/SAF_Viewpoints.sysml)
+  defines the SAF viewpoint kernel as the top-level `SAF_Viewpoints` package.
+  It contains GfSE SAF viewpoint and concern definitions that DE4SDV has
+  actually used in the AEBS pilot, with names matching the published SAF
+  documentation. New SAF viewpoints are added incrementally as DE4SDV
+  increments need them.
+
+Feature packages should import from both packages, select the relevant
+`viewpoint def` elements, then add feature-specific concern usages inside
+the feature package and view-local viewpoint usages inside concrete views.
+Reusable `view def` elements are deferred until DE4SDV has cross-feature
+view construction recipes with real filters/rendering/composition logic.
 
 ## Context modeling scope
 

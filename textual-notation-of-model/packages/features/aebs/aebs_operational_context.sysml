@@ -20,6 +20,7 @@ package DE4SDV {
         private import DE4SDV_OperationalContext::*;
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodViewpoints::*;
+        private import SAF_Viewpoints::*;
         private import Views::*;
 
         item def VehicleTargetObservation;
@@ -169,7 +170,7 @@ package DE4SDV {
         }
 
         view aebsOperationalContextView {
-          viewpoint selectedOperationalContextViewpoint : OperationalContextViewpoint {
+          viewpoint selectedOperationalContextViewpoint : OperationalContextDefinitionViewpoint {
             frame operationalContextConcern;
           }
 
