@@ -142,8 +142,12 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 | `FunctionalBehaviorViewpoint` | SAF-tailored: System Functional Breakdown Structure + System Process Viewpoints | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
 | `FunctionalInterfaceViewpoint` | SAF-tailored: System Interface Definition Viewpoint | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
 
-Each concrete `view` uses targeted `expose` with specific element names (not
-`expose *`) so a human reviewer sees only the elements relevant to the viewpoint.
+Each concrete `view` uses a `viewpoint` selection with `frame` bindings to
+concerns, and `expose Package::*` to render the package content. SysML v2
+`expose` only accepts a membership pattern (e.g. `Package::*`), not a
+comma-separated element list — verified against the Pilot Implementation
+corpus. The filtering value comes from the viewpoint selection and frame
+binding, not from the expose syntax.
 
 Rendering uses `render asTreeDiagram` — the only renderer validated in SysIDE.
 Views serve as filtered model queries for human navigation; rendered SVGs
