@@ -22,6 +22,7 @@ package DE4SDV {
         private import COVESA_VSS::**;
         private import DE4SDV_VSS_Extensions::**;
         private import DE4SDV_MethodViewpoints::*;
+        private import DE4SDV_Stakeholders::*;
         private import Views::*;
 
         part incAEBS004 : FeatureIncrement;
