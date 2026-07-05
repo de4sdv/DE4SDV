@@ -173,9 +173,7 @@ package DE4SDV {
             frame operationalContextConcern;
           }
 
-          expose OperationalContext::vehicleTargetForwardCollisionStory,
-                 OperationalContext::vehicleTargetForwardCollisionMitigationFlow,
-                 OperationalContext::detectedFailureConcern;
+          expose OperationalContext::*;
           render asTreeDiagram;
         }
       }

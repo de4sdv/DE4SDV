@@ -115,22 +115,7 @@ package DE4SDV {
             frame methodStackConcern;
           }
 
-          expose IncrementFraming::incAEBS001,
-                 IncrementFraming::system1SDVProductLine,
-                 IncrementFraming::system2EngineeringAndAssuranceSystem,
-                 IncrementFraming::system3OpenSourceGovernanceEcosystem,
-                 IncrementFraming::safViewpointSelection,
-                 IncrementFraming::sysmodMethodFlow,
-                 IncrementFraming::de4sdvOntologyKernel,
-                 IncrementFraming::sysmlv2ModelExpression,
-                 IncrementFraming::vssCandidateSignalCatalog,
-                 IncrementFraming::firstSliceScope,
-                 IncrementFraming::vehicleTargetForwardCollisionRiskMitigationScope,
-                 IncrementFraming::pedestrianTargetOutOfScope,
-                 IncrementFraming::bicycleTargetOutOfScope,
-                 IncrementFraming::complianceClaimOutOfScope,
-                 IncrementFraming::logicalRealizationOutOfScope,
-                 IncrementFraming::physicalSoftwareRealizationOutOfScope;
+          expose IncrementFraming::*;
           render asTreeDiagram;
         }
         view aebsProductLineClassificationView {
@@ -138,12 +123,7 @@ package DE4SDV {
             frame productLineCapabilityClassificationConcern;
           }
 
-          expose IncrementFraming::forwardCollisionRiskMitigation,
-                 IncrementFraming::vehicleTargetAEBSSupport,
-                 IncrementFraming::pedestrianTargetAEBSScope,
-                 IncrementFraming::bicycleTargetAEBSScope,
-                 IncrementFraming::aebsSensorPackageSelection,
-                 IncrementFraming::aebsEvidenceLevelSelection;
+          expose IncrementFraming::*;
           render asTreeDiagram;
         }
         view aebsRegulatoryScopeView {
@@ -151,12 +131,7 @@ package DE4SDV {
             frame regulatoryScopeWithoutComplianceClaimConcern;
           }
 
-          expose IncrementFraming::vehicleTargetForwardCollisionRiskMitigationScope,
-                 IncrementFraming::pedestrianTargetOutOfScope,
-                 IncrementFraming::bicycleTargetOutOfScope,
-                 IncrementFraming::complianceClaimOutOfScope,
-                 IncrementFraming::logicalRealizationOutOfScope,
-                 IncrementFraming::physicalSoftwareRealizationOutOfScope;
+          expose IncrementFraming::*;
           render asTreeDiagram;
         }
       }

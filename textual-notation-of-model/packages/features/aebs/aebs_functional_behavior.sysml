@@ -295,14 +295,7 @@ package DE4SDV {
             frame functionalBehaviorConcern;
           }
 
-          expose FunctionalBehavior::AcquireVehicleAndTargetState,
-                 FunctionalBehavior::AssessForwardCollisionRisk,
-                 FunctionalBehavior::RequestDriverWarning,
-                 FunctionalBehavior::EvaluateDriverOverride,
-                 FunctionalBehavior::RequestEmergencyBraking,
-                 FunctionalBehavior::MonitorAEBSFailureStatus,
-                 FunctionalBehavior::RecordAEBSEvidenceEvent,
-                 FunctionalBehavior::vehicleTargetAEBSFunctionalFlow;
+          expose FunctionalBehavior::*;
           render asTreeDiagram;
         }
 
@@ -311,13 +304,7 @@ package DE4SDV {
             frame functionalInterfaceConcern;
           }
 
-          expose FunctionalBehavior::DriverOverrideInputInbound,
-                 FunctionalBehavior::AEBSFailureStatusInbound,
-                 FunctionalBehavior::DriverWarningRequestOutbound,
-                 FunctionalBehavior::EmergencyBrakingCommandOutbound,
-                 FunctionalBehavior::FailureIndicationRequestOutbound,
-                 FunctionalBehavior::AEBSEvidenceEventOutbound,
-                 FunctionalBehavior::vehicleTargetAEBSFunctionalChain;
+          expose FunctionalBehavior::*;
           render asTreeDiagram;
         }
       }

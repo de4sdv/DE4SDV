@@ -232,11 +232,7 @@ package DE4SDV {
             frame stakeholderNeedsConcern;
           }
 
-          expose NeedsRequirements::needCommonAEBSCapability,
-                 NeedsRequirements::needExplicitOperationalBoundary,
-                 NeedsRequirements::needProductLineClassification,
-                 NeedsRequirements::needVisibleRegulatoryAssumptions,
-                 NeedsRequirements::needRequirementVVPlanning;
+          expose NeedsRequirements::*;
           render asTreeDiagram;
         }
 
@@ -245,13 +241,7 @@ package DE4SDV {
             frame requirementTraceConcern;
           }
 
-          expose NeedsRequirements::reqDetectForwardCollisionRisk,
-                 NeedsRequirements::reqProvideCollisionWarning,
-                 NeedsRequirements::reqCommandEmergencyBraking,
-                 NeedsRequirements::reqAllowDriverOverride,
-                 NeedsRequirements::reqSupportFailureIndication,
-                 NeedsRequirements::reqKeepProductLineClassificationExplicit,
-                 NeedsRequirements::reqTraceRequirementVVAndGaps;
+          expose NeedsRequirements::*;
           render asTreeDiagram;
         }
 
