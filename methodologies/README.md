@@ -1,6 +1,6 @@
 # Methodologies
 
-Method guidance for MBSE, product line engineering, digital continuity, simulation, and compliance.
+Method guidance for MBSE, product-line engineering, digital continuity, simulation, and compliance.
 
 ## Available methodology guidance
 

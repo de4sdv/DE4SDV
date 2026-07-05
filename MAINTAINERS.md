@@ -1,7 +1,5 @@
 # Maintainers
 
-Add project maintainers here.
-
 | Name | GitHub | Area | Contact |
 |---|---|---|---|
-| TBD | TBD | Project founder | TBD |
+| Orkun Yilmaz | [orkunyilmaz](https://github.com/orkunyilmaz) | Project founder | GitHub |

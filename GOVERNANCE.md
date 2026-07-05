@@ -4,7 +4,7 @@
 
 This document describes how DE4SDV is maintained, how decisions are made, how contributions are reviewed, and how contributors can grow into more responsible roles over time.
 
-DE4SDV is an open-source project for digitally engineering software-defined vehicle product lines. The project brings together topics such as SysML v2, model-based product line engineering, digital continuity, digital twin readiness, simulation, compliance, DevSecOps, and continuous homologation.
+DE4SDV is an open-source project for digitally engineering software-defined vehicle product lines. The project brings together topics such as SysML v2, model-based product-line engineering, digital continuity, digital twin readiness, simulation, compliance, DevSecOps, and continuous homologation.
 
 The governance model is intentionally lightweight. It is designed to help the project move forward clearly and collaboratively without adding unnecessary process too early.
 
@@ -47,7 +47,7 @@ Maintainers are expected to:
 - encourage respectful and constructive collaboration
 - protect the project from unclear, duplicated, or out-of-scope work
 
-Maintainers do not need to be experts in every DE4SDV topic. Different maintainers may focus on different areas such as governance, documentation, SysML v2, product line engineering, simulation, compliance, or tooling.
+Maintainers do not need to be experts in every DE4SDV topic. Different maintainers may focus on different areas such as governance, documentation, SysML v2, product-line engineering, simulation, compliance, or tooling.
 
 ## 5. Contribution Model
 
