@@ -20,6 +20,9 @@ package DE4SDV {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
+        private import DE4SDV_MethodViewpoints::*;
+        private import SAF_Viewpoints::*;
+        private import Views::*;
 
         part def AEBSCapability :> CommonProductLineCapability;
 
@@ -203,6 +206,44 @@ package DE4SDV {
           require constraint {
             doc /* The DE4SDV AEBS increment shall trace each draft AEBS requirement to its source assumption, stakeholder need, validation reference, planned verification method, evidence status, and unresolved gap when applicable. */
           }
+        }
+
+        concern stakeholderNeedsConcern : StakeholderNeedsConcern {
+          doc /*
+           * Reviewers need AEBS stakeholder needs visible as native
+           * requirement usages with stakeholder roles.
+           */
+          subject;
+          stakeholder systemsEngineer : SystemsEngineer;
+          stakeholder reviewer : OpenSourceReviewer;
+        }
+
+        concern requirementTraceConcern : RequirementTraceConcern {
+          doc /*
+           * Reviewers need AEBS requirement candidates traced to stakeholder
+           * needs with verification methods and satisfaction status.
+           */
+          subject;
+          stakeholder verificationEngineer : VerificationEngineer;
+          stakeholder reviewer : OpenSourceReviewer;
+        }
+
+        view aebsStakeholderNeedsView {
+          viewpoint selectedStakeholderNeedsViewpoint : StakeholderRequirementDefinitionViewpoint {
+            frame stakeholderNeedsConcern;
+          }
+
+          expose NeedsRequirements::*;
+          render asTreeDiagram;
+        }
+
+        view aebsRequirementTraceView {
+          viewpoint selectedRequirementTraceViewpoint : SystemRequirementTraceabilityViewpoint {
+            frame requirementTraceConcern;
+          }
+
+          expose NeedsRequirements::*;
+          render asTreeDiagram;
         }
 
       }

@@ -21,6 +21,10 @@ package DE4SDV {
         private import DE4SDV_ProductLine::*;
         private import COVESA_VSS::**;
         private import DE4SDV_VSS_Extensions::**;
+        private import DE4SDV_MethodViewpoints::*;
+        private import SAF_Viewpoints::*;
+        private import DE4SDV_Stakeholders::*;
+        private import Views::*;
 
         part incAEBS004 : FeatureIncrement;
         part sdvProductLine : SDVProductLine;
@@ -267,6 +271,44 @@ package DE4SDV {
         }
 
         part vehicleTargetAEBSFunctionalChain : VehicleTargetAEBSFunctionalChain;
+
+        concern functionalBehaviorConcern : FunctionalBehaviorConcern {
+          doc /*
+           * Reviewers need the AEBS functional responsibilities, information
+           * items, flows, and sequencing visible with requirement trace.
+           */
+          subject;
+          stakeholder systemsEngineer : SystemsEngineer;
+          stakeholder reviewer : OpenSourceReviewer;
+        }
+
+        concern functionalInterfaceConcern : FunctionalInterfaceConcern {
+          doc /*
+           * Reviewers need the AEBS functional boundary ports, signal
+           * character, direction, and the functional chain that owns them.
+           */
+          subject;
+          stakeholder systemsEngineer : SystemsEngineer;
+          stakeholder reviewer : OpenSourceReviewer;
+        }
+
+        view aebsFunctionalBehaviorView {
+          viewpoint selectedFunctionalBehaviorViewpoint : SystemFunctionalBreakdownStructureViewpoint {
+            frame functionalBehaviorConcern;
+          }
+
+          expose FunctionalBehavior::*;
+          render asTreeDiagram;
+        }
+
+        view aebsFunctionalInterfaceView {
+          viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
+            frame functionalInterfaceConcern;
+          }
+
+          expose FunctionalBehavior::*;
+          render asTreeDiagram;
+        }
       }
     }
   }

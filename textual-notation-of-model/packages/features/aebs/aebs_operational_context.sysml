@@ -19,6 +19,9 @@ package DE4SDV {
       package OperationalContext {
         private import DE4SDV_OperationalContext::*;
         private import DE4SDV_Stakeholders::*;
+        private import DE4SDV_MethodViewpoints::*;
+        private import SAF_Viewpoints::*;
+        private import Views::*;
 
         item def VehicleTargetObservation;
         item def ForwardCollisionRiskEstimate;
@@ -155,6 +158,25 @@ package DE4SDV {
 
         action vehicleTargetForwardCollisionMitigationFlow : VehicleTargetForwardCollisionMitigationFlow;
         action detectedFailureConcern : IndicateAEBSFailureConcern;
+
+        concern operationalContextConcern : OperationalContextConcern {
+          doc /*
+           * Reviewers need the AEBS operational actors, context boundary,
+           * and operational story to be visible for this increment.
+           */
+          subject;
+          stakeholder systemsEngineer : SystemsEngineer;
+          stakeholder reviewer : OpenSourceReviewer;
+        }
+
+        view aebsOperationalContextView {
+          viewpoint selectedOperationalContextViewpoint : OperationalContextDefinitionViewpoint {
+            frame operationalContextConcern;
+          }
+
+          expose OperationalContext::*;
+          render asTreeDiagram;
+        }
       }
     }
   }

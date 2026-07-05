@@ -21,6 +21,7 @@ package DE4SDV {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
+        private import SAF_Viewpoints::*;
 
         concern productLineCapabilityClassificationConcern : ProductLineCapabilityClassificationConcern {
           doc /*

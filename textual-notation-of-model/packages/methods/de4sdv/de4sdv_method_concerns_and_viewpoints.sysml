@@ -1,17 +1,17 @@
 /*
- * DE4SDV reusable method concern and viewpoint kernel.
+ * DE4SDV reusable method-governance concern and viewpoint kernel.
  *
- * This package is intentionally small. It does not claim to reproduce SAF.
- * It captures DE4SDV-tailored concern and viewpoint definitions needed by
- * the current feature-increment workflow so feature packages can instantiate
- * reusable concerns and select/apply reusable viewpoints instead of defining
- * one-off feature-specific concern/viewpoint taxonomies.
+ * This package contains only DE4SDV-specific method-governance viewpoints
+ * that are not part of GfSE SAF. SAF viewpoints are in the separate
+ * SAF_Viewpoints package.
  *
- * These concern and viewpoint definitions are method/workflow concepts. They should be
- * mapped to actual SAF viewpoints in a later method-alignment increment rather
- * than being presented as SAF-native viewpoints.
+ * Method-governance viewpoints (increment framing, product-line
+ * classification, regulatory scope) address DE4SDV workflow concerns:
+ * increment boundaries, product-line classification discipline, and
+ * regulatory visibility without compliance claims. These do not map to
+ * any published SAF viewpoint.
  *
- * Note: this package currently uses a distinct top-level package name instead
+ * Note: this package uses a distinct top-level package name instead
  * of nested `DE4SDV::Methods::*` because the current SysIDE validation path
  * reports repeated top-level `DE4SDV` package declarations as shadowed rather
  * than namespace-merged across files.

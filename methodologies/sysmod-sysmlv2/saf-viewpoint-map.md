@@ -124,6 +124,40 @@ Out of scope for the first AEBS pilot:
 - complete UNECE R152 compliance claim,
 - complete safety case or cybersecurity case.
 
+## SysML cross-references
+
+The `DE4SDV_MethodViewpoints` SysML package
+(`textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`)
+defines reusable concern and viewpoint definitions that implement this mapping.
+Each engineering-domain viewpoint def carries a `doc` comment naming its SAF source.
+
+| SysML package | Viewpoint def | Source | AEBS SysML slice with concrete view |
+|---|---|---|---|
+| `SAF_Viewpoints` | `OperationalContextDefinitionViewpoint` | SAF Operational Domain | `aebs_operational_context.sysml` → `aebsOperationalContextView` |
+| `SAF_Viewpoints` | `StakeholderRequirementDefinitionViewpoint` | SAF Operational Domain | `aebs_needs_requirements.sysml` → `aebsStakeholderNeedsView` |
+| `SAF_Viewpoints` | `SystemRequirementDefinitionViewpoint` | SAF Functional Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
+| `SAF_Viewpoints` | `SystemRequirementTraceabilityViewpoint` | SAF Functional Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
+| `SAF_Viewpoints` | `SystemFunctionalBreakdownStructureViewpoint` | SAF Functional Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
+| `SAF_Viewpoints` | `SystemInterfaceDefinitionViewpoint` | SAF Functional Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
+| `DE4SDV_MethodViewpoints` | `IncrementFramingViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsIncrementFramingView` |
+| `DE4SDV_MethodViewpoints` | `ProductLineClassificationViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsProductLineClassificationView` |
+| `DE4SDV_MethodViewpoints` | `RegulatoryScopeViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsRegulatoryScopeView` |
+
+SAF viewpoints are in `textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml`.
+DE4SDV method-governance viewpoints are in `textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`.
+New SAF viewpoints are added to `SAF_Viewpoints` incrementally as DE4SDV increments need them.
+
+Each concrete `view` uses a `viewpoint` selection with `frame` bindings to
+concerns, and `expose Package::*` to render the package content. SysML v2
+`expose` only accepts a membership pattern (e.g. `Package::*`), not a
+comma-separated element list — verified against the Pilot Implementation
+corpus. The filtering value comes from the viewpoint selection and frame
+binding, not from the expose syntax.
+
+Rendering uses `render asTreeDiagram` — the only renderer validated in SysIDE.
+Views serve as filtered model queries for human navigation; rendered SVGs
+currently show ownership hierarchy, not relationship diagrams.
+
 ## Guardrails
 
 - SAF selects views; it does not replace SYSMOD method flow.
