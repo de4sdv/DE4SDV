@@ -8,7 +8,7 @@ DE4SDV also uses Mattermost for lightweight coordination at
 GitHub issue using the **Mattermost invite request** template and briefly say who
 you are, what you want to contribute or discuss, and why chat access would help.
 
-See [`COMMUNICATION.md`](COMMUNICATION.md) for the full communication policy.
+See [`COMMUNICATION`](COMMUNICATION.md) for the full communication policy.
 
 # Vision
 
@@ -124,8 +124,8 @@ triage, and standards mapping are all valuable.
 
 Start here:
 
-1. Read the practical contributor guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-2. Read [`AGENTS.md`](AGENTS.md) if you use an AI coding assistant
+1. Read the practical contributor guide: [`CONTRIBUTING`](CONTRIBUTING.md)
+2. Read [`AGENTS`](AGENTS.md) if you use an AI coding assistant
 3. Read the [Project Charter](docs/project-goals/project-charter.md)
 4. Open an issue using the templates in `.github/ISSUE_TEMPLATE/`
 5. Submit a focused pull request using the PR checklist
@@ -141,4 +141,4 @@ Start here:
 - [COVESA VSS as SysML v2 library](docs/architecture-decisions/0003-package-covesa-vss-as-sysmlv2-library.md)
 - [SysML v2 API repository as live model store](docs/architecture-decisions/0005-use-sysml-v2-api-repository-as-live-model-store.md)
 
-See also [`docs/references/source-notes.md`](docs/references/source-notes.md) for detailed source attributions.
+See also [`docs/references/source-notes`](docs/references/source-notes.md) for detailed source attributions.

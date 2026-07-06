@@ -8,7 +8,7 @@ DE4SDV is an open-source project for digitally engineering software-defined vehi
 
 The governance model is intentionally lightweight. It is designed to help the project move forward clearly and collaboratively without adding unnecessary process too early.
 
-For a general project overview, see [[`README.md`](README.md)](README.md).
+For a general project overview, see [README](README.md).
 
 ## 2. Project Status
 
@@ -23,7 +23,7 @@ At this stage, the main priorities are:
 - establishing maintainer responsibilities
 - preparing the project for future contributors
 
-The project roadmap should be documented in [[`ROADMAP.md`](ROADMAP.md)](ROADMAP.md).
+The project roadmap should be documented in [ROADMAP](ROADMAP.md).
 
 This governance model may evolve as the project grows, gains contributors, and develops more technical workstreams.
 
@@ -31,7 +31,7 @@ This governance model may evolve as the project grows, gains contributors, and d
 
 Maintainers are responsible for guiding the project, reviewing contributions, supporting contributors, and protecting the long-term direction of DE4SDV.
 
-Current maintainers are listed in the repository [[`MAINTAINERS.md`](MAINTAINERS.md)](MAINTAINERS.md).
+Current maintainers are listed in the repository [MAINTAINERS](MAINTAINERS.md).
 
 ## 4. Maintainer Responsibilities
 
@@ -62,9 +62,9 @@ Because the project is in an early foundation phase, maintainers first need to c
 - how pull requests should be reviewed and approved
 - which parts of the repository are ready for external contribution
 
-The contribution workflow will be documented in [[`CONTRIBUTING.md`](CONTRIBUTING.md)](CONTRIBUTING.md).
+The contribution workflow will be documented in [CONTRIBUTING](CONTRIBUTING.md).
 
-Until [[`CONTRIBUTING.md`](CONTRIBUTING.md)](CONTRIBUTING.md) is finalized, contributors are encouraged to:
+Until [CONTRIBUTING](CONTRIBUTING.md) is finalized, contributors are encouraged to:
 
 - open an issue before starting larger changes
 - keep pull requests small and focused
@@ -113,7 +113,7 @@ If there are no major objections after discussion, the proposal may move forward
 
 ## 7. Pull Request Review and Merge Process
 
-The detailed pull request workflow will be defined in [[`CONTRIBUTING.md`](CONTRIBUTING.md)](CONTRIBUTING.md).
+The detailed pull request workflow will be defined in [CONTRIBUTING](CONTRIBUTING.md).
 
 Until then, pull requests should be handled with a simple lightweight process.
 
@@ -140,9 +140,9 @@ Project decisions should be recorded in one of the following places:
 
 - GitHub Issues
 - Pull Request discussions
-- [[`ROADMAP.md`](ROADMAP.md)](ROADMAP.md)
-- [[`GOVERNANCE.md`](GOVERNANCE.md)](GOVERNANCE.md)
-- [[`CONTRIBUTING.md`](CONTRIBUTING.md)](CONTRIBUTING.md)
+- [ROADMAP](ROADMAP.md)
+- [GOVERNANCE](GOVERNANCE.md)
+- [CONTRIBUTING](CONTRIBUTING.md)
 - dedicated decision records, if the project later introduces them
 
 For the early phase of DE4SDV, GitHub Issues are the preferred place to record decisions.

@@ -57,4 +57,4 @@ Example:
 
 ## Template
 
-Use [`TEMPLATE.md`](TEMPLATE.md) for new ADRs.
+Use [`TEMPLATE`](TEMPLATE.md) for new ADRs.

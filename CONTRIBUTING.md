@@ -11,7 +11,7 @@ Use these size classes to keep work reviewable:
 - **XS (correction):** Correct one specific model/documentation element (naming, relation, typo, constraint mismatch).
 - **S (increment):** Add one focused use-case or documentation/methodology slice.
 - **M (capability):** Add a new cross-file capability (traceability rule, simulation integration, evidence mapping, etc.).
-- **L (epic):** End-to-end changes spanning model + docs + specs + evidence structures.
+- **L (epic):** End-to-end changes spanning model + docs + evidence structures.
 
 ## Contribution lanes
 
@@ -42,7 +42,7 @@ Contributions are welcome in all of the following areas:
 
 If you are unsure where to start, open an issue and describe your background and interests.
 
-For chat access, see [`COMMUNICATION.md`](COMMUNICATION.md). Mattermost is
+For chat access, see [`COMMUNICATION`](COMMUNICATION.md). Mattermost is
 invite-only; request an invite through the **Mattermost invite request** issue
 template when real-time coordination would help a contribution.
 
@@ -52,7 +52,7 @@ When correcting existing model elements:
 
 1. Identify the exact model element(s) and file location.
 2. Describe current vs expected state.
-3. List impacted artifacts (docs/specs/tests/evidence registers).
+3. List impacted artifacts (docs/tests/evidence registers).
 4. Apply the smallest focused correction.
 5. Verify consistency with terminology and traceability.
 
@@ -62,8 +62,8 @@ A contribution is done when:
 
 - Clear user/project value is documented.
 - Traceability to project goals and impacted artifacts is explicit.
-- Terminology is consistent with [`docs/terminology/glossary.md`](docs/terminology/glossary.md).
-- Relevant docs/specs are updated when assumptions or structure change.
+- Terminology is consistent with [`docs/terminology/glossary`](docs/terminology/glossary.md).
+- Relevant docs are updated when assumptions or structure change.
 - No secrets or unsupported compliance/certification claims are introduced.
 - Repository checks pass.
 
@@ -134,7 +134,7 @@ validation paths:
 python scripts/validate_sysml.py
 ```
 
-1. **Maintainer-run privileged validation.** If local Syside validation is not
+2. **Maintainer-run privileged validation.** If local Syside validation is not
    available, request maintainer-run licensed Syside validation in the PR after
    initial review. Include the branch, tag, or commit SHA to validate and the
    model path if it is not `textual-notation-of-model`.
@@ -213,7 +213,7 @@ A PR may receive requests for changes before approval.
 
 At this stage, project maintainers are responsible for final approval and merge decisions.
 
-As governance evolves, additional contributor roles and explicit authority levels may be defined in [`GOVERNANCE.md`](GOVERNANCE.md).
+As governance evolves, additional contributor roles and explicit authority levels may be defined in [`GOVERNANCE`](GOVERNANCE.md).
 
 ## What to avoid for now
 
@@ -229,7 +229,7 @@ Please avoid:
 
 By participating in this project, you agree to follow the Code of Conduct:
 
-- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [`CODE_OF_CONDUCT`](CODE_OF_CONDUCT.md)
 
 ## Thank you
 
