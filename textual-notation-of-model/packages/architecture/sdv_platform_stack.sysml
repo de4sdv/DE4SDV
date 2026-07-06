@@ -69,7 +69,7 @@ package DE4SDV_SDVPlatformStack {
       connect osPlatform.hypervisorPort to hypervisor.guestPort;
 
     interface hypervisorHardwareBoundary : HardwareHypervisorInterface
-      connect hypervisor.hardwarePort to hardware.hypervisorPort;
+      connect hypervisor.hypervisorPort to hardware.hypervisorPort;
   }
 
   /* ──────────────────────────────────────────
