@@ -12,11 +12,11 @@ See [`COMMUNICATION.md`](COMMUNICATION.md) for the full communication policy.
 
 # Vision
 
-Digital Engineering for Software-defined Vehicle (DE4SDV) envisions a digitally
+Digital Engineering for Software-Defined Vehicle (DE4SDV) envisions a digitally
 engineered, continuously certifiable software-defined vehicle product line that
 embraces ecosystem diversity rather than locking into a single stack.
 Across subsystems such as ADAS, operating systems, and core software, multiple
-open-source alternatives already exist. DE4SDV applies product line engineering
+open-source alternatives already exist. DE4SDV applies product-line engineering
 to model this variability explicitly as configurable architectures, enabling
 systematic comparison of alternatives, transparent trade-off decisions, and
 lifecycle-wide assurance.

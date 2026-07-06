@@ -4,7 +4,7 @@ Repository-wide instructions for AI coding agents and human contributors using A
 
 ## Project purpose
 
-This repository develops open-source reference assets for systems engineering of Software-Defined Vehicles using SysML v2, MBSE, product line engineering, digital continuity, digital twins, simulation interoperability, and continuous compliance.
+This repository develops open-source reference assets for systems engineering of Software-Defined Vehicles using SysML v2, MBSE, product-line engineering, digital continuity, digital twins, simulation interoperability, and continuous compliance.
 
 ## Commands agents can run
 
