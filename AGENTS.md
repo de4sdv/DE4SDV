@@ -23,7 +23,6 @@ npx markdownlint "**/*.md"
 ## Project structure
 
 - `docs/` — human-facing documentation
-- `specs/` — short authoritative specifications; update these when behavior or architecture changes
 - `implementation/` — reference implementation code
 - `textual-notation-of-model/` — system model assets
 - `sysmlv2-api/` — SysML v2 API integration assets
@@ -42,7 +41,7 @@ Before proposing a completed change:
    one SysML validation path: local validation evidence from the Syside Editor
    VS Code extension or `python scripts/validate_sysml.py`, or a request for
    maintainer-run privileged Syside validation after review
-4. Update relevant files in `specs/` or `docs/` if the change affects
+4. Update relevant files in `docs/` if the change affects
    architecture, workflow, terminology, safety, security, or compliance
    assumptions
 5. Include test evidence in the pull request description
