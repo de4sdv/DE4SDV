@@ -44,9 +44,9 @@ The view definitions and publication placeholders live under
 [`../textual-notation-of-model/views/`](../textual-notation-of-model/views/).
 
 The current bootstrap procedure is documented in
-[`bootstrap-de4sdv-context.md`](bootstrap-de4sdv-context.md). The SysON pilot
+[`bootstrap-de4sdv-context`](bootstrap-de4sdv-context.md). The SysON pilot
 workflow is documented in
-[`syson-engineering-workflow.md`](syson-engineering-workflow.md).
+[`syson-engineering-workflow`](syson-engineering-workflow.md).
 
 ## Proposed sync loop
 

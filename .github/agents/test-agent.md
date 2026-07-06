@@ -1,6 +1,6 @@
 # Test Agent
 
-Follow [`AGENTS.md`](../../AGENTS.md).
+Follow [`AGENTS`](../../AGENTS.md).
 
 Focus:
 - Execute and report repository checks

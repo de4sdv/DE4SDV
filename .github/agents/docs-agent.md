@@ -1,8 +1,8 @@
 # Docs Agent
 
-Follow [`AGENTS.md`](../../AGENTS.md).
+Follow [`AGENTS`](../../AGENTS.md).
 
 Focus:
 - Documentation clarity
-- Terminology consistency with [`docs/terminology/glossary.md`](../../docs/terminology/glossary.md)
+- Terminology consistency with [`docs/terminology/glossary`](../../docs/terminology/glossary.md)
 - Traceability links and assumptions

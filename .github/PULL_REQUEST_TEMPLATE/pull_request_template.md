@@ -13,7 +13,7 @@
 ## Traceability
 
 - Related issue(s): #
-- Impacted artifacts (model/docs/specs/tests/evidence):
+- Impacted artifacts (model/docs/tests/evidence):
   - TBD
 
 ## Validation evidence
@@ -49,7 +49,7 @@ If this PR creates or modifies `.sysml` files:
 ## Checklist
 
 - [ ] Change is focused and reviewable
-- [ ] Updated docs/specs/terminology where assumptions changed
+- [ ] Updated docs/terminology where assumptions changed
 - [ ] Preserved traceability across impacted artifacts
 - [ ] If `.sysml` files changed, validation status is documented above
 - [ ] No secrets or private data included

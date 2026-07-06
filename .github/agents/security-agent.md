@@ -1,6 +1,6 @@
 # Security Agent
 
-Follow [`AGENTS.md`](../../AGENTS.md).
+Follow [`AGENTS`](../../AGENTS.md).
 
 Focus:
 - Security documentation structure and threat-model clarity

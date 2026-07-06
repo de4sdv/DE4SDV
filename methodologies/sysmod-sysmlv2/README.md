@@ -36,20 +36,20 @@ jumping directly to logical/physical realization or compliance claims.
 
 ## Files
 
-- [`upstream.md`](upstream.md) records the upstream repository, inspected commit, license, and adoption caveats.
-- [`de4sdv-tailoring.md`](de4sdv-tailoring.md) explains how DE4SDV specializes the upstream library concepts.
-- [`increment-workflow.md`](increment-workflow.md) defines the generic repeatable increment workflow for features, architecture, toolchain, and evidence work.
-- [`saf-viewpoint-map.md`](saf-viewpoint-map.md) maps GfSE SAF viewpoint families to DE4SDV increment outputs.
-- [`artifact-map.md`](artifact-map.md) maps method concepts to DE4SDV repository artifacts.
-- [`review-checklist.md`](review-checklist.md) provides a checklist for future method/model contributions.
-- [`pilots/aebs-pilot-charter.md`](pilots/aebs-pilot-charter.md) applies the method to an AEBS regulatory-aligned feature pilot without claiming compliance.
+- [`upstream`](upstream.md) records the upstream repository, inspected commit, license, and adoption caveats.
+- [`de4sdv-tailoring`](de4sdv-tailoring.md) explains how DE4SDV specializes the upstream library concepts.
+- [`increment-workflow`](increment-workflow.md) defines the generic repeatable increment workflow for features, architecture, toolchain, and evidence work.
+- [`saf-viewpoint-map`](saf-viewpoint-map.md) maps GfSE SAF viewpoint families to DE4SDV increment outputs.
+- [`artifact-map`](artifact-map.md) maps method concepts to DE4SDV repository artifacts.
+- [`review-checklist`](review-checklist.md) provides a checklist for future method/model contributions.
+- [`pilots/aebs-pilot-charter`](pilots/aebs-pilot-charter.md) applies the method to an AEBS regulatory-aligned feature pilot without claiming compliance.
 - [`pilots/aebs-increment-framing.yaml`](pilots/aebs-increment-framing.yaml) records the first machine-readable AEBS increment framing baseline before operational and functional modeling starts.
 - [`pilots/aebs-operational-context.yaml`](pilots/aebs-operational-context.yaml) defines the first structured AEBS operational-domain slice.
-- [`pilots/aebs-operational-story.md`](pilots/aebs-operational-story.md) presents the same operational slice in reviewer-facing narrative form.
+- [`pilots/aebs-operational-story`](pilots/aebs-operational-story.md) presents the same operational slice in reviewer-facing narrative form.
 - [`pilots/aebs-needs-requirements.yaml`](pilots/aebs-needs-requirements.yaml) records the AEBS needs, draft requirements, traceability, V&V planning, gaps, and acceptance criteria.
-- [`pilots/aebs-needs-requirements.md`](pilots/aebs-needs-requirements.md) presents the same needs/requirements slice in reviewer-facing form.
+- [`pilots/aebs-needs-requirements`](pilots/aebs-needs-requirements.md) presents the same needs/requirements slice in reviewer-facing form.
 - [`pilots/aebs-functional-behavior.yaml`](pilots/aebs-functional-behavior.yaml) records the AEBS functional responsibilities, functional items, draft requirement trace, candidate VSS mappings, and gaps.
-- [`pilots/aebs-functional-behavior.md`](pilots/aebs-functional-behavior.md) presents the same functional behavior and candidate signal slice in reviewer-facing form.
+- [`pilots/aebs-functional-behavior`](pilots/aebs-functional-behavior.md) presents the same functional behavior and candidate signal slice in reviewer-facing form.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml) provides the initial SysML v2 model slice for the AEBS increment framing baseline.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml) provides the initial SysML v2 operational context model slice.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml) provides the initial SysML v2 needs and draft requirements model slice.

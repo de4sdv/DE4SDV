@@ -14,6 +14,7 @@
 .github/copilot-instructions.md
 .github/workflows/ci.yml
 .github/workflows/privileged-syside-validation.yml
+.gitignore
 AGENTS.md
 CLAUDE.md
 CODE_OF_CONDUCT.md

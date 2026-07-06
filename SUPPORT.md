@@ -6,7 +6,7 @@ For questions:
   invite requests for the Mattermost workspace.
 - Use GitHub Discussions once enabled.
 - Use Mattermost for lightweight coordination after invite-only access is
-  granted; see [`COMMUNICATION.md`](COMMUNICATION.md).
-- For security vulnerabilities, follow [`SECURITY.md`](SECURITY.md).
+  granted; see [`COMMUNICATION`](COMMUNICATION.md).
+- For security vulnerabilities, follow [`SECURITY`](SECURITY.md).
 
 Please include enough context to reproduce or understand the problem.
