@@ -108,6 +108,7 @@ textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/DE4SDV_VSS_Extensions.sysml
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/LICENSES/MPL-2.0.txt
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/README.md
+textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
 textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml
 textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml
 textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml
