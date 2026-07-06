@@ -3,17 +3,16 @@
 This roadmap aligns project work with the GitHub milestone:
 - v0.1 Foundation: https://github.com/de4sdv/DE4SDV/milestone/1
 
-## v0.1 Foundation (current)
+## v0.1 Foundation (substantially complete)
 
 Objective: establish a shared project foundation (scope, governance, contribution workflow, and repository baseline) so implementation work can proceed with clear rules and structure.
 
-### In scope for v0.1
+### P0 issues — all closed
 
-Prioritized issues (P0):
-1. #1 Create DE4SDV project charter
-2. #2 Decide initial repository structure
-3. #3 Define DE4SDV v0.1 roadmap
-4. #4 Rework CONTRIBUTING.md into a practical contributor guide
+1. ✅ #1 Create DE4SDV project charter
+2. ✅ #2 Decide initial repository structure
+3. ✅ #3 Define DE4SDV v0.1 roadmap
+4. ✅ #4 Rework CONTRIBUTING.md into a practical contributor guide
 
 Issue links:
 - https://github.com/de4sdv/DE4SDV/issues/1
@@ -21,27 +20,34 @@ Issue links:
 - https://github.com/de4sdv/DE4SDV/issues/3
 - https://github.com/de4sdv/DE4SDV/issues/4
 
-### v0.1 deliverables
+### v0.1 deliverables — status
 
-- Project charter defining purpose, scope, target users, goals, non-goals, and guiding principles (#1)
-- Initial repository structure documented and adopted (#2)
-- Contributor workflow and review expectations documented in CONTRIBUTING.md (#4)
-- Roadmap and milestone scope explicitly defined and synchronized in ROADMAP.md (#3)
-- Initial process set for DE4SDV engineering workflow is documented.
-- Initial ontology baseline is defined.
-- System context view is defined and published.
-- ASELCM-aligned System 1/System 2/System 3 scope framing is documented.
+| Deliverable | Status |
+|---|---|
+| Project charter (#1) | ✅ Done |
+| Initial repository structure (#2) | ✅ Done — tree documented in `docs/repository-tree.md` |
+| Contributor guide (#4) | ✅ Done — `CONTRIBUTING.md` |
+| Roadmap synchronized (#3) | ✅ Done |
+| Initial process set | ✅ Done — `approach/process-set/README.md` |
+| Initial ontology baseline | ✅ Done — `approach/framework/ontology/de4sdv-basic-ontology.yaml` |
+| System context view | ✅ Done — `textual-notation-of-model/views/system-context/` |
+| ASELCM three-system framing | ✅ Done — ADR #4 |
+
+### Work completed beyond v0.1 scope
+
+Several technical increments were delivered ahead of the v0.2 timeline:
+
+- AEBS pilot: operational context, needs/requirements, functional behavior, functional interface slices (#42, #48, #49, #50)
+- COVESA VSS generated as SysML v2 library (ADR #3)
+- DE4SDV VSS extension package for AEBS-specific signals
+- SysML v2 API repository spike (ADR #5)
+- SysIDE Modeler view automation spike
+- SAF viewpoint map and methodology tailoring
+- Branch protection and repository hygiene on GitHub
 
 ### Blocking order and dependencies
 
-- #1 and #2 are foundational and should be completed first.
-- #4 depends on decisions from #1 and #2 to avoid workflow/documentation drift.
-- #3 integrates the agreed scope and must remain aligned with milestone contents.
-
-Recommended execution order:
-1) #1 and #2 (parallel)
-2) #4
-3) #3 (final sync pass)
+All v0.1 P0 issues are closed. The original dependency graph (#1 and #2 → #4 → #3) is fully resolved.
 
 ### Explicitly postponed to v0.2+
 
@@ -53,20 +59,33 @@ Recommended execution order:
 
 ### Definition of Done for v0.1
 
-v0.1 Foundation is done when all of the following are true:
+All conditions are met:
 
-- All v0.1 milestone issues (#1–#4) are completed and closed.
-- README.md links to the charter and contributing guide.
-- CONTRIBUTING.md describes accepted contribution types, issue-first workflow, PR workflow, and review/approval expectations.
-- The repository structure is documented and reflected in the actual tree.
-- This ROADMAP.md stays synchronized with milestone scope (in-scope issues, postponed topics, and dependencies).
-- Maintainers confirm agreement on v0.1 in/out scope and completion criteria.
+- ✅ All v0.1 milestone issues (#1–#4) are completed and closed.
+- ✅ README.md links to the charter and contributing guide.
+- ✅ CONTRIBUTING.md describes accepted contribution types, issue-first workflow, PR workflow, and review/approval expectations.
+- ✅ The repository structure is documented and reflected in the actual tree.
+- ✅ This ROADMAP.md stays synchronized with milestone scope (in-scope issues, postponed topics, and dependencies).
 
-## v0.2 and later (preview)
+Remaining:
+- Maintainer confirmation of v0.1 completion and agreement to close the milestone.
 
-After v0.1, priority shifts from governance/setup to executable technical assets:
+## v0.2 and later (in progress)
+
+After v0.1, priority shifts from governance/setup to executable technical assets.
+
+### Already in flight
+
+- AEBS feature pilot — operational context, needs/requirements, functional behavior, functional interfaces (PRs #42, #48, #49, #50 merged)
+- COVESA VSS as SysML v2 library with DE4SDV extension signals (ADR #3)
+- SysML v2 API repository spike (ADR #5) — draft PR #36
+- SysIDE Modeler view automation spike — draft PR #34
+
+### Next priorities
+
+- Consolidate AEBS pilot: interface/refinement increment, allocation to architecture elements
+- Promote spike PRs (#34, #36) from draft to reviewed, or close with documented outcomes
 - Conceptual framework consolidation (ontology, viewpoints, ADRs, standards mapping)
-- Reference SysML v2 and MBPLE examples
-- A small SysML v2 context model for the ASELCM-aligned DE4SDV System 1/System 2/System 3 framing
+- More reference SysML v2 product-line examples beyond AEBS
 - Simulation interoperability examples (FMI/FMUs/SSP)
 - Digital continuity and continuous compliance workflows
