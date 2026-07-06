@@ -7,7 +7,7 @@
  * select between open-source realizations.
  *
  * Scope of this slice:
- *   - Stack layer definitions (ADAS, middleware, OS, hypervisor, hardware)
+ *   - Stack layer definitions (vehicle applications, middleware, OS, hypervisor, hardware)
  *   - Boundary interface definitions between adjacent layers
  *   - Variation points with candidate variant realizations
  *   - Compatibility constraints between layers
@@ -47,7 +47,7 @@ package DE4SDV_SDVPlatformStack {
      * realization from each layer, subject to compatibility constraints.
      */
 
-    part adasApplication : ADASApplicationLayer;
+    part vehicleApplication : VehicleApplicationLayer;
     part middleware : MiddlewareLayer;
     part osPlatform : OSPlatformLayer;
     part hypervisor : HypervisorLayer;
@@ -59,8 +59,8 @@ package DE4SDV_SDVPlatformStack {
      * The contracts at these boundaries are what DE4SDV models; the
      * concrete realizations either conform or don't.
      */
-    interface adasMiddlewareBoundary : ADASMiddlewareInterface
-      connect adasApplication.middlewarePort to middleware.applicationPort;
+    interface applicationMiddlewareBoundary : ApplicationMiddlewareInterface
+      connect vehicleApplication.middlewarePort to middleware.applicationPort;
 
     interface middlewareOSBoundary : MiddlewareOSInterface
       connect middleware.osPort to osPlatform.middlewarePort;
@@ -79,20 +79,21 @@ package DE4SDV_SDVPlatformStack {
    * layers. Internal structure is deliberately not modeled.
    */
 
-  part def ADASApplicationLayer {
+  part def VehicleApplicationLayer {
     doc /*
-     * ADAS / autonomous driving application stack.
-     * Provides perception, planning, and control functions for
-     * driving assistance or automated driving.
+     * Vehicle domain-specific application layer.
+     * Provides domain-specific applications such as ADAS (perception,
+     * planning, control), body, chassis, powertrain, IVI, telematics,
+     * connectivity, and diagnostics.
      *
-     * Candidate realizations: Autoware, Openpilot, Apollo Auto.
-     * These stacks typically ship their own internal middleware
+     * Candidate realizations shown: Autoware, Openpilot, Apollo Auto (ADAS domain).
+     * Domain-specific application stacks typically ship their own internal middleware
      * (ROS 2, Cyber RT, custom) for ADAS-internal communication.
      * The boundary port to the vehicle-level middleware handles
      * vehicle signal access, diagnostics, and lifecycle coordination.
      */
 
-    port middlewarePort : ADASMiddlewarePort;
+    port middlewarePort : ApplicationMiddlewarePort;
   }
 
   part def MiddlewareLayer {
@@ -109,7 +110,7 @@ package DE4SDV_SDVPlatformStack {
      * not a middleware layer. It is modeled at the OS platform layer.
      */
 
-    port applicationPort : ADASMiddlewarePort;
+    port applicationPort : ApplicationMiddlewarePort;
     port osPort : MiddlewareOSPort;
   }
 
@@ -167,9 +168,9 @@ package DE4SDV_SDVPlatformStack {
    * the reference-contract-packages increment.
    */
 
-  port def ADASMiddlewarePort {
+  port def ApplicationMiddlewarePort {
     doc /*
-     * Port type for the ADAS ↔ Middleware boundary.
+     * Port type for the Vehicle Application ↔ Middleware boundary.
      * Carries vehicle signal access, diagnostics, lifecycle
      * coordination, and service-binding interactions.
      */
@@ -179,17 +180,17 @@ package DE4SDV_SDVPlatformStack {
     inout item serviceRequests;
   }
 
-  interface def ADASMiddlewareInterface {
+  interface def ApplicationMiddlewareInterface {
     doc /*
-     * Contract between the ADAS application layer and the
-     * vehicle-level middleware. The ADAS stack expects signal
+     * Contract between the vehicle application layer and the
+     * vehicle-level middleware. The application stack expects signal
      * access, timing-aware scheduling, and fault containment
-     * from the middleware. The middleware expects the ADAS
+     * from the middleware. The middleware expects the application
      * stack to register as a managed application with defined
      * lifecycle hooks.
      */
-    end adasSide : ADASMiddlewarePort;
-    end middlewareSide : ADASMiddlewarePort;
+    end adasSide : ApplicationMiddlewarePort;
+    end middlewareSide : ApplicationMiddlewarePort;
   }
 
   port def MiddlewareOSPort {
@@ -263,9 +264,9 @@ package DE4SDV_SDVPlatformStack {
   }
 
   /* ──────────────────────────────────────────
-   * Candidate realizations — ADAS application layer
+   * Candidate realizations — vehicle application layer (ADAS domain shown)
    * ────────────────────────────────────────── */
-  part def AutowareStack :> ADASApplicationLayer {
+  part def AutowareStack :> VehicleApplicationLayer {
     doc /*
      * Autoware (Autoware Foundation).
      * Open-source autonomous driving stack based on ROS 2.
@@ -276,7 +277,7 @@ package DE4SDV_SDVPlatformStack {
      */
   }
 
-  part def OpenpilotStack :> ADASApplicationLayer {
+  part def OpenpilotStack :> VehicleApplicationLayer {
     doc /*
      * Openpilot (comma.ai).
      * Open-source driver assistance system (L2).
@@ -287,7 +288,7 @@ package DE4SDV_SDVPlatformStack {
      */
   }
 
-  part def ApolloStack :> ADASApplicationLayer {
+  part def ApolloStack :> VehicleApplicationLayer {
     doc /*
      * Apollo Auto (Baidu).
      * Open-source autonomous driving stack using Cyber RT
@@ -407,7 +408,9 @@ package DE4SDV_SDVPlatformStack {
    * filter invalid combinations.
    */
 
-  variation part def ADASApplicationVariation {
+  variation part def VehicleApplicationVariation {
+    /* ADAS domain candidates shown; other domain applications (body, chassis,
+     * telematics, IVI) to be added in domain-specific increments. */
     variant part autoware : AutowareStack;
     variant part openpilot : OpenpilotStack;
     variant part apollo : ApolloStack;
@@ -475,17 +478,18 @@ package DE4SDV_SDVPlatformStack {
      */
   }
 
-  constraint def ADASMiddlewareCoexistence {
+  constraint def ApplicationMiddlewareCoexistence {
     doc /*
-     * ADAS ↔ Middleware coexistence.
+     * Application ↔ Middleware coexistence.
      *
-     * The three ADAS stacks (Autoware, Openpilot, Apollo) each
+     * Domain-specific application stacks (e.g. Autoware, Openpilot, Apollo for ADAS) each
      * ship their own internal communication middleware. They
      * coexist with the vehicle-level middleware (S-CORE, Android SDV,
      * AUTOSAR Adaptive) as separate layers — not as alternatives
      * at the same layer.
      *
-     * The ADAS stack handles ADAS-internal pipelines.
+     * The application stack handles domain-internal pipelines
+     * (e.g. ADAS perception→planning→control).
      * The vehicle middleware handles vehicle signal access,
      * diagnostics, lifecycle, and inter-domain communication.
      *
@@ -509,7 +513,7 @@ package DE4SDV_SDVPlatformStack {
      * combination, not a layer beside it.
      *
      * This is a modeling note, not a hard constraint. AGL could
-     * coexist with an ADAS stack on a separate compute domain
+     * coexist with a domain application stack on a separate compute domain
      * via a hypervisor, but not on the same domain as S-CORE.
      */
   }
