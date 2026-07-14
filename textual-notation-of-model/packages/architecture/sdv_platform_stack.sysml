@@ -9,7 +9,8 @@
  * Scope of this slice:
  *   - Stack layer definitions (vehicle applications, middleware, OS, hypervisor, hardware)
  *   - Boundary interface definitions between adjacent layers
- *   - Variation points with candidate variant realizations
+ *   - Variation points with candidate variant realizations, inlined
+ *     as structural variation points on the stack's layer parts
  *   - Compatibility constraints between layers
  *
  * Out of scope for this slice:
@@ -44,13 +45,37 @@ package DE4SDV_SDVPlatformStack {
     doc /*
      * Complete layered architecture of a software-defined vehicle
      * computing platform. A configured member product selects one
-     * realization from each layer, subject to compatibility constraints.
+     * realization from each variation, subject to compatibility
+     * constraints.
      */
 
-    part vehicleApplication : VehicleApplicationLayer;
-    part middleware : MiddlewareLayer;
-    part osPlatform : OSPlatformLayer;
-    part hypervisor : HypervisorLayer;
+    variation part vehicleApplication : VehicleApplicationLayer {
+      /* ADAS domain candidates shown; other domain applications (body,
+       * chassis, telematics, IVI) to be added in domain-specific increments. */
+      variant part autoware : AutowareStack;
+      variant part openpilot : OpenpilotStack;
+      variant part apollo : ApolloStack;
+    }
+
+    variation part middleware : MiddlewareLayer {
+      variant part eclipseSCORE : EclipseSCORE;
+      variant part androidSDV : AndroidSDVMiddleware;
+      variant part autosarAdaptive : AUTOSARAdaptive;
+    }
+
+    variation part osPlatform : OSPlatformLayer {
+      variant part linux : LinuxPlatform;
+      variant part android : AndroidHLOS;
+      variant part qnx : QNXPlatform;
+    }
+
+    variation part hypervisor : HypervisorLayer {
+      variant part qvm : QNXQVM;
+      variant part acrn : ACRNHypervisor;
+      variant part kvm : KVMHypervisor;
+      variant part none; /* single-domain architecture, no hypervisor */
+    }
+
     part hardware : HardwareLayer;
 
     /*
@@ -400,42 +425,6 @@ package DE4SDV_SDVPlatformStack {
   }
 
   /* ──────────────────────────────────────────
-   * Variation points — stack configuration
-   * ──────────────────────────────────────────
-   * Each variation enumerates the candidate realizations for
-   * a layer. A configured member product selects one variant
-   * from each variation. Compatibility constraints below
-   * filter invalid combinations.
-   */
-
-  variation part def VehicleApplicationVariation {
-    /* ADAS domain candidates shown; other domain applications (body, chassis,
-     * telematics, IVI) to be added in domain-specific increments. */
-    variant part autoware : AutowareStack;
-    variant part openpilot : OpenpilotStack;
-    variant part apollo : ApolloStack;
-  }
-
-  variation part def MiddlewareVariation {
-    variant part eclipseSCORE : EclipseSCORE;
-    variant part androidSDV : AndroidSDVMiddleware;
-    variant part autosarAdaptive : AUTOSARAdaptive;
-  }
-
-  variation part def OSPlatformVariation {
-    variant part linux : LinuxPlatform;
-    variant part android : AndroidHLOS;
-    variant part qnx : QNXPlatform;
-  }
-
-  variation part def HypervisorVariation {
-    variant part qvm : QNXQVM;
-    variant part acrn : ACRNHypervisor;
-    variant part kvm : KVMHypervisor;
-    variant part none; /* single-domain architecture, no hypervisor */
-  }
-
-  /* ──────────────────────────────────────────
    * Compatibility constraints
    * ──────────────────────────────────────────
    * These constraints encode which combinations of layer
@@ -519,16 +508,49 @@ package DE4SDV_SDVPlatformStack {
   }
 
   /* ──────────────────────────────────────────
-   * Configured member product example (abstract)
-   * ────────────────────────────────────────── */
+   * Configured member product examples
+   * ──────────────────────────────────────────
+   * ConfiguredSDVVariant is the abstract base for configured member
+   * products. ExampleLinuxSCOREVariant demonstrates that the inline
+   * variation mechanism resolves to a concrete, reviewable stack by
+   * selecting one variant per layer.
+   */
   part def ConfiguredSDVVariant :> SDVPlatformStack {
     doc /*
      * A configured member product of the SDV product line.
      * Selects one variant from each variation, subject to
      * compatibility constraints.
      *
-     * Concrete configured variants are defined in feature-specific
+     * Concrete configured variants are defined in capability-specific
      * or configuration-specific increments, not here.
      */
+  }
+
+  part def ExampleLinuxSCOREVariant :> SDVPlatformStack {
+    doc /*
+     * Example configured member product.
+     *
+     * Variant selections:
+     *   vehicleApplication = Autoware
+     *   middleware         = Eclipse S-CORE
+     *   osPlatform         = Linux
+     *   hypervisor         = none (single-domain)
+     *
+     * This combination is architecturally valid per:
+     *   - MiddlewareOSCompatibility: S-CORE ↔ Linux (valid)
+     *   - HypervisorOSCompatibility: none ↔ any single OS (valid)
+     *
+     * Serves as proof that the inline variation mechanism produces
+     * a concrete, resolvable member product, not just a catalog.
+     *
+     * Syntax note: variant selection via redefinition is the
+     * intended SysML v2 mechanism. Requires privileged SysIDE
+     * validation to confirm the exact redefinition syntax for
+     * inline variation parts.
+     */
+    part vehicleApplication redefines autoware;
+    part middleware redefines eclipseSCORE;
+    part osPlatform redefines linux;
+    part hypervisor redefines none;
   }
 }
