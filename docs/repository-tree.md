@@ -83,8 +83,14 @@ methodologies/sysmod-sysmlv2/saf-viewpoint-map.md
 methodologies/sysmod-sysmlv2/upstream.md
 model-based-product-line-engineering/README.md
 model-based-product-line-engineering/feature-configurations/README.md
+model-based-product-line-engineering/feature-configurations/apollo-qnx-qvm.yaml
+model-based-product-line-engineering/feature-configurations/example-linux-score-autoware.yaml
+model-based-product-line-engineering/feature-configurations/invalid-score-android.yaml
 model-based-product-line-engineering/feature-models/README.md
+model-based-product-line-engineering/feature-models/sdv_product_line.yaml
 model-based-product-line-engineering/product-models/README.md
+model-based-product-line-engineering/product-models/apollo_qnx_qvm.sysml
+model-based-product-line-engineering/product-models/example_linux_score.sysml
 model-based-product-line-engineering/shared-assets/README.md
 scripts/check_repo.py
 scripts/smoke_test.py
@@ -99,6 +105,7 @@ sysmlv2-api/README.md
 sysmlv2-api/bootstrap-de4sdv-context.md
 sysmlv2-api/syson-engineering-workflow.md
 sysmlv2-api/syson-spike.md
+tests/test_configure_variant.py
 tests/test_generate_covesa_vss_sysmlv2.py
 textual-notation-of-model/README.md
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/.gitignore
@@ -131,6 +138,7 @@ textual-notation-of-model/views/system-context/manifest.json
 textual-notation-of-model/views/system-context/system-context.svg
 textual-notation-of-model/views/system-context/view.yaml
 tools/README.md
+tools/configure_variant.py
 tools/generate_covesa_vss_sysmlv2.py
 tools/syson/README.md
 tools/syson/compose.yaml

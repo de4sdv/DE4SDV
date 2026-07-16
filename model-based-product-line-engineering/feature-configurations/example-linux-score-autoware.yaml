@@ -1,0 +1,33 @@
+# Bill-of-Features: Autoware on S-CORE on Linux
+# Member product of the DE4SDV SDV product line.
+#
+# This is the ISO/IEC 26580 Bill-of-Features — the selection of
+# features and variant choices that defines one member product.
+# The configurator reads this and validates it against the feature
+# model before generating the SysML v2 product instance.
+#
+# Selection semantics:
+#   Alternative groups:  value = selected child feature name
+#     e.g. PlatformStack.Middleware: EclipseSCORE
+#   Optional features:   value = true/false
+#     e.g. Capabilities.ForwardCollisionMitigation.PedestrianDetection: false
+
+name: ExampleLinuxSCOREVariant
+description: >
+  Single-domain reference configuration.
+  Autoware (ADAS) on Eclipse S-CORE on Linux, no hypervisor.
+  Vehicle-target AEBS only (no pedestrian/bicycle detection).
+
+selections:
+  # Platform stack — one variant per layer (alternative groups)
+  PlatformStack.VehicleApplication: Autoware
+  PlatformStack.Middleware: EclipseSCORE
+  PlatformStack.OS: Linux
+  PlatformStack.Hypervisor: None
+
+  # Capabilities
+  Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS: true
+  Capabilities.ForwardCollisionMitigation.PedestrianDetection: false
+  Capabilities.ForwardCollisionMitigation.BicycleDetection: false
+  Capabilities.AdaptiveCruiseControl: false
+  Capabilities.LaneKeepAssist: false
