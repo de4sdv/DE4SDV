@@ -1,0 +1,24 @@
+# DELIBERATELY INVALID configuration for testing.
+#
+# Violates constraint C001: EclipseSCORE requires OS in [Linux, QNX].
+# This configuration selects EclipseSCORE + Android HLOS, which is
+# architecturally incompatible.
+#
+# Used by tests/test_configure_variant.py to verify the configurator
+# correctly rejects invalid configurations.
+
+name: InvalidSCOREAndroidVariant
+description: >
+  Deliberately invalid: S-CORE + Android HLOS.
+  Should fail constraint C001.
+
+selections:
+  PlatformStack.VehicleApplication: Autoware
+  PlatformStack.Middleware: EclipseSCORE
+  PlatformStack.OS: Android            # ← violates C001
+  PlatformStack.Hypervisor: None
+  Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS: true
+  Capabilities.ForwardCollisionMitigation.PedestrianDetection: false
+  Capabilities.ForwardCollisionMitigation.BicycleDetection: false
+  Capabilities.AdaptiveCruiseControl: false
+  Capabilities.LaneKeepAssist: false

@@ -1,0 +1,171 @@
+# DE4SDV SDV Product Line Feature Model
+#
+# This is the Feature Catalogue (ISO/IEC 26580 terminology).
+# It defines what features exist, their hierarchical relationships,
+# and cross-tree constraints. It is the single source of truth for
+# what distinguishes member products in the DE4SDV product line.
+#
+# Relationship semantics:
+#   mandatory   — parent selected → child must be selected
+#   optional    — parent selected → child may be selected
+#   alternative — exactly one child from the group (XOR)
+#   or_group    — at least one child from the group
+#
+# Mapping:
+#   maps_to       — SysML v2 part usage path in the 150% model
+#                   (e.g. "SDVPlatformStack.vehicleApplication")
+#   maps_to_variant — SysML v2 variant name within a variation part
+#                   (e.g. "autoware" matches "variant part autoware")
+#
+# This feature model is the decision layer; the SysML v2 base model
+# (sdv_platform_stack.sysml) is the shared asset superset (150% model)
+# whose structural variation points the feature selections resolve.
+
+root:
+  name: SDVProductLine
+  description: Software-defined vehicle product line
+
+  children:
+    # ── Platform stack (mandatory subtree) ──────────────────
+    - name: PlatformStack
+      type: mandatory
+      description: >
+        The layered computing platform. Exactly one realization
+        per layer, subject to compatibility constraints.
+      children:
+        - name: VehicleApplication
+          type: alternative
+          maps_to: SDVPlatformStack.vehicleApplication
+          children:
+            - { name: Autoware,  maps_to_variant: autoware }
+            - { name: Openpilot, maps_to_variant: openpilot }
+            - { name: Apollo,    maps_to_variant: apollo }
+
+        - name: Middleware
+          type: alternative
+          maps_to: SDVPlatformStack.middleware
+          children:
+            - { name: EclipseSCORE,    maps_to_variant: eclipseSCORE }
+            - { name: AndroidSDV,      maps_to_variant: androidSDV }
+            - { name: AUTOSARAdaptive, maps_to_variant: autosarAdaptive }
+
+        - name: OS
+          type: alternative
+          maps_to: SDVPlatformStack.osPlatform
+          children:
+            - { name: Linux,   maps_to_variant: linux }
+            - { name: Android, maps_to_variant: android }
+            - { name: QNX,     maps_to_variant: qnx }
+
+        - name: Hypervisor
+          type: alternative
+          maps_to: SDVPlatformStack.hypervisor
+          children:
+            - { name: QVM,  maps_to_variant: qvm }
+            - { name: ACRN, maps_to_variant: acrn }
+            - { name: KVM,  maps_to_variant: kvm }
+            - { name: None, maps_to_variant: none }
+
+    # ── Vehicle capabilities ────────────────────────────────
+    # Common capabilities are required across all member products
+    # and are NOT features per ISO/IEC 26580. Optional capabilities
+    # that distinguish member products ARE features.
+    - name: Capabilities
+      type: mandatory
+      description: Vehicle-domain capabilities (common + optional)
+      children:
+        - name: ForwardCollisionMitigation
+          type: mandatory
+          description: >
+            Common capability (ISO/IEC 26580): required across
+            member products, not a feature.
+          children:
+            - name: VehicleTargetAEBS
+              type: mandatory
+              description: >
+                Vehicle-target AEBS — common baseline
+                (UNECE R152 scope).
+
+            - name: PedestrianDetection
+              type: optional
+              description: >
+                Pedestrian-target AEBS — optional feature candidate.
+                Currently deferred in the SysML v2 model
+                (DeferredProductLineScope).
+
+            - name: BicycleDetection
+              type: optional
+              description: >
+                Bicycle-target AEBS — optional feature candidate.
+                Currently deferred in the SysML v2 model
+                (DeferredProductLineScope).
+
+        # Optional features — these distinguish member products
+        - name: AdaptiveCruiseControl
+          type: optional
+          description: ACC feature candidate — not yet modeled in SysML v2.
+
+        - name: LaneKeepAssist
+          type: optional
+          description: LKA feature candidate — not yet modeled in SysML v2.
+
+# ── Cross-tree constraints ─────────────────────────────────
+# These formalize the doc-only constraint defs in
+# sdv_platform_stack.sysml. Each constraint is evaluated against
+# the Bill-of-Features selections.
+#
+# Syntax:
+#   requires:  if <condition> then <target> must hold
+#   excludes:  if <condition> then <target> must not hold
+#   <condition> and <target> use dotted paths from the feature tree root.
+#   'in' checks membership in a list.
+#   '==' and '!=' check equality.
+constraints:
+  # Platform stack compatibility rules
+  - id: C001
+    type: requires
+    if: PlatformStack.Middleware == EclipseSCORE
+    then: PlatformStack.OS in [Linux, QNX]
+    rationale: >
+      Eclipse S-CORE targets Linux and QNX, not Android HLOS.
+      Source: MiddlewareOSCompatibility constraint def.
+
+  - id: C002
+    type: requires
+    if: PlatformStack.Middleware == AndroidSDV
+    then: PlatformStack.OS in [Linux, Android, QNX]
+    rationale: >
+      Android SDV runs on Linux, Android HLOS, or as QVM guest.
+      Source: MiddlewareOSCompatibility constraint def.
+
+  - id: C003
+    type: requires
+    if: PlatformStack.Middleware == AUTOSARAdaptive
+    then: PlatformStack.OS in [Linux, QNX]
+    rationale: >
+      AUTOSAR Adaptive runs on Linux or QNX.
+      Source: MiddlewareOSCompatibility constraint def.
+
+  - id: C004
+    type: excludes
+    if: PlatformStack.Hypervisor == ACRN
+    then: PlatformStack.OS == QNX
+    rationale: >
+      ACRN does not support QNX as guest.
+      Source: HypervisorOSCompatibility constraint def.
+
+  - id: C005
+    type: excludes
+    if: PlatformStack.Hypervisor == KVM
+    then: PlatformStack.OS == QNX
+    rationale: >
+      KVM QNX guest support is community-only, not production.
+      Source: HypervisorOSCompatibility constraint def.
+
+  # Capability-level constraints
+  - id: C006
+    type: requires
+    if: Capabilities.ForwardCollisionMitigation.PedestrianDetection
+    then: Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS
+    rationale: >
+      Pedestrian detection builds on the vehicle-target AEBS baseline.
