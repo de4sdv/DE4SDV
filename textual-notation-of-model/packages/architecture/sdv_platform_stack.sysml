@@ -73,7 +73,7 @@ package DE4SDV_SDVPlatformStack {
       variant part qvm : QNXQVM;
       variant part acrn : ACRNHypervisor;
       variant part kvm : KVMHypervisor;
-      variant part none; /* single-domain architecture, no hypervisor */
+      variant part none[0]; /* single-domain architecture, no hypervisor */
     }
 
     part hardware : HardwareLayer;
@@ -543,14 +543,12 @@ package DE4SDV_SDVPlatformStack {
      * Serves as proof that the inline variation mechanism produces
      * a concrete, resolvable member product, not just a catalog.
      *
-     * Syntax note: variant selection via redefinition is the
-     * intended SysML v2 mechanism. Requires privileged SysIDE
-     * validation to confirm the exact redefinition syntax for
-     * inline variation parts.
+     * Selection subsets each inherited variation point and assigns
+     * its chosen nested variant using a qualified feature path.
      */
-    part vehicleApplication redefines autoware;
-    part middleware redefines eclipseSCORE;
-    part osPlatform redefines linux;
-    part hypervisor redefines none;
+    part :>> vehicleApplication = vehicleApplication::autoware;
+    part :>> middleware = middleware::eclipseSCORE;
+    part :>> osPlatform = osPlatform::linux;
+    part :>> hypervisor = hypervisor::none;
   }
 }
