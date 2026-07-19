@@ -907,21 +907,17 @@ selections:
         feature_hash = hashlib.sha256(FM.read_bytes()).hexdigest()
         bof_path = BOF_DIR / "example-linux-score-autoware.yaml"
         bof_hash = hashlib.sha256(bof_path.read_bytes()).hexdigest()
-        self.assertIn("Shared-assets source baseline: git:", out)
-        self.assertIn("(exact)", out)
         shared_relative = SHARED_MODEL.relative_to(REPO_ROOT).as_posix()
-        source_commit = subprocess.check_output(
-            [
-                "git", "-C", str(REPO_ROOT), "log", "-1",
-                "--format=%H", "--", shared_relative,
-            ],
-            text=True,
-        ).strip()
+        blob_id = subprocess.check_output(
+            ["git", "-C", str(REPO_ROOT), "hash-object", "--stdin"],
+            input=SHARED_MODEL.read_bytes(),
+        ).decode().strip()
         self.assertIn(
-            f"Shared-assets source baseline: git:{source_commit}:"
-            f"{shared_relative} (exact)",
+            f"Shared-assets source baseline: git-blob:{blob_id}:"
+            f"{shared_relative} (content-addressed)",
             out,
         )
+        self.assertNotIn("Shared-assets source baseline: git:", out)
         self.assertIn(f"Shared-assets model SHA-256: {shared_hash}", out)
         self.assertIn(f"Feature model SHA-256: {feature_hash}", out)
         self.assertIn(f"Bill-of-Features SHA-256: {bof_hash}", out)
@@ -1018,16 +1014,23 @@ selections:
             self.assertIn("source* /stack.sysml", out)
             self.assertNotIn(f"external:{shared}", out)
 
-    def test_dirty_shared_model_provenance_is_explicit(self):
-        """Modified tracked shared assets cannot claim an exact Git baseline."""
+    def test_dirty_shared_model_provenance_is_content_addressed(self):
+        """Modified shared assets are identified by bytes, not repository history."""
         original = SHARED_MODEL.read_bytes()
+        dirty = original + b"\n"
         try:
-            SHARED_MODEL.write_bytes(original + b"\n")
+            SHARED_MODEL.write_bytes(dirty)
             rc, out, err = self.run_config(
                 BOF_DIR / "example-linux-score-autoware.yaml"
             )
-            self.assertIn("Shared-assets source baseline: working-tree:", out)
-            self.assertIn("differs from git:", out)
+            blob_id = subprocess.check_output(
+                ["git", "-C", str(REPO_ROOT), "hash-object", "--stdin"],
+                input=dirty,
+            ).decode().strip()
+            self.assertIn(
+                f"Shared-assets source baseline: git-blob:{blob_id}:", out
+            )
+            self.assertIn("(content-addressed)", out)
             self.assertNotIn("(exact)", out)
         finally:
             SHARED_MODEL.write_bytes(original)

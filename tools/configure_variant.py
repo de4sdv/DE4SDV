@@ -945,7 +945,7 @@ def provenance_path(path):
 
 
 def shared_asset_baseline(path):
-    """Describe whether shared-asset bytes exactly match a Git revision."""
+    """Return a history-independent content identity for a shared asset."""
     resolved = Path(path).resolve()
     repo_root = Path(__file__).resolve().parent.parent
     try:
@@ -954,35 +954,15 @@ def shared_asset_baseline(path):
         return f"external:{resolved} (content hash authoritative)"
 
     try:
-        source_commit = subprocess.check_output(
-            [
-                "git", "-C", str(repo_root), "log", "-1",
-                "--format=%H", "--", relative,
-            ],
-            text=True,
+        blob_id = subprocess.check_output(
+            ["git", "-C", str(repo_root), "hash-object", "--stdin"],
+            input=resolved.read_bytes(),
             stderr=subprocess.DEVNULL,
-        ).strip()
-        if not source_commit:
-            return (
-                f"untracked-or-unavailable:{relative} "
-                "(content hash authoritative)"
-            )
-        committed = subprocess.check_output(
-            [
-                "git", "-C", str(repo_root), "show",
-                f"{source_commit}:{relative}",
-            ],
-            stderr=subprocess.DEVNULL,
-        )
+        ).decode().strip()
     except (OSError, subprocess.CalledProcessError):
-        return f"untracked-or-unavailable:{relative} (content hash authoritative)"
+        return f"content-only:{relative} (SHA-256 authoritative)"
 
-    if committed == resolved.read_bytes():
-        return f"git:{source_commit}:{relative} (exact)"
-    return (
-        f"working-tree:{relative} "
-        f"(differs from git:{source_commit}; hash authoritative)"
-    )
+    return f"git-blob:{blob_id}:{relative} (content-addressed)"
 
 
 # ──────────────────────────────────────────────────────────────
