@@ -22,8 +22,8 @@ part def ExampleLinuxSCOREVariant :> SDVPlatformStack {
    *   Capabilities.LaneKeepAssist = disabled
    */
 
-  part vehicleApplication redefines autoware;
-  part middleware redefines eclipseSCORE;
-  part osPlatform redefines linux;
-  part hypervisor redefines none;
+  part :>> vehicleApplication = vehicleApplication::autoware;
+  part :>> middleware = middleware::eclipseSCORE;
+  part :>> osPlatform = osPlatform::linux;
+  part :>> hypervisor = hypervisor::none;
 }

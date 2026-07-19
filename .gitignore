@@ -24,5 +24,10 @@ env/
 # SysML / SysIDE build artifacts
 *.kpar
 
+# SysIDE license / env (never commit)
+.syside.env
+.env
+SYSIDE_LICENSE_KEY*
+
 # OS
 Thumbs.db

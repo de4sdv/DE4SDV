@@ -141,10 +141,10 @@ selections:
             BOF_DIR / "example-linux-score-autoware.yaml"
         )
         self.assertIn("part def ExampleLinuxSCOREVariant :> SDVPlatformStack", out)
-        self.assertIn("part vehicleApplication redefines autoware;", out)
-        self.assertIn("part middleware redefines eclipseSCORE;", out)
-        self.assertIn("part osPlatform redefines linux;", out)
-        self.assertIn("part hypervisor redefines none;", out)
+        self.assertIn("part :>> vehicleApplication = vehicleApplication::autoware;", out)
+        self.assertIn("part :>> middleware = middleware::eclipseSCORE;", out)
+        self.assertIn("part :>> osPlatform = osPlatform::linux;", out)
+        self.assertIn("part :>> hypervisor = hypervisor::none;", out)
 
     def test_generates_output_file(self):
         """Configurator writes to --output path."""
@@ -158,7 +158,7 @@ selections:
             with open(out_path) as f:
                 content = f.read()
             self.assertIn("ExampleLinuxSCOREVariant", content)
-            self.assertIn("redefines autoware", content)
+            self.assertIn(":>> vehicleApplication = vehicleApplication::autoware", content)
         finally:
             os.unlink(out_path)
 

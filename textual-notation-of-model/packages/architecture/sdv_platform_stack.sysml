@@ -73,7 +73,7 @@ package DE4SDV_SDVPlatformStack {
       variant part qvm : QNXQVM;
       variant part acrn : ACRNHypervisor;
       variant part kvm : KVMHypervisor;
-      variant part none; /* single-domain architecture, no hypervisor */
+      variant part none[0]; /* single-domain architecture, no hypervisor */
     }
 
     part hardware : HardwareLayer;

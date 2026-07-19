@@ -445,8 +445,20 @@ def generate_sysml(bof_name, bof_description, root, all_nodes, selections,
     lines.append("   */")
     lines.append("")
 
+    # Emit spec-correct variant selection. Per OMG SysML v2 §7.6.7 and the
+    # reference implementation (Systems-Modeling/SysML-v2-Release,
+    # examples/Variability Examples/VehicleVariabilityModel.sysml, "100% Model"),
+    # a configured product selects a variant by subsetting the inherited
+    # variation-point feature and assigning the variant via the
+    # variation::variant qualified path:
+    #
+    #     part :>> vehicleApplication = vehicleApplication::autoware;
+    #
+    # `redefines <variantName>` is incorrect: variants are nested subset usages
+    # of the variation, not features of the owning definition, so they cannot be
+    # redefinition targets. See ADR 0011 for the full rationale.
     for part_name, variant_name in redefinitions:
-        lines.append(f"  part {part_name} redefines {variant_name};")
+        lines.append(f"  part :>> {part_name} = {part_name}::{variant_name};")
 
     lines.append("}")
     return "\n".join(lines)

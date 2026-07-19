@@ -22,8 +22,8 @@ part def ApolloQNXQVMVariant :> SDVPlatformStack {
    *   Capabilities.LaneKeepAssist = disabled
    */
 
-  part vehicleApplication redefines apollo;
-  part middleware redefines autosarAdaptive;
-  part osPlatform redefines qnx;
-  part hypervisor redefines qvm;
+  part :>> vehicleApplication = vehicleApplication::apollo;
+  part :>> middleware = middleware::autosarAdaptive;
+  part :>> osPlatform = osPlatform::qnx;
+  part :>> hypervisor = hypervisor::qvm;
 }
