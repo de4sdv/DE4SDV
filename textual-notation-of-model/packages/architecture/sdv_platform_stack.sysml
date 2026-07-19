@@ -508,12 +508,17 @@ package DE4SDV_SDVPlatformStack {
   }
 
   /* ──────────────────────────────────────────
-   * Configured member product examples
+   * Configured member product base
    * ──────────────────────────────────────────
    * ConfiguredSDVVariant is the abstract base for configured member
-   * products. ExampleLinuxSCOREVariant demonstrates that the inline
-   * variation mechanism resolves to a concrete, reviewable stack by
-   * selecting one variant per layer.
+   * products. Concrete configured variants are generated from
+   * Bill-of-Features YAML by the PLE configurator
+   * (tools/configure_variant.py), not hand-written here.
+   *
+   * See:
+   *   model-based-product-line-engineering/feature-models/sdv_product_line.yaml
+   *   model-based-product-line-engineering/feature-configurations/
+   *   model-based-product-line-engineering/product-models/
    */
   part def ConfiguredSDVVariant :> SDVPlatformStack {
     doc /*
@@ -521,34 +526,9 @@ package DE4SDV_SDVPlatformStack {
      * Selects one variant from each variation, subject to
      * compatibility constraints.
      *
-     * Concrete configured variants are defined in capability-specific
-     * or configuration-specific increments, not here.
+     * Concrete configured variants are generated from Bill-of-Features
+     * by the PLE configurator (tools/configure_variant.py).
      */
-  }
-
-  part def ExampleLinuxSCOREVariant :> SDVPlatformStack {
-    doc /*
-     * Example configured member product.
-     *
-     * Variant selections:
-     *   vehicleApplication = Autoware
-     *   middleware         = Eclipse S-CORE
-     *   osPlatform         = Linux
-     *   hypervisor         = none (single-domain)
-     *
-     * This combination is architecturally valid per:
-     *   - MiddlewareOSCompatibility: S-CORE ↔ Linux (valid)
-     *   - HypervisorOSCompatibility: none ↔ any single OS (valid)
-     *
-     * Serves as proof that the inline variation mechanism produces
-     * a concrete, resolvable member product, not just a catalog.
-     *
-     * Selection subsets each inherited variation point and assigns
-     * its chosen nested variant using a qualified feature path.
-     */
-    part :>> vehicleApplication = vehicleApplication::autoware;
-    part :>> middleware = middleware::eclipseSCORE;
-    part :>> osPlatform = osPlatform::linux;
-    part :>> hypervisor = hypervisor::none;
   }
 }
+

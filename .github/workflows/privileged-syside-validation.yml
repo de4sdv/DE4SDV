@@ -7,13 +7,17 @@ on:
         description: "Branch, tag, or commit SHA to validate after maintainer review"
         required: true
         default: "main"
-      model_path:
-        description: "Model file or directory to validate"
+      model_paths:
+        description: "Space-separated model files or directories to validate together"
         required: true
-        default: "textual-notation-of-model"
+        default: "textual-notation-of-model model-based-product-line-engineering/product-models"
   pull_request:
     paths:
       - "textual-notation-of-model/**/*.sysml"
+      - "model-based-product-line-engineering/product-models/**/*.sysml"
+      - "model-based-product-line-engineering/feature-models/**/*.yaml"
+      - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
+      - "tools/configure_variant.py"
       - "textual-notation-of-model/**/.project.json"
       - "textual-notation-of-model/**/.meta.json"
       - ".github/workflows/privileged-syside-validation.yml"
@@ -21,6 +25,10 @@ on:
     branches: [ main ]
     paths:
       - "textual-notation-of-model/**/*.sysml"
+      - "model-based-product-line-engineering/product-models/**/*.sysml"
+      - "model-based-product-line-engineering/feature-models/**/*.yaml"
+      - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
+      - "tools/configure_variant.py"
       - "textual-notation-of-model/**/.project.json"
       - "textual-notation-of-model/**/.meta.json"
       - ".github/workflows/privileged-syside-validation.yml"
@@ -39,8 +47,7 @@ jobs:
       )
     runs-on: ubuntu-latest
     env:
-      SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
-      MODEL_PATH: ${{ inputs.model_path || 'textual-notation-of-model' }}
+      MODEL_PATHS: ${{ inputs.model_paths || 'textual-notation-of-model model-based-product-line-engineering/product-models' }}
     steps:
       - name: Checkout reviewed ref
         uses: actions/checkout@v4
@@ -50,6 +57,8 @@ jobs:
 
       - name: Check licensed Syside secret
         id: syside-secret
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
           if [ -z "${SYSIDE_LICENSE_KEY}" ]; then
             echo "available=false" >> "${GITHUB_OUTPUT}"
@@ -84,21 +93,36 @@ jobs:
           import sys
           from pathlib import Path
 
-          model_path = os.environ["MODEL_PATH"]
-          if not re.fullmatch(r"[A-Za-z0-9._/-]+", model_path):
-              print(f"Unsafe model_path input: {model_path}", file=sys.stderr)
+          model_paths = os.environ["MODEL_PATHS"].split()
+          if not model_paths:
+              print("At least one model path is required.", file=sys.stderr)
               sys.exit(1)
-          candidate = Path(model_path)
-          if candidate.is_absolute() or ".." in candidate.parts:
-              print(f"Unsafe model_path input: {model_path}", file=sys.stderr)
-              sys.exit(1)
-          if not candidate.exists():
-              print(f"Model path does not exist: {model_path}", file=sys.stderr)
-              sys.exit(1)
+          workspace = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+          for model_path in model_paths:
+              if model_path.startswith("-") or not re.fullmatch(
+                  r"[A-Za-z0-9._/-]+", model_path
+              ):
+                  print(f"Unsafe model path: {model_path}", file=sys.stderr)
+                  sys.exit(1)
+              candidate = Path(model_path)
+              if candidate.is_absolute() or ".." in candidate.parts:
+                  print(f"Unsafe model path: {model_path}", file=sys.stderr)
+                  sys.exit(1)
+              try:
+                  resolved = (workspace / candidate).resolve(strict=True)
+              except OSError as exc:
+                  print(f"Invalid model path {model_path}: {exc}", file=sys.stderr)
+                  sys.exit(1)
+              if not resolved.is_relative_to(workspace):
+                  print(f"Model path escapes checkout: {model_path}", file=sys.stderr)
+                  sys.exit(1)
           PY
 
       - name: Run Syside validation
         if: steps.syside-secret.outputs.available == 'true'
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
-          echo "Running licensed Syside validation for: ${MODEL_PATH}"
-          syside check "${MODEL_PATH}"
+          echo "Running licensed Syside validation for: ${MODEL_PATHS}"
+          read -r -a model_paths <<< "${MODEL_PATHS}"
+          syside check "${model_paths[@]}"
