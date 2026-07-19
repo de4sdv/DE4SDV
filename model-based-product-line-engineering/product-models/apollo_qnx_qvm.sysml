@@ -4,6 +4,8 @@
  * Feature model:  model-based-product-line-engineering/feature-models/sdv_product_line.yaml
  */
 
+private import DE4SDV_SDVPlatformStack::SDVPlatformStack;
+
 part def ApolloQNXQVMVariant :> SDVPlatformStack {
   doc /*
    * Configured member product generated from Bill-of-Features.
