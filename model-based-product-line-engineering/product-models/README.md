@@ -1,11 +1,14 @@
 # Product Models
 
-This directory contains generated SysML v2 product instances — configured member
-products of the DE4SDV SDV product line.
+This directory contains generated SysML v2 **platform-stack product-model
+projections** for DE4SDV member products. They resolve only the application,
+middleware, OS, and hypervisor variation points currently mapped to the shared
+SysML v2 platform asset. They are not complete member-product specifications.
 
 These files are **generated**, not hand-written. Each `.sysml` file is produced
 by `tools/configure_variant.py` from a Bill-of-Features (YAML) validated against
-the feature model.
+the feature model. Capability selections without mapped variable assets remain
+outside the generated SysML projection and are labelled as unresolved.
 
 ## Files
 
@@ -25,3 +28,12 @@ python tools/configure_variant.py \
 
 **Do not edit generated files directly.** Edit the source BoF YAML and
 regenerate.
+
+## Validation boundary
+
+The configurator validates BoF structure and constraints, generated identifiers,
+and the lexical presence/ownership of mapped package, variation, and variant
+declarations. It is deliberately **not a SysML v2 parser** and does not prove
+subtype conformance or full model semantics. Treat generated projections as
+draft until a maintainer runs the privileged Syside validation workflow on the
+reviewed commit with a valid license.
