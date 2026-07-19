@@ -909,6 +909,19 @@ selections:
         bof_hash = hashlib.sha256(bof_path.read_bytes()).hexdigest()
         self.assertIn("Shared-assets source baseline: git:", out)
         self.assertIn("(exact)", out)
+        shared_relative = SHARED_MODEL.relative_to(REPO_ROOT).as_posix()
+        source_commit = subprocess.check_output(
+            [
+                "git", "-C", str(REPO_ROOT), "log", "-1",
+                "--format=%H", "--", shared_relative,
+            ],
+            text=True,
+        ).strip()
+        self.assertIn(
+            f"Shared-assets source baseline: git:{source_commit}:"
+            f"{shared_relative} (exact)",
+            out,
+        )
         self.assertIn(f"Shared-assets model SHA-256: {shared_hash}", out)
         self.assertIn(f"Feature model SHA-256: {feature_hash}", out)
         self.assertIn(f"Bill-of-Features SHA-256: {bof_hash}", out)

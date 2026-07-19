@@ -954,21 +954,35 @@ def shared_asset_baseline(path):
         return f"external:{resolved} (content hash authoritative)"
 
     try:
-        head = subprocess.check_output(
-            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+        source_commit = subprocess.check_output(
+            [
+                "git", "-C", str(repo_root), "log", "-1",
+                "--format=%H", "--", relative,
+            ],
             text=True,
             stderr=subprocess.DEVNULL,
         ).strip()
+        if not source_commit:
+            return (
+                f"untracked-or-unavailable:{relative} "
+                "(content hash authoritative)"
+            )
         committed = subprocess.check_output(
-            ["git", "-C", str(repo_root), "show", f"HEAD:{relative}"],
+            [
+                "git", "-C", str(repo_root), "show",
+                f"{source_commit}:{relative}",
+            ],
             stderr=subprocess.DEVNULL,
         )
     except (OSError, subprocess.CalledProcessError):
         return f"untracked-or-unavailable:{relative} (content hash authoritative)"
 
     if committed == resolved.read_bytes():
-        return f"git:{head}:{relative} (exact)"
-    return f"working-tree:{relative} (differs from git:{head}; hash authoritative)"
+        return f"git:{source_commit}:{relative} (exact)"
+    return (
+        f"working-tree:{relative} "
+        f"(differs from git:{source_commit}; hash authoritative)"
+    )
 
 
 # ──────────────────────────────────────────────────────────────
