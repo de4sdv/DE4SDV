@@ -7,8 +7,10 @@ Proposed
 ## Context
 
 DE4SDV models the SDV platform stack as a SysML v2 variability model (the
-"150% model") and generates configured member products (the "100% model") from
-Bill-of-Features YAML via `tools/configure_variant.py`.
+"150% model") and generates a platform-stack projection for a configured member
+product from Bill-of-Features YAML via `tools/configure_variant.py`. The
+projection is a partial product model: it is not the complete member-product
+specification.
 
 The initial implementation selected variants in configured products using:
 
@@ -53,20 +55,19 @@ The spec also shows how to model an absent/optional variant using multiplicity
 `[0]` (e.g. `variant part withoutSunroof[0];`). DE4SDV's `variant part none;`
 for the no-hypervisor case is corrected to `variant part none[0];`.
 
-Separately, this correction surfaces a conceptual tension between SysML v2's
-modeling of configured products and ISO/IEC 26580 feature-based PLE:
+Separately, this correction clarifies a boundary between SysML v2 variability and
+feature-based PLE:
 
-- In industrial PLE (pure::variants, BigLever Gears), a configured product is a
-  derived resolution produced on demand from decisions applied to the 150%
-  model. It is not an authored design element and is not part of the design
-  space.
-- In SysML v2, a configured product is a first-class specialization — a `part
-  def` that is structurally indistinguishable from a hand-designed architecture
-  element. There is no native construct that marks an element as
-  derived/regenerated rather than authored.
+- SysML v2 provides native variation/variant semantics and the `:>>` construct
+  for resolving a selected variant in a specialized product model.
+- SysML v2 does not provide a feature model, feature-configuration algebra,
+  managed cross-model feature-to-asset links, or a lifecycle/provenance marker
+  distinguishing generated product assets from authored design elements.
 
-This is a SysML v2 adequacy finding relevant to DE4SDV's mission of challenging
-SysML v2 adequacy for SDV product-line engineering.
+DE4SDV therefore uses the YAML Feature Catalogue and Bill-of-Features as the
+configuration decision layer, then generates a reviewable SysML v2 product-model
+projection. This is a SysML v2 adequacy finding relevant to DE4SDV's mission of
+challenging SysML v2 adequacy for SDV product-line engineering.
 
 ## Decision
 
@@ -86,42 +87,50 @@ SysML v2 adequacy for SDV product-line engineering.
 2. **Model absent variants with multiplicity `[0]`.** The no-hypervisor case
    uses `variant part none[0];` in the 150% model.
 
-3. **Generate configured products via the configurator, not by hand.** The
-   generator emits the `part :>> <feature> = <feature>::<variant>;` pattern
-   from Bill-of-Features YAML.
+3. **Generate platform-stack product-model projections via the configurator, not
+   by hand.** The generator emits the
+   `part :>> <feature> = <feature>::<variant>;` pattern from Bill-of-Features
+   YAML. It does not claim to resolve feature selections that have no mapped
+   variable shared asset.
 
-4. **Treat generated product models as a distinct artifact class.** They are
-   committed to the repository for reference and reviewability, but are derived
-   artifacts. Each carries a `DO NOT EDIT` header, a provenance comment naming
-   the source Bill-of-Features and feature model, and is regenerable via
-   `configure_variant.py`. They are not part of the authored design space.
+4. **Apply a DE4SDV generated-artifact policy.** Generated projections are
+   committed for reference and reviewability, carry `DO NOT EDIT` and source
+   baseline/content-hash provenance, and are regenerable via
+   `configure_variant.py`. This is a DE4SDV governance choice, not a claim that
+   all PLE product models must be immutable. A product-specific change must be
+   either elevated to the shared assets/feature model or managed as an explicit
+   member-product customization with its own traceability.
 
-5. **Capture the PLE adequacy gap as a finding, not a blocker.** SysML v2 has
-   no native "configuration resolution" construct. DE4SDV bridges this with a
-   generator, provenance headers, and review conventions. This is documented as
-   an adequacy finding rather than hidden.
+5. **Capture the actual PLE adequacy boundary as a finding.** SysML v2 supports
+   variation/variant resolution, but does not natively supply the external
+   feature-model and feature-to-asset traceability technology. DE4SDV bridges
+   that boundary with the YAML decision layer, mapping metadata, provenance,
+   generator, and review conventions.
 
 ## Consequences
 
 - Variant selection in DE4SDV SysML v2 models follows the OMG reference
-  implementation pattern and passes licensed SysIDE validation.
-- The `configure_variant.py` generator is the source of truth for configured
-  product models. Hand-editing generated `.sysml` files violates the workflow.
-- The PLE adequacy gap (SysML v2 lacks a native configuration-resolution
-  construct) is an explicit DE4SDV finding. It may inform future methodology
-  work, upstream SysML v2 feedback, or tooling proposals.
-- Reviewers should distinguish authored model elements (150% model, feature
-  definitions, layer definitions) from derived configured products (100%
-  model) when assessing changes.
-- This decision does not prevent future migration to a resolution-on-demand
-  workflow where configured products are not committed at all.
+  implementation pattern. Licensed SysIDE validation remains a required
+  independent gate; this ADR does not claim a passing validation result.
+- The `configure_variant.py` generator is the source of truth for platform-stack
+  product-model projections. Hand-editing generated `.sysml` files violates the
+  workflow.
+- The PLE adequacy boundary (SysML v2 lacks native feature-model algebra,
+  managed feature-to-asset links, and generated-artifact provenance) is explicit.
+  It may inform future methodology work, upstream SysML v2 feedback, or tooling
+  proposals.
+- Reviewers distinguish authored shared assets (150% model), the external
+  configuration decision layer, and derived platform-stack projections when
+  assessing changes.
+- Capability feature selections are not evidence of a derived capability model
+  until DE4SDV maps them to variable shared assets and resolves them.
 
 ## Non-decisions
 
 This ADR does not:
 
 - choose a production PLE tool (pure::variants, FeatureIDE, etc.);
-- remove generated configured products from the repository;
+- remove generated platform-stack projections from the repository;
 - define a full SysML v2 configuration-resolution metamodel;
 - claim that SysML v2 variability is sufficient for full feature-model algebra
   (it is not — see the external feature-tree YAML for mandatory/optional/

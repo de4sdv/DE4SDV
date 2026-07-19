@@ -9,84 +9,104 @@
 #   mandatory   — parent selected → child must be selected
 #   optional    — parent selected → child may be selected
 #   alternative — exactly one child from the group (XOR)
-#   or_group    — at least one child from the group
+#   or_group    — at least one child from the group (BoF value is a list)
 #
 # Mapping:
-#   maps_to       — SysML v2 part usage path in the 150% model
-#                   (e.g. "SDVPlatformStack.vehicleApplication")
-#   maps_to_variant — SysML v2 variant name within a variation part
-#                   (e.g. "autoware" matches "variant part autoware")
+#   id              — stable feature identifier for configuration traceability
+#   binding_time    — lifecycle phase at which the feature is resolved
+#   maps_to         — SysML v2 variation-part path in the 150% model
+#                     (e.g. "SDVPlatformStack.vehicleApplication")
+#   maps_to_variant — SysML v2 variant name within that variation part
+#                     (e.g. "autoware" matches "variant part autoware")
 #
-# This feature model is the decision layer; the SysML v2 base model
+# This feature model is the decision layer. The SysML v2 base model
 # (sdv_platform_stack.sysml) is the shared asset superset (150% model)
-# whose structural variation points the feature selections resolve.
+# whose platform-stack structural variation points the feature selections resolve.
+# Capability selections remain catalogue/configuration information until they are
+# linked to corresponding variable shared assets; they are not resolved by the
+# current platform-stack generator.
 
 root:
   name: SDVProductLine
+  id: PL-DE4SDV
   description: Software-defined vehicle product line
 
   children:
     # ── Platform stack (mandatory subtree) ──────────────────
     - name: PlatformStack
+      id: F-PLATFORM-STACK
       type: mandatory
       description: >
         The layered computing platform. Exactly one realization
         per layer, subject to compatibility constraints.
       children:
         - name: VehicleApplication
+          id: F-PLATFORM-VEHICLE-APPLICATION
+          binding_time: design
           type: alternative
           maps_to: SDVPlatformStack.vehicleApplication
           children:
-            - { name: Autoware,  maps_to_variant: autoware }
-            - { name: Openpilot, maps_to_variant: openpilot }
-            - { name: Apollo,    maps_to_variant: apollo }
+            - { name: Autoware, id: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE, binding_time: design, maps_to_variant: autoware }
+            - { name: Openpilot, id: F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT, binding_time: design, maps_to_variant: openpilot }
+            - { name: Apollo, id: F-PLATFORM-VEHICLE-APPLICATION-APOLLO, binding_time: design, maps_to_variant: apollo }
 
         - name: Middleware
+          id: F-PLATFORM-MIDDLEWARE
+          binding_time: design
           type: alternative
           maps_to: SDVPlatformStack.middleware
           children:
-            - { name: EclipseSCORE,    maps_to_variant: eclipseSCORE }
-            - { name: AndroidSDV,      maps_to_variant: androidSDV }
-            - { name: AUTOSARAdaptive, maps_to_variant: autosarAdaptive }
+            - { name: EclipseSCORE, id: F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE, binding_time: design, maps_to_variant: eclipseSCORE }
+            - { name: AndroidSDV, id: F-PLATFORM-MIDDLEWARE-ANDROID-SDV, binding_time: design, maps_to_variant: androidSDV }
+            - { name: AUTOSARAdaptive, id: F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE, binding_time: design, maps_to_variant: autosarAdaptive }
 
         - name: OS
+          id: F-PLATFORM-OS
+          binding_time: design
           type: alternative
           maps_to: SDVPlatformStack.osPlatform
           children:
-            - { name: Linux,   maps_to_variant: linux }
-            - { name: Android, maps_to_variant: android }
-            - { name: QNX,     maps_to_variant: qnx }
+            - { name: Linux, id: F-PLATFORM-OS-LINUX, binding_time: design, maps_to_variant: linux }
+            - { name: Android, id: F-PLATFORM-OS-ANDROID, binding_time: design, maps_to_variant: android }
+            - { name: QNX, id: F-PLATFORM-OS-QNX, binding_time: design, maps_to_variant: qnx }
 
         - name: Hypervisor
+          id: F-PLATFORM-HYPERVISOR
+          binding_time: design
           type: alternative
           maps_to: SDVPlatformStack.hypervisor
           children:
-            - { name: QVM,  maps_to_variant: qvm }
-            - { name: ACRN, maps_to_variant: acrn }
-            - { name: KVM,  maps_to_variant: kvm }
-            - { name: None, maps_to_variant: none }
+            - { name: QVM, id: F-PLATFORM-HYPERVISOR-QVM, binding_time: design, maps_to_variant: qvm }
+            - { name: ACRN, id: F-PLATFORM-HYPERVISOR-ACRN, binding_time: design, maps_to_variant: acrn }
+            - { name: KVM, id: F-PLATFORM-HYPERVISOR-KVM, binding_time: design, maps_to_variant: kvm }
+            - { name: None, id: F-PLATFORM-HYPERVISOR-NONE, binding_time: design, maps_to_variant: none }
 
     # ── Vehicle capabilities ────────────────────────────────
     # Common capabilities are required across all member products
     # and are NOT features per ISO/IEC 26580. Optional capabilities
     # that distinguish member products ARE features.
     - name: Capabilities
+      id: F-CAPABILITIES
       type: mandatory
       description: Vehicle-domain capabilities (common + optional)
       children:
         - name: ForwardCollisionMitigation
+          id: C-CAPABILITY-FORWARD-COLLISION-MITIGATION
           type: mandatory
           description: >
             Common capability (ISO/IEC 26580): required across
             member products, not a feature.
           children:
             - name: VehicleTargetAEBS
+              id: C-CAPABILITY-AEBS-VEHICLE-TARGET
               type: mandatory
               description: >
                 Vehicle-target AEBS — common baseline
                 (UNECE R152 scope).
 
             - name: PedestrianDetection
+              id: F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION
+              binding_time: unassigned
               type: optional
               description: >
                 Pedestrian-target AEBS — optional feature candidate.
@@ -94,6 +114,8 @@ root:
                 (DeferredProductLineScope).
 
             - name: BicycleDetection
+              id: F-CAPABILITY-AEBS-BICYCLE-DETECTION
+              binding_time: unassigned
               type: optional
               description: >
                 Bicycle-target AEBS — optional feature candidate.
@@ -102,10 +124,14 @@ root:
 
         # Optional features — these distinguish member products
         - name: AdaptiveCruiseControl
+          id: F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL
+          binding_time: unassigned
           type: optional
           description: ACC feature candidate — not yet modeled in SysML v2.
 
         - name: LaneKeepAssist
+          id: F-CAPABILITY-LANE-KEEP-ASSIST
+          binding_time: unassigned
           type: optional
           description: LKA feature candidate — not yet modeled in SysML v2.
 

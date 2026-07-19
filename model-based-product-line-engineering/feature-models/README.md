@@ -10,6 +10,8 @@ SDV product line. It captures:
 
 - **What features exist** — platform stack layers, vehicle capabilities
 - **How they relate** — mandatory, optional, alternative (XOR), or-group
+  (an alternative selection is one scalar choice; an or-group selection is a
+  non-empty YAML list)
 - **Cross-tree constraints** — requires and excludes relationships between
   features in different subtrees
 
@@ -32,10 +34,25 @@ asset model — "these are the options for this layer." The feature model adds
 the decision logic on top: which options are compatible, which are mandatory,
 which capabilities distinguish member products.
 
-This is itself a DE4SDV finding: native SysML v2 handles structural variability
-in the shared asset, but full feature-model algebra (mandatory/optional/
-alternative/or-group hierarchy with cross-tree requires/excludes) requires an
-external representation.
+This is itself a DE4SDV finding: native SysML v2 handles structural
+variation/variant selection in the shared asset, but full feature-model algebra
+(mandatory/optional/alternative/or-group hierarchy with cross-tree
+requires/excludes) and traceable feature-to-asset links require an external
+representation.
+
+The current mappings resolve only the platform-stack subtree into SysML v2.
+Capability entries are catalogue/configuration information until corresponding
+variable shared assets and mappings exist. The generated files are therefore
+platform-stack product-model projections, not complete member-product models.
+
+## Traceability metadata
+
+Every catalogue node has a stable `id`. Mapped platform variations and variants
+use `binding_time: design`; deferred capability features use
+`binding_time: unassigned` until their variable shared assets and lifecycle
+resolution points are defined. A mapped variation must map every child variant,
+and each target is checked against the owning variation in the shared SysML v2
+model before generation.
 
 ## Usage
 
@@ -50,4 +67,4 @@ python tools/configure_variant.py \
 
 See [`../feature-configurations/`](../feature-configurations/) for example
 Bill-of-Features and [`../product-models/`](../product-models/) for generated
-product instances.
+platform-stack product-model projections.
