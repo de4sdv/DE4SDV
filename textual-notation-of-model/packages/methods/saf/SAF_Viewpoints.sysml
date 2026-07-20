@@ -154,4 +154,74 @@ package SAF_Viewpoints {
        */
     }
   }
+
+  // ─── Logical Domain ───
+
+  concern def LogicalStructureConcern {
+    require constraint {
+      doc /*
+       * Reviewers need the logical system decomposition, logical element
+       * responsibilities, and ownership boundaries to be visible.
+       */
+    }
+  }
+
+  viewpoint def LogicalStructureDefinitionViewpoint {
+    doc /*
+     * SAF Logical Domain: Logical Structure Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A logical structure view shall show the logical system boundary and
+       * its hierarchical decomposition into logical elements responsible for
+       * realizing system functions.
+       */
+    }
+  }
+
+  concern def LogicalInternalExchangeConcern {
+    require constraint {
+      doc /*
+       * Reviewers need the typed logical interfaces, exchanges, directions,
+       * and delegation from the logical system boundary to internal elements.
+       */
+    }
+  }
+
+  viewpoint def LogicalInternalExchangeViewpoint {
+    doc /*
+     * SAF Logical Domain: Logical Internal Exchange Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A logical internal exchange view shall show the logical system
+       * boundary, internal logical elements, connected interfaces, delegated
+       * boundary interfaces, and exchanged logical items.
+       */
+    }
+  }
+
+  concern def LogicalFunctionalMappingConcern {
+    require constraint {
+      doc /*
+       * Reviewers need every system function allocated to one or more logical
+       * elements without implying a physical or software implementation.
+       */
+    }
+  }
+
+  viewpoint def LogicalFunctionalMappingViewpoint {
+    doc /*
+     * SAF Logical Domain: Logical Functional Mapping Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A logical functional mapping view shall show the allocation of system
+       * functions and partial functions to logical system elements.
+       */
+    }
+  }
 }
