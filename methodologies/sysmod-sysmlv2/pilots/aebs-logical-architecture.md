@@ -15,7 +15,7 @@ This increment does **not** model Autoware, ROS 2, Eclipse S-CORE, Android SDV/A
 
 The functional baseline establishes what AEBS does. It does not yet identify which solution-neutral elements own path prediction, target processing, collision-risk evaluation, override arbitration, emergency-state retention, degradation, or evidence recording.
 
-INC-AEBS-006 closes that ownership gap before implementation names are introduced.
+INC-AEBS-006 closes that ownership gap before implementation names are introduced. The logical model is not justified by renaming actions as components. It earns its place where it adds responsibility boundaries, decomposition, shared ownership, persistent state, or producer-consumer contracts.
 
 ```text
 Functional baseline
@@ -41,7 +41,7 @@ The system of interest is the **Vehicle-Target AEBS Logical System**.
 Vehicle motion observation ──────┐
 Target observation ──────────────┤
 Driver override observation ─────┤
-Operating context ───────────────┤
+Intervention context ────────────┤
 Subsystem health ────────────────┤
                                  ▼
                     AEBS Logical System
@@ -89,17 +89,17 @@ Driver override, health supervision, emergency-state retention, degradation, and
 
 ## Functional-to-logical mapping
 
-| Functional action | Logical owner or owners |
-| --- | --- |
-| `AcquireVehicleAndTargetState` | State Acquisition and Normalization |
-| `AssessForwardCollisionRisk` | Ego Path Prediction; Target Processing; Collision Risk Evaluation |
-| `RequestDriverWarning` | Driver Warning Management |
-| `EvaluateDriverOverride` | Intervention Decision and Arbitration |
-| `RequestEmergencyBraking` | Intervention Decision and Arbitration; Emergency Intervention Coordination |
-| `MonitorAEBSFailureStatus` | Health and Degradation Supervision |
-| `RecordAEBSEvidenceEvent` | Evidence Recording |
+| Functional action | Logical owner or owners | Architectural responsibility added |
+| --- | --- | --- |
+| `AcquireVehicleAndTargetState` | State Acquisition and Normalization | Establishes the external-observation boundary; validates and normalizes vehicle and target observations; produces observation health separately from availability |
+| `AssessForwardCollisionRisk` | Ego Path Prediction; Target Processing; Collision Risk Evaluation | Splits one functional responsibility into path prediction, target relevance and collision-risk ownership with explicit intermediate exchanges |
+| `RequestDriverWarning` | Driver Warning Management | Owns the warning-request boundary and warning state independently from intervention state and HMI realization |
+| `EvaluateDriverOverride` | Intervention Decision and Arbitration | Combines override with risk, intervention eligibility/inhibition context and degradation in one arbitration boundary; the same owner also participates in emergency-intervention responsibility |
+| `RequestEmergencyBraking` | Intervention Decision and Arbitration; Emergency Intervention Coordination | Separates decision from retention/coordination and replaces actuator-like command ownership with a logical intervention-request boundary |
+| `MonitorAEBSFailureStatus` | Health and Degradation Supervision | Reconciles input and subsystem health and solely owns valid/degraded/unavailable availability state |
+| `RecordAEBSEvidenceEvent` | Evidence Recording | Creates a cross-cutting observation boundary over risk, decision, degradation, warning, intervention and failure exchanges |
 
-SysML v2 allocations express responsibility assignment. They do not claim that the logical element is a software node, process, ECU, or physical component.
+Similar names are retained where they improve traceability; similarity is not the architectural argument. SysML v2 allocations express responsibility assignment. They do not, by themselves, prove decomposition or claim that the logical element is a software node, process, ECU, or physical component. The added responsibility, state and exchange topology above carry the architectural content.
 
 ## Logical exchanges
 
@@ -108,10 +108,10 @@ SysML v2 allocations express responsibility assignment. They do not claim that t
 - vehicle-motion observation;
 - target observation;
 - driver-override observation;
-- AEBS operating context, limited to lifecycle and operating-mode facts;
+- AEBS intervention context, limited to eligibility and inhibition facts;
 - subsystem health.
 
-AEBS availability is not supplied directly through operating context. Health and Degradation Supervision reconciles observation health and subsystem health and is the sole logical producer of availability/degradation state.
+System lifecycle is owned by the Vehicle-Target AEBS Logical System and is not supplied through this intervention-context boundary. AEBS availability is also excluded: Health and Degradation Supervision reconciles observation health and subsystem health and is the sole logical producer of availability/degradation state.
 
 ### Internal exchanges
 
@@ -126,6 +126,21 @@ AEBS availability is not supplied directly through operating context. Health and
 - warning request observed by Evidence Recording;
 - emergency-intervention request observed by Evidence Recording;
 - failure-indication request observed by Evidence Recording.
+
+### Item-contract maturity
+
+The exchanged item definitions have different contract maturity. Three remain intentionally **nominal and opaque** in this increment:
+
+- `AEBSOperatingContext` establishes the intervention eligibility/inhibition boundary, but its facts and value domains are not yet specified;
+- `PredictedEgoPath` establishes the producer-consumer boundary, but its horizon, coordinate frame, validity, timing, uncertainty and representation are not yet specified;
+- `ObservationHealthStatus` separates observation-specific health from AEBS availability, but its freshness, consistency, validity, timing and aggregation semantics are not yet specified.
+
+Two inherited types contain attributes but remain insufficient for the responsibilities assigned here:
+
+- `VehicleMotionState` carries speed and longitudinal acceleration, but path prediction still lacks heading/curvature or an explicit straight-line assumption, pose/frame, timestamp and validity semantics;
+- `ForwardTargetState` carries distance and time gap, but path-relative target processing still lacks lateral position or an explicit in-path assumption, target identity/extent, frame, timestamp and validity semantics.
+
+An item definition with only documentation is valid as a named type, but it is not a complete interface schema. Attribute-bearing types are likewise not automatically adequate for every downstream responsibility. These definitions establish candidate logical boundaries without inventing physical/software schemas; their missing semantic content must be resolved before the affected interfaces can become a physical-realization baseline.
 
 ### Boundary outputs
 
@@ -225,6 +240,12 @@ Autoware, ROS 2/DDS, S-CORE and Android SDV/AAOS are physical software/platform 
 | Emergency-state retention and release criteria | Emergency Intervention Coordination | Open |
 | Missing/stale/inconsistent-input degradation policy | Health and Degradation Supervision | Open |
 | Evidence schema, timing, storage and acceptance criteria | Evidence Recording | Open |
+| Intervention eligibility/inhibition facts and value domains | Intervention Decision and Arbitration | Open |
+| Predicted-path horizon, frame, validity, timing, uncertainty and representation | Ego Path Prediction | Open |
+| Vehicle-motion input sufficiency for path prediction, including pose/frame, timing, validity and heading/curvature or a straight-line assumption | Ego Path Prediction | Open |
+| Target-state input sufficiency for path-relative selection, including lateral relevance or an in-path assumption, identity, extent, frame, timing and validity | Target Processing | Open |
+| Observation-health freshness, consistency, validity, timing and aggregation semantics | State Acquisition and Normalization | Open |
+| Lifecycle transition triggers, guards and source contract | Vehicle-Target AEBS Logical System | Open |
 | Concrete service providers and middleware adapters | INC-AEBS-007/008 | Deferred |
 
 These are not reasons to block logical decomposition. They are requirements and realization gaps that now have explicit owners.
@@ -275,6 +296,7 @@ The current tree renderer cannot isolate only port, binding, and flow usages wit
 - [ ] Safety-control and general platform-service boundaries are explicit.
 - [ ] No physical technology appears as a logical realization.
 - [ ] Missing thresholds, guards, degradation policy and evidence criteria remain visible.
+- [ ] Nominal and attribute-bearing-but-incomplete contracts remain explicit and are not presented as a stable physical interface baseline.
 - [ ] Logical structure, internal exchange and functional mapping views are available for review.
 
 ## Validation status

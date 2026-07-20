@@ -51,10 +51,16 @@ package DE4SDV_AEBSLogicalArchitecture {
 
   item def AEBSOperatingContext {
     doc /*
-     * Technology-neutral lifecycle and operating context supplied to the
-     * logical decision boundary. Concrete mode providers and middleware are
-     * deferred to physical realization. AEBS availability is intentionally
-     * excluded; HealthAndDegradationSupervision is its sole logical owner.
+     * Technology-neutral intervention-eligibility and inhibition context
+     * supplied to the logical decision boundary. Concrete providers and
+     * middleware are deferred to physical realization. System lifecycle and
+     * AEBS availability are intentionally excluded; they have separate owners.
+     *
+     * This is intentionally a nominal, opaque contract in INC-AEBS-006. The
+     * eligibility and inhibition facts carried by the item are not yet defined
+     * as attributes because their source requirements and value domains remain
+     * open. The item name establishes an exchange boundary, not a complete
+     * data schema.
      */
   }
 
@@ -63,14 +69,20 @@ package DE4SDV_AEBSLogicalArchitecture {
      * Technology-neutral predicted subject-vehicle path used for target
      * relevance and collision-risk evaluation. No trajectory message,
      * geometry representation, or prediction mechanism is selected here.
+     *
+     * This is intentionally a nominal, opaque contract in INC-AEBS-006.
+     * Horizon, coordinate frame, validity, timing, uncertainty, and path
+     * representation remain requirements/interface gaps. The item name
+     * establishes the logical producer-consumer boundary without inventing
+     * a physical or software schema.
      */
   }
 
   item def InterventionDecision {
     doc /*
      * Logical emergency-intervention intent after considering collision risk,
-     * operating context, driver override, degradation, and inhibiting
-     * conditions.
+     * intervention eligibility/inhibition context, driver override, degradation,
+     * and other inhibiting conditions.
      */
     attribute intervention : AEBSInterventionKind;
   }
@@ -100,8 +112,13 @@ package DE4SDV_AEBSLogicalArchitecture {
     doc /*
      * Logical freshness, consistency, and validity status produced while
      * acquiring vehicle-motion and target observations.
+     *
+     * This is intentionally a nominal, opaque contract in INC-AEBS-006.
+     * The observation-specific status dimensions, timing, and aggregation
+     * semantics remain requirements/interface gaps. AEBS availability is not
+     * carried by this item; it is carried by AEBSDegradationState and solely
+     * owned and produced by HealthAndDegradationSupervision.
      */
-    attribute availability : AEBSAvailabilityKind;
   }
 
   /* ──────────────────────────────────────────
@@ -246,8 +263,9 @@ package DE4SDV_AEBSLogicalArchitecture {
 
   part def InterventionDecisionAndArbitration {
     doc /*
-     * Decides emergency-intervention intent while considering operating context,
-     * driver override, degradation, and inhibiting conditions.
+     * Decides emergency-intervention intent while considering intervention
+     * eligibility/inhibition context, driver override, degradation, and other
+     * inhibiting conditions.
      */
     port collisionRiskIn : CollisionRiskInput;
     port driverOverrideIn : DriverOverrideInputPort;
