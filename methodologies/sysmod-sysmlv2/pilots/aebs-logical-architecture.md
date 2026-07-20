@@ -79,9 +79,9 @@ Vehicle-Target AEBS Logical System
 | Collision Risk Evaluation | Assess collision risk using state, path and open braking assumptions |
 | Intervention Decision and Arbitration | Decide emergency-intervention intent while considering override, context and degradation |
 | Driver Warning Management | Produce a logical warning request without prescribing HMI technology |
-| Emergency Intervention Coordination | Issue and retain a logical emergency-intervention request |
+| Emergency Intervention Coordination | Issue and retain a logical intervention request only from an affirmative arbitrated decision |
 | Health and Degradation Supervision | Determine valid, degraded and unavailable operation and request failure indication |
-| Evidence Recording | Observe risk, health, warning and intervention events and emit an evidence event |
+| Evidence Recording | Observe risk, intervention decision, degradation, warning, intervention request and failure events and emit an evidence event |
 
 ### Independence rule
 
@@ -108,8 +108,10 @@ SysML v2 allocations express responsibility assignment. They do not claim that t
 - vehicle-motion observation;
 - target observation;
 - driver-override observation;
-- AEBS operating context;
+- AEBS operating context, limited to lifecycle and operating-mode facts;
 - subsystem health.
+
+AEBS availability is not supplied directly through operating context. Health and Degradation Supervision reconciles observation health and subsystem health and is the sole logical producer of availability/degradation state.
 
 ### Internal exchanges
 
@@ -120,7 +122,10 @@ SysML v2 allocations express responsibility assignment. They do not claim that t
 - relevant target state;
 - collision-risk assessment;
 - intervention decision;
-- degradation state.
+- degradation state;
+- warning request observed by Evidence Recording;
+- emergency-intervention request observed by Evidence Recording;
+- failure-indication request observed by Evidence Recording.
 
 ### Boundary outputs
 
@@ -131,7 +136,7 @@ SysML v2 allocations express responsibility assignment. They do not claim that t
 
 ## Emergency-control boundary
 
-The existing functional model uses `EmergencyBrakingCommand`. The logical architecture treats this as AEBS intervention intent, not direct ownership of a brake-actuator command.
+The functional baseline uses `EmergencyBrakingCommand`. INC-AEBS-006 introduces a distinct `EmergencyInterventionRequest` item for logical intent and traces it to that functional output without inheriting command, engagement, or lighting semantics.
 
 ```text
 AEBS intervention intent
@@ -173,22 +178,17 @@ A later physical realization must not place an unverified HLOS or generic vehicl
 
 ## Logical state semantics
 
-The logical system recognizes these states:
+State semantics are split into independent dimensions instead of one mutually exclusive state list:
 
-```text
-unavailable
-standby
-monitoring
-warning requested
-intervention requested
-emergency active
-degraded
-override accepted
-```
+| Dimension | Logical owner | States |
+| --- | --- | --- |
+| Lifecycle | Vehicle-Target AEBS Logical System | standby; monitoring |
+| Warning | Driver Warning Management | inactive; warning requested |
+| Intervention | Emergency Intervention Coordination | inactive; intervention requested; emergency active |
+| Override | Intervention Decision and Arbitration | no override; override accepted |
+| Availability | Health and Degradation Supervision | valid; degraded; unavailable |
 
-This increment assigns ownership and makes the states visible. It does not invent numeric transition guards or release criteria that the current draft requirements do not provide.
-
-Emergency-state retention belongs to Emergency Intervention Coordination. Valid/degraded/unavailable determination belongs to Health and Degradation Supervision.
+This increment assigns ownership and makes the states visible. It does not invent numeric transition guards or release criteria that the current draft requirements do not provide. Warning state remains independent from override and intervention state. Health and Degradation Supervision is the sole producer of AEBS availability.
 
 ## Architecture decisions
 
@@ -209,7 +209,7 @@ Only the decomposed rule-based choice is modeled now. A learned or hybrid SysML 
 
 ### DEC-AEBS-LOG-003 — Intervention request is not actuator command
 
-AEBS owns intervention intent. Emergency supervision, command arbitration, vehicle interfacing and brake actuation belong to physical realization.
+AEBS owns `EmergencyInterventionRequest`. The logical type is traced to, but not specialized from, the functional `EmergencyBrakingCommand`. Emergency supervision, command arbitration, vehicle interfacing and brake actuation belong to physical realization.
 
 ### DEC-AEBS-LOG-004 — Middleware stays physical
 
@@ -254,6 +254,16 @@ The first deployment is simulation-first. Selection of the first S-CORE or Andro
 
 Run the complete observation-to-braking chain in repeatable scenarios. Record source and parameter identities, input/output data, decision and diagnostic timing, MRM/command behavior, stopping outcome, pass/fail result, and unresolved gaps.
 
+## Human-reviewable views
+
+The three SAF-aligned views have distinct membership:
+
+- the structure view exposes the logical system and nine component usages;
+- the internal-exchange view exposes direct members of the logical-system context, including ports, boundary bindings, and internal flows;
+- the functional-mapping view exposes ten named allocation usages.
+
+The current tree renderer cannot isolate only port, binding, and flow usages without tool-specific queries. The internal-exchange view therefore remains bounded to direct logical-system members, and this limitation is explicit rather than presenting three identical whole-package views.
+
 ## Acceptance criteria
 
 - [ ] Every functional action has at least one logical owner.
@@ -269,7 +279,7 @@ Run the complete observation-to-braking chain in repeatable scenarios. Record so
 
 ## Validation status
 
-- Public repository checks: pending.
+- Public repository checks: passed on the PR branch.
 - Local SysML validation: not run by DE4SDV policy.
-- Privileged SysML validation: required after initial model review.
-- Semantic review: must check allocation meaning, logical/physical separation, boundary ownership, and consistency with the YAML control artifact.
+- Privileged SysML validation: attempted, but the configured Syside license expired before the model could be evaluated.
+- Semantic review: two independent static reviews identified and drove corrections to the logical request type, boundary delegation, state ownership, emergency arbitration path, exchange inventory, and view membership.

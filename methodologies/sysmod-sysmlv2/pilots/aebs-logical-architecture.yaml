@@ -22,7 +22,7 @@ scope:
     - logical component responsibilities
     - functional-to-logical allocations
     - technology-neutral boundary and internal exchanges
-    - logical valid, degraded, unavailable, warning, intervention, emergency, and override state semantics
+    - independent logical lifecycle, warning, intervention, availability, and override state semantics
     - independent driver override, health supervision, emergency retention, and evidence responsibilities
     - safety-control versus platform-service boundary separation
     - explicit ownership of gaps discovered during logical allocation
@@ -83,7 +83,7 @@ logical_boundary:
     - id: LPORT-AEBS-IN-004
       name: operatingContext
       item_type: AEBSOperatingContext
-      source_intent: external lifecycle and operating-mode capability
+      source_intent: external lifecycle and operating-mode capability; AEBS availability is excluded
     - id: LPORT-AEBS-IN-005
       name: subsystemHealth
       item_type: AEBSFailureStatus
@@ -95,12 +95,14 @@ logical_boundary:
       destination_intent: external warning and HMI capability
     - id: LPORT-AEBS-OUT-002
       name: emergencyInterventionRequest
-      item_type: EmergencyBrakingCommand
+      item_type: EmergencyInterventionRequest
       destination_intent: external emergency-motion and vehicle-control capability
       semantic_boundary: >-
-        This is the logical AEBS intervention request. Physical emergency
-        supervision, command arbitration, and actuator command generation are
-        outside INC-AEBS-006.
+        This technology-neutral item carries logical AEBS intervention intent.
+        It traces to the functional EmergencyBrakingCommand output without
+        inheriting its command, engagement, or lighting semantics. Physical
+        emergency supervision, command arbitration, and actuator command
+        generation are outside INC-AEBS-006.
     - id: LPORT-AEBS-OUT-003
       name: failureIndicationRequest
       item_type: FailureIndicationRequest
@@ -131,13 +133,13 @@ logical_components:
     responsibility: Convert warning intent into a logical driver-warning request without prescribing HMI technology.
   - id: LCOMP-AEBS-007
     name: EmergencyInterventionCoordination
-    responsibility: Issue and retain a logical emergency-intervention request without claiming actuator-command ownership.
+    responsibility: Issue and retain a logical emergency-intervention request only from an affirmative arbitrated decision, without claiming actuator-command ownership.
   - id: LCOMP-AEBS-008
     name: HealthAndDegradationSupervision
     responsibility: Determine valid, degraded, and unavailable operation and request failure indication from subsystem and input health.
   - id: LCOMP-AEBS-009
     name: EvidenceRecording
-    responsibility: Observe risk, degradation, warning, intervention, and failure events and emit a logical evidence event.
+    responsibility: Observe risk, intervention decision, degradation, warning, intervention request, and failure events and emit a logical evidence event.
 
 functional_allocations:
   - function: AcquireVehicleAndTargetState
@@ -189,7 +191,7 @@ internal_exchanges:
   - item: collisionRiskAssessment
     item_type: CollisionRiskAssessment
     producer: CollisionRiskEvaluation
-    consumers: [InterventionDecisionAndArbitration, DriverWarningManagement, EmergencyInterventionCoordination, EvidenceRecording]
+    consumers: [InterventionDecisionAndArbitration, DriverWarningManagement, EvidenceRecording]
   - item: interventionDecision
     item_type: InterventionDecision
     producer: InterventionDecisionAndArbitration
@@ -198,6 +200,18 @@ internal_exchanges:
     item_type: AEBSDegradationState
     producer: HealthAndDegradationSupervision
     consumers: [InterventionDecisionAndArbitration, EvidenceRecording]
+  - item: driverWarningRequest
+    item_type: DriverWarningRequest
+    producer: DriverWarningManagement
+    consumers: [EvidenceRecording]
+  - item: emergencyInterventionRequest
+    item_type: EmergencyInterventionRequest
+    producer: EmergencyInterventionCoordination
+    consumers: [EvidenceRecording]
+  - item: failureIndicationRequest
+    item_type: FailureIndicationRequest
+    producer: HealthAndDegradationSupervision
+    consumers: [EvidenceRecording]
 
 logical_service_boundaries:
   safety_control:
@@ -217,19 +231,36 @@ logical_service_boundaries:
     emergency-control path.
 
 logical_states:
-  states:
-    - unavailable
-    - standby
-    - monitoring
-    - warning_requested
-    - intervention_requested
-    - emergency_active
-    - degraded
-    - override_accepted
+  lifecycle:
+    owner: VehicleTargetAEBSLogicalSystem
+    states: [standby, monitoring]
+  warning:
+    owner: DriverWarningManagement
+    states: [inactive, warning_requested]
+  intervention:
+    owner: EmergencyInterventionCoordination
+    states: [inactive, intervention_requested, emergency_active]
+  override:
+    owner: InterventionDecisionAndArbitration
+    states: [no_override, override_accepted]
+  availability:
+    owner: HealthAndDegradationSupervision
+    states: [valid, degraded, unavailable]
   notes:
-    - Emergency-state retention is owned by EmergencyInterventionCoordination.
+    - Lifecycle, warning, override, intervention, and availability are independent state dimensions rather than mutually exclusive sibling states.
+    - Emergency-state retention is owned by EmergencyInterventionCoordination and is driven by the arbitrated intervention decision.
+    - HealthAndDegradationSupervision is the sole producer of AEBS availability and degradation state.
     - Numeric transition guards and release criteria remain requirements gaps.
     - Driver override, health supervision, and evidence recording remain independent of the primary collision-risk mechanism.
+
+review_views:
+  logical_structure:
+    exposes: logical system and nine component usages
+  logical_internal_exchange:
+    exposes: direct logical-system members, including ports, boundary bindings, and internal flows
+    limitation: current tree rendering cannot isolate only exchange usages without tool-specific queries
+  logical_functional_mapping:
+    exposes: ten named functional-to-logical allocation usages
 
 architecture_decisions:
   - id: DEC-AEBS-LOG-001
@@ -240,7 +271,7 @@ architecture_decisions:
     rationale: Decomposition and decision-mechanism dimensions remain documented architecture options, not empty product-line features.
   - id: DEC-AEBS-LOG-003
     decision: Separate logical emergency-intervention request from physical actuator command.
-    rationale: AEBS owns intervention intent; downstream supervision, arbitration, vehicle interface, and brake actuation are physical-domain responsibilities.
+    rationale: EmergencyInterventionRequest is a distinct logical item traced to, but not specialized from, the functional EmergencyBrakingCommand; downstream supervision, arbitration, vehicle interface, and brake actuation are physical-domain responsibilities.
   - id: DEC-AEBS-LOG-004
     decision: Keep middleware products outside the logical architecture.
     rationale: ROS 2/DDS, S-CORE, Android SDV, AAOS, and their adapters are physical software/platform realizations of logical service contracts.
@@ -321,4 +352,4 @@ validation:
     - git diff --check
     - YAML parse
   local_sysml_validation: not_run_by_policy
-  privileged_sysml_validation: requested_after_review
+  privileged_sysml_validation: blocked_configured_license_expired

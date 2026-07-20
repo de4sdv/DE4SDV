@@ -40,7 +40,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   enum def AEBSAvailabilityKind {
     unavailable;
     degraded;
-    available;
+    valid;
   }
 
   enum def AEBSInterventionKind {
@@ -53,9 +53,9 @@ package DE4SDV_AEBSLogicalArchitecture {
     doc /*
      * Technology-neutral lifecycle and operating context supplied to the
      * logical decision boundary. Concrete mode providers and middleware are
-     * deferred to physical realization.
+     * deferred to physical realization. AEBS availability is intentionally
+     * excluded; HealthAndDegradationSupervision is its sole logical owner.
      */
-    attribute availability : AEBSAvailabilityKind;
   }
 
   item def PredictedEgoPath {
@@ -74,6 +74,19 @@ package DE4SDV_AEBSLogicalArchitecture {
      */
     attribute intervention : AEBSInterventionKind;
   }
+
+  item def EmergencyInterventionRequest {
+    doc /*
+     * Technology-neutral request for emergency intervention after arbitration.
+     * It expresses AEBS intent only. Brake-command values, lighting status,
+     * vehicle-control arbitration, and actuator engagement are physical-domain
+     * responsibilities deferred to INC-AEBS-007/008.
+     */
+    attribute intervention : AEBSInterventionKind;
+  }
+
+  dependency emergencyRequestFunctionalTrace
+    from EmergencyInterventionRequest to EmergencyBrakingCommand;
 
   item def AEBSDegradationState {
     doc /*
@@ -172,16 +185,11 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   port def EmergencyInterventionInput {
-    in item emergencyInterventionRequest : EmergencyBrakingCommand;
+    in item emergencyInterventionRequest : EmergencyInterventionRequest;
   }
 
   port def EmergencyInterventionOutput {
-    doc /*
-     * Logical intervention request port. Its item type reuses the existing
-     * functional EmergencyBrakingCommand for traceability; actuator-command
-     * ownership is explicitly outside this logical boundary.
-     */
-    out item emergencyInterventionRequest : EmergencyBrakingCommand;
+    out item emergencyInterventionRequest : EmergencyInterventionRequest;
   }
 
   port def FailureIndicationInput {
@@ -246,34 +254,60 @@ package DE4SDV_AEBSLogicalArchitecture {
     port operatingContextIn : OperatingContextInput;
     port degradationStateIn : DegradationStateInput;
     port interventionDecisionOut : InterventionDecisionOutput;
+
+    exhibit state overrideStates {
+      state noOverride;
+      state overrideAccepted;
+    }
   }
 
   part def DriverWarningManagement {
     doc /* Produces a logical driver-warning request without prescribing HMI technology. */
     port collisionRiskIn : CollisionRiskInput;
     port driverWarningRequestOut : DriverWarningRequestOutput;
+
+    exhibit state warningStates {
+      doc /* Warning state remains independent from override and intervention state. */
+      state inactive;
+      state warningRequested;
+    }
   }
 
   part def EmergencyInterventionCoordination {
     doc /*
-     * Issues and retains a logical emergency-intervention request. Physical
-     * emergency supervision, command gating, vehicle interfacing, and brake
-     * actuation are outside INC-AEBS-006.
+     * Issues and retains a logical emergency-intervention request only from an
+     * affirmative arbitrated decision. Physical emergency supervision, command
+     * gating, vehicle interfacing, and brake actuation are outside INC-AEBS-006.
      */
-    port collisionRiskIn : CollisionRiskInput;
     port interventionDecisionIn : InterventionDecisionInput;
     port emergencyInterventionOut : EmergencyInterventionOutput;
+
+    exhibit state interventionStates {
+      doc /*
+       * Emergency-state ownership is explicit. Numeric retention and release
+       * guards remain open requirements and are not invented here.
+       */
+      state inactive;
+      state interventionRequested;
+      state emergencyActive;
+    }
   }
 
   part def HealthAndDegradationSupervision {
     doc /*
-     * Determines valid, degraded, and unavailable operation and requests
-     * failure indication from input and subsystem health.
+     * Sole logical owner of valid, degraded, and unavailable AEBS operation;
+     * reconciles input and subsystem health and requests failure indication.
      */
     port failureStatusIn : AEBSFailureStatusInput;
     port observationHealthIn : ObservationHealthInput;
     port degradationStateOut : DegradationStateOutput;
     port failureIndicationOut : FailureIndicationOutput;
+
+    exhibit state availabilityStates {
+      state valid;
+      state degraded;
+      state unavailable;
+    }
   }
 
   part def EvidenceRecording {
@@ -324,32 +358,21 @@ package DE4SDV_AEBSLogicalArchitecture {
     part healthSupervision : HealthAndDegradationSupervision;
     part evidenceRecording : EvidenceRecording;
 
-    exhibit state operatingStates {
+    exhibit state lifecycleStates {
       doc /*
-       * State ownership is modeled now; numeric transition guards, release
-       * authority, and timing criteria remain explicit requirements gaps.
+       * System lifecycle is independent from component-owned warning,
+       * intervention, and availability state machines.
        */
-      state unavailable;
       state standby;
       state monitoring;
-      state warningRequested;
-      state interventionRequested;
-      state emergencyActive;
-      state degraded;
-      state overrideAccepted;
     }
 
-    // Boundary delegation to logical owners.
-    flow from vehicleMotionObservationIn.vehicleMotionState
-      to stateAcquisition.vehicleMotionIn.vehicleMotionState;
-    flow from targetObservationIn.forwardTargetState
-      to stateAcquisition.targetObservationIn.forwardTargetState;
-    flow from driverOverrideObservationIn.driverOverrideInput
-      to interventionDecision.driverOverrideIn.driverOverrideInput;
-    flow from operatingContextIn.operatingContext
-      to interventionDecision.operatingContextIn.operatingContext;
-    flow from subsystemHealthIn.aebsFailureStatus
-      to healthSupervision.failureStatusIn.aebsFailureStatus;
+    // Boundary delegation binds external ports to their logical owners.
+    bind vehicleMotionObservationIn = stateAcquisition.vehicleMotionIn;
+    bind targetObservationIn = stateAcquisition.targetObservationIn;
+    bind driverOverrideObservationIn = interventionDecision.driverOverrideIn;
+    bind operatingContextIn = interventionDecision.operatingContextIn;
+    bind subsystemHealthIn = healthSupervision.failureStatusIn;
 
     // State, path, target, and risk exchanges.
     flow from stateAcquisition.normalizedVehicleStateOut.vehicleMotionState
@@ -373,8 +396,6 @@ package DE4SDV_AEBSLogicalArchitecture {
     flow from collisionRiskEvaluation.collisionRiskOut.collisionRiskAssessment
       to warningManagement.collisionRiskIn.collisionRiskAssessment;
     flow from collisionRiskEvaluation.collisionRiskOut.collisionRiskAssessment
-      to emergencyCoordination.collisionRiskIn.collisionRiskAssessment;
-    flow from collisionRiskEvaluation.collisionRiskOut.collisionRiskAssessment
       to evidenceRecording.collisionRiskIn.collisionRiskAssessment;
 
     flow from healthSupervision.degradationStateOut.degradationState
@@ -387,23 +408,19 @@ package DE4SDV_AEBSLogicalArchitecture {
     flow from interventionDecision.interventionDecisionOut.interventionDecision
       to evidenceRecording.interventionDecisionIn.interventionDecision;
 
-    flow from warningManagement.driverWarningRequestOut.driverWarningRequest
-      to driverWarningRequestOut.driverWarningRequest;
+    bind driverWarningRequestOut = warningManagement.driverWarningRequestOut;
     flow from warningManagement.driverWarningRequestOut.driverWarningRequest
       to evidenceRecording.driverWarningRequestIn.driverWarningRequest;
 
-    flow from emergencyCoordination.emergencyInterventionOut.emergencyInterventionRequest
-      to emergencyInterventionRequestOut.emergencyInterventionRequest;
+    bind emergencyInterventionRequestOut = emergencyCoordination.emergencyInterventionOut;
     flow from emergencyCoordination.emergencyInterventionOut.emergencyInterventionRequest
       to evidenceRecording.emergencyInterventionIn.emergencyInterventionRequest;
 
-    flow from healthSupervision.failureIndicationOut.failureIndicationRequest
-      to failureIndicationRequestOut.failureIndicationRequest;
+    bind failureIndicationRequestOut = healthSupervision.failureIndicationOut;
     flow from healthSupervision.failureIndicationOut.failureIndicationRequest
       to evidenceRecording.failureIndicationIn.failureIndicationRequest;
 
-    flow from evidenceRecording.evidenceEventOut.aebsEvidenceEvent
-      to evidenceEventOut.aebsEvidenceEvent;
+    bind evidenceEventOut = evidenceRecording.evidenceEventOut;
   }
 
   action functionalFlow : VehicleTargetAEBSFunctionalFlow;
@@ -414,31 +431,43 @@ package DE4SDV_AEBSLogicalArchitecture {
    * allocate to multiple logical elements when the logical decomposition makes
    * previously combined responsibilities explicit.
    */
-  allocate functionalFlow.acquireState
+  allocation def FunctionalToLogicalResponsibility;
+
+  allocation acquireStateAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.acquireState
     to logicalSystem.stateAcquisition;
 
-  allocate functionalFlow.assessRisk
+  allocation assessRiskPathAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.assessRisk
     to logicalSystem.egoPathPrediction;
-  allocate functionalFlow.assessRisk
+  allocation assessRiskTargetAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.assessRisk
     to logicalSystem.targetProcessing;
-  allocate functionalFlow.assessRisk
+  allocation assessRiskEvaluationAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.assessRisk
     to logicalSystem.collisionRiskEvaluation;
 
-  allocate functionalFlow.requestWarning
+  allocation requestWarningAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.requestWarning
     to logicalSystem.warningManagement;
 
-  allocate functionalFlow.evaluateOverride
+  allocation evaluateOverrideAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.evaluateOverride
     to logicalSystem.interventionDecision;
 
-  allocate functionalFlow.requestBraking
+  allocation requestBrakingDecisionAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.requestBraking
     to logicalSystem.interventionDecision;
-  allocate functionalFlow.requestBraking
+  allocation requestBrakingCoordinationAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.requestBraking
     to logicalSystem.emergencyCoordination;
 
-  allocate functionalFlow.monitorFailure
+  allocation monitorFailureAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.monitorFailure
     to logicalSystem.healthSupervision;
 
-  allocate functionalFlow.recordEvidence
+  allocation recordEvidenceAllocation : FunctionalToLogicalResponsibility
+    allocate functionalFlow.recordEvidence
     to logicalSystem.evidenceRecording;
 
   /* ──────────────────────────────────────────
@@ -480,7 +509,16 @@ package DE4SDV_AEBSLogicalArchitecture {
       frame logicalStructureConcern;
     }
 
-    expose DE4SDV_AEBSLogicalArchitecture::*;
+    expose logicalSystem;
+    expose logicalSystem::stateAcquisition;
+    expose logicalSystem::egoPathPrediction;
+    expose logicalSystem::targetProcessing;
+    expose logicalSystem::collisionRiskEvaluation;
+    expose logicalSystem::interventionDecision;
+    expose logicalSystem::warningManagement;
+    expose logicalSystem::emergencyCoordination;
+    expose logicalSystem::healthSupervision;
+    expose logicalSystem::evidenceRecording;
     render asTreeDiagram;
   }
 
@@ -489,7 +527,12 @@ package DE4SDV_AEBSLogicalArchitecture {
       frame logicalInternalExchangeConcern;
     }
 
-    expose DE4SDV_AEBSLogicalArchitecture::*;
+    /*
+     * Current tree rendering cannot filter direct port, binding, and flow
+     * usages without tool-specific queries. Exposing direct logical-system
+     * members keeps this view bounded to the exchange-owning context.
+     */
+    expose logicalSystem::*;
     render asTreeDiagram;
   }
 
@@ -498,7 +541,16 @@ package DE4SDV_AEBSLogicalArchitecture {
       frame logicalFunctionalMappingConcern;
     }
 
-    expose DE4SDV_AEBSLogicalArchitecture::*;
+    expose acquireStateAllocation;
+    expose assessRiskPathAllocation;
+    expose assessRiskTargetAllocation;
+    expose assessRiskEvaluationAllocation;
+    expose requestWarningAllocation;
+    expose evaluateOverrideAllocation;
+    expose requestBrakingDecisionAllocation;
+    expose requestBrakingCoordinationAllocation;
+    expose monitorFailureAllocation;
+    expose recordEvidenceAllocation;
     render asTreeDiagram;
   }
 }
