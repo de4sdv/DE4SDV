@@ -2,6 +2,7 @@
   "view_id": "de4sdv.system-context",
   "status": "syson-spike-exported",
   "model_slice": "DE4SDV::Context",
+  "textual_snapshot_slice": "DE4SDV_ContextSpikeSnapshot::Context",
   "source_tool": "Eclipse SysON",
   "source_tool_version": "v2026.5.0",
   "syson_project_name": "DE4SDV",

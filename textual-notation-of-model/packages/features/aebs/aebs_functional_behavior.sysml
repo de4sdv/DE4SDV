@@ -13,7 +13,7 @@
  * not used here as architecture topology or implementation ownership.
  */
 
-package DE4SDV {
+package DE4SDV_AEBSFunctionalBehavior {
   package Features {
     package AEBS {
       package FunctionalBehavior {

@@ -69,7 +69,7 @@ problem_statement:
     requirement quality gaps without claiming functional realization, VSS signal
     mapping, or UNECE R152 compliance/type-approval fulfillment?
   status: draft
-  model_element: DE4SDV::Features::AEBS::NeedsRequirements::aebsNeedsRequirementsSystemContext::aebsNeedsRequirementsProblemStatement
+  model_element: DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::aebsNeedsRequirementsSystemContext::aebsNeedsRequirementsProblemStatement
 
 needs:
   - id: N-AEBS-001

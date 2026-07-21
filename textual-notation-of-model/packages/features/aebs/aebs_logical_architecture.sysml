@@ -19,7 +19,7 @@
  */
 
 package DE4SDV_AEBSLogicalArchitecture {
-  private import DE4SDV::Features::AEBS::FunctionalBehavior::*;
+  private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import Views::*;

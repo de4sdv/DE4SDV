@@ -49,7 +49,8 @@ Before proposing a completed change:
 ## SysML v2 textual notation validation
 
 All generated or modified `.sysml` files under `textual-notation-of-model/`
-must be validated before the modeling step is treated as complete.
+and `model-based-product-line-engineering/product-models/` must be validated
+before the modeling step is treated as complete.
 
 Use one of the two validation paths:
 
@@ -60,10 +61,12 @@ Use one of the two validation paths:
 python scripts/validate_sysml.py
 ```
 
-The wrapper runs Sensmetry SysIDE Modeler CLI validation equivalent to:
+The wrapper validates both model roots together, equivalent to:
 
 ```bash
-syside check textual-notation-of-model/
+syside check \
+  textual-notation-of-model \
+  model-based-product-line-engineering/product-models
 ```
 
 1. Maintainer-run privileged validation, requested from the pull request after

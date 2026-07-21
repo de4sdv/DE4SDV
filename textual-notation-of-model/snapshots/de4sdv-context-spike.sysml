@@ -1,4 +1,4 @@
-package DE4SDV {
+package DE4SDV_ContextSpikeSnapshot {
   package Context {
     part def ConfigurableSDVProductLine;
     part def LifecycleEngineeringSystem;
