@@ -22,16 +22,12 @@ package DE4SDV_AEBSLogicalArchitecture {
   private import ScalarValues::*;
   private import DE4SDV::Features::AEBS::FunctionalBehavior::*;
   private import DE4SDV_MethodContext::*;
-  private import DE4SDV_ProductLine::*;
   private import DE4SDV_MethodViewpoints::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import Views::*;
 
-  part incAEBS006 : FeatureIncrement;
-  part sdvProductLine : SDVProductLine;
-  part memberProduct : ProductLineMemberProduct;
-  part aebsCommonCapability : CommonProductLineCapability;
+  part incAEBS006 : EngineeringIncrement;
 
   /* ──────────────────────────────────────────
    * Logical information definitions

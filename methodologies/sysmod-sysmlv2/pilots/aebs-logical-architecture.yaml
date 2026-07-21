@@ -2,7 +2,7 @@ schema: de4sdv.logical-architecture.v0
 id: INC-AEBS-006
 name: AEBS logical architecture
 status: draft
-type: FeatureIncrement
+type: EngineeringIncrement
 parent_increment: INC-AEBS-005
 owner: DE4SDV maintainers
 
