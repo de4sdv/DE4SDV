@@ -1,0 +1,412 @@
+schema: de4sdv.logical-architecture.v0
+id: INC-AEBS-006
+name: AEBS logical architecture
+status: draft
+type: EngineeringIncrement
+parent_increment: INC-AEBS-005
+owner: DE4SDV maintainers
+
+domain: logical
+selected_baseline: decomposed_rule_based
+
+purpose: >-
+  Define a technology-neutral logical architecture that allocates every
+  vehicle-target AEBS functional responsibility from INC-AEBS-004/005 to a
+  bounded logical owner, exposes typed logical exchanges while marking nominal
+  opaque contracts explicitly, separates the
+  safety-control path from general vehicle-platform services, and establishes
+  a candidate target for physical realization with Autoware in INC-AEBS-007.
+
+scope:
+  in_scope:
+    - logical AEBS system boundary
+    - logical component responsibilities
+    - functional-to-logical allocations
+    - technology-neutral boundary and internal exchanges
+    - independent logical lifecycle, warning, intervention, availability, and override state semantics
+    - independent driver override, health supervision, emergency retention, and evidence responsibilities
+    - safety-control versus platform-service boundary separation
+    - explicit ownership of gaps discovered during logical allocation
+    - SAF logical structure, internal exchange, and functional mapping views
+  out_of_scope:
+    - Autoware packages, nodes, source files, or parameters
+    - ROS 2 topics, services, diagnostics, executors, RMW, or DDS
+    - Eclipse S-CORE, Android SDV, AAOS, or AUTOSAR Adaptive realization
+    - middleware adapters
+    - Linux processes, containers, launch files, ECUs, SoCs, networks, sensors, or actuators
+    - calibrated thresholds, speed ranges, TTC values, deceleration profiles, or release guards
+    - learned-policy implementation or an unsubstantiated learned-policy variation
+    - UNECE R152 compliance, certification, homologation, or production-readiness claims
+
+source_alignment:
+  - source_id: INC-AEBS-004
+    use: functional_behavior_baseline
+    artifact: textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml
+  - source_id: INC-AEBS-005
+    use: functional_interface_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/aebs-functional-interfaces.yaml
+  - source_id: SYSML-V2-SPEC-7.15
+    use: allocation_semantics
+    notes:
+      - Allocation assigns responsibility for realizing features of one element to another element.
+  - source_id: SYSML-V2-RELEASE-3f895b7
+    use: syntax_evidence
+    notes:
+      - Allocation syntax follows validation/12-Dependency Relationships/12b-Allocation-1.sysml.
+      - State decomposition syntax follows validation/05-State-based Behavior/5-State-based Behavior-1.sysml.
+  - source_id: SAF-LOGICAL-DOMAIN
+    use: viewpoint_selection
+    notes:
+      - Logical Structure Definition Viewpoint
+      - Logical Internal Exchange Viewpoint
+      - Logical Functional Mapping Viewpoint
+
+system_of_interest:
+  system_1: SDV product-line member product realizing the common AEBS capability.
+  logical_system: Vehicle-Target AEBS Logical System.
+  system_2: DE4SDV engineering baseline recording logical ownership, exchanges, allocation, gaps, and review evidence.
+  system_3: DE4SDV governance and review ecosystem deciding whether the logical baseline is adequate for physical realization.
+
+logical_boundary:
+  inputs:
+    - id: LPORT-AEBS-IN-001
+      name: vehicleMotionObservation
+      item_type: VehicleMotionState
+      source_intent: external vehicle-state capability
+    - id: LPORT-AEBS-IN-002
+      name: targetObservation
+      item_type: ForwardTargetState
+      source_intent: external target-observation capability
+    - id: LPORT-AEBS-IN-003
+      name: driverOverrideObservation
+      item_type: DriverOverrideInput
+      source_intent: external driver-interaction capability
+    - id: LPORT-AEBS-IN-004
+      name: operatingContext
+      item_type: AEBSOperatingContext
+      source_intent: external intervention-eligibility and inhibition capability; system lifecycle and AEBS availability are excluded
+    - id: LPORT-AEBS-IN-005
+      name: subsystemHealth
+      item_type: AEBSFailureStatus
+      source_intent: external health and diagnostics capability
+  outputs:
+    - id: LPORT-AEBS-OUT-001
+      name: driverWarningRequest
+      item_type: DriverWarningRequest
+      destination_intent: external warning and HMI capability
+    - id: LPORT-AEBS-OUT-002
+      name: emergencyInterventionRequest
+      item_type: EmergencyInterventionRequest
+      destination_intent: external emergency-motion and vehicle-control capability
+      semantic_boundary: >-
+        This technology-neutral item carries logical AEBS intervention intent.
+        It traces to the functional EmergencyBrakingCommand output without
+        inheriting its command, engagement, or lighting semantics. Physical
+        emergency supervision, command arbitration, and actuator command
+        generation are outside INC-AEBS-006.
+    - id: LPORT-AEBS-OUT-003
+      name: failureIndicationRequest
+      item_type: FailureIndicationRequest
+      destination_intent: external warning and diagnostics capability
+    - id: LPORT-AEBS-OUT-004
+      name: evidenceEvent
+      item_type: AEBSEvidenceEvent
+      destination_intent: external evidence and persistency capability
+
+logical_components:
+  - id: LCOMP-AEBS-001
+    name: StateAcquisitionAndNormalization
+    responsibility: Validate and normalize vehicle-motion and target observations without selecting a concrete sensor or middleware provider.
+  - id: LCOMP-AEBS-002
+    name: EgoPathPrediction
+    responsibility: Produce a technology-neutral predicted ego path from normalized vehicle motion.
+  - id: LCOMP-AEBS-003
+    name: TargetProcessing
+    responsibility: Select and characterize forward targets relevant to the predicted ego path.
+  - id: LCOMP-AEBS-004
+    name: CollisionRiskEvaluation
+    responsibility: Assess forward collision risk from normalized vehicle state, relevant target state, predicted path, and open braking assumptions.
+  - id: LCOMP-AEBS-005
+    name: InterventionDecisionAndArbitration
+    responsibility: Decide emergency-intervention intent while considering intervention eligibility/inhibition context, driver override, degradation, and other inhibiting conditions.
+  - id: LCOMP-AEBS-006
+    name: DriverWarningManagement
+    responsibility: Convert warning intent into a logical driver-warning request without prescribing HMI technology.
+  - id: LCOMP-AEBS-007
+    name: EmergencyInterventionCoordination
+    responsibility: Issue and retain a logical emergency-intervention request only from an affirmative arbitrated decision, without claiming actuator-command ownership.
+  - id: LCOMP-AEBS-008
+    name: HealthAndDegradationSupervision
+    responsibility: Determine valid, degraded, and unavailable operation and request failure indication from subsystem and input health.
+  - id: LCOMP-AEBS-009
+    name: EvidenceRecording
+    responsibility: Observe risk, intervention decision, degradation, warning, intervention request, and failure events and emit a logical evidence event.
+
+functional_allocations:
+  - function: AcquireVehicleAndTargetState
+    logical_owners:
+      - StateAcquisitionAndNormalization
+    architecture_effect: Establish the external-observation boundary, normalize vehicle and target observations, and produce observation health separately from availability.
+  - function: AssessForwardCollisionRisk
+    logical_owners:
+      - EgoPathPrediction
+      - TargetProcessing
+      - CollisionRiskEvaluation
+    architecture_effect: Split path prediction, target relevance, and collision-risk ownership with explicit intermediate exchanges.
+  - function: RequestDriverWarning
+    logical_owners:
+      - DriverWarningManagement
+    architecture_effect: Own the warning-request boundary and warning state independently from intervention state and HMI realization.
+  - function: EvaluateDriverOverride
+    logical_owners:
+      - InterventionDecisionAndArbitration
+    architecture_effect: Combine override with risk, intervention eligibility/inhibition context, and degradation in an arbitration boundary shared with emergency-intervention responsibility.
+  - function: RequestEmergencyBraking
+    logical_owners:
+      - InterventionDecisionAndArbitration
+      - EmergencyInterventionCoordination
+    architecture_effect: Separate decision from retention and coordination and expose logical intervention intent rather than actuator-command ownership.
+  - function: MonitorAEBSFailureStatus
+    logical_owners:
+      - HealthAndDegradationSupervision
+    architecture_effect: Reconcile input and subsystem health and solely own valid, degraded, and unavailable availability state.
+  - function: RecordAEBSEvidenceEvent
+    logical_owners:
+      - EvidenceRecording
+    architecture_effect: Establish a cross-cutting observation boundary over risk, decision, degradation, warning, intervention, and failure exchanges.
+
+item_contract_maturity:
+  - item_type: AEBSOperatingContext
+    status: nominal_opaque
+    rationale: Establishes the intervention eligibility and inhibition exchange boundary without inventing facts or value domains not yet supported by requirements.
+    missing_semantics: [eligibility_facts, inhibition_facts, value_domains]
+  - item_type: PredictedEgoPath
+    status: nominal_opaque
+    rationale: Establishes the logical producer-consumer boundary without selecting a physical or software path schema.
+    missing_semantics: [horizon, coordinate_frame, validity, timing, uncertainty, representation]
+  - item_type: ObservationHealthStatus
+    status: nominal_opaque
+    rationale: Separates observation-specific health from AEBS availability without reusing the availability state owned by HealthAndDegradationSupervision.
+    missing_semantics: [freshness, consistency, validity, timing, aggregation]
+  - item_type: VehicleMotionState
+    status: attribute_bearing_incomplete
+    rationale: Existing speed and longitudinal-acceleration attributes do not yet support the claimed path-prediction responsibility without further motion semantics or an explicit straight-line assumption.
+    missing_semantics: [heading_or_curvature_or_straight_line_assumption, pose, coordinate_frame, timestamp, validity]
+  - item_type: ForwardTargetState
+    status: attribute_bearing_incomplete
+    rationale: Existing distance and time-gap attributes do not yet support path-relative target selection without further target semantics or an explicit in-path assumption.
+    missing_semantics: [lateral_relevance_or_in_path_assumption, target_identity, target_extent, coordinate_frame, timestamp, validity]
+
+internal_exchanges:
+  - item: normalizedVehicleState
+    item_type: VehicleMotionState
+    producer: StateAcquisitionAndNormalization
+    consumers: [EgoPathPrediction, CollisionRiskEvaluation]
+  - item: normalizedTargetState
+    item_type: ForwardTargetState
+    producer: StateAcquisitionAndNormalization
+    consumers: [TargetProcessing]
+  - item: observationHealthStatus
+    item_type: ObservationHealthStatus
+    producer: StateAcquisitionAndNormalization
+    consumers: [HealthAndDegradationSupervision]
+  - item: predictedEgoPath
+    item_type: PredictedEgoPath
+    producer: EgoPathPrediction
+    consumers: [TargetProcessing, CollisionRiskEvaluation]
+  - item: relevantTargetState
+    item_type: ForwardTargetState
+    producer: TargetProcessing
+    consumers: [CollisionRiskEvaluation]
+  - item: collisionRiskAssessment
+    item_type: CollisionRiskAssessment
+    producer: CollisionRiskEvaluation
+    consumers: [InterventionDecisionAndArbitration, DriverWarningManagement, EvidenceRecording]
+  - item: interventionDecision
+    item_type: InterventionDecision
+    producer: InterventionDecisionAndArbitration
+    consumers: [EmergencyInterventionCoordination, EvidenceRecording]
+  - item: degradationState
+    item_type: AEBSDegradationState
+    producer: HealthAndDegradationSupervision
+    consumers: [InterventionDecisionAndArbitration, EvidenceRecording]
+  - item: driverWarningRequest
+    item_type: DriverWarningRequest
+    producer: DriverWarningManagement
+    consumers: [EvidenceRecording]
+  - item: emergencyInterventionRequest
+    item_type: EmergencyInterventionRequest
+    producer: EmergencyInterventionCoordination
+    consumers: [EvidenceRecording]
+  - item: failureIndicationRequest
+    item_type: FailureIndicationRequest
+    producer: HealthAndDegradationSupervision
+    consumers: [EvidenceRecording]
+
+logical_service_boundaries:
+  safety_control:
+    - vehicle_control
+    - emergency_intervention
+    - driver_override
+  platform_services:
+    - vehicle_state
+    - target_observation
+    - lifecycle_and_operating_mode
+    - health_and_diagnostics
+    - warning_and_hmi
+    - evidence_and_persistency
+  rule: >-
+    INC-AEBS-006 defines service intent only. A physical realization shall not
+    insert an unverified HLOS or generic vehicle-platform middleware into the
+    emergency-control path.
+
+logical_states:
+  lifecycle:
+    owner: VehicleTargetAEBSLogicalSystem
+    states: [standby, monitoring]
+  warning:
+    owner: DriverWarningManagement
+    states: [inactive, warning_requested]
+  intervention:
+    owner: EmergencyInterventionCoordination
+    states: [inactive, intervention_requested, emergency_active]
+  override:
+    owner: InterventionDecisionAndArbitration
+    states: [no_override, override_accepted]
+  availability:
+    owner: HealthAndDegradationSupervision
+    states: [valid, degraded, unavailable]
+  notes:
+    - Lifecycle, warning, override, intervention, and availability are independent state dimensions rather than mutually exclusive sibling states.
+    - Emergency-state retention is owned by EmergencyInterventionCoordination and is driven by the arbitrated intervention decision.
+    - HealthAndDegradationSupervision is the sole producer of AEBS availability and degradation state.
+    - Numeric transition guards and release criteria remain requirements gaps.
+    - Driver override, health supervision, and evidence recording remain independent of the primary collision-risk mechanism.
+
+review_views:
+  logical_structure:
+    exposes: logical system and nine component usages
+    limitation: the tree renderer may list component ports but does not render their bind and flow edges; this view is decomposition-only
+  logical_internal_exchange:
+    exposes: direct logical-system members, including ports, boundary bindings, and internal flows
+    limitation: the tree renderer is not relationship-complete and may list ports without drawing bind or flow edges; the textual SysML usages are the authoritative exchange topology
+  logical_functional_mapping:
+    exposes: ten named functional-to-logical allocation usages
+
+architecture_decisions:
+  - id: DEC-AEBS-LOG-001
+    decision: Use a decomposed rule-based logical baseline for the first realization.
+    rationale: It preserves explicit responsibility, interface, failure, and evidence boundaries and maps feasibly to the selected future Autoware realization.
+  - id: DEC-AEBS-LOG-002
+    decision: Do not create a learned-policy SysML variation until a concrete second realization exists.
+    rationale: Decomposition and decision-mechanism dimensions remain documented architecture options, not empty product-line features.
+  - id: DEC-AEBS-LOG-003
+    decision: Separate logical emergency-intervention request from physical actuator command.
+    rationale: EmergencyInterventionRequest is a distinct logical item traced to, but not specialized from, the functional EmergencyBrakingCommand; downstream supervision, arbitration, vehicle interface, and brake actuation are physical-domain responsibilities.
+  - id: DEC-AEBS-LOG-004
+    decision: Keep middleware products outside the logical architecture.
+    rationale: ROS 2/DDS, S-CORE, Android SDV, AAOS, and their adapters are physical software/platform realizations of logical service contracts.
+
+open_architecture_options:
+  decomposition:
+    selected: decomposed_pipeline
+    deferred: [integrated_policy]
+  decision_mechanism:
+    selected: rule_based
+    deferred: [learned, hybrid]
+
+gaps:
+  - id: GAP-AEBS-LOG-001
+    statement: Collision-risk thresholds, braking assumptions, activation timing, and operating ranges remain unquantified.
+    owner: CollisionRiskEvaluation
+    status: open
+  - id: GAP-AEBS-LOG-002
+    statement: Warning modality, timing, escalation, and observability criteria remain undefined.
+    owner: DriverWarningManagement
+    status: open
+  - id: GAP-AEBS-LOG-003
+    statement: Driver-override qualification, duration, priority, and release semantics remain undefined.
+    owner: InterventionDecisionAndArbitration
+    status: open
+  - id: GAP-AEBS-LOG-004
+    statement: Emergency-state release authority and retention criteria remain undefined.
+    owner: EmergencyInterventionCoordination
+    status: open
+  - id: GAP-AEBS-LOG-005
+    statement: Degradation policy for missing, stale, inconsistent, or failed inputs remains incomplete.
+    owner: HealthAndDegradationSupervision
+    status: open
+  - id: GAP-AEBS-LOG-006
+    statement: Evidence event schema, timing, retention, and acceptance criteria remain undefined.
+    owner: EvidenceRecording
+    status: open
+  - id: GAP-AEBS-LOG-007
+    statement: Concrete providers of vehicle state, target observations, lifecycle, HMI, diagnostics, and persistency are intentionally deferred to physical realization.
+    owner: INC-AEBS-007/008
+    status: deferred
+  - id: GAP-AEBS-LOG-008
+    statement: Intervention eligibility/inhibition facts and value domains remain undefined; AEBSOperatingContext is currently a nominal opaque contract.
+    owner: InterventionDecisionAndArbitration
+    status: open
+  - id: GAP-AEBS-LOG-009
+    statement: Predicted-path horizon, coordinate frame, validity, timing, uncertainty, and representation remain undefined; PredictedEgoPath is currently a nominal opaque contract.
+    owner: EgoPathPrediction
+    status: open
+  - id: GAP-AEBS-LOG-010
+    statement: VehicleMotionState lacks the motion, frame, timing, and validity semantics—or an explicit straight-line assumption—needed to justify path prediction.
+    owner: EgoPathPrediction
+    status: open
+  - id: GAP-AEBS-LOG-011
+    statement: ForwardTargetState lacks the lateral-relevance, identity, extent, frame, timing, and validity semantics—or an explicit in-path assumption—needed to justify path-relative target selection.
+    owner: TargetProcessing
+    status: open
+  - id: GAP-AEBS-LOG-012
+    statement: System lifecycle transition triggers, guards, and source contract remain undefined and are not carried by AEBSOperatingContext.
+    owner: VehicleTargetAEBSLogicalSystem
+    status: open
+  - id: GAP-AEBS-LOG-013
+    statement: ObservationHealthStatus lacks observation-specific freshness, consistency, validity, timing, and aggregation semantics; it intentionally does not carry AEBS availability.
+    owner: StateAcquisitionAndNormalization
+    status: open
+
+remaining_increment_plan:
+  - id: INC-AEBS-007
+    domain: physical_software_realization
+    purpose: Map logical components and exchanges to pinned Autoware and ROS 2 artifacts, including the diagnostic-to-MRM chain, fit/gap status, adapters, and known upstream defects.
+  - id: INC-AEBS-008
+    domain: physical_platform_and_deployment
+    purpose: Separate the Autoware ROS 2 application runtime from vehicle-platform services, select and model S-CORE or Android SDV/AAOS integration adapters, and allocate software to compute, networks, sensors, HMI, and brake-control resources.
+  - id: INC-AEBS-009
+    domain: implementation_and_vv
+    purpose: Execute the simulation-first reference realization, scenario suite, measurements, configuration/source provenance, and reviewable evidence chain.
+
+acceptance_criteria:
+  - id: AC-AEBS-LOG-001
+    criterion: Every functional action from INC-AEBS-004 has at least one explicit logical owner.
+  - id: AC-AEBS-LOG-002
+    criterion: Every logical component has one bounded primary responsibility and typed exchanges.
+  - id: AC-AEBS-LOG-003
+    criterion: External vehicle, target, driver, operating-context, and health inputs are explicit at the logical boundary.
+  - id: AC-AEBS-LOG-004
+    criterion: The logical emergency-intervention request is distinguished from physical actuator-command ownership.
+  - id: AC-AEBS-LOG-005
+    criterion: Driver override, health supervision, emergency retention, and evidence recording remain independent responsibilities.
+  - id: AC-AEBS-LOG-006
+    criterion: Safety-control and general platform-service boundaries are explicit.
+  - id: AC-AEBS-LOG-007
+    criterion: No Autoware, ROS 2, middleware, deployment, ECU, sensor, actuator, or compliance claim appears as a logical realization.
+  - id: AC-AEBS-LOG-008
+    criterion: Open thresholds, release guards, degradation policy, and evidence criteria remain visible as gaps.
+  - id: AC-AEBS-LOG-009
+    criterion: Logical structure, internal exchange, and functional mapping views are present for human review.
+  - id: AC-AEBS-LOG-010
+    criterion: Nominal and attribute-bearing-but-incomplete contracts remain explicit and are not presented as a stable physical interface baseline.
+
+validation:
+  public_checks:
+    - python scripts/check_repo.py
+    - python scripts/smoke_test.py
+    - git diff --check
+    - YAML parse
+  local_sysml_validation: not_run_by_policy
+  privileged_sysml_validation: blocked_configured_license_expired
