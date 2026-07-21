@@ -19,15 +19,10 @@
  */
 
 package DE4SDV_AEBSLogicalArchitecture {
-  private import ScalarValues::*;
   private import DE4SDV::Features::AEBS::FunctionalBehavior::*;
-  private import DE4SDV_MethodContext::*;
-  private import DE4SDV_MethodViewpoints::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import Views::*;
-
-  part incAEBS006 : EngineeringIncrement;
 
   /* ──────────────────────────────────────────
    * Logical information definitions
@@ -533,6 +528,12 @@ package DE4SDV_AEBSLogicalArchitecture {
     expose logicalSystem::emergencyCoordination;
     expose logicalSystem::healthSupervision;
     expose logicalSystem::evidenceRecording;
+    /*
+     * This is a decomposition view. The tree renderer may list ports owned by
+     * the exposed parts, but it does not render the bind and flow edges below.
+     * Port connectivity is defined in VehicleTargetAEBSLogicalSystem and
+     * selected by aebsLogicalInternalExchangeView.
+     */
     render asTreeDiagram;
   }
 
@@ -542,9 +543,11 @@ package DE4SDV_AEBSLogicalArchitecture {
     }
 
     /*
-     * Current tree rendering cannot filter direct port, binding, and flow
-     * usages without tool-specific queries. Exposing direct logical-system
-     * members keeps this view bounded to the exchange-owning context.
+     * Exposing direct logical-system members selects the boundary ports,
+     * bindings, flows, and component usages that define connectivity. The
+     * current tree renderer is not relationship-complete: it may list ports
+     * without drawing bind or flow edges. Review the textual bind/flow usages
+     * as the authoritative exchange topology.
      */
     expose logicalSystem::*;
     render asTreeDiagram;

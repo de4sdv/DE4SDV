@@ -279,11 +279,11 @@ Run the complete observation-to-braking chain in repeatable scenarios. Record so
 
 The three SAF-aligned views have distinct membership:
 
-- the structure view exposes the logical system and nine component usages;
-- the internal-exchange view exposes direct members of the logical-system context, including ports, boundary bindings, and internal flows;
+- the structure view exposes the logical system and nine component usages; the tree renderer may list their ports, but this decomposition view does not render bind or flow edges;
+- the internal-exchange view selects direct members of the logical-system context, including ports, boundary bindings, and internal flows;
 - the functional-mapping view exposes ten named allocation usages.
 
-The current tree renderer cannot isolate only port, binding, and flow usages without tool-specific queries. The internal-exchange view therefore remains bounded to direct logical-system members, and this limitation is explicit rather than presenting three identical whole-package views.
+The current tree renderer is not relationship-complete: it may display ports without drawing the selected bind or flow edges. The textual `bind` and `flow` usages in `VehicleTargetAEBSLogicalSystem` are therefore the authoritative exchange topology. The internal-exchange view remains a bounded selection of that topology, not proof that the generated tree diagram visualizes every connection.
 
 ## Acceptance criteria
 

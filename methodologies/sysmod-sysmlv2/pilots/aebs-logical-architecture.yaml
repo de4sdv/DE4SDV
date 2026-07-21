@@ -286,9 +286,10 @@ logical_states:
 review_views:
   logical_structure:
     exposes: logical system and nine component usages
+    limitation: the tree renderer may list component ports but does not render their bind and flow edges; this view is decomposition-only
   logical_internal_exchange:
     exposes: direct logical-system members, including ports, boundary bindings, and internal flows
-    limitation: current tree rendering cannot isolate only exchange usages without tool-specific queries
+    limitation: the tree renderer is not relationship-complete and may list ports without drawing bind or flow edges; the textual SysML usages are the authoritative exchange topology
   logical_functional_mapping:
     exposes: ten named functional-to-logical allocation usages
 
