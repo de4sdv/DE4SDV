@@ -9,6 +9,7 @@ source:
   sysml_branch: main
   sysml_commit: spike-local
   model_slice: DE4SDV::EngineeringAssets
+  textual_snapshot_slice: DE4SDV_ContextSpikeSnapshot::EngineeringAssets
   gui_tool: Eclipse SysON
 renderer:
   tool: Eclipse SysON General View

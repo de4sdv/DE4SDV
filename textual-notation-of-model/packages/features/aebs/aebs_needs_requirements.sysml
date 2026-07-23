@@ -13,7 +13,7 @@
  * functional/logical realization model contains concrete satisfying features.
  */
 
-package DE4SDV {
+package DE4SDV_AEBSNeedsRequirements {
   package Features {
     package AEBS {
       package NeedsRequirements {

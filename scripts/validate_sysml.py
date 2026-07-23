@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate DE4SDV SysML v2 textual notation with Sensmetry SysIDE CLI."""
+"""Validate all DE4SDV SysML v2 model roots with Sensmetry SysIDE CLI."""
 
 from __future__ import annotations
 
@@ -8,17 +8,26 @@ import subprocess
 import sys
 from pathlib import Path
 
-MODEL_DIR = Path("textual-notation-of-model")
+MODEL_PATHS = (
+    Path("textual-notation-of-model"),
+    Path("model-based-product-line-engineering/product-models"),
+)
 
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    model_dir = root / MODEL_DIR
+    model_files: dict[Path, list[Path]] = {}
 
-    sysml_files = sorted(model_dir.rglob("*.sysml")) if model_dir.exists() else []
-    if not sysml_files:
-        print("SysML validation skipped: no .sysml files found under textual-notation-of-model/.")
-        return 0
+    for model_path in MODEL_PATHS:
+        absolute_path = root / model_path
+        files = sorted(absolute_path.rglob("*.sysml")) if absolute_path.exists() else []
+        if not files:
+            print(
+                f"SysML validation failed: no .sysml files found under {model_path.as_posix()}/.",
+                file=sys.stderr,
+            )
+            return 1
+        model_files[model_path] = files
 
     syside = shutil.which("syside")
     if syside is None:
@@ -36,12 +45,12 @@ def main() -> int:
         )
         return 1
 
-    rel_files = [path.relative_to(root).as_posix() for path in sysml_files]
     print("Validating SysML v2 textual notation with Sensmetry SysIDE Modeler CLI:")
-    for rel in rel_files:
-        print(f"- {rel}")
+    for files in model_files.values():
+        for path in files:
+            print(f"- {path.relative_to(root).as_posix()}")
 
-    cmd = [syside, "check", MODEL_DIR.as_posix()]
+    cmd = [syside, "check", *(path.as_posix() for path in MODEL_PATHS)]
     result = subprocess.run(cmd, cwd=root)
     return result.returncode
 

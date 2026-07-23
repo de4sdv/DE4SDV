@@ -13,7 +13,7 @@
  * a dedicated V&V/evidence SysML slice exists.
  */
 
-package DE4SDV {
+package DE4SDV_AEBSOperationalContext {
   package Features {
     package AEBS {
       package OperationalContext {

@@ -12,7 +12,7 @@
  * usages, and concrete views.
  */
 
-package DE4SDV {
+package DE4SDV_AEBSIncrementFraming {
   package Features {
     package AEBS {
       package IncrementFraming {
