@@ -132,7 +132,15 @@ Start here:
 
 ## License
 
-**Apache License 2.0**.
+Except where otherwise noted, original DE4SDV content is licensed under the
+[Apache License 2.0](LICENSE).
+
+This repository also contains third-party or derived material under other
+licenses. In particular, the generated
+[`COVESA_VSS.sysml`](textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml)
+library is licensed under the Mozilla Public License 2.0. Per-file SPDX
+identifiers and accompanying license files identify the license applicable to
+such material. See [`NOTICE`](NOTICE) for the bundled-material summary.
 
 ## References
 

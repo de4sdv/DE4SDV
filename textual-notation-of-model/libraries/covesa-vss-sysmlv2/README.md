@@ -70,6 +70,10 @@ be committed.
 
 ## Licensing
 
-This generated library is derived from COVESA VSS source material and is
-marked `SPDX-License-Identifier: MPL-2.0`. Keep the COVESA source commit
-above with any regenerated update.
+`COVESA_VSS.sysml` is derived from COVESA VSS source material and is marked
+`SPDX-License-Identifier: MPL-2.0`. Keep the COVESA source commit above with
+any regenerated update.
+
+`DE4SDV_VSS_Extensions.sysml` is separately authored DE4SDV content and is
+marked `SPDX-License-Identifier: Apache-2.0`. Keep candidate extensions in
+that separate file; do not move generated or copied COVESA material into it.
