@@ -1,3 +1,13 @@
 Digital Engineering for Software-Defined Vehicle
+Copyright 2025 DE4SDV contributors
 
 This repository is an open-source project scaffold for SDV systems engineering.
+
+Bundled third-party and derived material
+----------------------------------------
+
+The generated COVESA Vehicle Signal Specification (VSS) SysML v2 library at
+textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml is
+derived from COVESA VSS source material and is licensed under the Mozilla
+Public License 2.0. Its source commit, SPDX identifier, and complete license
+text are provided in the same directory.

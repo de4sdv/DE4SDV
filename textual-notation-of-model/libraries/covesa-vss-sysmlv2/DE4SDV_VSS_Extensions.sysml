@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * DE4SDV candidate extensions to the generated COVESA VSS SysML v2 library.
  *
  * Keep this package separate from COVESA_VSS.sysml because that file is a
