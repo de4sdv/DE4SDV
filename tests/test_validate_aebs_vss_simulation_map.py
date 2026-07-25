@@ -108,6 +108,58 @@ class TestAebsVssSimulationMap(unittest.TestCase):
             ["duplicate mapping id: DUPLICATE"],
         )
 
+    def test_reports_duplicate_functional_trace_with_distinct_ids(self):
+        functional = {
+            "signal_classification": [
+                {"item": "First", "attribute": "value", "vss_path": "Vehicle.First"}
+            ]
+        }
+        realization = {
+            "mapping_policy": {"mapping_kinds": {"unrealized_gap": "gap"}},
+            "mappings": [
+                {
+                    "id": "ONE",
+                    "functional_item": "First",
+                    "functional_attribute": "value",
+                    "vss_path": "Vehicle.First",
+                    "mapping_kind": "unrealized_gap",
+                },
+                {
+                    "id": "TWO",
+                    "functional_item": "First",
+                    "functional_attribute": "value",
+                    "vss_path": "Vehicle.First",
+                    "mapping_kind": "unrealized_gap",
+                },
+            ],
+        }
+
+        self.assertEqual(
+            validator.validate_mapping(functional, realization),
+            ["duplicate mapping trace: First.value -> Vehicle.First (2 occurrences)"],
+        )
+
+    def test_reports_duplicate_functional_catalog_trace(self):
+        duplicate = {"item": "First", "attribute": "value", "vss_path": "Vehicle.First"}
+        functional = {"signal_classification": [duplicate, duplicate.copy()]}
+        realization = {
+            "mapping_policy": {"mapping_kinds": {"unrealized_gap": "gap"}},
+            "mappings": [
+                {
+                    "id": "ONE",
+                    "functional_item": "First",
+                    "functional_attribute": "value",
+                    "vss_path": "Vehicle.First",
+                    "mapping_kind": "unrealized_gap",
+                }
+            ],
+        }
+
+        self.assertEqual(
+            validator.validate_mapping(functional, realization),
+            ["duplicate functional trace: First.value -> Vehicle.First (2 occurrences)"],
+        )
+
     def test_reports_undeclared_mapping_kind(self):
         functional = {
             "signal_classification": [
