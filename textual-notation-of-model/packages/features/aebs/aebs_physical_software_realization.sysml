@@ -239,14 +239,21 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   part def RequiredDriverWarningProviderBoundary {
     doc /*
      * Required physical HMI/warning realization. The pinned Autoware AEB node
-     * does not realize DriverWarningManagement.
+     * does not realize DriverWarningManagement. The proposed realization is a
+     * separate HMI warning adapter that consumes a typed AEBS warning request
+     * produced before emergency intervention and presents the selected visual,
+     * audible, or haptic warning. Do not derive this warning from the AEB ERROR
+     * diagnostic: that diagnostic reports emergency-stop activation and is too
+     * late and too coarse to represent the warning contract. A typed warning
+     * output or upstream AEB extension remains required.
      */
   }
 
   part def RequiredDiagnosticFailureBridgeBoundary {
     doc /*
      * Required bridge from the AEB ERROR diagnostic to the failure-state or
-     * operation-mode input expected by an emergency/MRM handler. The pinned
+     * operation-mode input expected by an emergency Minimum Risk Manoeuvre
+     * (MRM) handler. The pinned
      * diagnostic graph aggregator is a candidate mechanism, but no active
      * repository configuration routing aeb_emergency_stop into MRM selection
      * was verified for INC-AEBS-007.
@@ -255,7 +262,8 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
 
   part def RequiredEmergencyMRMHandlerBoundary {
     doc /*
-     * Required emergency/MRM state owner. Autoware's pinned mrm_handler consumes
+     * Required emergency Minimum Risk Manoeuvre (MRM) state owner. Autoware's
+     * pinned mrm_handler consumes
      * OperationModeAvailability and MRM status inputs, not the AEB diagnostic
      * directly. No concrete provider or accepted route is selected here.
      */
@@ -303,8 +311,12 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
     part sourceArtifact : AutowareAEBSourceArtifact;
     part aebNode : AutowareAutonomousEmergencyBrakingNode;
 
-    // Boundary delegation keeps concrete node endpoints inside the selected
-    // physical-software realization rather than bypassing its boundary.
+    // These are the public ports of the selected physical-software boundary.
+    // The bindings below delegate each public port to the matching endpoint on
+    // the contained AEB node. A bind is equality/delegation, not another ROS
+    // topic flow: it lets external connections use this boundary without
+    // bypassing the internal node. Ports are declared first so both bound usages
+    // exist before the delegation relationships are stated.
     port pointCloudIn : PointCloud2Subscription;
     port velocityIn : VelocityReportSubscription;
     port imuIn : ImuSubscription;
@@ -358,15 +370,22 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
 
   allocation def AvailableLogicalToPhysicalSoftwareRealization {
     doc /*
-     * Source behavior exists for the mapped logical responsibility. This does
-     * not imply requirement satisfaction, scenario evidence, or acceptance.
+     * At the pinned source and selected configuration, inspected source behavior
+     * exists for the mapped logical responsibility. Typing an allocation with
+     * this definition lets the SAF physical-logical mapping view distinguish a
+     * source-available candidate from a partial or missing realization. It does
+     * not imply complete requirement satisfaction, scenario evidence, runtime
+     * execution, or acceptance.
      */
   }
 
   allocation def PartialLogicalToPhysicalSoftwareRealization {
     doc /*
-     * Source behavior covers only part of the mapped logical responsibility;
-     * the companion control artifacts identify the residual gap.
+     * Inspected source behavior covers only part of the mapped logical
+     * responsibility. The allocation is retained because the physical element
+     * genuinely contributes, while the companion control artifacts identify the
+     * uncovered obligations. This prevents both false full-coverage claims and
+     * loss of useful traceability.
      */
   }
 
@@ -417,7 +436,12 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
     doc /*
      * The predicted-trajectory input/path branch is blocked by DEF-AEBS-PHY-001.
      * The IMU branch remains the source-available contribution to the partial
-     * EgoPathPrediction allocation.
+     * EgoPathPrediction allocation. Resolve this by either moving to a reviewed
+     * upstream revision where the empty-path access is fixed, or by proposing an
+     * upstream patch that initializes the path before path.back() and adds a
+     * regression test. Until that fix is reviewed, the simulation configuration
+     * keeps use_predicted_trajectory false; disabling the branch is containment,
+     * not resolution.
      */
     ref part logicalRole = logicalSystem.egoPathPrediction;
     ref part physicalCandidate = physicalSoftware.aebNode;
@@ -457,6 +481,12 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   dependency failureBridgeNeedsEmergencyHandler from requiredDiagnosticBridge to requiredEmergencyHandler;
   dependency emergencyHandlerNeedsCommandGate from requiredEmergencyHandler to requiredCommandGate;
   dependency commandGateNeedsVehicleInterface from requiredCommandGate to requiredVehicleInterface;
+  /*
+   * This final dependency records the still-missing handoff from the generic
+   * vehicle-platform adapter to the brake ECU and actuator. It is an integration
+   * obligation for a later member-product realization, not a modeled command
+   * flow and not evidence that physical braking exists in this increment.
+   */
   dependency vehicleInterfaceNeedsBrakeActuation from requiredVehicleInterface to requiredBrakeActuation;
 
   dependency nodeNeedsRuntime from physicalSoftware::aebNode to requiredRuntime;
