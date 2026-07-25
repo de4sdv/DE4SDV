@@ -447,19 +447,19 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
     ref part requiredPhysicalRole = requiredEvidenceService;
   }
 
-  dependency aebNodeTracesToPinnedSource from physicalSoftware.aebNode to physicalSoftware.sourceArtifact;
+  dependency aebNodeTracesToPinnedSource from physicalSoftware::aebNode to physicalSoftware::sourceArtifact;
 
   /*
    * Required emergency chain. These dependencies expose missing downstream
    * owners without inventing message schemas, deployments, or actuation claims.
    */
-  dependency aebDiagnosticNeedsFailureBridge from physicalSoftware.aebNode to requiredDiagnosticBridge;
+  dependency aebDiagnosticNeedsFailureBridge from physicalSoftware::aebNode to requiredDiagnosticBridge;
   dependency failureBridgeNeedsEmergencyHandler from requiredDiagnosticBridge to requiredEmergencyHandler;
   dependency emergencyHandlerNeedsCommandGate from requiredEmergencyHandler to requiredCommandGate;
   dependency commandGateNeedsVehicleInterface from requiredCommandGate to requiredVehicleInterface;
   dependency vehicleInterfaceNeedsBrakeActuation from requiredVehicleInterface to requiredBrakeActuation;
 
-  dependency nodeNeedsRuntime from physicalSoftware.aebNode to requiredRuntime;
+  dependency nodeNeedsRuntime from physicalSoftware::aebNode to requiredRuntime;
 
   /* ──────────────────────────────────────────
    * SAF physical-domain concerns and views
