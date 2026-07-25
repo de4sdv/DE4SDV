@@ -1,0 +1,230 @@
+schema: de4sdv.simulation-deployment.v0
+id: INC-AEBS-008
+name: AEBS Autoware simulation deployment controls
+status: draft
+parent_increment: INC-AEBS-007
+owner: DE4SDV maintainers
+
+decision_requested: >-
+  Review a simulation-only, static deployment candidate that routes the pinned
+  AEB diagnostic through Autoware's MRM chain and selected stock vehicle command
+  gate to a dynamics test double. Execution and evidence belong to INC-AEBS-009.
+
+scope:
+  in_scope:
+    - complete derived AEB simulation configuration
+    - custom diagnostic graph for autonomous-mode unavailability
+    - pinned aggregator mappings, converter mapping, MRM, vehicle-gate, and simulator references
+    - static System 1 and System 2 boundary review
+  out_of_scope:
+    - runnable ROS launch composition, build, launch, or simulation execution
+    - source patches, upstream contact, and vendored upstream mapping configurations
+    - raw command conversion, S-CORE integration, real hardware, brake ECU, actuator, or road testing
+    - safety acceptance, compliance, certification, homologation, or production readiness
+
+source_baselines:
+  autoware_universe:
+    repository: https://github.com/autowarefoundation/autoware_universe
+    commit: f603d8759c92fb2f423f1544844e13086d79ad09
+    inspection_status: inspected
+  autoware_launch:
+    repository: https://github.com/autowarefoundation/autoware_launch
+    commit: f05c4b1f83e0b0e4a01ade34d5199bd5571873f1
+    inspection_status: inspected
+
+system_boundary:
+  system_1_candidate_deployment:
+    status: planned
+    members:
+      - autoware_autonomous_emergency_braking
+      - autoware_diagnostic_graph_aggregator aggregator node
+      - autoware_diagnostic_graph_aggregator converter node
+      - autoware_mrm_handler
+      - autoware_mrm_emergency_stop_operator
+      - autoware_vehicle_cmd_gate
+      - ROS 2 application runtime
+      - Linux simulation host with no hypervisor
+    boundary_rule: ROS 2 remains internal to the Autoware application realization, not the DE4SDV MiddlewareLayer.
+  system_2_test_system:
+    status: planned
+    members:
+      - AEB input and scenario harness
+      - autoware_simple_planning_simulator
+      - scenario controller
+      - observation and evidence collector
+    qualification: >-
+      The simulator is a vehicle-dynamics test double, not product hardware,
+      a brake ECU, an actuator, or a real vehicle.
+
+control_artifacts:
+  aeb_configuration:
+    path: methodologies/sysmod-sysmlv2/pilots/aebs-simulation-deployment/aebs.param.yaml
+    status: proposed_unexecuted_complete_derived_configuration
+    provenance:
+      upstream_path: control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml
+      source_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml
+      git_blob_sha1: b23c3bbdd4d5954b69b70e92512610e9beaab234
+      sha256: 6a620ee2275e48ea3a12b00a42657c1bab35ec5e0e722011556ddd08ca403e5c
+    derivation:
+      changed_from_pinned_default:
+        use_predicted_trajectory:
+          from: true
+          to: false
+      retained_selected_values:
+        use_imu_path: true
+        use_pointcloud_data: true
+        use_predicted_object_data: false
+        check_autoware_state: true
+      completeness: all other pinned AEB parameters retained
+  diagnostic_graph:
+    path: methodologies/sysmod-sysmlv2/pilots/aebs-simulation-deployment/diagnostic-graph.yaml
+    status: statically_reviewed_not_runtime_parsed
+    exact_diagnostic:
+      node: /control/autonomous_emergency_braking
+      task: aeb_emergency_stop
+      joined_key: "/control/autonomous_emergency_braking: aeb_emergency_stop"
+    policy:
+      autonomous_mode: diagnostic_driven
+      emergency_stop_mode: constant_ok_independent_availability
+      timeout: 1.0
+      timeout_status: provisional_pending_timing_and_fault_injection_review
+      hysteresis: 0.0
+      hysteresis_status: provisional_pending_timing_and_fault_injection_review
+    semantic_limit: The graph emits availability state, not MRM selection or a control command.
+
+aggregator_configuration_references:
+  disposition: referenced_not_vendored
+  pinned_default:
+    path: system/autoware_diagnostic_graph_aggregator/config/default.param.yaml
+    source_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/system/autoware_diagnostic_graph_aggregator/config/default.param.yaml
+    git_blob_sha1: a391dad42ab67fedc3ec41a635778f49414f37e3
+    sha256: 954fcbd6baa55827743b7ccfa9d6f8089ffd76044a16a8b93249b49df5b9a131
+    command_mode_mappings: exact_pinned_source_of_truth
+    initial_latch_suppression:
+      value: true
+      scope: aggregator_wide_startup_setting_separate_from_graph_units
+      interpretation_limit: no per-diagnostic persistence or recovery behavior inferred
+  converter_mapping:
+    path: system/autoware_diagnostic_graph_aggregator/config/converter.param.yaml
+    source_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/system/autoware_diagnostic_graph_aggregator/config/converter.param.yaml
+    git_blob_sha1: 472d40982a10c15f56a3c642d23ab242d1be61a4
+    sha256: 14eb92be124291bb852fc803c6cc4941609ce8345befd03b704321aca1afb75b
+    status: exact_pinned_source_of_truth
+
+command_boundary_decision:
+  review: independent_boundary_review
+  selected_gate: autoware_vehicle_cmd_gate
+  selected_switch:
+    name: use_control_command_gate
+    value: false
+    basis: stock pinned Autoware Launch default
+  rationale: >-
+    The selected vehicle gate consumes /system/operation_mode/state and
+    /system/fail_safe/mrm_state, then selects the emergency command automatically
+    while MRM is operating. The MRM handler separately consumes
+    /api/operation_mode/state.
+  control_launch_reference:
+    path: tier4_universe_launch/tier4_control_launch/launch/control.launch.xml
+    source_url: https://github.com/autowarefoundation/autoware_launch/blob/f05c4b1f83e0b0e4a01ade34d5199bd5571873f1/tier4_universe_launch/tier4_control_launch/launch/control.launch.xml
+    git_blob_sha1: 5a56cf6686dce9300872834f5b17e22b5f8d070b
+    sha256: 29b35d480ee0867d947b2204112513a3f098a8aacef7176e54c270ed86872605
+  vehicle_gate_configuration_reference:
+    path: control/autoware_vehicle_cmd_gate/config/vehicle_cmd_gate.param.yaml
+    source_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_vehicle_cmd_gate/config/vehicle_cmd_gate.param.yaml
+    git_blob_sha1: ec230913b51f59c10e32f8436fba5c8ee4f4403e
+    sha256: af2255ed174a7d58b8a0ba394a8f91a86cc8cb1652faa1c9ce85d031724854aa
+    required_parameter:
+      use_emergency_handling: true
+    interpretation: required for MRM-state-driven emergency command substitution
+  deferred_alternative:
+    gate: autoware_control_command_gate
+    source: "21: emergency_stop"
+    status: deferred_blocked
+    blocker: no owner is assigned for the source-selection service required to select source 21
+    default_reference:
+      path: control/autoware_control_command_gate/config/default.param.yaml
+      source_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_control_command_gate/config/default.param.yaml
+      git_blob_sha1: 41018566b90ff4be9431d2b46f5d950fe3e66291
+      sha256: 4560dc284b108e4f7b729d5c08b32c660e5e8154b77c9f4e91714584fcf3d090
+
+exact_chain:
+  status: planned_not_executed
+  steps:
+    - "AEB diagnostic /control/autonomous_emergency_braking: aeb_emergency_stop on /diagnostics"
+    - diagnostic graph aggregator custom graph
+    - "CommandModeAvailability: autonomous becomes unavailable"
+    - diagnostic graph converter
+    - OperationModeAvailability
+    - MRM handler detects current AUTONOMOUS mode unavailable
+    - tier4_system_msgs/srv/OperateMrm emergency-stop request
+    - MRM emergency-stop operator publishes /system/emergency/control_cmd
+    - vehicle command gate observes /system/fail_safe/mrm_state and selects emergency input
+    - /control/command/control_cmd
+    - simple planning simulator input/ackermann_control_command
+    - simulated observations
+
+execution_preconditions:
+  current_modes:
+    - topic: /autoware/state
+      required_value: DRIVING
+    - topic: /api/operation_mode/state
+      required_value: AUTONOMOUS
+    - topic: /system/operation_mode/state
+      required_value: AUTONOMOUS
+    - topic: /vehicle/status/control_mode
+      required_value: AUTONOMOUS
+  required_inputs:
+    - fresh odometry on /localization/kinematic_state
+    - fresh acceleration on /localization/acceleration
+    - current steering report on /vehicle/status/steering_status
+    - current gear command on /control/command/gear_cmd
+    - available emergency operator status on /system/mrm/emergency_stop/status
+  simulator_initialization:
+    - load the intended map
+    - set an initial pose
+    - provide a trajectory
+    - complete the engage sequence
+  simulator_mode_limit: >-
+    autoware_simple_planning_simulator does not publish /autoware/state,
+    /api/operation_mode/state, or /system/operation_mode/state; the execution
+    harness must establish each endpoint using appropriate Autoware interfaces.
+
+increment_boundary:
+  runnable_ros_launch_in_008: false
+  launch_composition_owner: INC-AEBS-009
+  runtime_evidence_owner: INC-AEBS-009
+
+blockers:
+  - id: BLK-AEBS-SIM-001
+    blocks: runnable AEB launch
+    reason: DEF-AEBS-PHY-002 stale odometry remap remains unresolved
+  - id: BLK-AEBS-SIM-002
+    blocks: diagnostic routing evidence
+    reason: runtime diagnostic identity and graph parsing are unexecuted
+  - id: BLK-AEBS-SIM-003
+    blocks: accepted timeout and hysteresis policy
+    reason: provisional values lack timing, scheduling, and fault-injection review
+  - id: BLK-AEBS-SIM-004
+    blocks: alternative autoware_control_command_gate route
+    reason: source-selection service owner is absent
+  - id: BLK-AEBS-SIM-005
+    blocks: simulated braking-response claim
+    reason: preconditions, MRM selection, gate arbitration, simulator wiring, and observations are unexecuted
+
+claim_boundaries:
+  - No runtime parser, ROS build, launch, topic, or simulation execution is claimed.
+  - No simulated deceleration, raw conversion, real hardware, brake ECU, actuator, or vehicle behavior is claimed.
+  - No S-CORE integration, safety acceptance, compliance, certification, homologation, or production readiness is claimed.
+  - No upstream contact, report, acceptance, or fix is claimed.
+
+validation:
+  artifact_status: draft_statically_reviewed
+  execution_status: not_executed
+  public_checks:
+    - python scripts/check_repo.py
+    - python scripts/smoke_test.py
+    - YAML parse and structural assertions
+    - graph-key allowlist excluding invalid per-diagnostic fields
+    - git diff --check
+  sysml_validation: pending_privileged_syside_validation
+  sysml_validation_reason: INC-AEBS-008 changes SysML elsewhere; this repair does not run Syside

@@ -227,6 +227,75 @@ package SAF_Viewpoints {
 
   // ─── Physical Domain ───
 
+  concern def PhysicalContextConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: What is inside the candidate physical system,
+       * which external physical systems interact with it, and where is the
+       * physical context boundary?
+       */
+    }
+  }
+
+  viewpoint def PhysicalContextDefinitionViewpoint {
+    doc /*
+     * SAF Physical Domain: P1_PCXD Physical Context Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A physical context definition view shall show the candidate physical
+       * system boundary, external physical systems, and their context roles.
+       */
+    }
+  }
+
+  concern def PhysicalContextExchangeConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: What typed physical items cross the candidate
+       * system boundary, and which context roles participate in each exchange?
+       */
+    }
+  }
+
+  viewpoint def PhysicalContextExchangeViewpoint {
+    doc /*
+     * SAF Physical Domain: P1_PCXE Physical Context Exchange Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A physical context exchange view shall show boundary-crossing physical
+       * exchanges, their typed items, and participating context roles. Textual
+       * bindings and flows remain authoritative for exchange direction.
+       */
+    }
+  }
+
+  concern def PhysicalExchangeTypeConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: Which reusable physical exchange item, endpoint,
+       * and protocol definitions type the candidate realization?
+       */
+    }
+  }
+
+  viewpoint def PhysicalExchangeTypeDefinitionViewpoint {
+    doc /*
+     * SAF Physical Domain: P2_PETD Physical Exchange Type Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A physical exchange type definition view shall show reusable physical
+       * item, endpoint, and protocol definitions. It shall not infer exchange
+       * direction from diagram placement; typed textual features define it.
+       */
+    }
+  }
+
   concern def PhysicalStructureConcern {
     require constraint {
       doc /*
@@ -275,6 +344,29 @@ package SAF_Viewpoints {
     }
   }
 
+  concern def PhysicalInternalExchangeConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: Which internal physical roles exchange each typed
+       * item, and how are those exchanges delegated through boundaries?
+       */
+    }
+  }
+
+  viewpoint def PhysicalInternalExchangeViewpoint {
+    doc /*
+     * SAF Physical Domain: P4_PIEX Physical Internal Exchange Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A physical internal exchange view shall show internal physical roles,
+       * typed exchanges, and boundary delegation. Textual bindings and flows
+       * remain authoritative for exchange direction.
+       */
+    }
+  }
+
   concern def PhysicalLogicalMappingConcern {
     require constraint {
       doc /*
@@ -294,6 +386,31 @@ package SAF_Viewpoints {
        * A physical logical mapping view shall show logical and physical
        * element breakdowns and the realization relationships that identify
        * which physical element roles implement each logical element role.
+       */
+    }
+  }
+
+  concern def PhysicalLogicalItemMappingConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: Which logical information items are realized by
+       * which physical exchange items, and which similarly named or adjacent
+       * physical items remain semantically distinct?
+       */
+    }
+  }
+
+  viewpoint def PhysicalLogicalItemMappingViewpoint {
+    doc /*
+     * Proposed SAF Physical Domain viewpoint: Physical Logical Item Mapping.
+     * No short code is assigned in the current SAF catalog. This DE4SDV
+     * definition is explicitly provisional.
+     */
+    require constraint {
+      doc /*
+       * A physical logical item mapping view shall show logical-to-physical
+       * item allocations and explicit non-equivalence records. It shall not
+       * reverse allocations or infer transport semantics from visual layout.
        */
     }
   }

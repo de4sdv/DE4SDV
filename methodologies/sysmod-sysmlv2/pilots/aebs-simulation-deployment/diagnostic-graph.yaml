@@ -1,0 +1,29 @@
+# INC-AEBS-008 proposed simulation policy.
+# Statically reviewed against Autoware Universe commit
+# f603d8759c92fb2f423f1544844e13086d79ad09; not runtime parsed or executed.
+# timeout and hysteresis are explicit but provisional pending timing review.
+units:
+  - path: /autoware/modes/stop
+    type: ok
+
+  - path: /autoware/modes/autonomous
+    type: diag
+    node: /control/autonomous_emergency_braking
+    name: aeb_emergency_stop
+    timeout: 1.0
+    hysteresis: 0.0
+
+  - path: /autoware/modes/local
+    type: ok
+
+  - path: /autoware/modes/remote
+    type: ok
+
+  - path: /autoware/modes/emergency_stop
+    type: ok
+
+  - path: /autoware/modes/comfortable_stop
+    type: ok
+
+  - path: /autoware/modes/pull_over
+    type: ok

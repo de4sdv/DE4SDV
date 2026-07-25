@@ -98,11 +98,23 @@ Use when the increment touches software/hardware/deployment realization.
 | SAF viewpoint | DE4SDV purpose | Output |
 |---|---|---|
 | Physical Context Definition Viewpoint | define physical/software context | deployment context |
+| Physical Context Exchange Viewpoint | identify typed exchanges crossing a physical/software boundary | context exchange model |
+| Physical Exchange Type Definition Viewpoint | define reusable physical exchange item and endpoint types | exchange type catalog |
 | Physical Structure Definition Viewpoint | define physical/software components | implementation/deployment model |
 | Physical Interface Definition Viewpoint | define concrete interfaces | interface contracts |
 | Physical Internal Exchange Viewpoint | define exchanged signals/messages/data | exchange model |
 | Physical Functional Mapping Viewpoint | map functions to physical/software elements | function realization map |
 | Physical Logical Mapping Viewpoint | map logical to physical/software realization | logical-to-physical trace |
+| Physical Logical Item Mapping Viewpoint (proposed; no current SAF short code) | map logical information to physical exchange items while recording non-equivalence | logical-to-physical item trace |
+
+The physical viewpoint short codes used by the AEBS deployment slice are
+`P1_PCXD` (Physical Context Definition), `P1_PCXE` (Physical Context Exchange),
+`P2_PETD` (Physical Exchange Type Definition), `P2_PSTD` (Physical Structure
+Definition), `P4_PIEX` (Physical Internal Exchange), `P5_PIFD` (Physical
+Interface Definition), and `P8_PLOM` (Physical Logical Mapping). Physical
+Logical Item Mapping is a proposed DE4SDV addition and deliberately has no SAF
+short code. `P8_PFUM` Physical Functional Mapping is deferred for the AEBS
+simulation deployment until executable responsibilities stabilize.
 
 ## AEBS pilot viewpoint selection
 
@@ -142,6 +154,14 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 | `SAF_Viewpoints` | `PhysicalStructureDefinitionViewpoint` | SAF Physical Domain (`P2_PSTD`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalSoftwareStructureView` |
 | `SAF_Viewpoints` | `PhysicalInterfaceDefinitionViewpoint` | SAF Physical Domain (`P5_PIFD`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalSoftwareInterfaceView` |
 | `SAF_Viewpoints` | `PhysicalLogicalMappingViewpoint` | SAF Physical Domain (`P8_PLOM`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalLogicalMappingView` |
+| `SAF_Viewpoints` | `PhysicalContextDefinitionViewpoint` | SAF Physical Domain (`P1_PCXD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalContextView` |
+| `SAF_Viewpoints` | `PhysicalContextExchangeViewpoint` | SAF Physical Domain (`P1_PCXE`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalContextExchangeView` |
+| `SAF_Viewpoints` | `PhysicalExchangeTypeDefinitionViewpoint` | SAF Physical Domain (`P2_PETD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalExchangeTypeView` |
+| `SAF_Viewpoints` | `PhysicalStructureDefinitionViewpoint` | SAF Physical Domain (`P2_PSTD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalStructureView` |
+| `SAF_Viewpoints` | `PhysicalInternalExchangeViewpoint` | SAF Physical Domain (`P4_PIEX`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalInternalExchangeView` |
+| `SAF_Viewpoints` | `PhysicalInterfaceDefinitionViewpoint` | SAF Physical Domain (`P5_PIFD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalInterfaceView` |
+| `SAF_Viewpoints` | `PhysicalLogicalMappingViewpoint` | SAF Physical Domain (`P8_PLOM`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalLogicalMappingView` |
+| `SAF_Viewpoints` | `PhysicalLogicalItemMappingViewpoint` | Proposed; no current SAF short code | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalLogicalItemMappingView` |
 | `DE4SDV_MethodViewpoints` | `IncrementFramingViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsIncrementFramingView` |
 | `DE4SDV_MethodViewpoints` | `ProductLineClassificationViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsProductLineClassificationView` |
 | `DE4SDV_MethodViewpoints` | `RegulatoryScopeViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsRegulatoryScopeView` |
