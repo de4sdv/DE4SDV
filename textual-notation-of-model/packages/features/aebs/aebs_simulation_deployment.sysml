@@ -88,8 +88,8 @@ package DE4SDV_AEBSSimulationDeployment {
   port def CommandAvailabilityOut :> ROS2TopicPublication { out item availability : CommandModeAvailabilityMessage redefines payload; }
   port def OperationAvailabilityIn :> ROS2TopicSubscription { in item availability : OperationModeAvailabilityMessage redefines payload; }
   port def OperationAvailabilityOut :> ROS2TopicPublication { out item availability : OperationModeAvailabilityMessage redefines payload; }
-  port def OperationModeStateIn :> ROS2TopicSubscription { in item state : OperationModeStateMessage redefines payload; }
-  port def OperationModeStateOut :> ROS2TopicPublication { out item state : OperationModeStateMessage redefines payload; }
+  port def OperationModeStateIn :> ROS2TopicSubscription { in item operationMode : OperationModeStateMessage redefines payload; }
+  port def OperationModeStateOut :> ROS2TopicPublication { out item operationMode : OperationModeStateMessage redefines payload; }
   port def ControlModeReportIn :> ROS2TopicSubscription { in item mode : ControlModeReportMessage redefines payload; }
   port def ControlModeReportOut :> ROS2TopicPublication { out item mode : ControlModeReportMessage redefines payload; }
   port def GearCommandIn :> ROS2TopicSubscription { in item gear : GearCommandMessage redefines payload; }
@@ -97,8 +97,8 @@ package DE4SDV_AEBSSimulationDeployment {
   /* OperateMrm is a service request, not a topic payload. */
   port def OperateMrmIn { in item request : OperateMrmRequestMessage; }
   port def OperateMrmOut { out item request : OperateMrmRequestMessage; }
-  port def MrmStateIn :> ROS2TopicSubscription { in item state : MrmStateMessage redefines payload; }
-  port def MrmStateOut :> ROS2TopicPublication { out item state : MrmStateMessage redefines payload; }
+  port def MrmStateIn :> ROS2TopicSubscription { in item mrmState : MrmStateMessage redefines payload; }
+  port def MrmStateOut :> ROS2TopicPublication { out item mrmState : MrmStateMessage redefines payload; }
   port def EmergencyStopOperatorStatusIn :> ROS2TopicSubscription { in item status : EmergencyStopOperatorStatusMessage redefines payload; }
   port def EmergencyStopOperatorStatusOut :> ROS2TopicPublication { out item status : EmergencyStopOperatorStatusMessage redefines payload; }
   port def ControlCommandIn :> ROS2TopicSubscription { in item command : ControlCommandMessage redefines payload; }
@@ -338,7 +338,7 @@ package DE4SDV_AEBSSimulationDeployment {
     flow from mrmHandler.operateMrmOut.request to emergencyStopOperator.operateMrmIn.request;
     flow from emergencyStopOperator.operatorStatusOut.status
       to mrmHandler.emergencyStopStatusIn.status;
-    flow from mrmHandler.mrmStateOut.state to legacyVehicleCommandGate.mrmStateIn.state;
+    flow from mrmHandler.mrmStateOut.mrmState to legacyVehicleCommandGate.mrmStateIn.mrmState;
     flow from emergencyStopOperator.emergencyControlCommandOut.command
       to legacyVehicleCommandGate.emergencyControlCommandIn.command;
     flow from mrmHandler.emergencyGearOut.gear to legacyVehicleCommandGate.emergencyGearIn.gear;
@@ -429,6 +429,7 @@ package DE4SDV_AEBSSimulationDeployment {
     port tfAndVehicleInfoOut : TfAndVehicleInfoOut;
     port engageOut : EngageInitializationOut;
     port controlCommandIn : ControlCommandIn;
+    port controlCommandObservationIn : ControlCommandIn;
     port gearCommandIn : GearCommandIn;
     port diagnosticsIn : DiagnosticIn;
     port commandAvailabilityIn : CommandAvailabilityIn;
@@ -449,6 +450,7 @@ package DE4SDV_AEBSSimulationDeployment {
     bind tfAndVehicleInfoOut = harness.tfAndVehicleInfoOut;
     bind engageOut = harness.engageOut;
     bind controlCommandIn = simulator.ackermannControlCommandIn;
+    bind controlCommandObservationIn = evidenceCollector.controlCommandIn;
     bind gearCommandIn = simulator.gearCommandIn;
     bind diagnosticsIn = evidenceCollector.diagnosticsIn;
     bind commandAvailabilityIn = evidenceCollector.commandAvailabilityIn;
@@ -467,7 +469,6 @@ package DE4SDV_AEBSSimulationDeployment {
     flow from harness.initialPoseOut.pose to simulator.initialPoseIn.pose;
     flow from harness.plannedTrajectoryOut.trajectory to simulator.plannedTrajectoryIn.trajectory;
     flow from harness.engageOut.engage to simulator.engageIn.engage;
-    flow from controlCommandIn.command to evidenceCollector.controlCommandIn.command;
     flow from simulator.odometryOut.odometry to evidenceCollector.odometryIn.odometry;
     flow from simulator.controlModeAutonomousOut.mode to evidenceCollector.controlModeIn.mode;
     flow from simulator.velocityOut.velocity to evidenceCollector.velocityIn.velocity;
@@ -488,8 +489,8 @@ package DE4SDV_AEBSSimulationDeployment {
     flow from system2.imuOut.imu to system1.imuFeedbackIn.imu;
     flow from system2.tfAndVehicleInfoOut.configuration to system1.tfAndVehicleInfoIn.configuration;
     // MRM preconditions are independent of the availability conversion.
-    flow from system2.apiOperationModeAutonomousOut.state to system1.operationModeStateIn.state;
-    flow from system2.systemOperationModeAutonomousOut.state to system1.gateOperationModeStateIn.state;
+    flow from system2.apiOperationModeAutonomousOut.operationMode to system1.operationModeStateIn.operationMode;
+    flow from system2.systemOperationModeAutonomousOut.operationMode to system1.gateOperationModeStateIn.operationMode;
     flow from system2.controlModeAutonomousOut.mode to system1.controlModeIn.mode;
     flow from system2.kinematicStateOut.odometry to system1.kinematicStateIn.odometry;
     // The selected legacy gate's source-backed filter and state dependencies.
@@ -499,6 +500,7 @@ package DE4SDV_AEBSSimulationDeployment {
     flow from system2.engageOut.engage to system1.gateEngageIn.engage;
     // Exact legacy-gate/simulator command endpoints.
     flow from system1.controlCommandOut.command to system2.controlCommandIn.command;
+    flow from system1.controlCommandOut.command to system2.controlCommandObservationIn.command;
     flow from system1.gearCommandOut.gear to system2.gearCommandIn.gear;
     // Observation taps do not feed the emergency-control decision.
     flow from system1.diagnosticsObservedOut.diagnostics to system2.diagnosticsIn.diagnostics;
@@ -507,7 +509,7 @@ package DE4SDV_AEBSSimulationDeployment {
     flow from system1.operationAvailabilityObservedOut.availability
       to system2.operationAvailabilityIn.availability;
     flow from system1.mrmRequestObservedOut.request to system2.mrmRequestIn.request;
-    flow from system1.mrmStateObservedOut.state to system2.mrmStateIn.state;
+    flow from system1.mrmStateObservedOut.mrmState to system2.mrmStateIn.mrmState;
   }
 
   part universeSource : PinnedAutowareUniverseSource;
@@ -515,7 +517,7 @@ package DE4SDV_AEBSSimulationDeployment {
   part deployment : AEBTwoSystemSimulationDeployment;
   part logicalSystem : VehicleTargetAEBSLogicalSystem;
 
-  dependency deploymentTracesUniverse from deployment.system1 to universeSource;
+  dependency deploymentTracesUniverse from deployment::system1 to universeSource;
   dependency deploymentTracesLaunch from deployment to launchSource;
 
   /* P8_PLOM: logical responsibility to physical role only. */
@@ -539,14 +541,18 @@ package DE4SDV_AEBSSimulationDeployment {
     doc /* Semantic realization, not schema identity or proof of satisfaction. */
   }
   allocation emergencyRequestToOperateMrm : LogicalToPhysicalItemRealization
-    allocate EmergencyInterventionRequest to OperateMrmRequestMessage;
+    allocate logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
+      to deployment.system1.mrmHandler.operateMrmOut.request;
   allocation emergencyRequestToLegacyGateControl : LogicalToPhysicalItemRealization
-    allocate EmergencyInterventionRequest to ControlCommandMessage;
+    allocate logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
+      to deployment.system1.legacyVehicleCommandGate.emergencyControlCommandIn.command;
 
   allocation vehicleMotionToVelocityFeedback : LogicalToPhysicalItemRealization
-    allocate VehicleMotionState to VelocityReportFeedbackMessage;
+    allocate logicalSystem.vehicleMotionObservationIn.vehicleMotionState
+      to deployment.system1.velocityFeedbackIn.velocity;
   allocation vehicleMotionToKinematicFeedback : LogicalToPhysicalItemRealization
-    allocate VehicleMotionState to OdometryFeedbackMessage;
+    allocate logicalSystem.vehicleMotionObservationIn.vehicleMotionState
+      to deployment.system1.kinematicStateIn.odometry;
 
 
   part def ItemNonEquivalenceRecord;
