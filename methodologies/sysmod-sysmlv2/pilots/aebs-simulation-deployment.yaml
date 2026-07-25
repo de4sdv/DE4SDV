@@ -218,7 +218,7 @@ claim_boundaries:
   - No upstream contact, report, acceptance, or fix is claimed.
 
 validation:
-  artifact_status: draft_statically_reviewed
+  artifact_status: draft_validated_and_semantically_reviewed
   execution_status: not_executed
   public_checks:
     - python scripts/check_repo.py
@@ -226,5 +226,10 @@ validation:
     - YAML parse and structural assertions
     - graph-key allowlist excluding invalid per-diagnostic fields
     - git diff --check
-  sysml_validation: pending_privileged_syside_validation
-  sysml_validation_reason: INC-AEBS-008 changes SysML elsewhere; this repair does not run Syside
+  local_sysml_validation: not_run_by_policy
+  privileged_sysml_validation: passed
+  privileged_sysml_validation_model_commit: 1eac51e1c46e111ba2e0dffda7f4bde99bdf535c
+  privileged_sysml_validation_run: https://github.com/de4sdv/DE4SDV/actions/runs/30169312059
+  semantic_review: passed_exact_head
+  semantic_review_model_commit: 1eac51e1c46e111ba2e0dffda7f4bde99bdf535c
+  semantic_review_model_sha256: 6d7a8e2ad2e08fa6a75a46d004d4a559a97be11fd74ae6fe6a94e586743532ff
