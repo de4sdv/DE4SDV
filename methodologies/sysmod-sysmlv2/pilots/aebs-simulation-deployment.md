@@ -52,6 +52,10 @@ Availability is not selection or command generation. The MRM handler performs be
 
 [`diagnostic-graph.yaml`](aebs-simulation-deployment/diagnostic-graph.yaml) uses the deployed identity `/control/autonomous_emergency_braking: aeb_emergency_stop`. It keeps emergency-stop availability independently constant OK. `timeout: 1.0` and `hysteresis: 0.0` are explicit but **provisional**, pending timing, scheduling, and fault-injection review.
 
+[`vss-simulation-realization.yaml`](aebs-simulation-deployment/vss-simulation-realization.yaml) traces every VSS-backed functional attribute from INC-AEBS-004 to a proposed simulation transformation, field, conditional observation, semantic-state rule, or explicit gap. It preserves the distinction between collision diagnostic, emergency request, selected command, simulated response, and EBA engagement. `Vehicle.Speed` requires the explicit `m/s → km/h` conversion; the emergency diagnostic must not be reused as AEBS component failure or driver-warning state.
+
+This map is proposed and unexecuted. The pinned Universe `packages_above.repos` declares `autoware_simple_planning_simulator` at floating `main`, and INC-AEBS-008 does not pin the exact ROS message-schema dependency revisions. INC-AEBS-009 must pin those dependencies before accepting field-level mappings.
+
 ### Aggregator startup setting and mapping references
 
 The aggregator-wide `initial_latch_suppression` setting is separate from graph-unit configuration. Its exact pinned default is `true` in Universe [`system/autoware_diagnostic_graph_aggregator/config/default.param.yaml`](https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/system/autoware_diagnostic_graph_aggregator/config/default.param.yaml) (Git blob `a391dad42ab67fedc3ec41a635778f49414f37e3`, SHA-256 `954fcbd6baa55827743b7ccfa9d6f8089ffd76044a16a8b93249b49df5b9a131`). This records a startup setting only; no per-diagnostic persistence or recovery behavior is inferred.
@@ -79,10 +83,10 @@ The simulator setup must load the intended map, set an initial pose, provide a t
 
 ## Evidence, blockers, and non-claims
 
-Static YAML/repository checks are the only execution-independent evidence here. Runtime graph parsing, mode setup, MRM selection, gate behavior, simulator wiring, and response evidence remain for INC-AEBS-009. `DEF-AEBS-PHY-002` still blocks acceptance of the pinned AEB launch. The provisional timeout/hysteresis values need review, and the alternative control-command-gate route lacks a source-selection service owner.
+Static YAML/repository checks are the only execution-independent evidence here. Runtime graph parsing, mode setup, VSS transformation and state-rule execution, MRM selection, gate behavior, simulator wiring, and response evidence remain for INC-AEBS-009. `DEF-AEBS-PHY-002` still blocks acceptance of the pinned AEB launch. The provisional timeout/hysteresis values need review, the simulator and message-schema dependencies need exact pins, and the alternative control-command-gate route lacks a source-selection service owner.
 
 No runtime parse, ROS build/launch, topic behavior, simulated braking response, raw command conversion, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, production readiness, upstream contact, or upstream acceptance is claimed.
 
 ## Validation
 
-Repository checks, YAML structural assertions, the diagnostic graph-key allowlist, and `git diff --check` pass. Licensed SysIDE validation passed on the reviewed model commit `1eac51e1c46e111ba2e0dffda7f4bde99bdf535c` in workflow run `30169312059`; the metadata-only successor also passed in run `30170043191`. No local SysIDE validation was run. This establishes tool acceptance of the textual model, not ROS build, launch, simulation, braking behavior, requirement satisfaction, or safety evidence.
+Repository checks, all unit tests, YAML structural assertions, the diagnostic graph-key allowlist, and `git diff --check` pass. The focused VSS simulation-map tests enforce exact functional-catalog coverage, unique mapping IDs, and declared mapping kinds. Licensed SysIDE validation passed on the reviewed model commit `1eac51e1c46e111ba2e0dffda7f4bde99bdf535c` in workflow run `30169312059`; the earlier metadata-only successor also passed in run `30170043191`. The review-response head requires its own privileged run before final acceptance. No local SysIDE validation was run. This establishes tool acceptance of the textual model, not ROS build, launch, simulation, braking behavior, requirement satisfaction, or safety evidence.

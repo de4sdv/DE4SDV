@@ -8,6 +8,7 @@ These are **proposed, unexecuted simulation controls**. INC-AEBS-008 contains no
 - Autoware Launch: `f05c4b1f83e0b0e4a01ade34d5199bd5571873f1`
 - [`aebs.param.yaml`](aebs.param.yaml) is a complete derived simulation configuration, not a partial overlay. It retains every pinned upstream AEB parameter and changes only `use_predicted_trajectory` from `true` to `false`. Its comments record the upstream path, Git blob SHA-1, and file SHA-256. It is proposed/unexecuted and does not repair `DEF-AEBS-PHY-002`.
 - [`diagnostic-graph.yaml`](diagnostic-graph.yaml) maps `/control/autonomous_emergency_braking: aeb_emergency_stop` to autonomous-mode availability. Its per-diagnostic keys conform to the pinned graph format. `timeout: 1.0` and `hysteresis: 0.0` are explicitly provisional pending timing and fault-injection review.
+- [`vss-simulation-realization.yaml`](vss-simulation-realization.yaml) covers every VSS-backed INC-AEBS-004 attribute with a proposed simulation mapping or explicit gap. It records the `Vehicle.Speed` unit conversion, conditional diagnostic observations, derived emergency-command state, and the absence of warning, override, EBA/ABS, brake-light, and evidence-event realizations. It is unexecuted; the floating simulator and unpinned ROS message-schema dependencies must be pinned by INC-AEBS-009.
 
 ## Aggregator startup setting and mappings
 

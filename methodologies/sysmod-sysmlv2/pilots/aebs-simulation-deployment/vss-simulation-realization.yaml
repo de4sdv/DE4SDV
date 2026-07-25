@@ -1,0 +1,285 @@
+schema: de4sdv.vss-simulation-realization.v0
+id: INC-AEBS-008-VSS-SIM-001
+name: AEBS VSS-to-simulation realization map
+status: proposed_unexecuted
+owner: INC-AEBS-009
+
+purpose: >-
+  Trace every VSS-backed INC-AEBS-004 functional attribute to its proposed
+  Autoware simulation observation, transformation, semantic-state rule, or
+  explicit realization gap. This is an attribute-level semantic map, not a
+  claim that VSS schemas and ROS message schemas are identical.
+
+source_baselines:
+  covesa_vss:
+    repository: https://github.com/COVESA/vehicle_signal_specification
+    commit: 6fb1dac2630a8910ee996863b2af02b310dcd7ce
+    local_library: textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml
+  de4sdv_vss_extensions:
+    path: textual-notation-of-model/libraries/covesa-vss-sysmlv2/DE4SDV_VSS_Extensions.sysml
+    status: de4sdv_candidates_not_upstream_covesa
+  autoware_universe:
+    repository: https://github.com/autowarefoundation/autoware_universe
+    commit: f603d8759c92fb2f423f1544844e13086d79ad09
+  simulator_dependency:
+    repository: https://github.com/autowarefoundation/autoware_simple_planning_simulator
+    declared_by: autoware_universe/packages_above.repos
+    declared_version: main
+    reproducibility_status: floating_unpinned
+  ros_message_schemas:
+    reproducibility_status: dependency_revisions_not_pinned_by_inc_aebs_008
+
+mapping_policy:
+  mapping_kinds:
+    unit_transform: Same physical quantity with an explicit unit conversion.
+    proposed_field: Candidate field mapping pending exact dependency pin and runtime confirmation.
+    conditional_observation: A value exposed only under a restricted runtime condition.
+    semantic_state_rule: A VSS state derived from multiple runtime facts; not raw field equality.
+    unrealized_gap: No defensible simulation realization exists in the selected deployment.
+  mandatory_constraints:
+    - A ROS topic or field is not treated as schema-identical to a VSS path.
+    - AEB emergency diagnostic ERROR is collision-intervention state, not AEBS component failure.
+    - Emergency request, selected brake command, simulated deceleration, and EBA engagement remain distinct states.
+    - The simple planning simulator is a dynamics test double, not a brake ECU, pressure regulator, actuator, or real vehicle.
+    - Runtime verification and acceptance belong to INC-AEBS-009.
+
+mappings:
+  - id: VSS-SIM-AEBS-001
+    functional_item: VehicleMotionState
+    functional_attribute: vehicleSpeed
+    vss_path: Vehicle.Speed
+    vss_origin: covesa
+    vss_unit: km/h
+    mapping_kind: unit_transform
+    ros_topic: /vehicle/status/velocity_status
+    ros_type: autoware_vehicle_msgs/msg/VelocityReport
+    ros_field: longitudinal_velocity
+    ros_unit: m/s
+    transform: vss_value = ros_value * 3.6
+    source_evidence:
+      url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/src/node.cpp
+      inspected_lines: current_velocity_ptr_->longitudinal_velocity
+    realization_status: source_field_observed_transform_unexecuted
+    verification: Compare transformed topic samples with recorded simulator velocity.
+
+  - id: VSS-SIM-AEBS-002
+    functional_item: VehicleMotionState
+    functional_attribute: longitudinalAcceleration
+    vss_path: Vehicle.Acceleration.Longitudinal
+    vss_origin: covesa
+    vss_unit: m/s^2
+    mapping_kind: proposed_field
+    ros_topic: /localization/acceleration
+    ros_type: geometry_msgs/msg/AccelWithCovarianceStamped
+    ros_field_candidate: accel.accel.linear.x
+    ros_unit: m/s^2
+    transform: identity pending sign-and-frame confirmation
+    realization_status: proposed_pending_schema_pin_and_runtime
+    verification: Confirm message revision, X-axis sign convention, frame, timestamp, and simulator publication.
+
+  - id: VSS-SIM-AEBS-003
+    functional_item: ForwardTargetState
+    functional_attribute: obstacleDistance
+    vss_path: Vehicle.ADAS.ObstacleDetection.Distance
+    vss_origin: covesa
+    mapping_kind: conditional_observation
+    ros_topic: /diagnostics
+    diagnostic_identity: "/control/autonomous_emergency_braking: aeb_emergency_stop"
+    diagnostic_key: Distance
+    source_internal_value: collision_data.distance_to_object
+    limitation: Exposed only while retained collision data drives the emergency diagnostic; not a continuous forward-target interface.
+    realization_status: partial_conditional_unexecuted
+    verification: Parse the exact diagnostic key during an active collision case and compare it with scenario truth.
+
+  - id: VSS-SIM-AEBS-004
+    functional_item: ForwardTargetState
+    functional_attribute: obstacleTimeGap
+    vss_path: Vehicle.ADAS.ObstacleDetection.TimeGap
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: The selected AEB boundary publishes no continuous or diagnostic time-gap value.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-005
+    functional_item: CollisionRiskAssessment
+    functional_attribute: obstacleWarning
+    vss_path: Vehicle.ADAS.ObstacleDetection.IsWarning
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: The emergency diagnostic is not a generic obstacle-warning state.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-006
+    functional_item: CollisionRiskAssessment
+    functional_attribute: obstacleWarningType
+    vss_path: Vehicle.ADAS.ObstacleDetection.WarningType
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: The selected AEB boundary exposes no typed warning classification.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-007
+    functional_item: CollisionRiskAssessment
+    functional_attribute: collisionRiskDetected
+    vss_path: Vehicle.ADAS.AEBS.CollisionRisk.IsDetected
+    vss_origin: de4sdv_candidate
+    mapping_kind: semantic_state_rule
+    ros_topic: /diagnostics
+    ros_type: diagnostic_msgs/msg/DiagnosticArray
+    rule: >-
+      true only when the exact diagnostic identity
+      /control/autonomous_emergency_braking: aeb_emergency_stop reports ERROR
+      because retained collision data has not expired; false requires an observed
+      non-ERROR state from that same identity.
+    source_evidence:
+      url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/src/node.cpp
+      inspected_behavior: "onCheckCollision emits ERROR and '[AEB]: Emergency Brake' while collision data is active"
+    realization_status: source_rule_inspected_runtime_unexecuted
+    verification: Capture exact diagnostic identity, level, message, timestamps, and recovery transition.
+
+  - id: VSS-SIM-AEBS-008
+    functional_item: DriverWarningRequest
+    functional_attribute: obstacleWarning
+    vss_path: Vehicle.ADAS.ObstacleDetection.IsWarning
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: No driver-warning provider is selected in the simulation deployment.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-009
+    functional_item: DriverWarningRequest
+    functional_attribute: obstacleWarningType
+    vss_path: Vehicle.ADAS.ObstacleDetection.WarningType
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: No typed warning request or HMI adapter is selected.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-010
+    functional_item: DriverWarningRequest
+    functional_attribute: driverWarningActive
+    vss_path: Vehicle.ADAS.AEBS.DriverWarning.IsActive
+    vss_origin: de4sdv_candidate
+    mapping_kind: unrealized_gap
+    reason: No warning output or HMI observation exists; the emergency diagnostic must not be reused as warning state.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-011
+    functional_item: DriverOverrideInput
+    functional_attribute: driverOverrideActive
+    vss_path: Vehicle.ADAS.AEBS.DriverOverride.IsActive
+    vss_origin: de4sdv_candidate
+    mapping_kind: unrealized_gap
+    reason: The selected simulation deployment has no driver-override source or input contract.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-012
+    functional_item: DriverOverrideDecision
+    functional_attribute: driverOverrideActive
+    vss_path: Vehicle.ADAS.AEBS.DriverOverride.IsActive
+    vss_origin: de4sdv_candidate
+    mapping_kind: unrealized_gap
+    reason: No override-detection or suppression decision is realized by the selected AEB package.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-013
+    functional_item: EmergencyBrakingCommand
+    functional_attribute: ebaEngaged
+    vss_path: Vehicle.ADAS.EBA.IsEngaged
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: >-
+      EBA.IsEngaged means brake-pressure regulation is active. Neither an
+      outgoing control command nor simulated deceleration proves that state, and
+      the test double exposes no brake-pressure regulator status.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-014
+    functional_item: EmergencyBrakingCommand
+    functional_attribute: brakeLightActive
+    vss_path: Vehicle.Body.Lights.Brake.IsActive
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: No brake-light command or simulated light-status observation is selected.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-015
+    functional_item: EmergencyBrakingCommand
+    functional_attribute: emergencyBrakingCommanded
+    vss_path: Vehicle.ADAS.AEBS.EmergencyBraking.IsCommanded
+    vss_origin: de4sdv_candidate
+    mapping_kind: semantic_state_rule
+    ros_topic: /control/command/control_cmd
+    ros_type: autoware_control_msgs/msg/Control
+    command_field_candidate: longitudinal.acceleration
+    rule: >-
+      true only when use_emergency_handling is enabled, the MRM state reports
+      emergency operation, the vehicle gate selects /system/emergency/control_cmd,
+      and the resulting gate output is observed on /control/command/control_cmd.
+      A negative acceleration value alone is insufficient because normal control,
+      stop hold, moderate stop, pause, and filtering can also produce deceleration.
+    source_evidence:
+      vehicle_gate_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_vehicle_cmd_gate/src/vehicle_cmd_gate.cpp
+      emergency_operator_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/system/autoware_mrm_emergency_stop_operator/src/mrm_emergency_stop_operator_core.cpp
+    realization_status: source_rule_inspected_runtime_unexecuted
+    verification: Correlate diagnostic, availability, MRM state, emergency input, gate output, and timestamps.
+
+  - id: VSS-SIM-AEBS-016
+    functional_item: AEBSFailureStatus
+    functional_attribute: ebaError
+    vss_path: Vehicle.ADAS.EBA.IsError
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: The test double contains no simulated EBA controller or EBA error status.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-017
+    functional_item: AEBSFailureStatus
+    functional_attribute: absError
+    vss_path: Vehicle.ADAS.ABS.IsError
+    vss_origin: covesa
+    mapping_kind: unrealized_gap
+    reason: The test double contains no simulated ABS controller or ABS error status.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-018
+    functional_item: AEBSFailureStatus
+    functional_attribute: aebsError
+    vss_path: Vehicle.ADAS.AEBS.IsError
+    vss_origin: de4sdv_candidate
+    mapping_kind: unrealized_gap
+    reason: >-
+      The selected aeb_emergency_stop ERROR diagnostic denotes collision-triggered
+      emergency intervention, not an AEBS component failure. No separate AEBS
+      health diagnostic has been selected.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-019
+    functional_item: FailureIndicationRequest
+    functional_attribute: failureIndicationActive
+    vss_path: Vehicle.ADAS.AEBS.FailureIndication.IsActive
+    vss_origin: de4sdv_candidate
+    mapping_kind: unrealized_gap
+    reason: No failure-indication output or HMI adapter is selected.
+    realization_status: absent
+
+  - id: VSS-SIM-AEBS-020
+    functional_item: AEBSEvidenceEvent
+    functional_attribute: evidenceEventRecorded
+    vss_path: Vehicle.ADAS.AEBS.EvidenceEvent.IsRecorded
+    vss_origin: de4sdv_candidate
+    mapping_kind: unrealized_gap
+    reason: The observation collector is planned but has no event schema, persistence rule, or executed evidence.
+    realization_status: absent
+
+acceptance_for_inc_aebs_009:
+  - Pin the simulator implementation and ROS message-schema dependency revisions.
+  - Confirm every topic, message field, unit, sign convention, coordinate frame, timestamp, and freshness rule used above.
+  - Implement the state derivations without collapsing diagnostic, request, command, response, and engagement states.
+  - Execute at least one positive and one negative scenario for each realized mapping.
+  - Retain synchronized topic evidence and scenario truth.
+  - Keep absent mappings as explicit gaps unless a reviewed provider is added.
+
+claim_boundaries:
+  - No ROS build, launch, parser, topic, simulator, or mapping execution is claimed.
+  - No mapping proves requirement satisfaction, real braking, EBA engagement, hardware behavior, safety acceptance, compliance, or production readiness.

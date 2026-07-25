@@ -14,6 +14,7 @@ scope:
   in_scope:
     - complete derived AEB simulation configuration
     - custom diagnostic graph for autonomous-mode unavailability
+    - VSS-to-simulation attribute realization map with explicit transformations and gaps
     - pinned aggregator mappings, converter mapping, MRM, vehicle-gate, and simulator references
     - static System 1 and System 2 boundary review
   out_of_scope:
@@ -57,6 +58,18 @@ system_boundary:
       a brake ECU, an actuator, or a real vehicle.
 
 control_artifacts:
+  vss_simulation_realization:
+    path: methodologies/sysmod-sysmlv2/pilots/aebs-simulation-deployment/vss-simulation-realization.yaml
+    status: proposed_unexecuted_attribute_level_semantic_map
+    scope: all VSS-backed attributes from INC-AEBS-004
+    semantics: >-
+      Records unit transformations, proposed fields, conditional observations,
+      semantic-state rules, and explicit gaps. It does not claim VSS and ROS
+      schema identity.
+    dependency_limit: >-
+      autoware_simple_planning_simulator is declared as floating main by the
+      pinned Universe packages_above.repos, and exact ROS message-schema
+      dependency revisions are not pinned by INC-AEBS-008.
   aeb_configuration:
     path: methodologies/sysmod-sysmlv2/pilots/aebs-simulation-deployment/aebs.param.yaml
     status: proposed_unexecuted_complete_derived_configuration
@@ -210,9 +223,13 @@ blockers:
   - id: BLK-AEBS-SIM-005
     blocks: simulated braking-response claim
     reason: preconditions, MRM selection, gate arbitration, simulator wiring, and observations are unexecuted
+  - id: BLK-AEBS-SIM-006
+    blocks: accepted executable VSS-to-simulation mapping
+    reason: simulator implementation and ROS message-schema dependency revisions are not pinned, and every mapping remains unexecuted
 
 claim_boundaries:
   - No runtime parser, ROS build, launch, topic, or simulation execution is claimed.
+  - No VSS-to-ROS or VSS-to-simulator mapping has been executed or accepted.
   - No simulated deceleration, raw conversion, real hardware, brake ECU, actuator, or vehicle behavior is claimed.
   - No S-CORE integration, safety acceptance, compliance, certification, homologation, or production readiness is claimed.
   - No upstream contact, report, acceptance, or fix is claimed.
@@ -223,6 +240,8 @@ validation:
   public_checks:
     - python scripts/check_repo.py
     - python scripts/smoke_test.py
+    - python -m unittest tests.test_validate_aebs_vss_simulation_map
+    - exact VSS catalog coverage, unique mapping IDs, and declared mapping kinds
     - YAML parse and structural assertions
     - graph-key allowlist excluding invalid per-diagnostic fields
     - git diff --check

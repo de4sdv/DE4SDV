@@ -12,8 +12,11 @@
  * autoware_raw_vehicle_cmd_converter, and HardwareLayer realization are absent.
  */
 package DE4SDV_AEBSSimulationDeployment {
+  // The logical baseline supplies VehicleTargetAEBSLogicalSystem and the logical
+  // responsibility/item usages used as allocation sources below. Functional
+  // semantics are reached through that accepted logical baseline; no direct
+  // functional-package import is needed in this deployment model.
   private import DE4SDV_AEBSLogicalArchitecture::*;
-  private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -77,7 +80,15 @@ package DE4SDV_AEBSSimulationDeployment {
     doc /* Unaccepted observation collected for INC-AEBS-009; not verification evidence here. */
   }
 
-  /* Concrete topic roles specialize the imported ROS 2 protocol definitions. */
+  /*
+   * Concrete topic roles specialize the imported ROS 2 protocol definitions.
+   * Each port definition is a reusable directional contract: an Output port
+   * produces its nested item and an Input port consumes it. Parts later type
+   * concrete port usages with these definitions, and flows join compatible
+   * producer and consumer usages. The nested item is the transported payload,
+   * not another component. `redefines payload` specializes the generic ROS 2
+   * payload role with the concrete message type.
+   */
   port def DiagnosticIn :> ROS2TopicSubscription { in item diagnostics : AEBEmergencyStopDiagnosticArrayMessage redefines payload; }
   port def DiagnosticOut :> ROS2TopicPublication { out item diagnostics : AEBEmergencyStopDiagnosticArrayMessage redefines payload; }
   port def PointCloudInput :> ROS2TopicSubscription { in item pointCloud : PointCloud2Message redefines payload; }
@@ -293,6 +304,12 @@ package DE4SDV_AEBSSimulationDeployment {
     port velocityFeedbackIn : VelocityFeedbackIn;
     port imuFeedbackIn : ImuFeedbackIn;
     port tfAndVehicleInfoIn : TfAndVehicleInfoIn;
+    // Deliberately separate operation-mode contracts: the MRM handler consumes
+    // /api/operation_mode/state to reason about current-mode availability, while
+    // the selected legacy vehicle gate consumes /system/operation_mode/state for
+    // command arbitration. The harness must make both AUTONOMOUS, but their
+    // owners, topics, and message contracts differ, so they are not bound or
+    // collapsed into one port.
     port operationModeStateIn : OperationModeStateIn;
     port controlModeIn : ControlModeReportIn;
     port kinematicStateIn : OdometryFeedbackIn;
@@ -538,7 +555,14 @@ package DE4SDV_AEBSSimulationDeployment {
     allocate logicalSystem.emergencyCoordination to deployment.system1.legacyVehicleCommandGate;
   /* Proposed Physical Logical Item Mapping: logical to physical only. */
   allocation def LogicalToPhysicalItemRealization {
-    doc /* Semantic realization, not schema identity or proof of satisfaction. */
+    doc /*
+     * Semantic realization, not schema identity or proof of satisfaction.
+     * Attribute-level VSS transformations, semantic-state rules, and gaps are
+     * controlled in aebs-simulation-deployment/vss-simulation-realization.yaml.
+     * They are not direct field allocations here: Vehicle.Speed requires unit
+     * conversion, and simulator/message-schema revisions remain unpinned. A
+     * direct allocation would falsely imply value and schema identity.
+     */
   }
   allocation emergencyRequestToOperateMrm : LogicalToPhysicalItemRealization
     allocate logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
