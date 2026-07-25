@@ -44,4 +44,4 @@ The simple planning simulator must also be initialized with the intended map, in
 
 ## Boundaries
 
-No runtime graph parse, ROS build/launch, topic behavior, simulated braking response, raw command conversion, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, or production readiness is claimed. SysML validation for the overall increment remains pending maintainer-run privileged Syside validation because INC-AEBS-008 changes SysML elsewhere; this companion-artifact repair does not run Syside.
+No runtime graph parse, ROS build/launch, topic behavior, simulated braking response, raw command conversion, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, or production readiness is claimed. Licensed SysIDE validation passed on the reviewed model commit `1eac51e1c46e111ba2e0dffda7f4bde99bdf535c` in workflow run `30169312059`; the metadata-only successor also passed in run `30170043191`. No local SysIDE validation was run. This proves textual-model tool acceptance only, not runtime behavior or engineering acceptance.

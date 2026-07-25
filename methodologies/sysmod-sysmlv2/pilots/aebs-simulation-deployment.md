@@ -85,4 +85,4 @@ No runtime parse, ROS build/launch, topic behavior, simulated braking response, 
 
 ## Validation
 
-Run `python scripts/check_repo.py`, `python scripts/smoke_test.py`, YAML structural assertions, a diagnostic graph-key allowlist that excludes invalid per-diagnostic fields, and `git diff --check`. SysML validation for the overall increment is **pending maintainer-run privileged Syside validation**, because INC-AEBS-008 changes SysML elsewhere. This companion-artifact repair does not run Syside.
+Repository checks, YAML structural assertions, the diagnostic graph-key allowlist, and `git diff --check` pass. Licensed SysIDE validation passed on the reviewed model commit `1eac51e1c46e111ba2e0dffda7f4bde99bdf535c` in workflow run `30169312059`; the metadata-only successor also passed in run `30170043191`. No local SysIDE validation was run. This establishes tool acceptance of the textual model, not ROS build, launch, simulation, braking behavior, requirement satisfaction, or safety evidence.
