@@ -224,4 +224,77 @@ package SAF_Viewpoints {
        */
     }
   }
+
+  // ─── Physical Domain ───
+
+  concern def PhysicalStructureConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: What physical hardware, software, and mechanical
+       * elements make up the candidate system, and in which internal roles
+       * are they used?
+       */
+    }
+  }
+
+  viewpoint def PhysicalStructureDefinitionViewpoint {
+    doc /*
+     * SAF Physical Domain: P2_PSTD Physical Structure Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A physical structure definition view shall show the physical system
+       * boundary and its breakdown into physical hardware, software, and
+       * mechanical elements, including the roles in which elements are used.
+       */
+    }
+  }
+
+  concern def PhysicalInterfaceConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: Which reusable physical interface and protocol
+       * definitions apply, and what typed ports and exchanged item directions
+       * do they define?
+       */
+    }
+  }
+
+  viewpoint def PhysicalInterfaceDefinitionViewpoint {
+    doc /*
+     * SAF Physical Domain: P5_PIFD Physical Interface Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A physical interface definition view shall show physical interface
+       * definitions with typed ports, exchanged item directions, protocol
+       * definitions, and compatibility or specialization relationships.
+       */
+    }
+  }
+
+  concern def PhysicalLogicalMappingConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: Which logical element roles are realized by which
+       * physical element roles?
+       */
+    }
+  }
+
+  viewpoint def PhysicalLogicalMappingViewpoint {
+    doc /*
+     * SAF Physical Domain: P8_PLOM Physical Logical Mapping Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A physical logical mapping view shall show logical and physical
+       * element breakdowns and the realization relationships that identify
+       * which physical element roles implement each logical element role.
+       */
+    }
+  }
 }

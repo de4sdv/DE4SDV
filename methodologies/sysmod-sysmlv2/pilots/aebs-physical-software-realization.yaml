@@ -1,0 +1,366 @@
+schema: de4sdv.physical-software-realization.v0
+id: INC-AEBS-007
+name: AEBS Autoware physical software realization
+status: draft
+type: EngineeringIncrement
+parent_increment: INC-AEBS-006
+owner: DE4SDV maintainers
+
+domain: physical_software_realization
+decision_requested: >-
+  Decide whether the pinned Autoware AEB package is an adequate source
+  realization candidate for a simulation-first pilot, while retaining explicit
+  gaps and blocking unsafe or stale branches from use as evidence.
+
+purpose: >-
+  Map all nine logical AEBS components from INC-AEBS-006 to inspected,
+  commit-pinned Autoware and ROS 2 artifacts; record exact interfaces,
+  configuration-dependent coverage, defects, the required downstream emergency
+  chain, and evidence limits without claiming requirement satisfaction.
+
+scope:
+  in_scope:
+    - pinned Autoware AEB package source and package metadata
+    - ROS 2 node inputs, outputs, launch remappings, and default configuration
+    - logical-to-physical software realization fit and gap mapping
+    - companion SysML physical-software realization and SAF physical-domain views
+    - diagnostic-to-brake-actuation integration obligations
+    - inspected source defects and blockers
+    - proposed simulation-first pilot configuration
+  out_of_scope:
+    - source patches or upstream changes
+    - hardware, compute, network, sensor, brake ECU, and actuator allocation
+    - executed build, launch, simulation, road, or braking tests
+    - calibrated requirement satisfaction or safety-case evidence
+    - UNECE R152 compliance, certification, homologation, or production readiness
+
+source_baseline:
+  repository: https://github.com/autowarefoundation/autoware_universe
+  commit: f603d8759c92fb2f423f1544844e13086d79ad09
+  package_path: control/autoware_autonomous_emergency_braking
+  package_name: autoware_autonomous_emergency_braking
+  package_version: 0.52.0
+  license: Apache-2.0
+  checked_date: 2026-07-25
+  inspection_status: inspected
+  source_urls:
+    package:
+      url: https://github.com/autowarefoundation/autoware_universe/tree/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking
+      checked_date: 2026-07-25
+    package_manifest:
+      url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/package.xml
+      checked_date: 2026-07-25
+    readme:
+      url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/README.md
+      checked_date: 2026-07-25
+    node_header:
+      url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/include/autoware/autonomous_emergency_braking/node.hpp
+      checked_date: 2026-07-25
+    node_source:
+      url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/src/node.cpp
+      checked_date: 2026-07-25
+    default_config:
+      url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml
+      checked_date: 2026-07-25
+    launch:
+      url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/launch/autoware_autonomous_emergency_braking.launch.xml
+      checked_date: 2026-07-25
+
+physical_software_element:
+  package: autoware_autonomous_emergency_braking
+  executable: autoware_autonomous_emergency_braking
+  launch_node_name: autonomous_emergency_braking
+  source_node_name: AEB
+  runtime: ROS 2
+  realization_status: candidate_with_blockers
+
+input_contracts:
+  - private_name: ~/input/pointcloud
+    message_type: sensor_msgs/msg/PointCloud2
+    default_remap: /perception/obstacle_segmentation/pointcloud
+    role: obstacle point-cloud observations
+    selection_parameter: use_pointcloud_data
+  - private_name: ~/input/velocity
+    message_type: autoware_vehicle_msgs/msg/VelocityReport
+    default_remap: /vehicle/status/velocity_status
+    role: ego longitudinal velocity
+  - private_name: ~/input/imu
+    message_type: sensor_msgs/msg/Imu
+    default_remap: /sensing/imu/imu_data
+    role: IMU-based ego-path generation
+    selection_parameter: use_imu_path
+  - private_name: ~/input/predicted_trajectory
+    message_type: autoware_planning_msgs/msg/Trajectory
+    default_remap: /control/trajectory_follower/lateral/predicted_trajectory
+    role: predicted-trajectory ego-path generation
+    selection_parameter: use_predicted_trajectory
+    status: blocked_at_pinned_source
+    blocker: DEF-AEBS-PHY-001
+  - private_name: ~/input/objects
+    message_type: autoware_perception_msgs/msg/PredictedObjects
+    default_remap: /perception/object_recognition/objects
+    role: predicted-object target observations
+    selection_parameter: use_predicted_object_data
+  - private_name: /autoware/state
+    message_type: autoware_system_msgs/msg/AutowareState
+    default_remap: /autoware/state
+    role: Autoware lifecycle gate
+    selection_parameter: check_autoware_state
+
+output_contracts:
+  - name: /diagnostics
+    mechanism: diagnostic_updater
+    task: aeb_emergency_stop
+    message_type: diagnostic_msgs/msg/DiagnosticArray
+    semantic_limit: ERROR-level collision diagnostic; not a brake or vehicle-control command
+  - private_name: ~/metrics
+    message_type: tier4_metric_msgs/msg/MetricArray
+    role: collision-assessment metrics
+  - private_name: ~/debug/obstacle_pointcloud
+    message_type: sensor_msgs/msg/PointCloud2
+    role: debug obstacle point cloud
+  - private_name: ~/debug/markers
+    message_type: visualization_msgs/msg/MarkerArray
+    role: debug visualization markers
+  - private_name: ~/debug/rss_distance
+    message_type: tier4_debug_msgs/msg/Float32Stamped
+    role: debug RSS distance
+  - private_name: ~/debug/processing_time_detail_ms
+    message_type: autoware_utils/ProcessingTimeDetail
+    role: processing-time detail
+  - private_name: ~/virtual_wall
+    message_type: visualization_msgs/msg/MarkerArray
+    role: virtual-wall visualization
+
+launch_contract:
+  status: blocked_stale
+  defect: DEF-AEBS-PHY-002
+  accepted_inputs: false
+  rule: >-
+    Do not treat the pinned launch XML as an accepted runnable interface
+    contract until the undeclared odometry remap is corrected or removed and
+    the corrected launch is reviewed.
+
+logical_component_coverage:
+  - logical_component: StateAcquisitionAndNormalization
+    status: partial
+    source_realization:
+      - typed polling subscribers for point cloud, velocity, IMU, predicted trajectory, predicted objects, and Autoware state
+      - transform and local processing in the AEB node
+    covered: typed acquisition for selected Autoware inputs
+    missing:
+      - complete freshness, consistency, validity, timing, and normalization contract
+      - independent observation-health output
+  - logical_component: EgoPathPrediction
+    status: partial
+    source_realization:
+      - IMU-derived path branch
+      - predicted-trajectory-derived path branch
+    covered: IMU path is source-available
+    missing:
+      - predicted-trajectory branch is blocked by DEF-AEBS-PHY-001
+      - logical path horizon, frame, validity, timing, and uncertainty acceptance evidence
+  - logical_component: TargetProcessing
+    status: available_configuration_dependent
+    source_realization:
+      - point-cloud obstacle clustering and path filtering
+      - predicted-object processing branch
+    covered: selected point-cloud and predicted-object branches are source-available
+    missing:
+      - branch selection and behavior depend on use_pointcloud_data and use_predicted_object_data
+      - requirement-level target relevance acceptance evidence
+  - logical_component: CollisionRiskEvaluation
+    status: available_source_realization_only
+    source_realization:
+      - RSS-distance collision checks and collision persistence logic
+      - aeb_emergency_stop diagnostic task
+    covered: rule-based collision-risk implementation exists in source
+    missing:
+      - accepted requirement satisfaction for thresholds, operating range, timing, and braking assumptions
+    qualification: availability is not verification or acceptance of requirement satisfaction
+  - logical_component: InterventionDecisionAndArbitration
+    status: partial
+    source_realization:
+      - collision decision and Autoware-state check
+    covered: source-local collision decision
+    missing:
+      - driver override
+      - full operating context and inhibition policy
+      - degradation arbitration
+      - arbitration against other command sources
+  - logical_component: DriverWarningManagement
+    status: gap
+    source_realization: []
+    covered: none
+    missing:
+      - warning request, timing, escalation, modality, and HMI integration
+  - logical_component: EmergencyInterventionCoordination
+    status: partial
+    mapping_disposition: source_contribution_only_no_realization_allocation
+    source_realization:
+      - ERROR-level aeb_emergency_stop diagnostic on /diagnostics
+    covered: emergency indication only
+    missing:
+      - diagnostic/failure-state routing into emergency or MRM selection
+      - external emergency or MRM handler
+      - emergency-state retention and release authority
+      - command gate, vehicle interface, and brake actuation
+    qualification: >-
+      The diagnostic is recorded as a physical source contribution, not a
+      realization allocation; it is not an EmergencyInterventionRequest,
+      intervention command, or actuator command.
+  - logical_component: HealthAndDegradationSupervision
+    status: partial
+    source_realization:
+      - diagnostic_updater task and input-presence checks
+    covered: limited node diagnostic reporting
+    missing:
+      - complete input-health policy
+      - valid, degraded, and unavailable state ownership
+      - stale, inconsistent, and failed-input behavior
+  - logical_component: EvidenceRecording
+    status: partial
+    source_realization:
+      - diagnostics
+      - metrics
+      - debug point cloud, markers, RSS distance, processing time, and virtual wall
+    covered: transient observability outputs
+    missing:
+      - evidence event schema
+      - persistence, retention, provenance, time alignment, and acceptance criteria
+
+required_emergency_chain:
+  status: not_realized_by_selected_package
+  sequence:
+    - AEB diagnostic: aeb_emergency_stop on /diagnostics
+    - diagnostic/failure-state bridge with an accepted AEB routing configuration
+    - external emergency/MRM handler
+    - command gate
+    - vehicle interface
+    - brake ECU/actuator
+  integration_rule: >-
+    Every downstream element, interface, retention/release rule, failure mode,
+    and test result must be explicitly selected and verified before any braking-
+    actuation claim is made. The diagnostic must not be wired directly to an
+    actuator or described as a braking command.
+  inspected_autoware_candidate_path:
+    - package: system/autoware_diagnostic_graph_aggregator
+      input: /diagnostics
+      output: /system/operation_mode/availability
+      status: candidate_configuration_missing
+      finding: >-
+        The pinned package can aggregate diagnostics into operation-mode
+        availability, but no active repository diagnostic-graph configuration
+        routing aeb_emergency_stop into that result was verified.
+    - package: system/autoware_mrm_handler
+      input: /system/operation_mode/availability
+      status: source_available_not_integrated
+      finding: The handler does not consume the AEB diagnostic directly.
+
+source_defects:
+  - id: DEF-AEBS-PHY-001
+    title: Predicted-trajectory path accesses back of empty local Path
+    status: blocked
+    source_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/src/node.cpp#L743-L754
+    checked_date: 2026-07-25
+    observation: >-
+      In the predicted-trajectory generateEgoPath overload, a local Path is
+      empty and reserved, then path.back() is evaluated before the first
+      push_back while filtering close points.
+    default_exposure: >-
+      The pinned default configuration sets use_predicted_trajectory: true.
+    impact: Undefined behavior may occur when the branch receives a non-empty transformed trajectory.
+    disposition: >-
+      Predicted-trajectory use is blocked unless the pinned source is replaced
+      by an upstream-fixed revision or a reviewed patch is applied and tested.
+    upstream_contact: not_contacted
+    fix_claim: none
+  - id: DEF-AEBS-PHY-002
+    title: Launch remaps undeclared and unsubscribed odometry input
+    status: blocked
+    source_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/launch/autoware_autonomous_emergency_braking.launch.xml#L16
+    checked_date: 2026-07-25
+    observation: >-
+      Line 16 remaps ~/input/odometry using $(var input_odometry), but the launch
+      file declares no input_odometry argument and the current node declares no
+      odometry subscriber.
+    impact: The launch contract is stale and cannot be accepted as-is.
+    disposition: Correct or remove the remap, review the intended interface, and execute launch validation.
+    upstream_contact: not_contacted
+    fix_claim: none
+
+proposed_safe_pilot_configuration:
+  status: proposed_unexecuted
+  evidence_status: planned
+  changes_from_pinned_default:
+    use_predicted_trajectory: false
+    use_imu_path: true
+  rationale: >-
+    Avoid the known predicted-trajectory defect while retaining the source-
+    available IMU path for a simulation-first pilot.
+  preconditions:
+    - correct or replace the stale launch contract
+    - pin and record all parameters and remappings
+    - execute build, launch, input-health, collision, non-collision, and diagnostic-chain tests
+    - verify downstream emergency/MRM handling independently
+  limitation: >-
+    This is a proposed, unexecuted risk-reduction configuration. It is not test
+    evidence, proof that the IMU path is safe, or evidence of braking behavior.
+
+blockers:
+  - id: BLK-AEBS-PHY-001
+    blocks: predicted-trajectory pilot branch
+    reason: DEF-AEBS-PHY-001
+    release_condition: upstream-fixed source or reviewed patch plus executed tests
+  - id: BLK-AEBS-PHY-002
+    blocks: acceptance of pinned launch contract
+    reason: DEF-AEBS-PHY-002
+    release_condition: corrected launch contract plus executed launch validation
+  - id: BLK-AEBS-PHY-003
+    blocks: end-to-end emergency intervention or braking-actuation claim
+    reason: diagnostic/failure-state routing, emergency/MRM handler, command gate, vehicle interface, and brake ECU/actuator are not selected or tested here
+    release_condition: INC-AEBS-008/009 allocation and executed end-to-end evidence
+  - id: BLK-AEBS-PHY-004
+    blocks: complete logical baseline realization
+    reason: warning, override, operating-context, degradation, retention, and evidence responsibilities remain absent or partial
+    release_condition: allocate, implement, and verify each retained logical responsibility
+
+claim_boundaries:
+  - No UNECE R152 compliance claim is made.
+  - No certification or homologation claim is made.
+  - No production-readiness claim is made.
+  - No real-vehicle execution claim is made.
+  - No braking-actuation claim is made.
+  - Source inspection does not establish calibrated requirement satisfaction or safety.
+  - Upstream has not been contacted, and no upstream fix is claimed.
+
+acceptance_criteria:
+  - id: AC-AEBS-PHY-001
+    criterion: Repository, commit, package path, version, license, source URLs, and checked date are explicit.
+  - id: AC-AEBS-PHY-002
+    criterion: All exact node inputs and relevant outputs are inventoried with ROS 2 types and default remaps where present.
+  - id: AC-AEBS-PHY-003
+    criterion: All nine logical components have explicit source coverage and missing responsibility status.
+  - id: AC-AEBS-PHY-004
+    criterion: Predicted-trajectory and stale-launch defects are source-linked and blocking dispositions are explicit.
+  - id: AC-AEBS-PHY-005
+    criterion: The diagnostic-to-actuator chain and its external ownership are explicit.
+  - id: AC-AEBS-PHY-006
+    criterion: The pilot configuration is labeled proposed and unexecuted rather than evidence.
+  - id: AC-AEBS-PHY-007
+    criterion: Compliance, certification, production, real-vehicle, and braking-actuation claims are excluded.
+  - id: AC-AEBS-PHY-008
+    criterion: The SysML slice exposes physical structure, reusable interface definitions with typed boundary delegation, and logical-to-physical realization mappings without satisfaction claims.
+
+validation:
+  artifact_evidence_status: inspected
+  runtime_evidence_status: not_executed
+  public_checks:
+    - python scripts/check_repo.py
+    - python scripts/smoke_test.py
+    - git diff --check
+    - YAML parse
+  sysml_validation: pending_privileged_syside_validation
+  sysml_validation_request: >-
+    Run maintainer-triggered Privileged Syside Validation for the complete
+    textual-notation-of-model root after review; no local Jetson validation is claimed.
