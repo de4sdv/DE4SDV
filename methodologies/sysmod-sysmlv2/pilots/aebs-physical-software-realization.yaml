@@ -22,13 +22,13 @@ scope:
   in_scope:
     - pinned Autoware AEB package source and package metadata
     - ROS 2 node inputs, outputs, launch remappings, and default configuration
-    - logical-to-physical-software fit and gap mapping
+    - logical-to-physical software realization fit and gap mapping
+    - companion SysML physical-software realization and SAF physical-domain views
     - diagnostic-to-brake-actuation integration obligations
     - inspected source defects and blockers
     - proposed simulation-first pilot configuration
   out_of_scope:
     - source patches or upstream changes
-    - SysML or SAF artifacts
     - hardware, compute, network, sensor, brake ECU, and actuator allocation
     - executed build, launch, simulation, road, or braking tests
     - calibrated requirement satisfaction or safety-case evidence
@@ -196,14 +196,19 @@ logical_component_coverage:
       - warning request, timing, escalation, modality, and HMI integration
   - logical_component: EmergencyInterventionCoordination
     status: partial
+    mapping_disposition: source_contribution_only_no_realization_allocation
     source_realization:
       - ERROR-level aeb_emergency_stop diagnostic on /diagnostics
     covered: emergency indication only
     missing:
+      - diagnostic/failure-state routing into emergency or MRM selection
       - external emergency or MRM handler
       - emergency-state retention and release authority
       - command gate, vehicle interface, and brake actuation
-    qualification: diagnostic output is not an intervention or actuator command
+    qualification: >-
+      The diagnostic is recorded as a physical source contribution, not a
+      realization allocation; it is not an EmergencyInterventionRequest,
+      intervention command, or actuator command.
   - logical_component: HealthAndDegradationSupervision
     status: partial
     source_realization:
@@ -228,6 +233,7 @@ required_emergency_chain:
   status: not_realized_by_selected_package
   sequence:
     - AEB diagnostic: aeb_emergency_stop on /diagnostics
+    - diagnostic/failure-state bridge with an accepted AEB routing configuration
     - external emergency/MRM handler
     - command gate
     - vehicle interface
@@ -237,6 +243,19 @@ required_emergency_chain:
     and test result must be explicitly selected and verified before any braking-
     actuation claim is made. The diagnostic must not be wired directly to an
     actuator or described as a braking command.
+  inspected_autoware_candidate_path:
+    - package: system/autoware_diagnostic_graph_aggregator
+      input: /diagnostics
+      output: /system/operation_mode/availability
+      status: candidate_configuration_missing
+      finding: >-
+        The pinned package can aggregate diagnostics into operation-mode
+        availability, but no active repository diagnostic-graph configuration
+        routing aeb_emergency_stop into that result was verified.
+    - package: system/autoware_mrm_handler
+      input: /system/operation_mode/availability
+      status: source_available_not_integrated
+      finding: The handler does not consume the AEB diagnostic directly.
 
 source_defects:
   - id: DEF-AEBS-PHY-001
@@ -299,7 +318,7 @@ blockers:
     release_condition: corrected launch contract plus executed launch validation
   - id: BLK-AEBS-PHY-003
     blocks: end-to-end emergency intervention or braking-actuation claim
-    reason: downstream emergency/MRM handler, command gate, vehicle interface, and brake ECU/actuator are not selected or tested here
+    reason: diagnostic/failure-state routing, emergency/MRM handler, command gate, vehicle interface, and brake ECU/actuator are not selected or tested here
     release_condition: INC-AEBS-008/009 allocation and executed end-to-end evidence
   - id: BLK-AEBS-PHY-004
     blocks: complete logical baseline realization
@@ -330,6 +349,8 @@ acceptance_criteria:
     criterion: The pilot configuration is labeled proposed and unexecuted rather than evidence.
   - id: AC-AEBS-PHY-007
     criterion: Compliance, certification, production, real-vehicle, and braking-actuation claims are excluded.
+  - id: AC-AEBS-PHY-008
+    criterion: The SysML slice exposes physical structure, reusable interface definitions with typed boundary delegation, and logical-to-physical realization mappings without satisfaction claims.
 
 validation:
   artifact_evidence_status: inspected
@@ -339,4 +360,7 @@ validation:
     - python scripts/smoke_test.py
     - git diff --check
     - YAML parse
-  sysml_validation: not_applicable_no_sysml_modified
+  sysml_validation: pending_privileged_syside_validation
+  sysml_validation_request: >-
+    Run maintainer-triggered Privileged Syside Validation for the complete
+    textual-notation-of-model root after review; no local Jetson validation is claimed.

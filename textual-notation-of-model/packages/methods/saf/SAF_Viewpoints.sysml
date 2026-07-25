@@ -292,8 +292,8 @@ package SAF_Viewpoints {
     require constraint {
       doc /*
        * A physical logical mapping view shall show logical and physical
-       * element breakdowns and realization relationships from physical
-       * element roles to the logical element roles they implement.
+       * element breakdowns and the realization relationships that identify
+       * which physical element roles implement each logical element role.
        */
     }
   }

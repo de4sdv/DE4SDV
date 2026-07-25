@@ -10,7 +10,9 @@
 
 Decide whether a pinned Autoware AEB package is an adequate candidate for a simulation-first pilot, with its incomplete logical coverage and two source blockers retained explicitly.
 
-This increment is a source-to-architecture control artifact. It is **not** evidence that AEBS requirements are satisfied or that braking occurs.
+This increment combines source-to-architecture control artifacts with a SysML
+physical-software realization and SAF physical-domain views. It is **not**
+evidence that AEBS requirements are satisfied or that braking occurs.
 
 ## Pinned source baseline
 
@@ -63,7 +65,7 @@ Diagnostics, metrics, and debug topics provide transient observability. They do 
 | Collision Risk Evaluation | **Available as source realization only** | RSS-distance checks, collision persistence, and collision diagnostic | Source availability is not accepted requirement satisfaction for thresholds, operating range, timing, or braking assumptions |
 | Intervention Decision and Arbitration | **Partial** | Local collision decision and Autoware-state check | No driver override, complete operating context/inhibition, degradation arbitration, or arbitration against other commands |
 | Driver Warning Management | **Gap** | None | Warning request, timing, escalation, modality, and HMI integration remain unallocated |
-| Emergency Intervention Coordination | **Partial** | ERROR-level `aeb_emergency_stop` diagnostic | External emergency/MRM handling, retention/release, command gating, vehicle interface, and actuation are required |
+| Emergency Intervention Coordination | **Partial source contribution; no realization allocation** | ERROR-level `aeb_emergency_stop` diagnostic | The diagnostic is not the logical `EmergencyInterventionRequest`; diagnostic/failure-state routing, external emergency/MRM handling, retention/release, command gating, vehicle interface, and actuation are required |
 | Health and Degradation Supervision | **Partial** | Diagnostic updater and limited input-presence checks | No complete input-health policy or owned valid/degraded/unavailable state behavior |
 | Evidence Recording | **Partial** | Diagnostics, metrics, debug point cloud/markers/RSS/processing time, and virtual wall | No evidence-event schema, persistence, retention, provenance, time alignment, or acceptance criteria |
 
@@ -75,6 +77,9 @@ The selected package emits an emergency diagnostic, not a physical intervention 
 
 ```text
 AEB diagnostic: aeb_emergency_stop on /diagnostics
+        │
+        ▼
+Diagnostic / failure-state bridge
         │
         ▼
 External emergency / MRM handler
@@ -90,6 +95,14 @@ Brake ECU / actuator
 ```
 
 Every downstream element, interface, retention/release rule, failure mode, and test result must be selected and verified before making an emergency-intervention or braking-actuation claim. The diagnostic must not be wired directly to an actuator or described as a brake command.
+
+At the pinned revision, `autoware_diagnostic_graph_aggregator` is a candidate
+bridge from `/diagnostics` to `/system/operation_mode/availability`, which
+`autoware_mrm_handler` consumes. However, no active repository graph
+configuration routing `aeb_emergency_stop` into that result was verified; the
+only repository hit in the scenario-simulator adapter configuration is commented
+out. The bridge and its configuration therefore remain an explicit blocker, not
+an assumed Autoware connection.
 
 ## Blocking source findings
 
@@ -131,7 +144,7 @@ Before pilot execution:
 | --- | --- | --- |
 | `BLK-AEBS-PHY-001` / source defect 001 | Predicted-trajectory pilot branch | Upstream-fixed source or reviewed patch, followed by executed tests |
 | `BLK-AEBS-PHY-002` / source defect 002 | Acceptance of pinned launch contract | Corrected launch and executed launch validation |
-| `BLK-AEBS-PHY-003` | End-to-end intervention or braking claim | Allocate and test emergency/MRM handler, command gate, vehicle interface, and brake ECU/actuator in INC-AEBS-008/009 |
+| `BLK-AEBS-PHY-003` | End-to-end intervention or braking claim | Configure and verify diagnostic/failure-state routing, then allocate and test the emergency/MRM handler, command gate, vehicle interface, and brake ECU/actuator in INC-AEBS-008/009 |
 | `BLK-AEBS-PHY-004` | Complete realization of the logical baseline | Allocate, implement, and verify warning, override, context, degradation, retention, and evidence responsibilities |
 
 ## Claim boundaries
@@ -156,10 +169,11 @@ Source inspection establishes traceable implementation coverage and defects only
 - [ ] The diagnostic-to-actuator chain and its external ownership are explicit.
 - [ ] The pilot configuration remains labeled proposed and unexecuted.
 - [ ] No compliance, certification, production, real-vehicle, or braking-actuation claim is made.
+- [ ] The SysML slice exposes physical structure, reusable interface definitions with typed boundary delegation, and logical-to-physical realization mappings without requirement-satisfaction claims.
 
 ## Validation status
 
 - Artifact status: source inspected against the pinned commit.
 - Runtime/build/simulation status: not executed in this increment.
-- SysML validation: not applicable; no SysML or SAF files are modified.
+- SysML validation: maintainer-run privileged Syside validation requested for the complete textual model root; no local Jetson validation is claimed.
 - Repository validation: `python scripts/check_repo.py`, `python scripts/smoke_test.py`, YAML parse, and `git diff --check` are required before publication.

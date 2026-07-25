@@ -139,6 +139,9 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 | `SAF_Viewpoints` | `SystemRequirementTraceabilityViewpoint` | SAF Functional Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
 | `SAF_Viewpoints` | `SystemFunctionalBreakdownStructureViewpoint` | SAF Functional Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
 | `SAF_Viewpoints` | `SystemInterfaceDefinitionViewpoint` | SAF Functional Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
+| `SAF_Viewpoints` | `PhysicalStructureDefinitionViewpoint` | SAF Physical Domain (`P2_PSTD`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalSoftwareStructureView` |
+| `SAF_Viewpoints` | `PhysicalInterfaceDefinitionViewpoint` | SAF Physical Domain (`P5_PIFD`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalSoftwareInterfaceView` |
+| `SAF_Viewpoints` | `PhysicalLogicalMappingViewpoint` | SAF Physical Domain (`P8_PLOM`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalLogicalMappingView` |
 | `DE4SDV_MethodViewpoints` | `IncrementFramingViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsIncrementFramingView` |
 | `DE4SDV_MethodViewpoints` | `ProductLineClassificationViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsProductLineClassificationView` |
 | `DE4SDV_MethodViewpoints` | `RegulatoryScopeViewpoint` | DE4SDV method-governance | `aebs_increment_framing.sysml` → `aebsRegulatoryScopeView` |
