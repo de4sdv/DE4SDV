@@ -299,7 +299,6 @@ package DE4SDV_AEBSSimulationDeployment {
     part aebParameters : AEBParameterSelection;
     part diagnosticGraph : DiagnosticGraphSelection;
     part gateParameters : LegacyVehicleCommandGateSelection;
-    part deferredControlCommandGate : DeferredControlCommandGateAlternative;
 
     port pointCloudIn : PointCloudInput;
     port autowareStateIn : AutowareStateInput;

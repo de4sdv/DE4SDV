@@ -188,6 +188,12 @@ class TestAebsExecutableBench(unittest.TestCase):
         )[0]
         self.assertIn("part scenarioController : ScenarioController;", planned)
 
+        system1 = model.split("part def AEBSystem1CandidateDeployment {", 1)[1].split(
+            "part def AEBReadinessInputs009A {", 1
+        )[0]
+        self.assertIn("part def DeferredControlCommandGateAlternative {", model)
+        self.assertNotIn("deferredControlCommandGate", system1)
+
     def test_pilot_artifacts_do_not_use_unqualified_009_ownership(self):
         artifacts = [
             ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-simulation-deployment.md",
