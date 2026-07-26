@@ -1,0 +1,15 @@
+{
+  "built": true,
+  "command_exit_status": 0,
+  "execution_manifest_sha256": "a06657a0a98eea21862ce94bf79a5b49509b1d7f0f7581af6cd3bee9bdcb2e8a",
+  "host_architecture": "aarch64",
+  "image_digest": "sha256:03f6e177d507504a26710041674a1386b1a63fe964870cb5ff48b5e59c635c17",
+  "image_id": "sha256:f51f5b87bc1ec8902cea123a7cd1bc0bd4ce32dbe24fd31305e4a7321179418a",
+  "launched": null,
+  "lock_sha256": "6621ad7fb9196a7f1bccb31a3cae32dbb7e86e0cd249af8e86c39e579bdcf89d",
+  "map_sha256": "5536fce7bb8db7688fdf94ec004118b898637ad0d5b6175108b10989dd6e93b9",
+  "ready": null,
+  "repository_head": "9824f93f7092e19107bc1037eea68966c31e4393",
+  "scenario_executed": false,
+  "utc_time": "2026-07-26T06:33:32.621544+00:00"
+}

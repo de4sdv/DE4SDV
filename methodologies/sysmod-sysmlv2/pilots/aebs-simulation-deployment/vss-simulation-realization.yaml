@@ -1,8 +1,8 @@
 schema: de4sdv.vss-simulation-realization.v0
 id: INC-AEBS-008-VSS-SIM-001
 name: AEBS VSS-to-simulation realization map
-status: proposed_unexecuted
-owner: INC-AEBS-009
+status: 009a_sources_pinned_mappings_unexecuted
+owner: INC-AEBS-009B-and-009C
 
 purpose: >-
   Trace every VSS-backed INC-AEBS-004 functional attribute to its proposed
@@ -23,9 +23,8 @@ source_baselines:
     commit: f603d8759c92fb2f423f1544844e13086d79ad09
   simulator_dependency:
     repository: https://github.com/autowarefoundation/autoware_simple_planning_simulator
-    declared_by: autoware_universe/packages_above.repos
-    declared_version: main
-    reproducibility_status: floating_unpinned
+    commit: 82d2c93a28a25f8802e8f5a21b4ec850beea9080
+    reproducibility_status: pinned_and_executed_for_009a_readiness
   ros_message_schemas:
     reproducibility_status: dependency_revisions_not_pinned_by_inc_aebs_008
 
@@ -41,7 +40,7 @@ mapping_policy:
     - AEB emergency diagnostic ERROR is collision-intervention state, not AEBS component failure.
     - Emergency request, selected brake command, simulated deceleration, and EBA engagement remain distinct states.
     - The simple planning simulator is a dynamics test double, not a brake ECU, pressure regulator, actuator, or real vehicle.
-    - Runtime verification and acceptance belong to INC-AEBS-009.
+    - 009A endpoint readiness does not verify or accept the field-level mappings below.
 
 mappings:
   - id: VSS-SIM-AEBS-001
@@ -84,11 +83,11 @@ mappings:
     vss_origin: covesa
     mapping_kind: conditional_observation
     ros_topic: /diagnostics
-    diagnostic_identity: "/control/autonomous_emergency_braking: aeb_emergency_stop"
+    diagnostic_identity: "autonomous_emergency_braking: aeb_emergency_stop"
     diagnostic_key: Distance
     source_internal_value: collision_data.distance_to_object
     limitation: Exposed only while retained collision data drives the emergency diagnostic; not a continuous forward-target interface.
-    realization_status: partial_conditional_unexecuted
+    realization_status: diagnostic_identity_observed_key_and_scenario_unexecuted
     verification: Parse the exact diagnostic key during an active collision case and compare it with scenario truth.
 
   - id: VSS-SIM-AEBS-004
@@ -128,13 +127,13 @@ mappings:
     ros_type: diagnostic_msgs/msg/DiagnosticArray
     rule: >-
       true only when the exact diagnostic identity
-      /control/autonomous_emergency_braking: aeb_emergency_stop reports ERROR
+      autonomous_emergency_braking: aeb_emergency_stop reports ERROR
       because retained collision data has not expired; false requires an observed
       non-ERROR state from that same identity.
     source_evidence:
       url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/src/node.cpp
       inspected_behavior: "onCheckCollision emits ERROR and '[AEB]: Emergency Brake' while collision data is active"
-    realization_status: source_rule_inspected_runtime_unexecuted
+    realization_status: diagnostic_identity_observed_level_and_transition_unexecuted
     verification: Capture exact diagnostic identity, level, message, timestamps, and recovery transition.
 
   - id: VSS-SIM-AEBS-008
@@ -269,11 +268,11 @@ mappings:
     vss_path: Vehicle.ADAS.AEBS.EvidenceEvent.IsRecorded
     vss_origin: de4sdv_candidate
     mapping_kind: unrealized_gap
-    reason: The observation collector is planned but has no event schema, persistence rule, or executed evidence.
+    reason: The 009A endpoint collector has no accepted event schema or persistence rule and executes no scenario.
     realization_status: absent
 
-acceptance_for_inc_aebs_009:
-  - Pin the simulator implementation and ROS message-schema dependency revisions.
+acceptance_for_inc_aebs_009b_009c:
+  - Retain the 009A simulator pin and pin any additional ROS message-schema dependencies used for field-level claims.
   - Confirm every topic, message field, unit, sign convention, coordinate frame, timestamp, and freshness rule used above.
   - Implement the state derivations without collapsing diagnostic, request, command, response, and engagement states.
   - Execute at least one positive and one negative scenario for each realized mapping.
@@ -281,5 +280,5 @@ acceptance_for_inc_aebs_009:
   - Keep absent mappings as explicit gaps unless a reviewed provider is added.
 
 claim_boundaries:
-  - No ROS build, launch, parser, topic, simulator, or mapping execution is claimed.
+  - 009A build, aggregator launch with custom config, and endpoint readiness do not execute or accept any VSS field mapping; independent graph parse is not retained.
   - No mapping proves requirement satisfaction, real braking, EBA engagement, hardware behavior, safety acceptance, compliance, or production readiness.

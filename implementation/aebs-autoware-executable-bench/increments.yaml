@@ -1,0 +1,28 @@
+schema: de4sdv.aebs-increments.v1
+increments:
+  - id: INC-AEBS-009A
+    status: readiness_proven_no_scenario
+    acceptance_boundary:
+      - immutable runtime inputs and selected-source build are verified
+      - map-enabled full-chain launch is verified on the ARM64 target
+      - typed endpoint readiness and exact AEB diagnostic identity are recorded
+    excludes:
+      - stationary-target collision intervention
+      - braking-performance acceptance
+      - fault and negative scenarios
+  - id: INC-AEBS-009B
+    status: planned
+    acceptance_boundary:
+      - stationary-target end-to-end scenario is executed
+      - diagnostic-to-MRM-to-gate selection is observed
+      - simulated deceleration evidence is recorded
+    excludes:
+      - fault and negative scenario matrix
+  - id: INC-AEBS-009C
+    status: planned
+    acceptance_boundary:
+      - non-collision and fault scenario matrix is executed
+      - stale and missing input behavior is observed
+      - emergency-state behavior is observed
+    excludes:
+      - driver override until separately implemented

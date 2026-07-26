@@ -8,6 +8,11 @@ from collections import defaultdict
 from pathlib import Path
 import re
 
+try:
+    from scripts import validate_aebs_executable_bench
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import validate_aebs_executable_bench
+
 REQUIRED_FILES = [
     "README.md",
     "CONTRIBUTING.md",
@@ -131,6 +136,7 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     missing = [rel for rel in REQUIRED_FILES if not (root / rel).exists()]
     duplicate_packages = find_duplicate_global_packages(root)
+    aebs_bench_errors = validate_aebs_executable_bench.validate_bench(root)
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -144,7 +150,12 @@ def main() -> int:
             for location in locations:
                 print(f"  - {location}")
 
-    if missing or duplicate_packages:
+    if aebs_bench_errors:
+        print("Repository check failed. AEBS executable bench errors:")
+        for error in aebs_bench_errors:
+            print(f"- {error}")
+
+    if missing or duplicate_packages or aebs_bench_errors:
         return 1
 
     print("Repository check passed.")

@@ -1,14 +1,17 @@
 # INC-AEBS-008 configuration review
 
-These are **proposed, unexecuted simulation controls**. INC-AEBS-008 contains no runnable ROS launch composition. Runtime launch composition and evidence collection belong to INC-AEBS-009.
+These are the authoritative INC-AEBS-008 simulation controls. INC-AEBS-009A
+loads them in a runnable ROS composition and retains build, launch, and locked
+endpoint-readiness evidence. Scenario behavior remains unexecuted and belongs to
+009B/009C.
 
 ## Baselines and local controls
 
 - Autoware Universe: `f603d8759c92fb2f423f1544844e13086d79ad09`
 - Autoware Launch: `f05c4b1f83e0b0e4a01ade34d5199bd5571873f1`
-- [`aebs.param.yaml`](aebs.param.yaml) is a complete derived simulation configuration, not a partial overlay. It retains every pinned upstream AEB parameter and changes only `use_predicted_trajectory` from `true` to `false`. Its comments record the upstream path, Git blob SHA-1, and file SHA-256. It is proposed/unexecuted and does not repair `DEF-AEBS-PHY-002`.
-- [`diagnostic-graph.yaml`](diagnostic-graph.yaml) maps `/control/autonomous_emergency_braking: aeb_emergency_stop` to autonomous-mode availability. Its per-diagnostic keys conform to the pinned graph format. `timeout: 1.0` and `hysteresis: 0.0` are explicitly provisional pending timing and fault-injection review.
-- [`vss-simulation-realization.yaml`](vss-simulation-realization.yaml) covers every VSS-backed INC-AEBS-004 attribute with a proposed simulation mapping or explicit gap. It records the `Vehicle.Speed` unit conversion, conditional diagnostic observations, derived emergency-command state, and the absence of warning, override, EBA/ABS, brake-light, and evidence-event realizations. It is unexecuted; the floating simulator and unpinned ROS message-schema dependencies must be pinned by INC-AEBS-009.
+- [`aebs.param.yaml`](aebs.param.yaml) is a complete derived simulation configuration, not a partial overlay. It retains every pinned upstream AEB parameter and changes only `use_predicted_trajectory` from `true` to `false`. Its comments record the upstream path, Git blob SHA-1, and file SHA-256. 009A loads it for readiness; behavior and calibration remain unexecuted, and it does not repair `DEF-AEBS-PHY-002`.
+- [`diagnostic-graph.yaml`](diagnostic-graph.yaml) maps `autonomous_emergency_braking: aeb_emergency_stop` to autonomous-mode availability. 009A launches the aggregator with this graph and observes the raw diagnostic identity; independent parser-success and graph-output evidence are not retained. `timeout: 1.0` and `hysteresis: 0.0` remain provisional pending timing and fault-injection review; no causal transition is claimed.
+- [`vss-simulation-realization.yaml`](vss-simulation-realization.yaml) covers every VSS-backed INC-AEBS-004 attribute with a proposed simulation mapping or explicit gap. The simulator is pinned by 009A, but the VSS field mappings and ROS schema assumptions remain unexecuted and unaccepted.
 
 ## Aggregator startup setting and mappings
 
@@ -27,7 +30,7 @@ The selected behavior additionally depends on `use_emergency_handling: true` in 
 
 `autoware_control_command_gate` source `21: emergency_stop` remains a **deferred alternative**, not the selected gate. Its pinned default is referenced at [`control/autoware_control_command_gate/config/default.param.yaml`](https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_control_command_gate/config/default.param.yaml) (Git blob `41018566b90ff4be9431d2b46f5d950fe3e66291`, SHA-256 `4560dc284b108e4f7b729d5c08b32c660e5e8154b77c9f4e91714584fcf3d090`). It is blocked because INC-AEBS-008 has no owner for the source-selection service needed to select source 21.
 
-## Preconditions for INC-AEBS-009
+## Preconditions for INC-AEBS-009B and INC-AEBS-009C
 
 Before an AEB diagnostic transition can be interpreted as an autonomous-mode MRM test, the harness must establish and capture:
 
@@ -41,8 +44,8 @@ Before an AEB diagnostic transition can be interpreted as an autonomous-mode MRM
 - current gear command on `/control/command/gear_cmd`;
 - available emergency operator status on `/system/mrm/emergency_stop/status`.
 
-The simple planning simulator must also be initialized with the intended map, initial pose, trajectory, and engage sequence. It supplies vehicle simulation/status interfaces, but it does **not** publish `/autoware/state`, `/api/operation_mode/state`, or `/system/operation_mode/state`; the INC-AEBS-009 harness must establish those endpoints through the appropriate Autoware interfaces and retain evidence.
+The simple planning simulator must also be initialized with the intended map, initial pose, trajectory, and engage sequence. It supplies vehicle simulation/status interfaces, but it does **not** publish `/autoware/state`, `/api/operation_mode/state`, or `/system/operation_mode/state`; the planned INC-AEBS-009B/009C scenario harness must establish those endpoints through the appropriate Autoware interfaces and retain scenario evidence. INC-AEBS-009A retains endpoint-readiness evidence only.
 
 ## Boundaries
 
-No runtime graph parse, ROS build/launch, topic behavior, simulated braking response, raw command conversion, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, or production readiness is claimed. Licensed SysIDE validation passed on the reviewed model commit `1eac51e1c46e111ba2e0dffda7f4bde99bdf535c` in workflow run `30169312059`; the metadata-only successor also passed in run `30170043191`. No local SysIDE validation was run. This proves textual-model tool acceptance only, not runtime behavior or engineering acceptance.
+009A claims selected-source build, map-enabled launch, and locked typed endpoint readiness only; it does not claim independent graph-parse or graph-output proof. No diagnostic-caused MRM/gate transition, simulated braking response, raw command conversion, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, or production readiness is claimed. Licensed SysIDE validation passed on the reviewed model commit `1eac51e1c46e111ba2e0dffda7f4bde99bdf535c` in workflow run `30169312059`; the metadata-only successor also passed in run `30170043191`. No local SysIDE validation was run. This proves textual-model tool acceptance only, not runtime behavior or engineering acceptance.
