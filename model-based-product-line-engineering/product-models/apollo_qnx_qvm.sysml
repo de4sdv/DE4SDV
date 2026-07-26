@@ -5,7 +5,7 @@
  * Shared-assets source baseline: git-blob:b27bf915afb8a50b7ff449e870c2b31ee6ad64af:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)
  * Shared-assets model: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
  * Shared-assets model SHA-256: df851aec5713576e9fe116b6e1bea191b06be8526a522b131a5fc6a45fc14c9d
- * Feature model SHA-256: b84aa1d528bccb21865d8d38bafdc7c0c836298cc5aa882f70dcd7398513e72e
+ * Feature model SHA-256: 1df3aec24d69481e7e05a0e85c0406acb357d77d0ce9c31dcc2624b9c18d2ea5
  * Bill-of-Features SHA-256: 35c3538fd13f51048ad6d8ea632de32e30a96476a075138fbe2fa851b1863550
  * Regenerate from: model-based-product-line-engineering/feature-configurations/apollo-qnx-qvm.yaml
  * Feature model: model-based-product-line-engineering/feature-models/sdv_product_line.yaml

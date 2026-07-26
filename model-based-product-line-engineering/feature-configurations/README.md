@@ -1,67 +1,40 @@
 # Feature Configurations
 
-This directory contains Bill-of-Features configurations for DE4SDV member
-products.
+This directory contains Bills-of-Features (BoFs): validated selections for one
+configured family member or candidate projection.
 
-A Bill-of-Features (BoF) is the ISO/IEC 26580 term for the selection of
-features that defines one specific member product. Each `.yaml` file here
-is one BoF — the input to the configurator.
+## Current configurations
 
-## Current derivation scope
+| File | Family | Evidence status | Meaning |
+|---|---|---|---|
+| `example-linux-score-autoware.yaml` | SDV product line | not declared | Example platform projection |
+| `apollo-qnx-qvm.yaml` | SDV product line | not declared | Example mixed-criticality platform projection |
+| `invalid-score-android.yaml` | SDV product line | invalid fixture | Deliberate C001 violation |
+| `inc-aebs-009a-jetson.yaml` | Engineering environment | `inspected` | Exact maintained Jetson target; historical 009A run proved only Jetson 8 GiB identity |
+| `apple-silicon-macos-candidate.yaml` | Engineering environment | `planned` | Unverified M-series/macOS candidate |
+| `nxp-zephyr-vehicle-target-candidate.yaml` | Vehicle target | `planned` | Unverified unresolved NXP/Zephyr candidate |
 
-The feature configurations cover the broader DE4SDV product-line catalogue, but
-`configure_variant.py` currently derives only the **platform-stack SysML v2
-product-model projection**. It resolves the application, middleware, OS, and
-hypervisor variations in the shared platform model.
-
-Capability selections are retained for configuration traceability and constraint
-checking. They are **not** yet resolved into variable requirements, behavior, or
-structure, so generated `.sysml` files are not complete member-product
-specifications. Do not infer an enabled/disabled capability from the generated
-SysML projection alone.
-
-## Files
-
-| File | Status | Description |
-|---|---|---|
-| [`example-linux-score-autoware.yaml`](example-linux-score-autoware.yaml) | Valid | Autoware + S-CORE + Linux, single-domain |
-| [`apollo-qnx-qvm.yaml`](apollo-qnx-qvm.yaml) | Valid | Apollo + AUTOSAR Adaptive + QNX + QVM (mixed-criticality) |
-| [`invalid-score-android.yaml`](invalid-score-android.yaml) | **Invalid** | S-CORE + Android HLOS — deliberately violates C001; used for testing |
+`tested` requires retained repository evidence. `planned` means no execution
+claim. Evidence status is metadata about the configuration, not a feature.
 
 ## Selection semantics
 
-Each BoF file contains a `selections` block mapping feature paths to values:
+- Alternative groups select one child name as a scalar.
+- OR groups select a non-empty YAML list.
+- Optional/mandatory leaves use YAML Booleans.
+- Cross-tree compatibility rules reject structurally selectable but unsupported
+  hardware/OS/runtime combinations.
 
-- **Alternative groups** (e.g. `PlatformStack.Middleware`): the value is the
-  selected child feature name (e.g. `EclipseSCORE`).
-- **OR-groups**: the value is a non-empty YAML list of selected child names.
-  Constraint equality against an OR-group tests membership in that list.
-- **Optional and mandatory Boolean leaves** (e.g.
-  `Capabilities.AdaptiveCruiseControl`): the value is the YAML Boolean `true` or
-  `false`, not a quoted string or numeric substitute.
+The loader rejects duplicate keys, malformed shapes, invalid identifiers,
+unknown statuses, and unsafe or missing evidence artifacts. Evidence-bearing
+statuses may reference only direct, Git-tracked regular files inside the
+repository; symbolic-link paths and repository metadata are rejected.
 
-The loader rejects duplicate YAML keys and malformed document shapes instead of
-applying YAML's usual last-key-wins behavior. Relationship types and constraint
-types are also closed vocabularies; misspellings are configuration errors.
+## Creating a configuration
 
-## Creating a new member product
-
-1. Copy an existing BoF as a template.
-2. Edit the selections to match your target configuration.
-3. Validate:
-
-```bash
-python tools/configure_variant.py \
-  --feature-model model-based-product-line-engineering/feature-models/sdv_product_line.yaml \
-  --bof model-based-product-line-engineering/feature-configurations/<your-config>.yaml \
-  --check-only
-```
-
-4. Generate:
-
-```bash
-python tools/configure_variant.py \
-  --feature-model model-based-product-line-engineering/feature-models/sdv_product_line.yaml \
-  --bof model-based-product-line-engineering/feature-configurations/<your-config>.yaml \
-  --output model-based-product-line-engineering/product-models/<output>.sysml
-```
+1. Choose the catalogue matching the correct family and System 1/System 2 role.
+2. Copy a BoF from that family.
+3. Select every mandatory decision.
+4. Declare evidence honestly: use `planned` until retained evidence exists.
+5. Validate and generate with `tools/configure_variant.py` and the catalogue's
+   shared SysML asset.

@@ -1,70 +1,43 @@
 # Feature Models
 
-This directory contains the DE4SDV feature model — the Feature Catalogue in
-ISO/IEC 26580 terminology.
+These YAML files are DE4SDV Feature Catalogues and configuration-decision
+models. Each catalogue declares a `projection` target naming the SysML v2
+package and owner that its mapped variation groups resolve.
 
-## What is a feature model?
+| File | Scope | Shared asset |
+|---|---|---|
+| `sdv_product_line.yaml` | SDV member-product platform and capability decisions | `DE4SDV_SDVPlatformStack::SDVPlatformStack` |
+| `engineering_execution_environments.yaml` | System 2 engineering/verification host family | `DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment` |
+| `vehicle_execution_environments.yaml` | System 1 vehicle-target compute family | `DE4SDV_ExecutionEnvironments::VehicleTargetExecutionEnvironment` |
 
-A feature model defines the hierarchical relationships between features in the
-SDV product line. It captures:
+## Relationship to SysML v2
 
-- **What features exist** — platform stack layers, vehicle capabilities
-- **How they relate** — mandatory, optional, alternative (XOR), or-group
-  (an alternative selection is one scalar choice; an or-group selection is a
-  non-empty YAML list)
-- **Cross-tree constraints** — requires and excludes relationships between
-  features in different subtrees
+SysML v2 `variation`/`variant` provides structural variability in a shared asset.
+The catalogue adds:
 
-The feature model is the **decision layer**. It drives which variant selections
-are valid for a member product. The SysML v2 base model
-(`textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml`)
-is the **shared asset superset** (150% model) whose structural variation points
-the feature selections resolve.
+- stable decision/feature IDs;
+- mandatory, optional, XOR, and OR hierarchy;
+- binding-time metadata;
+- cross-tree `requires`/`excludes` compatibility rules;
+- traceable mappings from decisions to owning variations and variants.
 
-## File
+Mapped variation groups use design-time XOR resolution and must map every child.
+Zero-multiplicity SysML variants represent an explicit unresolved/absent
+structural choice where needed; they are not physical product features.
 
-| File | Description |
-|---|---|
-| [`sdv_product_line.yaml`](sdv_product_line.yaml) | SDV product-line feature model |
+## Execution-environment boundary
 
-## Relationship to the SysML v2 model
-
-SysML v2 `variation`/`variant` provides structural variability in the shared
-asset model — "these are the options for this layer." The feature model adds
-the decision logic on top: which options are compatible, which are mandatory,
-which capabilities distinguish member products.
-
-This is itself a DE4SDV finding: native SysML v2 handles structural
-variation/variant selection in the shared asset, but full feature-model algebra
-(mandatory/optional/alternative/or-group hierarchy with cross-tree
-requires/excludes) and traceable feature-to-asset links require an external
-representation.
-
-The current mappings resolve only the platform-stack subtree into SysML v2.
-Capability entries are catalogue/configuration information until corresponding
-variable shared assets and mappings exist. The generated files are therefore
-platform-stack product-model projections, not complete member-product models.
-
-## Traceability metadata
-
-Every catalogue node has a stable `id`. Mapped platform variations and variants
-use `binding_time: design`; deferred capability features use
-`binding_time: unassigned` until their variable shared assets and lifecycle
-resolution points are defined. A mapped variation must map every child variant,
-and each target is checked against the owning variation in the shared SysML v2
-model before generation.
+Engineering environments and vehicle targets deliberately use separate
+catalogues and SysML owners. The tested Jetson 009A host does not imply that the
+same software or evidence is portable to Apple Silicon. The NXP/Zephyr candidate
+does not imply that the Autoware ROS 2 composition executes on Zephyr.
 
 ## Usage
 
-The feature model is consumed by the configurator:
-
 ```bash
 python tools/configure_variant.py \
-  --feature-model model-based-product-line-engineering/feature-models/sdv_product_line.yaml \
+  --feature-model model-based-product-line-engineering/feature-models/<catalogue>.yaml \
   --bof model-based-product-line-engineering/feature-configurations/<config>.yaml \
-  --output model-based-product-line-engineering/product-models/<output>.sysml
+  --shared-assets-model textual-notation-of-model/packages/architecture/<asset>.sysml \
+  --check-only
 ```
-
-See [`../feature-configurations/`](../feature-configurations/) for example
-Bill-of-Features and [`../product-models/`](../product-models/) for generated
-platform-stack product-model projections.

@@ -1,0 +1,24 @@
+{
+  "schema": "de4sdv.execution-environment-snapshot.v1",
+  "increment": "INC-AEBS-009A",
+  "observed_at": "2026-07-26T11:31:29+00:00",
+  "scope": "Post-merge identity snapshot of the maintained INC-AEBS-009A target host; supplements but does not alter the historical runtime evidence.",
+  "observed": {
+    "board_model": "NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super",
+    "architecture": "aarch64",
+    "operating_system": "Ubuntu 22.04",
+    "kernel": "5.15.148-tegra",
+    "docker_architecture": "aarch64"
+  },
+  "observation_sources": {
+    "board_model": "/proc/device-tree/model",
+    "architecture": "uname -m",
+    "operating_system": "/etc/os-release",
+    "kernel": "uname -r",
+    "docker_architecture": "docker info --format {{.Architecture}}"
+  },
+  "limitations": [
+    "This snapshot identifies the maintained target host after PR64 was merged.",
+    "The historical 009A execution claim remains bounded by runtime-lock.yaml and retained runtime artifacts."
+  ]
+}

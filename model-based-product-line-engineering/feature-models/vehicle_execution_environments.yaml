@@ -1,0 +1,88 @@
+schema_version: 1
+projection:
+  package: DE4SDV_ExecutionEnvironments
+  owner: VehicleTargetExecutionEnvironment
+  label: vehicle-target execution-environment
+root:
+  name: VehicleTargetExecutionEnvironmentFamily
+  id: PL-VEHICLE-TARGET-EXECUTION-ENVIRONMENT
+  type: mandatory
+  description: Configurable System 1 compute targets deployed into SDV member products.
+  children:
+    - name: Environment
+      id: F-VEHICLE-ENVIRONMENT
+      type: mandatory
+      children:
+        - name: ComputeNode
+          id: F-VEHICLE-COMPUTE
+          type: alternative
+          binding_time: design
+          maps_to: VehicleTargetExecutionEnvironment.computeNode
+          children:
+            - name: NXPVehicleCompute
+              id: F-VEHICLE-COMPUTE-NXP-CANDIDATE
+              binding_time: design
+              maps_to_variant: nxpVehicleCompute
+            - name: NoConcreteComputeNode
+              id: F-VEHICLE-COMPUTE-NONE
+              binding_time: design
+              maps_to_variant: noConcreteComputeNode
+        - name: OperatingSystem
+          id: F-VEHICLE-OS
+          type: alternative
+          binding_time: design
+          maps_to: VehicleTargetExecutionEnvironment.operatingSystem
+          children:
+            - name: Zephyr
+              id: F-VEHICLE-OS-ZEPHYR-CANDIDATE
+              binding_time: design
+              maps_to_variant: zephyr
+            - name: NoConcreteOperatingSystem
+              id: F-VEHICLE-OS-NONE
+              binding_time: design
+              maps_to_variant: noConcreteOperatingSystem
+        - name: ExecutionRuntime
+          id: F-VEHICLE-RUNTIME
+          type: alternative
+          binding_time: design
+          maps_to: VehicleTargetExecutionEnvironment.executionRuntime
+          children:
+            - name: NativeZephyr
+              id: F-VEHICLE-RUNTIME-NATIVE-ZEPHYR-CANDIDATE
+              binding_time: design
+              maps_to_variant: nativeZephyr
+            - name: NoConcreteExecutionRuntime
+              id: F-VEHICLE-RUNTIME-NONE
+              binding_time: design
+              maps_to_variant: noConcreteExecutionRuntime
+constraints:
+  - id: C-VEHICLE-NXP-REQUIRES-ZEPHYR
+    type: requires
+    if: Environment.ComputeNode == NXPVehicleCompute
+    then: Environment.OperatingSystem == Zephyr
+    rationale: This candidate configuration pairs the unresolved NXP target with Zephyr.
+  - id: C-VEHICLE-NXP-REQUIRES-NATIVE-ZEPHYR
+    type: requires
+    if: Environment.ComputeNode == NXPVehicleCompute
+    then: Environment.ExecutionRuntime == NativeZephyr
+    rationale: Zephyr is modeled as native RTOS execution, not OCI-container execution.
+  - id: C-VEHICLE-ZEPHYR-REQUIRES-NXP
+    type: requires
+    if: Environment.OperatingSystem == Zephyr
+    then: Environment.ComputeNode == NXPVehicleCompute
+    rationale: No other Zephyr-capable vehicle compute target is currently modeled.
+  - id: C-VEHICLE-NATIVE-ZEPHYR-REQUIRES-NXP
+    type: requires
+    if: Environment.ExecutionRuntime == NativeZephyr
+    then: Environment.ComputeNode == NXPVehicleCompute
+    rationale: Prevents a partially resolved candidate configuration.
+  - id: C-VEHICLE-NO-COMPUTE-REQUIRES-NO-OS
+    type: requires
+    if: Environment.ComputeNode == NoConcreteComputeNode
+    then: Environment.OperatingSystem == NoConcreteOperatingSystem
+    rationale: An unresolved target must not imply a realized operating system.
+  - id: C-VEHICLE-NO-COMPUTE-REQUIRES-NO-RUNTIME
+    type: requires
+    if: Environment.ComputeNode == NoConcreteComputeNode
+    then: Environment.ExecutionRuntime == NoConcreteExecutionRuntime
+    rationale: An unresolved target must not imply a realized runtime.

@@ -1,0 +1,13 @@
+name: NXPZephyrVehicleTargetCandidate
+description: >-
+  Planned and unverified System 1 vehicle-target candidate combining an
+  unresolved NXP board/SoC with native Zephyr execution. This does not claim
+  that the Autoware ROS 2 application composition executes on Zephyr; software
+  allocation and vehicle-platform interfaces remain unresolved.
+selections:
+  Environment.ComputeNode: NXPVehicleCompute
+  Environment.OperatingSystem: Zephyr
+  Environment.ExecutionRuntime: NativeZephyr
+evidence:
+  status: planned
+  artifacts: []

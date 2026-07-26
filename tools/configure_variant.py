@@ -3,7 +3,8 @@
 DE4SDV variant configurator.
 
 Reads a Bill-of-Features (YAML), validates it against the feature model (YAML),
-then generates the implemented platform-stack SysML v2 product-model projection.
+then generates a SysML v2 product-model projection of the catalogue's declared
+shared-asset owner.
 Selections without mapped variable shared assets are validated but not derived.
 
 The configurator implements three of the four ISO/IEC 26580 PLE Factory
@@ -12,11 +13,12 @@ components in a lightweight, in-repo way:
   Feature Catalogue         → feature-models/*.yaml
   Bill-of-Features          → feature-configurations/*.yaml
   Configurator (this script) → tools/configure_variant.py
-  Product Asset Instance    → product-models/*.sysml (generated platform slice)
+  Product Asset Instance    → product-models/*.sysml (generated projection)
 
-The fourth component — the Shared Asset Superset (150% model) — lives
-in textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
-as native SysML v2 variation/variant notation.
+The fourth component — the Shared Asset Superset (150% model) — lives under
+textual-notation-of-model/packages/architecture/ as native SysML v2
+variation/variant notation. Each catalogue's projection metadata identifies
+its package and owning part definition.
 
 Selection semantics:
   - Alternative groups: assign one child name as a scalar value
@@ -47,6 +49,16 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+EVIDENCE_STATUSES = {
+    "draft", "planned", "inspected", "simulated", "analyzed",
+    "tested", "accepted", "rejected", "gap",
+}
+EVIDENCE_BEARING_STATUSES = {
+    "inspected", "simulated", "analyzed", "tested", "accepted", "rejected",
+}
 
 try:
     import yaml
@@ -89,6 +101,19 @@ UniqueKeyLoader.add_constructor(
 
 def load_yaml_unique(stream):
     return yaml.load(stream, Loader=UniqueKeyLoader)
+
+
+DEFAULT_PROJECTION = {
+    "package": "DE4SDV_SDVPlatformStack",
+    "owner": "SDVPlatformStack",
+    "label": "platform-stack",
+}
+
+
+def projection_metadata(feature_data):
+    """Return the declared shared-asset projection target with legacy defaults."""
+    declared = feature_data.get("projection") or {}
+    return {**DEFAULT_PROJECTION, **declared}
 
 
 # ──────────────────────────────────────────────────────────────
@@ -146,6 +171,27 @@ def validate_document_shapes(feature_data, bof_data):
     root = feature_data.get("root")
     if not isinstance(root, dict):
         errors.append("feature model 'root' must be a YAML mapping")
+
+    projection = feature_data.get("projection")
+    if projection is not None:
+        if not isinstance(projection, dict):
+            errors.append("feature model 'projection' must be a YAML mapping")
+        else:
+            unknown = sorted(set(projection) - {"package", "owner", "label"})
+            for field in unknown:
+                errors.append(f"unknown projection field: '{field}'")
+            for field in ("package", "owner"):
+                value = projection.get(field)
+                if not isinstance(value, str) or not re.fullmatch(
+                    r"[A-Za-z_]\w*", value
+                ):
+                    errors.append(
+                        f"projection.{field} must be a valid unquoted SysML identifier"
+                    )
+            label = projection.get("label")
+            if not isinstance(label, str) or not label.strip():
+                errors.append("projection.label must be a non-empty string")
+
     constraints = feature_data.get("constraints", [])
     if not isinstance(constraints, list):
         errors.append("feature model 'constraints' must be a YAML list")
@@ -178,6 +224,107 @@ def validate_document_shapes(feature_data, bof_data):
         errors.append("Bill-of-Features is missing 'name'")
     if not isinstance(bof_data.get("selections", {}), dict):
         errors.append("Bill-of-Features 'selections' must be a YAML mapping")
+    evidence = bof_data.get("evidence")
+    if evidence is not None:
+        if not isinstance(evidence, dict):
+            errors.append("Bill-of-Features 'evidence' must be a YAML mapping")
+        else:
+            unknown = sorted(set(evidence) - {"status", "artifacts"})
+            for field in unknown:
+                errors.append(f"unknown evidence field: '{field}'")
+            status = evidence.get("status")
+            if status not in EVIDENCE_STATUSES:
+                errors.append(
+                    "evidence.status must be one of: "
+                    + ", ".join(sorted(EVIDENCE_STATUSES))
+                )
+            artifacts = evidence.get("artifacts", [])
+            if not isinstance(artifacts, list):
+                errors.append("evidence.artifacts must be a YAML list")
+            else:
+                for index, artifact in enumerate(artifacts):
+                    if not isinstance(artifact, dict):
+                        errors.append(
+                            f"evidence.artifacts[{index}] must be a YAML mapping"
+                        )
+                        continue
+                    if set(artifact) != {"id", "path"}:
+                        errors.append(
+                            f"evidence.artifacts[{index}] must contain exactly id and path"
+                        )
+                    if not isinstance(artifact.get("id"), str):
+                        errors.append(f"evidence.artifacts[{index}].id must be a string")
+                    if not isinstance(artifact.get("path"), str):
+                        errors.append(f"evidence.artifacts[{index}].path must be a string")
+    return errors
+
+
+def validate_bof_evidence(bof_data):
+    """Enforce status-to-retained-artifact rules for configuration evidence."""
+    evidence = bof_data.get("evidence")
+    if evidence is None:
+        return []
+    status = evidence["status"]
+    artifacts = evidence.get("artifacts", [])
+    errors = []
+    if status in EVIDENCE_BEARING_STATUSES and not artifacts:
+        errors.append(f"{status} configuration requires retained evidence artifacts")
+
+    seen_ids = set()
+    for artifact in artifacts:
+        artifact_id = artifact["id"]
+        path_text = artifact["path"]
+        if not re.fullmatch(r"[A-Z][A-Z0-9-]*", artifact_id):
+            errors.append(f"evidence artifact id '{artifact_id}' is invalid")
+        elif artifact_id in seen_ids:
+            errors.append(f"duplicate evidence artifact id '{artifact_id}'")
+        seen_ids.add(artifact_id)
+
+        path = Path(path_text)
+        if path.is_absolute() or ".." in path.parts:
+            errors.append(
+                f"evidence artifact path '{path_text}' must be repository-relative"
+            )
+            continue
+        if ".git" in path.parts:
+            errors.append(
+                f"evidence artifact path '{path_text}' may not reference repository metadata"
+            )
+            continue
+
+        candidate = REPO_ROOT / path
+        current = REPO_ROOT
+        traverses_symlink = False
+        for component in path.parts:
+            current = current / component
+            if current.is_symlink():
+                traverses_symlink = True
+                break
+        if traverses_symlink:
+            errors.append(
+                f"evidence artifact path '{path_text}' must not traverse symbolic links"
+            )
+            continue
+        if not candidate.is_file():
+            errors.append(f"evidence artifact does not exist: '{path_text}'")
+            continue
+
+        resolved = candidate.resolve()
+        try:
+            resolved.relative_to(REPO_ROOT.resolve())
+        except ValueError:
+            errors.append(f"evidence artifact path '{path_text}' escapes the repository")
+            continue
+
+        tracked = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", path.as_posix()],
+            cwd=REPO_ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        if tracked.returncode != 0:
+            errors.append(f"evidence artifact '{path_text}' is not tracked by Git")
     return errors
 
 
@@ -560,7 +707,7 @@ def validate_constraints(constraints, selections):
     return errors
 
 
-def validate_platform_mapping_metadata(root):
+def validate_platform_mapping_metadata(root, projection_owner="SDVPlatformStack"):
     """Validate catalogue IDs, binding times, and complete mapping metadata."""
     errors = []
     nodes = list(iter_feature_nodes(root))
@@ -673,7 +820,7 @@ def validate_platform_mapping_metadata(root):
                 f"Mapped variation '{group.path}' must declare binding_time: design"
             )
         if not isinstance(group.maps_to, str) or not re.fullmatch(
-            r"SDVPlatformStack\.[A-Za-z_]\w*", group.maps_to
+            rf"{re.escape(projection_owner)}\.[A-Za-z_]\w*", group.maps_to
         ):
             errors.append(
                 f"Mapped variation '{group.path}' has invalid maps_to: "
@@ -836,8 +983,11 @@ def unique_direct_braced_body(source, pattern, label):
     return bodies[0], None
 
 
-def validate_sysml_mapping_targets(root, shared_model_path):
-    """Verify mapped variants belong to the mapped SDVPlatformStack variation."""
+def validate_sysml_mapping_targets(root, shared_model_path, projection=None):
+    """Verify mapped variants belong to the declared shared-asset variation."""
+    projection = projection or DEFAULT_PROJECTION
+    package_name = projection["package"]
+    owner_name = projection["owner"]
     try:
         source = Path(shared_model_path).read_text()
     except (OSError, UnicodeError) as exc:
@@ -852,33 +1002,35 @@ def validate_sysml_mapping_targets(root, shared_model_path):
     source = strip_sysml_comments_and_strings(source)
     package_body, package_error = unique_direct_braced_body(
         source,
-        r"\bpackage\s+DE4SDV_SDVPlatformStack\b\s*",
-        "SysML package 'DE4SDV_SDVPlatformStack'",
+        rf"\bpackage\s+{re.escape(package_name)}\b\s*",
+        f"SysML package '{package_name}'",
     )
     if package_error:
         return [f"{package_error} in '{shared_model_path}'"]
     stack_body, stack_error = unique_direct_braced_body(
         package_body,
-        r"\bpart\s+def\s+SDVPlatformStack\b\s*",
-        "SysML part def 'SDVPlatformStack'",
+        rf"\bpart\s+def\s+{re.escape(owner_name)}\b"
+        rf"(?:\s*:>\s*[A-Za-z_]\w*)?\s*",
+        f"SysML part def '{owner_name}'",
     )
     if stack_error:
         return [
-            f"{stack_error} under package 'DE4SDV_SDVPlatformStack' in "
+            f"{stack_error} under package '{package_name}' in "
             f"'{shared_model_path}'"
         ]
 
     errors = []
     for group in find_alternative_groups(root):
         if not isinstance(group.maps_to, str) or not re.fullmatch(
-            r"SDVPlatformStack\.[A-Za-z_]\w*", group.maps_to
+            rf"{re.escape(owner_name)}\.[A-Za-z_]\w*", group.maps_to
         ):
             continue
         part_name = group.maps_to.rsplit(".", 1)[-1]
         variation_body, variation_error = unique_direct_braced_body(
             stack_body,
             rf"\bvariation\s+part\s+{re.escape(part_name)}\b"
-            rf"(?:\s*:\s*[A-Za-z_]\w*)?\s*",
+            rf"(?:\s*:\s*[A-Za-z_]\w*)?"
+            rf"(?:\s*\[(?:\d+|\d+\.\.(?:\d+|\*))\])?\s*",
             f"Mapped SysML variation '{group.maps_to}'",
         )
         if variation_error:
@@ -970,8 +1122,13 @@ def shared_asset_baseline(path):
 # ──────────────────────────────────────────────────────────────
 
 def generate_sysml(bof_name, bof_description, root, all_nodes, selections,
-                   feature_model_path, bof_path, shared_model_path):
-    """Generate a derived platform-stack product-model projection."""
+                   feature_model_path, bof_path, shared_model_path,
+                   projection=None):
+    """Generate a derived product-model projection of one shared-asset owner."""
+    projection = projection or DEFAULT_PROJECTION
+    package_name = projection["package"]
+    owner_name = projection["owner"]
+    projection_label = projection["label"]
     redefinitions = []
     capability_annotations = []
 
@@ -1017,7 +1174,7 @@ def generate_sysml(bof_name, bof_description, root, all_nodes, selections,
 
     lines = [
         "/*",
-        " * Derived platform-stack product-model projection — DO NOT EDIT.",
+        f" * Derived {sysml_comment_text(projection_label)} product-model projection — DO NOT EDIT.",
         " * Generated by configure_variant.py.",
         " * This is not a complete member-product specification.",
         f" * Shared-assets source baseline: {sysml_comment_text(source_baseline)}",
@@ -1029,11 +1186,11 @@ def generate_sysml(bof_name, bof_description, root, all_nodes, selections,
         f" * Feature model: {sysml_comment_text(provenance_path(feature_model_path))}",
         " */",
         "",
-        "private import DE4SDV_SDVPlatformStack::SDVPlatformStack;",
+        f"private import {package_name}::{owner_name};",
         "",
-        f"part def {bof_name} :> SDVPlatformStack {{",
+        f"part def {bof_name} :> {owner_name} {{",
         "  doc /*",
-        "   * Derived platform-stack projection from Bill-of-Features.",
+        f"   * Derived {sysml_comment_text(projection_label)} projection from Bill-of-Features.",
     ]
 
     if desc_clean:
@@ -1137,15 +1294,17 @@ def main():
 
     # Build feature tree
     root, constraints = build_feature_tree(feature_model_data)
+    projection = projection_metadata(feature_model_data)
     all_nodes = collect_all_nodes(root)
     bof_name, bof_description, selections = parse_bof(bof_data)
 
     # Pass 1: Structural and mapping-metadata validation
     structural_errors = validate_structure(root, all_nodes, selections)
     bof_metadata_errors = validate_bof_metadata(bof_name, bof_description)
-    mapping_errors = validate_platform_mapping_metadata(root)
+    evidence_errors = validate_bof_evidence(bof_data)
+    mapping_errors = validate_platform_mapping_metadata(root, projection["owner"])
     mapping_target_errors = validate_sysml_mapping_targets(
-        root, args.shared_assets_model
+        root, args.shared_assets_model, projection
     )
     # Pass 2: Constraint validation
     constraint_definition_errors = validate_constraint_definitions(
@@ -1154,7 +1313,7 @@ def main():
     constraint_errors = validate_constraints(constraints, selections)
 
     all_errors = (
-        structural_errors + bof_metadata_errors + mapping_errors
+        structural_errors + bof_metadata_errors + evidence_errors + mapping_errors
         + mapping_target_errors + constraint_definition_errors
         + constraint_errors
     )
@@ -1179,7 +1338,7 @@ def main():
     # Pass 3: Generate
     sysml_output = generate_sysml(
         bof_name, bof_description, root, all_nodes, selections,
-        args.feature_model, args.bof, args.shared_assets_model
+        args.feature_model, args.bof, args.shared_assets_model, projection
     )
 
     if args.output:

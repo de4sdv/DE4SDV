@@ -26,6 +26,11 @@
 # linked to corresponding variable shared assets; they are not resolved by the
 # current platform-stack generator.
 
+projection:
+  package: DE4SDV_SDVPlatformStack
+  owner: SDVPlatformStack
+  label: platform-stack
+
 root:
   name: SDVProductLine
   id: PL-DE4SDV

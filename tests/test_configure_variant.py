@@ -926,6 +926,173 @@ selections:
         self.assertIn("part :>> osPlatform = osPlatform::linux;", out)
         self.assertIn("part :>> hypervisor = hypervisor::none;", out)
 
+    def test_projection_metadata_targets_declared_package_and_owner(self):
+        """One configurator derives projections from reusable non-platform assets."""
+        feature_model = """
+projection:
+  package: DE4SDV_ExecutionEnvironments
+  owner: EngineeringExecutionEnvironment
+  label: engineering execution-environment
+root:
+  name: EngineeringEnvironmentFamily
+  id: PL-ENGINEERING-ENVIRONMENT
+  children:
+    - name: ComputeNode
+      id: F-ENGINEERING-COMPUTE
+      type: alternative
+      binding_time: design
+      maps_to: EngineeringExecutionEnvironment.computeNode
+      children:
+        - name: Jetson
+          id: F-ENGINEERING-COMPUTE-JETSON
+          binding_time: design
+          maps_to_variant: jetson
+        - name: AppleSilicon
+          id: F-ENGINEERING-COMPUTE-APPLE-SILICON
+          binding_time: design
+          maps_to_variant: appleSilicon
+constraints: []
+"""
+        bof = """
+name: JetsonEnvironment
+selections:
+  ComputeNode: Jetson
+"""
+        shared_model = """
+package DE4SDV_ExecutionEnvironments {
+  part def ComputeNode;
+  part def JetsonCompute :> ComputeNode;
+  part def AppleSiliconCompute :> ComputeNode;
+  part def EngineeringExecutionEnvironment {
+    variation part computeNode : ComputeNode {
+      variant part jetson : JetsonCompute;
+      variant part appleSilicon : AppleSiliconCompute;
+    }
+  }
+}
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            fm = tmp / "feature-model.yaml"
+            bof_path = tmp / "jetson.yaml"
+            shared = tmp / "execution-environments.sysml"
+            fm.write_text(feature_model)
+            bof_path.write_text(bof)
+            shared.write_text(shared_model)
+            rc, out, err = self.run_config(
+                bof_path,
+                feature_model_path=fm,
+                extra_args=["--shared-assets-model", str(shared)],
+            )
+
+        self.assertIn(
+            "private import DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment;",
+            out,
+        )
+        self.assertIn(
+            "part def JetsonEnvironment :> EngineeringExecutionEnvironment", out
+        )
+        self.assertIn("engineering execution-environment product-model projection", out)
+        self.assertIn("part :>> computeNode = computeNode::jetson;", out)
+
+    def test_projection_metadata_rejects_invalid_sysml_identifiers(self):
+        feature_data = yaml.safe_load(FM.read_text())
+        for field, value in (("package", "Bad;Package"), ("owner", "Bad Owner")):
+            candidate = copy.deepcopy(feature_data)
+            candidate["projection"] = {
+                "package": "DE4SDV_SDVPlatformStack",
+                "owner": "SDVPlatformStack",
+                "label": "platform-stack",
+            }
+            candidate["projection"][field] = value
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".yaml", delete=False
+            ) as feature_model:
+                yaml.safe_dump(candidate, feature_model, sort_keys=False)
+            try:
+                rc, out, err = self.run_config(
+                    BOF_DIR / "example-linux-score-autoware.yaml",
+                    feature_model_path=Path(feature_model.name),
+                    expect_fail=True,
+                )
+                self.assertEqual(rc, 2)
+                self.assertIn(f"projection.{field}", err)
+                self.assertNotIn("Traceback", err)
+            finally:
+                os.unlink(feature_model.name)
+
+    def test_tested_configuration_requires_retained_evidence(self):
+        bof_data = yaml.safe_load(
+            (BOF_DIR / "example-linux-score-autoware.yaml").read_text()
+        )
+        bof_data["evidence"] = {"status": "tested", "artifacts": []}
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as bof:
+            yaml.safe_dump(bof_data, bof, sort_keys=False)
+        try:
+            rc, out, err = self.run_config(Path(bof.name), expect_fail=True)
+            self.assertIn("tested configuration requires retained evidence", err)
+        finally:
+            os.unlink(bof.name)
+
+    def test_evidence_artifacts_must_be_tracked_repository_files(self):
+        """Evidence cannot escape the reviewed Git snapshot."""
+        base = yaml.safe_load(
+            (BOF_DIR / "example-linux-score-autoware.yaml").read_text()
+        )
+
+        def rejected(path_text, expected):
+            candidate = copy.deepcopy(base)
+            candidate["evidence"] = {
+                "status": "tested",
+                "artifacts": [{"id": "EVID-TEST", "path": path_text}],
+            }
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".yaml", delete=False
+            ) as bof:
+                yaml.safe_dump(candidate, bof, sort_keys=False)
+            try:
+                rc, out, err = self.run_config(Path(bof.name), expect_fail=True)
+                self.assertEqual(rc, 1)
+                self.assertIn(expected, err)
+            finally:
+                os.unlink(bof.name)
+
+        rejected("../outside.txt", "must be repository-relative")
+        rejected("/etc/hosts", "must be repository-relative")
+        rejected("missing-evidence.txt", "does not exist")
+        rejected(".git/config", "repository metadata")
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as directory:
+            untracked = Path(directory) / "untracked.txt"
+            untracked.write_text("not retained\n")
+            rejected(
+                untracked.relative_to(REPO_ROOT).as_posix(),
+                "is not tracked by Git",
+            )
+
+            escaping = Path(directory) / "escaping-link"
+            escaping.symlink_to("/etc/hosts")
+            rejected(
+                escaping.relative_to(REPO_ROOT).as_posix(),
+                "must not traverse symbolic links",
+            )
+
+            metadata_dir = Path(directory) / "metadata-dir"
+            metadata_dir.symlink_to(REPO_ROOT / ".git", target_is_directory=True)
+            rejected(
+                (metadata_dir / "config").relative_to(REPO_ROOT).as_posix(),
+                "must not traverse symbolic links",
+            )
+
+            tracked_target = Path(directory) / "tracked-target-link"
+            tracked_target.symlink_to(REPO_ROOT / "README.md")
+            rejected(
+                tracked_target.relative_to(REPO_ROOT).as_posix(),
+                "must not traverse symbolic links",
+            )
+
     def test_bof_name_and_comment_fields_cannot_inject_sysml(self):
         """Generated identifiers are validated and comment data is escaped."""
         bof_data = yaml.safe_load(

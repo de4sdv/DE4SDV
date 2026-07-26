@@ -1,0 +1,12 @@
+name: AppleSiliconMacOSCandidate
+description: >-
+  Planned and unverified System 2 candidate for an Apple Silicon M-series Mac
+  running macOS with a virtualized Linux/ARM64 OCI environment. No specific Mac,
+  container implementation, or DE4SDV runtime result is claimed.
+selections:
+  Environment.ComputeNode: AppleSiliconMac
+  Environment.OperatingSystem: MacOSAppleSilicon
+  Environment.ExecutionRuntime: VirtualizedLinuxArm64OCIOnMacOS
+evidence:
+  status: planned
+  artifacts: []
