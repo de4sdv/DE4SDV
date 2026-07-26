@@ -1,0 +1,57 @@
+{
+  "all_revisions_match": true,
+  "built": null,
+  "command_exit_status": 0,
+  "execution_manifest_sha256": "a06657a0a98eea21862ce94bf79a5b49509b1d7f0f7581af6cd3bee9bdcb2e8a",
+  "host_architecture": "aarch64",
+  "image_digest": "sha256:03f6e177d507504a26710041674a1386b1a63fe964870cb5ff48b5e59c635c17",
+  "image_id": "sha256:f51f5b87bc1ec8902cea123a7cd1bc0bd4ce32dbe24fd31305e4a7321179418a",
+  "launched": null,
+  "lock_sha256": "6621ad7fb9196a7f1bccb31a3cae32dbb7e86e0cd249af8e86c39e579bdcf89d",
+  "map_sha256": "5536fce7bb8db7688fdf94ec004118b898637ad0d5b6175108b10989dd6e93b9",
+  "ready": null,
+  "repositories": [
+    {
+      "actual_revision": "f05c4b1f83e0b0e4a01ade34d5199bd5571873f1",
+      "actual_tree": "1456364b31390921f8d2e6ac7f2878c902972ede",
+      "expected_revision": "f05c4b1f83e0b0e4a01ade34d5199bd5571873f1",
+      "expected_tree": "1456364b31390921f8d2e6ac7f2878c902972ede",
+      "manifest_matches_lock": true,
+      "matches": true,
+      "name": "autoware_launch",
+      "submodule_status": [],
+      "url": "https://github.com/autowarefoundation/autoware_launch.git",
+      "worktree_clean": true,
+      "worktree_status": []
+    },
+    {
+      "actual_revision": "82d2c93a28a25f8802e8f5a21b4ec850beea9080",
+      "actual_tree": "d0985e96562c71a38ca40697013e0922e42e5aa6",
+      "expected_revision": "82d2c93a28a25f8802e8f5a21b4ec850beea9080",
+      "expected_tree": "d0985e96562c71a38ca40697013e0922e42e5aa6",
+      "manifest_matches_lock": true,
+      "matches": true,
+      "name": "autoware_simple_planning_simulator",
+      "submodule_status": [],
+      "url": "https://github.com/autowarefoundation/autoware_simple_planning_simulator.git",
+      "worktree_clean": true,
+      "worktree_status": []
+    },
+    {
+      "actual_revision": "f603d8759c92fb2f423f1544844e13086d79ad09",
+      "actual_tree": "021a78ba31a6c2a43a7af06c4c201e0f50c2f48e",
+      "expected_revision": "f603d8759c92fb2f423f1544844e13086d79ad09",
+      "expected_tree": "021a78ba31a6c2a43a7af06c4c201e0f50c2f48e",
+      "manifest_matches_lock": true,
+      "matches": true,
+      "name": "autoware_universe",
+      "submodule_status": [],
+      "url": "https://github.com/autowarefoundation/autoware_universe.git",
+      "worktree_clean": true,
+      "worktree_status": []
+    }
+  ],
+  "repository_head": "9824f93f7092e19107bc1037eea68966c31e4393",
+  "scenario_executed": false,
+  "utc_time": "2026-07-26T06:33:08.465659+00:00"
+}

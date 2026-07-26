@@ -1,0 +1,155 @@
+{
+  "built": null,
+  "collection_window_seconds": 0.416287,
+  "command_exit_status": 0,
+  "diagnostic_identity": {
+    "expected": "autonomous_emergency_braking: aeb_emergency_stop",
+    "matched": true,
+    "observed_names": [
+      "autonomous_emergency_braking: aeb_emergency_stop",
+      "vehicle_cmd_gate: emergency_stop_operation",
+      "vehicle_cmd_gate: heartbeat"
+    ]
+  },
+  "endpoints": [
+    {
+      "actual_types": [
+        "autoware_control_msgs/msg/Control"
+      ],
+      "expected_type": "autoware_control_msgs/msg/Control",
+      "last_message_age_seconds": 0.021484,
+      "message_received": true,
+      "name": "/control/command/control_cmd",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "autoware_vehicle_msgs/msg/GearCommand"
+      ],
+      "expected_type": "autoware_vehicle_msgs/msg/GearCommand",
+      "last_message_age_seconds": 0.000367,
+      "message_received": true,
+      "name": "/control/command/gear_cmd",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "diagnostic_msgs/msg/DiagnosticArray"
+      ],
+      "expected_type": "diagnostic_msgs/msg/DiagnosticArray",
+      "last_message_age_seconds": 0.00132,
+      "message_received": true,
+      "name": "/diagnostics",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "geometry_msgs/msg/AccelWithCovarianceStamped"
+      ],
+      "expected_type": "geometry_msgs/msg/AccelWithCovarianceStamped",
+      "last_message_age_seconds": 0.006788,
+      "message_received": true,
+      "name": "/localization/acceleration",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "nav_msgs/msg/Odometry"
+      ],
+      "expected_type": "nav_msgs/msg/Odometry",
+      "last_message_age_seconds": 0.007987,
+      "message_received": true,
+      "name": "/localization/kinematic_state",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "autoware_map_msgs/msg/LaneletMapBin"
+      ],
+      "expected_type": "autoware_map_msgs/msg/LaneletMapBin",
+      "last_message_age_seconds": 0.048582,
+      "message_received": true,
+      "name": "/map/vector_map",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "autoware_control_msgs/msg/Control"
+      ],
+      "expected_type": "autoware_control_msgs/msg/Control",
+      "last_message_age_seconds": 0.01038,
+      "message_received": true,
+      "name": "/system/emergency/control_cmd",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "autoware_adapi_v1_msgs/msg/MrmState"
+      ],
+      "expected_type": "autoware_adapi_v1_msgs/msg/MrmState",
+      "last_message_age_seconds": 0.041792,
+      "message_received": true,
+      "name": "/system/fail_safe/mrm_state",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "tier4_system_msgs/msg/MrmBehaviorStatus"
+      ],
+      "expected_type": "tier4_system_msgs/msg/MrmBehaviorStatus",
+      "last_message_age_seconds": 0.00987,
+      "message_received": true,
+      "name": "/system/mrm/emergency_stop/status",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "tier4_system_msgs/msg/OperationModeAvailability"
+      ],
+      "expected_type": "tier4_system_msgs/msg/OperationModeAvailability",
+      "last_message_age_seconds": 0.042217,
+      "message_received": true,
+      "name": "/system/operation_mode/availability",
+      "ready": true,
+      "received_after_start": true
+    },
+    {
+      "actual_types": [
+        "autoware_vehicle_msgs/msg/SteeringReport"
+      ],
+      "expected_type": "autoware_vehicle_msgs/msg/SteeringReport",
+      "last_message_age_seconds": 0.006267,
+      "message_received": true,
+      "name": "/vehicle/status/steering_status",
+      "ready": true,
+      "received_after_start": true
+    }
+  ],
+  "execution_manifest_sha256": "a06657a0a98eea21862ce94bf79a5b49509b1d7f0f7581af6cd3bee9bdcb2e8a",
+  "extracted_sha256": {
+    "lanelet2_map.osm": "4fe358f2d1e182dc76de296e5619086f8d8ad2fcab3e6d8f99f6e3d724a84e6d",
+    "map_config.yaml": "c7f8caeaad3559d2bc924a0683f36673f72c9e15f315c2e95f371c9ccceb7e39",
+    "map_projector_info.yaml": "9753eba4724aa6d41ffa2cc03e8da2d82e9f317dd14da837b0e96a7705e72bfa",
+    "pointcloud_map.pcd": "2da791365627241513c56a88a78baaf17d86b5e90febcb8987ec92c9e99ad2c6"
+  },
+  "host_architecture": "aarch64",
+  "image_digest": "sha256:03f6e177d507504a26710041674a1386b1a63fe964870cb5ff48b5e59c635c17",
+  "image_id": "sha256:f51f5b87bc1ec8902cea123a7cd1bc0bd4ce32dbe24fd31305e4a7321179418a",
+  "launched": true,
+  "lock_sha256": "6621ad7fb9196a7f1bccb31a3cae32dbb7e86e0cd249af8e86c39e579bdcf89d",
+  "map_files_verified": true,
+  "map_sha256": "5536fce7bb8db7688fdf94ec004118b898637ad0d5b6175108b10989dd6e93b9",
+  "ready": true,
+  "repository_head": "9824f93f7092e19107bc1037eea68966c31e4393",
+  "scenario_executed": false,
+  "utc_time": "2026-07-26T06:33:43.668829+00:00"
+}

@@ -1,14 +1,15 @@
 schema: de4sdv.simulation-deployment.v0
 id: INC-AEBS-008
 name: AEBS Autoware simulation deployment controls
-status: draft
+status: reviewed_009a_readiness_executed
 parent_increment: INC-AEBS-007
 owner: DE4SDV maintainers
 
 decision_requested: >-
-  Review a simulation-only, static deployment candidate that routes the pinned
+  Maintain the reviewed simulation-only deployment candidate that routes the pinned
   AEB diagnostic through Autoware's MRM chain and selected stock vehicle command
-  gate to a dynamics test double. Execution and evidence belong to INC-AEBS-009.
+  gate to a dynamics test double. INC-AEBS-009A owns executed build, launch, and
+  endpoint-readiness evidence; 009B/009C own scenario behavior.
 
 scope:
   in_scope:
@@ -18,7 +19,7 @@ scope:
     - pinned aggregator mappings, converter mapping, MRM, vehicle-gate, and simulator references
     - static System 1 and System 2 boundary review
   out_of_scope:
-    - runnable ROS launch composition, build, launch, or simulation execution
+    - stationary-target, fault-injection, and braking-behavior execution
     - source patches, upstream contact, and vendored upstream mapping configurations
     - raw command conversion, S-CORE integration, real hardware, brake ECU, actuator, or road testing
     - safety acceptance, compliance, certification, homologation, or production readiness
@@ -32,10 +33,14 @@ source_baselines:
     repository: https://github.com/autowarefoundation/autoware_launch
     commit: f05c4b1f83e0b0e4a01ade34d5199bd5571873f1
     inspection_status: inspected
+  autoware_simple_planning_simulator:
+    repository: https://github.com/autowarefoundation/autoware_simple_planning_simulator
+    commit: 82d2c93a28a25f8802e8f5a21b4ec850beea9080
+    inspection_status: pinned_and_executed_in_009a
 
 system_boundary:
   system_1_candidate_deployment:
-    status: planned
+    status: 009a_endpoint_readiness_executed
     members:
       - autoware_autonomous_emergency_braking
       - autoware_diagnostic_graph_aggregator aggregator node
@@ -47,12 +52,12 @@ system_boundary:
       - Linux simulation host with no hypervisor
     boundary_rule: ROS 2 remains internal to the Autoware application realization, not the DE4SDV MiddlewareLayer.
   system_2_test_system:
-    status: planned
+    status: 009a_endpoint_readiness_executed_no_scenario
     members:
-      - AEB input and scenario harness
+      - 009A typed initialization fixture
       - autoware_simple_planning_simulator
-      - scenario controller
-      - observation and evidence collector
+      - 009B/009C scenario controller (planned, not executed)
+      - 009A observation and evidence collector
     qualification: >-
       The simulator is a vehicle-dynamics test double, not product hardware,
       a brake ECU, an actuator, or a real vehicle.
@@ -67,12 +72,12 @@ control_artifacts:
       semantic-state rules, and explicit gaps. It does not claim VSS and ROS
       schema identity.
     dependency_limit: >-
-      autoware_simple_planning_simulator is declared as floating main by the
-      pinned Universe packages_above.repos, and exact ROS message-schema
-      dependency revisions are not pinned by INC-AEBS-008.
+      INC-AEBS-009A pins autoware_simple_planning_simulator at an exact commit
+      and uses a digest-pinned container underlay. The VSS field-level mappings
+      remain unexecuted and unaccepted.
   aeb_configuration:
     path: methodologies/sysmod-sysmlv2/pilots/aebs-simulation-deployment/aebs.param.yaml
-    status: proposed_unexecuted_complete_derived_configuration
+    status: runtime_loaded_in_009a_behavior_unexecuted
     provenance:
       upstream_path: control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml
       source_url: https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml
@@ -91,11 +96,11 @@ control_artifacts:
       completeness: all other pinned AEB parameters retained
   diagnostic_graph:
     path: methodologies/sysmod-sysmlv2/pilots/aebs-simulation-deployment/diagnostic-graph.yaml
-    status: statically_reviewed_not_runtime_parsed
+    status: aggregator_launched_with_custom_config_identity_observed_parse_not_independently_retained
     exact_diagnostic:
-      node: /control/autonomous_emergency_braking
+      node: autonomous_emergency_braking
       task: aeb_emergency_stop
-      joined_key: "/control/autonomous_emergency_braking: aeb_emergency_stop"
+      joined_key: "autonomous_emergency_braking: aeb_emergency_stop"
     policy:
       autonomous_mode: diagnostic_driven
       emergency_stop_mode: constant_ok_independent_availability
@@ -103,7 +108,10 @@ control_artifacts:
       timeout_status: provisional_pending_timing_and_fault_injection_review
       hysteresis: 0.0
       hysteresis_status: provisional_pending_timing_and_fault_injection_review
-    semantic_limit: The graph emits availability state, not MRM selection or a control command.
+    semantic_limit: >-
+      009A retains aggregator launch and raw diagnostic identity evidence, not an
+      independent parser-success or graph-output proof. The graph is intended to
+      emit availability state, not MRM selection or a control command.
 
 aggregator_configuration_references:
   disposition: referenced_not_vendored
@@ -161,9 +169,9 @@ command_boundary_decision:
       sha256: 4560dc284b108e4f7b729d5c08b32c660e5e8154b77c9f4e91714584fcf3d090
 
 exact_chain:
-  status: planned_not_executed
+  status: 009a_endpoint_readiness_executed_behavior_not_executed
   steps:
-    - "AEB diagnostic /control/autonomous_emergency_braking: aeb_emergency_stop on /diagnostics"
+    - "AEB diagnostic autonomous_emergency_braking: aeb_emergency_stop on /diagnostics"
     - diagnostic graph aggregator custom graph
     - "CommandModeAvailability: autonomous becomes unavailable"
     - diagnostic graph converter
@@ -204,39 +212,46 @@ execution_preconditions:
 
 increment_boundary:
   runnable_ros_launch_in_008: false
-  launch_composition_owner: INC-AEBS-009
-  runtime_evidence_owner: INC-AEBS-009
+  launch_composition_owner: INC-AEBS-009A
+  runtime_evidence_owner: INC-AEBS-009A
 
 blockers:
   - id: BLK-AEBS-SIM-001
-    blocks: runnable AEB launch
-    reason: DEF-AEBS-PHY-002 stale odometry remap remains unresolved
+    status: closed_for_009a_launch
+    blocks: physical-behavior acceptance only
+    reason: 009A bypasses the defective wrapper remap and directly launches the pinned AEB node
   - id: BLK-AEBS-SIM-002
-    blocks: diagnostic routing evidence
-    reason: runtime diagnostic identity and graph parsing are unexecuted
+    status: open
+    blocks: retained graph-parse, graph-output, and causal diagnostic-routing evidence
+    reason: 009A launches the aggregator with the custom graph and observes the raw diagnostic identity, but retains no independent parser-success or graph-output proof
   - id: BLK-AEBS-SIM-003
+    status: open
     blocks: accepted timeout and hysteresis policy
     reason: provisional values lack timing, scheduling, and fault-injection review
   - id: BLK-AEBS-SIM-004
+    status: open
     blocks: alternative autoware_control_command_gate route
     reason: source-selection service owner is absent
   - id: BLK-AEBS-SIM-005
+    status: open
     blocks: simulated braking-response claim
-    reason: preconditions, MRM selection, gate arbitration, simulator wiring, and observations are unexecuted
+    reason: diagnostic-caused MRM selection, gate arbitration, and response observations are unexecuted
   - id: BLK-AEBS-SIM-006
+    status: open
     blocks: accepted executable VSS-to-simulation mapping
-    reason: simulator implementation and ROS message-schema dependency revisions are not pinned, and every mapping remains unexecuted
+    reason: the simulator is pinned for 009A, but every VSS mapping remains unexecuted and unaccepted
 
 claim_boundaries:
-  - No runtime parser, ROS build, launch, topic, or simulation execution is claimed.
+  - 009A claims selected-source build, map-enabled launch, and locked typed endpoint readiness only; graph parse and graph-output behavior are not independently retained.
+  - No stationary-target intervention or causal diagnostic-to-MRM-to-gate behavior is claimed.
   - No VSS-to-ROS or VSS-to-simulator mapping has been executed or accepted.
   - No simulated deceleration, raw conversion, real hardware, brake ECU, actuator, or vehicle behavior is claimed.
   - No S-CORE integration, safety acceptance, compliance, certification, homologation, or production readiness is claimed.
   - No upstream contact, report, acceptance, or fix is claimed.
 
 validation:
-  artifact_status: draft_validated_and_semantically_reviewed
-  execution_status: not_executed
+  artifact_status: reviewed_and_009a_runtime_aligned
+  execution_status: 009a_build_launch_and_endpoint_readiness_executed
   public_checks:
     - python scripts/check_repo.py
     - python scripts/smoke_test.py

@@ -1,9 +1,9 @@
 # INC-AEBS-008 — Autoware AEBS simulation deployment controls
 
-- **Status:** Draft
+- **Status:** Reviewed deployment design; INC-AEBS-009A build/launch/readiness executed
 - **Parent:** `INC-AEBS-007`
-- **Evidence:** pinned source/configuration inspection and static YAML checks only
-- **Execution:** not executed; launch composition and evidence belong to `INC-AEBS-009`
+- **Evidence:** static design review plus 009A pinned-source build, launch, and typed readiness
+- **Execution:** 009A readiness executed; stationary-target and fault scenarios remain 009B/009C
 
 ## Decision requested
 
@@ -31,7 +31,7 @@ The `autoware_control_command_gate` source **`21: emergency_stop`** route is a d
 ## Planned chain
 
 ```text
-AEB `/control/autonomous_emergency_braking: aeb_emergency_stop`
+AEB `autonomous_emergency_braking: aeb_emergency_stop`
   on `/diagnostics`
 → diagnostic graph aggregator
 → autonomous CommandModeAvailability becomes unavailable
@@ -48,13 +48,13 @@ Availability is not selection or command generation. The MRM handler performs be
 
 ## Static control artifacts
 
-[`aebs.param.yaml`](aebs-simulation-deployment/aebs.param.yaml) is now a **complete derived simulation configuration**, not an overlay. It retains every value from pinned Universe [`control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml`](https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml) except `use_predicted_trajectory`, changed from `true` to `false` (Git blob `b23c3bbdd4d5954b69b70e92512610e9beaab234`, SHA-256 `6a620ee2275e48ea3a12b00a42657c1bab35ec5e0e722011556ddd08ca403e5c`). It remains proposed and unexecuted.
+[`aebs.param.yaml`](aebs-simulation-deployment/aebs.param.yaml) is now a **complete derived simulation configuration**, not an overlay. It retains every value from pinned Universe [`control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml`](https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml) except `use_predicted_trajectory`, changed from `true` to `false` (Git blob `b23c3bbdd4d5954b69b70e92512610e9beaab234`, SHA-256 `6a620ee2275e48ea3a12b00a42657c1bab35ec5e0e722011556ddd08ca403e5c`). It is now runtime-loaded by INC-AEBS-009A; scenario behavior remains unexecuted.
 
-[`diagnostic-graph.yaml`](aebs-simulation-deployment/diagnostic-graph.yaml) uses the deployed identity `/control/autonomous_emergency_braking: aeb_emergency_stop`. It keeps emergency-stop availability independently constant OK. `timeout: 1.0` and `hysteresis: 0.0` are explicit but **provisional**, pending timing, scheduling, and fault-injection review.
+[`diagnostic-graph.yaml`](aebs-simulation-deployment/diagnostic-graph.yaml) uses the runtime-observed diagnostic identity `autonomous_emergency_braking: aeb_emergency_stop`; ROS namespace is not included in the emitted diagnostic status name. It keeps emergency-stop availability independently constant OK. `timeout: 1.0` and `hysteresis: 0.0` are explicit but **provisional**, pending timing, scheduling, and fault-injection review.
 
 [`vss-simulation-realization.yaml`](aebs-simulation-deployment/vss-simulation-realization.yaml) traces every VSS-backed functional attribute from INC-AEBS-004 to a proposed simulation transformation, field, conditional observation, semantic-state rule, or explicit gap. It preserves the distinction between collision diagnostic, emergency request, selected command, simulated response, and EBA engagement. `Vehicle.Speed` requires the explicit `m/s → km/h` conversion; the emergency diagnostic must not be reused as AEBS component failure or driver-warning state.
 
-This map is proposed and unexecuted. The pinned Universe `packages_above.repos` declares `autoware_simple_planning_simulator` at floating `main`, and INC-AEBS-008 does not pin the exact ROS message-schema dependency revisions. INC-AEBS-009 must pin those dependencies before accepting field-level mappings.
+This VSS map remains proposed and unexecuted. INC-AEBS-009A pins `autoware_simple_planning_simulator` at an exact commit and uses a digest-pinned container underlay, but it does not execute or accept the field-level VSS mappings.
 
 ### Aggregator startup setting and mapping references
 
@@ -67,7 +67,7 @@ Do not vendor mapping copies. The exact pinned references are:
 
 ## Required execution preconditions
 
-Before INC-AEBS-009 injects an AEB transition, it must establish and capture:
+Before INC-AEBS-009B or INC-AEBS-009C injects an AEB transition, the scenario harness must establish and capture:
 
 - `/autoware/state` = `DRIVING`;
 - `/api/operation_mode/state` = `AUTONOMOUS`;
@@ -83,10 +83,10 @@ The simulator setup must load the intended map, set an initial pose, provide a t
 
 ## Evidence, blockers, and non-claims
 
-Static YAML/repository checks are the only execution-independent evidence here. Runtime graph parsing, mode setup, VSS transformation and state-rule execution, MRM selection, gate behavior, simulator wiring, and response evidence remain for INC-AEBS-009. `DEF-AEBS-PHY-002` still blocks acceptance of the pinned AEB launch. The provisional timeout/hysteresis values need review, the simulator and message-schema dependencies need exact pins, and the alternative control-command-gate route lacks a source-selection service owner.
+INC-AEBS-009A now proves selected-source build, map-enabled launch including the simulator, exact diagnostic receipt, and live typed endpoint readiness through MRM and gate outputs on the ARM64 target. It does not independently prove publisher/node provenance for simulator wiring, a diagnostic transition, MRM emergency selection caused by AEB, gate emergency selection, simulated braking response, or VSS transformations; those remain 009B/009C work. `DEF-AEBS-PHY-002` continues to block physical-behavior acceptance. The provisional timeout/hysteresis values need review, and the alternative control-command-gate route still lacks a source-selection service owner.
 
-No runtime parse, ROS build/launch, topic behavior, simulated braking response, raw command conversion, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, production readiness, upstream contact, or upstream acceptance is claimed.
+No stationary-target intervention, diagnostic-caused emergency selection, simulated braking response, raw command conversion, VSS execution, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, production readiness, upstream contact, or upstream acceptance is claimed.
 
 ## Validation
 
-Repository checks, all unit tests, YAML structural assertions, the diagnostic graph-key allowlist, and `git diff --check` pass. The focused VSS simulation-map tests enforce exact functional-catalog coverage, unique mapping IDs, and declared mapping kinds. Licensed SysIDE validation passed on the reviewed model commit `1eac51e1c46e111ba2e0dffda7f4bde99bdf535c` in workflow run `30169312059`; the earlier metadata-only successor also passed in run `30170043191`. The review-response head requires its own privileged run before final acceptance. No local SysIDE validation was run. This establishes tool acceptance of the textual model, not ROS build, launch, simulation, braking behavior, requirement satisfaction, or safety evidence.
+Repository checks, all unit tests, YAML structural assertions, the diagnostic graph-key allowlist, and `git diff --check` passed on the merged PR #63 head `07138397df105833441d5f3eab659392990d631c`. The focused VSS simulation-map tests enforce exact functional-catalog coverage, unique mapping IDs, unique trace tuples, and declared mapping kinds. The same exact head passed licensed SysML validation in workflow run `30176327979` and public checks in run `30176327976`; no local SysIDE validation was run. That historical evidence established tool acceptance of the textual model, not ROS execution. INC-AEBS-009A subsequently adds reproducible pinned-source build, launch, and typed-readiness execution while retaining the scenario, braking, requirement-satisfaction, and safety non-claims above.

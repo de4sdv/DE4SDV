@@ -6,7 +6,8 @@
  * - Autoware Universe f603d8759c92fb2f423f1544844e13086d79ad09
  * - Autoware Launch   f05c4b1f83e0b0e4a01ade34d5199bd5571873f1
  *
- * This is a review model, not execution evidence. It makes no requirement
+ * This remains the authoritative design/trace model, while INC-AEBS-009A retains
+ * separate build, launch, and endpoint-readiness evidence. It makes no requirement
  * satisfaction, compliance, certification, production, real-vehicle, brake ECU,
  * actuator, or accepted-performance claim. S-CORE, a real vehicle interface,
  * autoware_raw_vehicle_cmd_converter, and HardwareLayer realization are absent.
@@ -24,13 +25,13 @@ package DE4SDV_AEBSSimulationDeployment {
 
   /* Physical exchange types. Adjacent stages are deliberately distinct. */
   item def AEBEmergencyStopDiagnosticStatus {
-    doc /* Exact identity /control/autonomous_emergency_braking: aeb_emergency_stop. */
+    doc /* Exact identity autonomous_emergency_braking: aeb_emergency_stop. */
   }
   item def AEBEmergencyStopDiagnosticArrayMessage :> DiagnosticArrayMessage {
     doc /*
      * diagnostic_msgs/msg/DiagnosticArray on /diagnostics containing the exact
      * DiagnosticStatus identity
-     * /control/autonomous_emergency_braking: aeb_emergency_stop.
+     * autonomous_emergency_braking: aeb_emergency_stop.
      * This is neither EmergencyInterventionRequest nor a brake command.
      */
     item aebEmergencyStopStatus : AEBEmergencyStopDiagnosticStatus;
@@ -77,7 +78,7 @@ package DE4SDV_AEBSSimulationDeployment {
   item def ImuFeedbackMessage :> ImuMessage;
   item def VehicleStatusFeedbackMessage :> ROS2TopicMessage;
   item def SimulationEvidenceObservation {
-    doc /* Unaccepted observation collected for INC-AEBS-009; not verification evidence here. */
+    doc /* 009A endpoint observation; 009B/009C scenario acceptance is not evidence here. */
   }
 
   /*
@@ -159,7 +160,7 @@ package DE4SDV_AEBSSimulationDeployment {
   part def DiagnosticGraphSelection {
     doc /*
      * Custom graph key is exactly
-     * /control/autonomous_emergency_braking: aeb_emergency_stop. The autonomous
+     * autonomous_emergency_braking: aeb_emergency_stop. The autonomous
      * unit includes this status; an active AEB status makes autonomous mode
      * unavailable. Emergency-stop availability remains independently available.
      * Timeout semantics mark the autonomous unit unavailable when the exact
@@ -168,7 +169,8 @@ package DE4SDV_AEBSSimulationDeployment {
      * level recovery. No per-diagnostic latch behavior is claimed:
      * initial_latch_suppression is aggregator-wide startup behavior, not a latch
      * for this AEB diagnostic. Concrete timing remains review configuration;
-     * no confirmation from /diagnostics is claimed in this model.
+     * 009A observed this exact identity on /diagnostics, but no diagnostic-caused
+     * availability or MRM transition is claimed.
      */
   }
   part def LegacyVehicleCommandGateSelection {
@@ -366,12 +368,13 @@ package DE4SDV_AEBSSimulationDeployment {
   }
 
   /* System 2 is test infrastructure, not a member of the production system. */
-  part def AEBInputAndScenarioHarness {
+  part def AEBReadinessInputs009A {
     doc /*
-     * Planned publisher of /autoware/state = DRIVING, API operation mode =
-     * AUTONOMOUS for MRM, and system operation mode = AUTONOMOUS for the legacy
-     * gate. It also supplies selected AEB point-cloud and TF/vehicle-info
-     * dependencies plus simulator initialization.
+     * Realized 009A readiness inputs: nominal fixture publications plus pinned
+     * map/initialization inputs. The fixture establishes /autoware/state =
+     * DRIVING, API operation mode = AUTONOMOUS for MRM, and system operation
+     * mode = AUTONOMOUS for the legacy gate. No scenario control, planned
+     * trajectory, obstacle injection, or acceptance behavior belongs here.
      */
     port pointCloudOut : PointCloudOutput;
     port autowareStateDrivingOut : AutowareStateOutput;
@@ -384,12 +387,23 @@ package DE4SDV_AEBSSimulationDeployment {
     port tfAndVehicleInfoOut : TfAndVehicleInfoOut;
     port vectorMapOut : VectorMapInitializationOut;
     port initialPoseOut : InitialPoseOut;
-    port plannedTrajectoryOut : PlannedTrajectoryOut;
     port engageOut : EngageInitializationOut;
-    port scenarioControlIn : ScenarioControlIn;
   }
   part def ScenarioController {
+    doc /* Planned 009B/009C asset; not instantiated in the realized 009A composite. */
     port scenarioControlOut : ScenarioControlOut;
+  }
+  part def PlannedAEBScenarioHarness009B009C {
+    doc /* Planned scenario-control and trajectory source; no 009A execution claim. */
+    port scenarioControlIn : ScenarioControlIn;
+    port plannedTrajectoryOut : PlannedTrajectoryOut;
+  }
+  part def PlannedAEBScenarioAssets009B009C {
+    doc /* Future positive and negative/fault scenario assets; not realized by 009A. */
+    part scenarioController : ScenarioController;
+    part scenarioHarness : PlannedAEBScenarioHarness009B009C;
+    flow from scenarioController.scenarioControlOut.scenario
+      to scenarioHarness.scenarioControlIn.scenario;
   }
   part def SimplePlanningSimulatorTestDouble {
     doc /*
@@ -416,7 +430,7 @@ package DE4SDV_AEBSSimulationDeployment {
     port vehicleStatusOut : VehicleStatusFeedbackOut;
   }
   part def SimulationEvidenceCollector {
-    doc /* Observation only; acceptance and execution belong to INC-AEBS-009. */
+    doc /* 009A endpoint observation only; scenario acceptance belongs to 009B/009C. */
     port diagnosticsIn : DiagnosticIn;
     port commandAvailabilityIn : CommandAvailabilityIn;
     port operationAvailabilityIn : OperationAvailabilityIn;
@@ -434,8 +448,8 @@ package DE4SDV_AEBSSimulationDeployment {
   }
 
   part def AEBSystem2SimulationAssets {
-    part harness : AEBInputAndScenarioHarness;
-    part scenarioController : ScenarioController;
+    doc /* Realized 009A readiness composition; planned 009B/009C assets are separate. */
+    part readinessInputs : AEBReadinessInputs009A;
     part simulator : SimplePlanningSimulatorTestDouble;
     part evidenceCollector : SimulationEvidenceCollector;
 
@@ -460,12 +474,12 @@ package DE4SDV_AEBSSimulationDeployment {
     port steeringOut : SteeringFeedbackOut;
     port imuOut : ImuFeedbackOut;
 
-    bind pointCloudOut = harness.pointCloudOut;
-    bind autowareStateDrivingOut = harness.autowareStateDrivingOut;
-    bind apiOperationModeAutonomousOut = harness.apiOperationModeAutonomousOut;
-    bind systemOperationModeAutonomousOut = harness.systemOperationModeAutonomousOut;
-    bind tfAndVehicleInfoOut = harness.tfAndVehicleInfoOut;
-    bind engageOut = harness.engageOut;
+    bind pointCloudOut = readinessInputs.pointCloudOut;
+    bind autowareStateDrivingOut = readinessInputs.autowareStateDrivingOut;
+    bind apiOperationModeAutonomousOut = readinessInputs.apiOperationModeAutonomousOut;
+    bind systemOperationModeAutonomousOut = readinessInputs.systemOperationModeAutonomousOut;
+    bind tfAndVehicleInfoOut = readinessInputs.tfAndVehicleInfoOut;
+    bind engageOut = readinessInputs.engageOut;
     bind controlCommandIn = simulator.ackermannControlCommandIn;
     bind controlCommandObservationIn = evidenceCollector.controlCommandIn;
     bind gearCommandIn = simulator.gearCommandIn;
@@ -481,11 +495,9 @@ package DE4SDV_AEBSSimulationDeployment {
     bind steeringOut = simulator.steeringOut;
     bind imuOut = simulator.imuOut;
 
-    flow from scenarioController.scenarioControlOut.scenario to harness.scenarioControlIn.scenario;
-    flow from harness.vectorMapOut.map to simulator.vectorMapIn.map;
-    flow from harness.initialPoseOut.pose to simulator.initialPoseIn.pose;
-    flow from harness.plannedTrajectoryOut.trajectory to simulator.plannedTrajectoryIn.trajectory;
-    flow from harness.engageOut.engage to simulator.engageIn.engage;
+    flow from readinessInputs.vectorMapOut.map to simulator.vectorMapIn.map;
+    flow from readinessInputs.initialPoseOut.pose to simulator.initialPoseIn.pose;
+    flow from readinessInputs.engageOut.engage to simulator.engageIn.engage;
     flow from simulator.odometryOut.odometry to evidenceCollector.odometryIn.odometry;
     flow from simulator.controlModeAutonomousOut.mode to evidenceCollector.controlModeIn.mode;
     flow from simulator.velocityOut.velocity to evidenceCollector.velocityIn.velocity;

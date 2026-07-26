@@ -1,0 +1,9 @@
+cache/
+workspace/*
+!workspace/.gitkeep
+evidence/*.log
+evidence/*.yaml
+evidence/readiness-ros.json
+bags/
+*.db3
+*.mcap
