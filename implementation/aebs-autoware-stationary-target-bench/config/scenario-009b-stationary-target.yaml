@@ -1,0 +1,76 @@
+schema: de4sdv.aebs-009b-scenario.v1
+scenario_id: SCN-AEBS-009B-STATIONARY-001
+initial_ego:
+  pose_map:
+    x: 0.0
+    y: 0.0
+    yaw_rad: 0.0
+nominal_control:
+  speed_mps: 5.0
+  acceleration_mps2: 1.0
+target:
+  stationary: true
+  # Resolved from live odometry once the stable baseline is armed, then fixed in map.
+  injection_pose_base_link:
+    x: 6.0
+    y: 0.0
+    yaw_rad: 0.0
+  geometry:
+    length_m: 1.0
+    width_m: 0.8
+    height_m: 0.6
+    point_spacing_m: 0.05
+    # Fixture constraints from pinned Autoware AEB code/config; not product requirements.
+    voxel_size_x_m: 0.1
+    voxel_size_y_m: 0.1
+    voxel_size_z_m: 0.5
+    cluster_tolerance_m: 0.15
+    cluster_minimum_height_m: 0.1
+    minimum_cluster_size: 10
+fixture_constraints:
+  imu_path_horizon_s: 1.5
+  imu_path_max_length_m: 10.0
+baseline:
+  stable_duration_s: 2.0
+  ego_speed_min_mps: 0.1
+  required_input_max_age_s: 0.5
+  diagnostic_node: autonomous_emergency_braking
+  diagnostic_task: aeb_emergency_stop
+  diagnostic_joined_key: "autonomous_emergency_braking: aeb_emergency_stop"
+  required_inputs:
+    - /diagnostics
+    - /system/operation_mode/availability
+    - /system/fail_safe/mrm_state
+    - /system/mrm/emergency_stop/status
+    - /control/trajectory_follower/control_cmd
+    - /control/command/control_cmd
+    - /localization/kinematic_state
+  diagnostic_level: OK
+  autonomous_available: true
+  mrm_state: NORMAL
+  mrm_behavior: NONE
+  emergency_operator_state: AVAILABLE
+  gate_path: nominal
+publication:
+  pointcloud_rate_hz: 20.0
+  ego_state_rate_hz: 50.0
+timeouts:
+  startup_s: 15.0
+  scenario_s: 30.0
+clocks:
+  source_stamp: ros_message_header_when_available
+  receipt_time: collector_monotonic
+  host_utc: optional
+  causal_order: collector_monotonic_within_one_collector
+  cross_domain_comparison: forbidden_without_explicit_rule
+allowed_outcomes:
+  - pass_observed_chain
+  - fail_scenario
+  - inconclusive_precondition
+  - inconclusive_instrumentation
+  - aborted
+non_claims:
+  - Numeric fixture values are not braking-performance requirements.
+  - A passing run is not a safety, certification, compliance, or homologation claim.
+  - Simulator deceleration is test-double behavior, not physical brake-actuation evidence.
+  - This fixture does not cover moving targets, fault injection, or driver override.

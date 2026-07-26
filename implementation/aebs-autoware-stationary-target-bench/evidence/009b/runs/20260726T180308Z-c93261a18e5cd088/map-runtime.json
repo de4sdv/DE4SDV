@@ -1,0 +1,19 @@
+{
+  "command_exit_status": 0,
+  "error": null,
+  "execution_manifest_sha256": "872f816b640ccdb34648587665244aa7ac9c188551edb0be94be7ee80b1d9446",
+  "extracted_sha256": {
+    "lanelet2_map.osm": "4fe358f2d1e182dc76de296e5619086f8d8ad2fcab3e6d8f99f6e3d724a84e6d",
+    "map_config.yaml": "c7f8caeaad3559d2bc924a0683f36673f72c9e15f315c2e95f371c9ccceb7e39",
+    "map_projector_info.yaml": "9753eba4724aa6d41ffa2cc03e8da2d82e9f317dd14da837b0e96a7705e72bfa",
+    "pointcloud_map.pcd": "2da791365627241513c56a88a78baaf17d86b5e90febcb8987ec92c9e99ad2c6"
+  },
+  "host_architecture": "aarch64",
+  "image_digest": "sha256:03f6e177d507504a26710041674a1386b1a63fe964870cb5ff48b5e59c635c17",
+  "image_id": null,
+  "lock_sha256": "6bb63d2df19b7c8d5bdb7e2b2c7cb1ff9f4f864fe302f88a5f6bd600e7ca0b1d",
+  "map_files_verified": true,
+  "map_sha256": "5536fce7bb8db7688fdf94ec004118b898637ad0d5b6175108b10989dd6e93b9",
+  "repository_head": "34f120cf6165f85eaaed99b0816643ce3a09a94d",
+  "utc_time": "2026-07-26T18:03:08.928857+00:00"
+}

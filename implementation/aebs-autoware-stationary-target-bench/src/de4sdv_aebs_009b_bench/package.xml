@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>de4sdv_aebs_009b_bench</name>
+  <version>0.1.0</version>
+  <description>INC-AEBS-009B stationary-target runtime fixture and launch package.</description>
+  <maintainer email="maintainers@de4sdv.org">DE4SDV maintainers</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>autoware_adapi_v1_msgs</exec_depend>
+  <exec_depend>autoware_autonomous_emergency_braking</exec_depend>
+  <exec_depend>autoware_control_msgs</exec_depend>
+  <exec_depend>autoware_diagnostic_graph_aggregator</exec_depend>
+  <exec_depend>autoware_mrm_emergency_stop_operator</exec_depend>
+  <exec_depend>autoware_mrm_handler</exec_depend>
+  <exec_depend>autoware_simple_planning_simulator</exec_depend>
+  <exec_depend>autoware_system_msgs</exec_depend>
+  <exec_depend>autoware_vehicle_cmd_gate</exec_depend>
+  <exec_depend>autoware_vehicle_info_utils</exec_depend>
+  <exec_depend>autoware_vehicle_msgs</exec_depend>
+  <exec_depend>de4sdv_aebs_bench</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>tier4_system_msgs</exec_depend>
+  <exec_depend>tier4_vehicle_msgs</exec_depend>
+  <exec_depend>tier4_map_launch</exec_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>
