@@ -1,4 +1,4 @@
-"""Pure observation collection and orchestration policy for scenario 009B.
+"""Pure observation collection and orchestration policy for scenario 009C.
 
 This module deliberately has no ROS imports.  Receipt times are supplied by the
 adapter and must all come from its single ``time.monotonic`` clock.
@@ -23,7 +23,7 @@ from .scenario_evaluator import (
 )
 
 _PENDING_AFTER_ACTIVATION = {
-    "target_injection", "diagnostic_error", "autonomous_unavailable",
+    "target_injection", "native_aeb_intervention", "autonomous_unavailable",
     "mrm_emergency_stop", "emergency_operator_operating",
     "emergency_command_negative", "gate_selection_negative",
     "directional_response",

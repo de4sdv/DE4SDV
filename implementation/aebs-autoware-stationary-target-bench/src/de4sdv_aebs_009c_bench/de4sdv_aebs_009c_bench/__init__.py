@@ -1,4 +1,4 @@
-"""ROS-independent building blocks for the 009B executable bench."""
+"""ROS-independent building blocks for the 009C executable bench."""
 
 from .scenario_contract import (
     BASELINE_REQUIRED_INPUTS,

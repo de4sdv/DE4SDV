@@ -1,7 +1,8 @@
-"""INC-AEBS-009B package/launch composition only; no runtime or scenario evidence claim.
+"""INC-AEBS-009C package/launch composition only; no runtime or scenario evidence claim.
 
 This launch reuses the pinned 009A configuration assets while replacing its
-fixture with the sole manually activated stationary-target fixture.
+fixture with a manually activated stationary target. It observes native AEB
+intervention followed by MRM/gate realization; it is not nominal AEBS.
 """
 
 from ament_index_python.packages import get_package_share_directory
@@ -24,7 +25,7 @@ def include(package: str, relative_path: str, arguments=None):
 
 
 def generate_launch_description():
-    package_share = get_package_share_directory("de4sdv_aebs_009b_bench")
+    package_share = get_package_share_directory("de4sdv_aebs_009c_bench")
     proven_share = get_package_share_directory("de4sdv_aebs_bench")
     simulator_share = get_package_share_directory("autoware_simple_planning_simulator")
     gate_share = get_package_share_directory("autoware_vehicle_cmd_gate")
@@ -159,14 +160,14 @@ def generate_launch_description():
     )
 
     fixture = Node(
-        package="de4sdv_aebs_009b_bench",
+        package="de4sdv_aebs_009c_bench",
         executable="scenario_fixture",
         name="scenario_fixture",
         output="screen",
         parameters=[
             {
                 "scenario_config": (
-                    f"{package_share}/config/scenario-009b-stationary-target.yaml"
+                    f"{package_share}/config/scenario-009c-aeb-mrm.yaml"
                 )
             }
         ],

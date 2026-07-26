@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "de4sdv.aebs-009b.scenario-evidence.v1",
-  "title": "DE4SDV AEBS 009B replayable scenario evidence",
+  "$id": "de4sdv.aebs-009c.scenario-evidence.v1",
+  "title": "DE4SDV AEBS 009C replayable scenario evidence",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "scenario_id", "increment_id", "provenance", "collection", "collector_contract", "evaluation", "artifacts"],
   "properties": {
-    "schema": {"const": "de4sdv.aebs-009b.scenario-evidence.v1"},
-    "scenario_id": {"const": "SCN-AEBS-009B-STATIONARY-001"},
-    "increment_id": {"const": "INC-AEBS-009B"},
+    "schema": {"const": "de4sdv.aebs-009c.scenario-evidence.v1"},
+    "scenario_id": {"const": "SCN-AEBS-009C-AEB-MRM-001"},
+    "increment_id": {"const": "INC-AEBS-009C"},
     "provenance": {"$ref": "#/$defs/provenance"},
     "collection": {"$ref": "#/$defs/collection"},
     "collector_contract": {"$ref": "#/$defs/collectorContract"},
@@ -97,7 +97,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["kind", "receipt_monotonic_s", "source_stamp", "host_utc", "payload"],
       "properties": {
-        "kind": {"enum": ["diagnostic", "autonomous_availability", "mrm_state", "emergency_operator_status", "nominal_command", "emergency_command", "gate_emergency_status", "gate_command", "odometry", "target_publication", "instrument_status", "operator_abort"]},
+        "kind": {"enum": ["diagnostic", "aeb_intervention", "autonomous_availability", "mrm_state", "emergency_operator_status", "nominal_command", "emergency_command", "gate_emergency_status", "gate_command", "odometry", "target_publication", "instrument_status", "operator_abort"]},
         "receipt_monotonic_s": {"type": "number", "minimum": 0},
         "source_stamp": {"$ref": "#/$defs/nullableText"},
         "host_utc": {"oneOf": [{"$ref": "#/$defs/utc"}, {"type": "null"}]},
@@ -105,6 +105,7 @@
       },
       "oneOf": [
         {"properties": {"kind": {"const": "diagnostic"}, "payload": {"$ref": "#/$defs/diagnosticPayload"}}},
+        {"properties": {"kind": {"const": "aeb_intervention"}, "payload": {"$ref": "#/$defs/aebInterventionPayload"}}},
         {"properties": {"kind": {"const": "autonomous_availability"}, "payload": {"$ref": "#/$defs/availabilityPayload"}}},
         {"properties": {"kind": {"const": "mrm_state"}, "payload": {"$ref": "#/$defs/mrmPayload"}}},
         {"properties": {"kind": {"const": "emergency_operator_status"}, "payload": {"$ref": "#/$defs/operatorStatusPayload"}}},
@@ -121,6 +122,16 @@
     "diagnosticPayload": {
       "type": "object", "additionalProperties": false, "required": ["node", "task", "level"],
       "properties": {"node": {"type": "string", "minLength": 1}, "task": {"type": "string", "minLength": 1}, "level": {"enum": ["OK", "WARN", "ERROR", "STALE"]}}
+    },
+    "aebInterventionPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["message", "rss_distance_m", "object_distance_m", "object_speed_mps"],
+      "properties": {
+        "message": {"const": "[AEB]: Emergency Brake"},
+        "rss_distance_m": {"type": "number"},
+        "object_distance_m": {"type": "number"},
+        "object_speed_mps": {"type": "number"}
+      }
     },
     "availabilityPayload": {
       "type": "object", "additionalProperties": false, "required": ["available"],
@@ -173,7 +184,7 @@
       "properties": {
         "label": {"type": "string", "minLength": 1},
         "observation_index": {"type": "integer", "minimum": 0},
-        "kind": {"enum": ["diagnostic", "autonomous_availability", "mrm_state", "emergency_operator_status", "nominal_command", "emergency_command", "gate_emergency_status", "gate_command", "odometry", "target_publication", "instrument_status", "operator_abort"]},
+        "kind": {"enum": ["diagnostic", "aeb_intervention", "autonomous_availability", "mrm_state", "emergency_operator_status", "nominal_command", "emergency_command", "gate_emergency_status", "gate_command", "odometry", "target_publication", "instrument_status", "operator_abort"]},
         "receipt_monotonic_s": {"type": "number", "minimum": 0},
         "source_stamp": {"$ref": "#/$defs/nullableText"},
         "host_utc": {"oneOf": [{"$ref": "#/$defs/utc"}, {"type": "null"}]}

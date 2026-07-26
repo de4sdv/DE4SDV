@@ -1,4 +1,4 @@
-"""ROS adapter for the manually activated, stationary 009B target fixture.
+"""ROS adapter for the manually activated, stationary 009C target fixture.
 
 The node supplies scenario inputs only.  It does not evaluate outcomes or emit
 claims about the response of the composed system.
@@ -86,14 +86,14 @@ class ScenarioFixture(Node):
             HazardLightsCommand, "/planning/hazard_lights_cmd", 1
         )
         self.target_pose_pub = self.create_publisher(
-            PoseStamped, "/de4sdv/aebs_009b/target_pose_map", transient
+            PoseStamped, "/de4sdv/aebs_009c/target_pose_map", transient
         )
 
         self.odometry_sub = self.create_subscription(
             Odometry, "/localization/kinematic_state", self._on_odometry, 1
         )
         self.activation_service = self.create_service(
-            Trigger, "/de4sdv/aebs_009b/inject_target", self._on_activate
+            Trigger, "/de4sdv/aebs_009c/inject_target", self._on_activate
         )
         self.cloud_timer = self.create_timer(
             1.0 / config.pointcloud_rate_hz, self._publish_cloud

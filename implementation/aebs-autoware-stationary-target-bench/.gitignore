@@ -4,12 +4,12 @@ workspace/*
 
 # Per-run evidence is ignored by default. The canonical run's five hash-bound
 # artifacts are force-added when publishing a reviewed evidence snapshot.
-evidence/009b/runs/*
+evidence/009c/runs/*
 
 # Mutable convenience copies and build output are not canonical evidence.
-evidence/009b/build.log
-evidence/009b/launch.log
-evidence/009b/map-runtime.json
-evidence/009b/observer.log
-evidence/009b/provenance.json
-evidence/009b/run-metadata.json
+evidence/009c/build.log
+evidence/009c/launch.log
+evidence/009c/map-runtime.json
+evidence/009c/observer.log
+evidence/009c/provenance.json
+evidence/009c/run-metadata.json

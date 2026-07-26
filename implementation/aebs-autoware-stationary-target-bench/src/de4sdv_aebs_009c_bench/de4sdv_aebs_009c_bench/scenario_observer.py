@@ -77,11 +77,11 @@ class ScenarioObserver(Node):
             raise ValueError("raw_output must be a required absolute path")
         if isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float)) or not math.isfinite(timeout_s) or timeout_s <= 0:
             raise ValueError("timeout_s must be finite and positive")
-        installed_config = Path(get_package_share_directory("de4sdv_aebs_009b_bench")) / "config"
+        installed_config = Path(get_package_share_directory("de4sdv_aebs_009c_bench")) / "config"
         validate_installed_config_path(
             config_path,
             installed_config,
-            "scenario-009b-stationary-target.yaml",
+            "scenario-009c-aeb-mrm.yaml",
         )
         self.raw_output = Path(raw_output)
         self.core = ObserverCore(load_scenario_config(config_path), float(timeout_s), time.monotonic())
@@ -100,8 +100,8 @@ class ScenarioObserver(Node):
         self.create_subscription(Control, "/control/command/control_cmd", self._safe(self._gate, "/control/command/control_cmd"), 10)
         self.create_subscription(Odometry, "/localization/kinematic_state", self._safe(self._odometry, "/localization/kinematic_state"), 10)
         self.create_subscription(AccelWithCovarianceStamped, "/localization/acceleration", self._safe(self._acceleration, None), 10)
-        self.create_subscription(PoseStamped, "/de4sdv/aebs_009b/target_pose_map", self._safe(self._target, None), 10)
-        self._trigger_client = self.create_client(Trigger, "/de4sdv/aebs_009b/inject_target")
+        self.create_subscription(PoseStamped, "/de4sdv/aebs_009c/target_pose_map", self._safe(self._target, None), 10)
+        self._trigger_client = self.create_client(Trigger, "/de4sdv/aebs_009c/inject_target")
         self.create_timer(max(0.05, self.core.config.baseline.required_input_max_age_s / 2), self._tick)
 
     def _safe(
@@ -138,6 +138,14 @@ class ScenarioObserver(Node):
         self.core.add(Observation(ObservationKind.DIAGNOSTIC, {
             "node": "autonomous_emergency_braking", "task": "aeb_emergency_stop", "level": level,
         }, at, source_stamp=_stamp(message)))
+        if level == "ERROR":
+            values = {item.key: item.value for item in status.values}
+            self.core.add(Observation(ObservationKind.AEB_INTERVENTION, {
+                "message": str(status.message),
+                "rss_distance_m": float(values["RSS"]),
+                "object_distance_m": float(values["Distance"]),
+                "object_speed_mps": float(values["Object Speed"]),
+            }, at, source_stamp=_stamp(message)))
         return True
 
     def _availability(self, message: OperationModeAvailability, at: float) -> None:

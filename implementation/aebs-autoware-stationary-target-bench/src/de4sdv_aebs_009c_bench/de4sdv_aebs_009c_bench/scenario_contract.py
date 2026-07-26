@@ -1,4 +1,4 @@
-"""Pure, ROS-independent contract primitives for scenario 009B.
+"""Pure, ROS-independent contract primitives for scenario 009C.
 
 The numeric geometry values are constraints of the pinned test fixture. They are
 not product braking requirements.
@@ -39,7 +39,9 @@ REQUIRED_NON_CLAIMS = (
     "Numeric fixture values are not braking-performance requirements.",
     "A passing run is not a safety, certification, compliance, or homologation claim.",
     "Simulator deceleration is test-double behavior, not physical brake-actuation evidence.",
-    "This fixture does not cover moving targets, fault injection, or driver override.",
+    "This is partial 009C evidence for the native AEB intervention-to-MRM/gate path, not nominal AEBS evidence.",
+    "The native AEB ERROR diagnostic is an intentional intervention signal, not evidence of a component fault.",
+    "This fixture does not cover moving targets, driver warning, driver override, direct AEBS braking requests, or collision outcome.",
 )
 
 
@@ -184,7 +186,7 @@ class BaselineContract:
         if not isinstance(self.required_inputs, tuple):
             raise TypeError("baseline required_inputs must be an immutable tuple")
         if self.required_inputs != BASELINE_REQUIRED_INPUTS:
-            raise ValueError("baseline required_inputs must match the closed 009B input set")
+            raise ValueError("baseline required_inputs must match the closed 009C input set")
         expected_strings = {
             "diagnostic_node": "autonomous_emergency_braking",
             "diagnostic_task": "aeb_emergency_stop",
@@ -369,7 +371,7 @@ def _pose_from_mapping(value: object, name: str) -> Pose2D:
 
 @dataclass(frozen=True)
 class ScenarioConfig:
-    """Immutable inputs for the sole 009B stationary-target fixture."""
+    """Immutable inputs for the sole 009C stationary-target fixture."""
 
     scenario_id: str
     initial_pose_map: Pose2D
@@ -405,8 +407,8 @@ class ScenarioConfig:
             raise TypeError("allowed_outcomes must be a tuple of Outcome values")
         if not isinstance(self.non_claims, tuple):
             raise TypeError("non_claims must be a tuple")
-        if self.scenario_id != "SCN-AEBS-009B-STATIONARY-001":
-            raise ValueError("unexpected 009B scenario ID")
+        if self.scenario_id != "SCN-AEBS-009C-AEB-MRM-001":
+            raise ValueError("unexpected 009C scenario ID")
         object.__setattr__(
             self,
             "nominal_command_speed_mps",
@@ -435,9 +437,9 @@ class ScenarioConfig:
         if self.target_injection_pose_base_link.x <= 0.0:
             raise ValueError("target injection pose must be ahead of the ego")
         if not math.isclose(self.target_injection_pose_base_link.y, 0.0, abs_tol=1e-12):
-            raise ValueError("the closed 009B fixture requires a path-centered target")
+            raise ValueError("the closed 009C fixture requires a path-centered target")
         if not math.isclose(self.target_injection_pose_base_link.yaw_rad, 0.0, abs_tol=1e-12):
-            raise ValueError("the closed 009B fixture requires an unrotated target")
+            raise ValueError("the closed 009C fixture requires an unrotated target")
         target_far_edge = self.target_injection_pose_base_link.x + self.geometry.length_m / 2.0
         if target_far_edge >= self.fixture_constraints.imu_path_max_length_m:
             raise ValueError("target must remain inside the pinned IMU-path length cap")
@@ -467,7 +469,7 @@ class ScenarioConfig:
         if len(self.allowed_outcomes) != len(Outcome) or set(self.allowed_outcomes) != set(Outcome):
             raise ValueError("allowed_outcomes must contain the closed outcome vocabulary once")
         if self.non_claims != REQUIRED_NON_CLAIMS:
-            raise ValueError("non_claims must match the closed 009B claim-boundary set")
+            raise ValueError("non_claims must match the closed 009C claim-boundary set")
 
     @classmethod
     def from_mapping(cls, value: object) -> "ScenarioConfig":
@@ -489,7 +491,7 @@ class ScenarioConfig:
             },
             "scenario",
         )
-        if root["schema"] != "de4sdv.aebs-009b-scenario.v1":
+        if root["schema"] != "de4sdv.aebs-009c-scenario.v1":
             raise ValueError("unsupported scenario schema")
         initial = _closed_mapping(root["initial_ego"], {"pose_map"}, "initial_ego")
         nominal = _closed_mapping(
@@ -499,7 +501,7 @@ class ScenarioConfig:
             root["target"], {"stationary", "injection_pose_base_link", "geometry"}, "target"
         )
         if target["stationary"] is not True:
-            raise ValueError("009B target must be stationary")
+            raise ValueError("009C target must be stationary")
         geometry = _closed_mapping(
             target["geometry"],
             {
@@ -599,7 +601,7 @@ class ScenarioConfig:
             return {"x": item.x, "y": item.y, "yaw_rad": item.yaw_rad}
 
         return {
-            "schema": "de4sdv.aebs-009b-scenario.v1",
+            "schema": "de4sdv.aebs-009c-scenario.v1",
             "scenario_id": self.scenario_id,
             "initial_ego": {"pose_map": pose(self.initial_pose_map)},
             "nominal_control": {

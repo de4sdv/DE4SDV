@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify locked extracted map files and write evidence only inside the 009B bench."""
+"""Verify locked extracted map files and write evidence only inside the 009C bench."""
 
 from __future__ import annotations
 
@@ -83,17 +83,17 @@ def verify(cache: Path, bench: Path) -> tuple[Path, dict[str, str]]:
 
 def atomic_evidence_write(path: Path, document: object, bench: Path) -> None:
     """Publish map evidence without following or replacing an unsafe destination."""
-    unresolved_root = bench / "evidence" / "009b"
+    unresolved_root = bench / "evidence" / "009c"
     reject_symlink_components(unresolved_root)
     if unresolved_root.is_symlink() or not unresolved_root.is_dir():
-        raise ValueError("009B evidence root must be a real directory")
+        raise ValueError("009C evidence root must be a real directory")
     evidence_root = unresolved_root.resolve(strict=True)
     if not evidence_root.is_relative_to(bench.resolve(strict=True)):
-        raise ValueError("009B evidence root escapes resolved bench")
+        raise ValueError("009C evidence root escapes resolved bench")
     reject_symlink_components(path.parent)
     parent = path.parent.resolve(strict=True)
     if not parent.is_relative_to(evidence_root):
-        raise ValueError("map evidence output must remain inside resolved 009B evidence")
+        raise ValueError("map evidence output must remain inside resolved 009C evidence")
     if path.is_symlink() or (path.exists() and not path.is_file()):
         raise ValueError("map evidence destination must be a regular non-symlink file")
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=parent)
@@ -148,7 +148,7 @@ def main() -> int:
             "error": error,
             "command_exit_status": status,
         }
-        evidence_path = args.output if args.output else bench / "evidence/009b/map-runtime.json"
+        evidence_path = args.output if args.output else bench / "evidence/009c/map-runtime.json"
         if not evidence_path.is_absolute():
             evidence_path = bench / evidence_path
         atomic_evidence_write(evidence_path, evidence, bench)

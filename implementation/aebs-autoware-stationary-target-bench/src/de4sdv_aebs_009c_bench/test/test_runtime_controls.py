@@ -1,4 +1,4 @@
-"""Focused contract tests for the fail-closed 009B inherited runtime controls."""
+"""Focused contract tests for the fail-closed 009C inherited runtime controls."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def load_script(name: str, filename: str):
 
 
 def load_identity():
-    return load_script("identity_009b", "execution_identity.py")
+    return load_script("identity_009c", "execution_identity.py")
 
 
 def copy_authoritative_bench(destination: Path) -> None:
@@ -47,7 +47,7 @@ def copy_authoritative_bench(destination: Path) -> None:
             "evidence", "workspace", ".pytest_cache", ".ruff_cache", "__pycache__"
         ),
     )
-    (destination / "evidence/009b").mkdir(parents=True)
+    (destination / "evidence/009c").mkdir(parents=True)
     (destination / "workspace").mkdir()
     (destination / "workspace/.gitkeep").write_bytes(b"")
 
@@ -56,12 +56,12 @@ def test_lock_inherits_exact_verified_009a_inputs_without_claims() -> None:
     lock = yaml.safe_load((BENCH / "runtime-lock.yaml").read_text())
     upstream = yaml.safe_load((INHERITED / "runtime-lock.yaml").read_text())
     scenario = yaml.safe_load(
-        (BENCH / "config/scenario-009b-stationary-target.yaml").read_text()
+        (BENCH / "config/scenario-009c-aeb-mrm.yaml").read_text()
     )
 
-    assert lock["schema"] == "de4sdv.aebs-009b.runtime-lock.v1"
-    assert lock["increment"] == "INC-AEBS-009B"
-    assert lock["scenario_id"] == "SCN-AEBS-009B-STATIONARY-001"
+    assert lock["schema"] == "de4sdv.aebs-009c.runtime-lock.v1"
+    assert lock["increment"] == "INC-AEBS-009C"
+    assert lock["scenario_id"] == "SCN-AEBS-009C-AEB-MRM-001"
     assert lock["status"] == "defined_not_executed"
     assert lock["container"] == upstream["container"]
     assert lock["sources"] == upstream["sources"]
@@ -72,9 +72,9 @@ def test_lock_inherits_exact_verified_009a_inputs_without_claims() -> None:
     assert inherited["disposition"] == "runtime_verified_009a_readiness_only"
     assert inherited["execution_manifest_path"].endswith("evidence/readiness.json")
     assert inherited["runtime_lock_path"].endswith("runtime-lock.yaml")
-    assert lock["selected_ros_packages"] == ["de4sdv_aebs_009b_bench"]
+    assert lock["selected_ros_packages"] == ["de4sdv_aebs_009c_bench"]
     assert lock["timeouts"] == scenario["timeouts"]
-    assert lock["evidence"]["directory"].endswith("evidence/009b")
+    assert lock["evidence"]["directory"].endswith("evidence/009c")
     boundaries = " ".join(lock["claim_boundaries"]).lower()
     for term in ("runtime", "scenario", "safety", "compliance"):
         assert term in boundaries
@@ -109,15 +109,15 @@ def test_scripts_are_overlay_only_and_do_not_claim_success() -> None:
     assert "verify_runtime.py" in all_scripts
     assert "vcs import" not in prepare
     assert "git clone" not in prepare
-    assert "de4sdv_aebs_009b_bench" in prepare
-    assert "--packages-select de4sdv_aebs_009b_bench" in build.replace("\\\n", " ")
+    assert "de4sdv_aebs_009c_bench" in prepare
+    assert "--packages-select de4sdv_aebs_009c_bench" in build.replace("\\\n", " ")
     assert "--parallel-workers 1" in build.replace("\\\n", " ")
-    assert "aebs_009b_bench.launch.py" in launch
+    assert "aebs_009c_bench.launch.py" in launch
     assert 'mkdir -p "$run_dir"' not in launch
     assert '"$BENCH/scripts/verify_map.py"' in launch
     assert "aebs-autoware-executable-bench/scripts/verify_map.py" not in launch
     local_map_verifier = (BENCH / "scripts/verify_map.py").read_text()
-    assert 'bench / "evidence/009b/map-runtime.json"' in local_map_verifier
+    assert 'bench / "evidence/009c/map-runtime.json"' in local_map_verifier
     assert "not readiness" in launch.lower()
     assert "source /opt/autoware/setup.bash" in build
     for script in (prepare, build, launch):
@@ -143,7 +143,7 @@ def test_identity_changes_for_authoritative_input_and_ignores_pycache(tmp_path: 
     copied = tmp_path / "bench"
     copy_authoritative_bench(copied)
     first = identity.execution_manifest_sha256(copied)
-    config = copied / "config/scenario-009b-stationary-target.yaml"
+    config = copied / "config/scenario-009c-aeb-mrm.yaml"
     config.write_text(config.read_text() + "\n# identity mutation\n")
     assert identity.execution_manifest_sha256(copied) != first
     config.write_text(config.read_text().replace("\n# identity mutation\n", "\n"))
@@ -153,7 +153,7 @@ def test_identity_changes_for_authoritative_input_and_ignores_pycache(tmp_path: 
     (cache / "junk.pyc").write_bytes(b"ignored")
     assert identity.execution_manifest_sha256(copied) == restored
     for cache_name in (".pytest_cache", ".ruff_cache"):
-        tool_cache = copied / "src/de4sdv_aebs_009b_bench" / cache_name
+        tool_cache = copied / "src/de4sdv_aebs_009c_bench" / cache_name
         tool_cache.mkdir(exist_ok=True)
         (tool_cache / "volatile").write_text("changes during verification")
         assert identity.execution_manifest_sha256(copied) == restored
@@ -198,9 +198,9 @@ def test_runtime_verifier_accepts_live_inheritance_and_rejects_mismatch(
 
 
 def test_map_evidence_atomic_writer_rejects_unsafe_destinations(tmp_path: Path) -> None:
-    verifier = load_script("verify_map_009b", "verify_map.py")
+    verifier = load_script("verify_map_009c", "verify_map.py")
     bench = tmp_path / "bench"
-    evidence = bench / "evidence/009b"
+    evidence = bench / "evidence/009c"
     evidence.mkdir(parents=True)
     outside = tmp_path / "outside.json"
     outside.write_text("unchanged", encoding="utf-8")
@@ -218,7 +218,7 @@ def test_map_evidence_atomic_writer_rejects_unsafe_destinations(tmp_path: Path) 
 
 
 def test_map_verifier_rejects_symlink_root_and_nonregular_entry(tmp_path: Path) -> None:
-    verifier = load_script("verify_map_paths_009b", "verify_map.py")
+    verifier = load_script("verify_map_paths_009c", "verify_map.py")
     bench = tmp_path / "bench"
     copy_authoritative_bench(bench)
     lock = yaml.safe_load((bench / "runtime-lock.yaml").read_text())

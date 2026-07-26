@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-SOURCE = ROOT / "de4sdv_aebs_009b_bench/scenario_observer.py"
+SOURCE = ROOT / "de4sdv_aebs_009c_bench/scenario_observer.py"
 
 class RosObserverContractTests(unittest.TestCase):
     def test_exact_subscription_topics_and_types_and_no_publishers_or_services(self):
@@ -23,7 +23,7 @@ class RosObserverContractTests(unittest.TestCase):
             "/control/command/control_cmd": "Control",
             "/localization/kinematic_state": "Odometry",
             "/localization/acceleration": "AccelWithCovarianceStamped",
-            "/de4sdv/aebs_009b/target_pose_map": "PoseStamped",
+            "/de4sdv/aebs_009c/target_pose_map": "PoseStamped",
         }
         tree = ast.parse(text)
         calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)]
@@ -37,7 +37,7 @@ class RosObserverContractTests(unittest.TestCase):
         text = SOURCE.read_text()
         tree = ast.parse(text)
         self.assertEqual(text.count("create_client("), 1)
-        self.assertIn('Trigger, "/de4sdv/aebs_009b/inject_target"', text)
+        self.assertIn('Trigger, "/de4sdv/aebs_009c/inject_target"', text)
         self.assertIn("time.monotonic()", text)
         self.assertIn("rclpy.spin_once", text)
         self.assertIn("except KeyboardInterrupt", text)
@@ -104,7 +104,7 @@ class RosObserverContractTests(unittest.TestCase):
     def test_packaging_contract(self):
         setup = (ROOT / "setup.py").read_text()
         package = (ROOT / "package.xml").read_text()
-        self.assertIn("scenario_observer = de4sdv_aebs_009b_bench.scenario_observer:main", setup)
+        self.assertIn("scenario_observer = de4sdv_aebs_009c_bench.scenario_observer:main", setup)
         for dependency in ("diagnostic_msgs", "tier4_system_msgs", "tier4_vehicle_msgs", "autoware_adapi_v1_msgs", "autoware_control_msgs", "geometry_msgs", "nav_msgs", "std_srvs"):
             self.assertIn(f"<exec_depend>{dependency}</exec_depend>", package)
 

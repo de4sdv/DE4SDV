@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Canonical identity for every local input that can affect a 009B execution."""
+"""Canonical identity for every local input that can affect a 009C execution."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ TOP_LEVEL_INPUTS = (
     "runtime-lock.yaml",
     "compose.yaml",
     "cyclonedds.xml",
-    "config/scenario-009b-stationary-target.yaml",
+    "config/scenario-009c-aeb-mrm.yaml",
     "workspace/.gitkeep",
 )
 REQUIRED_RECURSIVE_INPUT_ROOTS = ("scripts", "src")

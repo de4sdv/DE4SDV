@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed verification of the immutable 009A runtime inherited by 009B."""
+"""Fail-closed verification of the immutable 009A runtime inherited by 009C."""
 
 from __future__ import annotations
 
@@ -14,9 +14,9 @@ from typing import Any
 import yaml
 
 
-EXPECTED_SCHEMA = "de4sdv.aebs-009b.runtime-lock.v1"
-EXPECTED_INCREMENT = "INC-AEBS-009B"
-EXPECTED_SCENARIO = "SCN-AEBS-009B-STATIONARY-001"
+EXPECTED_SCHEMA = "de4sdv.aebs-009c.runtime-lock.v1"
+EXPECTED_INCREMENT = "INC-AEBS-009C"
+EXPECTED_SCENARIO = "SCN-AEBS-009C-AEB-MRM-001"
 EXPECTED_DISPOSITION = "runtime_verified_009a_readiness_only"
 INHERITED_TOP_LEVEL_INPUTS = (
     "autoware-009a.repos",
@@ -135,7 +135,7 @@ def verify(bench: Path, inherited_bench: Path) -> None:
     }
     for key, expected in expected_scalars.items():
         if lock.get(key) != expected:
-            raise ValueError(f"009B {key} mismatch: expected {expected!r}")
+            raise ValueError(f"009C {key} mismatch: expected {expected!r}")
 
     inheritance = lock.get("inherited_009a")
     if not isinstance(inheritance, dict):
@@ -183,29 +183,29 @@ def verify(bench: Path, inherited_bench: Path) -> None:
         raise ValueError("retained 009A manifest reference does not match current inputs")
 
     if lock.get("container") != inherited_lock.get("container"):
-        raise ValueError("009B container pins differ from inherited 009A runtime lock")
+        raise ValueError("009C container pins differ from inherited 009A runtime lock")
     if lock.get("sources") != inherited_lock.get("sources"):
-        raise ValueError("009B source pins differ from inherited 009A runtime lock")
+        raise ValueError("009C source pins differ from inherited 009A runtime lock")
     if lock.get("map") != inherited_lock.get("map"):
-        raise ValueError("009B map pins differ from inherited 009A runtime lock")
+        raise ValueError("009C map pins differ from inherited 009A runtime lock")
 
     setup = inherited_bench / "workspace/install/setup.bash"
     if not setup.is_file():
         raise ValueError(f"missing inherited 009A install setup: {setup}")
     sources = lock.get("sources")
     if not isinstance(sources, list):
-        raise ValueError("009B sources must be a list")
+        raise ValueError("009C sources must be a list")
     verify_sources(inherited_bench, sources)
 
-    if lock.get("selected_ros_packages") != ["de4sdv_aebs_009b_bench"]:
-        raise ValueError("009B selected package set is not overlay-only")
+    if lock.get("selected_ros_packages") != ["de4sdv_aebs_009c_bench"]:
+        raise ValueError("009C selected package set is not overlay-only")
     if lock.get("authoritative_scenario_config") != (
-        "config/scenario-009b-stationary-target.yaml"
+        "config/scenario-009c-aeb-mrm.yaml"
     ):
-        raise ValueError("009B authoritative scenario config path mismatch")
-    scenario = load_yaml(bench / "config/scenario-009b-stationary-target.yaml")
+        raise ValueError("009C authoritative scenario config path mismatch")
+    scenario = load_yaml(bench / "config/scenario-009c-aeb-mrm.yaml")
     if lock.get("timeouts") != scenario.get("timeouts"):
-        raise ValueError("009B lock timeouts differ from authoritative scenario config")
+        raise ValueError("009C lock timeouts differ from authoritative scenario config")
 
     compose = load_yaml(bench / "compose.yaml")
     try:
@@ -238,7 +238,7 @@ def main() -> int:
     except (OSError, ValueError, yaml.YAMLError) as exc:
         print(f"runtime inheritance verification failed: {exc}", file=sys.stderr)
         return 1
-    print("009B inherited 009A runtime inputs verified; no 009B runtime claim is made.")
+    print("009C inherited 009A runtime inputs verified; no 009C runtime claim is made.")
     return 0
 
 

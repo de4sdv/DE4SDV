@@ -1,4 +1,4 @@
-"""ROS-independent state machine for the one-authority 009B target fixture."""
+"""ROS-independent state machine for the one-authority 009C target fixture."""
 
 from __future__ import annotations
 

@@ -4,25 +4,25 @@
 set -euo pipefail
 
 BENCH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-EVIDENCE="$BENCH/evidence/009b"
+EVIDENCE="$BENCH/evidence/009c"
 RUNS="$EVIDENCE/runs"
-CONTAINER="de4sdv-aebs-009b-runtime"
+CONTAINER="de4sdv-aebs-009c-runtime"
 CANONICAL="$EVIDENCE/scenario-evidence.json"
 if [ -L "$EVIDENCE" ] || [ ! -d "$EVIDENCE" ]; then
-  printf 'Unsafe or missing 009B evidence directory: %s\n' "$EVIDENCE" >&2
+  printf 'Unsafe or missing 009C evidence directory: %s\n' "$EVIDENCE" >&2
   exit 1
 fi
 if [ -L "$RUNS" ] || { [ -e "$RUNS" ] && [ ! -d "$RUNS" ]; }; then
-  printf 'Unsafe 009B runs path: %s\n' "$RUNS" >&2
+  printf 'Unsafe 009C runs path: %s\n' "$RUNS" >&2
   exit 1
 fi
 if [ ! -e "$RUNS" ]; then mkdir -m 0700 -- "$RUNS"; fi
 python3 -c 'import pathlib,sys
 root=pathlib.Path(sys.argv[1]); runs=pathlib.Path(sys.argv[2])
 if root.is_symlink() or runs.is_symlink() or not runs.is_dir():
- raise SystemExit("unsafe 009B evidence/run directory")
+ raise SystemExit("unsafe 009C evidence/run directory")
 if not runs.resolve(strict=True).is_relative_to(root.resolve(strict=True)):
- raise SystemExit("009B run directory escapes evidence root")' "$EVIDENCE" "$RUNS"
+ raise SystemExit("009C run directory escapes evidence root")' "$EVIDENCE" "$RUNS"
 RUN_ID="$(python3 -c 'import datetime,secrets; print(datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ-")+secrets.token_hex(8))')"
 STAGE="$RUNS/.$RUN_ID.tmp"
 FINAL="$RUNS/$RUN_ID"
@@ -59,7 +59,7 @@ SCENARIO_TIMEOUT="$(python3 -c 'import sys,yaml; print(yaml.safe_load(open(sys.a
 SUPERVISOR_TIMEOUT="$(python3 -c 'import math,sys; value=float(sys.argv[1]); assert math.isfinite(value) and value > 0; print(value + 5.0)' "$SCENARIO_TIMEOUT")"
 python3 "$BENCH/scripts/verify_runtime.py" \
   --bench "$BENCH" --inherited-bench "$BENCH/../aebs-autoware-executable-bench"
-DE4SDV_009B_RUN_DIR="$STAGE" "$BENCH/scripts/launch.sh"
+DE4SDV_009C_RUN_DIR="$STAGE" "$BENCH/scripts/launch.sh"
 
 # Exclusive creation (noclobber) rejects both symlink and regular-file log targets.
 if [ -e "$OBSERVER_LOG" ] || [ -L "$OBSERVER_LOG" ]; then
@@ -77,13 +77,13 @@ docker exec --user "$(id -u):$(id -g)" --env HOME=/home/aw "$CONTAINER" bash -lc
   source /de4sdv/implementation/aebs-autoware-executable-bench/workspace/install/setup.bash
   source /de4sdv/implementation/aebs-autoware-stationary-target-bench/workspace/install/setup.bash
   set -u
-  exec timeout --signal=TERM "$1" ros2 run de4sdv_aebs_009b_bench scenario_observer \
+  exec timeout --signal=TERM "$1" ros2 run de4sdv_aebs_009c_bench scenario_observer \
     --ros-args \
     -p "scenario_config:=$2" \
     -p "raw_output:=$3" \
     -p "timeout_s:=$4"
 ' observer "$SUPERVISOR_TIMEOUT" \
-  "/de4sdv/implementation/aebs-autoware-stationary-target-bench/workspace/install/de4sdv_aebs_009b_bench/share/de4sdv_aebs_009b_bench/config/scenario-009b-stationary-target.yaml" \
+  "/de4sdv/implementation/aebs-autoware-stationary-target-bench/workspace/install/de4sdv_aebs_009c_bench/share/de4sdv_aebs_009c_bench/config/scenario-009c-aeb-mrm.yaml" \
   "$CONTAINER_RAW" "$SCENARIO_TIMEOUT" >&"$observer_fd" 2>&1
 observer_exit=$?
 set -e
@@ -107,7 +107,7 @@ def write(path,value):
  finally:
   pathlib.Path(name).unlink(missing_ok=True)
 write(pathlib.Path(sys.argv[1]),{"observer_exit_code":int(sys.argv[2]),"raw_output":sys.argv[3]})
-' "$FAILURE" "$observer_exit" "evidence/009b/runs/$RUN_ID/observer-raw.json"
+' "$FAILURE" "$observer_exit" "evidence/009c/runs/$RUN_ID/observer-raw.json"
 
 PYTHONPATH="$BENCH/scripts${PYTHONPATH:+:$PYTHONPATH}" python3 -c '
 from datetime import datetime,timezone
@@ -127,7 +127,7 @@ python3 -c '
 import hashlib,json,pathlib,sys
 bench=pathlib.Path(sys.argv[1]); run_id=sys.argv[3]; records={}
 for name,leaf in (("observer_raw","observer-raw.json"),("observer_log","observer.log"),("launch_log","launch.log"),("run_metadata","run-metadata.json"),("map_runtime","map-runtime.json")):
- relative=f"evidence/009b/runs/{run_id}/{leaf}"; path=bench/relative
+ relative=f"evidence/009c/runs/{run_id}/{leaf}"; path=bench/relative
  if path.is_symlink() or not path.is_file(): raise SystemExit(f"missing/unsafe artifact: {relative}")
  records[name]={"path":relative,"sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
 path=pathlib.Path(sys.argv[2]); path.write_text(json.dumps(records,sort_keys=True,separators=(",",":"),allow_nan=False)+"\n",encoding="utf-8")
@@ -143,4 +143,4 @@ import pathlib,sys
 from evidence_document import publish_validated_evidence
 publish_validated_evidence(pathlib.Path(sys.argv[1]),pathlib.Path(sys.argv[2]),pathlib.Path(sys.argv[3]))
 ' "$STAGED" "$CANONICAL" "$BENCH"
-printf 'Retained replay-validated 009B evidence: %s\n' "$CANONICAL"
+printf 'Retained replay-validated 009C evidence: %s\n' "$CANONICAL"

@@ -1,4 +1,4 @@
-"""Host-side AST and metadata contracts for the separate 009B ROS package."""
+"""Host-side AST and metadata contracts for the separate 009C ROS package."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import unittest
 import xml.etree.ElementTree as ET
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_NAME = "de4sdv_aebs_009b_bench"
+PACKAGE_NAME = "de4sdv_aebs_009c_bench"
 
 
 class RosPackageMetadataTests(unittest.TestCase):
@@ -22,14 +22,14 @@ class RosPackageMetadataTests(unittest.TestCase):
         keywords = {keyword.arg: keyword.value for keyword in setup_call.keywords}
         self.assertEqual(ast.literal_eval(keywords["name"]), PACKAGE_NAME)
         data_files_source = ast.unparse(keywords["data_files"])
-        self.assertIn("launch/aebs_009b_bench.launch.py", data_files_source)
-        self.assertIn("../../config/scenario-009b-stationary-target.yaml", data_files_source)
+        self.assertIn("launch/aebs_009c_bench.launch.py", data_files_source)
+        self.assertIn("../../config/scenario-009c-aeb-mrm.yaml", data_files_source)
         entry_points = ast.literal_eval(keywords["entry_points"])
         self.assertEqual(
             entry_points["console_scripts"],
             [
-                "scenario_fixture = de4sdv_aebs_009b_bench.scenario_fixture:main",
-                "scenario_observer = de4sdv_aebs_009b_bench.scenario_observer:main",
+                "scenario_fixture = de4sdv_aebs_009c_bench.scenario_fixture:main",
+                "scenario_observer = de4sdv_aebs_009c_bench.scenario_observer:main",
             ],
         )
 
@@ -88,7 +88,7 @@ class FixtureAdapterContractTests(unittest.TestCase):
                 "/planning/turn_indicators_cmd",
                 "/planning/hazard_lights_cmd",
                 "/perception/obstacle_segmentation/pointcloud",
-                "/de4sdv/aebs_009b/target_pose_map",
+                "/de4sdv/aebs_009c/target_pose_map",
             },
         )
         subscriptions = self._calls("create_subscription")
@@ -96,7 +96,7 @@ class FixtureAdapterContractTests(unittest.TestCase):
         self.assertEqual(ast.literal_eval(subscriptions[0].args[1]), "/localization/kinematic_state")
         services = self._calls("create_service")
         self.assertEqual(len(services), 1)
-        self.assertEqual(ast.literal_eval(services[0].args[1]), "/de4sdv/aebs_009b/inject_target")
+        self.assertEqual(ast.literal_eval(services[0].args[1]), "/de4sdv/aebs_009c/inject_target")
         forbidden = {
             "/system/fail_safe/mrm_state",
             "/system/driving_mode/mrm_state",
@@ -193,7 +193,7 @@ class FixtureAdapterContractTests(unittest.TestCase):
 
 class LaunchCompositionContractTests(unittest.TestCase):
     def test_launch_is_separate_but_preserves_pinned_composition_and_remaps(self) -> None:
-        path = PACKAGE_ROOT / "launch" / "aebs_009b_bench.launch.py"
+        path = PACKAGE_ROOT / "launch" / "aebs_009c_bench.launch.py"
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source)
         nodes = [
@@ -242,7 +242,7 @@ class LaunchCompositionContractTests(unittest.TestCase):
         ):
             self.assertIn(remap, source)
         self.assertIn('DeclareLaunchArgument("map_path"', source)
-        self.assertIn("scenario-009b-stationary-target.yaml", source)
+        self.assertIn("scenario-009c-aeb-mrm.yaml", source)
         self.assertNotIn("nominal_fixture", source)
         self.assertIn("no runtime or scenario evidence claim", ast.get_docstring(tree).lower())
 

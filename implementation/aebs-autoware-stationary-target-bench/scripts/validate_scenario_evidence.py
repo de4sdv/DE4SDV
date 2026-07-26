@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently schema-check and replay one 009B evidence document."""
+"""Independently schema-check and replay one 009C evidence document."""
 from __future__ import annotations
 
 import argparse
@@ -17,14 +17,14 @@ import jsonschema
 import yaml
 
 BENCH_ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_ROOT = BENCH_ROOT / "src" / "de4sdv_aebs_009b_bench"
+PACKAGE_ROOT = BENCH_ROOT / "src" / "de4sdv_aebs_009c_bench"
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 if str(Path(__file__).resolve().parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from de4sdv_aebs_009b_bench.scenario_contract import load_scenario_config  # noqa: E402
-from de4sdv_aebs_009b_bench.scenario_evaluator import evaluate_scenario  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_contract import load_scenario_config  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_evaluator import evaluate_scenario  # noqa: E402
 from evidence_document import (  # noqa: E402
     canonical_json_bytes,
     evaluation_to_json,
@@ -229,7 +229,7 @@ def _live_provenance_fields(bench_root: Path) -> dict[str, Any]:
     repository = _repository_root(bench_root)
     lock_path = bench_root / "runtime-lock.yaml"
     if lock_path.is_symlink() or not lock_path.is_file():
-        raise ValidationError("live 009B runtime lock is missing or unsafe")
+        raise ValidationError("live 009C runtime lock is missing or unsafe")
     lock = _load_lock(lock_path)
     try:
         inherited = lock["inherited_009a"]
@@ -268,9 +268,9 @@ def _live_provenance_fields(bench_root: Path) -> dict[str, Any]:
     ).hexdigest()
     inherited_lock_sha = sha256_file(inherited_lock)
     if inherited_manifest_sha != inherited.get("execution_manifest_sha256"):
-        raise ValidationError("inherited 009A execution manifest differs from 009B lock pin")
+        raise ValidationError("inherited 009A execution manifest differs from 009C lock pin")
     if inherited_lock_sha != inherited.get("runtime_lock_sha256"):
-        raise ValidationError("inherited 009A runtime lock differs from 009B lock pin")
+        raise ValidationError("inherited 009A runtime lock differs from 009C lock pin")
     return {
         "host_arch": platform.machine(),
         "repository_head": _git_head(repository),
@@ -320,7 +320,7 @@ def validate_evidence(
     """Validate structure, raw ordering, evaluator replay, artifacts, and identity."""
     evidence = Path(evidence_path)
     root = Path(bench_root).resolve()
-    config_path = Path(scenario_config) if scenario_config else root / "config" / "scenario-009b-stationary-target.yaml"
+    config_path = Path(scenario_config) if scenario_config else root / "config" / "scenario-009c-aeb-mrm.yaml"
     schema = Path(schema_path) if schema_path else BENCH_ROOT / "schemas" / "scenario-evidence.schema.json"
     document = _strict_json(evidence)
     if not isinstance(document, Mapping):
@@ -371,9 +371,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             scenario_config=arguments.config, schema_path=arguments.schema,
         )
     except (ValidationError, TypeError, ValueError) as error:
-        print(f"009B evidence rejected: {error}", file=sys.stderr)
+        print(f"009C evidence rejected: {error}", file=sys.stderr)
         return 1
-    print(f"009B evidence validated by schema and evaluator replay: {arguments.evidence}")
+    print(f"009C evidence validated by schema and evaluator replay: {arguments.evidence}")
     return 0
 
 if __name__ == "__main__":

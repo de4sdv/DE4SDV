@@ -1,4 +1,4 @@
-"""Focused tests for the pure 009B scenario contract."""
+"""Focused tests for the pure 009C scenario contract."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE_ROOT))
 
-from de4sdv_aebs_009b_bench.scenario_contract import (  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_contract import (  # noqa: E402
     BASELINE_REQUIRED_INPUTS,
     REQUIRED_NON_CLAIMS,
     BaselineContract,
@@ -180,13 +180,13 @@ class ObstacleGeometryTests(unittest.TestCase):
 
 
 class ScenarioConfigurationTests(unittest.TestCase):
-    CONFIG_PATH = PACKAGE_ROOT.parents[1] / "config" / "scenario-009b-stationary-target.yaml"
+    CONFIG_PATH = PACKAGE_ROOT.parents[1] / "config" / "scenario-009c-aeb-mrm.yaml"
 
     def test_fixture_loads_as_an_immutable_complete_contract(self) -> None:
         config = load_scenario_config(self.CONFIG_PATH)
 
         self.assertIsInstance(config, ScenarioConfig)
-        self.assertEqual(config.scenario_id, "SCN-AEBS-009B-STATIONARY-001")
+        self.assertEqual(config.scenario_id, "SCN-AEBS-009C-AEB-MRM-001")
         self.assertEqual(config.initial_pose_map, Pose2D(0.0, 0.0, 0.0))
         self.assertEqual(config.nominal_command_speed_mps, 5.0)
         self.assertEqual(config.nominal_command_acceleration_mps2, 1.0)

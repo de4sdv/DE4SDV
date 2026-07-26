@@ -10,19 +10,19 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE_ROOT))
 
-from de4sdv_aebs_009b_bench.scenario_contract import (  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_contract import (  # noqa: E402
     Pose2D,
     anchor_target_pose_map,
     load_scenario_config,
 )
-from de4sdv_aebs_009b_bench.scenario_fixture_core import (  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_fixture_core import (  # noqa: E402
     FLOAT32_MAX,
     ScenarioFixtureState,
     pack_xyz_float32,
     quaternion_to_yaw,
 )
 
-CONFIG_PATH = PACKAGE_ROOT.parents[1] / "config" / "scenario-009b-stationary-target.yaml"
+CONFIG_PATH = PACKAGE_ROOT.parents[1] / "config" / "scenario-009c-aeb-mrm.yaml"
 
 
 class ScenarioFixtureActivationTests(unittest.TestCase):

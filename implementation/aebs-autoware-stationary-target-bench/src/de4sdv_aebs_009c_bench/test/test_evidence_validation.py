@@ -1,4 +1,4 @@
-"""Adversarial tests for deterministic, independently replayed 009B evidence."""
+"""Adversarial tests for deterministic, independently replayed 009C evidence."""
 from __future__ import annotations
 
 import copy
@@ -12,11 +12,11 @@ import unittest
 import yaml
 
 BENCH = Path(__file__).resolve().parents[3]
-PACKAGE_ROOT = BENCH / "src" / "de4sdv_aebs_009b_bench"
+PACKAGE_ROOT = BENCH / "src" / "de4sdv_aebs_009c_bench"
 sys.path[:0] = [str(BENCH / "scripts"), str(PACKAGE_ROOT)]
 
-from de4sdv_aebs_009b_bench.scenario_contract import load_scenario_config  # noqa: E402
-from de4sdv_aebs_009b_bench.scenario_evaluator import (  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_contract import load_scenario_config  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_evaluator import (  # noqa: E402
     Observation,
     ObservationKind,
     evaluate_scenario,
@@ -38,7 +38,7 @@ from validate_scenario_evidence import (  # noqa: E402
     validate_evidence,
 )
 
-CONFIG = BENCH / "config" / "scenario-009b-stationary-target.yaml"
+CONFIG = BENCH / "config" / "scenario-009c-aeb-mrm.yaml"
 CLOCK_BOUNDARY = (
     "Order and causality use only collector monotonic receipt timestamps; preserved source "
     "stamps and host UTC are provenance only, and DDS/network order is not independently proved."
@@ -64,7 +64,14 @@ def passing_observations() -> list[Observation]:
         items += baseline(time)
     items += [
         obs(ObservationKind.TARGET_PUBLICATION, 2.1, identity="target-1", frame="map", x=6.0, y=0.0, yaw_rad=0.0),
-        obs(ObservationKind.DIAGNOSTIC, 2.2, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="ERROR"),
+        obs(
+            ObservationKind.AEB_INTERVENTION,
+            2.2,
+            message="[AEB]: Emergency Brake",
+            rss_distance_m=6.1,
+            object_distance_m=5.8,
+            object_speed_mps=0.0,
+        ),
         obs(ObservationKind.AUTONOMOUS_AVAILABILITY, 2.3, available=False),
         obs(ObservationKind.MRM_STATE, 2.4, state="MRM_OPERATING", behavior="EMERGENCY_STOP"),
         obs(ObservationKind.EMERGENCY_OPERATOR_STATUS, 2.45, state="OPERATING"),
@@ -122,8 +129,8 @@ class EvidenceValidationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.bench = Path(self.temp.name) / "bench"
-        (self.bench / "evidence" / "009b").mkdir(parents=True)
-        self.artifact = self.bench / "evidence" / "009b" / "observer.log"
+        (self.bench / "evidence" / "009c").mkdir(parents=True)
+        self.artifact = self.bench / "evidence" / "009c" / "observer.log"
         self.artifact.write_bytes(b"observer output\n")
         self.provenance = {
             "captured_utc": "2026-07-26T12:00:01Z",
@@ -167,43 +174,43 @@ class EvidenceValidationTests(unittest.TestCase):
             },
         }
         self.raw = raw
-        self.raw_artifact = self.bench / "evidence" / "009b" / "observer-raw.json"
+        self.raw_artifact = self.bench / "evidence" / "009c" / "observer-raw.json"
         self.raw_artifact.write_bytes(canonical_json_bytes(raw))
-        self.metadata_artifact = self.bench / "evidence" / "009b" / "run-metadata.json"
+        self.metadata_artifact = self.bench / "evidence" / "009c" / "run-metadata.json"
         self.metadata_artifact.write_bytes(canonical_json_bytes({
             "observer_exit_code": 0,
-            "raw_output": "evidence/009b/observer-raw.json",
+            "raw_output": "evidence/009c/observer-raw.json",
         }))
-        self.launch_artifact = self.bench / "evidence" / "009b" / "launch.log"
+        self.launch_artifact = self.bench / "evidence" / "009c" / "launch.log"
         self.launch_artifact.write_text("launch output\n", encoding="utf-8")
-        self.map_artifact = self.bench / "evidence" / "009b" / "map-runtime.json"
+        self.map_artifact = self.bench / "evidence" / "009c" / "map-runtime.json"
         self.map_artifact.write_text("{}\n", encoding="utf-8")
         artifacts = {
             "observer_log": {
-                "path": "evidence/009b/observer.log",
+                "path": "evidence/009c/observer.log",
                 "sha256": sha256_file(self.artifact),
             },
             "observer_raw": {
-                "path": "evidence/009b/observer-raw.json",
+                "path": "evidence/009c/observer-raw.json",
                 "sha256": sha256_file(self.raw_artifact),
             },
             "run_metadata": {
-                "path": "evidence/009b/run-metadata.json",
+                "path": "evidence/009c/run-metadata.json",
                 "sha256": sha256_file(self.metadata_artifact),
             },
             "launch_log": {
-                "path": "evidence/009b/launch.log",
+                "path": "evidence/009c/launch.log",
                 "sha256": sha256_file(self.launch_artifact),
             },
             "map_runtime": {
-                "path": "evidence/009b/map-runtime.json",
+                "path": "evidence/009c/map-runtime.json",
                 "sha256": sha256_file(self.map_artifact),
             },
         }
         self.document = build_evidence_document(
             raw, config, self.provenance, artifacts,
         )
-        self.path = self.bench / "evidence" / "009b" / "scenario-evidence.json"
+        self.path = self.bench / "evidence" / "009c" / "scenario-evidence.json"
         self.write(self.document)
 
     def tearDown(self) -> None:
@@ -329,11 +336,11 @@ class EvidenceValidationTests(unittest.TestCase):
             self.validate()
 
     def test_atomic_writer_rejects_outside_symlink_and_preserves_existing(self) -> None:
-        canonical = self.bench / "evidence" / "009b" / "canonical.json"
+        canonical = self.bench / "evidence" / "009c" / "canonical.json"
         canonical.write_text("old", encoding="utf-8")
         with self.assertRaises(ValueError):
             write_evidence_atomic(self.document, self.bench / "outside.json", self.bench)
-        link = self.bench / "evidence" / "009b" / "link.json"
+        link = self.bench / "evidence" / "009c" / "link.json"
         os.symlink(canonical, link)
         with self.assertRaises(ValueError):
             write_evidence_atomic(self.document, link, self.bench)
@@ -366,9 +373,9 @@ class EvidenceValidationTests(unittest.TestCase):
             self.validate()
 
     def test_publication_rejects_symlink_and_directory_canonical(self) -> None:
-        candidate = self.bench / "evidence" / "009b" / "candidate.json"
+        candidate = self.bench / "evidence" / "009c" / "candidate.json"
         candidate.write_text("candidate", encoding="utf-8")
-        target = self.bench / "evidence" / "009b" / "published.json"
+        target = self.bench / "evidence" / "009c" / "published.json"
         outside = self.bench / "outside.json"
         outside.write_text("outside", encoding="utf-8")
         os.symlink(outside, target)
@@ -395,7 +402,7 @@ class EvidenceValidationTests(unittest.TestCase):
         self.assertIn("raw_output:=", wrapper)
         self.assertIn("timeout_s:=", wrapper)
         self.assertIn(
-            "workspace/install/de4sdv_aebs_009b_bench/share", wrapper
+            "workspace/install/de4sdv_aebs_009c_bench/share", wrapper
         )
         self.assertIn("SUPERVISOR_TIMEOUT", wrapper)
         self.assertIn('RUNS="$EVIDENCE/runs"', wrapper)

@@ -1,4 +1,4 @@
-"""ROS-independent tests for the 009B observer/orchestrator core."""
+"""ROS-independent tests for the 009C observer/orchestrator core."""
 from __future__ import annotations
 
 import json
@@ -10,9 +10,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from de4sdv_aebs_009b_bench.scenario_contract import load_scenario_config  # noqa: E402
-from de4sdv_aebs_009b_bench.scenario_evaluator import Observation, ObservationKind  # noqa: E402
-from de4sdv_aebs_009b_bench.scenario_observer_core import (  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_contract import load_scenario_config  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_evaluator import Observation, ObservationKind  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_observer_core import (  # noqa: E402
     ObserverCore,
     atomic_write_json,
     closed_constant,
@@ -21,7 +21,7 @@ from de4sdv_aebs_009b_bench.scenario_observer_core import (  # noqa: E402
     validate_installed_config_path,
 )
 
-CONFIG = load_scenario_config(ROOT.parents[1] / "config/scenario-009b-stationary-target.yaml")
+CONFIG = load_scenario_config(ROOT.parents[1] / "config/scenario-009c-aeb-mrm.yaml")
 
 def obs(kind, at, **payload):
     return Observation(kind, payload, at)

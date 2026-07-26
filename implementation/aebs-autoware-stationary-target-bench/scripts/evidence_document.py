@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic construction of replayable 009B evidence documents.
+"""Deterministic construction of replayable 009C evidence documents.
 
 This module deliberately contains no process execution.  The run wrapper supplies
 explicit, already measured provenance and artifact hashes; the independent
@@ -21,7 +21,7 @@ from typing import Any, Mapping, Sequence
 
 def _add_source_checkout_imports() -> Path:
     bench = Path(__file__).resolve().parents[1]
-    package = bench / "src" / "de4sdv_aebs_009b_bench"
+    package = bench / "src" / "de4sdv_aebs_009c_bench"
     import sys
     if str(package) not in sys.path:
         sys.path.insert(0, str(package))
@@ -29,16 +29,16 @@ def _add_source_checkout_imports() -> Path:
 
 BENCH_ROOT = _add_source_checkout_imports()
 
-from de4sdv_aebs_009b_bench.scenario_contract import ScenarioConfig, load_scenario_config  # noqa: E402
-from de4sdv_aebs_009b_bench.scenario_evaluator import (  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_contract import ScenarioConfig, load_scenario_config  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_evaluator import (  # noqa: E402
     EvaluationResult,
     Observation,
     ObservationKind,
     evaluate_scenario,
 )
 
-SCHEMA_ID = "de4sdv.aebs-009b.scenario-evidence.v1"
-INCREMENT_ID = "INC-AEBS-009B"
+SCHEMA_ID = "de4sdv.aebs-009c.scenario-evidence.v1"
+INCREMENT_ID = "INC-AEBS-009C"
 CLOCK_BOUNDARY = (
     "Order and causality use only collector monotonic receipt timestamps; preserved source "
     "stamps and host UTC are provenance only, and DDS/network order is not independently proved."
@@ -390,7 +390,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--raw", required=True, type=Path)
     parser.add_argument("--provenance", required=True, type=Path)
     parser.add_argument("--artifacts", required=True, type=Path)
-    parser.add_argument("--config", type=Path, default=BENCH_ROOT / "config" / "scenario-009b-stationary-target.yaml")
+    parser.add_argument("--config", type=Path, default=BENCH_ROOT / "config" / "scenario-009c-aeb-mrm.yaml")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--bench-root", type=Path, default=BENCH_ROOT)
     arguments = parser.parse_args(argv)

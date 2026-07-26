@@ -1,4 +1,4 @@
-"""Pure evaluation of the 009B collector's observed event chain.
+"""Pure evaluation of the 009C collector's observed event chain.
 
 Only collector monotonic receipt times establish freshness and order.  Source
 stamps and optional host UTC strings are retained as provenance and are never
@@ -19,6 +19,7 @@ from .scenario_contract import BASELINE_REQUIRED_INPUTS, Outcome, ScenarioConfig
 
 class ObservationKind(str, Enum):
     DIAGNOSTIC = "diagnostic"
+    AEB_INTERVENTION = "aeb_intervention"
     AUTONOMOUS_AVAILABILITY = "autonomous_availability"
     MRM_STATE = "mrm_state"
     EMERGENCY_OPERATOR_STATUS = "emergency_operator_status"
@@ -52,6 +53,12 @@ REQUIRED_INPUT_KIND: Mapping[str, ObservationKind] = MappingProxyType(
 
 _SCHEMAS: Mapping[ObservationKind, Mapping[str, str]] = {
     ObservationKind.DIAGNOSTIC: {"node": "str", "task": "str", "level": "str"},
+    ObservationKind.AEB_INTERVENTION: {
+        "message": "str",
+        "rss_distance_m": "number",
+        "object_distance_m": "number",
+        "object_speed_mps": "number",
+    },
     ObservationKind.AUTONOMOUS_AVAILABILITY: {"available": "bool"},
     ObservationKind.MRM_STATE: {"state": "str", "behavior": "str"},
     ObservationKind.EMERGENCY_OPERATOR_STATUS: {"state": "str"},
@@ -454,11 +461,11 @@ def evaluate_scenario(config: ScenarioConfig, observations: Iterable[Observation
 
     stage_specs = (
         (
-            "diagnostic_error",
-            ObservationKind.DIAGNOSTIC,
-            lambda p: p["node"] == config.baseline.diagnostic_node and p["task"] == config.baseline.diagnostic_task,
-            lambda p: p["level"] == "ERROR",
-            lambda p: p["level"] == "OK",
+            "native_aeb_intervention",
+            ObservationKind.AEB_INTERVENTION,
+            lambda p: p["message"] == "[AEB]: Emergency Brake",
+            lambda p: p["object_distance_m"] <= p["rss_distance_m"],
+            lambda p: False,
         ),
         (
             "autonomous_unavailable",
@@ -660,4 +667,4 @@ def evaluate_scenario(config: ScenarioConfig, observations: Iterable[Observation
     else:
         accepted.append(_reference("negative_acceleration_response", *negative_response))
         accepted.append(_reference("lower_speed_response", *lower_speed_response))
-    return _result(Outcome.PASS_OBSERVED_CHAIN, ("The complete directional observed event chain was accepted; no OperateMrm service activity is claimed.", "Directional simulator/test-double response is not physical braking evidence."), accepted, baseline_interval_start_s=good_since, baseline_stable_at_s=baseline_at[1].receipt_monotonic_s, target_identity=injection[1].payload["identity"], target_map_pose=target_signature[2:], pre_selection_speed_mps=pre_speed, response_speed_mps=lower_speed_response[1].payload["speed_mps"], **correlation_details)
+    return _result(Outcome.PASS_OBSERVED_CHAIN, ("The partial 009C native-AEB-intervention to MRM/gate observed chain was accepted; no OperateMrm service invocation is claimed.", "The native AEB ERROR diagnostic is an intentional intervention signal, not evidence of a component fault.", "This is not nominal AEBS evidence: warning, override evaluation, direct AEBS braking request, and collision outcome are outside this fixture.", "Directional simulator/test-double response is not physical braking evidence."), accepted, baseline_interval_start_s=good_since, baseline_stable_at_s=baseline_at[1].receipt_monotonic_s, target_identity=injection[1].payload["identity"], target_map_pose=target_signature[2:], pre_selection_speed_mps=pre_speed, response_speed_mps=lower_speed_response[1].payload["speed_mps"], **correlation_details)

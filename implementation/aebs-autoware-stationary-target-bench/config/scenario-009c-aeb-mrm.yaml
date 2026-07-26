@@ -1,5 +1,5 @@
-schema: de4sdv.aebs-009b-scenario.v1
-scenario_id: SCN-AEBS-009B-STATIONARY-001
+schema: de4sdv.aebs-009c-scenario.v1
+scenario_id: SCN-AEBS-009C-AEB-MRM-001
 initial_ego:
   pose_map:
     x: 0.0
@@ -73,4 +73,6 @@ non_claims:
   - Numeric fixture values are not braking-performance requirements.
   - A passing run is not a safety, certification, compliance, or homologation claim.
   - Simulator deceleration is test-double behavior, not physical brake-actuation evidence.
-  - This fixture does not cover moving targets, fault injection, or driver override.
+  - This is partial 009C evidence for the native AEB intervention-to-MRM/gate path, not nominal AEBS evidence.
+  - The native AEB ERROR diagnostic is an intentional intervention signal, not evidence of a component fault.
+  - This fixture does not cover moving targets, driver warning, driver override, direct AEBS braking requests, or collision outcome.

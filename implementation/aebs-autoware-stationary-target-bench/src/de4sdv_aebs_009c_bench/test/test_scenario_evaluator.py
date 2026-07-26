@@ -1,4 +1,4 @@
-"""Strict tests for the ROS-independent 009B observed event-chain evaluator."""
+"""Strict tests for the ROS-independent 009C observed event-chain evaluator."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE_ROOT))
 
-from de4sdv_aebs_009b_bench.scenario_contract import Outcome, load_scenario_config  # noqa: E402
-from de4sdv_aebs_009b_bench.scenario_evaluator import (  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_contract import Outcome, load_scenario_config  # noqa: E402
+from de4sdv_aebs_009c_bench.scenario_evaluator import (  # noqa: E402
     EvaluationResult,
     EventReference,
     Observation,
@@ -20,7 +20,7 @@ from de4sdv_aebs_009b_bench.scenario_evaluator import (  # noqa: E402
     evaluate_scenario,
 )
 
-CONFIG_PATH = PACKAGE_ROOT.parents[1] / "config" / "scenario-009b-stationary-target.yaml"
+CONFIG_PATH = PACKAGE_ROOT.parents[1] / "config" / "scenario-009c-aeb-mrm.yaml"
 CONFIG = load_scenario_config(CONFIG_PATH)
 
 
@@ -51,10 +51,28 @@ def injection(time: float = 2.1) -> Observation:
     return obs(ObservationKind.TARGET_PUBLICATION, time, identity="target-1", frame="map", x=6.0, y=0.0, yaw_rad=0.0)
 
 
+def intervention(time: float = 2.2, *, distance_m: float = 5.8) -> Observation:
+    return obs(
+        ObservationKind.AEB_INTERVENTION,
+        time,
+        message="[AEB]: Emergency Brake",
+        rss_distance_m=6.1,
+        object_distance_m=distance_m,
+        object_speed_mps=0.0,
+    )
+
+
 def chain_through_gate() -> list[Observation]:
     return stable_baseline() + [
         injection(),
-        obs(ObservationKind.DIAGNOSTIC, 2.2, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="ERROR"),
+        obs(
+            ObservationKind.AEB_INTERVENTION,
+            2.2,
+            message="[AEB]: Emergency Brake",
+            rss_distance_m=6.1,
+            object_distance_m=5.8,
+            object_speed_mps=0.0,
+        ),
         obs(ObservationKind.AUTONOMOUS_AVAILABILITY, 2.3, available=False),
         obs(ObservationKind.MRM_STATE, 2.4, state="MRM_OPERATING", behavior="EMERGENCY_STOP"),
         obs(ObservationKind.EMERGENCY_OPERATOR_STATUS, 2.45, state="OPERATING"),
@@ -69,13 +87,7 @@ def chain_through_gate() -> list[Observation]:
 class DirectionalResponseTests(unittest.TestCase):
     def test_completed_stages_cannot_regress_after_final_gate(self) -> None:
         regressions = (
-            obs(
-                ObservationKind.DIAGNOSTIC,
-                2.65,
-                node="autonomous_emergency_braking",
-                task="aeb_emergency_stop",
-                level="OK",
-            ),
+            intervention(2.65, distance_m=6.2),
             obs(ObservationKind.GATE_COMMAND, 2.65, path="nominal", acceleration_mps2=0.4),
         )
         for regression in regressions:
@@ -116,7 +128,7 @@ class DirectionalResponseTests(unittest.TestCase):
         )
         self.assertTrue({
             "target_injection",
-            "diagnostic_error",
+            "native_aeb_intervention",
             "autonomous_unavailable",
             "mrm_emergency_stop",
             "emergency_operator_operating",
@@ -319,13 +331,7 @@ class MissingAndReorderedChainTests(unittest.TestCase):
     def test_chain_state_must_remain_steady_through_injection_boundary(self) -> None:
         for offending_time in (2.05, 2.1):
             with self.subTest(offending_time=offending_time):
-                offending = obs(
-                    ObservationKind.DIAGNOSTIC,
-                    offending_time,
-                    node="autonomous_emergency_braking",
-                    task="aeb_emergency_stop",
-                    level="ERROR",
-                )
+                offending = intervention(offending_time)
                 observations = chain_through_gate() + [
                     offending,
                     obs(ObservationKind.ODOMETRY, 2.7, speed_mps=4.2, acceleration_mps2=-0.2),
@@ -337,7 +343,7 @@ class MissingAndReorderedChainTests(unittest.TestCase):
                 self.assertEqual(result.details["failed_event"], "pre_injection_chain_state")
                 references = [
                     event for event in result.accepted_events
-                    if event.label == "pre_injection_nonsteady:diagnostic_error"
+                    if event.label == "pre_injection_nonsteady:native_aeb_intervention"
                 ]
                 self.assertEqual(len(references), 1)
                 self.assertEqual(references[0].observation_index, observations.index(offending))
@@ -351,7 +357,7 @@ class MissingAndReorderedChainTests(unittest.TestCase):
             obs(ObservationKind.EMERGENCY_OPERATOR_STATUS, 2.14, state="AVAILABLE"),
             obs(ObservationKind.EMERGENCY_COMMAND, 2.15, speed_mps=5.0, acceleration_mps2=0.0),
             obs(ObservationKind.GATE_COMMAND, 2.16, path="nominal", acceleration_mps2=0.4),
-            obs(ObservationKind.DIAGNOSTIC, 2.2, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="ERROR"),
+            intervention(2.2),
             obs(ObservationKind.AUTONOMOUS_AVAILABILITY, 2.3, available=False),
             obs(ObservationKind.MRM_STATE, 2.4, state="MRM_OPERATING", behavior="EMERGENCY_STOP"),
             obs(ObservationKind.EMERGENCY_OPERATOR_STATUS, 2.45, state="OPERATING"),
@@ -371,31 +377,31 @@ class MissingAndReorderedChainTests(unittest.TestCase):
         observations = stable_baseline() + [
             injection(),
             obs(ObservationKind.AUTONOMOUS_AVAILABILITY, 2.2, available=False),
-            obs(ObservationKind.DIAGNOSTIC, 2.3, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="ERROR"),
+            intervention(2.3),
             obs(ObservationKind.AUTONOMOUS_AVAILABILITY, 2.4, available=False),
         ]
 
         result = evaluate_scenario(CONFIG, observations)
 
         self.assertEqual(result.outcome, Outcome.FAIL_SCENARIO)
-        self.assertEqual(result.details["failed_event"], "diagnostic_error")
+        self.assertEqual(result.details["failed_event"], "native_aeb_intervention")
 
     def test_contradictory_expected_stage_cannot_be_hidden_by_later_match(self) -> None:
         observations = stable_baseline() + [
             injection(),
-            obs(ObservationKind.DIAGNOSTIC, 2.2, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="WARN"),
-            obs(ObservationKind.DIAGNOSTIC, 2.3, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="ERROR"),
+            intervention(2.2, distance_m=6.2),
+            intervention(2.3),
         ]
 
         result = evaluate_scenario(CONFIG, observations)
 
         self.assertEqual(result.outcome, Outcome.FAIL_SCENARIO)
-        self.assertEqual(result.details["failed_event"], "diagnostic_error")
+        self.assertEqual(result.details["failed_event"], "native_aeb_intervention")
 
     def test_equal_receipt_times_cannot_prove_stage_order(self) -> None:
         observations = stable_baseline() + [
             injection(),
-            obs(ObservationKind.DIAGNOSTIC, 2.2, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="ERROR"),
+            intervention(2.2),
             obs(ObservationKind.AUTONOMOUS_AVAILABILITY, 2.2, available=False),
         ]
 
@@ -408,16 +414,16 @@ class MissingAndReorderedChainTests(unittest.TestCase):
         missing = stable_baseline() + [injection()]
         missing_result = evaluate_scenario(CONFIG, missing)
         self.assertEqual(missing_result.outcome, Outcome.FAIL_SCENARIO)
-        self.assertEqual(missing_result.details["failed_event"], "diagnostic_error")
+        self.assertEqual(missing_result.details["failed_event"], "native_aeb_intervention")
 
         reordered = stable_baseline() + [
             injection(),
             obs(ObservationKind.AUTONOMOUS_AVAILABILITY, 2.2, available=False),
-            obs(ObservationKind.DIAGNOSTIC, 2.3, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="ERROR"),
+            intervention(2.3),
         ]
         reordered_result = evaluate_scenario(CONFIG, reordered)
         self.assertEqual(reordered_result.outcome, Outcome.FAIL_SCENARIO)
-        self.assertEqual(reordered_result.details["failed_event"], "diagnostic_error")
+        self.assertEqual(reordered_result.details["failed_event"], "native_aeb_intervention")
 
 
 class InstrumentationAndPreconditionTests(unittest.TestCase):
@@ -621,7 +627,7 @@ class ValidationAndImmutabilityTests(unittest.TestCase):
     def test_non_operating_valid_mrm_state_cannot_pass_transition(self) -> None:
         observations = stable_baseline() + [
             injection(),
-            obs(ObservationKind.DIAGNOSTIC, 2.2, node="autonomous_emergency_braking", task="aeb_emergency_stop", level="ERROR"),
+            intervention(2.2),
             obs(ObservationKind.AUTONOMOUS_AVAILABILITY, 2.3, available=False),
             obs(ObservationKind.MRM_STATE, 2.4, state="MRM_SUCCEEDED", behavior="EMERGENCY_STOP"),
             obs(ObservationKind.MRM_STATE, 2.5, state="MRM_OPERATING", behavior="EMERGENCY_STOP"),

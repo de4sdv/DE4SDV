@@ -1,6 +1,6 @@
-schema: de4sdv.aebs-009b.runtime-lock.v1
-increment: INC-AEBS-009B
-scenario_id: SCN-AEBS-009B-STATIONARY-001
+schema: de4sdv.aebs-009c.runtime-lock.v1
+increment: INC-AEBS-009C
+scenario_id: SCN-AEBS-009C-AEB-MRM-001
 status: defined_not_executed
 container:
   repository: ghcr.io/autowarefoundation/autoware
@@ -43,20 +43,20 @@ inherited_009a:
   runtime_lock_sha256: 6621ad7fb9196a7f1bccb31a3cae32dbb7e86e0cd249af8e86c39e579bdcf89d
   install_setup_path: implementation/aebs-autoware-executable-bench/workspace/install/setup.bash
   disposition: runtime_verified_009a_readiness_only
-authoritative_scenario_config: config/scenario-009b-stationary-target.yaml
+authoritative_scenario_config: config/scenario-009c-aeb-mrm.yaml
 selected_ros_packages:
-  - de4sdv_aebs_009b_bench
+  - de4sdv_aebs_009c_bench
 timeouts:
   startup_s: 15.0
   scenario_s: 30.0
 evidence:
-  directory: implementation/aebs-autoware-stationary-target-bench/evidence/009b
+  directory: implementation/aebs-autoware-stationary-target-bench/evidence/009c
   files:
     build_log: build.log
     launch_log: launch.log
     runtime_pid: runtime.pid
 claim_boundaries:
-  - No 009B runtime claim is made before retained validated evidence exists.
-  - No 009B scenario or braking outcome claim is made before retained validated evidence exists.
+  - No 009C runtime claim is made before retained validated evidence exists.
+  - No 009C scenario or braking outcome claim is made before retained validated evidence exists.
   - No safety acceptance claim is made before retained validated evidence exists.
   - No compliance, certification, or homologation claim is made before retained validated evidence exists.
