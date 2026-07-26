@@ -19,6 +19,7 @@ package DE4SDV_AEBSSimulationDeployment {
   // functional-package import is needed in this deployment model.
   private import DE4SDV_AEBSLogicalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
+  private import DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import Views::*;
@@ -193,9 +194,6 @@ package DE4SDV_AEBSSimulationDeployment {
      * gate and carries no command-routing claim.
      */
   }
-  part def LinuxSimulationHost {
-    doc /* Linux simulation host with no hypervisor; not an ECU or production target. */
-  }
   part def ROS2ApplicationRuntime {
     doc /* rclcpp, executor, RMW/DDS, TF, diagnostics, and message runtime internal to Autoware. */
   }
@@ -295,7 +293,7 @@ package DE4SDV_AEBSSimulationDeployment {
     part emergencyStopOperator : EmergencyStopOperatorNode;
     part legacyVehicleCommandGate : LegacyVehicleCommandGateNode;
     part runtime : ROS2ApplicationRuntime;
-    part host : LinuxSimulationHost;
+    part host : EngineeringExecutionEnvironment;
     part aebParameters : AEBParameterSelection;
     part diagnosticGraph : DiagnosticGraphSelection;
     part gateParameters : LegacyVehicleCommandGateSelection;

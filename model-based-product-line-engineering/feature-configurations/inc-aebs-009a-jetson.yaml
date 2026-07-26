@@ -1,0 +1,22 @@
+name: INCAEBS009AJetsonExecutionEnvironment
+description: >-
+  Inspected exact System 2 environment currently maintained for INC-AEBS-009A:
+  NVIDIA Jetson Orin Nano Developer Kit Super, Ubuntu 22.04 Tegra Linux, and
+  native linux/arm64 OCI-container execution. Historical 009A runtime evidence
+  proves a Jetson 8 GiB context but does not identify the exact SKU; this
+  configuration therefore does not claim exact-SKU execution continuity.
+selections:
+  Environment.ComputeNode: JetsonOrinNano
+  Environment.OperatingSystem: Ubuntu2204Tegra
+  Environment.ExecutionRuntime: NativeLinuxArm64OCI
+evidence:
+  status: inspected
+  artifacts:
+    - id: EVID-AEBS-009A-RUNTIME-LOCK
+      path: implementation/aebs-autoware-executable-bench/runtime-lock.yaml
+    - id: EVID-AEBS-009A-CONTAINER-IDENTITY
+      path: implementation/aebs-autoware-executable-bench/evidence/container-identity.json
+    - id: EVID-AEBS-009A-READINESS
+      path: implementation/aebs-autoware-executable-bench/evidence/readiness.json
+    - id: EVID-AEBS-009A-ENVIRONMENT-SNAPSHOT
+      path: implementation/aebs-autoware-executable-bench/evidence/execution-environment-snapshot.json

@@ -1,0 +1,78 @@
+schema_version: 1
+projection:
+  package: DE4SDV_ExecutionEnvironments
+  owner: EngineeringExecutionEnvironment
+  label: engineering execution-environment
+root:
+  name: EngineeringExecutionEnvironmentFamily
+  id: PL-ENGINEERING-EXECUTION-ENVIRONMENT
+  type: mandatory
+  description: Configurable System 2 engineering, simulation, and verification hosts.
+  children:
+    - name: Environment
+      id: F-ENG-ENVIRONMENT
+      type: mandatory
+      children:
+        - name: ComputeNode
+          id: F-ENG-COMPUTE
+          type: alternative
+          binding_time: design
+          maps_to: EngineeringExecutionEnvironment.computeNode
+          children:
+            - name: JetsonOrinNano
+              id: F-ENG-COMPUTE-JETSON-ORIN-NANO
+              binding_time: design
+              maps_to_variant: jetsonOrinNano
+            - name: AppleSiliconMac
+              id: F-ENG-COMPUTE-APPLE-SILICON
+              binding_time: design
+              maps_to_variant: appleSiliconMac
+        - name: OperatingSystem
+          id: F-ENG-OS
+          type: alternative
+          binding_time: design
+          maps_to: EngineeringExecutionEnvironment.operatingSystem
+          children:
+            - name: Ubuntu2204Tegra
+              id: F-ENG-OS-UBUNTU-2204-TEGRA
+              binding_time: design
+              maps_to_variant: ubuntu2204Tegra
+            - name: MacOSAppleSilicon
+              id: F-ENG-OS-MACOS-APPLE-SILICON
+              binding_time: design
+              maps_to_variant: macOSAppleSilicon
+        - name: ExecutionRuntime
+          id: F-ENG-RUNTIME
+          type: alternative
+          binding_time: design
+          maps_to: EngineeringExecutionEnvironment.executionRuntime
+          children:
+            - name: NativeLinuxArm64OCI
+              id: F-ENG-RUNTIME-NATIVE-LINUX-ARM64-OCI
+              binding_time: design
+              maps_to_variant: nativeLinuxArm64OCI
+            - name: VirtualizedLinuxArm64OCIOnMacOS
+              id: F-ENG-RUNTIME-VIRTUAL-LINUX-ARM64-OCI-MACOS
+              binding_time: design
+              maps_to_variant: virtualizedLinuxArm64OCIOnMacOS
+constraints:
+  - id: C-ENG-JETSON-REQUIRES-TEGRA-LINUX
+    type: requires
+    if: Environment.ComputeNode == JetsonOrinNano
+    then: Environment.OperatingSystem == Ubuntu2204Tegra
+    rationale: The maintained Jetson target is modeled with Ubuntu/Tegra Linux, not macOS; exact identity is inspected rather than historical test provenance.
+  - id: C-ENG-JETSON-REQUIRES-NATIVE-OCI
+    type: requires
+    if: Environment.ComputeNode == JetsonOrinNano
+    then: Environment.ExecutionRuntime == NativeLinuxArm64OCI
+    rationale: INC-AEBS-009A used native Linux ARM64 OCI execution.
+  - id: C-ENG-APPLE-REQUIRES-MACOS
+    type: requires
+    if: Environment.ComputeNode == AppleSiliconMac
+    then: Environment.OperatingSystem == MacOSAppleSilicon
+    rationale: The candidate denotes an Apple Silicon macOS engineering host.
+  - id: C-ENG-APPLE-REQUIRES-VIRTUAL-LINUX-OCI
+    type: requires
+    if: Environment.ComputeNode == AppleSiliconMac
+    then: Environment.ExecutionRuntime == VirtualizedLinuxArm64OCIOnMacOS
+    rationale: Linux containers on macOS execute through virtualization and are not native-Linux evidence.

@@ -1,0 +1,63 @@
+package DE4SDV_AEBS009AExecutionEnvironment {
+
+  private import DE4SDV_AEBSSimulationDeployment::*;
+  private import DE4SDV_ExecutionEnvironments::*;
+  private import INCAEBS009AJetsonExecutionEnvironment;
+
+  part def AEB009AMaintainedJetsonEnvironmentContext
+    :> AEBTwoSystemSimulationDeployment {
+    doc /*
+     * Exact maintained System 2 environment context associated with
+     * INC-AEBS-009A.
+     *
+     * The current maintained host is an NVIDIA Jetson Orin Nano Engineering
+     * Reference Developer Kit Super (8 GiB class), running Ubuntu 22.04 with
+     * Tegra kernel integration and native linux/arm64 OCI execution.
+     *
+     * Historical 009A runtime artifacts identify only a Jetson 8 GiB host;
+     * they do not identify the exact SKU or prove identity continuity to this
+     * post-merge snapshot. The two dependency sets preserve that boundary.
+     * INC-AEBS-009B and INC-AEBS-009C remain planned and acquire their own
+     * environment traces when scenario evidence is executed.
+     */
+
+    part executionEnvironment : INCAEBS009AJetsonExecutionEnvironment;
+    bind system1.host = executionEnvironment;
+
+    part runtimeLockEvidence : TestedExecutionEnvironmentEvidence {
+      doc /*
+       * implementation/aebs-autoware-executable-bench/runtime-lock.yaml
+       */
+    }
+
+    part containerIdentityEvidence : TestedExecutionEnvironmentEvidence {
+      doc /*
+       * implementation/aebs-autoware-executable-bench/evidence/container-identity.json
+       */
+    }
+
+    part readinessEvidence : TestedExecutionEnvironmentEvidence {
+      doc /*
+       * implementation/aebs-autoware-executable-bench/evidence/readiness.json
+       */
+    }
+
+    part environmentIdentityEvidence : InspectedExecutionEnvironmentEvidence {
+      doc /*
+       * implementation/aebs-autoware-executable-bench/evidence/execution-environment-snapshot.json
+       * Post-merge host identity supplement; it does not rewrite historical
+       * 009A runtime evidence.
+       */
+    }
+
+    dependency historical009ARuntimeEvidence
+      from runtimeLockEvidence,
+           containerIdentityEvidence,
+           readinessEvidence
+      to system1;
+
+    dependency maintainedHostIdentity
+      from environmentIdentityEvidence
+      to executionEnvironment;
+  }
+}
