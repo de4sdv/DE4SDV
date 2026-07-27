@@ -8,5 +8,9 @@ configuration or model validation as runtime proof.
 
 - [`aebs-autoware-executable-bench`](aebs-autoware-executable-bench/README.md)
   — INC-AEBS-009A reproducible Autoware build, launch, and readiness bench.
-  INC-AEBS-009B owns the stationary-target scenario; INC-AEBS-009C owns the
-  negative and fault scenario matrix.
+- [`aebs-autoware-nominal-vehicle-target-bench`](aebs-autoware-nominal-vehicle-target-bench/README.md)
+  — INC-AEBS-009B replay-validated nominal moving-vehicle-target chain.
+- [`aebs-autoware-stationary-target-bench`](aebs-autoware-stationary-target-bench/README.md)
+  — INC-AEBS-009C replay-validated, explicitly partial stationary-target
+  native-intervention-to-MRM/gate chain. Negative, override, degraded, and
+  pedestrian/bicycle matrices remain later increments.
