@@ -32,6 +32,8 @@ package DE4SDV_AEBSNeedsRequirements {
         requirement def ProductLineClassificationNeed :> StakeholderNeedCandidate;
         requirement def RegulatoryVisibilityNeed :> StakeholderNeedCandidate;
         requirement def VerificationPlanningNeed :> StakeholderNeedCandidate;
+        requirement def PedestrianCollisionRiskNeed :> StakeholderNeedCandidate;
+        requirement def BicycleCollisionRiskNeed :> StakeholderNeedCandidate;
 
         requirement def RequirementCandidate;
         requirement def FunctionalRequirementCandidate :> RequirementCandidate;
@@ -152,6 +154,24 @@ package DE4SDV_AEBSNeedsRequirements {
           }
         }
 
+        requirement needPedestrianCollisionRiskReduction : PedestrianCollisionRiskNeed {
+          doc /* N-AEBS-006 draft need; SRC-UNECE-R152 identity and applicability remain controlled gaps. */
+          subject productLine : SDVProductLine;
+          stakeholder pedestrian : RoadUser;
+          require constraint {
+            doc /* Pedestrians need the SDV product line to provide a common AEBS capability that reduces forward collision risk with a pedestrian target under controlled applicable operating conditions. */
+          }
+        }
+
+        requirement needBicycleCollisionRiskReduction : BicycleCollisionRiskNeed {
+          doc /* N-AEBS-007 draft need; SRC-UNECE-R152 identity and applicability remain controlled gaps. */
+          subject productLine : SDVProductLine;
+          stakeholder cyclist : RoadUser;
+          require constraint {
+            doc /* Cyclists need the SDV product line to provide a common AEBS capability that reduces forward collision risk with a bicycle target under controlled applicable operating conditions. */
+          }
+        }
+
         requirement reqDetectForwardCollisionRisk : FunctionalRequirementCandidate {
           doc /* REQ-AEBS-001 candidate. */
           subject memberProduct : ProductLineMemberProduct;
@@ -177,10 +197,10 @@ package DE4SDV_AEBSNeedsRequirements {
         }
 
         requirement reqAllowDriverOverride : FunctionalRequirementCandidate {
-          doc /* REQ-AEBS-004 candidate. */
+          doc /* REQ-AEBS-004 draft candidate with unresolved override classification and response criteria. */
           subject memberProduct : ProductLineMemberProduct;
           require constraint {
-            doc /* Each SDV product-line member product shall allow conscious driver override of AEBS intervention under defined override conditions. */
+            doc /* When a valid, fresh, and unambiguous driver input is classified as a conscious override under controlled override criteria during AEBS intervention, each SDV product-line member product shall suppress or release the intervention according to the controlled override response. */
           }
         }
 
@@ -205,6 +225,38 @@ package DE4SDV_AEBSNeedsRequirements {
           subject increment : NeedsRequirementsIncrement;
           require constraint {
             doc /* The DE4SDV AEBS increment shall trace each draft AEBS requirement to its source assumption, stakeholder need, validation reference, planned verification method, evidence status, and unresolved gap when applicable. */
+          }
+        }
+
+        requirement reqResistFalseReaction : SafetyConstraintRequirementCandidate {
+          doc /* REQ-AEBS-008 draft candidate; non-activation classification, window, and tolerances remain gaps. */
+          subject memberProduct : ProductLineMemberProduct;
+          require constraint {
+            doc /* When controlled non-activation criteria determine that imminent forward collision risk is absent under defined operating conditions, each SDV product-line member product shall not issue an AEBS collision warning or command AEBS emergency braking. */
+          }
+        }
+
+        requirement reqHandleDegradedUnavailableInputs : SafetyConstraintRequirementCandidate {
+          doc /* REQ-AEBS-009 draft candidate; state ownership, timing, indication, and safe-operation response remain gaps. */
+          subject memberProduct : ProductLineMemberProduct;
+          require constraint {
+            doc /* When a required AEBS input is stale, missing, malformed, inconsistent, or unavailable under controlled input-health criteria, each SDV product-line member product shall enter the defined degraded or unavailable AEBS state and provide the defined state indication. */
+          }
+        }
+
+        requirement reqPedestrianTargetResponse : FunctionalRequirementCandidate {
+          doc /* REQ-AEBS-010 draft candidate; target definition, source identity, applicability, criteria, tolerances, and uncertainty remain gaps. */
+          subject memberProduct : ProductLineMemberProduct;
+          require constraint {
+            doc /* Each SDV product-line member product shall detect imminent forward collision risk with a pedestrian target and apply the defined AEBS response under controlled applicable pedestrian-target operating conditions. */
+          }
+        }
+
+        requirement reqBicycleTargetResponse : FunctionalRequirementCandidate {
+          doc /* REQ-AEBS-011 draft candidate; target definition, source identity, applicability, criteria, tolerances, and uncertainty remain gaps. */
+          subject memberProduct : ProductLineMemberProduct;
+          require constraint {
+            doc /* Each SDV product-line member product shall detect imminent forward collision risk with a bicycle target and apply the defined AEBS response under controlled applicable bicycle-target operating conditions. */
           }
         }
 

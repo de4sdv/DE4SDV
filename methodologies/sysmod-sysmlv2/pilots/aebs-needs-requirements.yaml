@@ -23,9 +23,10 @@ scope:
     - requirement quality findings and known gaps
     - verification and validation planning fields
     - SysML v2 requirements model slice
+    - pedestrian-target stakeholder need and product requirement candidates
+    - bicycle-target stakeholder need and product requirement candidates
+    - controlled gaps for quantified regulatory candidates
   out_of_scope:
-    - pedestrian-target requirements
-    - bicycle-target requirements
     - quantified speed, distance, TTC, or deceleration thresholds
     - VSS signal selection or mapping
     - functional decomposition
@@ -51,6 +52,21 @@ source_alignment:
     notes:
       - Used as a private/source-grounded anchor for AEBS terminology and vehicle-target scope awareness.
       - This file does not copy source text and does not assert compliance.
+
+regulatory_candidate_control:
+  source_id: SRC-UNECE-R152
+  source_identity_status: gap
+  applicability_status: candidate_not_authoritatively_determined
+  quantified_candidate_status: deferred
+  quantified_candidates: []
+  gap_ids:
+    - GAP-AEBS-REQ-013
+    - GAP-AEBS-REQ-014
+  rationale: >-
+    The repository does not control an exact public-safe source version, digest,
+    clause identity, applicability decision, tolerances, or measurement
+    uncertainty for quantified criteria. No numeric System 1 obligation is
+    derived until those inputs are controlled and reviewed.
 
 system_of_interest:
   system_1: SDV product line whose member products are required to realize the AEBS common capability.
@@ -132,6 +148,36 @@ needs:
     status: draft
     validation_reference: VAL-AEBS-005
     rationale: Prevents weak requirement statements from entering functional modeling without visible V&V debt.
+  - id: N-AEBS-006
+    stakeholder: pedestrians
+    type: stakeholder_need
+    statement: >-
+      Pedestrians need the SDV product line to provide a common AEBS capability
+      that reduces forward collision risk with a pedestrian target under
+      controlled applicable operating conditions.
+    source: SRC-UNECE-R152
+    source_links:
+      - SRC-UNECE-R152
+    applicability: candidate pedestrian-target scope; exact regulatory applicability remains a controlled gap
+    priority: high
+    status: draft
+    validation_reference: VAL-AEBS-006
+    rationale: Keeps pedestrian-target stakeholder intent distinct from the retained vehicle-target slice.
+  - id: N-AEBS-007
+    stakeholder: cyclists
+    type: stakeholder_need
+    statement: >-
+      Cyclists need the SDV product line to provide a common AEBS capability
+      that reduces forward collision risk with a bicycle target under
+      controlled applicable operating conditions.
+    source: SRC-UNECE-R152
+    source_links:
+      - SRC-UNECE-R152
+    applicability: candidate bicycle-target scope; exact regulatory applicability remains a controlled gap
+    priority: high
+    status: draft
+    validation_reference: VAL-AEBS-007
+    rationale: Keeps bicycle-target stakeholder intent distinct from both vehicle and pedestrian target slices.
 
 requirement_quality_gate:
   source: INCOSE GtWR v4 summary-sheet private grounding
@@ -210,10 +256,12 @@ requirements:
   - id: REQ-AEBS-004
     type: functional
     status: draft
-    maturity: requirement_candidate
+    maturity: draft_requirement_with_gap
     statement: >-
-      Each SDV product-line member product shall allow conscious driver
-      override of AEBS intervention under defined override conditions.
+      When a valid, fresh, and unambiguous driver input is classified as a
+      conscious override under controlled override criteria during AEBS
+      intervention, each SDV product-line member product shall suppress or
+      release the intervention according to the controlled override response.
     derived_from:
       - N-AEBS-001
       - N-AEBS-002
@@ -271,6 +319,91 @@ requirements:
     evidence_status: planned
     acceptance_criterion: Every requirement record contains derived_from, verification_method, validation_reference, evidence_status, and known_gaps fields.
     known_gaps: []
+  - id: REQ-AEBS-008
+    type: safety_constraint
+    status: draft
+    maturity: draft_requirement_with_gap
+    statement: >-
+      When controlled non-activation criteria determine that imminent forward
+      collision risk is absent under defined operating conditions, each SDV
+      product-line member product shall not issue an AEBS collision warning or
+      command AEBS emergency braking.
+    derived_from:
+      - N-AEBS-001
+    source_links:
+      - INC-AEBS-002
+      - SRC-UNECE-R152
+    applicability: candidate vehicle-target non-activation scope
+    verification_method: test
+    validation_reference: VAL-AEBS-001
+    evidence_status: gap
+    acceptance_criterion: "TBD: define complete non-activation conditions, observation window, tolerances, and false-reaction classification."
+    known_gaps:
+      - GAP-AEBS-REQ-005
+      - GAP-AEBS-REQ-011
+  - id: REQ-AEBS-009
+    type: safety_constraint
+    status: draft
+    maturity: draft_requirement_with_gap
+    statement: >-
+      When a required AEBS input is stale, missing, malformed, inconsistent, or
+      unavailable under controlled input-health criteria, each SDV product-line
+      member product shall enter the defined degraded or unavailable AEBS state
+      and provide the defined state indication.
+    derived_from:
+      - N-AEBS-001
+      - N-AEBS-004
+    source_links:
+      - INC-AEBS-002
+      - SRC-UNECE-R152
+    applicability: candidate common AEBS degraded/unavailable behavior
+    verification_method: test
+    validation_reference: VAL-AEBS-004
+    evidence_status: gap
+    acceptance_criterion: "TBD: define input-health criteria, state ownership, transition timing, indication, and safe-operation response."
+    known_gaps:
+      - GAP-AEBS-REQ-007
+      - GAP-AEBS-REQ-012
+  - id: REQ-AEBS-010
+    type: functional
+    status: draft
+    maturity: draft_requirement_with_gap
+    statement: >-
+      Each SDV product-line member product shall detect imminent forward
+      collision risk with a pedestrian target and apply the defined AEBS
+      response under controlled applicable pedestrian-target operating conditions.
+    derived_from:
+      - N-AEBS-006
+    source_links:
+      - SRC-UNECE-R152
+    applicability: candidate pedestrian-target member-product scope; exact applicability remains unresolved
+    verification_method: test
+    validation_reference: VAL-AEBS-006
+    evidence_status: gap
+    acceptance_criterion: "TBD: control source identity, applicability, target definition, conditions, response, tolerances, and uncertainty."
+    known_gaps:
+      - GAP-AEBS-REQ-013
+      - GAP-AEBS-REQ-015
+  - id: REQ-AEBS-011
+    type: functional
+    status: draft
+    maturity: draft_requirement_with_gap
+    statement: >-
+      Each SDV product-line member product shall detect imminent forward
+      collision risk with a bicycle target and apply the defined AEBS response
+      under controlled applicable bicycle-target operating conditions.
+    derived_from:
+      - N-AEBS-007
+    source_links:
+      - SRC-UNECE-R152
+    applicability: candidate bicycle-target member-product scope; exact applicability remains unresolved
+    verification_method: test
+    validation_reference: VAL-AEBS-007
+    evidence_status: gap
+    acceptance_criterion: "TBD: control source identity, applicability, target definition, conditions, response, tolerances, and uncertainty."
+    known_gaps:
+      - GAP-AEBS-REQ-013
+      - GAP-AEBS-REQ-016
 
 validation_scenarios:
   - id: VAL-AEBS-001
@@ -305,6 +438,18 @@ validation_scenarios:
     status: planned
     question: Does every requirement expose V&V planning and unresolved criteria gaps?
     evidence_artifact: planned requirements V&V inspection record
+  - id: VAL-AEBS-006
+    validates_need: N-AEBS-006
+    method: pedestrian stakeholder and applicability review
+    status: planned
+    question: Does the pedestrian-target candidate preserve distinct stakeholder intent without importing vehicle-target criteria or implying regulatory acceptance?
+    evidence_artifact: planned pedestrian candidate review record
+  - id: VAL-AEBS-007
+    validates_need: N-AEBS-007
+    method: cyclist stakeholder and applicability review
+    status: planned
+    question: Does the bicycle-target candidate preserve distinct stakeholder intent without importing vehicle-target criteria or implying regulatory acceptance?
+    evidence_artifact: planned bicycle candidate review record
 
 gaps:
   - id: GAP-AEBS-REQ-001
@@ -327,6 +472,18 @@ gaps:
     statement: VSS signal candidates are intentionally deferred until the functional-interface increment.
   - id: GAP-AEBS-REQ-010
     statement: Requirement satisfaction assertions are intentionally deferred until a functional/logical realization model contains concrete satisfying features.
+  - id: GAP-AEBS-REQ-011
+    statement: Complete non-activation scenarios, observation windows, classification rules, and false-reaction tolerances remain undefined.
+  - id: GAP-AEBS-REQ-012
+    statement: Degraded/unavailable state ownership, transition timing, indication behavior, and safe-operation response remain undefined.
+  - id: GAP-AEBS-REQ-013
+    statement: Exact regulatory source version, digest, clause identities, amendment status, and applicability decision are not controlled in this public artifact.
+  - id: GAP-AEBS-REQ-014
+    statement: Quantified regulatory thresholds, tolerances, measurement uncertainty, repetitions, and authority interpretation are deferred pending controlled source metadata.
+  - id: GAP-AEBS-REQ-015
+    statement: Pedestrian target definition, operating conditions, response criteria, and applicability remain unresolved.
+  - id: GAP-AEBS-REQ-016
+    statement: Bicycle target definition, operating conditions, response criteria, and applicability remain unresolved.
 
 traceability:
   - from: INC-AEBS-002
@@ -352,6 +509,16 @@ traceability:
     to:
       - REQ-AEBS-007
     status: draft
+  - from: N-AEBS-006
+    relation: derives
+    to:
+      - REQ-AEBS-010
+    status: draft_with_source_and_applicability_gaps
+  - from: N-AEBS-007
+    relation: derives
+    to:
+      - REQ-AEBS-011
+    status: draft_with_source_and_applicability_gaps
   - from: SRC-UNECE-R152
     relation: constrains_scope_of
     to:
