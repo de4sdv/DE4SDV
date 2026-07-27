@@ -93,11 +93,11 @@ Promotion rule: a candidate can become an accepted design-input requirement only
 | `REQ-AEBS-010` | functional | Each member product shall detect imminent forward collision risk with a pedestrian target and apply the defined AEBS response under controlled applicable pedestrian-target operating conditions. | test | gap |
 | `REQ-AEBS-011` | functional | Each member product shall detect imminent forward collision risk with a bicycle target and apply the defined AEBS response under controlled applicable bicycle-target operating conditions. | test | gap |
 
-The pedestrian and bicycle records are distinct candidates; neither reinterprets the retained vehicle-target candidates. Their source link is `SRC-UNECE-R152`, applicability remains candidate-only, and target definitions, conditions, response criteria, tolerances, and uncertainty remain gaps.
+The pedestrian and bicycle records are distinct candidates; neither reinterprets the retained vehicle-target candidates. Their source link resolves through controlled public-safe metadata for `E/ECE/TRANS/505/Rev.3/Add.151/Rev.2`. Applicability remains candidate-only, and target definitions, conditions, response criteria, tolerances, and uncertainty remain gaps.
 
 ## Quantified regulatory candidate control
 
-No quantified regulatory System 1 candidate is added in this increment. The repository does not control an exact public-safe source version, digest, clause identity, amendment state, applicability decision, tolerances, measurement uncertainty, repetitions, or authority interpretation. `SRC-UNECE-R152` therefore remains a regulatory anchor with `source_identity_status: gap`; quantified candidates are deferred rather than invented.
+No quantified regulatory System 1 candidate is added in this increment. The repository now controls an exact public-safe source identity, revision, digest, and selected clause anchors. It does not establish vehicle-category applicability, amendment-selection rationale, authority interpretation, full tolerance treatment, measurement uncertainty, or promotion into product obligations. Quantified candidates are therefore deferred rather than invented.
 
 ## Traceability matrix
 
@@ -139,8 +139,8 @@ No quantified regulatory System 1 candidate is added in this increment. The repo
 | `GAP-AEBS-REQ-010` | Requirement satisfaction remains deferred until concrete satisfying features exist. |
 | `GAP-AEBS-REQ-011` | Complete non-activation scenarios, observation windows, classification rules, and false-reaction tolerances remain undefined. |
 | `GAP-AEBS-REQ-012` | Degraded/unavailable state ownership, transition timing, indication behavior, and safe-operation response remain undefined. |
-| `GAP-AEBS-REQ-013` | Exact regulatory source version, digest, clause identities, amendment status, and applicability decision are not controlled here. |
-| `GAP-AEBS-REQ-014` | Quantified thresholds, tolerances, uncertainty, repetitions, and authority interpretation are deferred. |
+| `GAP-AEBS-REQ-013` | Source identity is controlled, but amendment-selection rationale, vehicle-category applicability, and authority interpretation remain unresolved. |
+| `GAP-AEBS-REQ-014` | Promotion of quantified thresholds into System 1 obligations, complete tolerance treatment, uncertainty, and repetition interpretation are deferred. |
 | `GAP-AEBS-REQ-015` | Pedestrian target definition, conditions, response criteria, and applicability remain unresolved. |
 | `GAP-AEBS-REQ-016` | Bicycle target definition, conditions, response criteria, and applicability remain unresolved. |
 

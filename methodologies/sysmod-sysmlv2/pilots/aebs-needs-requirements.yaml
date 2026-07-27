@@ -54,19 +54,24 @@ source_alignment:
       - This file does not copy source text and does not assert compliance.
 
 regulatory_candidate_control:
-  source_id: SRC-UNECE-R152
-  source_identity_status: gap
+  source_id: E/ECE/TRANS/505/Rev.3/Add.151/Rev.2
+  source_alias: SRC-UNECE-R152
+  source_identity_status: controlled_public_safe_metadata
+  source_metadata_artifact: methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml
+  source_original_sha256: dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de
   applicability_status: candidate_not_authoritatively_determined
-  quantified_candidate_status: deferred
+  quantified_candidate_status: derivation_deferred
   quantified_candidates: []
   gap_ids:
     - GAP-AEBS-REQ-013
     - GAP-AEBS-REQ-014
   rationale: >-
-    The repository does not control an exact public-safe source version, digest,
-    clause identity, applicability decision, tolerances, or measurement
-    uncertainty for quantified criteria. No numeric System 1 obligation is
-    derived until those inputs are controlled and reviewed.
+    The repository controls a public-safe source identity, revision, digest, and
+    selected clause anchors. Vehicle-category applicability, amendment-selection
+    rationale, authority interpretation, tolerances outside the selected source
+    tables, measurement uncertainty, and promotion of clause-derived System 1
+    obligations remain unresolved. No numeric System 1 obligation is derived
+    until those inputs are controlled and reviewed.
 
 system_of_interest:
   system_1: SDV product line whose member products are required to realize the AEBS common capability.
@@ -380,7 +385,7 @@ requirements:
     verification_method: test
     validation_reference: VAL-AEBS-006
     evidence_status: gap
-    acceptance_criterion: "TBD: control source identity, applicability, target definition, conditions, response, tolerances, and uncertainty."
+    acceptance_criterion: "TBD: determine applicability and control target definition, conditions, response, tolerances, and uncertainty."
     known_gaps:
       - GAP-AEBS-REQ-013
       - GAP-AEBS-REQ-015
@@ -400,7 +405,7 @@ requirements:
     verification_method: test
     validation_reference: VAL-AEBS-007
     evidence_status: gap
-    acceptance_criterion: "TBD: control source identity, applicability, target definition, conditions, response, tolerances, and uncertainty."
+    acceptance_criterion: "TBD: determine applicability and control target definition, conditions, response, tolerances, and uncertainty."
     known_gaps:
       - GAP-AEBS-REQ-013
       - GAP-AEBS-REQ-016
@@ -477,9 +482,9 @@ gaps:
   - id: GAP-AEBS-REQ-012
     statement: Degraded/unavailable state ownership, transition timing, indication behavior, and safe-operation response remain undefined.
   - id: GAP-AEBS-REQ-013
-    statement: Exact regulatory source version, digest, clause identities, amendment status, and applicability decision are not controlled in this public artifact.
+    statement: Source identity is controlled, but amendment-selection rationale, vehicle-category applicability, and authority interpretation remain unresolved.
   - id: GAP-AEBS-REQ-014
-    statement: Quantified regulatory thresholds, tolerances, measurement uncertainty, repetitions, and authority interpretation are deferred pending controlled source metadata.
+    statement: Promotion of quantified thresholds into System 1 obligations, complete tolerance treatment, measurement uncertainty, and repetition interpretation remain deferred.
   - id: GAP-AEBS-REQ-015
     statement: Pedestrian target definition, operating conditions, response criteria, and applicability remain unresolved.
   - id: GAP-AEBS-REQ-016
@@ -513,12 +518,12 @@ traceability:
     relation: derives
     to:
       - REQ-AEBS-010
-    status: draft_with_source_and_applicability_gaps
+    status: draft_with_applicability_and_criteria_gaps
   - from: N-AEBS-007
     relation: derives
     to:
       - REQ-AEBS-011
-    status: draft_with_source_and_applicability_gaps
+    status: draft_with_applicability_and_criteria_gaps
   - from: SRC-UNECE-R152
     relation: constrains_scope_of
     to:

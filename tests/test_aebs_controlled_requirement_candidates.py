@@ -72,13 +72,20 @@ def test_override_false_reaction_and_degraded_candidates_keep_open_criteria_visi
     assert degraded["maturity"] == "draft_requirement_with_gap"
 
 
-def test_quantified_regulatory_candidates_fail_closed_without_controlled_source_identity():
+def test_quantified_regulatory_candidates_distinguish_controlled_source_from_open_applicability():
     data = _load()
     regulatory = data["regulatory_candidate_control"]
 
-    assert regulatory["source_id"] == "SRC-UNECE-R152"
-    assert regulatory["source_identity_status"] == "gap"
-    assert regulatory["quantified_candidate_status"] == "deferred"
+    assert regulatory["source_id"] == "E/ECE/TRANS/505/Rev.3/Add.151/Rev.2"
+    assert regulatory["source_identity_status"] == "controlled_public_safe_metadata"
+    assert regulatory["source_metadata_artifact"] == (
+        "methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml"
+    )
+    assert regulatory["source_original_sha256"] == (
+        "dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de"
+    )
+    assert regulatory["applicability_status"] == "candidate_not_authoritatively_determined"
+    assert regulatory["quantified_candidate_status"] == "derivation_deferred"
     assert regulatory["quantified_candidates"] == []
     assert regulatory["gap_ids"]
 

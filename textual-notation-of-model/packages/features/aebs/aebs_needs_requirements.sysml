@@ -155,7 +155,7 @@ package DE4SDV_AEBSNeedsRequirements {
         }
 
         requirement needPedestrianCollisionRiskReduction : PedestrianCollisionRiskNeed {
-          doc /* N-AEBS-006 draft need; SRC-UNECE-R152 identity and applicability remain controlled gaps. */
+          doc /* N-AEBS-006 draft need; the source identity is controlled while applicability remains an open gap. */
           subject productLine : SDVProductLine;
           stakeholder pedestrian : RoadUser;
           require constraint {
@@ -164,7 +164,7 @@ package DE4SDV_AEBSNeedsRequirements {
         }
 
         requirement needBicycleCollisionRiskReduction : BicycleCollisionRiskNeed {
-          doc /* N-AEBS-007 draft need; SRC-UNECE-R152 identity and applicability remain controlled gaps. */
+          doc /* N-AEBS-007 draft need; the source identity is controlled while applicability remains an open gap. */
           subject productLine : SDVProductLine;
           stakeholder cyclist : RoadUser;
           require constraint {
@@ -245,7 +245,7 @@ package DE4SDV_AEBSNeedsRequirements {
         }
 
         requirement reqPedestrianTargetResponse : FunctionalRequirementCandidate {
-          doc /* REQ-AEBS-010 draft candidate; target definition, source identity, applicability, criteria, tolerances, and uncertainty remain gaps. */
+          doc /* REQ-AEBS-010 draft candidate; target definition, applicability, criteria, tolerances, and uncertainty remain gaps. */
           subject memberProduct : ProductLineMemberProduct;
           require constraint {
             doc /* Each SDV product-line member product shall detect imminent forward collision risk with a pedestrian target and apply the defined AEBS response under controlled applicable pedestrian-target operating conditions. */
@@ -253,7 +253,7 @@ package DE4SDV_AEBSNeedsRequirements {
         }
 
         requirement reqBicycleTargetResponse : FunctionalRequirementCandidate {
-          doc /* REQ-AEBS-011 draft candidate; target definition, source identity, applicability, criteria, tolerances, and uncertainty remain gaps. */
+          doc /* REQ-AEBS-011 draft candidate; target definition, applicability, criteria, tolerances, and uncertainty remain gaps. */
           subject memberProduct : ProductLineMemberProduct;
           require constraint {
             doc /* Each SDV product-line member product shall detect imminent forward collision risk with a bicycle target and apply the defined AEBS response under controlled applicable bicycle-target operating conditions. */
