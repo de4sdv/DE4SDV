@@ -20,7 +20,8 @@ EXPECTED_USAGES = {
     "009E": {
         "clearPathNonActivationVerification009E",
         "adjacentObjectNonActivationVerification009E",
-        "falseReactionControlVerification009E",
+        "nonClosingTargetNonActivationVerification009E",
+        "belowTriggerNonActivationVerification009E",
     },
     "009F": {
         "staleInputVerification009F",
@@ -31,7 +32,10 @@ EXPECTED_USAGES = {
     },
     "009G": {"pedestrianTargetVerification009G"},
     "009H": {"bicycleTargetVerification009H"},
-    "009I": {"configurationBoundedCriterionVerification009I"},
+    "009I": {
+        "pedestrianCriterionVerification009I",
+        "bicycleCriterionVerification009I",
+    },
 }
 PRODUCT_TARGET = re.compile(r"\b(?:verify|satisfy)\s+(?:/\*.*?\*/\s*)?req\w+\s*;", re.DOTALL)
 
@@ -118,6 +122,33 @@ def test_009c_maps_all_five_scenario_outcomes_to_native_verdicts():
     assert "Map009COutcomeToVerdict" in code
 
 
+def test_every_case_deterministically_maps_a_typed_outcome_to_native_verdicts():
+    for increment, path in MODELS.items():
+        code = _without_comments(path.read_text(encoding="utf-8"))
+        assert f"enum def EvidenceOutcome{increment}" in code, increment
+        assert f"attribute outcome : EvidenceOutcome{increment};" in code, increment
+        assert f"calc def Map{increment}OutcomeToVerdict" in code, increment
+        assert (
+            f"out verdict : VerdictKind = Map{increment}OutcomeToVerdict(replayedEvaluation.outcome);"
+            in code
+        ), increment
+        for verdict in ("pass", "fail", "inconclusive", "error"):
+            assert f"VerdictKind::{verdict}" in code, increment
+
+
+def test_matrix_benches_bind_closed_scenario_identities():
+    expected_counts = {"009D": 6, "009E": 4, "009F": 5, "009I": 2}
+    for increment, expected_count in expected_counts.items():
+        code = _without_comments(MODELS[increment].read_text(encoding="utf-8"))
+        assert f"enum def ScenarioIdentity{increment}" in code
+        assert f"attribute scenario : ScenarioIdentity{increment};" in code
+        bindings = re.findall(
+            rf"attribute\s+:>>\s+scenario\s*=\s*ScenarioIdentity{increment}::\w+\s*;",
+            code,
+        )
+        assert len(bindings) == expected_count, increment
+
+
 def test_target_relevance_dependencies_match_target_specific_candidates_only():
     g = _without_comments(MODELS["009G"].read_text(encoding="utf-8"))
     h = _without_comments(MODELS["009H"].read_text(encoding="utf-8"))
@@ -138,7 +169,13 @@ def test_009i_models_source_criterion_measurement_and_provenance_as_fail_closed_
     ):
         assert f"verify {target};" in code
     source = MODELS["009I"].read_text(encoding="utf-8")
-    assert "controlled source identity" in source.lower()
     assert "source identity gap" not in source.lower()
+    assert "E/ECE/TRANS/505/Rev.3/Add.151/Rev.2" in source
+    assert "dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de" in source
+    assert "aebs-regulatory-source.yaml" in source
+    assert "aebs-regulatory-criteria.yaml" in source
+    assert "scripts/aebs_regulatory_criteria.py" in source
     assert "applicability" in source.lower()
+    assert "compliance" in source.lower()
+    assert "withheld" in source.lower()
     assert "@VerificationMethod{ kind = inspect; }" in code
