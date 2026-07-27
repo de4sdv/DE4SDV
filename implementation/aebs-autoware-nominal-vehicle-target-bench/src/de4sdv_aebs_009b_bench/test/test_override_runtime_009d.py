@@ -277,6 +277,25 @@ def test_warning_precursor_need_not_already_cross_native_intervention_threshold(
     assert result.passed
 
 
+def test_exact_authorization_waits_for_late_native_risk_precursor():
+    matrix = load_matrix_contract(
+        BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml"
+    )
+    items = [
+        item
+        for item in observations()
+        if item.kind is not ObservationKind.RISK_ASSESSMENT
+    ]
+    result = evaluate_profile(
+        matrix,
+        OverrideScenario.FRESH_TRUE_CONSCIOUS,
+        items,
+        window_end_receipt_s=10.5,
+    )
+    assert result.disposition is OverrideDisposition.INCONCLUSIVE_NATIVE_CHAIN
+    assert terminal_override_result(result) is None
+
+
 def test_clear_control_waits_for_braking_until_observation_window_closes():
     matrix = load_matrix_contract(
         BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml"

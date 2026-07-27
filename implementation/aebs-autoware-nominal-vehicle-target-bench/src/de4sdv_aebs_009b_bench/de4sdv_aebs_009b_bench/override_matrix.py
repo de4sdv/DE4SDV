@@ -230,6 +230,13 @@ def evaluate_override_scenario(
         ),
         None,
     )
+    if risk is None or warning is None:
+        return result(
+            False,
+            OverrideDisposition.INCONCLUSIVE_NATIVE_CHAIN,
+            False,
+            "native RSS/warning observations were incomplete",
+        )
     diagnostic = next(
         (
             (index, item)
@@ -279,13 +286,6 @@ def evaluate_override_scenario(
             "authorization did not exact-match the observed native AEB diagnostic source",
             risk[0] if risk else None,
             intervention[0] if intervention else None,
-        )
-    if risk is None or warning is None:
-        return result(
-            False,
-            OverrideDisposition.INCONCLUSIVE_NATIVE_CHAIN,
-            False,
-            "native RSS/warning observations were incomplete",
         )
     assert intervention is not None
 
