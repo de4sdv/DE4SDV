@@ -223,13 +223,13 @@ package DE4SDV_AEBS009BNominalEvidence {
   part bench : NominalMovingVehicleTargetBench009B;
 
   dependency evidenceObserverTracesWarningRequirement
-    from bench.evidenceObserver to req009BWarningLead;
+    from bench::evidenceObserver to req009BWarningLead;
   dependency evidenceObserverTracesOverrideRequirement
-    from bench.evidenceObserver to req009BFreshOverrideClear;
+    from bench::evidenceObserver to req009BFreshOverrideClear;
   dependency evidenceObserverTracesBrakingPathRequirement
-    from bench.evidenceObserver to req009BNominalBrakingPath;
+    from bench::evidenceObserver to req009BNominalBrakingPath;
   dependency evidenceObserverTracesReleaseRequirement
-    from bench.evidenceObserver to req009BVerifiedStopRelease;
+    from bench::evidenceObserver to req009BVerifiedStopRelease;
   dependency evidenceObserverTracesNoncollisionRequirement
-    from bench.evidenceObserver to req009BIndependentNoncollision;
+    from bench::evidenceObserver to req009BIndependentNoncollision;
 }
