@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "de4sdv.aebs-009c.scenario-evidence.v1",
+  "title": "DE4SDV AEBS 009C replayable scenario evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "scenario_id", "increment_id", "provenance", "collection", "collector_contract", "evaluation", "artifacts"],
+  "properties": {
+    "schema": {"const": "de4sdv.aebs-009c.scenario-evidence.v1"},
+    "scenario_id": {"const": "SCN-AEBS-009C-AEB-MRM-001"},
+    "increment_id": {"const": "INC-AEBS-009C"},
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "collection": {"$ref": "#/$defs/collection"},
+    "collector_contract": {"$ref": "#/$defs/collectorContract"},
+    "evaluation": {"$ref": "#/$defs/evaluation"},
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observer_raw", "observer_log", "launch_log", "run_metadata", "map_runtime"],
+      "properties": {
+        "observer_raw": {"$ref": "#/$defs/artifact"},
+        "observer_log": {"$ref": "#/$defs/artifact"},
+        "launch_log": {"$ref": "#/$defs/artifact"},
+        "run_metadata": {"$ref": "#/$defs/artifact"},
+        "map_runtime": {"$ref": "#/$defs/artifact"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "utc": {"type": "string", "format": "date-time", "pattern": "(?:Z|[+]00:00)$"},
+    "nullableText": {"type": ["string", "null"], "minLength": 1},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["captured_utc", "host_arch", "repository_head", "execution_manifest_sha256", "runtime_lock_sha256", "inherited_009a", "image_digest", "map_digest", "command_exit_code"],
+      "properties": {
+        "captured_utc": {"$ref": "#/$defs/utc"},
+        "host_arch": {"type": "string", "minLength": 1},
+        "repository_head": {"type": "string", "pattern": "^[0-9a-f]{40,64}$"},
+        "execution_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_lock_sha256": {"$ref": "#/$defs/sha256"},
+        "inherited_009a": {
+          "type": "object", "additionalProperties": false,
+          "required": ["execution_manifest_sha256", "runtime_lock_sha256"],
+          "properties": {
+            "execution_manifest_sha256": {"$ref": "#/$defs/sha256"},
+            "runtime_lock_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "image_digest": {"$ref": "#/$defs/digest"},
+        "map_digest": {"$ref": "#/$defs/digest"},
+        "command_exit_code": {"type": "integer", "minimum": 0, "maximum": 255}
+      }
+    },
+    "collection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["collector_id", "monotonic_start_s", "monotonic_end_s", "clock_boundary", "observations"],
+      "properties": {
+        "collector_id": {"const": "de4sdv.scenario_observer.v1"},
+        "monotonic_start_s": {"type": "number", "minimum": 0},
+        "monotonic_end_s": {"type": "number", "minimum": 0},
+        "clock_boundary": {"const": "Order and causality use only collector monotonic receipt timestamps; preserved source stamps and host UTC are provenance only, and DDS/network order is not independently proved."},
+        "observations": {"type": "array", "items": {"$ref": "#/$defs/observation"}}
+      }
+    },
+    "collectorContract": {
+      "type": "object", "additionalProperties": false,
+      "required": ["activation", "limits", "terminal_reason", "errors", "command_exit"],
+      "properties": {
+        "activation": {
+          "type": "object", "additionalProperties": false,
+          "required": ["request_time_s", "response_time_s", "status", "response_message"],
+          "properties": {
+            "request_time_s": {"type": ["number", "null"], "minimum": 0},
+            "response_time_s": {"type": ["number", "null"], "minimum": 0},
+            "status": {"enum": ["not_requested", "pending", "succeeded", "failed"]},
+            "response_message": {"type": ["string", "null"]}
+          }
+        },
+        "limits": {
+          "type": "object", "additionalProperties": false,
+          "required": ["timeout_s", "deadline_s", "observation_cap", "error_cap"],
+          "properties": {
+            "timeout_s": {"type": "number", "exclusiveMinimum": 0},
+            "deadline_s": {"type": "number", "minimum": 0},
+            "observation_cap": {"type": "integer", "minimum": 1},
+            "error_cap": {"type": "integer", "minimum": 1}
+          }
+        },
+        "terminal_reason": {"enum": ["pass_observed_chain", "activation_failed", "timeout", "operator_abort", "observer_exception", "inconclusive_instrumentation", "terminal_scenario_failure"]},
+        "errors": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "command_exit": {"type": "integer", "minimum": 0, "maximum": 255}
+      }
+    },
+    "observation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "receipt_monotonic_s", "source_stamp", "host_utc", "payload"],
+      "properties": {
+        "kind": {"enum": ["diagnostic", "aeb_intervention", "autonomous_availability", "mrm_state", "emergency_operator_status", "nominal_command", "emergency_command", "gate_emergency_status", "gate_command", "odometry", "target_publication", "instrument_status", "operator_abort"]},
+        "receipt_monotonic_s": {"type": "number", "minimum": 0},
+        "source_stamp": {"$ref": "#/$defs/nullableText"},
+        "host_utc": {"oneOf": [{"$ref": "#/$defs/utc"}, {"type": "null"}]},
+        "payload": {"type": "object"}
+      },
+      "oneOf": [
+        {"properties": {"kind": {"const": "diagnostic"}, "payload": {"$ref": "#/$defs/diagnosticPayload"}}},
+        {"properties": {"kind": {"const": "aeb_intervention"}, "payload": {"$ref": "#/$defs/aebInterventionPayload"}}},
+        {"properties": {"kind": {"const": "autonomous_availability"}, "payload": {"$ref": "#/$defs/availabilityPayload"}}},
+        {"properties": {"kind": {"const": "mrm_state"}, "payload": {"$ref": "#/$defs/mrmPayload"}}},
+        {"properties": {"kind": {"const": "emergency_operator_status"}, "payload": {"$ref": "#/$defs/operatorStatusPayload"}}},
+        {"properties": {"kind": {"const": "nominal_command"}, "payload": {"$ref": "#/$defs/commandPayload"}}},
+        {"properties": {"kind": {"const": "emergency_command"}, "payload": {"$ref": "#/$defs/commandPayload"}}},
+        {"properties": {"kind": {"const": "gate_emergency_status"}, "payload": {"$ref": "#/$defs/gateEmergencyPayload"}}},
+        {"properties": {"kind": {"const": "gate_command"}, "payload": {"$ref": "#/$defs/gatePayload"}}},
+        {"properties": {"kind": {"const": "odometry"}, "payload": {"$ref": "#/$defs/commandPayload"}}},
+        {"properties": {"kind": {"const": "target_publication"}, "payload": {"$ref": "#/$defs/targetPayload"}}},
+        {"properties": {"kind": {"const": "instrument_status"}, "payload": {"$ref": "#/$defs/instrumentPayload"}}},
+        {"properties": {"kind": {"const": "operator_abort"}, "payload": {"$ref": "#/$defs/abortPayload"}}}
+      ]
+    },
+    "diagnosticPayload": {
+      "type": "object", "additionalProperties": false, "required": ["node", "task", "level"],
+      "properties": {"node": {"type": "string", "minLength": 1}, "task": {"type": "string", "minLength": 1}, "level": {"enum": ["OK", "WARN", "ERROR", "STALE"]}}
+    },
+    "aebInterventionPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["message", "rss_distance_m", "object_distance_m", "object_speed_mps"],
+      "properties": {
+        "message": {"const": "[AEB]: Emergency Brake"},
+        "rss_distance_m": {"type": "number"},
+        "object_distance_m": {"type": "number"},
+        "object_speed_mps": {"type": "number"}
+      }
+    },
+    "availabilityPayload": {
+      "type": "object", "additionalProperties": false, "required": ["available"],
+      "properties": {"available": {"type": "boolean"}}
+    },
+    "mrmPayload": {
+      "type": "object", "additionalProperties": false, "required": ["state", "behavior"],
+      "properties": {"state": {"enum": ["NORMAL", "MRM_OPERATING", "MRM_SUCCEEDED", "MRM_FAILED"]}, "behavior": {"enum": ["NONE", "EMERGENCY_STOP"]}}
+    },
+    "operatorStatusPayload": {
+      "type": "object", "additionalProperties": false, "required": ["state"],
+      "properties": {"state": {"enum": ["NOT_AVAILABLE", "AVAILABLE", "OPERATING", "SUCCEEDED", "FAILED"]}}
+    },
+    "commandPayload": {
+      "type": "object", "additionalProperties": false, "required": ["speed_mps", "acceleration_mps2"],
+      "properties": {"speed_mps": {"type": "number"}, "acceleration_mps2": {"type": "number"}}
+    },
+    "gatePayload": {
+      "type": "object", "additionalProperties": false, "required": ["path", "acceleration_mps2"],
+      "properties": {"path": {"enum": ["nominal", "emergency"]}, "acceleration_mps2": {"type": "number"}}
+    },
+    "gateEmergencyPayload": {
+      "type": "object", "additionalProperties": false, "required": ["emergency"],
+      "properties": {"emergency": {"type": "boolean"}}
+    },
+    "targetPayload": {
+      "type": "object", "additionalProperties": false, "required": ["identity", "frame", "x", "y", "yaw_rad"],
+      "properties": {"identity": {"type": "string", "minLength": 1}, "frame": {"type": "string", "minLength": 1}, "x": {"type": "number"}, "y": {"type": "number"}, "yaw_rad": {"type": "number"}}
+    },
+    "instrumentPayload": {
+      "type": "object", "additionalProperties": false, "required": ["topic", "available"],
+      "properties": {"topic": {"enum": ["/diagnostics", "/system/operation_mode/availability", "/system/fail_safe/mrm_state", "/system/mrm/emergency_stop/status", "/control/trajectory_follower/control_cmd", "/control/command/control_cmd", "/localization/kinematic_state"]}, "available": {"type": "boolean"}}
+    },
+    "abortPayload": {
+      "type": "object", "additionalProperties": false, "required": ["reason"],
+      "properties": {"reason": {"type": "string", "minLength": 1}}
+    },
+    "evaluation": {
+      "type": "object", "additionalProperties": false, "required": ["outcome", "accepted_events", "reasons", "details"],
+      "properties": {
+        "outcome": {"enum": ["pass_observed_chain", "fail_scenario", "inconclusive_precondition", "inconclusive_instrumentation", "aborted"]},
+        "accepted_events": {"type": "array", "items": {"$ref": "#/$defs/eventReference"}},
+        "reasons": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "details": {"$ref": "#/$defs/details"}
+      }
+    },
+    "eventReference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["label", "observation_index", "kind", "receipt_monotonic_s", "source_stamp", "host_utc"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "observation_index": {"type": "integer", "minimum": 0},
+        "kind": {"enum": ["diagnostic", "aeb_intervention", "autonomous_availability", "mrm_state", "emergency_operator_status", "nominal_command", "emergency_command", "gate_emergency_status", "gate_command", "odometry", "target_publication", "instrument_status", "operator_abort"]},
+        "receipt_monotonic_s": {"type": "number", "minimum": 0},
+        "source_stamp": {"$ref": "#/$defs/nullableText"},
+        "host_utc": {"oneOf": [{"$ref": "#/$defs/utc"}, {"type": "null"}]}
+      }
+    },
+    "details": {
+      "type": "object", "additionalProperties": false,
+      "required": ["clock_order_domain", "source_stamp_comparison", "accepted_receipt_times_s", "clock_provenance"],
+      "properties": {
+        "clock_order_domain": {"const": "collector_monotonic_within_one_collector"},
+        "source_stamp_comparison": {"const": "forbidden"},
+        "accepted_receipt_times_s": {"type": "array", "items": {"type": "number", "minimum": 0}},
+        "clock_provenance": {"type": "array", "items": {"type": "array", "prefixItems": [{"$ref": "#/$defs/nullableText"}, {"oneOf": [{"$ref": "#/$defs/utc"}, {"type": "null"}]}], "items": false, "minItems": 2, "maxItems": 2}},
+        "unavailable_inputs": {"type": "array", "items": {"type": "string"}},
+        "missing_inputs": {"type": "array", "items": {"type": "string"}},
+        "failed_event": {"type": "string", "minLength": 1},
+        "baseline_interval_start_s": {"type": "number", "minimum": 0},
+        "baseline_stable_at_s": {"type": "number", "minimum": 0},
+        "target_identity": {"type": "string", "minLength": 1},
+        "target_map_pose": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "pre_selection_speed_mps": {"type": ["number", "null"]},
+        "response_speed_mps": {"type": "number"},
+        "emergency_acceleration_mps2": {"type": "number"},
+        "gate_acceleration_mps2": {"type": "number"}
+      }
+    },
+    "artifact": {
+      "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}
