@@ -177,10 +177,13 @@ def test_regulatory_source_aggregate_exactly_matches_explicit_record_links():
         for record in data[section]
         if "SRC-UNECE-R152" in record.get("source_links", [])
     }
-    aggregate = next(
+    aggregates = [
         trace
         for trace in data["traceability"]
         if trace["from"] == "SRC-UNECE-R152"
         and trace["relation"] == "constrains_scope_of"
-    )
-    assert set(aggregate["to"]) == linked
+    ]
+    assert len(aggregates) == 1
+    targets = aggregates[0]["to"]
+    assert len(targets) == len(set(targets))
+    assert set(targets) == linked

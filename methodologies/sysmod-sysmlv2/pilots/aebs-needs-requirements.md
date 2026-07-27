@@ -158,7 +158,7 @@ Methods, candidate criteria, and evidence status are maintained in the separate 
 |---|---|---|---|
 | `VAL-AEBS-001` | `N-AEBS-001` | stakeholder scenario review | Do the draft requirements preserve the stakeholder-visible vehicle-target collision-risk mitigation intent without exceeding the operational slice? |
 | `VAL-AEBS-002` | `N-AEBS-002` | inspection | Are assumptions and out-of-scope cases still visible after requirements are derived? |
-| `VAL-AEBS-003` | `N-AEBS-003` | inspection | Does the requirement set keep AEBS framed as product-line common capability before variation modeling? |
+| `VAL-AEBS-003` | `N-AEBS-003` | inspection | Does the requirement set keep AEBS framed as product-line common capability while deferring variable realization choices to native SysML v2 variation and variant modeling? |
 | `VAL-AEBS-004` | `N-AEBS-004` | inspection | Are regulatory assumptions traceable without compliance wording or copied source text? |
 | `VAL-AEBS-005` | `N-AEBS-005` | inspection | Does every requirement have a separate controlled V&V planning attachment and visible unresolved criteria gaps? |
 | `VAL-AEBS-006` | `N-AEBS-006` | pedestrian stakeholder and applicability review | Does the pedestrian candidate preserve distinct intent without importing vehicle criteria or implying regulatory acceptance? |
