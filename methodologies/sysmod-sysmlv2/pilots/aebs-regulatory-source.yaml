@@ -1,0 +1,27 @@
+schema: de4sdv.aebs-regulatory-source.v1
+source_id: E/ECE/TRANS/505/Rev.3/Add.151/Rev.2
+document_date: "2023-06-15"
+series: 02 series of amendments
+original_sha256: dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de
+extraction_sha256: 18131a63a1ff656fc4c9e8d8df829b40994b6577912bb6834b4c5d975b863fdd
+selected_clause_anchors:
+  driver_interruption: [5.3.1, 5.3.2]
+  pedestrian_performance: [5.2.2.1, 5.2.2.2, 5.2.2.4]
+  bicycle_performance: [5.2.3.1, 5.2.3.2, 5.2.3.4]
+  test_conditions: [6.1, 6.2]
+  target_fidelity: [6.3.2, 6.3.3, 6.3.4]
+  pedestrian_procedure: [6.6.1, 6.6.2]
+  bicycle_procedure: [6.7.1, 6.7.2]
+  robustness: [6.10.1, 6.10.2, 6.10.3]
+applicability:
+  status: candidate_source_baseline
+  vehicle_category: unresolved
+  current_legal_applicability: not_established
+  authority_interpretation: not_established
+  amendment_selection_rationale: not_established
+claim_boundary:
+  source_text_committed: false
+  compliance_claim_permitted: false
+  homologation_claim_permitted: false
+  type_approval_claim_permitted: false
+  allowed_result: configuration-bounded criterion and evidence-fitness result
