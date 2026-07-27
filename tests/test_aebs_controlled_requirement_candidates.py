@@ -167,3 +167,20 @@ def test_quantified_regulatory_candidates_distinguish_controlled_source_from_ope
     )
     for requirement in data["requirements"]:
         assert not forbidden_claim.search(requirement["statement"])
+
+
+def test_regulatory_source_aggregate_exactly_matches_explicit_record_links():
+    data = _load()
+    linked = {
+        record["id"]
+        for section in ("needs", "requirements")
+        for record in data[section]
+        if "SRC-UNECE-R152" in record.get("source_links", [])
+    }
+    aggregate = next(
+        trace
+        for trace in data["traceability"]
+        if trace["from"] == "SRC-UNECE-R152"
+        and trace["relation"] == "constrains_scope_of"
+    )
+    assert set(aggregate["to"]) == linked

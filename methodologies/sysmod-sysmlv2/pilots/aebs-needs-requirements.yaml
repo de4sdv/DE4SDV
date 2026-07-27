@@ -599,7 +599,7 @@ validation_scenarios:
     validates_need: N-AEBS-003
     method: inspection
     status: planned
-    question: Does the requirement set keep AEBS framed as product-line common capability while deferring variable realization choices to native variation/variant modeling?
+    question: Does the requirement set keep AEBS framed as product-line common capability while deferring variable realization choices to native SysML v2 variation and variant modeling?
     evidence_artifact: planned product-line classification review note
   - id: VAL-AEBS-004
     validates_need: N-AEBS-004
@@ -648,7 +648,7 @@ gaps:
   - id: GAP-AEBS-REQ-007
     statement: AEBS failure detection, indication, and safe-operation criteria remain undefined.
   - id: GAP-AEBS-REQ-008
-    statement: Product-line variation points are not yet modeled; they must not weaken the common AEBS capability obligation across member products.
+    statement: Native SysML v2 variation and variant choices are not yet modeled; they must not weaken the common AEBS capability obligation across member products.
   - id: GAP-AEBS-REQ-009
     statement: VSS signal candidates are intentionally deferred until the functional-interface increment.
   - id: GAP-AEBS-REQ-010
@@ -723,15 +723,9 @@ traceability:
   - from: SRC-UNECE-R152
     relation: constrains_scope_of
     to:
-      - N-AEBS-001
       - N-AEBS-006
       - N-AEBS-007
       - N-AEBS-008
-      - REQ-AEBS-001
-      - REQ-AEBS-002
-      - REQ-AEBS-003
-      - REQ-AEBS-004
-      - REQ-AEBS-005
       - REQ-AEBS-008
       - REQ-AEBS-009
       - REQ-AEBS-010
