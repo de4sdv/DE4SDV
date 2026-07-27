@@ -175,7 +175,7 @@ def validate_increments(document: dict) -> list[str]:
         errors.append("increments must contain each bounded 009A through 009I increment exactly once")
     expected_status = {
         "INC-AEBS-009A": "readiness_proven_no_scenario",
-        "INC-AEBS-009B": "replayable_evidence_generated_pending_review",
+        "INC-AEBS-009B": "merged_replayable_nominal_moving_target_evidence",
         "INC-AEBS-009C": "merged_partial_native_intervention_to_mrm_evidence",
         **{f"INC-AEBS-009{suffix}": "planned" for suffix in "DEFGHI"},
     }

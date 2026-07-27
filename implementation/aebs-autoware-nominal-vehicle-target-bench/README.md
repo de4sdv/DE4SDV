@@ -12,6 +12,17 @@ This bench provides **bounded, replayable nominal-path evidence** for `INC-AEBS-
 
 The coordinator telemetry is **not** a second native collision-risk implementation. Native RSS remains the collision-assessment input; the warning margin is coordinator-derived and labeled as such.
 
+## Increment ownership
+
+- INC-AEBS-009B owns nominal moving-vehicle-target evidence;
+- INC-AEBS-009C owns partial stationary-target native intervention-to-MRM/gate evidence;
+- INC-AEBS-009D owns conscious driver override;
+- INC-AEBS-009E owns non-activation and false-reaction scenarios;
+- INC-AEBS-009F owns failed and degraded operation;
+- INC-AEBS-009G owns pedestrian-target scenarios;
+- INC-AEBS-009H owns bicycle-target scenarios; and
+- INC-AEBS-009I owns source-backed quantified criteria.
+
 ## Evidence boundary
 
 The retained evidence demonstrates only the configured simulation chain. It does **not** establish:

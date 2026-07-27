@@ -12,7 +12,7 @@ increments:
       - regulatory compliance or type approval
 
   - id: INC-AEBS-009B
-    status: replayable_evidence_generated_pending_review
+    status: merged_replayable_nominal_moving_target_evidence
     acceptance_boundary:
       - a moving subject vehicle closes on a same-lane moving vehicle target
       - native Autoware AEB RSS assessment and exact intervention diagnostic are observed
