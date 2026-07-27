@@ -1,8 +1,7 @@
-from pathlib import Path
 import re
+from pathlib import Path
 
 import yaml
-
 
 ROOT = Path(__file__).parents[1]
 YAML_PATH = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml"
@@ -89,6 +88,8 @@ def test_quantified_regulatory_candidates_distinguish_controlled_source_from_ope
     assert regulatory["quantified_candidates"] == []
     assert regulatory["gap_ids"]
 
-    forbidden_claim = re.compile(r"\b(?:compliant|certified|homologated|type[- ]approved)\b", re.I)
+    forbidden_claim = re.compile(
+        r"\b(?:compliant|certified|homologated|type[- ]approved)\b", re.IGNORECASE
+    )
     for requirement in data["requirements"]:
         assert not forbidden_claim.search(requirement["statement"])
