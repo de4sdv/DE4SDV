@@ -2,7 +2,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml"
 
