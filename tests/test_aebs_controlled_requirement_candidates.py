@@ -8,12 +8,15 @@ YAML_PATH = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.
 MARKDOWN_PATH = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.md"
 MODEL_PATH = ROOT / "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml"
 
-EXPECTED_SYSTEM1_NEEDS = {
+EXPECTED_SYSTEM1_PRODUCT_LINE_NEEDS = {
     "N-AEBS-001",
     "N-AEBS-006",
     "N-AEBS-007",
+}
+EXPECTED_SYSTEM1_MEMBER_NEEDS = {
     "N-AEBS-008",
 }
+EXPECTED_SYSTEM1_NEEDS = EXPECTED_SYSTEM1_PRODUCT_LINE_NEEDS | EXPECTED_SYSTEM1_MEMBER_NEEDS
 EXPECTED_SYSTEM1_REQUIREMENTS = {
     "REQ-AEBS-001",
     "REQ-AEBS-002",
@@ -59,10 +62,15 @@ def test_system_sets_are_aligned_across_control_artifacts():
     assert expected_requirements <= requirement_ids
 
     sets = {item["id"]: item for item in data["controlled_sets"]}
-    assert set(sets["SET-AEBS-S1-NEEDS"]["members"]) == EXPECTED_SYSTEM1_NEEDS
+    assert set(sets["SET-AEBS-S1-NEEDS"]["members"]) == EXPECTED_SYSTEM1_PRODUCT_LINE_NEEDS
+    assert sets["SET-AEBS-S1-NEEDS"]["entity"] == "SDV product line"
+    assert set(sets["SET-AEBS-S1-MEMBER-NEEDS"]["members"]) == EXPECTED_SYSTEM1_MEMBER_NEEDS
+    assert sets["SET-AEBS-S1-MEMBER-NEEDS"]["entity"] == "SDV product-line member product"
     assert set(sets["SET-AEBS-S1-REQS"]["members"]) == EXPECTED_SYSTEM1_REQUIREMENTS
     assert set(sets["SET-AEBS-S2-NEEDS"]["members"]) == EXPECTED_SYSTEM2_NEEDS
     assert set(sets["SET-AEBS-S2-REQS"]["members"]) == EXPECTED_SYSTEM2_REQUIREMENTS
+    assert sets["SET-AEBS-S2-NEEDS"]["entity"] == "DE4SDV AEBS increment"
+    assert sets["SET-AEBS-S2-REQS"]["entity"] == "DE4SDV AEBS increment"
 
     for record_id in expected_needs | expected_requirements:
         assert f"`{record_id}`" in markdown

@@ -87,7 +87,7 @@ package DE4SDV_AEBSNeedsRequirements {
           }
           requirement needBoundedDegradationAndAvailability : ProductSafetyAvailabilityNeed {
             doc /* N-AEBS-008 draft System 1 safety and availability need. */
-            subject productLine : SDVProductLine;
+            subject memberProduct : ProductLineMemberProduct;
             stakeholder roadUser : RoadUser;
             stakeholder occupant : VehicleOccupant;
             require constraint { doc /* Road users and vehicle occupants need each SDV product-line member product to manage AEBS degradation so that behavior remains bounded and AEBS availability is apparent when required inputs or AEBS functions are not healthy. */ }
@@ -165,30 +165,30 @@ package DE4SDV_AEBSNeedsRequirements {
             doc /* N-AEBS-002 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder systemsEngineer : SystemsEngineer;
-            require constraint { doc /* Systems engineers need the AEBS operational boundary, assumptions, source constraints, and out-of-scope cases to stay explicit while draft requirements are derived. */ }
+            require constraint { doc /* Systems engineers need the DE4SDV AEBS increment to keep its operational boundary, assumptions, source constraints, and out-of-scope cases explicit while draft requirements are derived. */ }
           }
           requirement needProductLineClassification : ProductLineClassificationNeed {
             doc /* N-AEBS-003 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder productLineEngineer : ProductLineEngineer;
-            require constraint { doc /* Product-line engineers need the AEBS model baseline to keep common-capability and variation classifications explicit without weakening the System 1 capability. */ }
+            require constraint { doc /* Product-line engineers need the DE4SDV AEBS increment to keep AEBS classified as a common capability, with native SysML v2 variation and variant choices modeled separately without weakening the System 1 capability. */ }
           }
           requirement needVisibleRegulatoryAssumptions : RegulatoryVisibilityNeed {
             doc /* N-AEBS-004 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder complianceEngineer : ComplianceEngineer;
-            require constraint { doc /* Compliance engineers need regulatory assumptions, controlled source references, and open applicability and interpretation gaps visible without implying compliance or type approval. */ }
+            require constraint { doc /* Compliance engineers need the DE4SDV AEBS increment to keep regulatory assumptions, controlled source references, and open applicability and interpretation gaps visible without implying compliance or type approval. */ }
           }
           requirement needRequirementVVPlanning : VerificationPlanningNeed {
             doc /* N-AEBS-005 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder verificationEngineer : VerificationEngineer;
-            require constraint { doc /* Verification engineers need each draft AEBS requirement to have a separate controlled V&V planning attachment without changing the product obligation. */ }
+            require constraint { doc /* Verification engineers need the DE4SDV AEBS increment to maintain a separate controlled V&V planning attachment for each draft AEBS requirement without changing the product obligation. */ }
           }
           requirement reqKeepProductLineClassificationExplicit : ProductLineConstraintRequirementCandidate {
             doc /* REQ-AEBS-006 System 2 candidate. */
             subject increment : NeedsRequirementsIncrement;
-            require constraint { doc /* The AEBS model baseline shall keep common-capability, feature, and variation-point classifications explicit for each AEBS behavior or scope element. */ }
+            require constraint { doc /* The DE4SDV AEBS increment shall keep common-capability, feature, and native SysML v2 variation and variant classifications explicit for each AEBS behavior or scope element in its model baseline. */ }
           }
           requirement reqTraceRequirementVVAndGaps : TraceabilityConstraintRequirementCandidate {
             doc /* REQ-AEBS-007 System 2 candidate. */
@@ -198,9 +198,27 @@ package DE4SDV_AEBSNeedsRequirements {
           requirement reqTraceEvidenceContractsToControlledBoundary : EvidenceContractTraceabilityRequirementCandidate {
             doc /* REQ-AEBS-S2-001 System 2 evidence-contract candidate derived only from N-AEBS-002. */
             subject increment : NeedsRequirementsIncrement;
-            require constraint { doc /* The DE4SDV AEBS evidence-contract baseline shall trace each evidence contract to its controlled operational boundary, assumptions, source constraints, and exclusions. */ }
+            require constraint { doc /* The DE4SDV AEBS increment shall maintain trace links from each AEBS evidence contract to its controlled operational boundary, assumptions, source constraints, and exclusions. */ }
           }
         }
+
+        dependency req001DerivedFromNeed001 from reqDetectForwardCollisionRisk to needCommonAEBSCapability;
+        dependency req002DerivedFromNeed001 from reqProvideCollisionWarning to needCommonAEBSCapability;
+        dependency req003DerivedFromNeed001 from reqCommandEmergencyBraking to needCommonAEBSCapability;
+        dependency req004DerivedFromNeed001 from reqAllowDriverOverride to needCommonAEBSCapability;
+        dependency req008DerivedFromNeed001 from reqResistFalseReaction to needCommonAEBSCapability;
+        dependency req012DerivedFromNeed001 from reqResistFalseBrakingCommand to needCommonAEBSCapability;
+        dependency req005DerivedFromNeed008 from reqDetectAEBSFailureCondition to needBoundedDegradationAndAvailability;
+        dependency req009DerivedFromNeed008 from reqHandleDegradedUnavailableInputs to needBoundedDegradationAndAvailability;
+        dependency req013DerivedFromNeed008 from reqIndicateDegradedUnavailableStatus to needBoundedDegradationAndAvailability;
+        dependency req010DerivedFromNeed006 from reqPedestrianTargetResponse to needPedestrianCollisionRiskReduction;
+        dependency req014DerivedFromNeed006 from reqPedestrianTargetControlledResponse to needPedestrianCollisionRiskReduction;
+        dependency req011DerivedFromNeed007 from reqBicycleTargetResponse to needBicycleCollisionRiskReduction;
+        dependency req015DerivedFromNeed007 from reqBicycleTargetControlledResponse to needBicycleCollisionRiskReduction;
+        dependency req006DerivedFromNeed003 from reqKeepProductLineClassificationExplicit to needProductLineClassification;
+        dependency req007DerivedFromNeed004 from reqTraceRequirementVVAndGaps to needVisibleRegulatoryAssumptions;
+        dependency req007DerivedFromNeed005 from reqTraceRequirementVVAndGaps to needRequirementVVPlanning;
+        dependency reqS2001DerivedFromNeed002 from reqTraceEvidenceContractsToControlledBoundary to needExplicitOperationalBoundary;
 
         public import System1Product::*;
         public import System2EngineeringAssurance::*;

@@ -62,15 +62,26 @@ def test_each_increment_has_native_case_one_objective_and_explicit_data_pipeline
     for increment, path in MODELS.items():
         code = _without_comments(path.read_text(encoding="utf-8"))
         definitions = re.findall(r"verification def (\w+)", code)
-        assert len(definitions) == 1, increment
-        body = _braced_body(code, f"verification def {definitions[0]}")
-        assert len(re.findall(r"\bobjective\b", body)) == 1, increment
-        assert "action collectData" in body
-        assert "action processData" in body
-        assert "action evaluateData" in body
-        assert "return verdict : VerdictKind = evaluateData.verdict;" in body
-        assert re.search(r"\bsubject\s+verifiedBench\s*:\s*\w+Bench\w*;", body)
+        assert definitions, increment
+        for definition in definitions:
+            body = _braced_body(code, f"verification def {definition}")
+            assert len(re.findall(r"\bobjective\b", body)) == 1, (increment, definition)
+            assert "action collectData" in body
+            assert "action processData" in body
+            assert "action evaluateData" in body
+            assert "return verdict : VerdictKind = evaluateData.verdict;" in body
+            assert re.search(r"\bsubject\s+verifiedBench\s*:\s*\w+Bench\w*;", body)
         assert "perform " in code
+
+
+def test_009i_target_cases_verify_only_their_applicable_criterion_contract():
+    code = _without_comments(MODELS["009I"].read_text(encoding="utf-8"))
+    pedestrian = _braced_body(code, "verification def PedestrianCriterionVerification009I")
+    bicycle = _braced_body(code, "verification def BicycleCriterionVerification009I")
+    assert "verify evidenceContract009IPedestrianApplicableCriterion;" in pedestrian
+    assert "verify evidenceContract009IBicycleApplicableCriterion;" not in pedestrian
+    assert "verify evidenceContract009IBicycleApplicableCriterion;" in bicycle
+    assert "verify evidenceContract009IPedestrianApplicableCriterion;" not in bicycle
 
 
 def test_only_system2_evidence_contracts_are_verification_targets():

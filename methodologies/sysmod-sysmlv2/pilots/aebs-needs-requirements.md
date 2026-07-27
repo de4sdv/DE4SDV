@@ -51,11 +51,12 @@ The SysML v2 model represents this as a `ProblemStatement` requirement inside a 
 
 ## Controlled set partition
 
-The baseline is partitioned by responsible system and entity level. System 1 records state stakeholder outcomes and product design inputs for the SDV product line and its member products. System 2 records state obligations on the DE4SDV engineering and assurance system, its model baseline, increment, and evidence-contract baseline. System 2 visibility or evidence-governance needs are not parents of System 1 product behavior.
+The baseline is partitioned by responsible system and one entity per set. Product-line needs, member-product needs, member-product design inputs, and obligations on the DE4SDV AEBS increment are controlled separately. System 2 visibility or evidence-governance needs are not parents of System 1 product behavior.
 
 | Set | System | Controlled members |
 |---|---|---|
-| `SET-AEBS-S1-NEEDS` | System 1 product needs | `N-AEBS-001`, `N-AEBS-006`, `N-AEBS-007`, `N-AEBS-008` |
+| `SET-AEBS-S1-NEEDS` | System 1 product-line needs | `N-AEBS-001`, `N-AEBS-006`, `N-AEBS-007` |
+| `SET-AEBS-S1-MEMBER-NEEDS` | System 1 member-product needs | `N-AEBS-008` |
 | `SET-AEBS-S1-REQS` | System 1 product requirements | `REQ-AEBS-001`–`REQ-AEBS-005`, `REQ-AEBS-008`–`REQ-AEBS-015` |
 | `SET-AEBS-S2-NEEDS` | System 2 engineering-assurance needs | `N-AEBS-002`–`N-AEBS-005` |
 | `SET-AEBS-S2-REQS` | System 2 engineering-assurance requirements | `REQ-AEBS-006`, `REQ-AEBS-007`, `REQ-AEBS-S2-001` |
@@ -75,10 +76,10 @@ The baseline is partitioned by responsible system and entity level. System 1 rec
 
 | ID | Stakeholder | Need |
 |---|---|---|
-| `N-AEBS-002` | systems engineer | Systems engineers need the AEBS operational boundary, assumptions, source constraints, and out-of-scope cases to stay explicit while draft requirements are derived. |
-| `N-AEBS-003` | product-line engineer | Product-line engineers need AEBS to remain classified as a product-line common capability required across member products, with variation points modeled separately instead of weakening the common-capability classification. |
-| `N-AEBS-004` | compliance engineer | Compliance engineers need regulatory assumptions, source references, and open interpretation gaps to be visible without implying UNECE R152 compliance or type approval. |
-| `N-AEBS-005` | verification engineer | Verification engineers need each draft AEBS requirement to have a separate, controlled V&V planning attachment that identifies planned method, evidence status, and explicit criteria gaps without changing the product obligation. |
+| `N-AEBS-002` | systems engineer | Systems engineers need the DE4SDV AEBS increment to keep its operational boundary, assumptions, source constraints, and out-of-scope cases explicit while draft requirements are derived. |
+| `N-AEBS-003` | product-line engineer | Product-line engineers need the DE4SDV AEBS increment to keep AEBS classified as a product-line common capability, with native SysML v2 variation and variant choices modeled separately. |
+| `N-AEBS-004` | compliance engineer | Compliance engineers need the DE4SDV AEBS increment to keep regulatory assumptions, source references, and open interpretation gaps visible without implying UNECE R152 compliance or type approval. |
+| `N-AEBS-005` | verification engineer | Verification engineers need the DE4SDV AEBS increment to maintain a separate, controlled V&V planning attachment for each draft AEBS requirement without changing the product obligation. |
 
 ## Requirement quality gate
 
@@ -124,9 +125,9 @@ Normative requirement expressions are listed independently from V&V methods, cri
 
 | ID | Type | Candidate requirement |
 |---|---|---|
-| `REQ-AEBS-006` | product-line model constraint | The AEBS model baseline shall keep common-capability, feature, and variation-point classifications explicit for each AEBS behavior or scope element. |
+| `REQ-AEBS-006` | product-line model constraint | The DE4SDV AEBS increment shall keep common-capability, feature, and native SysML v2 variation and variant classifications explicit for each AEBS behavior or scope element in its model baseline. |
 | `REQ-AEBS-007` | assurance traceability constraint | The DE4SDV AEBS increment shall maintain separate trace links from each draft AEBS requirement to its source, stakeholder need, unresolved gaps, validation reference, and controlled V&V planning attachment. |
-| `REQ-AEBS-S2-001` | evidence-contract traceability constraint | The DE4SDV AEBS evidence-contract baseline shall trace each evidence contract to its controlled operational boundary, assumptions, source constraints, and exclusions. |
+| `REQ-AEBS-S2-001` | evidence-contract traceability constraint | The DE4SDV AEBS increment shall maintain trace links from each AEBS evidence contract to its controlled operational boundary, assumptions, source constraints, and exclusions. |
 
 The pedestrian and bicycle records are distinct candidates; neither reinterprets the retained vehicle-target candidates. Their source link resolves through controlled public-safe metadata for `E/ECE/TRANS/505/Rev.3/Add.151/Rev.2`. Applicability remains candidate-only, and target definitions, conditions, response criteria, tolerances, and uncertainty remain gaps.
 
@@ -175,7 +176,7 @@ Methods, candidate criteria, and evidence status are maintained in the separate 
 | `GAP-AEBS-REQ-005` | Non-activation and false-reaction constraints remain undefined. |
 | `GAP-AEBS-REQ-006` | Conscious driver override inputs and resulting behavior remain undefined. |
 | `GAP-AEBS-REQ-007` | AEBS failure detection, indication, and safe-operation criteria remain undefined. |
-| `GAP-AEBS-REQ-008` | Product-line variation points are not yet modeled; they must not weaken the common AEBS capability obligation across member products. |
+| `GAP-AEBS-REQ-008` | Native SysML v2 variation and variant choices are not yet modeled; they must not weaken the common AEBS capability obligation across member products. |
 | `GAP-AEBS-REQ-009` | VSS signal candidates are intentionally deferred until the functional-interface increment. |
 | `GAP-AEBS-REQ-010` | Requirement satisfaction remains deferred until concrete satisfying features exist. |
 | `GAP-AEBS-REQ-011` | Complete non-activation scenarios, observation windows, classification rules, and false-reaction tolerances remain undefined. |

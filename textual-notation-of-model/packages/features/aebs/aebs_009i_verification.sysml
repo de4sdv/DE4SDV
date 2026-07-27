@@ -83,11 +83,36 @@ package DE4SDV_AEBS009IVerification {
     attribute :>> scenario = ScenarioIdentity009I::bicycleCriterion;
   }
 
-  verification def RegulatoryCriterionVerification009I {
+  verification def PedestrianCriterionVerification009I {
     subject verifiedBench : RegulatoryCriterionBench009I;
-    objective evidenceObjective009I {
+    objective pedestrianEvidenceObjective009I {
       verify evidenceContract009ISourceIdentity;
       verify evidenceContract009IPedestrianApplicableCriterion;
+      verify evidenceContract009IMeasurementTrace;
+      verify evidenceContract009IProvenance;
+      verify evidenceContract009IConfigurationBoundedVerdict;
+    }
+    action collectData {
+      @VerificationMethod{ kind = inspect; }
+      out item retainedObservations : Retained009ICriterionEvidence;
+    }
+    action processData {
+      @VerificationMethod{ kind = analyze; }
+      in scenarioIdentity : ScenarioIdentity009I = verifiedBench.scenario;
+      in item retainedObservations : Retained009ICriterionEvidence = collectData.retainedObservations;
+      out item replayedEvaluation : Replayed009ICriterionEvaluation;
+    }
+    action evaluateData {
+      @VerificationMethod{ kind = analyze; }
+      in item replayedEvaluation : Replayed009ICriterionEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = Map009IOutcomeToVerdict(replayedEvaluation.outcome);
+    }
+    return verdict : VerdictKind = evaluateData.verdict;
+  }
+  verification def BicycleCriterionVerification009I {
+    subject verifiedBench : RegulatoryCriterionBench009I;
+    objective bicycleEvidenceObjective009I {
+      verify evidenceContract009ISourceIdentity;
       verify evidenceContract009IBicycleApplicableCriterion;
       verify evidenceContract009IMeasurementTrace;
       verify evidenceContract009IProvenance;
@@ -110,11 +135,11 @@ package DE4SDV_AEBS009IVerification {
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification pedestrianCriterionVerification009I : RegulatoryCriterionVerification009I {
+  verification pedestrianCriterionVerification009I : PedestrianCriterionVerification009I {
     @VerificationMethod{ kind = (inspect, analyze); }
     subject verifiedBench :> pedestrianCriterionBench009I;
   }
-  verification bicycleCriterionVerification009I : RegulatoryCriterionVerification009I {
+  verification bicycleCriterionVerification009I : BicycleCriterionVerification009I {
     @VerificationMethod{ kind = (inspect, analyze); }
     subject verifiedBench :> bicycleCriterionBench009I;
   }
