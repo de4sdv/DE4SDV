@@ -10,7 +10,7 @@ import hashlib
 import json
 import math
 import re
-import sys
+
 
 import yaml
 
@@ -170,11 +170,18 @@ def validate_increments(document: dict) -> list[str]:
     errors: list[str] = []
     items = document.get("increments", [])
     by_id = {item.get("id"): item for item in items if isinstance(item, dict)}
-    if set(by_id) != {"INC-AEBS-009A", "INC-AEBS-009B", "INC-AEBS-009C"}:
-        errors.append("increments must contain exactly 009A, 009B, and 009C")
-    for future in ("INC-AEBS-009B", "INC-AEBS-009C"):
-        if by_id.get(future, {}).get("status") != "planned":
-            errors.append(f"{future} must remain planned")
+    expected_ids = {f"INC-AEBS-009{suffix}" for suffix in "ABCDEFGHI"}
+    if set(by_id) != expected_ids or len(items) != len(expected_ids):
+        errors.append("increments must contain each bounded 009A through 009I increment exactly once")
+    expected_status = {
+        "INC-AEBS-009A": "readiness_proven_no_scenario",
+        "INC-AEBS-009B": "replayable_evidence_generated_pending_review",
+        "INC-AEBS-009C": "merged_partial_native_intervention_to_mrm_evidence",
+        **{f"INC-AEBS-009{suffix}": "planned" for suffix in "DEFGHI"},
+    }
+    for increment_id, status in expected_status.items():
+        if by_id.get(increment_id, {}).get("status") != status:
+            errors.append(f"{increment_id} must record status {status}")
     boundaries = [
         tuple(item.get("acceptance_boundary", []))
         for item in items
@@ -183,22 +190,20 @@ def validate_increments(document: dict) -> list[str]:
     if len(boundaries) != len(set(boundaries)) or any(not boundary for boundary in boundaries):
         errors.append("increment acceptance boundaries must be non-empty and distinct")
 
-    b_scope = " ".join(
-        by_id.get("INC-AEBS-009B", {}).get("acceptance_boundary", [])
-    ).lower()
-    if not all(
-        term in b_scope
-        for term in ("stationary-target", "diagnostic-to-mrm-to-gate", "simulated deceleration")
-    ):
-        errors.append("009B stationary-target chain contract is incomplete")
-    c_scope = " ".join(
-        by_id.get("INC-AEBS-009C", {}).get("acceptance_boundary", [])
-    ).lower()
-    if not all(
-        term in c_scope
-        for term in ("non-collision and fault", "stale and missing", "emergency-state")
-    ):
-        errors.append("009C negative/fault matrix contract is incomplete")
+    required_scope_terms = {
+        "INC-AEBS-009B": ("same-lane moving vehicle target", "warning precedes", "sole nominal", "footprints", "evaluator replay"),
+        "INC-AEBS-009C": ("exact native", "emergency mrm", "partial"),
+        "INC-AEBS-009D": ("conscious driver override", "source-stamped", "stale"),
+        "INC-AEBS-009E": ("non-activation", "false-reaction"),
+        "INC-AEBS-009F": ("stale, missing, malformed", "degraded and unavailable"),
+        "INC-AEBS-009G": ("pedestrian-target",),
+        "INC-AEBS-009H": ("bicycle-target",),
+        "INC-AEBS-009I": ("regulatory acceptance", "quantified"),
+    }
+    for increment_id, terms in required_scope_terms.items():
+        scope = " ".join(by_id.get(increment_id, {}).get("acceptance_boundary", [])).lower()
+        if not all(term in scope for term in terms):
+            errors.append(f"{increment_id} acceptance contract is incomplete")
     return errors
 
 

@@ -17,8 +17,10 @@ package DE4SDV_AEBS009AExecutionEnvironment {
      * Historical 009A runtime artifacts identify only a Jetson 8 GiB host;
      * they do not identify the exact SKU or prove identity continuity to this
      * post-merge snapshot. The two dependency sets preserve that boundary.
-     * INC-AEBS-009B and INC-AEBS-009C remain planned and acquire their own
-     * environment traces when scenario evidence is executed.
+     * INC-AEBS-009C has merged bounded partial evidence. INC-AEBS-009B has
+     * executed scenario evidence pending review and retains its own environment
+     * and execution-identity trace; neither increment changes the 009A claim
+     * boundary.
      */
 
     part executionEnvironment : INCAEBS009AJetsonExecutionEnvironment;

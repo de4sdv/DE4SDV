@@ -1,0 +1,18 @@
+services:
+  bench:
+    image: ghcr.io/autowarefoundation/autoware:universe-devel-humble-20260722@sha256:03f6e177d507504a26710041674a1386b1a63fe964870cb5ff48b5e59c635c17
+    platform: linux/arm64
+    network_mode: host
+    working_dir: /de4sdv/implementation/aebs-autoware-nominal-vehicle-target-bench/workspace
+    environment:
+      ROS_DOMAIN_ID: "91"
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      CYCLONEDDS_URI: file:///de4sdv/implementation/aebs-autoware-nominal-vehicle-target-bench/cyclonedds.xml
+    volumes:
+      - ../..:/de4sdv:ro
+      - ../aebs-autoware-executable-bench/workspace:/de4sdv/implementation/aebs-autoware-executable-bench/workspace:ro
+      - ./workspace:/de4sdv/implementation/aebs-autoware-nominal-vehicle-target-bench/workspace:rw
+      - ./evidence:/de4sdv/implementation/aebs-autoware-nominal-vehicle-target-bench/evidence:rw
+      - ${DE4SDV_MAP_CACHE:-${HOME}/.cache/de4sdv/autoware/maps}:/map-cache:ro
+    command: ["bash", "-lc", "sleep infinity"]
+    init: true

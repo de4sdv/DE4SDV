@@ -1,0 +1,70 @@
+# INC-AEBS-009B moving-target adaptation of the pinned 009A configuration.
+# Derived from the complete pinned Autoware Universe AEB configuration:
+# repository: https://github.com/autowarefoundation/autoware_universe
+# commit: f603d8759c92fb2f423f1544844e13086d79ad09
+# path: control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml
+# upstream Git blob SHA-1: b23c3bbdd4d5954b69b70e92512610e9beaab234
+# upstream file SHA-256: 6a620ee2275e48ea3a12b00a42657c1bab35ec5e0e722011556ddd08ca403e5c
+# Derivation: use_predicted_trajectory changes from true to false so the bounded
+# bench can use the available IMU path. expand_width changes from -0.2 m to
+# +0.2 m because native point-cloud target classification evaluates convex-hull
+# vertices against this narrower path; the inherited negative width excludes all
+# vertices of the explicit 1.8 m moving vehicle surrogate. The generated IMU path
+# maximum changes from 20 m to 25 m so native RSS becomes observable early enough
+# to evaluate the coordinator-derived 0.8 s warning-lead criterion. Its minimum
+# changes from 0.5 m to 15 m so the low-speed path continues to cover more than
+# one longitudinal target plane through verified-stop release; otherwise the
+# cropped cloud can become collinear and PCL/QHull rejects its convex hull.
+# Every other value is retained from the pinned file so this remains a reviewable
+# standalone calibration.
+# INC-AEBS-009A loaded and launched this configuration for endpoint readiness;
+# stationary-target behavior and calibration remain unexecuted.
+/**:
+  ros__parameters:
+    # Ego path calculation
+    use_predicted_trajectory: false
+    use_imu_path: true
+    limit_imu_path_lat_dev: false
+    limit_imu_path_length: true
+    use_pointcloud_data: true
+    use_predicted_object_data: false
+    use_object_velocity_calculation: true
+    check_autoware_state: true
+    imu_path_lat_dev_threshold: 1.75
+    min_generated_imu_path_length: 15.0
+    max_generated_imu_path_length: 25.0
+    imu_prediction_time_horizon: 4.0
+    imu_prediction_time_interval: 0.1
+    mpc_prediction_time_horizon: 4.5
+    mpc_prediction_time_interval: 0.1
+
+    # Debug
+    publish_debug_pointcloud: true
+    publish_debug_markers: true
+
+    # Point cloud partitioning
+    detection_range_min_height: 0.0
+    detection_range_max_height_margin: 0.0
+    voxel_grid_x: 0.1
+    voxel_grid_y: 0.1
+    voxel_grid_z: 0.5
+
+    # Point cloud cropping
+    expand_width: 0.2
+    path_footprint_extra_margin: 1.0
+    speed_calculation_expansion_margin: 0.7
+
+    # Point cloud clustering
+    cluster_tolerance: 0.15  # [m]
+    cluster_minimum_height: 0.1
+    minimum_cluster_size: 10
+    maximum_cluster_size: 10000
+
+    # RSS distance collision check
+    longitudinal_offset_margin: 1.0
+    t_response: 1.0
+    a_ego_min: -3.0
+    a_obj_min: -1.0
+    collision_keeping_sec: 3.0
+    previous_obstacle_keep_time: 1.0
+    aeb_hz: 10.0

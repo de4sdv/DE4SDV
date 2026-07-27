@@ -149,27 +149,29 @@ class TestAebsExecutableBench(unittest.TestCase):
                 errors = validator.validate_evidence(bench, lock)
                 self.assertTrue(any("exact 009A boundary" in error for error in errors))
 
-    def test_increments_preserve_distinct_planned_future_work(self):
+    def test_increments_preserve_distinct_sequenced_work(self):
         increments = yaml.safe_load((BENCH / "increments.yaml").read_text())
         by_id = {item["id"]: item for item in increments["increments"]}
-        self.assertEqual(set(by_id), {"INC-AEBS-009A", "INC-AEBS-009B", "INC-AEBS-009C"})
+        self.assertEqual(set(by_id), {f"INC-AEBS-009{suffix}" for suffix in "ABCDEFGHI"})
         self.assertEqual(by_id["INC-AEBS-009A"]["status"], "readiness_proven_no_scenario")
-        self.assertEqual(by_id["INC-AEBS-009B"]["status"], "planned")
-        self.assertEqual(by_id["INC-AEBS-009C"]["status"], "planned")
+        self.assertEqual(by_id["INC-AEBS-009B"]["status"], "replayable_evidence_generated_pending_review")
+        self.assertEqual(by_id["INC-AEBS-009C"]["status"], "merged_partial_native_intervention_to_mrm_evidence")
+        for suffix in "DEFGHI":
+            self.assertEqual(by_id[f"INC-AEBS-009{suffix}"]["status"], "planned")
         boundaries = [tuple(item["acceptance_boundary"]) for item in by_id.values()]
         self.assertEqual(len(boundaries), len(set(boundaries)))
 
-    def test_future_increment_contracts_cannot_be_erased(self):
+    def test_increment_contracts_cannot_be_erased(self):
         increments = yaml.safe_load((BENCH / "increments.yaml").read_text())
         self.assertEqual(validator.validate_increments(increments), [])
 
         weakened = copy.deepcopy(increments)
-        by_id = {item["id"]: item for item in weakened["increments"]}
-        by_id["INC-AEBS-009B"]["acceptance_boundary"] = ["placeholder"]
-        by_id["INC-AEBS-009C"]["acceptance_boundary"] = ["placeholder"]
+        for item in weakened["increments"]:
+            if item["id"] != "INC-AEBS-009A":
+                item["acceptance_boundary"] = ["placeholder"]
         errors = validator.validate_increments(weakened)
-        self.assertTrue(any("009B stationary-target chain" in error for error in errors))
-        self.assertTrue(any("009C negative/fault matrix" in error for error in errors))
+        for suffix in "BCDEFGHI":
+            self.assertTrue(any(f"INC-AEBS-009{suffix} acceptance contract" in error for error in errors))
 
     def test_sysml_separates_realized_009a_from_planned_scenario_assets(self):
         model = (
