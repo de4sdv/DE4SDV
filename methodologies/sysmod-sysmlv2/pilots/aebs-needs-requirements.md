@@ -49,17 +49,36 @@ The SysML v2 model represents this as a `ProblemStatement` requirement inside a 
 - UNECE R152 clause-level compliance interpretation.
 - Certification, homologation, or type-approval claim.
 
+## Controlled set partition
+
+The baseline is partitioned by responsible system and entity level. System 1 records state stakeholder outcomes and product design inputs for the SDV product line and its member products. System 2 records state obligations on the DE4SDV engineering and assurance system, its model baseline, increment, and evidence-contract baseline. System 2 visibility or evidence-governance needs are not parents of System 1 product behavior.
+
+| Set | System | Controlled members |
+|---|---|---|
+| `SET-AEBS-S1-NEEDS` | System 1 product needs | `N-AEBS-001`, `N-AEBS-006`, `N-AEBS-007`, `N-AEBS-008` |
+| `SET-AEBS-S1-REQS` | System 1 product requirements | `REQ-AEBS-001`–`REQ-AEBS-005`, `REQ-AEBS-008`–`REQ-AEBS-015` |
+| `SET-AEBS-S2-NEEDS` | System 2 engineering-assurance needs | `N-AEBS-002`–`N-AEBS-005` |
+| `SET-AEBS-S2-REQS` | System 2 engineering-assurance requirements | `REQ-AEBS-006`, `REQ-AEBS-007`, `REQ-AEBS-S2-001` |
+
 ## Needs baseline
+
+### System 1 product stakeholder needs
 
 | ID | Stakeholder | Need |
 |---|---|---|
 | `N-AEBS-001` | road users and vehicle occupants | Road users and vehicle occupants need the SDV product line to define AEBS as a common capability required across member products to reduce forward rear-end in-lane collision risk with a vehicle target under defined operating conditions. |
+| `N-AEBS-006` | pedestrians | Pedestrians need the SDV product line to provide a common AEBS capability that reduces forward collision risk with a pedestrian target under controlled applicable operating conditions. |
+| `N-AEBS-007` | cyclists | Cyclists need the SDV product line to provide a common AEBS capability that reduces forward collision risk with a bicycle target under controlled applicable operating conditions. |
+| `N-AEBS-008` | road users and vehicle occupants | Road users and vehicle occupants need each SDV product-line member product to manage AEBS degradation so that behavior remains bounded and AEBS availability is apparent when required inputs or AEBS functions are not healthy. |
+
+### System 2 engineering-assurance needs
+
+| ID | Stakeholder | Need |
+|---|---|---|
 | `N-AEBS-002` | systems engineer | Systems engineers need the AEBS operational boundary, assumptions, source constraints, and out-of-scope cases to stay explicit while draft requirements are derived. |
 | `N-AEBS-003` | product-line engineer | Product-line engineers need AEBS to remain classified as a product-line common capability required across member products, with variation points modeled separately instead of weakening the common-capability classification. |
 | `N-AEBS-004` | compliance engineer | Compliance engineers need regulatory assumptions, source references, and open interpretation gaps to be visible without implying UNECE R152 compliance or type approval. |
-| `N-AEBS-005` | verification engineer | Verification engineers need each draft AEBS requirement to carry a planned verification method, validation reference, evidence status, and explicit gap when acceptance criteria are not yet quantified. |
-| `N-AEBS-006` | pedestrians | Pedestrians need the SDV product line to provide a common AEBS capability that reduces forward collision risk with a pedestrian target under controlled applicable operating conditions. |
-| `N-AEBS-007` | cyclists | Cyclists need the SDV product line to provide a common AEBS capability that reduces forward collision risk with a bicycle target under controlled applicable operating conditions. |
+| `N-AEBS-005` | verification engineer | Verification engineers need each draft AEBS requirement to have a separate, controlled V&V planning attachment that identifies planned method, evidence status, and explicit criteria gaps without changing the product obligation. |
 
 ## Requirement quality gate
 
@@ -79,19 +98,35 @@ Promotion rule: a candidate can become an accepted design-input requirement only
 
 ## Draft requirement candidates baseline
 
-| ID | Type | Candidate requirement | Verification | Evidence status |
-|---|---|---|---|---|
-| `REQ-AEBS-001` | functional | Each SDV product-line member product shall realize the common AEBS capability by detecting imminent forward collision risk with a vehicle target under selected operating conditions. | analysis | planned |
-| `REQ-AEBS-002` | functional | Each SDV product-line member product shall realize the common AEBS capability by providing a collision warning to the driver when selected warning conditions are met. | demonstration | planned |
-| `REQ-AEBS-003` | functional | Each SDV product-line member product shall realize the common AEBS capability by commanding emergency braking when selected activation conditions are met and no overriding condition prevents intervention. | simulation | planned |
-| `REQ-AEBS-004` | functional | When a valid, fresh, and unambiguous driver input is classified as a conscious override under controlled override criteria during AEBS intervention, each SDV product-line member product shall suppress or release the intervention according to the controlled override response. | demonstration | planned with gap |
-| `REQ-AEBS-005` | safety constraint | Each SDV product-line member product shall support detection or indication of AEBS-related failure conditions without hiding safe-operation concerns. | inspection | gap |
-| `REQ-AEBS-006` | product-line constraint | The AEBS model baseline shall keep common-capability, feature, and variation-point classifications explicit for each AEBS behavior or scope element. | inspection | planned |
-| `REQ-AEBS-007` | traceability constraint | The DE4SDV AEBS increment shall trace each draft AEBS requirement to its source assumption, stakeholder need, validation reference, planned verification method, evidence status, and unresolved gap when applicable. | inspection | planned |
-| `REQ-AEBS-008` | safety constraint | When controlled non-activation criteria determine that imminent forward collision risk is absent under defined operating conditions, each member product shall not issue an AEBS collision warning or command AEBS emergency braking. | test | gap |
-| `REQ-AEBS-009` | safety constraint | When a required AEBS input is stale, missing, malformed, inconsistent, or unavailable under controlled input-health criteria, each member product shall enter the defined degraded or unavailable AEBS state and provide the defined state indication. | test | gap |
-| `REQ-AEBS-010` | functional | Each member product shall detect imminent forward collision risk with a pedestrian target and apply the defined AEBS response under controlled applicable pedestrian-target operating conditions. | test | gap |
-| `REQ-AEBS-011` | functional | Each member product shall detect imminent forward collision risk with a bicycle target and apply the defined AEBS response under controlled applicable bicycle-target operating conditions. | test | gap |
+Normative requirement expressions are listed independently from V&V methods, criteria, and evidence status. All split product records remain `draft_requirement_with_gap`; the split does not settle applicability, thresholds, timing, authority, or response mappings.
+
+### System 1 product design inputs
+
+| ID | Type | Candidate requirement |
+|---|---|---|
+| `REQ-AEBS-001` | functional | Each SDV product-line member product shall realize the common AEBS capability by detecting imminent forward collision risk with a vehicle target under selected operating conditions. |
+| `REQ-AEBS-002` | functional | Each SDV product-line member product shall realize the common AEBS capability by providing a collision warning to the driver when selected warning conditions are met. |
+| `REQ-AEBS-003` | functional | Each SDV product-line member product shall realize the common AEBS capability by commanding emergency braking when selected activation conditions are met and no overriding condition prevents intervention. |
+| `REQ-AEBS-004` | functional | When a valid, fresh, and unambiguous driver input is classified as a conscious override under controlled override criteria during AEBS intervention, each SDV product-line member product shall apply the intervention response selected by the controlled override-response mapping. |
+| `REQ-AEBS-005` | safety constraint | Under controlled failure-detection criteria, each SDV product-line member product shall detect AEBS-related failure conditions. |
+| `REQ-AEBS-008` | safety constraint | When controlled non-activation criteria determine that imminent forward collision risk is absent under defined operating conditions, each member product shall not issue an AEBS collision warning. |
+| `REQ-AEBS-009` | safety constraint | When a required AEBS input is unhealthy under controlled input-health criteria, each member product shall enter the AEBS state selected by the controlled degraded-state mapping. |
+| `REQ-AEBS-010` | functional | Each member product shall detect imminent forward collision risk with a pedestrian target under controlled applicable pedestrian-target operating conditions. |
+| `REQ-AEBS-011` | functional | Each member product shall detect imminent forward collision risk with a bicycle target under controlled applicable bicycle-target operating conditions. |
+| `REQ-AEBS-012` | safety constraint | When controlled non-activation criteria determine that imminent forward collision risk is absent under defined operating conditions, each member product shall not command AEBS emergency braking. |
+| `REQ-AEBS-013` | safety constraint | When a required AEBS input is unhealthy under controlled input-health criteria, each member product shall provide the status indication selected by the controlled degraded-state indication mapping. |
+| `REQ-AEBS-014` | functional | Under controlled applicable pedestrian-target operating conditions, each member product shall apply the controlled AEBS response to classified pedestrian-target collision risk. |
+| `REQ-AEBS-015` | functional | Under controlled applicable bicycle-target operating conditions, each member product shall apply the controlled AEBS response to classified bicycle-target collision risk. |
+
+`REQ-AEBS-004` now has one response-selection obligation. Its controlled override-response mapping is still a blocker: no suppress/release selection is invented here.
+
+### System 2 engineering-assurance design inputs
+
+| ID | Type | Candidate requirement |
+|---|---|---|
+| `REQ-AEBS-006` | product-line model constraint | The AEBS model baseline shall keep common-capability, feature, and variation-point classifications explicit for each AEBS behavior or scope element. |
+| `REQ-AEBS-007` | assurance traceability constraint | The DE4SDV AEBS increment shall maintain separate trace links from each draft AEBS requirement to its source, stakeholder need, unresolved gaps, validation reference, and controlled V&V planning attachment. |
+| `REQ-AEBS-S2-001` | evidence-contract traceability constraint | The DE4SDV AEBS evidence-contract baseline shall trace each evidence contract to its controlled operational boundary, assumptions, source constraints, and exclusions. |
 
 The pedestrian and bicycle records are distinct candidates; neither reinterprets the retained vehicle-target candidates. Their source link resolves through controlled public-safe metadata for `E/ECE/TRANS/505/Rev.3/Add.151/Rev.2`. Applicability remains candidate-only, and target definitions, conditions, response criteria, tolerances, and uncertainty remain gaps.
 
@@ -101,17 +136,22 @@ No quantified regulatory System 1 candidate is added in this increment. The repo
 
 ## Traceability matrix
 
-| Need | Derived requirements | Validation reference |
-|---|---|---|
-| `N-AEBS-001` | `REQ-AEBS-001`, `REQ-AEBS-002`, `REQ-AEBS-003`, `REQ-AEBS-004`, `REQ-AEBS-005` | `VAL-AEBS-001` |
-| `N-AEBS-002` | `REQ-AEBS-004`, `REQ-AEBS-005` | `VAL-AEBS-002` |
-| `N-AEBS-003` | `REQ-AEBS-006` | `VAL-AEBS-003` |
-| `N-AEBS-004` | `REQ-AEBS-005` | `VAL-AEBS-004` |
-| `N-AEBS-005` | `REQ-AEBS-007` | `VAL-AEBS-005` |
-| `N-AEBS-006` | `REQ-AEBS-010` | `VAL-AEBS-006` |
-| `N-AEBS-007` | `REQ-AEBS-011` | `VAL-AEBS-007` |
+| Need | System | Derived requirements | Validation reference |
+|---|---|---|---|
+| `N-AEBS-001` | System 1 | `REQ-AEBS-001`, `REQ-AEBS-002`, `REQ-AEBS-003`, `REQ-AEBS-004`, `REQ-AEBS-008`, `REQ-AEBS-012` | `VAL-AEBS-001` |
+| `N-AEBS-002` | System 2 | `REQ-AEBS-S2-001` | `VAL-AEBS-002` |
+| `N-AEBS-003` | System 2 | `REQ-AEBS-006` | `VAL-AEBS-003` |
+| `N-AEBS-004` | System 2 | `REQ-AEBS-007` | `VAL-AEBS-004` |
+| `N-AEBS-005` | System 2 | `REQ-AEBS-007` | `VAL-AEBS-005` |
+| `N-AEBS-006` | System 1 | `REQ-AEBS-010`, `REQ-AEBS-014` | `VAL-AEBS-006` |
+| `N-AEBS-007` | System 1 | `REQ-AEBS-011`, `REQ-AEBS-015` | `VAL-AEBS-007` |
+| `N-AEBS-008` | System 1 | `REQ-AEBS-005`, `REQ-AEBS-009`, `REQ-AEBS-013` | `VAL-AEBS-008` |
 
-## V&V planning
+`N-AEBS-002` traces only to the System 2 evidence-contract baseline obligation. It is not a parent of `REQ-AEBS-004` or any other System 1 product requirement. Likewise, `N-AEBS-004` is not a parent of degraded product behavior.
+
+## V&V planning attachments
+
+Methods, candidate criteria, and evidence status are maintained in the separate `verification_planning` section of the YAML artifact. They do not form part of the normative requirement statements. All unsettled criteria remain explicit gaps; this increment assigns no pass result or product compliance conclusion.
 
 | ID | Validates | Method | Question |
 |---|---|---|---|
@@ -119,9 +159,10 @@ No quantified regulatory System 1 candidate is added in this increment. The repo
 | `VAL-AEBS-002` | `N-AEBS-002` | inspection | Are assumptions and out-of-scope cases still visible after requirements are derived? |
 | `VAL-AEBS-003` | `N-AEBS-003` | inspection | Does the requirement set keep AEBS framed as product-line common capability before variation modeling? |
 | `VAL-AEBS-004` | `N-AEBS-004` | inspection | Are regulatory assumptions traceable without compliance wording or copied source text? |
-| `VAL-AEBS-005` | `N-AEBS-005` | inspection | Does every requirement expose V&V planning and unresolved criteria gaps? |
+| `VAL-AEBS-005` | `N-AEBS-005` | inspection | Does every requirement have a separate controlled V&V planning attachment and visible unresolved criteria gaps? |
 | `VAL-AEBS-006` | `N-AEBS-006` | pedestrian stakeholder and applicability review | Does the pedestrian candidate preserve distinct intent without importing vehicle criteria or implying regulatory acceptance? |
 | `VAL-AEBS-007` | `N-AEBS-007` | cyclist stakeholder and applicability review | Does the bicycle candidate preserve distinct intent without importing vehicle criteria or implying regulatory acceptance? |
+| `VAL-AEBS-008` | `N-AEBS-008` | road-user and vehicle-occupant safety/availability review | Do degraded-state and indication candidates preserve System 1 intent without importing System 2 evidence governance? |
 
 ## Known requirement gaps
 
@@ -169,11 +210,11 @@ This increment is acceptable if:
 - a DE4SDV method-context problem statement anchors the needs/requirements slice;
 - needs remain separate from design-input requirements;
 - AEBS remains framed as an SDV product-line common capability required across member products;
-- each draft requirement has derived needs, verification method, validation reference, evidence status, and known gaps;
+- each draft requirement traces to its need and gaps while V&V methods, criteria, and evidence status remain separate planning attachments;
 - requirements do not introduce VSS signal mappings, functional decomposition, logical realization, or compliance claims;
 - the SysML v2 requirements slice uses native requirement definitions/usages for needs and requirement candidates;
 - the model avoids satisfaction assertions until concrete satisfying features exist;
-- the SysML v2 requirements slice is present and validated by the available validation path.
+- the SysML v2 requirements slice is present for privileged Syside validation after integration.
 
 ## Next increment
 

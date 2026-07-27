@@ -70,6 +70,8 @@ package DE4SDV_AEBS009GVerification {
     perform pedestrianTargetVerification009G;
   }
 
-  dependency pedestrianEvidenceRelevantToPedestrianCandidate
-    from evidenceContract009GIndependentFootprintOutcome to reqPedestrianTargetResponse;
+  dependency pedestrianConfigurationRelevantToPedestrianDetectionCandidate
+    from evidenceContract009GConfiguredPedestrianTarget to reqPedestrianTargetResponse;
+  dependency pedestrianOutcomeRelevantToPedestrianResponseCandidate
+    from evidenceContract009GIndependentFootprintOutcome to reqPedestrianTargetControlledResponse;
 }

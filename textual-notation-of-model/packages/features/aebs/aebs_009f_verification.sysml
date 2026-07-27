@@ -41,7 +41,11 @@ package DE4SDV_AEBS009FVerification {
   }
   requirement evidenceContract009FStateOwnership : EvidenceContract009F {
     subject bench : DegradedInputMatrixBench009F;
-    require constraint { doc /* The bench shall retain producer identity, affected topic, source timing, and ordered degraded-state, suppression, ownership, and indication observations. */ }
+    require constraint { doc /* The bench shall retain producer identity, affected topic, source timing, and ordered degraded-state transition and ownership observations. */ }
+  }
+  requirement evidenceContract009FStatusIndication : EvidenceContract009F {
+    subject bench : DegradedInputMatrixBench009F;
+    require constraint { doc /* The bench shall retain ordered AEBS status-indication observations for the bound input-health scenario. */ }
   }
   requirement evidenceContract009FObserverFailureIsNotPass : EvidenceContract009F {
     subject bench : DegradedInputMatrixBench009F;
@@ -69,6 +73,7 @@ package DE4SDV_AEBS009FVerification {
     objective evidenceObjective009F {
       verify evidenceContract009FClosedInputHealthScenario;
       verify evidenceContract009FStateOwnership;
+      verify evidenceContract009FStatusIndication;
       verify evidenceContract009FObserverFailureIsNotPass;
     }
     action collectData {
@@ -116,6 +121,8 @@ package DE4SDV_AEBS009FVerification {
     perform unavailableInputVerification009F;
   }
 
-  dependency degradedEvidenceRelevantToDegradedCandidate
+  dependency degradedStateEvidenceRelevantToStateTransitionCandidate
     from evidenceContract009FStateOwnership to reqHandleDegradedUnavailableInputs;
+  dependency degradedStatusEvidenceRelevantToStatusIndicationCandidate
+    from evidenceContract009FStatusIndication to reqIndicateDegradedUnavailableStatus;
 }

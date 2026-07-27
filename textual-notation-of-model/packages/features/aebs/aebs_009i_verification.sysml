@@ -55,9 +55,13 @@ package DE4SDV_AEBS009IVerification {
     subject bench : RegulatoryCriterionBench009I;
     require constraint { doc /* The bench shall bind controlled source E/ECE/TRANS/505/Rev.3/Add.151/Rev.2, original SHA-256 dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de, source metadata, criterion map, evaluator identity, and an explicit applicability disposition. */ }
   }
-  requirement evidenceContract009IApplicableCriterion : EvidenceContract009I {
+  requirement evidenceContract009IPedestrianApplicableCriterion : EvidenceContract009I {
     subject bench : RegulatoryCriterionBench009I;
-    require constraint { doc /* The bench shall preserve selected criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, target family, and tested configuration without making an authority interpretation. */ }
+    require constraint { doc /* For the pedestrian scenario only, the bench shall preserve the selected pedestrian-target criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, and tested configuration without making an authority interpretation. */ }
+  }
+  requirement evidenceContract009IBicycleApplicableCriterion : EvidenceContract009I {
+    subject bench : RegulatoryCriterionBench009I;
+    require constraint { doc /* For the bicycle scenario only, the bench shall preserve the selected bicycle-target criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, and tested configuration without making an authority interpretation. */ }
   }
   requirement evidenceContract009IMeasurementTrace : EvidenceContract009I {
     subject bench : RegulatoryCriterionBench009I;
@@ -83,7 +87,8 @@ package DE4SDV_AEBS009IVerification {
     subject verifiedBench : RegulatoryCriterionBench009I;
     objective evidenceObjective009I {
       verify evidenceContract009ISourceIdentity;
-      verify evidenceContract009IApplicableCriterion;
+      verify evidenceContract009IPedestrianApplicableCriterion;
+      verify evidenceContract009IBicycleApplicableCriterion;
       verify evidenceContract009IMeasurementTrace;
       verify evidenceContract009IProvenance;
       verify evidenceContract009IConfigurationBoundedVerdict;
@@ -120,8 +125,12 @@ package DE4SDV_AEBS009IVerification {
 
   dependency sourceControlRelevantToRegulatoryVisibilityNeed
     from evidenceContract009ISourceIdentity to needVisibleRegulatoryAssumptions;
-  dependency pedestrianCriterionRelevantToPedestrianCandidate
-    from evidenceContract009IApplicableCriterion to reqPedestrianTargetResponse;
-  dependency bicycleCriterionRelevantToBicycleCandidate
-    from evidenceContract009IApplicableCriterion to reqBicycleTargetResponse;
+  dependency pedestrianCriterionRelevantToPedestrianDetectionCandidate
+    from evidenceContract009IPedestrianApplicableCriterion to reqPedestrianTargetResponse;
+  dependency pedestrianCriterionRelevantToPedestrianResponseCandidate
+    from evidenceContract009IPedestrianApplicableCriterion to reqPedestrianTargetControlledResponse;
+  dependency bicycleCriterionRelevantToBicycleDetectionCandidate
+    from evidenceContract009IBicycleApplicableCriterion to reqBicycleTargetResponse;
+  dependency bicycleCriterionRelevantToBicycleResponseCandidate
+    from evidenceContract009IBicycleApplicableCriterion to reqBicycleTargetControlledResponse;
 }

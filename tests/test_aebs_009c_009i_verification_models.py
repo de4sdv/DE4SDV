@@ -149,20 +149,37 @@ def test_matrix_benches_bind_closed_scenario_identities():
         assert len(bindings) == expected_count, increment
 
 
-def test_target_relevance_dependencies_match_target_specific_candidates_only():
+def test_split_candidate_relevance_dependencies_match_atomic_meanings():
+    e = _without_comments(MODELS["009E"].read_text(encoding="utf-8"))
+    f = _without_comments(MODELS["009F"].read_text(encoding="utf-8"))
     g = _without_comments(MODELS["009G"].read_text(encoding="utf-8"))
     h = _without_comments(MODELS["009H"].read_text(encoding="utf-8"))
-    assert re.search(r"dependency\s+\w+\s+from\s+\w+\s+to\s+reqPedestrianTargetResponse\s*;", g)
-    assert "reqBicycleTargetResponse" not in g
-    assert re.search(r"dependency\s+\w+\s+from\s+\w+\s+to\s+reqBicycleTargetResponse\s*;", h)
-    assert "reqPedestrianTargetResponse" not in h
+    i = _without_comments(MODELS["009I"].read_text(encoding="utf-8"))
+
+    assert re.search(r"from\s+evidenceContract009EWarningSilenceWindow\s+to\s+reqResistFalseReaction\s*;", e)
+    assert re.search(r"from\s+evidenceContract009EBrakingSilenceWindow\s+to\s+reqResistFalseBrakingCommand\s*;", e)
+    assert re.search(r"from\s+evidenceContract009FStateOwnership\s+to\s+reqHandleDegradedUnavailableInputs\s*;", f)
+    assert re.search(r"from\s+evidenceContract009FStatusIndication\s+to\s+reqIndicateDegradedUnavailableStatus\s*;", f)
+
+    assert re.search(r"from\s+\w+\s+to\s+reqPedestrianTargetResponse\s*;", g)
+    assert re.search(r"from\s+\w+\s+to\s+reqPedestrianTargetControlledResponse\s*;", g)
+    assert "reqBicycleTarget" not in g
+    assert re.search(r"from\s+\w+\s+to\s+reqBicycleTargetResponse\s*;", h)
+    assert re.search(r"from\s+\w+\s+to\s+reqBicycleTargetControlledResponse\s*;", h)
+    assert "reqPedestrianTarget" not in h
+
+    assert re.search(r"from\s+evidenceContract009IPedestrianApplicableCriterion\s+to\s+reqPedestrianTargetResponse\s*;", i)
+    assert re.search(r"from\s+evidenceContract009IPedestrianApplicableCriterion\s+to\s+reqPedestrianTargetControlledResponse\s*;", i)
+    assert re.search(r"from\s+evidenceContract009IBicycleApplicableCriterion\s+to\s+reqBicycleTargetResponse\s*;", i)
+    assert re.search(r"from\s+evidenceContract009IBicycleApplicableCriterion\s+to\s+reqBicycleTargetControlledResponse\s*;", i)
 
 
 def test_009i_models_source_criterion_measurement_and_provenance_as_fail_closed_contracts():
     code = _without_comments(MODELS["009I"].read_text(encoding="utf-8"))
     for target in (
         "evidenceContract009ISourceIdentity",
-        "evidenceContract009IApplicableCriterion",
+        "evidenceContract009IPedestrianApplicableCriterion",
+        "evidenceContract009IBicycleApplicableCriterion",
         "evidenceContract009IMeasurementTrace",
         "evidenceContract009IProvenance",
         "evidenceContract009IConfigurationBoundedVerdict",

@@ -8,12 +8,37 @@ YAML_PATH = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.
 MARKDOWN_PATH = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.md"
 MODEL_PATH = ROOT / "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml"
 
-EXPECTED_NEW_NEEDS = {"N-AEBS-006", "N-AEBS-007"}
-EXPECTED_NEW_REQUIREMENTS = {
+EXPECTED_SYSTEM1_NEEDS = {
+    "N-AEBS-001",
+    "N-AEBS-006",
+    "N-AEBS-007",
+    "N-AEBS-008",
+}
+EXPECTED_SYSTEM1_REQUIREMENTS = {
+    "REQ-AEBS-001",
+    "REQ-AEBS-002",
+    "REQ-AEBS-003",
+    "REQ-AEBS-004",
+    "REQ-AEBS-005",
     "REQ-AEBS-008",
     "REQ-AEBS-009",
     "REQ-AEBS-010",
     "REQ-AEBS-011",
+    "REQ-AEBS-012",
+    "REQ-AEBS-013",
+    "REQ-AEBS-014",
+    "REQ-AEBS-015",
+}
+EXPECTED_SYSTEM2_NEEDS = {
+    "N-AEBS-002",
+    "N-AEBS-003",
+    "N-AEBS-004",
+    "N-AEBS-005",
+}
+EXPECTED_SYSTEM2_REQUIREMENTS = {
+    "REQ-AEBS-006",
+    "REQ-AEBS-007",
+    "REQ-AEBS-S2-001",
 }
 
 
@@ -21,18 +46,59 @@ def _load():
     return yaml.safe_load(YAML_PATH.read_text(encoding="utf-8"))
 
 
-def test_new_system1_candidates_are_aligned_across_control_artifacts():
+def test_system_sets_are_aligned_across_control_artifacts():
     data = _load()
     markdown = MARKDOWN_PATH.read_text(encoding="utf-8")
     model = MODEL_PATH.read_text(encoding="utf-8")
 
     need_ids = {item["id"] for item in data["needs"]}
     requirement_ids = {item["id"] for item in data["requirements"]}
-    assert EXPECTED_NEW_NEEDS <= need_ids
-    assert EXPECTED_NEW_REQUIREMENTS <= requirement_ids
-    for record_id in EXPECTED_NEW_NEEDS | EXPECTED_NEW_REQUIREMENTS:
+    expected_needs = EXPECTED_SYSTEM1_NEEDS | EXPECTED_SYSTEM2_NEEDS
+    expected_requirements = EXPECTED_SYSTEM1_REQUIREMENTS | EXPECTED_SYSTEM2_REQUIREMENTS
+    assert expected_needs <= need_ids
+    assert expected_requirements <= requirement_ids
+
+    sets = {item["id"]: item for item in data["controlled_sets"]}
+    assert set(sets["SET-AEBS-S1-NEEDS"]["members"]) == EXPECTED_SYSTEM1_NEEDS
+    assert set(sets["SET-AEBS-S1-REQS"]["members"]) == EXPECTED_SYSTEM1_REQUIREMENTS
+    assert set(sets["SET-AEBS-S2-NEEDS"]["members"]) == EXPECTED_SYSTEM2_NEEDS
+    assert set(sets["SET-AEBS-S2-REQS"]["members"]) == EXPECTED_SYSTEM2_REQUIREMENTS
+
+    for record_id in expected_needs | expected_requirements:
         assert f"`{record_id}`" in markdown
         assert record_id in model
+    assert "package System1Product" in model
+    assert "package System2EngineeringAssurance" in model
+
+
+def test_product_requirements_have_only_system1_need_parents():
+    data = _load()
+    requirements = {item["id"]: item for item in data["requirements"]}
+    for record_id in EXPECTED_SYSTEM1_REQUIREMENTS:
+        assert set(requirements[record_id]["derived_from"]) <= EXPECTED_SYSTEM1_NEEDS
+    assert requirements["REQ-AEBS-004"]["derived_from"] == ["N-AEBS-001"]
+    assert requirements["REQ-AEBS-009"]["derived_from"] == ["N-AEBS-008"]
+    assert requirements["REQ-AEBS-013"]["derived_from"] == ["N-AEBS-008"]
+    assert requirements["REQ-AEBS-S2-001"]["derived_from"] == ["N-AEBS-002"]
+
+
+def test_split_candidates_each_contain_one_normative_response():
+    requirements = {item["id"]: item for item in _load()["requirements"]}
+    split_pairs = {
+        "REQ-AEBS-008": ("warning", "braking"),
+        "REQ-AEBS-012": ("braking", "warning"),
+        "REQ-AEBS-009": ("state", "indication"),
+        "REQ-AEBS-013": ("indication", "enter"),
+        "REQ-AEBS-010": ("detect", "apply"),
+        "REQ-AEBS-014": ("response", "detect"),
+        "REQ-AEBS-011": ("detect", "apply"),
+        "REQ-AEBS-015": ("response", "detect"),
+    }
+    for record_id, (included, excluded) in split_pairs.items():
+        statement = requirements[record_id]["statement"].lower()
+        assert included in statement, record_id
+        assert excluded not in statement, record_id
+        assert requirements[record_id]["maturity"] == "draft_requirement_with_gap"
 
 
 def test_pedestrian_and_bicycle_candidates_are_distinct_and_source_controlled():

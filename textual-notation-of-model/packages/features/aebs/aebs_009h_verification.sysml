@@ -70,6 +70,8 @@ package DE4SDV_AEBS009HVerification {
     perform bicycleTargetVerification009H;
   }
 
-  dependency bicycleEvidenceRelevantToBicycleCandidate
-    from evidenceContract009HIndependentFootprintOutcome to reqBicycleTargetResponse;
+  dependency bicycleConfigurationRelevantToBicycleDetectionCandidate
+    from evidenceContract009HConfiguredBicycleTarget to reqBicycleTargetResponse;
+  dependency bicycleOutcomeRelevantToBicycleResponseCandidate
+    from evidenceContract009HIndependentFootprintOutcome to reqBicycleTargetControlledResponse;
 }

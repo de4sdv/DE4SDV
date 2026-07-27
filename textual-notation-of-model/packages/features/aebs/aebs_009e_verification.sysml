@@ -107,8 +107,8 @@ package DE4SDV_AEBS009EVerification {
     perform belowTriggerNonActivationVerification009E;
   }
 
-  dependency warningSilenceEvidenceRelevantToFalseReactionCandidate
+  dependency warningSilenceEvidenceRelevantToWarningSilenceCandidate
     from evidenceContract009EWarningSilenceWindow to reqResistFalseReaction;
-  dependency brakingSilenceEvidenceRelevantToFalseReactionCandidate
-    from evidenceContract009EBrakingSilenceWindow to reqResistFalseReaction;
+  dependency brakingSilenceEvidenceRelevantToBrakingSilenceCandidate
+    from evidenceContract009EBrakingSilenceWindow to reqResistFalseBrakingCommand;
 }
