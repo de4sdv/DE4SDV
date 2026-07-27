@@ -176,7 +176,7 @@ def validate_increments(document: dict) -> list[str]:
     expected_status = {
         "INC-AEBS-009A": "readiness_proven_no_scenario",
         "INC-AEBS-009B": "merged_replayable_nominal_moving_target_evidence",
-        "INC-AEBS-009C": "merged_partial_native_intervention_to_mrm_evidence",
+        "INC-AEBS-009C": "executed_replay_validated_pending_review",
         **{f"INC-AEBS-009{suffix}": "planned" for suffix in "DEFGHI"},
     }
     for increment_id, status in expected_status.items():

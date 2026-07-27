@@ -31,7 +31,7 @@ increments:
       - physical brake performance, certification, homologation, or type approval
 
   - id: INC-AEBS-009C
-    status: merged_partial_native_intervention_to_mrm_evidence
+    status: executed_replay_validated_pending_review
     acceptance_boundary:
       - the exact native AEB intervention diagnostic is observed
       - a bounded emergency MRM and emergency-gate integration path is observed

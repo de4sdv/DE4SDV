@@ -158,7 +158,10 @@ class TestAebsExecutableBench(unittest.TestCase):
             by_id["INC-AEBS-009B"]["status"],
             "merged_replayable_nominal_moving_target_evidence",
         )
-        self.assertEqual(by_id["INC-AEBS-009C"]["status"], "merged_partial_native_intervention_to_mrm_evidence")
+        self.assertEqual(
+            by_id["INC-AEBS-009C"]["status"],
+            "executed_replay_validated_pending_review",
+        )
         for suffix in "DEFGHI":
             self.assertEqual(by_id[f"INC-AEBS-009{suffix}"]["status"], "planned")
         boundaries = [tuple(item["acceptance_boundary"]) for item in by_id.values()]
