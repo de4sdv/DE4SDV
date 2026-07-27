@@ -1,15 +1,20 @@
 /*
  * DE4SDV INC-AEBS-009B nominal moving-vehicle-target evidence slice.
  *
- * This model records the bounded composition and evidence obligations exercised
- * by the executable bench. It does not allocate or claim complete realization of
- * the logical AEBS responsibilities, physical brake performance, regulatory
- * compliance, certification, homologation, or type approval. Candidate
- * requirement satisfaction remains pending review of the retained evidence and
- * maintainer-run privileged Syside validation.
+ * This model records the bounded verification composition and evidence obligations
+ * exercised by the executable bench. Its native verification case verifies only
+ * the measurable System 2 evidence contracts defined here. Relevance links to
+ * draft System 1 product-requirement candidates are neither verification nor
+ * satisfaction claims. The model does not claim complete logical realization,
+ * physical brake performance, regulatory compliance, certification,
+ * homologation, or type approval.
  */
 
 package DE4SDV_AEBS009BNominalEvidence {
+  private import VerificationCases::*;
+  private import VerificationMethodKind::*;
+  private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
+
   item def CoordinatorRiskTelemetry;
   item def NativeInterventionDiagnostic;
   item def DriverOverrideSample;
@@ -25,6 +30,8 @@ package DE4SDV_AEBS009BNominalEvidence {
   item def NominalGateCommand;
   item def MapPosePair;
   item def BrakingLifecycleState;
+  item def Retained009BObservationSet;
+  item def Replayed009BEvaluation;
 
   port def RiskTelemetryOutput {
     out item riskTelemetry : CoordinatorRiskTelemetry;
@@ -178,42 +185,42 @@ package DE4SDV_AEBS009BNominalEvidence {
     }
   }
 
-  requirement def Nominal009BEvidenceRequirement;
+  requirement def Nominal009BEvidenceContractRequirement;
 
-  requirement req009BWarningLead : Nominal009BEvidenceRequirement {
-    doc /* REQ-AEBS-009B-01 candidate; verification method: retained evaluator replay; status: pending review. */
+  requirement evidenceContract009BWarningLead : Nominal009BEvidenceContractRequirement {
+    doc /* EC-AEBS-009B-01; System 2 evidence contract; method: retained evaluator replay. */
     subject bench : NominalMovingVehicleTargetBench009B;
     require constraint {
       doc /* The replayed collector-monotonic warning request shall precede the exact native intervention diagnostic by at least 0.8 s. */
     }
   }
 
-  requirement req009BFreshOverrideClear : Nominal009BEvidenceRequirement {
-    doc /* REQ-AEBS-009B-02 candidate; verification method: source-stamp and receipt-freshness replay; status: pending review. */
+  requirement evidenceContract009BFreshOverrideClear : Nominal009BEvidenceContractRequirement {
+    doc /* EC-AEBS-009B-02; System 2 evidence contract; method: source-stamp and receipt-freshness analysis. */
     subject bench : NominalMovingVehicleTargetBench009B;
     require constraint {
-      doc /* Nominal 009B intervention shall require a source-stamped false override sample that remains within the 0.2 s freshness bound at intervention. Conscious true override behavior is deferred to INC-AEBS-009D. */
+      doc /* Nominal 009B intervention evidence shall include a source-stamped false override sample that remains within the 0.2 s freshness bound at intervention. Conscious true override behavior is deferred to INC-AEBS-009D. */
     }
   }
 
-  requirement req009BNominalBrakingPath : Nominal009BEvidenceRequirement {
-    doc /* REQ-AEBS-009B-03 candidate; verification method: retained runtime graph and command replay; status: pending review. */
+  requirement evidenceContract009BNominalBrakingPath : Nominal009BEvidenceContractRequirement {
+    doc /* EC-AEBS-009B-03; System 2 evidence contract; method: runtime-graph and command replay. */
     subject bench : NominalMovingVehicleTargetBench009B;
     require constraint {
       doc /* Runtime graph evidence shall periodically sample the coordinator as the sole nominal gate-input publisher and no MRM publishers from the accepted pre-intervention topology snapshot through verified-stop release, reject any contradictory sample, and reject any sampling gap above 1.0 s; the observed direct EmergencyBrakingRequest shall follow the paired exact native intervention diagnostic. */
     }
   }
 
-  requirement req009BVerifiedStopRelease : Nominal009BEvidenceRequirement {
-    doc /* REQ-AEBS-009B-04 candidate; verification method: source-stamped odometry and lifecycle replay; status: pending review. */
+  requirement evidenceContract009BVerifiedStopRelease : Nominal009BEvidenceContractRequirement {
+    doc /* EC-AEBS-009B-04; System 2 evidence contract; method: source-stamped odometry and lifecycle replay. */
     subject bench : NominalMovingVehicleTargetBench009B;
     require constraint {
       doc /* Braking shall remain latched until each ego-odometry source stamp is replayed against a collector stamp from the same ROS clock and remains within 0.2 s, speed stays at or below 0.1 m/s for at least 0.5 s, and no receipt gap exceeds 0.2 s; release shall be absorbing for the one-shot scenario and independent of diagnostic retention. */
     }
   }
 
-  requirement req009BIndependentNoncollision : Nominal009BEvidenceRequirement {
-    doc /* REQ-AEBS-009B-05 candidate; verification method: retained map-pose oriented-footprint replay; status: pending review. */
+  requirement evidenceContract009BIndependentNoncollision : Nominal009BEvidenceContractRequirement {
+    doc /* EC-AEBS-009B-05; System 2 evidence contract; method: retained map-pose oriented-footprint analysis. */
     subject bench : NominalMovingVehicleTargetBench009B;
     require constraint {
       doc /* For the retained run, replay shall compute the oriented footprint relation from preserved map poses, reject overlap or touching, require positive then opening separation, and require a fresh footprint relation covering release. */
@@ -222,14 +229,77 @@ package DE4SDV_AEBS009BNominalEvidence {
 
   part bench : NominalMovingVehicleTargetBench009B;
 
-  dependency evidenceObserverTracesWarningRequirement
-    from bench::evidenceObserver to req009BWarningLead;
-  dependency evidenceObserverTracesOverrideRequirement
-    from bench::evidenceObserver to req009BFreshOverrideClear;
-  dependency evidenceObserverTracesBrakingPathRequirement
-    from bench::evidenceObserver to req009BNominalBrakingPath;
-  dependency evidenceObserverTracesReleaseRequirement
-    from bench::evidenceObserver to req009BVerifiedStopRelease;
-  dependency evidenceObserverTracesNoncollisionRequirement
-    from bench::evidenceObserver to req009BIndependentNoncollision;
+  verification def NominalMovingVehicleTargetVerification009B {
+    doc /*
+     * Defines execution of the pinned Autoware software in a simulated moving-target
+     * environment, collects observations independently, replays the evidence
+     * contract, and returns a native verification verdict. The execution is a
+     * combined test-and-analysis verification method; it is not product
+     * validation, regulatory compliance evidence, or type-approval evidence.
+     */
+    subject verifiedBench : NominalMovingVehicleTargetBench009B;
+
+    objective warningLeadEvidenceObjective {
+      verify evidenceContract009BWarningLead;
+    }
+    objective freshOverrideEvidenceObjective {
+      verify evidenceContract009BFreshOverrideClear;
+    }
+    objective nominalBrakingPathEvidenceObjective {
+      verify evidenceContract009BNominalBrakingPath;
+    }
+    objective verifiedStopReleaseEvidenceObjective {
+      verify evidenceContract009BVerifiedStopRelease;
+    }
+    objective independentNoncollisionEvidenceObjective {
+      verify evidenceContract009BIndependentNoncollision;
+    }
+
+    action collectData {
+      @VerificationMethod{ kind = test; }
+      doc /* The independent scenario observer collects typed runtime observations and provenance from the configured bench. */
+      out item retainedObservations : Retained009BObservationSet;
+    }
+
+    action processData {
+      @VerificationMethod{ kind = analyze; }
+      doc /* The repository validator reconstructs typed observations and independently replays the evaluator against the controlled scenario contract. */
+      in item retainedObservations : Retained009BObservationSet = collectData.retainedObservations;
+      out item replayedEvaluation : Replayed009BEvaluation;
+    }
+
+    action evaluateData {
+      @VerificationMethod{ kind = analyze; }
+      doc /* The replayed outcome and evidence-contract results are mapped to the verification verdict without treating a stored success label as evidence. */
+      in item replayedEvaluation : Replayed009BEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind;
+    }
+
+    return verdict : VerdictKind = evaluateData.verdict;
+  }
+
+  verification nominalMovingVehicleTargetVerification009B
+    : NominalMovingVehicleTargetVerification009B {
+    @VerificationMethod{ kind = (test, analyze); }
+    subject verifiedBench :> bench;
+  }
+
+  part nominal009BVerificationSystem {
+    perform nominalMovingVehicleTargetVerification009B;
+  }
+
+  /*
+   * These dependencies record relevance to draft System 1 product-requirement
+   * candidates only. They are neither verify nor satisfy relationships. The
+   * product candidates remain too broad to claim complete verification from
+   * this one bounded simulated scenario.
+   */
+  dependency warningEvidenceRelevantToWarningCandidate
+    from evidenceContract009BWarningLead to reqProvideCollisionWarning;
+  dependency overrideClearRelevantToBrakingCandidate
+    from evidenceContract009BFreshOverrideClear to reqCommandEmergencyBraking;
+  dependency overrideClearRelevantToOverrideCandidate
+    from evidenceContract009BFreshOverrideClear to reqAllowDriverOverride;
+  dependency brakingPathRelevantToBrakingCandidate
+    from evidenceContract009BNominalBrakingPath to reqCommandEmergencyBraking;
 }
