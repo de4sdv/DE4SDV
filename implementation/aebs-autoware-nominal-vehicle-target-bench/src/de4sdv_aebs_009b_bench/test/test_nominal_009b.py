@@ -7,6 +7,7 @@ import pytest
 
 from de4sdv_aebs_009b_bench.aebs_coordination_core import (
     InterventionLatch,
+    braking_authorized_for_disposition,
     next_warning_state,
     warning_requested,
 )
@@ -93,6 +94,18 @@ def test_intervention_latch_requires_fresh_clear_entry_and_verified_stop_release
     latch.observe_motion(0.0, 0.01, 1.6)
     assert not latch.active
     assert latch.state == "released_verified_stop"
+
+
+def test_only_fresh_conscious_override_suppresses_braking():
+    assert not braking_authorized_for_disposition("conscious_override")
+    for disposition in (
+        "control_clear",
+        "degraded_stale_source",
+        "inconclusive_missing_source",
+        "error_malformed_source",
+        "error_future_source",
+    ):
+        assert braking_authorized_for_disposition(disposition)
 
 
 def test_odometry_gap_resets_held_stop_release_evidence():

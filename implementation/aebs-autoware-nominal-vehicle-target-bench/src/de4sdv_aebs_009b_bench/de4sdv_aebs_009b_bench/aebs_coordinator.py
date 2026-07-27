@@ -22,6 +22,7 @@ from tier4_debug_msgs.msg import Float32Stamped
 
 from .aebs_coordination_core import (
     InterventionLatch,
+    braking_authorized_for_disposition,
     classify_override_source,
     next_warning_state,
 )
@@ -138,13 +139,19 @@ class AebsCoordinator(Node):
                 status.level == DiagnosticStatus.ERROR
                 and status.message == _INTERVENTION_MESSAGE
             )
-            override_clear = self._override_is_fresh_and_clear()
             diagnostic_ns = _stamp_nanoseconds(message.header.stamp)
+            disposition = classify_override_source(
+                self._override,
+                self._override_source_ns,
+                diagnostic_ns,
+                self.override_max_age_s,
+            )
             if intervention:
                 self._publish_typed_override_authorization(
-                    message.header.stamp, diagnostic_ns
+                    message.header.stamp, diagnostic_ns, disposition
                 )
-            if intervention and override_clear:
+            braking_authorized = braking_authorized_for_disposition(disposition)
+            if intervention and braking_authorized:
                 diagnostic_stamp = (
                     f"{int(message.header.stamp.sec)}."
                     f"{int(message.header.stamp.nanosec):09d}"
@@ -152,7 +159,7 @@ class AebsCoordinator(Node):
                 self._publish_override_evaluation(
                     "intervention", diagnostic_source_stamp=diagnostic_stamp
                 )
-            self._latch.observe_diagnostic(intervention, override_clear)
+            self._latch.observe_diagnostic(intervention, braking_authorized)
             return
 
     @staticmethod
@@ -165,14 +172,8 @@ class AebsCoordinator(Node):
         )
 
     def _publish_typed_override_authorization(
-        self, diagnostic_stamp: object, diagnostic_ns: int
+        self, diagnostic_stamp: object, diagnostic_ns: int, disposition: str
     ) -> None:
-        disposition = classify_override_source(
-            self._override,
-            self._override_source_ns,
-            diagnostic_ns,
-            self.override_max_age_s,
-        )
         authorization = DiagnosticArray()
         authorization.header.stamp = diagnostic_stamp
         status = DiagnosticStatus()

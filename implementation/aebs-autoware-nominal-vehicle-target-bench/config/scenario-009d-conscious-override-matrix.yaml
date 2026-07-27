@@ -31,19 +31,19 @@ scenarios:
   - id: SCN-AEBS-009D-STALE
     profile: stale
     expected_disposition: degraded_stale_source
-    expected_braking_request: false
+    expected_braking_request: true
   - id: SCN-AEBS-009D-MISSING
     profile: missing
     expected_disposition: inconclusive_missing_source
-    expected_braking_request: false
+    expected_braking_request: true
   - id: SCN-AEBS-009D-MALFORMED
     profile: malformed
     expected_disposition: error_malformed_source
-    expected_braking_request: false
+    expected_braking_request: true
   - id: SCN-AEBS-009D-FUTURE-STAMPED
     profile: future_stamped
     expected_disposition: error_future_source
-    expected_braking_request: false
+    expected_braking_request: true
 non_claims:
   - Each scenario requires a separate pinned-runtime execution and verdict.
   - Pure evaluator tests are not runtime evidence.

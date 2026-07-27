@@ -93,18 +93,18 @@ def load_matrix_contract(path: str | Path) -> MatrixConfig:
             OverrideDisposition.CONSCIOUS_OVERRIDE,
             False,
         ),
-        OverrideScenario.STALE: (OverrideDisposition.DEGRADED_STALE_SOURCE, False),
+        OverrideScenario.STALE: (OverrideDisposition.DEGRADED_STALE_SOURCE, True),
         OverrideScenario.MISSING: (
             OverrideDisposition.INCONCLUSIVE_MISSING_SOURCE,
-            False,
+            True,
         ),
         OverrideScenario.MALFORMED: (
             OverrideDisposition.ERROR_MALFORMED_SOURCE,
-            False,
+            True,
         ),
         OverrideScenario.FUTURE_STAMPED: (
             OverrideDisposition.ERROR_FUTURE_SOURCE,
-            False,
+            True,
         ),
     }
     for entry in entries:
@@ -332,6 +332,11 @@ def terminal_override_result(result: OverrideScenarioResult) -> str | None:
     """Return terminal policy; an open suppression window keeps collecting."""
     if result.passed:
         return "pass_override_profile"
+    if (
+        result.scenario is OverrideScenario.FRESH_FALSE_CONTROL
+        and result.disposition is OverrideDisposition.ERROR_SCENARIO_CONTRACT
+    ):
+        return None
     if result.disposition in {
         OverrideDisposition.INCONCLUSIVE_OPEN_WINDOW,
         OverrideDisposition.INCONCLUSIVE_NATIVE_CHAIN,

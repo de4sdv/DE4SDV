@@ -39,6 +39,22 @@ def classify_override_source(
     return "conscious_override" if value else "control_clear"
 
 
+def braking_authorized_for_disposition(disposition: str) -> bool:
+    """Fail safe: only an exact fresh conscious override suppresses braking."""
+
+    allowed = {
+        "control_clear",
+        "conscious_override",
+        "degraded_stale_source",
+        "inconclusive_missing_source",
+        "error_malformed_source",
+        "error_future_source",
+    }
+    if disposition not in allowed:
+        raise ValueError("unknown override disposition")
+    return disposition != "conscious_override"
+
+
 class InterventionLatch:
     """Latch native intervention until fresh standstill, independent of diagnostic retention."""
 
@@ -53,10 +69,10 @@ class InterventionLatch:
         self._stopped_since_s: float | None = None
         self._last_stop_sample_s: float | None = None
 
-    def observe_diagnostic(self, intervention: bool, override_fresh_and_clear: bool) -> None:
+    def observe_diagnostic(self, intervention: bool, braking_authorized: bool) -> None:
         if self.state == "released_verified_stop":
             return
-        if intervention and self.armed and override_fresh_and_clear:
+        if intervention and self.armed and braking_authorized:
             self.active = True
             self.armed = False
             self.state = "braking_latched"

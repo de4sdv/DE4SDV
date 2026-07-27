@@ -101,28 +101,28 @@ def diagnostic(stamp="100.200000000"):
         (
             OverrideScenario.STALE,
             OverrideSample(received=True, value=True, source_stamp="99.900000000"),
-            False,
+            True,
             OverrideDisposition.DEGRADED_STALE_SOURCE,
             False,
         ),
         (
             OverrideScenario.MISSING,
             OverrideSample(received=False, value=None, source_stamp=None),
-            False,
+            True,
             OverrideDisposition.INCONCLUSIVE_MISSING_SOURCE,
             False,
         ),
         (
             OverrideScenario.MALFORMED,
             OverrideSample(received=True, value=True, source_stamp="0.000000000"),
-            False,
+            True,
             OverrideDisposition.ERROR_MALFORMED_SOURCE,
             False,
         ),
         (
             OverrideScenario.FUTURE_STAMPED,
             OverrideSample(received=True, value=True, source_stamp="100.300000000"),
-            False,
+            True,
             OverrideDisposition.ERROR_FUTURE_SOURCE,
             False,
         ),
@@ -173,7 +173,7 @@ def test_suppression_requires_a_closed_post_diagnostic_window():
     assert result.disposition is OverrideDisposition.INCONCLUSIVE_OPEN_WINDOW
 
 
-def test_invalid_freshness_fails_if_braking_is_allowed():
+def test_invalid_freshness_requires_fail_safe_braking():
     result = evaluate_override_scenario(
         CONTRACT,
         OverrideScenario.STALE,
@@ -182,9 +182,22 @@ def test_invalid_freshness_fails_if_braking_is_allowed():
         native_observations(brake=True),
         window_end_receipt_s=10.5,
     )
+    assert result.passed
+    assert result.disposition is OverrideDisposition.DEGRADED_STALE_SOURCE
+    assert not result.conscious_override
+
+
+def test_invalid_freshness_fails_if_braking_is_suppressed():
+    result = evaluate_override_scenario(
+        CONTRACT,
+        OverrideScenario.STALE,
+        OverrideSample(True, True, "99.900000000"),
+        diagnostic(),
+        native_observations(brake=False),
+        window_end_receipt_s=10.5,
+    )
     assert not result.passed
     assert result.disposition is OverrideDisposition.ERROR_FAIL_CLOSED_BREACH
-    assert not result.conscious_override
 
 
 def test_matrix_contract_rejects_unknown_scenarios_and_non_boolean_samples():

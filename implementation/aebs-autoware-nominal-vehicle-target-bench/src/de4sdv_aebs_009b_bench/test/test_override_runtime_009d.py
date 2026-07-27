@@ -296,6 +296,25 @@ def test_exact_authorization_waits_for_late_native_risk_precursor():
     assert terminal_override_result(result) is None
 
 
+def test_fresh_false_waits_through_transient_stale_authorization():
+    result = evaluate_profile(
+        load_matrix_contract(
+            BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml"
+        ),
+        OverrideScenario.FRESH_FALSE_CONTROL,
+        observations(
+            disposition="degraded_stale_source",
+            source_value="false",
+            source_stamp="99.900000000",
+            brake=True,
+        ),
+        window_end_receipt_s=10.5,
+    )
+    assert not result.passed
+    assert result.disposition is OverrideDisposition.ERROR_SCENARIO_CONTRACT
+    assert terminal_override_result(result) is None
+
+
 def test_clear_control_waits_for_braking_until_observation_window_closes():
     matrix = load_matrix_contract(
         BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml"
@@ -399,28 +418,28 @@ def test_matrix_loader_rejects_duplicate_profiles(tmp_path):
             "degraded_stale_source",
             "true",
             "99.900000000",
-            False,
+            True,
         ),
         (
             OverrideScenario.MISSING,
             "inconclusive_missing_source",
             "none",
             "none",
-            False,
+            True,
         ),
         (
             OverrideScenario.MALFORMED,
             "error_malformed_source",
             "true",
             "0.000000000",
-            False,
+            True,
         ),
         (
             OverrideScenario.FUTURE_STAMPED,
             "error_future_source",
             "true",
             "100.300000000",
-            False,
+            True,
         ),
     ],
 )

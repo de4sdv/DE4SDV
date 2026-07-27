@@ -312,7 +312,7 @@ def evaluate_override_scenario(
         ),
         None,
     )
-    if disposition is OverrideDisposition.CONTROL_CLEAR:
+    if disposition is not OverrideDisposition.CONSCIOUS_OVERRIDE:
         if brake is None:
             if window_end - intervention[1].receipt_monotonic_s < contract.closed_window_s:
                 return result(
@@ -327,7 +327,7 @@ def evaluate_override_scenario(
                 False,
                 OverrideDisposition.ERROR_FAIL_CLOSED_BREACH,
                 False,
-                "fresh false control did not preserve the native intervention-to-braking chain",
+                "non-override disposition did not preserve the native intervention-to-braking chain",
                 risk[0],
                 intervention[0],
             )
@@ -335,7 +335,7 @@ def evaluate_override_scenario(
             True,
             disposition,
             False,
-            "fresh false control preserved 009B native intervention and braking",
+            "non-override disposition preserved 009B native intervention and braking",
             risk[0],
             intervention[0],
             brake[0],
@@ -346,7 +346,7 @@ def evaluate_override_scenario(
             False,
             OverrideDisposition.ERROR_FAIL_CLOSED_BREACH,
             False,
-            "braking was authorized despite override suppression or invalid source freshness",
+            "braking was authorized despite a fresh conscious override",
             risk[0],
             intervention[0],
             brake[0],
