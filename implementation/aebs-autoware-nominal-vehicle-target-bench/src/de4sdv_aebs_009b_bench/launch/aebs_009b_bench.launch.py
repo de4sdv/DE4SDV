@@ -142,7 +142,8 @@ def generate_launch_description():
             {
                 "scenario_config": (
                     f"{package_share}/config/scenario-009b-moving-vehicle-target.yaml"
-                )
+                ),
+                "override_scenario": LaunchConfiguration("override_scenario"),
             }
         ],
     )
@@ -164,6 +165,7 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("map_path", description="verified extracted map directory"),
+            DeclareLaunchArgument("override_scenario", default_value="fresh_false_control"),
             map_loader,
             simulator,
             vehicle_gate,

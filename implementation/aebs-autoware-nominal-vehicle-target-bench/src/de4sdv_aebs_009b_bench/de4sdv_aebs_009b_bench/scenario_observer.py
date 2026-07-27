@@ -23,6 +23,13 @@ from tier4_system_msgs.msg import OperationModeAvailability
 from tier4_vehicle_msgs.msg import VehicleEmergencyStamped
 
 from .footprint_geometry import footprint_relation
+from .override_matrix import OverrideScenario
+from .override_runtime import (
+    evaluate_profile,
+    load_matrix_contract,
+    override_result_to_json,
+    terminal_override_result,
+)
 from .scenario_contract import BASELINE_REQUIRED_INPUTS, Pose2D, load_scenario_config
 from .scenario_evaluator import Observation, ObservationKind
 from .scenario_observer_core import (
@@ -88,9 +95,11 @@ class ScenarioObserver(Node):
         self.declare_parameter("scenario_config", Parameter.Type.STRING)
         self.declare_parameter("raw_output", Parameter.Type.STRING)
         self.declare_parameter("timeout_s", Parameter.Type.DOUBLE)
+        self.declare_parameter("override_scenario", "")
         config_path = self.get_parameter("scenario_config").value
         raw_output = self.get_parameter("raw_output").value
         timeout_s = self.get_parameter("timeout_s").value
+        override_scenario = self.get_parameter("override_scenario").value
         if not isinstance(config_path, str) or not config_path or not Path(config_path).is_absolute():
             raise ValueError("scenario_config must be a required absolute installed path")
         if not isinstance(raw_output, str) or not raw_output or not Path(raw_output).is_absolute():
@@ -105,6 +114,16 @@ class ScenarioObserver(Node):
         )
         self.raw_output = Path(raw_output)
         self.core = ObserverCore(load_scenario_config(config_path), float(timeout_s), time.monotonic())
+        self._override_scenario = None
+        self._override_matrix = None
+        self._override_result = None
+        if override_scenario:
+            try:
+                self._override_scenario = OverrideScenario(override_scenario)
+            except (TypeError, ValueError) as error:
+                raise ValueError("override_scenario must be one of the six closed 009D profiles") from error
+            matrix_path = installed_config / "scenario-009d-conscious-override-matrix.yaml"
+            self._override_matrix = load_matrix_contract(matrix_path)
         self.terminal_reason: str | None = None
         self._receipt: dict[str, float] = {}
         self._instrument_state: dict[str, bool] = {}
@@ -123,10 +142,23 @@ class ScenarioObserver(Node):
         self.create_subscription(String, "/de4sdv/aebs_009b/risk_assessment", self._safe(self._risk, None), 10)
         self.create_subscription(Bool, "/de4sdv/aebs_009b/warning_request", self._safe(self._warning, None), 10)
         self.create_subscription(String, "/de4sdv/aebs_009b/override_evaluated_clear", self._safe(self._override, None), 10)
+        self.create_subscription(
+            DiagnosticArray,
+            "/de4sdv/aebs_009d/override_authorization",
+            self._safe(self._override_authorization, None),
+            10,
+        )
         self.create_subscription(Control, "/de4sdv/aebs_009b/emergency_braking_request", self._safe(self._braking_request, None), 10)
         self.create_subscription(String, "/de4sdv/aebs_009b/coordination_state", self._safe(self._coordination_state, None), 10)
         self._trigger_client = self.create_client(Trigger, "/de4sdv/aebs_009b/inject_target")
-        self.create_timer(max(0.05, self.core.config.baseline.required_input_max_age_s / 2), self._tick)
+        tick_period = max(
+            0.05, self.core.config.baseline.required_input_max_age_s / 2
+        )
+        if self._override_matrix is not None:
+            tick_period = min(
+                tick_period, self._override_matrix.graph_sampling_max_gap_s / 2
+            )
+        self.create_timer(tick_period, self._tick)
 
     def _safe(
         self, callback: Callable[[Any, float], bool | None], topic: str | None
@@ -215,6 +247,31 @@ class ScenarioObserver(Node):
             "context": value["context"],
             "diagnostic_source_stamp": value["diagnostic_source_stamp"],
         }, at, source_stamp=value["source_stamp"]))
+
+    def _override_authorization(self, message: DiagnosticArray, at: float) -> None:
+        statuses = [
+            status for status in message.status
+            if status.name == "de4sdv_aebs_009d: override_authorization"
+        ]
+        if len(statuses) != 1:
+            raise ValueError("typed override authorization requires one exact status")
+        pairs = [(item.key, item.value) for item in statuses[0].values]
+        required = {
+            "override_source_value", "override_source_stamp",
+            "authorization_diagnostic_source_stamp", "disposition",
+        }
+        if {key for key, _ in pairs} != required or len(pairs) != len(required):
+            raise ValueError("typed override authorization values must have an exact closed shape")
+        values = dict(pairs)
+        diagnostic_source_stamp = _stamp(message)
+        if values["authorization_diagnostic_source_stamp"] != diagnostic_source_stamp:
+            raise ValueError("authorization diagnostic stamp does not match its ROS header")
+        self.core.add(Observation(
+            ObservationKind.OVERRIDE_AUTHORIZATION,
+            values,
+            at,
+            source_stamp=diagnostic_source_stamp,
+        ))
 
     def _braking_request(self, message: Control, at: float) -> None:
         speed, acceleration = _control(message)
@@ -345,7 +402,28 @@ class ScenarioObserver(Node):
             # there is deliberately no elapsed-time or readiness autoactivation path.
             self._activation_future = self._trigger_client.call_async(Trigger.Request())
             self._activation_future.add_done_callback(self._activation_done)
-        self.terminal_reason = self.core.poll_terminal(now)
+        if self._override_scenario is not None:
+            has_intervention = any(
+                item.kind is ObservationKind.AEB_INTERVENTION
+                for item in self.core.observations
+            )
+            has_authorization = any(
+                item.kind is ObservationKind.OVERRIDE_AUTHORIZATION
+                for item in self.core.observations
+            )
+            if has_intervention and has_authorization:
+                assert self._override_matrix is not None
+                self._override_result = evaluate_profile(
+                    self._override_matrix,
+                    self._override_scenario,
+                    self.core.observations,
+                    window_end_receipt_s=now,
+                )
+                self.terminal_reason = terminal_override_result(self._override_result)
+            if self.terminal_reason is None and now >= self.core.deadline_s:
+                self.terminal_reason = "timeout"
+        else:
+            self.terminal_reason = self.core.poll_terminal(now)
 
     def operator_abort(self, reason: str) -> None:
         self.core.add(Observation(ObservationKind.OPERATOR_ABORT, {"reason": reason}, time.monotonic()))
@@ -353,13 +431,42 @@ class ScenarioObserver(Node):
 
     def finish(self) -> int:
         reason = self.terminal_reason or "observer_exception"
-        outcome = self.core.evaluate().outcome.value
-        exit_code = 0 if outcome == "pass_observed_chain" else (130 if reason == "operator_abort" else 1)
+        if self._override_scenario is not None:
+            ended_at = time.monotonic()
+            if self._override_result is None:
+                has_intervention = any(
+                    item.kind is ObservationKind.AEB_INTERVENTION
+                    for item in self.core.observations
+                )
+                has_authorization = any(
+                    item.kind is ObservationKind.OVERRIDE_AUTHORIZATION
+                    for item in self.core.observations
+                )
+                if has_intervention and has_authorization:
+                    assert self._override_matrix is not None
+                    self._override_result = evaluate_profile(
+                        self._override_matrix,
+                        self._override_scenario,
+                        self.core.observations,
+                        window_end_receipt_s=ended_at,
+                    )
+            passed = self._override_result is not None and self._override_result.passed
+            exit_code = 0 if passed else (130 if reason == "operator_abort" else 1)
+            document = self.core.result_document(reason, exit_code, ended_at_s=ended_at)
+            document["override_profile"] = self._override_scenario.value
+            document["override_evaluator_result"] = (
+                override_result_to_json(self._override_result)
+                if self._override_result is not None else None
+            )
+        else:
+            outcome = self.core.evaluate().outcome.value
+            exit_code = 0 if outcome == "pass_observed_chain" else (130 if reason == "operator_abort" else 1)
+            document = self.core.result_document(
+                reason, exit_code, ended_at_s=time.monotonic()
+            )
         atomic_write_json(
             self.raw_output,
-            self.core.result_document(
-                reason, exit_code, ended_at_s=time.monotonic()
-            ),
+            document,
         )
         return exit_code
 

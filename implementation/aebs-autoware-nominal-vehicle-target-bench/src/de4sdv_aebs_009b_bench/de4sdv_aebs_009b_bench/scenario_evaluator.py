@@ -25,6 +25,7 @@ class ObservationKind(str, Enum):
     RISK_ASSESSMENT = "risk_assessment"
     WARNING_REQUEST = "warning_request"
     OVERRIDE_EVALUATION = "override_evaluation"
+    OVERRIDE_AUTHORIZATION = "override_authorization"
     BRAKING_REQUEST = "braking_request"
     COORDINATION_STATE = "coordination_state"
     RUNTIME_GRAPH = "runtime_graph"
@@ -71,6 +72,12 @@ _SCHEMAS: Mapping[ObservationKind, Mapping[str, str]] = {
         "clear": "bool", "source_value": "bool", "source_age_s": "number", "context": "str",
  "diagnostic_source_stamp": "str",
     },
+    ObservationKind.OVERRIDE_AUTHORIZATION: {
+        "override_source_value": "str",
+        "override_source_stamp": "str",
+        "authorization_diagnostic_source_stamp": "str",
+        "disposition": "str",
+    },
     ObservationKind.BRAKING_REQUEST: {"speed_mps": "number", "acceleration_mps2": "number"},
     ObservationKind.COORDINATION_STATE: {"state": "str"},
     ObservationKind.RUNTIME_GRAPH: {
@@ -110,6 +117,14 @@ _ALLOWED_PAYLOAD_VALUES: Mapping[tuple[ObservationKind, str], frozenset[str]] = 
     (ObservationKind.GATE_COMMAND, "path"): frozenset({"nominal", "emergency"}),
     (ObservationKind.COORDINATION_STATE, "state"): frozenset({
         "armed", "braking_latched", "released_verified_stop",
+    }),
+    (ObservationKind.OVERRIDE_AUTHORIZATION, "override_source_value"): frozenset({
+        "true", "false", "none",
+    }),
+    (ObservationKind.OVERRIDE_AUTHORIZATION, "disposition"): frozenset({
+        "control_clear", "conscious_override", "degraded_stale_source",
+        "inconclusive_missing_source", "error_malformed_source",
+        "error_future_source",
     }),
 }
 

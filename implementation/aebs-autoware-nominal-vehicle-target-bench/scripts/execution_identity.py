@@ -7,7 +7,6 @@ import hashlib
 import json
 from pathlib import Path
 
-
 INHERITED_009A_MANIFEST_SHA256 = (
     "a06657a0a98eea21862ce94bf79a5b49509b1d7f0f7581af6cd3bee9bdcb2e8a"
 )
@@ -17,6 +16,7 @@ TOP_LEVEL_INPUTS = (
     "compose.yaml",
     "cyclonedds.xml",
     "config/scenario-009b-moving-vehicle-target.yaml",
+    "config/scenario-009d-conscious-override-matrix.yaml",
     "config/aebs-009b.param.yaml",
     "workspace/.gitkeep",
 )
@@ -60,30 +60,21 @@ def execution_inputs(bench: Path) -> dict[str, str]:
     for relative in REQUIRED_RECURSIVE_INPUT_ROOTS:
         root = bench / relative
         if not root.is_dir():
-            raise FileNotFoundError(
-                f"missing execution input directory: {relative}"
-            )
-        paths.extend(
-            path
-            for path in root.rglob("*")
-            if _is_authoritative_file(path)
-        )
+            raise FileNotFoundError(f"missing execution input directory: {relative}")
+        paths.extend(path for path in root.rglob("*") if _is_authoritative_file(path))
 
     for relative in OPTIONAL_RECURSIVE_INPUT_ROOTS:
         root = bench / relative
         if not root.exists():
             continue
         if not root.is_dir():
-            raise FileNotFoundError(f"execution input root is not a directory: {relative}")
-        paths.extend(
-            path
-            for path in root.rglob("*")
-            if _is_authoritative_file(path)
-        )
+            raise FileNotFoundError(
+                f"execution input root is not a directory: {relative}"
+            )
+        paths.extend(path for path in root.rglob("*") if _is_authoritative_file(path))
 
     result = {
-        path.relative_to(bench).as_posix(): _sha256(path)
-        for path in sorted(set(paths))
+        path.relative_to(bench).as_posix(): _sha256(path) for path in sorted(set(paths))
     }
     result[VIRTUAL_INHERITED_INPUT] = INHERITED_009A_MANIFEST_SHA256
     return result
@@ -93,4 +84,22 @@ def execution_manifest_sha256(bench: Path) -> str:
     encoded = json.dumps(
         execution_inputs(bench), sort_keys=True, separators=(",", ":")
     ).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def override_execution_manifest_sha256(bench: Path, profile: str) -> str:
+    """Bind the selected closed 009D profile in addition to file inputs."""
+    allowed = {
+        "fresh_false_control",
+        "fresh_true_conscious_override",
+        "stale",
+        "missing",
+        "malformed",
+        "future_stamped",
+    }
+    if profile not in allowed:
+        raise ValueError("profile is not one of the six closed 009D profiles")
+    inputs = execution_inputs(bench)
+    inputs["@009d-override-profile"] = profile
+    encoded = json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
