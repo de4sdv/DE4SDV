@@ -106,3 +106,22 @@ def warning_requested(
     if not math.isfinite(rss) or not math.isfinite(margin) or rss < 0.0 or margin < 0.0:
         raise ValueError("RSS distance and warning margin must be finite and non-negative")
     return bumper_gap_m(point_distance_m, ego_front_offset_m) <= rss + margin
+
+
+def next_warning_state(
+    current: bool,
+    latch_state: str,
+    point_distance_m: float,
+    rss_distance_m: float,
+    warning_margin_m: float,
+) -> bool:
+    """Latch a risk warning independently of any driver-override disposition."""
+
+    if type(current) is not bool:
+        raise TypeError("current warning state must be boolean")
+    if latch_state not in {"armed", "braking_latched", "released_verified_stop"}:
+        raise ValueError("unknown intervention latch state")
+    return current or (
+        latch_state == "armed"
+        and warning_requested(point_distance_m, rss_distance_m, warning_margin_m)
+    )

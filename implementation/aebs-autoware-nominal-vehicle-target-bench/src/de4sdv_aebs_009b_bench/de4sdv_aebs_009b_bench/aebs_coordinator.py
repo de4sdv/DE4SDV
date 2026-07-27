@@ -23,7 +23,7 @@ from tier4_debug_msgs.msg import Float32Stamped
 from .aebs_coordination_core import (
     InterventionLatch,
     classify_override_source,
-    warning_requested,
+    next_warning_state,
 )
 
 _DIAGNOSTIC_NAME = "autonomous_emergency_braking: aeb_emergency_stop"
@@ -254,16 +254,18 @@ class AebsCoordinator(Node):
     def _publish(self) -> None:
         if self._nominal is None:
             return
-        clear = self._override_is_fresh_and_clear()
         state = String()
         state.data = self._latch.state
         self.state_pub.publish(state)
         self._publish_override_evaluation("monitoring")
         if self._rss_m is not None and self._distance_m is not None:
-            if clear and self._latch.state == "armed" and warning_requested(
-                self._distance_m, self._rss_m, self.warning_margin_m
-            ):
-                self._warning = True
+            self._warning = next_warning_state(
+                self._warning,
+                self._latch.state,
+                self._distance_m,
+                self._rss_m,
+                self.warning_margin_m,
+            )
             risk = String()
             risk.data = json.dumps({
                 "rss_distance_m": self._rss_m,

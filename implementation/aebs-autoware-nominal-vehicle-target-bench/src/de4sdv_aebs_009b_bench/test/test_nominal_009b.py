@@ -5,7 +5,11 @@ import json
 import runpy
 import pytest
 
-from de4sdv_aebs_009b_bench.aebs_coordination_core import InterventionLatch, warning_requested
+from de4sdv_aebs_009b_bench.aebs_coordination_core import (
+    InterventionLatch,
+    next_warning_state,
+    warning_requested,
+)
 from de4sdv_aebs_009b_bench.scenario_contract import Outcome, Pose2D, load_scenario_config
 from de4sdv_aebs_009b_bench.scenario_evaluator import Observation, ObservationKind, evaluate_scenario
 from de4sdv_aebs_009b_bench.footprint_geometry import footprint_relation
@@ -133,6 +137,12 @@ def test_map_pose_footprints_detect_positive_separation_and_overlap():
 def test_warning_compares_native_rss_with_bumper_gap_not_base_link_distance():
     assert warning_requested(17.94, 13.69, 6.0)
     assert not warning_requested(24.0, 13.69, 6.0)
+
+
+def test_warning_transition_is_risk_driven_without_override_input():
+    assert next_warning_state(False, "armed", 17.94, 13.69, 7.0)
+    assert next_warning_state(True, "armed", 24.0, 13.69, 7.0)
+    assert not next_warning_state(False, "braking_latched", 17.94, 13.69, 7.0)
 
 
 def test_nominal_acceleration_stops_driving_speed_above_setpoint():
