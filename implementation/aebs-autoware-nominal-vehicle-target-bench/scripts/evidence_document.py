@@ -8,14 +8,14 @@ validator subsequently recomputes and checks them.
 from __future__ import annotations
 
 import argparse
-from dataclasses import fields, is_dataclass
-from enum import Enum
 import hashlib
 import json
 import math
 import os
-from pathlib import Path
 import tempfile
+from dataclasses import fields, is_dataclass
+from enum import Enum
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 
@@ -29,7 +29,10 @@ def _add_source_checkout_imports() -> Path:
 
 BENCH_ROOT = _add_source_checkout_imports()
 
-from de4sdv_aebs_009b_bench.scenario_contract import ScenarioConfig, load_scenario_config  # noqa: E402
+from de4sdv_aebs_009b_bench.scenario_contract import (  # noqa: E402
+    ScenarioConfig,
+    load_scenario_config,
+)
 from de4sdv_aebs_009b_bench.scenario_evaluator import (  # noqa: E402
     EvaluationResult,
     Observation,
@@ -150,7 +153,12 @@ def _number(value: object, name: str, *, nonnegative: bool = True) -> float:
 
 
 def validate_raw_semantics(
-    raw: Mapping[str, Any], config: ScenarioConfig, evaluation: Mapping[str, Any]
+    raw: Mapping[str, Any],
+    config: ScenarioConfig,
+    evaluation: Mapping[str, Any],
+    *,
+    success_terminal: str = "pass_observed_chain",
+    success_evaluation_outcome: str | None = "pass_observed_chain",
 ) -> None:
     """Validate collector controls and termination, not just observations."""
     if raw["collector_id"] != "de4sdv.scenario_observer.v1":
@@ -161,6 +169,21 @@ def validate_raw_semantics(
     end = _number(raw["monotonic_end_s"], "monotonic_end_s")
     if end < start:
         raise ValueError("raw observer monotonic interval is reversed")
+    observations = raw["observations"]
+    if not isinstance(observations, list):
+        raise TypeError("raw observer observations must be a list")
+    receipt_times = []
+    for item in observations:
+        if not isinstance(item, Mapping):
+            raise TypeError("raw observer observation must be an object")
+        receipt = _number(
+            item.get("receipt_monotonic_s"), "observation.receipt_monotonic_s"
+        )
+        if not start <= receipt <= end:
+            raise ValueError("raw observer observation is outside the collection interval")
+        receipt_times.append(receipt)
+    if receipt_times != sorted(receipt_times):
+        raise ValueError("raw observer observations are not in monotonic receipt order")
 
     limits = raw["limits"]
     if not isinstance(limits, Mapping) or set(limits) != {
@@ -247,22 +270,35 @@ def validate_raw_semantics(
         "pass_observed_chain", "activation_failed", "timeout", "operator_abort",
         "observer_exception", "inconclusive_instrumentation",
         "terminal_scenario_failure",
+        success_terminal,
     }
     if terminal not in allowed_terminal:
         raise ValueError("raw observer terminal_reason is unknown")
     outcome = evaluation["outcome"]
-    if outcome == "pass_observed_chain":
+    if terminal == success_terminal:
         if (
-            terminal != outcome
-            or command_exit != 0
+            command_exit != 0
             or status != "succeeded"
             or errors
         ):
             raise ValueError(
                 "passing result is inconsistent with collector terminal semantics"
             )
+        if (
+            success_evaluation_outcome is not None
+            and outcome != success_evaluation_outcome
+        ):
+            raise ValueError(
+                "passing collector terminal contradicts evaluator outcome"
+            )
     elif command_exit == 0:
         raise ValueError("non-passing result cannot have successful command_exit")
+    if (
+        success_evaluation_outcome is not None
+        and outcome == success_evaluation_outcome
+        and terminal != success_terminal
+    ):
+        raise ValueError("passing evaluator outcome contradicts collector terminal")
     if terminal == "operator_abort" and command_exit != 130:
         raise ValueError("operator abort must use command exit 130")
     if terminal == "activation_failed" and status != "failed":

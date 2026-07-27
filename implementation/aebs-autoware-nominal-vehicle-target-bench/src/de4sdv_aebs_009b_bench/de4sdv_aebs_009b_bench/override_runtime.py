@@ -87,6 +87,26 @@ def load_matrix_contract(path: str | Path) -> MatrixConfig:
     if not isinstance(entries, list):
         raise TypeError("009D scenarios must be a list")
     scenarios: dict[OverrideScenario, MatrixScenario] = {}
+    canonical = {
+        OverrideScenario.FRESH_FALSE_CONTROL: (OverrideDisposition.CONTROL_CLEAR, True),
+        OverrideScenario.FRESH_TRUE_CONSCIOUS: (
+            OverrideDisposition.CONSCIOUS_OVERRIDE,
+            False,
+        ),
+        OverrideScenario.STALE: (OverrideDisposition.DEGRADED_STALE_SOURCE, False),
+        OverrideScenario.MISSING: (
+            OverrideDisposition.INCONCLUSIVE_MISSING_SOURCE,
+            False,
+        ),
+        OverrideScenario.MALFORMED: (
+            OverrideDisposition.ERROR_MALFORMED_SOURCE,
+            False,
+        ),
+        OverrideScenario.FUTURE_STAMPED: (
+            OverrideDisposition.ERROR_FUTURE_SOURCE,
+            False,
+        ),
+    }
     for entry in entries:
         if not isinstance(entry, Mapping) or set(entry) != {
             "id",
@@ -110,6 +130,10 @@ def load_matrix_contract(path: str | Path) -> MatrixConfig:
             raise ValueError("009D scenario ID is invalid")
         if type(entry["expected_braking_request"]) is not bool:
             raise TypeError("expected_braking_request must be boolean")
+        if (disposition, entry["expected_braking_request"]) != canonical[profile]:
+            raise ValueError(
+                "009D scenario disposition/braking expectation contradicts its closed profile"
+            )
         scenarios[profile] = MatrixScenario(
             entry["id"], disposition, entry["expected_braking_request"]
         )
@@ -119,6 +143,10 @@ def load_matrix_contract(path: str | Path) -> MatrixConfig:
         OverrideMatrixContract(
             contract["override_max_age_s"],
             contract["closed_suppression_window_s"],
+            contract["diagnostic_node"],
+            contract["diagnostic_task"],
+            contract["diagnostic_level"],
+            contract["diagnostic_message"],
         ),
         float(gap),
         publisher,
@@ -186,10 +214,10 @@ def _authorization_inputs(
         sample = OverrideSample(True, source_value == "true", source_stamp)
     authorization = DiagnosticAuthorization(
         source_stamp=diagnostic_stamp,
-        node="autonomous_emergency_braking",
-        task="aeb_emergency_stop",
-        level="ERROR",
-        message="[AEB]: Emergency Brake",
+        node=intervention.payload["node"],
+        task=intervention.payload["task"],
+        level=intervention.payload["level"],
+        message=intervention.payload["message"],
     )
     return sample, authorization
 
@@ -276,6 +304,11 @@ def evaluate_profile(
     if result.disposition is not expected.expected_disposition and result.passed:
         return _failure(
             scenario, "runtime result contradicts authoritative expected disposition"
+        )
+    observed_braking = result.braking_request_observation_index is not None
+    if result.passed and observed_braking is not expected.expected_braking_request:
+        return _failure(
+            scenario, "runtime braking observation contradicts authoritative profile"
         )
     graph_reason = _graph_reason(
         matrix,

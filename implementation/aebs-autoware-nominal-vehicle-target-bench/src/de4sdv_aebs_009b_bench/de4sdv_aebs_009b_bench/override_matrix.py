@@ -18,11 +18,6 @@ from enum import Enum
 from .scenario_evaluator import Observation, ObservationKind
 
 _STAMP = re.compile(r"(?:0|[1-9][0-9]*)\.[0-9]{9}\Z")
-_DIAGNOSTIC_NODE = "autonomous_emergency_braking"
-_DIAGNOSTIC_TASK = "aeb_emergency_stop"
-_DIAGNOSTIC_MESSAGE = "[AEB]: Emergency Brake"
-
-
 class OverrideScenario(str, Enum):
     FRESH_FALSE_CONTROL = "fresh_false_control"
     FRESH_TRUE_CONSCIOUS = "fresh_true_conscious_override"
@@ -50,6 +45,10 @@ class OverrideDisposition(str, Enum):
 class OverrideMatrixContract:
     max_source_age_s: float
     closed_window_s: float
+    diagnostic_node: str = "autonomous_emergency_braking"
+    diagnostic_task: str = "aeb_emergency_stop"
+    diagnostic_level: str = "ERROR"
+    diagnostic_message: str = "[AEB]: Emergency Brake"
 
     def __post_init__(self) -> None:
         for name in ("max_source_age_s", "closed_window_s"):
@@ -60,6 +59,14 @@ class OverrideMatrixContract:
             if not math.isfinite(normalized) or normalized <= 0.0:
                 raise ValueError(f"{name} must be finite and positive")
             object.__setattr__(self, name, normalized)
+        for name in (
+            "diagnostic_node",
+            "diagnostic_task",
+            "diagnostic_level",
+            "diagnostic_message",
+        ):
+            if not isinstance(getattr(self, name), str) or not getattr(self, name):
+                raise TypeError(f"{name} must be a nonempty string")
 
 
 @dataclass(frozen=True)
@@ -234,9 +241,9 @@ def evaluate_override_scenario(
             and item.source_stamp == authorization.source_stamp
             and item.payload
             == {
-                "node": _DIAGNOSTIC_NODE,
-                "task": _DIAGNOSTIC_TASK,
-                "level": "ERROR",
+                "node": contract.diagnostic_node,
+                "task": contract.diagnostic_task,
+                "level": contract.diagnostic_level,
             }
         ),
         None,
@@ -249,19 +256,19 @@ def evaluate_override_scenario(
             and item.kind is ObservationKind.AEB_INTERVENTION
             and item.source_stamp == authorization.source_stamp
             and item.receipt_monotonic_s == diagnostic[1].receipt_monotonic_s
-            and item.payload["node"] == _DIAGNOSTIC_NODE
-            and item.payload["task"] == _DIAGNOSTIC_TASK
-            and item.payload["level"] == "ERROR"
-            and item.payload["message"] == _DIAGNOSTIC_MESSAGE
+            and item.payload["node"] == contract.diagnostic_node
+            and item.payload["task"] == contract.diagnostic_task
+            and item.payload["level"] == contract.diagnostic_level
+            and item.payload["message"] == contract.diagnostic_message
             and item.payload["object_distance_m"] <= item.payload["rss_distance_m"]
         ),
         None,
     )
     authorization_exact = (
-        authorization.node == _DIAGNOSTIC_NODE
-        and authorization.task == _DIAGNOSTIC_TASK
-        and authorization.level == "ERROR"
-        and authorization.message == _DIAGNOSTIC_MESSAGE
+        authorization.node == contract.diagnostic_node
+        and authorization.task == contract.diagnostic_task
+        and authorization.level == contract.diagnostic_level
+        and authorization.message == contract.diagnostic_message
         and diagnostic is not None
         and intervention is not None
     )

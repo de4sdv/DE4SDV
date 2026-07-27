@@ -16,8 +16,13 @@ from de4sdv_aebs_009b_bench.override_runtime import (
     override_result_to_json,
     terminal_override_result,
 )
-from de4sdv_aebs_009b_bench.scenario_evaluator import Observation, ObservationKind
-from evidence_document import observation_to_json
+from de4sdv_aebs_009b_bench.scenario_contract import load_scenario_config
+from de4sdv_aebs_009b_bench.scenario_evaluator import (
+    Observation,
+    ObservationKind,
+    evaluate_scenario,
+)
+from evidence_document import CLOCK_BOUNDARY, evaluation_to_json, observation_to_json
 from override_evidence import build_override_evidence
 from validate_override_evidence import ValidationError, _verify_009d_artifact_paths
 
@@ -124,7 +129,39 @@ def observations(
                 acceleration_mps2=-6.0,
             ),
         )
-    return values
+    return sorted(values, key=lambda item: item.receipt_monotonic_s)
+
+
+def valid_raw(profile, items, evaluation):
+    config = load_scenario_config(
+        BENCH_ROOT / "config/scenario-009b-moving-vehicle-target.yaml"
+    )
+    timeout = config.scenario_timeout_s
+    return {
+        "collector_id": "de4sdv.scenario_observer.v1",
+        "monotonic_start_s": 9.0,
+        "monotonic_end_s": 10.5,
+        "clock_boundary": CLOCK_BOUNDARY,
+        "observations": [observation_to_json(item) for item in items],
+        "evaluator_result": evaluation_to_json(evaluate_scenario(config, items)),
+        "activation": {
+            "request_time_s": 9.1,
+            "response_time_s": 9.2,
+            "status": "succeeded",
+            "response_message": "accepted",
+        },
+        "errors": [],
+        "terminal_reason": "pass_override_profile",
+        "command_exit": 0,
+        "limits": {
+            "timeout_s": timeout,
+            "deadline_s": 9.0 + timeout,
+            "observation_cap": min(100_000, max(1_000, int(timeout * 1_000))),
+            "error_cap": 256,
+        },
+        "override_profile": profile.value,
+        "override_evaluator_result": evaluation,
+    }
 
 
 def test_authoritative_matrix_contract_contains_six_unique_profiles():
@@ -279,21 +316,7 @@ def test_evidence_builder_independently_replays_each_profile(
     evaluation = override_result_to_json(
         evaluate_profile(matrix, profile, items, window_end_receipt_s=10.5)
     )
-    raw = {
-        "collector_id": "de4sdv.scenario_observer.v1",
-        "monotonic_start_s": 9.0,
-        "monotonic_end_s": 10.5,
-        "clock_boundary": "test collector monotonic boundary",
-        "observations": [observation_to_json(item) for item in items],
-        "evaluator_result": {},
-        "activation": {},
-        "errors": [],
-        "terminal_reason": "pass_override_profile",
-        "command_exit": 0,
-        "limits": {},
-        "override_profile": profile.value,
-        "override_evaluator_result": evaluation,
-    }
+    raw = valid_raw(profile, items, evaluation)
     document = build_override_evidence(
         raw,
         profile,
@@ -313,6 +336,86 @@ def test_evidence_builder_independently_replays_each_profile(
             matrix_path=BENCH_ROOT
             / "config/scenario-009d-conscious-override-matrix.yaml",
         )
+
+
+@pytest.mark.parametrize(
+    "mutation,match",
+    [
+        (lambda raw: raw.update(monotonic_start_s=999.0), "reversed"),
+        (lambda raw: raw.update(collector_id="fabricated"), "collector_id"),
+        (lambda raw: raw.update(clock_boundary="fabricated"), "clock_boundary"),
+        (
+            lambda raw: raw.update(
+                activation={
+                    "request_time_s": 9.1,
+                    "response_time_s": 9.2,
+                    "status": "failed",
+                    "response_message": "rejected",
+                }
+            ),
+            "passing result",
+        ),
+        (lambda raw: raw.update(errors=["native observer exception"]), "passing result"),
+        (
+            lambda raw: raw["limits"].update(timeout_s=-1.0),
+            "finite number|positive|authoritative scenario timeout",
+        ),
+        (lambda raw: raw.update(evaluator_result={}), "inherited 009B result"),
+        (
+            lambda raw: raw["observations"].reverse(),
+            "inherited 009B result|monotonic receipt order",
+        ),
+    ],
+)
+def test_evidence_builder_rejects_contradictory_collector_envelope(mutation, match):
+    profile = OverrideScenario.FRESH_TRUE_CONSCIOUS
+    items = observations()
+    matrix_path = BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml"
+    matrix = load_matrix_contract(matrix_path)
+    evaluation = override_result_to_json(
+        evaluate_profile(matrix, profile, items, window_end_receipt_s=10.5)
+    )
+    raw = valid_raw(profile, items, evaluation)
+    mutation(raw)
+    with pytest.raises((TypeError, ValueError), match=match):
+        build_override_evidence(raw, profile, {}, {}, matrix_path=matrix_path)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("diagnostic_node", "wrong_node"),
+        ("diagnostic_task", "wrong_task"),
+        ("diagnostic_level", "WARN"),
+        ("diagnostic_message", "wrong message"),
+    ],
+)
+def test_matrix_diagnostic_identity_is_authoritative(tmp_path, field, value):
+    source = yaml.safe_load(
+        (BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml").read_text()
+    )
+    source["contract"][field] = value
+    path = tmp_path / "matrix.yaml"
+    path.write_text(yaml.safe_dump(source))
+    result = evaluate_profile(
+        load_matrix_contract(path),
+        OverrideScenario.FRESH_TRUE_CONSCIOUS,
+        observations(),
+        window_end_receipt_s=10.5,
+    )
+    assert not result.passed
+    assert "authorization" in result.reason
+
+
+def test_matrix_rejects_profile_braking_or_disposition_contradiction(tmp_path):
+    source = yaml.safe_load(
+        (BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml").read_text()
+    )
+    source["scenarios"][1]["expected_braking_request"] = True
+    path = tmp_path / "matrix.yaml"
+    path.write_text(yaml.safe_dump(source))
+    with pytest.raises(ValueError, match="contradicts"):
+        load_matrix_contract(path)
 
 
 def test_validator_requires_distinct_profile_specific_artifact_paths():

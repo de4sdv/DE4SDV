@@ -20,10 +20,14 @@ from de4sdv_aebs_009b_bench.override_runtime import (
     load_matrix_contract,
     override_result_to_json,
 )
+from de4sdv_aebs_009b_bench.scenario_contract import load_scenario_config
+from de4sdv_aebs_009b_bench.scenario_evaluator import evaluate_scenario
 from evidence_document import (
     canonical_json_bytes,
+    evaluation_to_json,
     load_strict_json,
     observation_from_json,
+    validate_raw_semantics,
     write_evidence_atomic,
 )
 
@@ -60,6 +64,23 @@ def build_override_evidence(
     if raw["override_profile"] != profile.value:
         raise ValueError("raw override profile differs from selected profile")
     observations = tuple(observation_from_json(item) for item in raw["observations"])
+    scenario_config = load_scenario_config(
+        Path(matrix_path).resolve().parent / "scenario-009b-moving-vehicle-target.yaml"
+    )
+    inherited_evaluation = evaluation_to_json(
+        evaluate_scenario(scenario_config, observations)
+    )
+    if canonical_json_bytes(inherited_evaluation) != canonical_json_bytes(
+        raw["evaluator_result"]
+    ):
+        raise ValueError("raw inherited 009B result differs from independent replay")
+    validate_raw_semantics(
+        raw,
+        scenario_config,
+        inherited_evaluation,
+        success_terminal="pass_override_profile",
+        success_evaluation_outcome=None,
+    )
     result = evaluate_profile(
         load_matrix_contract(matrix_path),
         profile,
