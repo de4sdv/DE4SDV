@@ -95,6 +95,10 @@ if [ -L "$LAUNCH_LOG" ] || [ ! -f "$LAUNCH_LOG" ]; then
   printf 'Missing/unsafe launch log after runtime stop: %s\n' "$LAUNCH_LOG" >&2
   exit 1
 fi
+if LC_ALL=C grep -Eq 'QH[0-9]+ qhull input error|ConvexHull::.*ERROR|process has died|Traceback \(most recent call last\)' "$LAUNCH_LOG"; then
+  printf 'Rejected runtime log: native geometry/process failure detected in %s\n' "$LAUNCH_LOG" >>"$OBSERVER_LOG"
+  observer_exit=97
+fi
 
 python3 -c '
 import json,os,pathlib,sys,tempfile

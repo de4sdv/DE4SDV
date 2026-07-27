@@ -18,6 +18,13 @@ EXPECTED_SCHEMA = "de4sdv.aebs-009c.runtime-lock.v1"
 EXPECTED_INCREMENT = "INC-AEBS-009C"
 EXPECTED_SCENARIO = "SCN-AEBS-009C-AEB-MRM-001"
 EXPECTED_DISPOSITION = "runtime_verified_009a_readiness_only"
+EXPECTED_STATUS = "retained_replay_validated_partial_native_intervention_to_mrm_gate_evidence"
+EXPECTED_REPOSITORY_HISTORY = {
+    "pull_request": 66,
+    "retained_run_head": "a6234b572659ad052ecd647585552ded98bca569",
+    "reviewed_head": "871ef95bbdf3b865d5761d692065674fc0b4e196",
+    "delivery_commit": "81e043386251118b302bafbed91922f8fa821522",
+}
 INHERITED_TOP_LEVEL_INPUTS = (
     "autoware-009a.repos",
     "compose.yaml",
@@ -131,11 +138,13 @@ def verify(bench: Path, inherited_bench: Path) -> None:
         "schema": EXPECTED_SCHEMA,
         "increment": EXPECTED_INCREMENT,
         "scenario_id": EXPECTED_SCENARIO,
-        "status": "defined_not_executed",
+        "status": EXPECTED_STATUS,
     }
     for key, expected in expected_scalars.items():
         if lock.get(key) != expected:
             raise ValueError(f"009C {key} mismatch: expected {expected!r}")
+    if lock.get("repository_history") != EXPECTED_REPOSITORY_HISTORY:
+        raise ValueError("009C reviewed squash-history relation mismatch")
 
     inheritance = lock.get("inherited_009a")
     if not isinstance(inheritance, dict):
@@ -238,7 +247,10 @@ def main() -> int:
     except (OSError, ValueError, yaml.YAMLError) as exc:
         print(f"runtime inheritance verification failed: {exc}", file=sys.stderr)
         return 1
-    print("009C inherited 009A runtime inputs verified; no 009C runtime claim is made.")
+    print(
+        "009C inherited 009A runtime inputs verified; retained evidence remains "
+        "limited to the partial intervention-to-MRM/gate claim boundary."
+    )
     return 0
 
 

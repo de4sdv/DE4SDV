@@ -62,7 +62,13 @@ def test_lock_inherits_exact_verified_009a_inputs_without_claims() -> None:
     assert lock["schema"] == "de4sdv.aebs-009c.runtime-lock.v1"
     assert lock["increment"] == "INC-AEBS-009C"
     assert lock["scenario_id"] == "SCN-AEBS-009C-AEB-MRM-001"
-    assert lock["status"] == "defined_not_executed"
+    assert lock["status"] == "retained_replay_validated_partial_native_intervention_to_mrm_gate_evidence"
+    assert lock["repository_history"] == {
+        "pull_request": 66,
+        "retained_run_head": "a6234b572659ad052ecd647585552ded98bca569",
+        "reviewed_head": "871ef95bbdf3b865d5761d692065674fc0b4e196",
+        "delivery_commit": "81e043386251118b302bafbed91922f8fa821522",
+    }
     assert lock["container"] == upstream["container"]
     assert lock["sources"] == upstream["sources"]
     assert lock["map"] == upstream["map"]
