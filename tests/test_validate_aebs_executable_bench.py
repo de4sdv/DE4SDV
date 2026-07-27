@@ -162,7 +162,11 @@ class TestAebsExecutableBench(unittest.TestCase):
             by_id["INC-AEBS-009C"]["status"],
             "executed_replay_validated_pending_review",
         )
-        for suffix in "DEFGHI":
+        self.assertEqual(
+            by_id["INC-AEBS-009D"]["status"],
+            "executed_replay_validated_pending_review",
+        )
+        for suffix in "EFGHI":
             self.assertEqual(by_id[f"INC-AEBS-009{suffix}"]["status"], "planned")
         boundaries = [tuple(item["acceptance_boundary"]) for item in by_id.values()]
         self.assertEqual(len(boundaries), len(set(boundaries)))
