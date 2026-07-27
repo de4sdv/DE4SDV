@@ -41,7 +41,7 @@ exec {launch_fd}>"$launch_log"
 set +C
 python3 "$BENCH/scripts/verify_runtime.py" --bench "$BENCH" --inherited-bench "$INHERITED"
 python3 "$VERIFY_MAP" --cache "$MAP_CACHE" --bench "$BENCH" \
-  --output "$run_dir/map-runtime.json"
+  --evidence-namespace "$mode" --output "$run_dir/map-runtime.json"
 
 # Remove only the uniquely named prior 009B container; never signal an unverified host PID.
 if [ -f "$pid_file" ]; then

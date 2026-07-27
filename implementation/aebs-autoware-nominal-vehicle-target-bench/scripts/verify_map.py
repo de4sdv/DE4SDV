@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
-"""Verify locked extracted map files and write evidence only inside the 009B bench."""
+"""Verify locked extracted map files and confine evidence to one increment namespace."""
 
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import hashlib
 import json
 import os
-from pathlib import Path
 import platform
 import stat
 import subprocess
 import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
 
 import yaml
-
 from execution_identity import execution_manifest_sha256
+
+MAP_EVIDENCE_NAMESPACES = frozenset(
+    {"009b", "009c", "009d", "009e", "009f", "009g", "009h", "009i"}
+)
 
 
 def sha256(path: Path) -> str:
@@ -81,19 +84,25 @@ def verify(cache: Path, bench: Path) -> tuple[Path, dict[str, str]]:
     return destination, observed_files
 
 
-def atomic_evidence_write(path: Path, document: object, bench: Path) -> None:
+def atomic_evidence_write(
+    path: Path, document: object, bench: Path, evidence_namespace: str = "009b"
+) -> None:
     """Publish map evidence without following or replacing an unsafe destination."""
-    unresolved_root = bench / "evidence" / "009b"
+    if evidence_namespace not in MAP_EVIDENCE_NAMESPACES:
+        raise ValueError(f"unsupported map evidence namespace: {evidence_namespace}")
+    unresolved_root = bench / "evidence" / evidence_namespace
     reject_symlink_components(unresolved_root)
     if unresolved_root.is_symlink() or not unresolved_root.is_dir():
-        raise ValueError("009B evidence root must be a real directory")
+        raise ValueError(f"{evidence_namespace} evidence root must be a real directory")
     evidence_root = unresolved_root.resolve(strict=True)
     if not evidence_root.is_relative_to(bench.resolve(strict=True)):
-        raise ValueError("009B evidence root escapes resolved bench")
+        raise ValueError(f"{evidence_namespace} evidence root escapes resolved bench")
     reject_symlink_components(path.parent)
     parent = path.parent.resolve(strict=True)
     if not parent.is_relative_to(evidence_root):
-        raise ValueError("map evidence output must remain inside resolved 009B evidence")
+        raise ValueError(
+            f"map evidence output must remain inside resolved {evidence_namespace} evidence"
+        )
     if path.is_symlink() or (path.exists() and not path.is_file()):
         raise ValueError("map evidence destination must be a regular non-symlink file")
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=parent)
@@ -116,6 +125,9 @@ def main() -> int:
     parser.add_argument("--cache", required=True, type=Path)
     parser.add_argument("--bench", type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--evidence-namespace", choices=sorted(MAP_EVIDENCE_NAMESPACES), default="009b"
+    )
     args = parser.parse_args()
 
     bench = args.bench.resolve() if args.bench else Path(__file__).resolve().parents[1]
@@ -151,7 +163,7 @@ def main() -> int:
         evidence_path = args.output if args.output else bench / "evidence/009b/map-runtime.json"
         if not evidence_path.is_absolute():
             evidence_path = bench / evidence_path
-        atomic_evidence_write(evidence_path, evidence, bench)
+        atomic_evidence_write(evidence_path, evidence, bench, args.evidence_namespace)
 
 
 if __name__ == "__main__":
