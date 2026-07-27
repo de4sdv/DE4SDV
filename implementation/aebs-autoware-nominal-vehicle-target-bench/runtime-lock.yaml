@@ -1,0 +1,62 @@
+schema: de4sdv.aebs-009b.runtime-lock.v1
+increment: INC-AEBS-009B
+scenario_id: SCN-AEBS-009B-MOVING-VEHICLE-001
+status: executed_evidence_pending_review
+container:
+  repository: ghcr.io/autowarefoundation/autoware
+  tag: universe-devel-humble-20260722
+  index_digest: sha256:03f6e177d507504a26710041674a1386b1a63fe964870cb5ff48b5e59c635c17
+  platform: linux/arm64
+  platform_digest: sha256:0bcf71e1c7b45da5787f10def7cfcb2e26d5a25906d2af538ae7db167766136f
+  platform_digest_disposition: acquired_and_verified_on_target_host
+sources:
+  - name: autoware_universe
+    repository: https://github.com/autowarefoundation/autoware_universe.git
+    commit: f603d8759c92fb2f423f1544844e13086d79ad09
+    tree: 021a78ba31a6c2a43a7af06c4c201e0f50c2f48e
+  - name: autoware_launch
+    repository: https://github.com/autowarefoundation/autoware_launch.git
+    commit: f05c4b1f83e0b0e4a01ade34d5199bd5571873f1
+    tree: 1456364b31390921f8d2e6ac7f2878c902972ede
+  - name: autoware_simple_planning_simulator
+    repository: https://github.com/autowarefoundation/autoware_simple_planning_simulator.git
+    commit: 82d2c93a28a25f8802e8f5a21b4ec850beea9080
+    tree: d0985e96562c71a38ca40697013e0922e42e5aa6
+map:
+  url: https://autoware-files.s3.us-west-2.amazonaws.com/maps/demos/sample-map-planning.zip
+  sha256: 5536fce7bb8db7688fdf94ec004118b898637ad0d5b6175108b10989dd6e93b9
+  extracted_directory: sample-map-planning
+  extracted_files:
+    - lanelet2_map.osm
+    - map_config.yaml
+    - map_projector_info.yaml
+    - pointcloud_map.pcd
+  extracted_sha256:
+    lanelet2_map.osm: 4fe358f2d1e182dc76de296e5619086f8d8ad2fcab3e6d8f99f6e3d724a84e6d
+    map_config.yaml: c7f8caeaad3559d2bc924a0683f36673f72c9e15f315c2e95f371c9ccceb7e39
+    map_projector_info.yaml: 9753eba4724aa6d41ffa2cc03e8da2d82e9f317dd14da837b0e96a7705e72bfa
+    pointcloud_map.pcd: 2da791365627241513c56a88a78baaf17d86b5e90febcb8987ec92c9e99ad2c6
+inherited_009a:
+  execution_manifest_path: implementation/aebs-autoware-executable-bench/evidence/readiness.json
+  execution_manifest_sha256: a06657a0a98eea21862ce94bf79a5b49509b1d7f0f7581af6cd3bee9bdcb2e8a
+  runtime_lock_path: implementation/aebs-autoware-executable-bench/runtime-lock.yaml
+  runtime_lock_sha256: 6621ad7fb9196a7f1bccb31a3cae32dbb7e86e0cd249af8e86c39e579bdcf89d
+  install_setup_path: implementation/aebs-autoware-executable-bench/workspace/install/setup.bash
+  disposition: runtime_verified_009a_readiness_only
+authoritative_scenario_config: config/scenario-009b-moving-vehicle-target.yaml
+selected_ros_packages:
+  - de4sdv_aebs_009b_bench
+timeouts:
+  startup_s: 20.0
+  scenario_s: 45.0
+evidence:
+  directory: implementation/aebs-autoware-nominal-vehicle-target-bench/evidence/009b
+  files:
+    build_log: build.log
+    launch_log: launch.log
+    runtime_pid: runtime.pid
+claim_boundaries:
+  - No 009B runtime claim is made before retained validated evidence exists.
+  - No 009B scenario or braking outcome claim is made before retained validated evidence exists.
+  - No safety acceptance claim is made before retained validated evidence exists.
+  - No compliance, certification, or homologation claim is made before retained validated evidence exists.

@@ -7,22 +7,88 @@ increments:
       - map-enabled full-chain launch is verified on the ARM64 target
       - typed endpoint readiness and exact AEB diagnostic identity are recorded
     excludes:
-      - stationary-target collision intervention
+      - collision-intervention scenario evidence
       - braking-performance acceptance
-      - fault and negative scenarios
+      - regulatory compliance or type approval
+
   - id: INC-AEBS-009B
-    status: planned
+    status: replayable_evidence_generated_pending_review
     acceptance_boundary:
-      - stationary-target end-to-end scenario is executed
-      - diagnostic-to-MRM-to-gate selection is observed
-      - simulated deceleration evidence is recorded
+      - a moving subject vehicle closes on a same-lane moving vehicle target
+      - native Autoware AEB RSS assessment and exact intervention diagnostic are observed
+      - a coordinator-derived warning precedes native intervention by at least 0.8 seconds
+      - a fresh source-stamped false override sample permits direct nominal-path braking
+      - the coordinator is the sole nominal gate-input publisher with emergency handling disabled
+      - braking remains latched until fresh ego odometry verifies stop for the configured hold time
+      - retained map-pose oriented footprints independently demonstrate positive and opening separation through release for the retained run
+      - canonical evidence passes schema validation and independent evaluator replay
     excludes:
-      - fault and negative scenario matrix
+      - conscious driver override
+      - non-activation and false-reaction matrix
+      - failed or degraded operation
+      - pedestrian or bicycle targets
+      - quantified regulatory acceptance
+      - physical brake performance, certification, homologation, or type approval
+
   - id: INC-AEBS-009C
+    status: merged_partial_native_intervention_to_mrm_evidence
+    acceptance_boundary:
+      - the exact native AEB intervention diagnostic is observed
+      - a bounded emergency MRM and emergency-gate integration path is observed
+      - the evidence is explicitly partial and is not presented as nominal AEBS completion
+    excludes:
+      - direct nominal-path AEBS braking
+      - complete nominal AEBS behavior
+      - collision-outcome acceptance
+      - regulatory compliance or type approval
+
+  - id: INC-AEBS-009D
     status: planned
     acceptance_boundary:
-      - non-collision and fault scenario matrix is executed
-      - stale and missing input behavior is observed
-      - emergency-state behavior is observed
+      - conscious driver override inputs are source-stamped and freshness-checked
+      - override suppresses or releases AEBS intervention under a closed scenario contract
+      - stale, missing, malformed, future, and true override counterexamples are replay-tested; false is retained as the nominal control case
     excludes:
-      - driver override until separately implemented
+      - non-activation and false-reaction matrix
+      - failure and degraded operation
+
+  - id: INC-AEBS-009E
+    status: planned
+    acceptance_boundary:
+      - bounded non-activation and false-reaction scenarios are replayed
+      - no-warning and no-braking outcomes are supported by explicit counterexamples
+    excludes:
+      - failure and degraded operation
+      - vulnerable-road-user targets
+
+  - id: INC-AEBS-009F
+    status: planned
+    acceptance_boundary:
+      - stale, missing, malformed, inconsistent, and unavailable input behavior is replayed
+      - degraded and unavailable AEBS states have explicit ownership and evidence
+    excludes:
+      - pedestrian and bicycle targets
+      - quantified regulatory acceptance
+
+  - id: INC-AEBS-009G
+    status: planned
+    acceptance_boundary:
+      - a bounded pedestrian-target scenario and independent outcome evidence are replayed
+    excludes:
+      - bicycle targets
+      - quantified regulatory acceptance
+
+  - id: INC-AEBS-009H
+    status: planned
+    acceptance_boundary:
+      - a bounded bicycle-target scenario and independent outcome evidence are replayed
+    excludes:
+      - quantified regulatory acceptance
+
+  - id: INC-AEBS-009I
+    status: planned
+    acceptance_boundary:
+      - regulatory acceptance criteria are source-backed, quantified, and traced to replayable measurements
+      - any claimed pass is limited to the tested configuration and evidence boundary
+    excludes:
+      - certification, homologation, or type approval unless separately established by competent authority

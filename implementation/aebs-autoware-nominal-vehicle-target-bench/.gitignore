@@ -1,0 +1,16 @@
+# Colcon-generated workspace output; keep only the source placeholder.
+workspace/*
+!workspace/.gitkeep
+
+# Per-run evidence is ignored by default. The canonical run's five hash-bound
+# artifacts are force-added when publishing a reviewed evidence snapshot.
+evidence/009b/runs/*
+evidence/009b/debug-*/
+
+# Mutable convenience copies and build output are not canonical evidence.
+evidence/009b/build.log
+evidence/009b/launch.log
+evidence/009b/map-runtime.json
+evidence/009b/observer.log
+evidence/009b/provenance.json
+evidence/009b/run-metadata.json

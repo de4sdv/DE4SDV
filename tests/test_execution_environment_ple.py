@@ -184,7 +184,7 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
         self.assertIn("container-identity.json", model)
         self.assertIn("execution-environment-snapshot.json", model)
 
-    def test_009b_and_009c_remain_planned_scenario_increments(self):
+    def test_009b_and_009c_record_current_bounded_evidence_status(self):
         increments = yaml.safe_load(
             (
                 REPO_ROOT
@@ -194,17 +194,23 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
             ).read_text()
         )["increments"]
         by_id = {item["id"]: item for item in increments}
-        self.assertEqual(by_id["INC-AEBS-009B"]["status"], "planned")
+        self.assertEqual(
+            by_id["INC-AEBS-009B"]["status"],
+            "replayable_evidence_generated_pending_review",
+        )
         self.assertTrue(
             any(
-                "stationary-target" in item
+                "same-lane moving vehicle target" in item
                 for item in by_id["INC-AEBS-009B"]["acceptance_boundary"]
             )
         )
-        self.assertEqual(by_id["INC-AEBS-009C"]["status"], "planned")
+        self.assertEqual(
+            by_id["INC-AEBS-009C"]["status"],
+            "merged_partial_native_intervention_to_mrm_evidence",
+        )
         self.assertTrue(
             any(
-                "non-collision and fault scenario matrix" in item
+                "explicitly partial" in item
                 for item in by_id["INC-AEBS-009C"]["acceptance_boundary"]
             )
         )
