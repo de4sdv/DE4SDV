@@ -65,7 +65,7 @@ def build_override_evidence(
         raise ValueError("raw override profile differs from selected profile")
     observations = tuple(observation_from_json(item) for item in raw["observations"])
     scenario_config = load_scenario_config(
-        Path(matrix_path).resolve().parent / "scenario-009b-moving-vehicle-target.yaml"
+        Path(matrix_path).resolve().parent / "scenario-009d-moving-vehicle-target.yaml"
     )
     inherited_evaluation = evaluation_to_json(
         evaluate_scenario(scenario_config, observations)
@@ -80,6 +80,7 @@ def build_override_evidence(
         inherited_evaluation,
         success_terminal="pass_override_profile",
         success_evaluation_outcome=None,
+        additional_terminal_reasons={"terminal_override_failure"},
     )
     result = evaluate_profile(
         load_matrix_contract(matrix_path),

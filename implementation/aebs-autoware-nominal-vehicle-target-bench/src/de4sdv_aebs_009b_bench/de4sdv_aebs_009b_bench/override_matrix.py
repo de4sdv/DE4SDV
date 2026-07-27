@@ -216,7 +216,6 @@ def evaluate_override_scenario(
             if item.kind is ObservationKind.RISK_ASSESSMENT
             and item.payload["warning"] is True
             and item.payload["intervention"] is False
-            and item.payload["object_distance_m"] <= item.payload["rss_distance_m"]
         ),
         None,
     )
@@ -288,6 +287,7 @@ def evaluate_override_scenario(
             False,
             "native RSS/warning observations were incomplete",
         )
+    assert intervention is not None
 
     disposition, conscious = _sample_disposition(
         contract, sample, authorization.source_stamp
@@ -314,6 +314,15 @@ def evaluate_override_scenario(
     )
     if disposition is OverrideDisposition.CONTROL_CLEAR:
         if brake is None:
+            if window_end - intervention[1].receipt_monotonic_s < contract.closed_window_s:
+                return result(
+                    False,
+                    OverrideDisposition.INCONCLUSIVE_OPEN_WINDOW,
+                    False,
+                    "post-intervention braking-observation window is not closed",
+                    risk[0],
+                    intervention[0],
+                )
             return result(
                 False,
                 OverrideDisposition.ERROR_FAIL_CLOSED_BREACH,

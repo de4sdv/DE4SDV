@@ -13,6 +13,7 @@ import json
 import math
 import os
 import tempfile
+from collections.abc import Collection
 from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
@@ -159,6 +160,7 @@ def validate_raw_semantics(
     *,
     success_terminal: str = "pass_observed_chain",
     success_evaluation_outcome: str | None = "pass_observed_chain",
+    additional_terminal_reasons: Collection[str] = (),
 ) -> None:
     """Validate collector controls and termination, not just observations."""
     if raw["collector_id"] != "de4sdv.scenario_observer.v1":
@@ -272,6 +274,11 @@ def validate_raw_semantics(
         "terminal_scenario_failure",
         success_terminal,
     }
+    if isinstance(additional_terminal_reasons, (str, bytes)) or not all(
+        isinstance(item, str) and item for item in additional_terminal_reasons
+    ):
+        raise TypeError("additional terminal reasons must be nonempty strings")
+    allowed_terminal.update(additional_terminal_reasons)
     if terminal not in allowed_terminal:
         raise ValueError("raw observer terminal_reason is unknown")
     outcome = evaluation["outcome"]

@@ -107,10 +107,15 @@ class ScenarioObserver(Node):
         if isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float)) or not math.isfinite(timeout_s) or timeout_s <= 0:
             raise ValueError("timeout_s must be finite and positive")
         installed_config = Path(get_package_share_directory("de4sdv_aebs_009b_bench")) / "config"
+        expected_config_name = (
+            "scenario-009d-moving-vehicle-target.yaml"
+            if override_scenario
+            else "scenario-009b-moving-vehicle-target.yaml"
+        )
         validate_installed_config_path(
             config_path,
             installed_config,
-            "scenario-009b-moving-vehicle-target.yaml",
+            expected_config_name,
         )
         self.raw_output = Path(raw_output)
         self.core = ObserverCore(load_scenario_config(config_path), float(timeout_s), time.monotonic())

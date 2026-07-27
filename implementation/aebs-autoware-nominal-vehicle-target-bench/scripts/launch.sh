@@ -9,6 +9,8 @@ runtime_name="de4sdv-aebs-009b-runtime"
 profile="${DE4SDV_009D_PROFILE:-}"
 mode="009b"
 launch_profile_argument=""
+scenario_config_argument=""
+warning_margin_argument=""
 if [ -n "$profile" ]; then
   case "$profile" in
     fresh_false_control|fresh_true_conscious_override|stale|missing|malformed|future_stamped) ;;
@@ -16,6 +18,9 @@ if [ -n "$profile" ]; then
   esac
   mode="009d"
   launch_profile_argument="override_scenario:=$profile"
+  scenario_config_argument="scenario_config_name:=scenario-009d-moving-vehicle-target.yaml"
+  warning_margin="$(python3 -c 'import math,sys,yaml; value=float(yaml.safe_load(open(sys.argv[1], encoding="utf-8"))["outcome_contract"]["warning_margin_m"]); assert math.isfinite(value) and value > 0; print(value)' "$BENCH/config/scenario-009d-moving-vehicle-target.yaml")"
+  warning_margin_argument="warning_margin_m:=$warning_margin"
   run_dir="${DE4SDV_009D_RUN_DIR:-$BENCH/evidence/009d}"
 else
   run_dir="${DE4SDV_009B_RUN_DIR:-$BENCH/evidence/009b}"
@@ -63,9 +68,11 @@ docker compose -f "$BENCH/compose.yaml" run --rm --name "$runtime_name" bench ba
   source /de4sdv/implementation/aebs-autoware-nominal-vehicle-target-bench/workspace/install/setup.bash
   set -u
   arguments=(map_path:=/map-cache/sample-map-planning)
-  if [ -n "$1" ]; then arguments+=("$1"); fi
+  for argument in "$1" "$2" "$3"; do
+    if [ -n "$argument" ]; then arguments+=("$argument"); fi
+  done
   exec ros2 launch de4sdv_aebs_009b_bench aebs_009b_bench.launch.py "${arguments[@]}"
-' launch "$launch_profile_argument" >&"$launch_fd" 2>&1 &
+' launch "$launch_profile_argument" "$scenario_config_argument" "$warning_margin_argument" >&"$launch_fd" 2>&1 &
 pid=$!
 printf '%s\n' "$pid" > "$pid_file"
 

@@ -90,7 +90,7 @@ docker exec --user "$(id -u):$(id -g)" --env HOME=/home/aw "$CONTAINER" bash -lc
     -p "timeout_s:=$4" \
     -p "override_scenario:=$5"
 ' observer "$SUPERVISOR_TIMEOUT" \
-  "/de4sdv/implementation/aebs-autoware-nominal-vehicle-target-bench/workspace/install/de4sdv_aebs_009b_bench/share/de4sdv_aebs_009b_bench/config/scenario-009b-moving-vehicle-target.yaml" \
+  "/de4sdv/implementation/aebs-autoware-nominal-vehicle-target-bench/workspace/install/de4sdv_aebs_009b_bench/share/de4sdv_aebs_009b_bench/config/scenario-009d-moving-vehicle-target.yaml" \
   "$CONTAINER_RAW" "$SCENARIO_TIMEOUT" "$PROFILE" >&"$observer_fd" 2>&1
 observer_exit=$?
 set -e

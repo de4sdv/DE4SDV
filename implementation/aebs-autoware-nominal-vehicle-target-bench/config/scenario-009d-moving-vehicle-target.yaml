@@ -1,0 +1,77 @@
+schema: de4sdv.aebs-009b-scenario.v1
+scenario_id: SCN-AEBS-009D-INHERITED-MOVING-VEHICLE-001
+initial_ego:
+  pose_map: {x: 0.0, y: 0.0, yaw_rad: 0.0}
+ego_footprint:
+  front_offset_m: 3.74
+  rear_offset_m: 1.03
+  width_m: 1.83
+nominal_control:
+  speed_mps: 6.0
+  acceleration_mps2: 1.5
+target:
+  speed_mps: 1.0
+  injection_pose_base_link: {x: 27.0, y: 0.0, yaw_rad: 0.0}
+  geometry:
+    length_m: 4.2
+    width_m: 1.8
+    height_m: 1.5
+    point_spacing_m: 0.1
+    voxel_size_x_m: 0.1
+    voxel_size_y_m: 0.1
+    voxel_size_z_m: 0.5
+    cluster_tolerance_m: 0.15
+    cluster_minimum_height_m: 0.1
+    minimum_cluster_size: 10
+fixture_constraints:
+  imu_path_horizon_s: 4.0
+  imu_path_max_length_m: 25.0
+baseline:
+  stable_duration_s: 2.0
+  ego_speed_min_mps: 5.5
+  required_input_max_age_s: 0.5
+  override_max_age_s: 0.2
+  diagnostic_node: autonomous_emergency_braking
+  diagnostic_task: aeb_emergency_stop
+  diagnostic_joined_key: "autonomous_emergency_braking: aeb_emergency_stop"
+  required_inputs:
+    - /diagnostics
+    - /system/operation_mode/availability
+    - /control/trajectory_follower/control_cmd
+    - /control/command/control_cmd
+    - /localization/kinematic_state
+  diagnostic_level: OK
+  autonomous_available: true
+  gate_path: nominal
+outcome_contract:
+  pose_pair_max_age_s: 0.1
+  ego_stop_speed_max_mps: 0.1
+  ego_stop_hold_s: 0.5
+  odometry_max_age_s: 0.2
+  runtime_graph_max_gap_s: 1.0
+  diagnostic_expiry_guard_s: 0.25
+  warning_lead_min_s: 0.8
+  braking_acceleration_max_mps2: -5.0
+  # 009D adds scheduler margin without changing the inherited warning-lead criterion.
+  warning_margin_m: 7.0
+  requested_braking_acceleration_mps2: -6.0
+  requested_braking_jerk_mps3: -10.0
+  coordinator_sole_nominal_publisher: true
+  use_emergency_handling: false
+publication: {pointcloud_rate_hz: 20.0, ego_state_rate_hz: 50.0}
+timeouts: {startup_s: 20.0, scenario_s: 45.0}
+clocks:
+  source_stamp: ros_message_header_when_available
+  receipt_time: collector_monotonic
+  host_utc: optional
+  causal_order: collector_monotonic_within_one_collector
+  cross_domain_comparison: forbidden_without_explicit_rule
+allowed_outcomes: [pass_observed_chain, fail_scenario, inconclusive_precondition, inconclusive_instrumentation, aborted]
+non_claims:
+  - Numeric fixture values are prototype scenario settings, not braking-performance requirements.
+  - A passing run is not a safety, certification, compliance, or homologation claim.
+  - Simulator deceleration is test-double behavior, not physical brake-actuation evidence.
+  - The DE4SDV coordinator is an integration prototype, not an upstream Autoware component.
+  - The 7.0 m warning margin is a 009D execution setting, not a product requirement.
+  - A fresh source-bound true input is bounded evidence of conscious override only within this fixture.
+  - This increment does not cover false reaction, degraded operation, pedestrians, bicycles, or quantified regulatory acceptance.

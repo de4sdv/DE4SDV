@@ -40,6 +40,15 @@ REQUIRED_NON_CLAIMS = (
     "The DE4SDV coordinator is an integration prototype, not an upstream Autoware component.",
     "This increment does not cover driver override, false reaction, degraded operation, pedestrians, bicycles, or quantified regulatory acceptance.",
 )
+REQUIRED_009D_NON_CLAIMS = (
+    "Numeric fixture values are prototype scenario settings, not braking-performance requirements.",
+    "A passing run is not a safety, certification, compliance, or homologation claim.",
+    "Simulator deceleration is test-double behavior, not physical brake-actuation evidence.",
+    "The DE4SDV coordinator is an integration prototype, not an upstream Autoware component.",
+    "The 7.0 m warning margin is a 009D execution setting, not a product requirement.",
+    "A fresh source-bound true input is bounded evidence of conscious override only within this fixture.",
+    "This increment does not cover false reaction, degraded operation, pedestrians, bicycles, or quantified regulatory acceptance.",
+)
 
 
 def _finite_number(name: str, value: object) -> float:
@@ -462,8 +471,12 @@ class ScenarioConfig:
             raise TypeError("allowed_outcomes must be a tuple of Outcome values")
         if not isinstance(self.non_claims, tuple):
             raise TypeError("non_claims must be a tuple")
-        if self.scenario_id != "SCN-AEBS-009B-MOVING-VEHICLE-001":
-            raise ValueError("unexpected 009B scenario ID")
+        allowed_scenarios = {
+            "SCN-AEBS-009B-MOVING-VEHICLE-001": REQUIRED_NON_CLAIMS,
+            "SCN-AEBS-009D-INHERITED-MOVING-VEHICLE-001": REQUIRED_009D_NON_CLAIMS,
+        }
+        if self.scenario_id not in allowed_scenarios:
+            raise ValueError("unexpected 009B/009D inherited scenario ID")
         object.__setattr__(
             self,
             "nominal_command_speed_mps",
@@ -523,8 +536,10 @@ class ScenarioConfig:
             )
         if len(self.allowed_outcomes) != len(Outcome) or set(self.allowed_outcomes) != set(Outcome):
             raise ValueError("allowed_outcomes must contain the closed outcome vocabulary once")
-        if self.non_claims != REQUIRED_NON_CLAIMS:
-            raise ValueError("non_claims must match the closed 009B claim-boundary set")
+        if self.non_claims != allowed_scenarios[self.scenario_id]:
+            raise ValueError(
+                "non_claims must match the closed scenario claim-boundary set"
+            )
 
     @classmethod
     def from_mapping(cls, value: object) -> "ScenarioConfig":

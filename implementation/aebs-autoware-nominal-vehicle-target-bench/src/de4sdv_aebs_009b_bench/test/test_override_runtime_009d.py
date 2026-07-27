@@ -22,7 +22,12 @@ from de4sdv_aebs_009b_bench.scenario_evaluator import (
     ObservationKind,
     evaluate_scenario,
 )
-from evidence_document import CLOCK_BOUNDARY, evaluation_to_json, observation_to_json
+from evidence_document import (
+    CLOCK_BOUNDARY,
+    evaluation_to_json,
+    observation_to_json,
+    validate_raw_semantics,
+)
 from override_evidence import build_override_evidence
 from validate_override_evidence import ValidationError, _verify_009d_artifact_paths
 
@@ -241,6 +246,105 @@ def test_suppression_open_window_remains_pending_then_closes():
         window_end_receipt_s=10.5,
     )
     assert terminal_override_result(closed) == "pass_override_profile"
+
+
+def test_warning_precursor_need_not_already_cross_native_intervention_threshold():
+    matrix = load_matrix_contract(
+        BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml"
+    )
+    items = observations(
+        disposition="control_clear", source_value="false", brake=True
+    )
+    risk_index = next(
+        index
+        for index, item in enumerate(items)
+        if item.kind is ObservationKind.RISK_ASSESSMENT
+    )
+    items[risk_index] = obs(
+        ObservationKind.RISK_ASSESSMENT,
+        items[risk_index].receipt_monotonic_s,
+        rss_distance_m=8.0,
+        object_distance_m=9.0,
+        warning=True,
+        intervention=False,
+    )
+    result = evaluate_profile(
+        matrix,
+        OverrideScenario.FRESH_FALSE_CONTROL,
+        items,
+        window_end_receipt_s=10.5,
+    )
+    assert result.passed
+
+
+def test_clear_control_waits_for_braking_until_observation_window_closes():
+    matrix = load_matrix_contract(
+        BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml"
+    )
+    pending = evaluate_profile(
+        matrix,
+        OverrideScenario.FRESH_FALSE_CONTROL,
+        observations(disposition="control_clear", source_value="false", end=10.3),
+        window_end_receipt_s=10.3,
+    )
+    assert pending.disposition is OverrideDisposition.INCONCLUSIVE_OPEN_WINDOW
+    assert terminal_override_result(pending) is None
+
+    failed = evaluate_profile(
+        matrix,
+        OverrideScenario.FRESH_FALSE_CONTROL,
+        observations(disposition="control_clear", source_value="false"),
+        window_end_receipt_s=10.5,
+    )
+    assert failed.disposition is OverrideDisposition.ERROR_FAIL_CLOSED_BREACH
+    assert terminal_override_result(failed) == "terminal_override_failure"
+
+
+def test_failed_009d_terminal_is_known_but_cannot_be_a_success_terminal():
+    profile = OverrideScenario.FRESH_TRUE_CONSCIOUS
+    matrix = load_matrix_contract(
+        BENCH_ROOT / "config/scenario-009d-conscious-override-matrix.yaml"
+    )
+    items = observations()
+    result = override_result_to_json(
+        evaluate_profile(matrix, profile, items, window_end_receipt_s=10.5)
+    )
+    raw = valid_raw(profile, items, result)
+    raw["terminal_reason"] = "terminal_override_failure"
+    raw["command_exit"] = 1
+    config = load_scenario_config(
+        BENCH_ROOT / "config/scenario-009b-moving-vehicle-target.yaml"
+    )
+    validate_raw_semantics(
+        raw,
+        config,
+        raw["evaluator_result"],
+        success_terminal="pass_override_profile",
+        success_evaluation_outcome=None,
+        additional_terminal_reasons={"terminal_override_failure"},
+    )
+
+
+def test_009d_resolved_timing_input_preserves_criterion_and_adds_margin():
+    inherited = load_scenario_config(
+        BENCH_ROOT / "config/scenario-009b-moving-vehicle-target.yaml"
+    )
+    resolved = load_scenario_config(
+        BENCH_ROOT / "config/scenario-009d-moving-vehicle-target.yaml"
+    )
+    assert resolved.scenario_id == "SCN-AEBS-009D-INHERITED-MOVING-VEHICLE-001"
+    assert resolved.scenario_id != inherited.scenario_id
+    assert resolved.outcome_contract.warning_lead_min_s == 0.8
+    assert inherited.outcome_contract.warning_margin_m == 6.0
+    assert resolved.outcome_contract.warning_margin_m == 7.0
+    setup = (PACKAGE_ROOT / "setup.py").read_text()
+    launch = (BENCH_ROOT / "scripts/launch.sh").read_text()
+    runner = (BENCH_ROOT / "scripts/run_override_profile.sh").read_text()
+    assert '"../../config/scenario-009d-moving-vehicle-target.yaml"' in setup
+    assert "scenario_config_name:=scenario-009d-moving-vehicle-target.yaml" in launch
+    assert '"warning_margin_m"' in launch
+    assert "config/scenario-009d-moving-vehicle-target.yaml" in launch
+    assert "config/scenario-009d-moving-vehicle-target.yaml" in runner
 
 
 def test_matrix_loader_rejects_duplicate_profiles(tmp_path):

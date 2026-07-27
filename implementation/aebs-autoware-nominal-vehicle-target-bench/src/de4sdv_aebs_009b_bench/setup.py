@@ -15,6 +15,7 @@ setup(
             [
                 "../../config/scenario-009b-moving-vehicle-target.yaml",
                 "../../config/scenario-009d-conscious-override-matrix.yaml",
+                "../../config/scenario-009d-moving-vehicle-target.yaml",
                 "../../config/aebs-009b.param.yaml",
             ],
         ),
