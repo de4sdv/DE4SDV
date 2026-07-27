@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 INHERITED_009A_MANIFEST_SHA256 = (
     "a06657a0a98eea21862ce94bf79a5b49509b1d7f0f7581af6cd3bee9bdcb2e8a"
@@ -101,6 +102,78 @@ def override_execution_manifest_sha256(bench: Path, profile: str) -> str:
     if profile not in allowed:
         raise ValueError("profile is not one of the six closed 009D profiles")
     inputs = execution_inputs(bench)
+    inputs["@009d-override-profile"] = profile
+    encoded = json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def execution_inputs_at_revision(bench: Path, revision: str) -> dict[str, str]:
+    """Reconstruct execution inputs from one exact repository tree."""
+
+    bench = bench.resolve()
+    repository = Path(
+        subprocess.run(
+            ["git", "-C", str(bench), "rev-parse", "--show-toplevel"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    )
+    bench_relative = bench.relative_to(repository)
+    completed = subprocess.run(
+        [
+            "git", "-C", str(repository), "ls-tree", "-r", "--name-only",
+            revision, "--", str(bench_relative),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    tracked = {Path(line) for line in completed.stdout.splitlines() if line}
+    selected: set[Path] = set()
+    for relative in TOP_LEVEL_INPUTS:
+        path = bench_relative / relative
+        if path not in tracked:
+            raise FileNotFoundError(f"missing execution input at {revision}: {relative}")
+        selected.add(path)
+    roots = REQUIRED_RECURSIVE_INPUT_ROOTS + OPTIONAL_RECURSIVE_INPUT_ROOTS
+    for path in tracked:
+        try:
+            relative = path.relative_to(bench_relative)
+        except ValueError:
+            continue
+        if (
+            relative.parts
+            and relative.parts[0] in roots
+            and not any(part in IGNORED_INPUT_NAMES for part in relative.parts)
+            and relative.suffix != ".pyc"
+        ):
+            selected.add(path)
+    result: dict[str, str] = {}
+    for path in sorted(selected):
+        blob = subprocess.run(
+            ["git", "-C", str(repository), "show", f"{revision}:{path.as_posix()}"],
+            check=True,
+            capture_output=True,
+        ).stdout
+        result[path.relative_to(bench_relative).as_posix()] = hashlib.sha256(blob).hexdigest()
+    result[VIRTUAL_INHERITED_INPUT] = INHERITED_009A_MANIFEST_SHA256
+    return result
+
+
+def execution_manifest_sha256_at_revision(bench: Path, revision: str) -> str:
+    encoded = json.dumps(
+        execution_inputs_at_revision(bench, revision),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def override_execution_manifest_sha256_at_revision(
+    bench: Path, profile: str, revision: str
+) -> str:
+    inputs = execution_inputs_at_revision(bench, revision)
     inputs["@009d-override-profile"] = profile
     encoded = json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()

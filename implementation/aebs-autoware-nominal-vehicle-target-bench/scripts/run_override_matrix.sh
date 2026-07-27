@@ -17,4 +17,5 @@ for profile in "${profiles[@]}"; do
   "$BENCH/scripts/run_override_profile.sh" "$profile"
 done
 
+python3 "$BENCH/scripts/finalize_override_campaign.py" --bench-root "$BENCH"
 printf 'All six 009D profiles produced separate replay-validated canonical records.\n'

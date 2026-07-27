@@ -29,7 +29,11 @@ from evidence_document import (
     validate_raw_semantics,
 )
 from override_evidence import build_override_evidence
-from validate_override_evidence import ValidationError, _verify_009d_artifact_paths
+from validate_override_evidence import (
+    ValidationError,
+    _require_exact_execution_head,
+    _verify_009d_artifact_paths,
+)
 
 
 def obs(kind, at, source_stamp=None, **payload):
@@ -313,6 +317,20 @@ def test_fresh_false_waits_through_transient_stale_authorization():
     assert not result.passed
     assert result.disposition is OverrideDisposition.ERROR_SCENARIO_CONTRACT
     assert terminal_override_result(result) is None
+
+
+@pytest.mark.parametrize(
+    "fabricated",
+    [
+        "f7f53d77cb3e541b88646b708e9343680bb5596e",
+        "a1d1c5dc66f8406e9d571e902c33b2d10aa4dc5e",
+    ],
+)
+def test_retained_campaign_rejects_stale_or_future_execution_head(fabricated):
+    with pytest.raises(ValidationError, match="exact campaign head"):
+        _require_exact_execution_head(
+            fabricated, "01d9f586865bf7fb4bc0b3f76be2b5a916451da4"
+        )
 
 
 def test_clear_control_waits_for_braking_until_observation_window_closes():

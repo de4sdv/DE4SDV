@@ -21,7 +21,10 @@ from evidence_document import (
     load_strict_json,
     sha256_file,
 )
-from execution_identity import override_execution_manifest_sha256
+from execution_identity import (
+    execution_manifest_sha256_at_revision,
+    override_execution_manifest_sha256_at_revision,
+)
 from override_evidence import build_override_evidence
 from validate_scenario_evidence import (
     ValidationError,
@@ -55,25 +58,30 @@ def _verify_009d_artifact_paths(
 
 
 def _verify_provenance_009d(
-    stored: Mapping[str, Any], bench_root: Path, profile: OverrideScenario
+    stored: Mapping[str, Any],
+    bench_root: Path,
+    profile: OverrideScenario,
+    expected_execution_head: str,
 ) -> None:
     live = _live_provenance_fields(bench_root)
     repository = _repository_root(bench_root)
     live_head = live.pop("repository_head")
     stored_head = stored.get("repository_head")
-    if not isinstance(stored_head, str) or not _repository_commit_is_ancestor(
-        repository, stored_head, live_head
-    ):
+    _require_exact_execution_head(stored_head, expected_execution_head)
+    if not _repository_commit_is_ancestor(repository, expected_execution_head, live_head):
         raise ValidationError(
-            "recorded 009D repository head is not an ancestor of live HEAD"
+            "exact 009D campaign head is not an ancestor of live HEAD"
         )
+    live["execution_manifest_sha256"] = execution_manifest_sha256_at_revision(
+        bench_root, expected_execution_head
+    )
     for key, value in live.items():
         if stored.get(key) != value:
             raise ValidationError(f"009D provenance mismatch for {key}")
     expected_extra = {
         "override_profile": profile.value,
-        "override_execution_manifest_sha256": override_execution_manifest_sha256(
-            bench_root, profile.value
+        "override_execution_manifest_sha256": override_execution_manifest_sha256_at_revision(
+            bench_root, profile.value, expected_execution_head
         ),
         "override_matrix_sha256": sha256_file(
             bench_root / "config/scenario-009d-conscious-override-matrix.yaml"
@@ -94,8 +102,67 @@ def _verify_provenance_009d(
         raise ValidationError("009D observer command did not exit successfully")
 
 
+def _require_exact_execution_head(stored_head: object, expected_head: str) -> None:
+    if stored_head != expected_head:
+        raise ValidationError(
+            "recorded 009D repository head differs from exact campaign head"
+        )
+
+
+def _campaign_execution_head(
+    evidence_path: Path,
+    document: Mapping[str, Any],
+    root: Path,
+    profile: OverrideScenario,
+    *,
+    candidate: bool,
+) -> str:
+    if candidate:
+        live_head = _live_provenance_fields(root)["repository_head"]
+        if document["provenance"].get("repository_head") != live_head:
+            raise ValidationError("009D candidate is not bound to exact live HEAD")
+        return live_head
+    manifest_path = root / "evidence/009d/campaign-manifest.json"
+    try:
+        manifest = load_strict_json(manifest_path)
+    except (OSError, UnicodeError, ValueError, TypeError) as error:
+        raise ValidationError(f"cannot parse 009D campaign manifest: {error}") from error
+    if not isinstance(manifest, Mapping) or set(manifest) != {
+        "schema", "increment_id", "execution_head", "profiles"
+    }:
+        raise ValidationError("009D campaign manifest has an open or incomplete shape")
+    profiles = manifest.get("profiles")
+    if (
+        manifest.get("schema") != "de4sdv.aebs-009d.campaign-manifest.v1"
+        or manifest.get("increment_id") != "INC-AEBS-009D"
+        or not isinstance(profiles, Mapping)
+        or set(profiles) != {item.value for item in OverrideScenario}
+    ):
+        raise ValidationError("009D campaign manifest identity or profile set is incorrect")
+    entry = profiles.get(profile.value)
+    if not isinstance(entry, Mapping) or set(entry) != {"path", "run_id", "sha256"}:
+        raise ValidationError("009D campaign profile entry has an open or incomplete shape")
+    relative = f"evidence/009d/profiles/{profile.value}/scenario-evidence.json"
+    canonical = (root / relative).resolve(strict=True)
+    if evidence_path.resolve(strict=True) != canonical or entry.get("path") != relative:
+        raise ValidationError("009D retained replay path differs from campaign manifest")
+    if entry.get("sha256") != sha256_file(canonical):
+        raise ValidationError("009D canonical evidence hash differs from campaign manifest")
+    artifact_paths = [record["path"] for record in document["artifacts"].values()]
+    run_ids = {Path(path).parent.name for path in artifact_paths}
+    if len(run_ids) != 1 or entry.get("run_id") not in run_ids:
+        raise ValidationError("009D run identity differs from campaign manifest")
+    execution_head = manifest.get("execution_head")
+    if not isinstance(execution_head, str):
+        raise ValidationError("009D campaign execution head is malformed")
+    return execution_head
+
+
 def validate_override_evidence(
-    evidence_path: str | Path, *, bench_root: str | Path = BENCH_ROOT
+    evidence_path: str | Path,
+    *,
+    bench_root: str | Path = BENCH_ROOT,
+    candidate: bool = False,
 ) -> Mapping[str, Any]:
     root = Path(bench_root).resolve()
     try:
@@ -125,6 +192,9 @@ def validate_override_evidence(
         profile = OverrideScenario(document["profile"])
     except (TypeError, ValueError) as error:
         raise ValidationError("009D evidence profile is unknown") from error
+    execution_head = _campaign_execution_head(
+        Path(evidence_path), document, root, profile, candidate=candidate
+    )
     _verify_009d_artifact_paths(document, profile)
     artifacts = _verify_artifacts(document, root)
     raw = load_strict_json(artifacts["observer_raw"])
@@ -153,7 +223,9 @@ def validate_override_evidence(
             "canonical 009D evidence differs from raw replay reconstruction"
         )
     _verify_map_runtime(document, artifacts, root)
-    _verify_provenance_009d(document["provenance"], root, profile)
+    _verify_provenance_009d(
+        document["provenance"], root, profile, execution_head
+    )
     return document
 
 
@@ -161,9 +233,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("evidence", type=Path)
     parser.add_argument("--bench-root", type=Path, default=BENCH_ROOT)
+    parser.add_argument("--candidate", action="store_true")
     arguments = parser.parse_args(argv)
     try:
-        validate_override_evidence(arguments.evidence, bench_root=arguments.bench_root)
+        validate_override_evidence(
+            arguments.evidence,
+            bench_root=arguments.bench_root,
+            candidate=arguments.candidate,
+        )
     except (ValidationError, TypeError, ValueError, KeyError) as error:
         print(f"009D evidence rejected: {error}", file=sys.stderr)
         return 1

@@ -151,7 +151,7 @@ python3 "$BENCH/scripts/override_evidence.py" \
   --bench-root "$BENCH" --raw "$FINAL/observer-raw.json" \
   --provenance "$FINAL/provenance.json" --artifacts "$FINAL/artifacts.json" \
   --profile "$PROFILE" --output "$STAGED"
-python3 "$BENCH/scripts/validate_override_evidence.py" --bench-root "$BENCH" "$STAGED"
+python3 "$BENCH/scripts/validate_override_evidence.py" --candidate --bench-root "$BENCH" "$STAGED"
 PYTHONPATH="$BENCH/scripts${PYTHONPATH:+:$PYTHONPATH}" python3 -c '
 import pathlib,sys
 from evidence_document import publish_validated_evidence
