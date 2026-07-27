@@ -2,6 +2,7 @@
 package DE4SDV_AEBS009IVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
+  private import ScalarValues::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
 
   enum def ScenarioIdentity009I {
