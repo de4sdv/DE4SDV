@@ -239,19 +239,11 @@ package DE4SDV_AEBS009BNominalEvidence {
      */
     subject verifiedBench : NominalMovingVehicleTargetBench009B;
 
-    objective warningLeadEvidenceObjective {
+    objective nominalEvidenceObjective {
       verify evidenceContract009BWarningLead;
-    }
-    objective freshOverrideEvidenceObjective {
       verify evidenceContract009BFreshOverrideClear;
-    }
-    objective nominalBrakingPathEvidenceObjective {
       verify evidenceContract009BNominalBrakingPath;
-    }
-    objective verifiedStopReleaseEvidenceObjective {
       verify evidenceContract009BVerifiedStopRelease;
-    }
-    objective independentNoncollisionEvidenceObjective {
       verify evidenceContract009BIndependentNoncollision;
     }
 

@@ -36,6 +36,10 @@ def test_009b_uses_native_verification_semantics_for_evidence_contracts():
     assert "verification def NominalMovingVehicleTargetVerification009B" in code
     assert "verification nominalMovingVehicleTargetVerification009B" in code
     assert "perform nominalMovingVehicleTargetVerification009B;" in code
+    verification_definition = _braced_body(
+        code, "verification def NominalMovingVehicleTargetVerification009B"
+    )
+    assert len(re.findall(r"\bobjective\b", verification_definition)) == 1
 
     verify_targets = re.findall(r"\bverify\s+(\w+)\s*;", code)
     assert verify_targets == [
