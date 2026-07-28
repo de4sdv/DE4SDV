@@ -1,0 +1,179 @@
+{
+  "schema": "de4sdv.scenario-manifest.v1",
+  "generated_from": "textual-notation-of-model/packages/features/aebs/",
+  "increments": {
+    "009B": {
+      "sysml_file": "aebs_nominal_evidence.sysml",
+      "package_name": "DE4SDV_AEBS009BNominalEvidence",
+      "verification_def": "NominalMovingVehicleTargetVerification009B",
+      "verification_usages": [
+        "nominalMovingVehicleTargetVerification009B"
+      ],
+      "scenario_identity_enum": null,
+      "evidence_outcome_enum": null,
+      "bench_definition": "NominalMovingVehicleTargetBench009B"
+    },
+    "009C": {
+      "sysml_file": "aebs_partial_intervention_verification.sysml",
+      "package_name": "DE4SDV_AEBS009CVerification",
+      "verification_def": "NativeInterventionToMRMVerification009C",
+      "verification_usages": [
+        "nativeInterventionToMRMVerification009C"
+      ],
+      "scenario_identity_enum": null,
+      "evidence_outcome_enum": "EvidenceOutcome009C",
+      "bench_definition": "NativeInterventionBench009C",
+      "evidence_outcomes": [
+        "passObservedChain",
+        "failScenario",
+        "inconclusivePrecondition",
+        "inconclusiveInstrumentation",
+        "aborted"
+      ]
+    },
+    "009D": {
+      "sysml_file": "aebs_override_verification.sysml",
+      "package_name": "DE4SDV_AEBS009DVerification",
+      "verification_def": "ConsciousOverrideVerification009D",
+      "verification_usages": [
+        "overrideFalseControlVerification009D",
+        "overrideTrueVerification009D",
+        "overrideStaleVerification009D",
+        "overrideMissingVerification009D",
+        "overrideMalformedVerification009D",
+        "overrideFutureStampedVerification009D"
+      ],
+      "scenario_identity_enum": "ScenarioIdentity009D",
+      "evidence_outcome_enum": "EvidenceOutcome009D",
+      "bench_definition": "OverrideMatrixBench009D",
+      "scenario_identities": [
+        "freshFalseControl",
+        "freshTrueOverride",
+        "staleOverride",
+        "missingOverride",
+        "malformedOverride",
+        "futureStampedOverride"
+      ],
+      "evidence_outcomes": [
+        "passBoundedScenario",
+        "failObservedBehavior",
+        "inconclusiveCoverage",
+        "errorEvidence"
+      ]
+    },
+    "009E": {
+      "sysml_file": "aebs_non_activation_verification.sysml",
+      "package_name": "DE4SDV_AEBS009EVerification",
+      "verification_def": "FalseReactionResistanceVerification009E",
+      "verification_usages": [
+        "clearPathNonActivationVerification009E",
+        "adjacentObjectNonActivationVerification009E",
+        "nonClosingTargetNonActivationVerification009E",
+        "belowTriggerNonActivationVerification009E"
+      ],
+      "scenario_identity_enum": "ScenarioIdentity009E",
+      "evidence_outcome_enum": "EvidenceOutcome009E",
+      "bench_definition": "FalseReactionMatrixBench009E",
+      "scenario_identities": [
+        "clearPath",
+        "adjacentObject",
+        "nonClosingTarget",
+        "belowTrigger"
+      ],
+      "evidence_outcomes": [
+        "passBoundedSilence",
+        "failUnexpectedActivation",
+        "inconclusiveCoverage",
+        "errorEvidence"
+      ]
+    },
+    "009F": {
+      "sysml_file": "aebs_degraded_input_verification.sysml",
+      "package_name": "DE4SDV_AEBS009FVerification",
+      "verification_def": "DegradedUnavailableVerification009F",
+      "verification_usages": [
+        "staleInputVerification009F",
+        "missingInputVerification009F",
+        "malformedInputVerification009F",
+        "inconsistentInputVerification009F",
+        "unavailableInputVerification009F"
+      ],
+      "scenario_identity_enum": "ScenarioIdentity009F",
+      "evidence_outcome_enum": "EvidenceOutcome009F",
+      "bench_definition": "DegradedInputMatrixBench009F",
+      "scenario_identities": [
+        "staleInput",
+        "missingInput",
+        "malformedInput",
+        "inconsistentInput",
+        "unavailableInput"
+      ],
+      "evidence_outcomes": [
+        "passBoundedDetection",
+        "failWrongDisposition",
+        "inconclusiveInstrumentation",
+        "errorEvidence"
+      ]
+    },
+    "009G": {
+      "sysml_file": "aebs_pedestrian_verification.sysml",
+      "package_name": "DE4SDV_AEBS009GVerification",
+      "verification_def": "PedestrianTargetVerification009G",
+      "verification_usages": [
+        "pedestrianTargetVerification009G"
+      ],
+      "scenario_identity_enum": null,
+      "evidence_outcome_enum": "EvidenceOutcome009G",
+      "bench_definition": "PedestrianTargetBench009G",
+      "evidence_outcomes": [
+        "passBoundedTargetResponse",
+        "failConfiguredOutcome",
+        "inconclusiveCoverage",
+        "errorEvidence"
+      ],
+      "target_type": "pedestrian",
+      "target_type_is_distinguishing_identity": true
+    },
+    "009H": {
+      "sysml_file": "aebs_bicycle_verification.sysml",
+      "package_name": "DE4SDV_AEBS009HVerification",
+      "verification_def": "BicycleTargetVerification009H",
+      "verification_usages": [
+        "bicycleTargetVerification009H"
+      ],
+      "scenario_identity_enum": null,
+      "evidence_outcome_enum": "EvidenceOutcome009H",
+      "bench_definition": "BicycleTargetBench009H",
+      "evidence_outcomes": [
+        "passBoundedTargetResponse",
+        "failConfiguredOutcome",
+        "inconclusiveCoverage",
+        "errorEvidence"
+      ],
+      "target_type": "bicycle",
+      "target_type_is_distinguishing_identity": true
+    },
+    "009I": {
+      "sysml_file": "aebs_regulatory_criterion_verification.sysml",
+      "package_name": "DE4SDV_AEBS009IVerification",
+      "verification_def": "PedestrianCriterionVerification009I",
+      "verification_usages": [
+        "pedestrianCriterionVerification009I",
+        "bicycleCriterionVerification009I"
+      ],
+      "scenario_identity_enum": "ScenarioIdentity009I",
+      "evidence_outcome_enum": "EvidenceOutcome009I",
+      "bench_definition": "RegulatoryCriterionBench009I",
+      "scenario_identities": [
+        "pedestrianCriterion",
+        "bicycleCriterion"
+      ],
+      "evidence_outcomes": [
+        "passBoundedCriterion",
+        "failBoundedCriterion",
+        "inconclusiveApplicabilityOrEvidence",
+        "errorEvidence"
+      ]
+    }
+  }
+}

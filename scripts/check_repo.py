@@ -18,6 +18,11 @@ try:
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import check_model_sync
 
+try:
+    from scripts import generate_scenario_manifest
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import generate_scenario_manifest
+
 REQUIRED_FILES = [
     "README.md",
     "CONTRIBUTING.md",
@@ -143,6 +148,7 @@ def main() -> int:
     duplicate_packages = find_duplicate_global_packages(root)
     aebs_bench_errors = validate_aebs_executable_bench.validate_bench(root)
     model_sync_errors = check_model_sync.run_all_checks()
+    manifest_errors = generate_scenario_manifest.run_check_errors()
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -166,7 +172,12 @@ def main() -> int:
         for error in model_sync_errors:
             print(f"- {error}")
 
-    if missing or duplicate_packages or aebs_bench_errors or model_sync_errors:
+    if manifest_errors:
+        print("Repository check failed. Scenario manifest errors:")
+        for error in manifest_errors:
+            print(f"- {error}")
+
+    if missing or duplicate_packages or aebs_bench_errors or model_sync_errors or manifest_errors:
         return 1
 
     print("Repository check passed.")
