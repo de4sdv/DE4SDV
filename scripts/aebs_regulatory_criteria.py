@@ -155,19 +155,22 @@ def evaluate_regulatory_measurement(measurement: object) -> dict[str, object]:
         raise ValueError("conditions keys must match the controlled condition set")
     if not all(isinstance(conditions[name], bool) for name in required_conditions):
         raise TypeError("all condition values must be boolean")
-    unestablished = [name for name in required_conditions if conditions[name] is not True]
+    # This API receives caller-supplied values only. They can support a bounded
+    # threshold calculation, but cannot establish setup fitness or repetition.
+    # A separate retained-evidence evaluator must derive those facts from
+    # immutable, pairwise-distinct run artifacts before any criterion pass/fail.
+    unestablished = [
+        *required_conditions,
+        "retained_run_provenance",
+        "derived_measurements",
+        "pairwise_distinct_run_ids",
+    ]
 
-    successful = _nonnegative_int(
-        "successful_repetitions", measurement["successful_repetitions"]
-    )
-    failed = _nonnegative_int("failed_repetitions", measurement["failed_repetitions"])
-    if successful < int(common["required_successful_repetitions"]):
-        unestablished.append("successful_repetitions")
-    if failed > int(common["permitted_failed_repetitions_for_selected_setup"]):
-        unestablished.append("failed_repetitions")
+    _nonnegative_int("successful_repetitions", measurement["successful_repetitions"])
+    _nonnegative_int("failed_repetitions", measurement["failed_repetitions"])
 
-    evidence_fitness = "inconclusive" if unestablished else "fit"
-    criterion_result = threshold_result if evidence_fitness == "fit" else "inconclusive"
+    evidence_fitness = "inconclusive"
+    criterion_result = "inconclusive"
     return {
         "threshold_result": threshold_result,
         "evidence_fitness": evidence_fitness,
@@ -177,5 +180,5 @@ def evaluate_regulatory_measurement(measurement: object) -> dict[str, object]:
         "maximum_impact_speed_kmh": maximum_impact,
         "source_id": criteria["source_id"],
         "source_original_sha256": criteria["source_original_sha256"],
-        "compliance_conclusion": "withheld",
+        "regulatory_conclusion": "withheld",
     }

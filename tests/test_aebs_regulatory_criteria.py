@@ -75,13 +75,19 @@ class TestAebsRegulatoryCriteria(unittest.TestCase):
         with self.assertRaises(TypeError):
             maximum_impact_speed_kmh("pedestrian", "M1", "maximum_mass", True)
 
-    def test_fit_measurement_meets_quantified_criteria_without_compliance_claim(self) -> None:
+    def test_self_asserted_measurement_cannot_establish_evidence_fitness(self) -> None:
         result = evaluate_regulatory_measurement(_fit_measurement())
         self.assertEqual(result["threshold_result"], "pass")
-        self.assertEqual(result["evidence_fitness"], "fit")
-        self.assertEqual(result["criterion_result"], "pass")
-        self.assertEqual(result["compliance_conclusion"], "withheld")
+        self.assertEqual(result["evidence_fitness"], "inconclusive")
+        self.assertEqual(result["criterion_result"], "inconclusive")
+        self.assertEqual(result["regulatory_conclusion"], "withheld")
         self.assertEqual(result["maximum_impact_speed_kmh"], 0.0)
+        missing = result["unestablished_conditions"]
+        if not isinstance(missing, list):
+            self.fail("unestablished_conditions must be a list")
+        self.assertIn("retained_run_provenance", missing)
+        self.assertIn("derived_measurements", missing)
+        self.assertIn("pairwise_distinct_run_ids", missing)
 
     def test_favorable_numbers_remain_inconclusive_when_target_fidelity_is_missing(self) -> None:
         measurement = _fit_measurement()
@@ -95,13 +101,13 @@ class TestAebsRegulatoryCriteria(unittest.TestCase):
             self.fail("unestablished_conditions must be a list")
         self.assertIn("prescribed_soft_target_fidelity", missing)
 
-    def test_threshold_failure_is_not_hidden_by_fit_evidence(self) -> None:
+    def test_threshold_failure_remains_visible_but_criterion_is_inconclusive(self) -> None:
         measurement = _fit_measurement()
         measurement["impact_speed_kmh"] = 0.1
         result = evaluate_regulatory_measurement(measurement)
         self.assertEqual(result["threshold_result"], "fail")
-        self.assertEqual(result["evidence_fitness"], "fit")
-        self.assertEqual(result["criterion_result"], "fail")
+        self.assertEqual(result["evidence_fitness"], "inconclusive")
+        self.assertEqual(result["criterion_result"], "inconclusive")
 
     def test_two_successful_repetitions_are_required(self) -> None:
         measurement = _fit_measurement()
@@ -111,7 +117,7 @@ class TestAebsRegulatoryCriteria(unittest.TestCase):
         missing = result["unestablished_conditions"]
         if not isinstance(missing, list):
             self.fail("unestablished_conditions must be a list")
-        self.assertIn("successful_repetitions", missing)
+        self.assertIn("pairwise_distinct_run_ids", missing)
 
     def test_measurement_shape_is_closed(self) -> None:
         measurement = _fit_measurement()
