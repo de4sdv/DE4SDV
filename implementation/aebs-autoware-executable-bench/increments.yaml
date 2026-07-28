@@ -54,7 +54,7 @@ increments:
       - failure and degraded operation
 
   - id: INC-AEBS-009E
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - bounded non-activation and false-reaction scenarios are replayed
       - no-warning and no-braking outcomes are supported by explicit counterexamples
@@ -63,7 +63,7 @@ increments:
       - vulnerable-road-user targets
 
   - id: INC-AEBS-009F
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - stale, missing, malformed, inconsistent, and unavailable input behavior is replayed
       - degraded and unavailable AEBS states have explicit ownership and evidence
@@ -72,7 +72,7 @@ increments:
       - quantified regulatory acceptance
 
   - id: INC-AEBS-009G
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - a bounded pedestrian-target scenario and independent outcome evidence are replayed
     excludes:
@@ -80,14 +80,14 @@ increments:
       - quantified regulatory acceptance
 
   - id: INC-AEBS-009H
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - a bounded bicycle-target scenario and independent outcome evidence are replayed
     excludes:
       - quantified regulatory acceptance
 
   - id: INC-AEBS-009I
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - regulatory acceptance criteria are source-backed, quantified, and traced to replayable measurements
       - any claimed pass is limited to the tested configuration and evidence boundary

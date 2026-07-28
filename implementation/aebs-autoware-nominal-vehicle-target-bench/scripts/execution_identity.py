@@ -19,6 +19,11 @@ TOP_LEVEL_INPUTS = (
     "config/scenario-009b-moving-vehicle-target.yaml",
     "config/scenario-009d-conscious-override-matrix.yaml",
     "config/scenario-009d-moving-vehicle-target.yaml",
+    "config/scenario-009e-non-activation-matrix.yaml",
+    "config/scenario-009e-clear-path.yaml",
+    "config/scenario-009e-adjacent-object.yaml",
+    "config/scenario-009e-non-closing-target.yaml",
+    "config/scenario-009e-below-trigger.yaml",
     "config/aebs-009b.param.yaml",
     "workspace/.gitkeep",
 )
@@ -175,5 +180,56 @@ def override_execution_manifest_sha256_at_revision(
 ) -> str:
     inputs = execution_inputs_at_revision(bench, revision)
     inputs["@009d-override-profile"] = profile
+    encoded = json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def degraded_input_execution_manifest_sha256(bench: Path, profile: str) -> str:
+    """Bind the selected closed 009F profile in addition to file inputs."""
+    allowed = {
+        "stale_input",
+        "missing_input",
+        "malformed_input",
+        "inconsistent_input",
+        "unavailable_input",
+    }
+    if profile not in allowed:
+        raise ValueError("profile is not one of the five closed 009F profiles")
+    inputs = execution_inputs(bench)
+    inputs["@009f-degraded-input-profile"] = profile
+    encoded = json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def degraded_input_execution_manifest_sha256_at_revision(
+    bench: Path, profile: str, revision: str
+) -> str:
+    inputs = execution_inputs_at_revision(bench, revision)
+    inputs["@009f-degraded-input-profile"] = profile
+    encoded = json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def non_activation_execution_manifest_sha256(bench: Path, profile: str) -> str:
+    """Bind the selected closed 009E profile in addition to file inputs."""
+    allowed = {
+        "clear_path",
+        "adjacent_object",
+        "non_closing_target",
+        "below_trigger",
+    }
+    if profile not in allowed:
+        raise ValueError("profile is not one of the four closed 009E profiles")
+    inputs = execution_inputs(bench)
+    inputs["@009e-non-activation-profile"] = profile
+    encoded = json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def non_activation_execution_manifest_sha256_at_revision(
+    bench: Path, profile: str, revision: str
+) -> str:
+    inputs = execution_inputs_at_revision(bench, revision)
+    inputs["@009e-non-activation-profile"] = profile
     encoded = json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()

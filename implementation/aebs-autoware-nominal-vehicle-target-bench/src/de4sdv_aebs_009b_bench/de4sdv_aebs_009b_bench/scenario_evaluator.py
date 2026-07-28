@@ -40,6 +40,9 @@ class ObservationKind(str, Enum):
     GATE_COMMAND = "gate_command"
     ODOMETRY = "odometry"
     TARGET_PUBLICATION = "target_publication"
+    DEGRADED_INPUT_AUTHORIZATION = "degraded_input_authorization"
+    DEGRADED_STATE_TRANSITION = "degraded_state_transition"
+    DEGRADED_STATUS_INDICATION = "degraded_status_indication"
     INSTRUMENT_STATUS = "instrument_status"
     OPERATOR_ABORT = "operator_abort"
 
@@ -105,6 +108,26 @@ _SCHEMAS: Mapping[ObservationKind, Mapping[str, str]] = {
     ObservationKind.TARGET_PUBLICATION: {
         "identity": "str", "frame": "str", "x": "number", "y": "number", "yaw_rad": "number"
     },
+    ObservationKind.DEGRADED_INPUT_AUTHORIZATION: {
+        "degraded_input_profile": "str",
+        "affected_topic": "str",
+        "input_health": "str",
+        "degraded_state_source_stamp": "str",
+        "authorization_diagnostic_source_stamp": "str",
+        "disposition": "str",
+    },
+    ObservationKind.DEGRADED_STATE_TRANSITION: {
+        "affected_topic": "str",
+        "input_health": "str",
+        "degraded_state_source_stamp": "str",
+        "previous_state": "str",
+        "current_state": "str",
+    },
+    ObservationKind.DEGRADED_STATUS_INDICATION: {
+        "affected_topic": "str",
+        "status": "str",
+        "indicated_degraded": "bool",
+    },
     ObservationKind.INSTRUMENT_STATUS: {"topic": "str", "available": "bool"},
     ObservationKind.OPERATOR_ABORT: {"reason": "str"},
 }
@@ -125,6 +148,27 @@ _ALLOWED_PAYLOAD_VALUES: Mapping[tuple[ObservationKind, str], frozenset[str]] = 
         "control_clear", "conscious_override", "degraded_stale_source",
         "inconclusive_missing_source", "error_malformed_source",
         "error_future_source",
+    }),
+    (ObservationKind.DEGRADED_INPUT_AUTHORIZATION, "input_health"): frozenset({
+        "stale", "missing", "malformed", "inconsistent", "unavailable",
+    }),
+    (ObservationKind.DEGRADED_INPUT_AUTHORIZATION, "disposition"): frozenset({
+        "pass_bounded_detection",
+        "fail_wrong_disposition",
+        "inconclusive_instrumentation",
+        "error_evidence",
+    }),
+    (ObservationKind.DEGRADED_STATE_TRANSITION, "input_health"): frozenset({
+        "stale", "missing", "malformed", "inconsistent", "unavailable",
+    }),
+    (ObservationKind.DEGRADED_STATE_TRANSITION, "previous_state"): frozenset({
+        "nominal", "degraded", "unavailable",
+    }),
+    (ObservationKind.DEGRADED_STATE_TRANSITION, "current_state"): frozenset({
+        "nominal", "degraded", "unavailable",
+    }),
+    (ObservationKind.DEGRADED_STATUS_INDICATION, "status"): frozenset({
+        "nominal", "degraded", "unavailable",
     }),
 }
 

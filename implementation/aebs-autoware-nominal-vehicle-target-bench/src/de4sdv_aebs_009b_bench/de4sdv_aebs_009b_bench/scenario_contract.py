@@ -49,6 +49,14 @@ REQUIRED_009D_NON_CLAIMS = (
     "A fresh source-bound true input is bounded evidence of conscious override only within this fixture.",
     "This increment does not cover false reaction, degraded operation, pedestrians, bicycles, or quantified regulatory acceptance.",
 )
+REQUIRED_009E_NON_CLAIMS = (
+    "Numeric fixture values are prototype scenario settings, not braking-performance requirements.",
+    "A passing run is not a safety, certification, compliance, or homologation claim.",
+    "Simulator deceleration is test-double behavior, not physical brake-actuation evidence.",
+    "The DE4SDV coordinator is an integration prototype, not an upstream Autoware component.",
+    "Bounded silence is evidence of non-activation within this fixture only, not a product non-reaction claim.",
+    "This increment does not cover driver override, degraded operation, pedestrians, bicycles, or quantified regulatory acceptance.",
+)
 
 
 def _finite_number(name: str, value: object) -> float:
@@ -474,9 +482,13 @@ class ScenarioConfig:
         allowed_scenarios = {
             "SCN-AEBS-009B-MOVING-VEHICLE-001": REQUIRED_NON_CLAIMS,
             "SCN-AEBS-009D-INHERITED-MOVING-VEHICLE-001": REQUIRED_009D_NON_CLAIMS,
+            "SCN-AEBS-009E-CLEAR-PATH-001": REQUIRED_009E_NON_CLAIMS,
+            "SCN-AEBS-009E-ADJACENT-OBJECT-001": REQUIRED_009E_NON_CLAIMS,
+            "SCN-AEBS-009E-NON-CLOSING-TARGET-001": REQUIRED_009E_NON_CLAIMS,
+            "SCN-AEBS-009E-BELOW-TRIGGER-001": REQUIRED_009E_NON_CLAIMS,
         }
         if self.scenario_id not in allowed_scenarios:
-            raise ValueError("unexpected 009B/009D inherited scenario ID")
+            raise ValueError("unexpected 009B/009D/009E inherited scenario ID")
         object.__setattr__(
             self,
             "nominal_command_speed_mps",
@@ -492,7 +504,8 @@ class ScenarioConfig:
             ),
         )
         object.__setattr__(self, "target_speed_mps", _positive_number("target_speed_mps", self.target_speed_mps))
-        if self.target_speed_mps >= self.nominal_command_speed_mps:
+        is_009e = self.scenario_id.startswith("SCN-AEBS-009E-")
+        if not is_009e and self.target_speed_mps >= self.nominal_command_speed_mps:
             raise ValueError("moving target speed must be below nominal ego speed")
         for name in (
             "pointcloud_rate_hz",
@@ -507,9 +520,9 @@ class ScenarioConfig:
             raise ValueError("stable baseline duration must be less than startup timeout")
         if self.target_injection_pose_base_link.x <= 0.0:
             raise ValueError("target injection pose must be ahead of the ego")
-        if not math.isclose(self.target_injection_pose_base_link.y, 0.0, abs_tol=1e-12):
+        if not is_009e and not math.isclose(self.target_injection_pose_base_link.y, 0.0, abs_tol=1e-12):
             raise ValueError("the closed 009B fixture requires a path-centered target")
-        if not math.isclose(self.target_injection_pose_base_link.yaw_rad, 0.0, abs_tol=1e-12):
+        if not is_009e and not math.isclose(self.target_injection_pose_base_link.yaw_rad, 0.0, abs_tol=1e-12):
             raise ValueError("the closed 009B fixture requires an unrotated target")
         pinned_floats = {
             "voxel_size_x_m": (self.geometry.voxel_size_x_m, 0.1),

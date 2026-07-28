@@ -178,7 +178,7 @@ def validate_increments(document: dict) -> list[str]:
         "INC-AEBS-009B": "merged_replayable_nominal_moving_target_evidence",
         "INC-AEBS-009C": "executed_replay_validated_pending_review",
         "INC-AEBS-009D": "executed_replay_validated_pending_review",
-        **{f"INC-AEBS-009{suffix}": "planned" for suffix in "EFGHI"},
+        **{f"INC-AEBS-009{suffix}": "contracts_implemented_pending_execution" for suffix in "EFGHI"},
     }
     for increment_id, status in expected_status.items():
         if by_id.get(increment_id, {}).get("status") != status:
