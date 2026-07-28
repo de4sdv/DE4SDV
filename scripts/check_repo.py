@@ -13,6 +13,11 @@ try:
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import validate_aebs_executable_bench
 
+try:
+    from scripts import check_model_sync
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import check_model_sync
+
 REQUIRED_FILES = [
     "README.md",
     "CONTRIBUTING.md",
@@ -137,6 +142,7 @@ def main() -> int:
     missing = [rel for rel in REQUIRED_FILES if not (root / rel).exists()]
     duplicate_packages = find_duplicate_global_packages(root)
     aebs_bench_errors = validate_aebs_executable_bench.validate_bench(root)
+    model_sync_errors = check_model_sync.run_all_checks()
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -155,7 +161,12 @@ def main() -> int:
         for error in aebs_bench_errors:
             print(f"- {error}")
 
-    if missing or duplicate_packages or aebs_bench_errors:
+    if model_sync_errors:
+        print("Repository check failed. Model sync errors:")
+        for error in model_sync_errors:
+            print(f"- {error}")
+
+    if missing or duplicate_packages or aebs_bench_errors or model_sync_errors:
         return 1
 
     print("Repository check passed.")
