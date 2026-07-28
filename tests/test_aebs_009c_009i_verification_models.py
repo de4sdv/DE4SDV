@@ -4,8 +4,13 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 MODEL_DIR = ROOT / "textual-notation-of-model/packages/features/aebs"
 MODELS = {
-    increment: MODEL_DIR / f"aebs_{increment.lower()}_verification.sysml"
-    for increment in ("009C", "009D", "009E", "009F", "009G", "009H", "009I")
+    "009C": MODEL_DIR / "aebs_partial_intervention_verification.sysml",
+    "009D": MODEL_DIR / "aebs_override_verification.sysml",
+    "009E": MODEL_DIR / "aebs_non_activation_verification.sysml",
+    "009F": MODEL_DIR / "aebs_degraded_input_verification.sysml",
+    "009G": MODEL_DIR / "aebs_pedestrian_verification.sysml",
+    "009H": MODEL_DIR / "aebs_bicycle_verification.sysml",
+    "009I": MODEL_DIR / "aebs_regulatory_criterion_verification.sysml",
 }
 EXPECTED_USAGES = {
     "009C": {"nativeInterventionToMRMVerification009C"},

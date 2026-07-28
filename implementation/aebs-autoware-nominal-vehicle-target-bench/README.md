@@ -53,6 +53,6 @@ The runner stops the runtime before hashing artifacts, preserves each attempted 
 - Authoritative scenario contract: `config/scenario-009b-moving-vehicle-target.yaml`
 - Evidence schema: `schemas/scenario-evidence.schema.json`
 - Canonical evidence: `evidence/009b/scenario-evidence.json`
-- SysML architecture/evidence obligations: `textual-notation-of-model/packages/features/aebs/aebs_009b_nominal_evidence.sysml`
+- SysML architecture/evidence obligations: `textual-notation-of-model/packages/features/aebs/aebs_nominal_evidence.sysml`
 
 The SysML requirement usages are candidate evidence obligations. Satisfaction remains pending review of the retained evidence and privileged Syside validation.

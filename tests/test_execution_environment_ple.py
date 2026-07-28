@@ -23,7 +23,7 @@ TRACE_MODEL = (
     / "packages"
     / "features"
     / "aebs"
-    / "aebs_009a_execution_environment.sysml"
+    / "aebs_execution_environment.sysml"
 )
 PLE_ROOT = REPO_ROOT / "model-based-product-line-engineering"
 ENGINEERING_FM = PLE_ROOT / "feature-models" / "engineering_execution_environments.yaml"
