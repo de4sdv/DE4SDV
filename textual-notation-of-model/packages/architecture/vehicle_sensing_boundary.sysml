@@ -267,48 +267,27 @@ package DE4SDV_VehicleSensingBoundary {
   dependency sensingAssemblyResidesInHardwareLayer from VehicleSensingAssembly to HardwareLayer;
 
   /* ──────────────────────────────────────────
-   * SAF concern and view
-   * ────────────────────────────────────────── */
+   * SAF physical-domain concern and view
+   * ──────────────────────────────────────────
+   * Uses SAF PhysicalStructureDefinitionViewpoint (P2_PSTD) — not an
+   * invented viewpoint. The sensing boundary is a physical/software
+   * structure that needs to be visible for integration review.
+   */
 
-  concern def SensingBoundaryConcern {
+  concern sensingBoundaryStructureConcern : PhysicalStructureConcern {
     doc /*
      * Reviewers need the sensor-to-application traceability boundary to be
      * visible: which physical sensors produce the observations that feed the
      * ADAS application stack.
      */
-    require constraint {
-      doc /*
-       * The sensing boundary view shall show the physical sensor categories,
-       * observation types, and traceability to AEBS physical-software message
-       * types that consume the sensing data.
-       */
-    }
-  }
-
-  concern sensingBoundaryConcern : SensingBoundaryConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  viewpoint def SensingBoundaryViewpoint {
-    doc /*
-     * Platform sensing boundary viewpoint for reviewing the trace from physical
-     * sensor categories through observation items to the AEBS software message
-     * types.
-     */
-    require constraint {
-      doc /*
-       * A sensing boundary view shall show physical sensor categories,
-       * observation item types, perception pipeline boundary, and traceability
-       * dependencies to AEBS physical-software message types.
-       */
-    }
-  }
-
   view sensingBoundaryView {
-    viewpoint selectedSensingBoundaryViewpoint : SensingBoundaryViewpoint {
-      frame sensingBoundaryConcern;
+    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
+      frame sensingBoundaryStructureConcern;
     }
 
     expose SensorBoundary;

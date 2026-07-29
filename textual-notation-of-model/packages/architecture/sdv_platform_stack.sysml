@@ -435,11 +435,23 @@ package DE4SDV_SDVPlatformStack {
   part def AndroidSDVMiddleware :> MiddlewareLayer {
     doc /*
      * Android SDV (Google / AOSP).
-     * Service bundle architecture with VSIDL, Orchestrator,
-     * VM isolation, and DICE identity/attestation.
+     * Headless, native Android-derived platform for distributed vehicle
+     * services. Runs as a VM on a hypervisor. Excludes JVM, Java services,
+     * Android applications, and GUI functionality.
+     *
+     * Internal structure modeled in:
+     *   textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml
+     * (DE4SDV_AAOSSDVMiddlewareBoundary package).
+     *
+     * Key elements: Orchestrator, Service Lifecycle Manager, Health Monitor,
+     * Update Manager, VSIDL/Middleware, Service Discovery, RPC, Data Tunnel,
+     * SOME/IP interoperability, Automotive Services (Diagnostics, Configuration,
+     * Calibration, Vehicle Power Mode, User Profile).
+     *
      * Runs on Android HLOS, Linux, and as QNX QVM guest.
      * License: Apache 2.0 (AOSP).
-     * Status: candidate realization.
+     * Status: candidate realization. Upstream AAOS SDV maintainers have
+     * not been engaged on DE4SDV model integration (GAP-MW-005).
      */
   }
 
