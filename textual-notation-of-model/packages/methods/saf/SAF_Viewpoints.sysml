@@ -19,6 +19,98 @@
 package SAF_Viewpoints {
   private import Views::*;
 
+  // ─── Common Domain ───
+
+  concern def CommonTermsConcern {
+    require constraint {
+      doc /*
+       * Reviewers need terms introduced by an increment to be defined
+       * in a glossary or terminology section.
+       */
+    }
+  }
+
+  viewpoint def CommonTermsDefinitionViewpoint {
+    doc /*
+     * SAF Common Domain: Common Terms Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A common terms view shall define terms introduced by the
+       * increment in a glossary or terminology section.
+       */
+    }
+  }
+
+  concern def CommonStandardsConcern {
+    require constraint {
+      doc /*
+       * Reviewers need standards and regulations used as constraints
+       * or references to be registered with source attribution.
+       */
+    }
+  }
+
+  viewpoint def CommonStandardsDefinitionViewpoint {
+    doc /*
+     * SAF Common Domain: Common Standards Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A common standards view shall register standards, regulations,
+       * and external references used as constraints with source
+       * attribution and scope notes.
+       */
+    }
+  }
+
+  concern def EATraceabilityConcern {
+    require constraint {
+      doc /*
+       * Reviewers need increment artifacts linked together in a
+       * traceability chain from needs to evidence.
+       */
+    }
+  }
+
+  viewpoint def EATraceabilityViewpoint {
+    doc /*
+     * SAF Common Domain: Enterprise Architecture Traceability Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * An EA traceability view shall show how increment artifacts
+       * link together: needs, requirements, model elements, evidence,
+       * and baselines, with explicit gaps.
+       */
+    }
+  }
+
+  concern def StakeholderIdentificationConcern {
+    require constraint {
+      doc /*
+       * Reviewers need roles affected by the increment to be
+       * identified with their concerns.
+       */
+    }
+  }
+
+  viewpoint def StakeholderIdentificationViewpoint {
+    doc /*
+     * SAF Common Domain: Stakeholder Identification Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A stakeholder identification view shall identify roles
+       * affected by the increment and their concerns.
+       */
+    }
+  }
+
   // ─── Operational Domain ───
 
   concern def OperationalContextConcern {
@@ -40,6 +132,73 @@ package SAF_Viewpoints {
        * An operational context view shall show external actors, context
        * boundary, use case/actor framing, and operational behavior
        * (actions, items, flows, sequencing) for the increment.
+       */
+    }
+  }
+
+  concern def OperationalStoryConcern {
+    require constraint {
+      doc /*
+       * Reviewers need the operational scenario told in stakeholder
+       * language to validate fitness-for-use intent.
+       */
+    }
+  }
+
+  viewpoint def OperationalStoryViewpoint {
+    doc /*
+     * SAF Operational Domain: Operational Story Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * An operational story view shall tell the scenario in
+       * stakeholder language, connecting operational context to
+       * validation intent.
+       */
+    }
+  }
+
+  concern def OperationalCapabilityConcern {
+    require constraint {
+      doc /*
+       * Reviewers need the operational capability expected from the
+       * product line to be described for the increment.
+       */
+    }
+  }
+
+  viewpoint def OperationalCapabilityDefinitionViewpoint {
+    doc /*
+     * SAF Operational Domain: Operational Capability Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * An operational capability view shall describe the operational
+       * capability expected from the product line for the increment.
+       */
+    }
+  }
+
+  concern def OperationalProcessConcern {
+    require constraint {
+      doc /*
+       * Reviewers need the operational flow or lifecycle process to be
+       * described for the increment.
+       */
+    }
+  }
+
+  viewpoint def OperationalProcessViewpoint {
+    doc /*
+     * SAF Operational Domain: Operational Process Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * An operational process view shall describe the operational
+       * flow or lifecycle process for the increment.
        */
     }
   }
@@ -69,6 +228,70 @@ package SAF_Viewpoints {
 
   // ─── Functional Domain ───
 
+  concern def SystemContextConcern {
+    require constraint {
+      doc /*
+       * Reviewers need the system boundary and external interfaces to
+       * be defined for the increment.
+       */
+    }
+  }
+
+  viewpoint def SystemContextDefinitionViewpoint {
+    doc /*
+     * SAF Functional Domain: System Context Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A system context view shall define the system boundary and its
+       * external interfaces.
+       */
+    }
+  }
+
+  concern def SystemUseCaseConcern {
+    require constraint {
+      doc /*
+       * Reviewers need system use cases captured for the increment.
+       */
+    }
+  }
+
+  viewpoint def SystemUseCaseViewpoint {
+    doc /*
+     * SAF Functional Domain: System Use Case Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A system use case view shall capture system use cases with
+       * actors and objectives.
+       */
+    }
+  }
+
+  concern def SystemCapabilityConcern {
+    require constraint {
+      doc /*
+       * Reviewers need system capabilities defined for the increment.
+       */
+    }
+  }
+
+  viewpoint def SystemCapabilityDefinitionViewpoint {
+    doc /*
+     * SAF Functional Domain: System Capability Definition Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A system capability view shall define system capabilities
+       * and their relationships.
+       */
+    }
+  }
+
   concern def FunctionalBehaviorConcern {
     require constraint {
       doc /*
@@ -89,6 +312,29 @@ package SAF_Viewpoints {
        * A functional behavior view shall show functional responsibilities
        * (actions), information items, flows, and sequencing, with
        * requirement trace to functions.
+       */
+    }
+  }
+
+  concern def SystemProcessConcern {
+    require constraint {
+      doc /*
+       * Reviewers need behavior and process sequencing described for
+       * the increment.
+       */
+    }
+  }
+
+  viewpoint def SystemProcessViewpoint {
+    doc /*
+     * SAF Functional Domain: System Process Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A system process view shall describe behavior and process
+       * sequencing for the increment, including state transitions
+       * and temporal ordering.
        */
     }
   }
@@ -199,6 +445,29 @@ package SAF_Viewpoints {
        * A logical internal exchange view shall show the logical system
        * boundary, internal logical elements, connected interfaces, delegated
        * boundary interfaces, and exchanged logical items.
+       */
+    }
+  }
+
+  concern def LogicalInternalInteractionConcern {
+    require constraint {
+      doc /*
+       * Reviewers need logical interactions (sequences, message ordering)
+       * described for the increment.
+       */
+    }
+  }
+
+  viewpoint def LogicalInternalInteractionViewpoint {
+    doc /*
+     * SAF Logical Domain: Logical Internal Interaction Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A logical internal interaction view shall show interactions
+       * between logical elements, including message sequencing and
+       * temporal relationships.
        */
     }
   }
@@ -367,6 +636,29 @@ package SAF_Viewpoints {
     }
   }
 
+  concern def PhysicalFunctionalMappingConcern {
+    require constraint {
+      doc /*
+       * Reviewer question: Which physical/software elements realize which
+       * system functions?
+       */
+    }
+  }
+
+  viewpoint def PhysicalFunctionalMappingViewpoint {
+    doc /*
+     * SAF Physical Domain: P8_PFUM Physical Functional Mapping Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A physical functional mapping view shall show the allocation of
+       * system functions to physical/software elements, including partial
+       * and missing realizations.
+       */
+    }
+  }
+
   concern def PhysicalLogicalMappingConcern {
     require constraint {
       doc /*
@@ -411,6 +703,117 @@ package SAF_Viewpoints {
        * A physical logical item mapping view shall show logical-to-physical
        * item allocations and explicit non-equivalence records. It shall not
        * reverse allocations or infer transport semantics from visual layout.
+       */
+    }
+  }
+
+  // ─── Safety/Security Domain ───
+
+  concern def AssetIdentificationConcern {
+    require constraint {
+      doc /*
+       * Reviewers need assets affected by the feature or toolchain to be
+       * identified for safety and security analysis.
+       */
+    }
+  }
+
+  viewpoint def AssetIdentificationViewpoint {
+    doc /*
+     * SAF Safety/Security Domain: Asset Identification Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * An asset identification view shall identify assets affected by
+       * the feature or toolchain, including safety-relevant and
+       * security-relevant assets.
+       */
+    }
+  }
+
+  concern def SecurityContextConcern {
+    require constraint {
+      doc /*
+       * Reviewers need the security boundary and context identified for
+       * the increment.
+       */
+    }
+  }
+
+  viewpoint def SecurityContextViewpoint {
+    doc /*
+     * SAF Safety/Security Domain: Security Context Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A security context view shall identify the security boundary,
+       * trusted/untrusted domains, and security-relevant context roles.
+       */
+    }
+  }
+
+  concern def SecurityRiskAnalysisConcern {
+    require constraint {
+      doc /*
+       * Reviewers need threat and risk analysis captured for the increment.
+       */
+    }
+  }
+
+  viewpoint def SecurityRiskAnalysisViewpoint {
+    doc /*
+     * SAF Safety/Security Domain: Security Risk Analysis Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A security risk analysis view shall capture threats, risks,
+       * mitigations, and residual risk for the increment.
+       */
+    }
+  }
+
+  concern def ThreatScenarioConcern {
+    require constraint {
+      doc /*
+       * Reviewers need threat scenarios described for the increment.
+       */
+    }
+  }
+
+  viewpoint def ThreatScenarioViewpoint {
+    doc /*
+     * SAF Safety/Security Domain: Threat Scenario Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * A threat scenario view shall describe threat scenarios with
+       * attack vectors, affected assets, and potential impacts.
+       */
+    }
+  }
+
+  concern def ArgumentationAssuranceConcern {
+    require constraint {
+      doc /*
+       * Reviewers need claims, arguments, evidence, and gaps linked
+       * in an assurance argument for the increment.
+       */
+    }
+  }
+
+  viewpoint def ArgumentationAssuranceViewpoint {
+    doc /*
+     * SAF Safety/Security Domain: Argumentation Assurance Viewpoint.
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     */
+    require constraint {
+      doc /*
+       * An argumentation assurance view shall link claims, arguments,
+       * evidence, and gaps in an assurance argument structure.
        */
     }
   }
