@@ -25,43 +25,43 @@ package DE4SDV_MethodProcess {
   enumeration def MethodPhase {
     doc /* The 13 phases of the DE4SDV increment workflow. */;
 
-    member phase0_incrementFraming = 0 {
+    phase0_incrementFraming = 0 {
       doc /* What are we changing or learning? Common domain. */;
     }
-    member phase1_concernFraming = 1 {
+    phase1_concernFraming = 1 {
       doc /* Who cares and why? Common/Operational domain. */;
     }
-    member phase2_operationalContext = 2 {
+    phase2_operationalContext = 2 {
       doc /* What happens in the world? Operational domain. */;
     }
-    member phase3_capabilityClassification = 3 {
+    phase3_capabilityClassification = 3 {
       doc /* Feature, common capability, constraint, or evidence? DE4SDV ontology. */;
     }
-    member phase4_needs = 4 {
+    phase4_needs = 4 {
       doc /* What stakeholder needs exist? Operational domain. */;
     }
-    member phase5_requirements = 5 {
+    phase5_requirements = 5 {
       doc /* What shall the system do? Functional domain. */;
     }
-    member phase6_functionalArchitecture = 6 {
+    phase6_functionalArchitecture = 6 {
       doc /* What functions, flows, states, interfaces? Functional domain. */;
     }
-    member phase7_logicalArchitecture = 7 {
+    phase7_logicalArchitecture = 7 {
       doc /* What logical elements realize functions? Logical domain. */;
     }
-    member phase8_physicalRealization = 8 {
+    phase8_physicalRealization = 8 {
       doc /* What software/hardware realizes the logical design? Physical domain. */;
     }
-    member phase9_variabilityConfiguration = 9 {
+    phase9_variabilityConfiguration = 9 {
       doc /* How does this vary across member products? DE4SDV product-line layer. */;
     }
-    member phase10_vvEvidence = 10 {
+    phase10_vvEvidence = 10 {
       doc /* How will satisfaction be checked? Common/Functional domain. */;
     }
-    member phase11_publication = 11 {
+    phase11_publication = 11 {
       doc /* What is reviewable now? DE4SDV workflow. */;
     }
-    member phase12_baselineNextSlice = 12 {
+    phase12_baselineNextSlice = 12 {
       doc /* What is accepted, deferred, or invalidated? Common domain. */;
     }
   }
@@ -222,52 +222,52 @@ package DE4SDV_MethodProcess {
      * If a link is intentionally missing, record the gap.
      */;
     part concernToNeed : TraceLink {
-      attribute fromElement = "StakeholderConcern";
-      attribute toElement = "Need";
+      attribute fromElement redefines TraceLink::fromElement = "StakeholderConcern";
+      attribute toElement redefines TraceLink::toElement = "Need";
     }
     part needToRequirement : TraceLink {
-      attribute fromElement = "Need";
-      attribute toElement = "Requirement";
+      attribute fromElement redefines TraceLink::fromElement = "Need";
+      attribute toElement redefines TraceLink::toElement = "Requirement";
     }
     part requirementToFeature : TraceLink {
-      attribute fromElement = "Requirement";
-      attribute toElement = "FeatureOrCommonCapability";
+      attribute fromElement redefines TraceLink::fromElement = "Requirement";
+      attribute toElement redefines TraceLink::toElement = "FeatureOrCommonCapability";
     }
     part featureToArchitecture : TraceLink {
-      attribute fromElement = "FeatureOrCommonCapability";
-      attribute toElement = "ArchitectureElement";
+      attribute fromElement redefines TraceLink::fromElement = "FeatureOrCommonCapability";
+      attribute toElement redefines TraceLink::toElement = "ArchitectureElement";
     }
     part architectureToVerification : TraceLink {
-      attribute fromElement = "ArchitectureElement";
-      attribute toElement = "VerificationCase";
+      attribute fromElement redefines TraceLink::fromElement = "ArchitectureElement";
+      attribute toElement redefines TraceLink::toElement = "VerificationCase";
     }
     part verificationToAcceptance : TraceLink {
-      attribute fromElement = "VerificationCase";
-      attribute toElement = "AcceptanceCriterion";
+      attribute fromElement redefines TraceLink::fromElement = "VerificationCase";
+      attribute toElement redefines TraceLink::toElement = "AcceptanceCriterion";
     }
     part acceptanceToEvidence : TraceLink {
-      attribute fromElement = "AcceptanceCriterion";
-      attribute toElement = "EvidenceArtifact";
+      attribute fromElement redefines TraceLink::fromElement = "AcceptanceCriterion";
+      attribute toElement redefines TraceLink::toElement = "EvidenceArtifact";
     }
     part evidenceToBaseline : TraceLink {
-      attribute fromElement = "EvidenceArtifact";
-      attribute toElement = "BaselineDecision";
+      attribute fromElement redefines TraceLink::fromElement = "EvidenceArtifact";
+      attribute toElement redefines TraceLink::toElement = "BaselineDecision";
     }
   }
 
   /* ─── Increment size guidance ─── */
 
   enumeration def IncrementSize {
-    member XS {
+    XS {
       doc /* One correction or trace link. */;
     }
-    member S {
+    S {
       doc /* One feature/scenario/context slice. */;
     }
-    member M {
+    M {
       doc /* Cross-viewpoint increment. */;
     }
-    member L {
+    L {
       doc /* End-to-end feature baseline. */;
     }
   }
