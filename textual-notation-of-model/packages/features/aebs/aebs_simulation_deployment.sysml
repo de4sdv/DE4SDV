@@ -637,7 +637,7 @@ package DE4SDV_AEBSSimulationDeployment {
     render asTreeDiagram;
   }
   view aebsSimulationPhysicalExchangeTypeView {
-    viewpoint selected : PhysicalExchangeTypeDefinitionViewpoint { frame physicalExchangeTypeConcern; }
+    viewpoint selected : PhysicalInterfaceDefinitionViewpoint { frame physicalExchangeTypeConcern; }
     expose DE4SDV_AEBSSimulationDeployment::*;
     render asTreeDiagram;
   }
@@ -699,7 +699,7 @@ package DE4SDV_AEBSSimulationDeployment {
     render asTreeDiagram;
   }
   view aebsSimulationPhysicalLogicalItemMappingView {
-    viewpoint selected : PhysicalLogicalItemMappingViewpoint { frame physicalLogicalItemMappingConcern; }
+    viewpoint selected : PhysicalLogicalMappingViewpoint { frame physicalLogicalItemMappingConcern; }
     expose emergencyRequestToOperateMrm; expose emergencyRequestToLegacyGateControl;
 
     expose vehicleMotionToVelocityFeedback; expose vehicleMotionToKinematicFeedback;

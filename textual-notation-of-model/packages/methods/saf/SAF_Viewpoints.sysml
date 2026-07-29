@@ -2,17 +2,11 @@
  * GfSE SAF viewpoint and concern definitions used by DE4SDV.
  *
  * Source: https://saf.gfse.org/userdoc/viewpoints.html
+ * Repository: https://github.com/GfSE/SAF-SysMLV2
+ * License: Apache-2.0
  *
- * This package contains only the SAF viewpoints that DE4SDV has actually
- * used in the AEBS pilot so far. New SAF viewpoints are added incrementally
- * as future DE4SDV increments need them. This is not a full reproduction
- * of the SAF viewpoint catalog.
- *
- * SAF viewpoint names match the published SAF documentation. Each viewpoint
- * def carries a doc comment identifying its SAF domain.
- *
- * DE4SDV-specific method-governance viewpoints (increment framing,
- * product-line classification, regulatory scope) remain in
+ * This package is a source-backed reference catalogue, not a vendored copy.
+ * DE4SDV-specific method-governance viewpoints remain in
  * DE4SDV_MethodViewpoints, not here.
  */
 
@@ -75,19 +69,6 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def EATraceabilityViewpoint {
-    doc /*
-     * SAF Common Domain: Enterprise Architecture Traceability Viewpoint.
-     * Source: https://saf.gfse.org/userdoc/viewpoints.html
-     */
-    require constraint {
-      doc /*
-       * An EA traceability view shall show how increment artifacts
-       * link together: needs, requirements, model elements, evidence,
-       * and baselines, with explicit gaps.
-       */
-    }
-  }
 
   concern def StakeholderIdentificationConcern {
     require constraint {
@@ -237,18 +218,6 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemContextDefinitionViewpoint {
-    doc /*
-     * SAF Functional Domain: System Context Definition Viewpoint.
-     * Source: https://saf.gfse.org/userdoc/viewpoints.html
-     */
-    require constraint {
-      doc /*
-       * A system context view shall define the system boundary and its
-       * external interfaces.
-       */
-    }
-  }
 
   concern def SystemUseCaseConcern {
     require constraint {
@@ -551,19 +520,6 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalExchangeTypeDefinitionViewpoint {
-    doc /*
-     * SAF Physical Domain: P2_PETD Physical Exchange Type Definition Viewpoint.
-     * Source: https://saf.gfse.org/userdoc/viewpoints.html
-     */
-    require constraint {
-      doc /*
-       * A physical exchange type definition view shall show reusable physical
-       * item, endpoint, and protocol definitions. It shall not infer exchange
-       * direction from diagram placement; typed textual features define it.
-       */
-    }
-  }
 
   concern def PhysicalStructureConcern {
     require constraint {
@@ -692,20 +648,6 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalLogicalItemMappingViewpoint {
-    doc /*
-     * Proposed SAF Physical Domain viewpoint: Physical Logical Item Mapping.
-     * No short code is assigned in the current SAF catalog. This DE4SDV
-     * definition is explicitly provisional.
-     */
-    require constraint {
-      doc /*
-       * A physical logical item mapping view shall show logical-to-physical
-       * item allocations and explicit non-equivalence records. It shall not
-       * reverse allocations or infer transport semantics from visual layout.
-       */
-    }
-  }
 
   // ─── Safety/Security Domain ───
 
@@ -775,7 +717,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def ThreatScenarioConcern {
+  concern def ThreatSzenarioConcern {
     require constraint {
       doc /*
        * Reviewers need threat scenarios described for the increment.
@@ -783,9 +725,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def ThreatScenarioViewpoint {
+  viewpoint def ThreatSzenarioViewpoint {
     doc /*
-     * SAF Safety/Security Domain: Threat Scenario Viewpoint.
+     * SAF Safety/Security Domain: Threat Szenario Viewpoint.
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -814,6 +756,388 @@ package SAF_Viewpoints {
       doc /*
        * An argumentation assurance view shall link claims, arguments,
        * evidence, and gaps in an assurance argument structure.
+       */
+    }
+  }
+
+  // ─── GfSE SAF-SysMLV2 additions ───
+  concern def ImpactAnalysisConcern {
+    require constraint {
+      doc /*
+       * Reviewers need ImpactAnalysisViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def ImpactAnalysisViewpoint {
+    doc /*
+     * SAF Safety/Security Domain: ImpactAnalysis Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: SeverityOfLoss.
+     */
+    require constraint {
+      doc /*
+       * A ImpactAnalysisViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def OperationalDomainItemKindConcern {
+    require constraint {
+      doc /*
+       * Reviewers need OperationalDomainItemKindViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def OperationalDomainItemKindViewpoint {
+    doc /*
+     * SAF Operational Domain: OperationalDomainItemKind Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: OperationalExchanges.
+     */
+    require constraint {
+      doc /*
+       * A OperationalDomainItemKindViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def SystemContextInteractionConcern {
+    require constraint {
+      doc /*
+       * Reviewers need SystemContextInteractionViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def SystemContextInteractionViewpoint {
+    doc /*
+     * SAF Functional Domain: SystemContextInteraction Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: SystemUtilization, ResponseTimeRequirements, ConceptualInteractionSequence.
+     */
+    require constraint {
+      doc /*
+       * A SystemContextInteractionViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def OperationalContextExchangeConcern {
+    require constraint {
+      doc /*
+       * Reviewers need OperationalContextExchangeViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def OperationalContextExchangeViewpoint {
+    doc /*
+     * SAF Operational Domain: OperationalContextExchange Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: OperationalContextExchanges.
+     */
+    require constraint {
+      doc /*
+       * A OperationalContextExchangeViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def SystemDomainItemKindConcern {
+    require constraint {
+      doc /*
+       * Reviewers need SystemDomainItemKindViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def SystemDomainItemKindViewpoint {
+    doc /*
+     * SAF Functional Domain: SystemDomainItemKind Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: LogicalArchitectureItems.
+     */
+    require constraint {
+      doc /*
+       * A SystemDomainItemKindViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def SystemFunctionalRefinementConcern {
+    require constraint {
+      doc /*
+       * Reviewers need SystemFunctionalRefinementViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def SystemFunctionalRefinementViewpoint {
+    doc /*
+     * SAF Functional Domain: SystemFunctionalRefinement Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: SubfunctionInteractions, SystemFunctionBreakdown, SystemFunctionDecomposition.
+     */
+    require constraint {
+      doc /*
+       * A SystemFunctionalRefinementViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def SystemStateConcern {
+    require constraint {
+      doc /*
+       * Reviewers need SystemStateViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def SystemStateViewpoint {
+    doc /*
+     * SAF Functional Domain: SystemState Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: SystemModes, SystemFunctionsDependentOnModes.
+     */
+    require constraint {
+      doc /*
+       * A SystemStateViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def OperationalContextInteractionConcern {
+    require constraint {
+      doc /*
+       * Reviewers need OperationalContextInteractionViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def OperationalContextInteractionViewpoint {
+    doc /*
+     * SAF Operational Domain: OperationalContextInteraction Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: OperationalProcessThreads.
+     */
+    require constraint {
+      doc /*
+       * A OperationalContextInteractionViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def GridDefinitionConcern {
+    require constraint {
+      doc /*
+       * Reviewers need GridDefinitionViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def GridDefinitionViewpoint {
+    doc /*
+     * SAF Functional Domain: GridDefinition Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: ViewpointsUsedInSystemModel, FrameworkViewpoints.
+     */
+    require constraint {
+      doc /*
+       * A GridDefinitionViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def FrameworkConceptDefinitionConcern {
+    require constraint {
+      doc /*
+       * Reviewers need FrameworkConceptDefinitionViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def FrameworkConceptDefinitionViewpoint {
+    doc /*
+     * SAF Framework Domain: FrameworkConceptDefinition Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: RelationsBetweenSEConcepts, ConstraintsOnSEConcepts, SEConceptsCovered.
+     */
+    require constraint {
+      doc /*
+       * A FrameworkConceptDefinitionViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def FrameworkConcernOverviewConcern {
+    require constraint {
+      doc /*
+       * Reviewers need FrameworkViewpointOverviewViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def FrameworkViewpointOverviewViewpoint {
+    doc /*
+     * SAF Framework Domain: Framework ViewpointOverview Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: DefinitionOfGridRows, DefinitionOfGridColumns, FrameworkGridStructure, ViewpointLocationInGrid, MaturityOfViewpoints, AvailableViewpoints.
+     */
+    require constraint {
+      doc /*
+       * A FrameworkViewpointOverviewViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def FrameworkStakeholderandConcernDefinitionConcern {
+    require constraint {
+      doc /*
+       * Reviewers need FrameworkStakeholderandConcernDefinitionViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def FrameworkStakeholderandConcernDefinitionViewpoint {
+    doc /*
+     * SAF Framework Domain: FrameworkStakeholderandConcernDefinition Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: StakeholderConcerns, FrameworkStakeholders, StakeholderConcernsReasons.
+     */
+    require constraint {
+      doc /*
+       * A FrameworkStakeholderandConcernDefinitionViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def FrameworkConcernDefinitionConcern {
+    require constraint {
+      doc /*
+       * Reviewers need FrameworkViewpointDefinitionViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def FrameworkViewpointDefinitionViewpoint {
+    doc /*
+     * SAF Framework Domain: Framework ViewpointDefinition Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: ConceptsExposedInViewpoints, ConcernsFramedByViewpoints, DefinitionOfViewpoints, ViewpointLocationInGrid, ViewpointPurpose, ViewpointPresentations, ViewpointDependencies, SupportForSEStandards.
+     */
+    require constraint {
+      doc /*
+       * A FrameworkViewpointDefinitionViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def FrameworkConcernImplementationConcern {
+    require constraint {
+      doc /*
+       * Reviewers need FrameworkViewpointImplementationViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def FrameworkViewpointImplementationViewpoint {
+    doc /*
+     * SAF Framework Domain: Framework ViewpointImplementation Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: ImplementationOfFrameworkConcepts, ViewpointImplementation.
+     */
+    require constraint {
+      doc /*
+       * A FrameworkViewpointImplementationViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def FrameworkImplementationTraceabilityConcern {
+    require constraint {
+      doc /*
+       * Reviewers need FrameworkImplementationTraceabilityViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def FrameworkImplementationTraceabilityViewpoint {
+    doc /*
+     * SAF Framework Domain: FrameworkImplementationTraceability Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: ImplementationOfFrameworkConcepts, FrameworkModelElements.
+     */
+    require constraint {
+      doc /*
+       * A FrameworkImplementationTraceabilityViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def FrameworkStereotypeOverviewConcern {
+    require constraint {
+      doc /*
+       * Reviewers need FrameworkStereotypeOverviewViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def FrameworkStereotypeOverviewViewpoint {
+    doc /*
+     * SAF Framework Domain: FrameworkStereotypeOverview Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: FrameworkModelElements.
+     */
+    require constraint {
+      doc /*
+       * A FrameworkStereotypeOverviewViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def OperationalPerformerConcern {
+    require constraint {
+      doc /*
+       * Reviewers need OperationalPerformerViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def OperationalPerformerViewpoint {
+    doc /*
+     * SAF Operational Domain: OperationalPerformer Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: OrganizationalEntitiesForCapability, RelationshipsBetweenParties.
+     */
+    require constraint {
+      doc /*
+       * A OperationalPerformerViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def OperationalCapabilityMappingConcern {
+    require constraint {
+      doc /*
+       * Reviewers need OperationalCapabilityMappingViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def OperationalCapabilityMappingViewpoint {
+    doc /*
+     * SAF Operational Domain: OperationalCapabilityMapping Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: OperationalCapabilityRelationships.
+     */
+    require constraint {
+      doc /*
+       * A OperationalCapabilityMappingViewpoint view shall show the source-backed SAF frame bindings for the increment.
+       */
+    }
+  }
+  concern def OperationalProcessMappingConcern {
+    require constraint {
+      doc /*
+       * Reviewers need OperationalProcessMappingViewpoint captured with source-backed frame bindings for the increment.
+       */
+    }
+  }
+
+  viewpoint def OperationalProcessMappingViewpoint {
+    doc /*
+     * SAF Operational Domain: OperationalProcessMapping Viewpoint
+     * Source: https://saf.gfse.org/userdoc/viewpoints.html
+     * GfSE frame bindings: OperationalProcessRelationships.
+     */
+    require constraint {
+      doc /*
+       * A OperationalProcessMappingViewpoint view shall show the source-backed SAF frame bindings for the increment.
        */
     }
   }
