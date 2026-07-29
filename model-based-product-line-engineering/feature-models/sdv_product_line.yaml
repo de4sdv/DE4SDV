@@ -86,6 +86,41 @@ root:
             - { name: KVM, id: F-PLATFORM-HYPERVISOR-KVM, binding_time: design, maps_to_variant: kvm }
             - { name: None, id: F-PLATFORM-HYPERVISOR-NONE, binding_time: design, maps_to_variant: none }
 
+    # ── Sensing boundary ─────────────────────────────────────
+    # Motion sensors are common capabilities (mandatory, not features).
+    # Perception sensors are optional features that distinguish member
+    # products. The or_group expresses multi-select: a product may have
+    # any non-empty combination of LiDAR, radar, and camera.
+    - name: SensingBoundary
+      id: F-SENSING
+      type: mandatory
+      description: >
+        Vehicle sensing boundary — physical sensors and perception
+        pipeline. Motion sensors are common; perception sensors are
+        optional features.
+      children:
+        - name: MotionSensors
+          id: C-SENSING-MOTION
+          type: mandatory
+          description: >
+            Common capability (ISO/IEC 26580): IMU and wheel odometry
+            are required across all member products. Not a feature.
+        - name: PerceptionSensors
+          id: F-SENSING-PERCEPTION
+          type: or_group
+          description: >
+            At least one perception sensor must be selected. A product
+            may have any combination of LiDAR, radar, and camera.
+            These are capability-level selections; the SysML v2 model
+            uses independent include/exclude variation parts ([0]/[1]
+            multiplicity) per sensor, not a single exclusive-choice
+            variation. The configurator annotates which sensors are
+            enabled in the product-model projection.
+          children:
+            - { name: LiDAR, id: F-SENSING-PERCEPTION-LIDAR, binding_time: design, type: optional }
+            - { name: Radar, id: F-SENSING-PERCEPTION-RADAR, binding_time: design, type: optional }
+            - { name: Camera, id: F-SENSING-PERCEPTION-CAMERA, binding_time: design, type: optional }
+
     # ── Vehicle capabilities ────────────────────────────────
     # Common capabilities are required across all member products
     # and are NOT features per ISO/IEC 26580. Optional capabilities

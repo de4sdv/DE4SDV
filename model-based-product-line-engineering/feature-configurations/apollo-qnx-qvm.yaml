@@ -23,3 +23,6 @@ selections:
   Capabilities.ForwardCollisionMitigation.BicycleDetection: false
   Capabilities.AdaptiveCruiseControl: false
   Capabilities.LaneKeepAssist: false
+
+  # Sensing boundary — LiDAR + radar for this configuration
+  SensingBoundary.PerceptionSensors: [LiDAR, Radar]

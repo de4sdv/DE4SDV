@@ -5,8 +5,8 @@
  * Shared-assets source baseline: git-blob:b27bf915afb8a50b7ff449e870c2b31ee6ad64af:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)
  * Shared-assets model: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
  * Shared-assets model SHA-256: df851aec5713576e9fe116b6e1bea191b06be8526a522b131a5fc6a45fc14c9d
- * Feature model SHA-256: 1df3aec24d69481e7e05a0e85c0406acb357d77d0ce9c31dcc2624b9c18d2ea5
- * Bill-of-Features SHA-256: 1457cd3bf62da9aa29ef112f56d727910a84ef1d0b282bdf56377da7e1ec167e
+ * Feature model SHA-256: 2eedad753f304163ba5e101741bb99c8cb26207a8fffa0668a50b1f53263b90b
+ * Bill-of-Features SHA-256: 08d6a8315a9515e2c9ef164061c9d4a3d49f0c1ea56a4769685242a5f0ce586b
  * Regenerate from: model-based-product-line-engineering/feature-configurations/example-linux-score-autoware.yaml
  * Feature model: model-based-product-line-engineering/feature-models/sdv_product_line.yaml
  */
@@ -25,6 +25,7 @@ part def ExampleLinuxSCOREVariant :> SDVPlatformStack {
    *   hypervisor = none
    *
    * Feature selections outside this projection (not resolved in SysML):
+   *   SensingBoundary.PerceptionSensors = LiDAR, Camera
    *   Capabilities.ForwardCollisionMitigation.PedestrianDetection = disabled
    *   Capabilities.ForwardCollisionMitigation.BicycleDetection = disabled
    *   Capabilities.AdaptiveCruiseControl = disabled

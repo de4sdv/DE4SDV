@@ -104,6 +104,7 @@ selections:
   Capabilities.ForwardCollisionMitigation.BicycleDetection: false
   Capabilities.AdaptiveCruiseControl: false
   Capabilities.LaneKeepAssist: false
+  SensingBoundary.PerceptionSensors: [LiDAR]
 """)
         bof.close()
         try:
@@ -132,6 +133,7 @@ selections:
   Capabilities.ForwardCollisionMitigation.BicycleDetection: false
   Capabilities.AdaptiveCruiseControl: false
   Capabilities.LaneKeepAssist: false
+  SensingBoundary.PerceptionSensors: [LiDAR]
 """)
         bof.close()
         try:
@@ -1240,6 +1242,7 @@ selections:
   Capabilities.ForwardCollisionMitigation.BicycleDetection: false
   Capabilities.AdaptiveCruiseControl: false
   Capabilities.LaneKeepAssist: false
+  SensingBoundary.PerceptionSensors: [LiDAR]
 """)
         bof.close()
         try:
@@ -1268,6 +1271,7 @@ selections:
   Capabilities.ForwardCollisionMitigation.BicycleDetection: false
   Capabilities.AdaptiveCruiseControl: false
   Capabilities.LaneKeepAssist: false
+  SensingBoundary.PerceptionSensors: [LiDAR]
 """)
         bof.close()
         try:

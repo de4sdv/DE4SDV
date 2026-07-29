@@ -169,37 +169,50 @@ package DE4SDV_VehicleSensingBoundary {
   dependency wheelOdometryProducesVelocityReportMessage from WheelOdometrySensorBoundary to VelocityReportMessage;
 
   /* ──────────────────────────────────────────
-   * Variation points for sensor suite selection
+   * Sensor suite composition
    *
-   * These follow the definition-level variation pattern from the SysML v2
-   * specification (training/36. Variability/Variation Definitions.sysml):
-   * a variation part def specializes a base def and enumerates variant
-   * usages. The suite is not itself a sensor — it is a composite part
-   * whose members are variant sensor selections.
+   * Motion sensors (IMU, wheel odometry) are common capabilities required
+   * across all member products. They are NOT variation points — they are
+   * plain parts of the sensing assembly, not features that distinguish
+   * member products (ISO/IEC 26580).
+   *
+   * Perception sensors (LiDAR, radar, camera) are optional features that
+   * distinguish member products. A product may have any combination (LiDAR +
+   * camera, radar-only, all three, etc). SysML v2 variation/variant is
+   * exclusive choice, so multi-select cannot be expressed as a single
+   * variation. Instead, each perception sensor is an independent include/
+   * exclude variation point using the [0]/[1] multiplicity pattern (same
+   * pattern as the SDV platform stack's hypervisor "none" variant).
+   *
+   * The PLE feature model (sdv_product_line.yaml) uses or_group for perception
+   * sensors, which expresses multi-select at the feature level. The
+   * configurator resolves the YAML selections and annotates which sensors
+   * are enabled in the generated product-model projection.
    * ────────────────────────────────────────── */
 
   part def SensorSuite {
     doc /* Abstract composite of one or more physical sensor boundaries selected for a member product. */
   }
 
-  variation part def PerceptionSensorSuite :> SensorSuite {
-    doc /*
-     * Variation point for platform member products that select one or more
-     * perception sensors. The concrete suite composition is a product-line
-     * choice managed by the platform stack, not by AEBS functional modeling.
-     */
-    variant part lidarSensor : LiDARSensorBoundary;
-    variant part radarSensor : RadarSensorBoundary;
-    variant part cameraSensor : CameraSensorBoundary;
+  /*
+   * Perception sensor variation points — independent include/exclude per
+   * sensor. Each variation offers a present [1] or absent [0] variant.
+   * A configured product selects present or absent for each independently,
+   * enabling any combination (LiDAR + camera, radar-only, all three, etc).
+   */
+  variation part lidarSensor : LiDARSensorBoundary {
+    variant part lidarPresent[1] : LiDARSensorBoundary;
+    variant part lidarAbsent[0];
   }
 
-  variation part def MotionSensorSuite :> SensorSuite {
-    doc /*
-     * Variation point for platform member products that select vehicle-state
-     * sensors used by the ADAS application stack.
-     */
-    variant part imuSensor : IMUSensorBoundary;
-    variant part wheelOdometrySensor : WheelOdometrySensorBoundary;
+  variation part radarSensor : RadarSensorBoundary {
+    variant part radarPresent[1] : RadarSensorBoundary;
+    variant part radarAbsent[0];
+  }
+
+  variation part cameraSensor : CameraSensorBoundary {
+    variant part cameraPresent[1] : CameraSensorBoundary;
+    variant part cameraAbsent[0];
   }
 
   /* ──────────────────────────────────────────
@@ -229,13 +242,20 @@ package DE4SDV_VehicleSensingBoundary {
   part def VehicleSensingAssembly {
     doc /*
      * Platform-level sensing assembly for an SDV member product. Composes
-     * physical sensors and the perception pipeline. Sensor suite composition
-     * is a product-line variation point — concrete member products select
-     * sensor variants per the PLE feature model.
+     * common motion sensors (present in all member products) with optional
+     * perception sensors (selected per product-line configuration) and the
+     * perception pipeline.
      */
 
-    part perceptionSensors : PerceptionSensorSuite;
-    part motionSensors : MotionSensorSuite;
+    // Common capabilities — present in all member products, not variation points
+    part imuSensor : IMUSensorBoundary;
+    part wheelOdometrySensor : WheelOdometrySensorBoundary;
+
+    // Perception sensor variation points — independent include/exclude per sensor
+    variation part lidarSensor : LiDARSensorBoundary;
+    variation part radarSensor : RadarSensorBoundary;
+    variation part cameraSensor : CameraSensorBoundary;
+
     part perceptionPipeline : PerceptionPipelineBoundary;
   }
 
@@ -305,8 +325,7 @@ package DE4SDV_VehicleSensingBoundary {
     expose CameraSensorBoundary;
     expose IMUSensorBoundary;
     expose WheelOdometrySensorBoundary;
-    expose PerceptionSensorSuite;
-    expose MotionSensorSuite;
+    expose SensorSuite;
     expose PerceptionPipelineBoundary;
     expose VehicleSensingAssembly;
     expose pointCloudObservationSupportsVehicleMotionState;
