@@ -1,0 +1,76 @@
+# Contract for INC-AEBS-009F degraded-input evidence pipeline.
+#
+# Uses DegradedInputScenario enum.  The output document uses
+# "degraded_input_profile" instead of "profile" as the profile key.
+# Single-scenario campaign shape (one evidence document per profile).
+
+schema_id: de4sdv.aebs-009f.scenario-evidence.v1
+increment_id: INC-AEBS-009F
+claim_boundary: one_degraded_input_profile_verdict_only_no_safety_or_compliance_claim
+
+raw_contract_fields:
+  - collector_id
+  - monotonic_start_s
+  - monotonic_end_s
+  - clock_boundary
+  - observations
+  - evaluator_result
+  - activation
+  - errors
+  - terminal_reason
+  - command_exit
+  - limits
+  - degraded_input_profile
+
+profile_field: degraded_input_profile
+profile_enum_module: de4sdv_aebs_009b_bench.degraded_input_matrix
+profile_enum_name: DegradedInputScenario
+profile_values:
+  - stale_input
+  - missing_input
+  - malformed_input
+  - inconsistent_input
+  - unavailable_input
+
+# 009F uses "degraded_input_profile" as the profile key in the document.
+document_profile_key: degraded_input_profile
+
+success_terminal: pass_degraded_input_profile
+additional_terminal_reasons:
+  - terminal_degraded_input_failure
+
+evaluator_module: de4sdv_aebs_009b_bench.degraded_input_matrix
+evaluator_function: evaluate_profile
+evaluator_result_key: evaluator_result
+result_serializer: degraded_input_result_to_json
+matrix_config: scenario-009f-degraded-input-matrix.yaml
+
+raw_semantics_module: degraded_input_evidence
+raw_semantics_validator: _validate_degraded_raw_semantics
+
+campaign_manifest_schema: de4sdv.aebs-009f.campaign-manifest.v1
+campaign_shape: single_scenario
+evidence_dir: evidence/009f
+artifact_path_prefix_template: "{evidence_dir}/{profile}"
+execution_manifest_function: degraded_input_execution_manifest_sha256_at_revision
+profile_manifest_key: degraded_input_execution_manifest_sha256
+config_sha256_key: degraded_input_config_sha256
+
+metadata_fields: [observer_exit_code, raw_output]
+
+evidence_root_fields:
+  - schema
+  - increment_id
+  - scenario_id
+  - degraded_input_profile
+  - provenance
+  - collection
+  - collector_contract
+  - evaluation
+  - artifacts
+  - claim_boundary
+
+provenance_extras:
+  degraded_input_profile: profile
+  degraded_input_config_sha256: config_sha256
+  degraded_input_execution_manifest_sha256: execution_manifest

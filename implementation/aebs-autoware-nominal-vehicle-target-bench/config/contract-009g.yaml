@@ -1,0 +1,78 @@
+# Contract for INC-AEBS-009G pedestrian crossing-target evidence pipeline.
+#
+# Uses TargetType enum (PEDESTRIAN only).  Single-scenario, not multi-profile.
+# The evaluator has a different calling convention (crossing_target mode).
+
+schema_id: de4sdv.aebs-009g.scenario-evidence.v1
+increment_id: INC-AEBS-009G
+claim_boundary: one_crossing_target_scenario_verdict_only_no_safety_or_compliance_claim
+
+raw_contract_fields:
+  - collector_id
+  - monotonic_start_s
+  - monotonic_end_s
+  - clock_boundary
+  - observations
+  - evaluator_result
+  - activation
+  - errors
+  - terminal_reason
+  - command_exit
+  - limits
+  - crossing_target_sample
+  - authorization_diagnostic
+
+profile_field: target_type
+profile_enum_module: de4sdv_aebs_009b_bench.crossing_target_matrix
+profile_enum_name: TargetType
+profile_values:
+  - pedestrian
+default_profile: pedestrian
+
+# 009G/009H have no "profile" key in the document; they use "target_type".
+document_profile_key: null
+
+evaluator_mode: crossing_target
+success_terminal: pass_bounded_target_response
+additional_terminal_reasons:
+  - terminal_scenario_failure
+
+evaluator_module: de4sdv_aebs_009b_bench.crossing_target_matrix
+parser_module: crossing_target_evidence
+evaluator_function: evaluate_crossing_target_scenario
+evaluator_result_key: evaluator_result
+result_serializer: crossing_target_result_to_json
+matrix_config: scenario-009g-pedestrian-crossing.yaml
+
+raw_semantics_module: crossing_target_evidence
+raw_semantics_validator: _validate_crossing_raw_semantics
+
+extra_document_fields_module: crossing_target_evidence
+extra_document_fields_function: _crossing_target_extra_document_fields
+
+campaign_manifest_schema: de4sdv.aebs-009g.campaign-manifest.v1
+campaign_shape: single_scenario
+evidence_dir: evidence/009g
+artifact_path_prefix_template: "{evidence_dir}/{profile}"
+execution_manifest_function: execution_manifest_sha256_at_revision
+profile_manifest_key: crossing_config_sha256
+config_sha256_key: crossing_config_sha256
+
+metadata_fields: [observer_exit_code, raw_output]
+
+evidence_root_fields:
+  - schema
+  - increment_id
+  - scenario_id
+  - target_type
+  - provenance
+  - collection
+  - collector_contract
+  - crossing_target_sample
+  - authorization_diagnostic
+  - evaluation
+  - artifacts
+  - claim_boundary
+
+provenance_extras:
+  crossing_config_sha256: config_sha256

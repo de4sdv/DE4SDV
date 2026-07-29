@@ -61,6 +61,54 @@ def _load_matrix(bench_root: Path, contract: Mapping[str, Any]):
     return loader(matrix_path), matrix_path
 
 
+def _evaluate_crossing_target(
+    bench_root: Path,
+    contract: Mapping[str, Any],
+    raw: Mapping[str, Any],
+    observations: tuple,
+    evaluate_fn,
+):
+    """Evaluate a crossing-target scenario (009G/009H).
+
+    The crossing-target evaluator has a different signature from the matrix
+    profile evaluators: it takes the config's contract, target_type, geometry,
+    ego_footprint, sample, authorization, and observations.
+    """
+    config_loader = _import_function(
+        contract["evaluator_module"], "load_crossing_target_config"
+    )
+    config_path = bench_root / "config" / contract["matrix_config"]
+    config = config_loader(config_path)
+
+    if config.increment_id != contract["increment_id"]:
+        raise ValueError(
+            "crossing-target config increment does not match selected increment"
+        )
+
+    # Parse the sample and authorization from raw using the per-increment helpers.
+    parser_module = contract.get("parser_module", contract["evaluator_module"])
+    sample_parser = _import_function(
+        parser_module, "_sample_from_json"
+    )
+    auth_parser = _import_function(
+        parser_module, "_authorization_from_json"
+    )
+    sample = sample_parser(raw["crossing_target_sample"])
+    authorization = auth_parser(raw["authorization_diagnostic"])
+
+    result = evaluate_fn(
+        config.contract,
+        config.target_type,
+        config.geometry,
+        config.ego_footprint,
+        sample,
+        authorization,
+        observations,
+        window_end_receipt_s=raw["monotonic_end_s"],
+    )
+    return result, config.scenario_id
+
+
 def build_evidence(
     raw: Mapping[str, Any],
     profile: Any,
@@ -99,7 +147,7 @@ def build_evidence(
             f"the closed contract"
         )
     profile_field = contract["profile_field"]
-    if raw[profile_field] != profile.value:
+    if profile_field in raw and raw[profile_field] != profile.value:
         raise ValueError(f"raw {profile_field} differs from selected profile")
 
     # --- 2. Parse observations -----------------------------------------------
@@ -127,7 +175,6 @@ def build_evidence(
             )
 
     # --- 4. Profile-specific evaluation --------------------------------------
-    matrix, matrix_path = _load_matrix(root, contract)
     evaluate_fn = _import_function(
         contract["evaluator_module"], contract["evaluator_function"]
     )
@@ -135,12 +182,21 @@ def build_evidence(
         contract["evaluator_module"], contract["result_serializer"]
     )
 
-    result = evaluate_fn(
-        matrix,
-        profile,
-        observations,
-        window_end_receipt_s=raw["monotonic_end_s"],
-    )
+    evaluator_mode = contract.get("evaluator_mode", "matrix_profile")
+    if evaluator_mode == "crossing_target":
+        result, scenario_id = _evaluate_crossing_target(
+            root, contract, raw, observations, evaluate_fn
+        )
+    else:
+        matrix, matrix_path = _load_matrix(root, contract)
+        result = evaluate_fn(
+            matrix,
+            profile,
+            observations,
+            window_end_receipt_s=raw["monotonic_end_s"],
+        )
+        scenario_id = matrix.scenarios[profile].scenario_id
+
     serialized = serialize_fn(result)
 
     evaluator_result_key = contract["evaluator_result_key"]
@@ -193,27 +249,48 @@ def build_evidence(
     document: dict[str, Any] = {
         "schema": contract["schema_id"],
         "increment_id": contract["increment_id"],
-        "profile": profile.value,
-        "scenario_id": matrix.scenarios[profile].scenario_id,
-        "provenance": dict(provenance),
-        "collection": {
-            "collector_id": raw["collector_id"],
-            "monotonic_start_s": raw["monotonic_start_s"],
-            "monotonic_end_s": raw["monotonic_end_s"],
-            "clock_boundary": raw["clock_boundary"],
-            "observations": raw["observations"],
-        },
-        "collector_contract": {
-            "activation": raw["activation"],
-            "errors": raw["errors"],
-            "terminal_reason": raw["terminal_reason"],
-            "command_exit": raw["command_exit"],
-            "limits": raw["limits"],
-        },
-        "evaluation": serialized,
-        "artifacts": dict(artifacts),
-        "claim_boundary": contract["claim_boundary"],
     }
+
+    # The profile key in the output document.  Most increments use "profile",
+    # but 009F uses "degraded_input_profile" and 009G/009H omit it entirely.
+    document_profile_key = contract.get("document_profile_key", "profile")
+    if document_profile_key:
+        document[document_profile_key] = profile.value
+
+    document["scenario_id"] = scenario_id
+    document["provenance"] = dict(provenance)
+    document["collection"] = {
+        "collector_id": raw["collector_id"],
+        "monotonic_start_s": raw["monotonic_start_s"],
+        "monotonic_end_s": raw["monotonic_end_s"],
+        "clock_boundary": raw["clock_boundary"],
+        "observations": raw["observations"],
+    }
+    document["collector_contract"] = {
+        "activation": raw["activation"],
+        "errors": raw["errors"],
+        "terminal_reason": raw["terminal_reason"],
+        "command_exit": raw["command_exit"],
+        "limits": raw["limits"],
+    }
+
+    # Extra root fields specific to certain increments (e.g. crossing_target_sample
+    # and authorization_diagnostic for 009G/009H).
+    extra_fields_fn_name = contract.get("extra_document_fields_function")
+    if extra_fields_fn_name:
+        extra_fields_fn = _import_function(
+            contract.get("extra_document_fields_module", contract["evaluator_module"]),
+            extra_fields_fn_name,
+        )
+        document.update(extra_fields_fn(raw))
+
+    # For crossing-target increments, inject target_type from the profile value.
+    if evaluator_mode == "crossing_target":
+        document["target_type"] = profile.value
+
+    document["evaluation"] = serialized
+    document["artifacts"] = dict(artifacts)
+    document["claim_boundary"] = contract["claim_boundary"]
     return document
 
 
@@ -233,11 +310,22 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     fields = contract.get("raw_contract_fields")
     if isinstance(fields, list):
         contract["raw_contract_fields"] = set(fields)
-    elif not isinstance(fields, set):
+    elif fields is not None and not isinstance(fields, set):
         raise TypeError("raw_contract_fields must be a list or set")
     additional = contract.get("additional_terminal_reasons")
     if isinstance(additional, list):
         contract["additional_terminal_reasons"] = set(additional)
+    # Normalise metadata_fields to a set for the validator.
+    metadata_fields = contract.get("metadata_fields")
+    if isinstance(metadata_fields, list):
+        contract["metadata_fields"] = set(metadata_fields)
+    evidence_fields = contract.get("evidence_root_fields")
+    if isinstance(evidence_fields, list):
+        contract["evidence_root_fields"] = set(evidence_fields)
+    # Build profile_value_set for the validator (multi-profile campaigns).
+    profile_values = contract.get("profile_values")
+    if isinstance(profile_values, list):
+        contract["profile_value_set"] = set(profile_values)
     return contract
 
 

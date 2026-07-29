@@ -172,6 +172,21 @@ def _authorization_to_json(auth: DiagnosticAuthorization) -> dict[str, Any]:
     }
 
 
+def _crossing_target_extra_document_fields(raw: Mapping[str, Any]) -> dict[str, Any]:
+    """Extract crossing_target_sample and authorization_diagnostic for the evidence document.
+
+    This helper is referenced by the framework contract to produce the extra
+    root fields specific to 009G/009H evidence documents.  The ``target_type``
+    field is injected separately by the framework using the profile value.
+    """
+    sample = _sample_from_json(raw["crossing_target_sample"])
+    authorization = _authorization_from_json(raw["authorization_diagnostic"])
+    return {
+        "crossing_target_sample": _sample_to_json(sample),
+        "authorization_diagnostic": _authorization_to_json(authorization),
+    }
+
+
 def _validate_crossing_raw_semantics(
     raw: Mapping[str, Any],
     evaluation: Mapping[str, Any],

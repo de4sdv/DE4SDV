@@ -1,0 +1,73 @@
+# Contract for INC-AEBS-009E non-activation evidence pipeline.
+#
+# This increment does NOT inherit a 009B scenario evaluation (no scenario_config).
+# It uses the NonActivationScenario enum and a standalone raw-semantics validator.
+
+schema_id: de4sdv.aebs-009e.non-activation-evidence.v1
+increment_id: INC-AEBS-009E
+claim_boundary: one_non_activation_profile_verdict_only_no_safety_or_compliance_claim
+
+raw_contract_fields:
+  - collector_id
+  - monotonic_start_s
+  - monotonic_end_s
+  - clock_boundary
+  - observations
+  - evaluator_result
+  - activation
+  - errors
+  - terminal_reason
+  - command_exit
+  - limits
+  - non_activation_profile
+
+profile_field: non_activation_profile
+profile_enum_module: de4sdv_aebs_009b_bench.non_activation_matrix
+profile_enum_name: NonActivationScenario
+profile_values:
+  - clear_path
+  - adjacent_object
+  - non_closing_target
+  - below_trigger
+
+success_terminal: pass_bounded_silence
+additional_terminal_reasons:
+  - terminal_non_activation_failure
+
+evaluator_module: de4sdv_aebs_009b_bench.non_activation_matrix
+evaluator_function: evaluate_profile
+evaluator_result_key: evaluator_result
+result_serializer: non_activation_result_to_json
+matrix_config: scenario-009e-non-activation-matrix.yaml
+
+raw_semantics_module: non_activation_evidence
+raw_semantics_validator: _validate_non_activation_raw_semantics
+
+campaign_manifest_schema: de4sdv.aebs-009e.campaign-manifest.v1
+campaign_shape: multi_profile
+evidence_dir: evidence/009e
+artifact_path_prefix_template: "{evidence_dir}/profiles/{profile}"
+execution_manifest_function: non_activation_execution_manifest_sha256_at_revision
+profile_manifest_key: non_activation_execution_manifest_sha256
+config_sha256_key: non_activation_matrix_sha256
+
+metadata_fields: [observer_exit_code, raw_output, non_activation_profile]
+metadata_profile_field: non_activation_profile
+profile_key_field: profile
+
+evidence_root_fields:
+  - schema
+  - increment_id
+  - profile
+  - scenario_id
+  - provenance
+  - collection
+  - collector_contract
+  - evaluation
+  - artifacts
+  - claim_boundary
+
+provenance_extras:
+  non_activation_profile: profile
+  non_activation_matrix_sha256: config_sha256
+  non_activation_execution_manifest_sha256: execution_manifest
