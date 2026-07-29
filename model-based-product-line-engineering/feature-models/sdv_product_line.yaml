@@ -64,6 +64,7 @@ root:
             - { name: EclipseSCORE, id: F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE, binding_time: design, maps_to_variant: eclipseSCORE }
             - { name: AndroidSDV, id: F-PLATFORM-MIDDLEWARE-ANDROID-SDV, binding_time: design, maps_to_variant: androidSDV }
             - { name: AUTOSARAdaptive, id: F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE, binding_time: design, maps_to_variant: autosarAdaptive }
+            - { name: None, id: F-PLATFORM-MIDDLEWARE-NONE, binding_time: design, maps_to_variant: none }
 
         - name: OS
           id: F-PLATFORM-OS

@@ -23,7 +23,7 @@ description: >
 selections:
   # Platform stack — one variant per layer (alternative groups)
   PlatformStack.VehicleApplication: Autoware
-  PlatformStack.Middleware: EclipseSCORE
+  PlatformStack.Middleware: None
   PlatformStack.OS: Linux
   PlatformStack.Hypervisor: None
 
