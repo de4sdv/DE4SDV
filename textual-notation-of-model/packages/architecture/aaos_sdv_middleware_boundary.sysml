@@ -353,6 +353,12 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
     inout item diagnosticResponses;
   }
 
+  port def LifecycleCoordinationPort {
+    doc /* Port type for vehicle lifecycle coordination (suspend, resume, power state). */
+    inout item lifecycleEvents;
+    inout item powerStateCommands;
+  }
+
   /* ──────────────────────────────────────────
    * Communication transport model
    * ──────────────────────────────────────────
