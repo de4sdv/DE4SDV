@@ -64,6 +64,15 @@ package DE4SDV_SDVPlatformStack {
       variant part none[0]; /* single-domain architecture, no vehicle-level middleware */
     }
 
+    variation part applicationMiddlewareAdapter : ApplicationMiddlewareAdapterLayer {
+      variant part autowareToSCORE : AutowareToSCOREAdapter;
+      variant part autowareToAAOSSDV : AutowareToAAOSSDVAdapter;
+      variant part autowareToAUTOSAR : AutowareToAUTOSARAdapter;
+      variant part openpilotToSCORE : OpenpilotToSCOREAdapter;
+      variant part apolloToSCORE : ApolloToSCOREAdapter;
+      variant part none[0]; /* no adapter when no vehicle-level middleware */
+    }
+
     variation part osPlatform : OSPlatformLayer {
       variant part linux : LinuxPlatform;
       variant part android : AndroidHLOS;
@@ -85,8 +94,11 @@ package DE4SDV_SDVPlatformStack {
      * The contracts at these boundaries are what DE4SDV models; the
      * concrete realizations either conform or don't.
      */
-    interface applicationMiddlewareBoundary : ApplicationMiddlewareInterface
-      connect vehicleApplication.middlewarePort to middleware.applicationPort;
+    interface applicationMiddlewareBoundary : ApplicationAdapterInterface
+      connect vehicleApplication.middlewarePort to applicationMiddlewareAdapter.applicationPort;
+
+    interface adapterMiddlewareBoundary : AdapterMiddlewareInterface
+      connect applicationMiddlewareAdapter.middlewarePort to middleware.applicationPort;
 
     interface middlewareOSBoundary : MiddlewareOSInterface
       connect middleware.osPort to osPlatform.middlewarePort;
@@ -120,6 +132,19 @@ package DE4SDV_SDVPlatformStack {
      */
 
     port middlewarePort : ApplicationMiddlewarePort;
+  }
+
+  part def ApplicationMiddlewareAdapterLayer {
+    doc /*
+     * Adapter between domain-specific application stacks and vehicle-level middleware.
+     * Each application stack ships its own internal communication (e.g. Autoware uses ROS 2/DDS);
+     * the vehicle-level middleware uses a different communication paradigm (e.g. S-CORE uses LoLa,
+     * Android SDV uses VSIDL service bundles, AUTOSAR uses SOME/IP). The adapter translates
+     * between these.
+     */
+
+    port applicationPort : ApplicationAdapterPort;
+    port middlewarePort : MiddlewareAdapterPort;
   }
 
   part def MiddlewareLayer {
@@ -217,6 +242,40 @@ package DE4SDV_SDVPlatformStack {
      */
     end adasSide : ApplicationMiddlewarePort;
     end middlewareSide : ApplicationMiddlewarePort;
+  }
+
+  port def ApplicationAdapterPort {
+    doc /*
+     * Port type for the Vehicle Application ↔ Adapter boundary.
+     * Carries application-native communication (e.g. ROS 2 topics for Autoware).
+     */
+    inout item applicationNativeMessages;
+    inout item applicationLifecycleEvents;
+  }
+
+  port def MiddlewareAdapterPort {
+    doc /*
+     * Port type for the Adapter ↔ Middleware boundary.
+     * Carries middleware-native communication (e.g. LoLa for S-CORE, VSIDL for Android SDV, SOME/IP for AUTOSAR).
+     */
+    inout item middlewareNativeMessages;
+    inout item middlewareLifecycleEvents;
+  }
+
+  interface def ApplicationAdapterInterface {
+    doc /*
+     * Contract between the vehicle application layer and the adapter. The application stack publishes/subscribes in its native protocol; the adapter translates.
+     */
+    end applicationSide : ApplicationAdapterPort;
+    end adapterSide : ApplicationAdapterPort;
+  }
+
+  interface def AdapterMiddlewareInterface {
+    doc /*
+     * Contract between the adapter and the vehicle-level middleware. The adapter translates application-native messages to middleware-native service calls/signals.
+     */
+    end adapterSide : MiddlewareAdapterPort;
+    end middlewareSide : MiddlewareAdapterPort;
   }
 
   port def MiddlewareOSPort {
@@ -321,6 +380,39 @@ package DE4SDV_SDVPlatformStack {
      * as internal middleware.
      * License: Apache 2.0.
      * Status: candidate realization.
+     */
+  }
+
+  /* ──────────────────────────────────────────
+   * Candidate realizations — application-middleware adapter layer
+   * ────────────────────────────────────────── */
+  part def AutowareToSCOREAdapter :> ApplicationMiddlewareAdapterLayer {
+    doc /*
+     * Adapts Autoware ROS 2 topics to Eclipse S-CORE LoLa IPC.
+     */
+  }
+
+  part def AutowareToAAOSSDVAdapter :> ApplicationMiddlewareAdapterLayer {
+    doc /*
+     * Adapts Autoware ROS 2 topics to AAOS SDV VSIDL service bundles and SOME/IP.
+     */
+  }
+
+  part def AutowareToAUTOSARAdapter :> ApplicationMiddlewareAdapterLayer {
+    doc /*
+     * Adapts Autoware ROS 2 topics to AUTOSAR Adaptive SOME/IP services.
+     */
+  }
+
+  part def OpenpilotToSCOREAdapter :> ApplicationMiddlewareAdapterLayer {
+    doc /*
+     * Adapts Openpilot internal communication to S-CORE LoLa.
+     */
+  }
+
+  part def ApolloToSCOREAdapter :> ApplicationMiddlewareAdapterLayer {
+    doc /*
+     * Adapts Apollo Cyber RT to S-CORE LoLa.
      */
   }
 
@@ -488,6 +580,25 @@ package DE4SDV_SDVPlatformStack {
      *   Autoware + S-CORE: ROS 2 IPC must bridge to LoLa IPC
      *   Openpilot + anything: custom device model, limited integration
      *   Apollo + anything: Cyber RT must bridge to external middleware
+     */
+  }
+
+  constraint def ApplicationMiddlewareAdapterCompatibility {
+    doc /*
+     * Adapter compatibility across application and middleware selections.
+     *
+     * The adapter variation must match both the selected application stack
+     * and the selected vehicle-level middleware. The adapter is present only
+     * when a non-none vehicle middleware is selected; when middleware = none,
+     * the adapter is also none and the application↔adapter and adapter↔middleware
+     * boundaries are absent.
+     *
+     * Intended pairings:
+     *   Autoware ↔ AutowareToSCOREAdapter ↔ EclipseSCORE
+     *   Autoware ↔ AutowareToAAOSSDVAdapter ↔ AndroidSDVMiddleware
+     *   Autoware ↔ AutowareToAUTOSARAdapter ↔ AUTOSARAdaptive
+     *   Openpilot ↔ OpenpilotToSCOREAdapter ↔ EclipseSCORE
+     *   Apollo ↔ ApolloToSCOREAdapter ↔ EclipseSCORE
      */
   }
 

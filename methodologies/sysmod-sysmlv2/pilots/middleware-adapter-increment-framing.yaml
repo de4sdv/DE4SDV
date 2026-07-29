@@ -1,0 +1,293 @@
+schema: de4sdv.increment-framing.v0
+id: INC-MW-001
+name: Vehicle middleware adapter layer and AAOS SDV integration framing
+status: draft
+type: FeatureIncrement
+owner: DE4SDV maintainers
+
+purpose: >-
+  Establish the framing baseline for adding a vehicle-level middleware adapter
+  layer to the SDV platform stack and integrating AAOS SDV as a middleware
+  candidate. The adapter is a common capability required whenever a
+  domain-specific application stack (e.g. Autoware with ROS 2/DDS) and a
+  vehicle-level middleware (e.g. Eclipse S-CORE with LoLa, Android SDV with
+  VSIDL, AUTOSAR Adaptive with SOME/IP) are both selected. AAOS SDV is a
+  feature — it distinguishes member products that use Android SDV from those
+  that use S-CORE, AUTOSAR, or no vehicle-level middleware.
+
+engineering_question: >-
+  How does DE4SDV model the integration boundary between a domain-specific ADAS
+  application stack (Autoware, ROS 2/DDS) and a vehicle-level middleware (AAOS
+  SDV, Eclipse S-CORE, AUTOSAR Adaptive) when their internal communication
+  paradigms are incompatible, without coupling the application to a specific
+  middleware or claiming the adapter as a product-line feature?
+
+lifecycle_decision_supported:
+  decision: approve_adapter_layer_and_aaos_sdv_middleware_variant
+  description: >-
+    Decide whether to add an application-middleware adapter layer to the SDV
+    platform stack as a common capability and to add AAOS SDV as a middleware
+    variant whose integration surface is modeled but not yet implemented.
+
+system_layers:
+  system_1:
+    name: SDV product-line member product with middleware integration
+    role: >-
+      The product-line member product whose vehicle application stack
+      communicates with vehicle-level middleware through an adapter layer.
+  system_2:
+    name: DE4SDV engineering and assurance system for middleware modeling
+    role: >-
+      The DE4SDV method, model, traceability, V&V, and evidence workflow used
+      to represent and review the adapter layer and middleware integration.
+  system_3:
+    name: DE4SDV open-source governance and review ecosystem
+    role: >-
+      The contributor/reviewer system that accepts, rejects, or improves the
+      method and model increments through GitHub review.
+
+method_stack:
+  saf:
+    role: viewpoint_selection
+    note: Selects the smallest useful set of views needed to answer stakeholder concerns.
+  sysmod:
+    role: method_flow
+    note: Guides progression from context and concerns toward needs, requirements, architecture, and V&V/evidence.
+  de4sdv_ontology:
+    role: semantic_kernel
+    note: Keeps feature/common-capability, requirement, evidence, gap, and traceability terms consistent.
+  sysml_v2:
+    role: model_expression
+    note: Expresses the reviewed model baseline for the adapter layer, middleware boundary, and PLE configuration.
+
+selected_viewpoint_subsets:
+  - id: increment_framing
+    label: Increment framing subset
+    purpose: Define terms, source references, stakeholder concerns, traceability shell, and review scope.
+  - id: physical_software_realization
+    label: Physical/software realization subset
+    purpose: Define the adapter layer as a physical/software boundary between application and middleware. Model the adapter structure, interfaces, and mapping.
+
+deferred_viewpoint_subsets:
+  - id: operational_feature
+    label: Operational feature subset
+    reason: >-
+      The adapter layer does not change the operational story — the vehicle
+      still mitigates forward collision risk. The operational impact is
+      indirect (signal routing changes), not a new operational scenario.
+  - id: functional_system
+    label: Functional system subset
+    reason: >-
+      The adapter does not add new functional behavior. It translates between
+      existing functional interfaces (ROS 2 topics and middleware service
+      calls). Functional requirements for the bridge are deferred to a later
+      increment when AAOS SDV service definitions are modeled.
+  - id: logical_realization
+    label: Logical realization subset
+    reason: >-
+      The adapter's logical decomposition (message translation, lifecycle
+      delegation, health forwarding) is deferred until the physical boundary
+      is reviewed and the integration contract is stable.
+  - id: full_safety_security
+    label: Full safety/security subset
+    reason: >-
+      Safety/security analysis of the adapter (e.g. latency, fault
+      propagation, ASIL allocation) is deferred. The adapter is in the
+      non-safety path for AEBS — the AEB node's emergency intervention
+      request does not go through the adapter for brake actuation.
+  - id: full_compliance_case
+    label: Full compliance/regulatory case
+    reason: >-
+      No compliance claim is made for the adapter or the AAOS SDV middleware
+      integration.
+
+first_slice_scope:
+  in_scope:
+    - application-middleware adapter layer definition in the SDV platform stack
+    - concrete adapter specializations for Autoware + S-CORE, Autoware + AAOS SDV, Autoware + AUTOSAR
+    - adapter boundary port and interface definitions
+    - PLE feature model update: adapter as common capability, middleware variants
+    - AAOS SDV middleware boundary documentation (internal structure as visible from DE4SDV)
+    - product model update for the AEBS Autoware reference product
+  out_of_scope:
+    - AAOS SDV internal architecture (Orchestrator, VSIDL, service bundle details)
+    - Adapter implementation (code, ROS 2 bridge node, VSIDL service definitions)
+    - Functional behavior of the adapter (message translation logic)
+    - Logical architecture of the adapter (internal decomposition)
+    - Safety case for the adapter (ASIL allocation, fault analysis)
+    - SOME/IP integration details
+    - AAOS SDV deployment configuration (VM images, APEX signing, bootloader)
+    - Actual AAOS SDV source code or binary integration
+
+stakeholders:
+  - id: STK-PLATFORM-ENGINEER
+    role: Platform engineer
+    concerns:
+      - The adapter layer must not couple the application stack to a specific middleware.
+      - The adapter must be a common capability, not a feature — every product with middleware needs one.
+      - The adapter selection must follow from the application and middleware selections, not be an independent choice.
+  - id: STK-SYSTEMS-ENGINEER
+    role: Systems engineer
+    concerns:
+      - The adapter boundary, ports, and interfaces must be reviewable in SysML v2.
+      - The traceability from AEBS physical realization required boundaries to the adapter must be visible.
+  - id: STK-PRODUCT-LINE-ENGINEER
+    role: Product-line engineer
+    concerns:
+      - AAOS SDV is a feature (distinguishes member products), not a common capability.
+      - The adapter is a common capability (required for any application + middleware combination).
+      - The feature model must express: adapter = common, middleware = feature, adapter variant follows from app + middleware selection.
+  - id: STK-OSS-MAINTAINER
+    role: Open-source maintainer
+    concerns:
+      - The AAOS SDV boundary model must not vendor or claim to implement upstream AAOS SDV.
+      - Upstream AAOS SDV maintainers should be involved before deeper integration.
+
+source_anchors:
+  - id: SRC-AAOS-SDV-DOCS
+    label: Android Automotive OS SDV documentation
+    role: reference_architecture
+    use_policy: >-
+      Use for understanding the AAOS SDV platform architecture: Orchestrator,
+      VSIDL, service bundles, VM isolation, DICE identity, SOME/IP integration.
+      Do not copy AAOS SDV source code or claim implementation.
+      AAOS SDV is Apache 2.0 (AOSP).
+    url: https://source.android.com/docs/automotive/sdv/getting-started
+  - id: SRC-DE4SDV-AEBS-PHY
+    label: DE4SDV AEBS physical software realization
+    role: integration_target
+    repository_artifact: textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml
+    use_policy: >-
+      The AEBS physical realization defines required boundaries (ROS 2 runtime,
+      vehicle interface, health supervisor, diagnostic bridge, MRM handler)
+      that the adapter and middleware may satisfy. The adapter does not
+      replace these boundaries — it connects them to the middleware.
+
+feature_classification_hypotheses:
+  - id: CAP-ADAPTER-LAYER
+    label: Application-middleware adapter layer
+    classification: common_capability
+    rationale: >-
+      Whenever a domain-specific application stack (Autoware, Openpilot, Apollo)
+      and a vehicle-level middleware (S-CORE, Android SDV, AUTOSAR) are both
+      selected, an adapter is required. The adapter does not distinguish
+      member products — it is required for the combination to work. The
+      concrete adapter implementation varies by app+middleware pair, but the
+      adapter layer itself is a common capability.
+  - id: FEAT-AAOS-SDV-MIDDLEWARE
+    label: AAOS SDV vehicle-level middleware
+    classification: feature
+    rationale: >-
+      AAOS SDV is one of several middleware candidates. A member product
+      selects exactly one middleware (or none). This distinguishes member
+      products: some use S-CORE, some use AAOS SDV, some use AUTOSAR, some
+      use no vehicle-level middleware. Therefore AAOS SDV is a feature.
+  - id: FEAT-SCORE-MIDDLEWARE
+    label: Eclipse S-CORE vehicle-level middleware
+    classification: feature
+    rationale: >-
+      Same reasoning — S-CORE is one of several middleware candidates.
+  - id: CAP-AUTOWARE-ROS2
+    label: Autoware internal ROS 2/DDS communication
+    classification: common_capability
+    rationale: >-
+      Autoware ships with ROS 2/DDS as its internal communication. This is
+      not a feature — it is part of the Autoware application stack and does
+      not vary across member products that select Autoware.
+
+assumptions:
+  - id: ASM-MW-001
+    statement: >-
+      The adapter layer sits between the application layer and the middleware
+      layer in the SDV platform stack. It is not a new layer in the same sense
+      as OS or hypervisor — it is a translation boundary owned by the platform
+      stack composition.
+  - id: ASM-MW-002
+    statement: >-
+      The adapter variant follows from the application and middleware
+      selections. It is not an independent variation point — the adapter is
+      determined by the (application, middleware) pair. When middleware is
+      "none", the adapter is also absent.
+  - id: ASM-MW-003
+    statement: >-
+      The AEBS emergency intervention path (AEB node → emergency intervention
+      request → vehicle command gate → brake actuation) does not go through
+      the adapter. The adapter carries vehicle signals, diagnostics, and
+      lifecycle, not safety-critical brake commands. The brake command path
+      remains direct from the AEB node to the vehicle command gate.
+  - id: ASM-MW-004
+    statement: >-
+      AAOS SDV is modeled as a middleware boundary (internal structure as
+      visible from DE4SDV integration perspective), not as a vendored
+      implementation. Upstream AAOS SDV maintainers should be involved before
+      deeper integration.
+
+gaps:
+  - id: GAP-MW-001
+    statement: >-
+      The adapter's internal functional behavior (message translation,
+      lifecycle delegation, health forwarding) is not yet modeled.
+  - id: GAP-MW-002
+    statement: >-
+      The specific ROS 2 topic to VSIDL service mapping for AEBS-relevant
+      signals is not yet defined.
+  - id: GAP-MW-003
+    statement: >-
+      No implementation of the adapter exists. The model defines the boundary,
+      not the bridge code.
+  - id: GAP-MW-004
+    statement: >-
+      The compatibility constraint between adapter variant, application
+      variant, and middleware variant is documented but not formalized as a
+      SysML v2 constraint expression.
+  - id: GAP-MW-005
+    statement: >-
+      Upstream AAOS SDV maintainers have not been engaged on the DE4SDV
+      integration model.
+
+next_increments:
+  - id: INC-MW-002
+    name: AAOS SDV middleware boundary model
+    expected_outputs:
+      - aaos_sdv_middleware_boundary.sysml
+      - internal structure as visible from DE4SDV (Orchestrator, VSIDL, service bundles)
+      - traceability dependencies to AEBS required boundaries
+  - id: INC-MW-003
+    name: Autoware-to-AAOS-SDV adapter functional and logical model
+    expected_outputs:
+      - functional behavior of the adapter (message translation, lifecycle delegation)
+      - logical architecture of the adapter
+      - allocation from AEBS required boundaries to AAOS SDV services
+  - id: INC-MW-004
+    name: PLE configuration for AAOS SDV member product
+    expected_outputs:
+      - bill-of-features selecting Autoware + AAOS SDV + sensing + AEBS
+      - product model projection
+      - compatibility constraints in feature model
+
+acceptance_criteria:
+  - id: AC-MW-FRAME-001
+    statement: >-
+      The increment identifies the adapter layer as a common capability and
+      AAOS SDV as a feature per the DE4SDV feature/common-capability rule.
+  - id: AC-MW-FRAME-002
+    statement: >-
+      The SDV platform stack model includes the adapter layer between
+      application and middleware with ports, interfaces, and concrete adapter
+      specializations.
+  - id: AC-MW-FRAME-003
+    statement: >-
+      The adapter variant follows from the (application, middleware) pair,
+      not as an independent selection. When middleware is "none", the adapter
+      is absent.
+  - id: AC-MW-FRAME-004
+    statement: >-
+      The AEBS emergency intervention path is explicitly documented as not
+      going through the adapter.
+  - id: AC-MW-FRAME-005
+    statement: >-
+      No AAOS SDV implementation, source code, or compliance claim is made.
+  - id: AC-MW-FRAME-006
+    statement: >-
+      Upstream AAOS SDV maintainer engagement is recorded as a gap, not
+      assumed to have happened.
