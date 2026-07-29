@@ -80,9 +80,13 @@ package DE4SDV_AEBSAutowareReferenceProduct {
 
     /*
      * Product-level traceability: sensing assembly resides in the hardware
-     * layer of the platform stack.
+     * layer of the platform stack. The sensing boundary model declares
+     * this dependency (sensingAssemblyResidesInHardwareLayer from
+     * VehicleSensingAssembly to HardwareLayer); restated here at the
+     * product level by linking the product's sensing assembly to its
+     * platform stack.
      */
-    dependency productSensingInHardwareLayer from sensingAssembly to platformStack.hardware;
+    dependency productSensingToPlatformStack from sensingAssembly to platformStack;
 
     /*
      * Product-level traceability: the AEB node's ROS 2 topic inputs trace
