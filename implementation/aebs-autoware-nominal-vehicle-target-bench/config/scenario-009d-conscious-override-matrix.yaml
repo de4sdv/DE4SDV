@@ -1,0 +1,50 @@
+schema: de4sdv.aebs-009d-conscious-override-matrix.v1
+inherits_runtime: INC-AEBS-009B
+source_topic:
+  name: /de4sdv/aebs_009b/driver_override
+  type: autoware_internal_debug_msgs/msg/BoolStamped
+authorization_topic:
+  name: /de4sdv/aebs_009d/override_authorization
+  type: diagnostic_msgs/msg/DiagnosticArray
+native_observations:
+  diagnostics: /diagnostics
+  rss_distance: /control/autonomous_emergency_braking/debug/rss_distance
+  emergency_braking_request: /de4sdv/aebs_009b/emergency_braking_request
+contract:
+  override_max_age_s: 0.2
+  closed_suppression_window_s: 0.25
+  graph_sampling_max_gap_s: 0.2
+  expected_nominal_publisher: "/:de4sdv_aebs_coordinator"
+  diagnostic_node: autonomous_emergency_braking
+  diagnostic_task: aeb_emergency_stop
+  diagnostic_level: ERROR
+  diagnostic_message: "[AEB]: Emergency Brake"
+scenarios:
+  - id: SCN-AEBS-009D-FRESH-FALSE-CONTROL
+    profile: fresh_false_control
+    expected_disposition: control_clear
+    expected_braking_request: true
+  - id: SCN-AEBS-009D-FRESH-TRUE-CONSCIOUS
+    profile: fresh_true_conscious_override
+    expected_disposition: conscious_override
+    expected_braking_request: false
+  - id: SCN-AEBS-009D-STALE
+    profile: stale
+    expected_disposition: degraded_stale_source
+    expected_braking_request: true
+  - id: SCN-AEBS-009D-MISSING
+    profile: missing
+    expected_disposition: inconclusive_missing_source
+    expected_braking_request: true
+  - id: SCN-AEBS-009D-MALFORMED
+    profile: malformed
+    expected_disposition: error_malformed_source
+    expected_braking_request: true
+  - id: SCN-AEBS-009D-FUTURE-STAMPED
+    profile: future_stamped
+    expected_disposition: error_future_source
+    expected_braking_request: true
+non_claims:
+  - Each scenario requires a separate pinned-runtime execution and verdict.
+  - Pure evaluator tests are not runtime evidence.
+  - This matrix does not establish safety, certification, compliance, homologation, or type approval.

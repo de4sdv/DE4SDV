@@ -7,8 +7,16 @@ typed messages from all locked 009A readiness endpoints, including the exact AEB
 identity.
 
 009A does **not** execute a collision scenario or establish braking behavior.
-INC-AEBS-009B owns the stationary-target chain; INC-AEBS-009C owns negative and
-fault scenarios.
+The bounded follow-on ownership is:
+
+- INC-AEBS-009B owns nominal moving-vehicle-target evidence;
+- INC-AEBS-009C owns partial stationary-target native intervention-to-MRM/gate evidence;
+- INC-AEBS-009D owns conscious driver override;
+- INC-AEBS-009E owns non-activation and false-reaction scenarios;
+- INC-AEBS-009F owns failed and degraded operation;
+- INC-AEBS-009G owns pedestrian-target scenarios;
+- INC-AEBS-009H owns bicycle-target scenarios; and
+- INC-AEBS-009I owns source-backed quantified criteria.
 
 ## Proven 009A boundary
 

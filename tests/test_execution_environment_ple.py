@@ -23,7 +23,7 @@ TRACE_MODEL = (
     / "packages"
     / "features"
     / "aebs"
-    / "aebs_009a_execution_environment.sysml"
+    / "aebs_execution_environment.sysml"
 )
 PLE_ROOT = REPO_ROOT / "model-based-product-line-engineering"
 ENGINEERING_FM = PLE_ROOT / "feature-models" / "engineering_execution_environments.yaml"
@@ -196,7 +196,7 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
         by_id = {item["id"]: item for item in increments}
         self.assertEqual(
             by_id["INC-AEBS-009B"]["status"],
-            "replayable_evidence_generated_pending_review",
+            "merged_replayable_nominal_moving_target_evidence",
         )
         self.assertTrue(
             any(
@@ -206,7 +206,7 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
         )
         self.assertEqual(
             by_id["INC-AEBS-009C"]["status"],
-            "merged_partial_native_intervention_to_mrm_evidence",
+            "executed_replay_validated_pending_review",
         )
         self.assertTrue(
             any(

@@ -7,6 +7,7 @@ from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def include(package: str, relative_path: str, arguments=None):
@@ -26,6 +27,8 @@ def generate_launch_description():
     gate_share = get_package_share_directory("autoware_vehicle_cmd_gate")
     vehicle_info_share = get_package_share_directory("autoware_vehicle_info_utils")
     map_path = LaunchConfiguration("map_path")
+    scenario_config_name = LaunchConfiguration("scenario_config_name")
+    warning_margin_m = LaunchConfiguration("warning_margin_m")
 
     map_loader = include(
         "tier4_map_launch",
@@ -140,9 +143,10 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {
-                "scenario_config": (
-                    f"{package_share}/config/scenario-009b-moving-vehicle-target.yaml"
-                )
+                "scenario_config": PathJoinSubstitution(
+                    [package_share, "config", scenario_config_name]
+                ),
+                "override_scenario": LaunchConfiguration("override_scenario"),
             }
         ],
     )
@@ -153,7 +157,7 @@ def generate_launch_description():
         name="de4sdv_aebs_coordinator",
         output="screen",
         parameters=[{
-            "warning_margin_m": 6.0,
+            "warning_margin_m": ParameterValue(warning_margin_m, value_type=float),
             "override_max_age_s": 0.2,
             "stop_speed_mps": 0.1,
             "stop_hold_s": 0.5,
@@ -164,6 +168,12 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("map_path", description="verified extracted map directory"),
+            DeclareLaunchArgument("override_scenario", default_value="fresh_false_control"),
+            DeclareLaunchArgument(
+                "scenario_config_name",
+                default_value="scenario-009b-moving-vehicle-target.yaml",
+            ),
+            DeclareLaunchArgument("warning_margin_m", default_value="6.0"),
             map_loader,
             simulator,
             vehicle_gate,

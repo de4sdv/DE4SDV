@@ -12,7 +12,7 @@ increments:
       - regulatory compliance or type approval
 
   - id: INC-AEBS-009B
-    status: replayable_evidence_generated_pending_review
+    status: merged_replayable_nominal_moving_target_evidence
     acceptance_boundary:
       - a moving subject vehicle closes on a same-lane moving vehicle target
       - native Autoware AEB RSS assessment and exact intervention diagnostic are observed
@@ -31,7 +31,7 @@ increments:
       - physical brake performance, certification, homologation, or type approval
 
   - id: INC-AEBS-009C
-    status: merged_partial_native_intervention_to_mrm_evidence
+    status: executed_replay_validated_pending_review
     acceptance_boundary:
       - the exact native AEB intervention diagnostic is observed
       - a bounded emergency MRM and emergency-gate integration path is observed
@@ -43,17 +43,18 @@ increments:
       - regulatory compliance or type approval
 
   - id: INC-AEBS-009D
-    status: planned
+    status: executed_replay_validated_pending_review
     acceptance_boundary:
       - conscious driver override inputs are source-stamped and freshness-checked
-      - override suppresses or releases AEBS intervention under a closed scenario contract
-      - stale, missing, malformed, future, and true override counterexamples are replay-tested; false is retained as the nominal control case
+      - only a fresh source-bound true override suppresses coordinator braking under a closed scenario contract
+      - false, stale, missing, malformed, and future-stamped inputs are not overrides and preserve fail-safe braking
+      - all six isolated profiles retain exact-head canonical evidence and pass independent replay
     excludes:
       - non-activation and false-reaction matrix
       - failure and degraded operation
 
   - id: INC-AEBS-009E
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - bounded non-activation and false-reaction scenarios are replayed
       - no-warning and no-braking outcomes are supported by explicit counterexamples
@@ -62,7 +63,7 @@ increments:
       - vulnerable-road-user targets
 
   - id: INC-AEBS-009F
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - stale, missing, malformed, inconsistent, and unavailable input behavior is replayed
       - degraded and unavailable AEBS states have explicit ownership and evidence
@@ -71,7 +72,7 @@ increments:
       - quantified regulatory acceptance
 
   - id: INC-AEBS-009G
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - a bounded pedestrian-target scenario and independent outcome evidence are replayed
     excludes:
@@ -79,14 +80,14 @@ increments:
       - quantified regulatory acceptance
 
   - id: INC-AEBS-009H
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - a bounded bicycle-target scenario and independent outcome evidence are replayed
     excludes:
       - quantified regulatory acceptance
 
   - id: INC-AEBS-009I
-    status: planned
+    status: contracts_implemented_pending_execution
     acceptance_boundary:
       - regulatory acceptance criteria are source-backed, quantified, and traced to replayable measurements
       - any claimed pass is limited to the tested configuration and evidence boundary

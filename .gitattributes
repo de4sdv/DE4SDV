@@ -1,0 +1,2 @@
+# Runtime logs are immutable captured process output; never normalize or reject their bytes.
+implementation/**/evidence/**/runs/**/launch.log -whitespace

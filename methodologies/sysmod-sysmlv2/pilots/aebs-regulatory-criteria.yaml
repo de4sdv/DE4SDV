@@ -1,0 +1,46 @@
+schema: de4sdv.aebs-regulatory-criteria.v1
+source_id: E/ECE/TRANS/505/Rev.3/Add.151/Rev.2
+source_original_sha256: dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de
+result_vocabulary: [pass, fail, inconclusive]
+common:
+  minimum_braking_demand_mps2: -5.0
+  warning_not_later_than_braking: true
+  required_successful_repetitions: 2
+  permitted_failed_repetitions_for_selected_setup: 0
+families:
+  pedestrian:
+    target_speed_kmh: {minimum: 4.6, maximum: 5.0}
+    impact_speed_tables_kmh:
+      M1:
+        maximum_mass: {20: 0, 25: 0, 30: 0, 35: 0, 40: 0, 42: 10, 45: 15, 50: 25, 55: 30, 60: 35}
+        mass_in_running_order: {20: 0, 25: 0, 30: 0, 35: 0, 40: 0, 42: 0, 45: 15, 50: 25, 55: 30, 60: 35}
+      N1:
+        maximum_mass: {20: 0, 25: 0, 30: 0, 35: 0, 38: 0, 40: 10, 42: 15, 45: 20, 50: 30, 55: 35, 60: 40}
+        mass_in_running_order: {20: 0, 25: 0, 30: 0, 35: 0, 38: 0, 40: 0, 42: 0, 45: 15, 50: 25, 55: 30, 60: 35}
+  bicycle:
+    target_speed_kmh: {minimum: 14.0, maximum: 15.0}
+    impact_speed_tables_kmh:
+      M1:
+        maximum_mass: {20: 0, 25: 0, 30: 0, 35: 0, 38: 0, 40: 10, 45: 25, 50: 30, 55: 35, 60: 40}
+        mass_in_running_order: {20: 0, 25: 0, 30: 0, 35: 0, 38: 0, 40: 0, 45: 25, 50: 30, 55: 35, 60: 40}
+      N1:
+        maximum_mass: {20: 0, 25: 0, 30: 0, 35: 0, 36: 0, 38: 15, 40: 25, 45: 30, 50: 35, 55: 40, 60: 45}
+        mass_in_running_order: {20: 0, 25: 0, 30: 0, 35: 0, 36: 0, 38: 0, 40: 0, 45: 25, 50: 30, 55: 35, 60: 40}
+required_conditions:
+  - flat_dry_high_adhesion_surface
+  - pbc_at_least_0_9
+  - slope_between_0_and_1_percent
+  - temperature_between_0_and_45_c
+  - visibility_complete
+  - wind_not_result_affecting
+  - illumination_at_least_2000_lux
+  - prescribed_mass_controlled
+  - prescribed_soft_target_fidelity
+  - straight_approach_at_least_2_s
+  - functional_start_ttc_at_least_4_s
+  - impact_offset_within_0_1_m
+  - no_disallowed_driver_adjustment
+  - measurement_uncertainty_controlled
+claim_boundary:
+  result_scope: selected quantified criteria and tested configuration only
+  compliance_conclusion: withheld

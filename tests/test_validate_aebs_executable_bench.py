@@ -154,12 +154,39 @@ class TestAebsExecutableBench(unittest.TestCase):
         by_id = {item["id"]: item for item in increments["increments"]}
         self.assertEqual(set(by_id), {f"INC-AEBS-009{suffix}" for suffix in "ABCDEFGHI"})
         self.assertEqual(by_id["INC-AEBS-009A"]["status"], "readiness_proven_no_scenario")
-        self.assertEqual(by_id["INC-AEBS-009B"]["status"], "replayable_evidence_generated_pending_review")
-        self.assertEqual(by_id["INC-AEBS-009C"]["status"], "merged_partial_native_intervention_to_mrm_evidence")
-        for suffix in "DEFGHI":
-            self.assertEqual(by_id[f"INC-AEBS-009{suffix}"]["status"], "planned")
+        self.assertEqual(
+            by_id["INC-AEBS-009B"]["status"],
+            "merged_replayable_nominal_moving_target_evidence",
+        )
+        self.assertEqual(
+            by_id["INC-AEBS-009C"]["status"],
+            "executed_replay_validated_pending_review",
+        )
+        self.assertEqual(
+            by_id["INC-AEBS-009D"]["status"],
+            "executed_replay_validated_pending_review",
+        )
+        for suffix in "EFGHI":
+            self.assertEqual(by_id[f"INC-AEBS-009{suffix}"]["status"], "contracts_implemented_pending_execution")
         boundaries = [tuple(item["acceptance_boundary"]) for item in by_id.values()]
         self.assertEqual(len(boundaries), len(set(boundaries)))
+
+    def test_readmes_assign_009b_through_009i_scope_without_drift(self):
+        readiness = (BENCH / "README.md").read_text(encoding="utf-8")
+        nominal = (
+            ROOT
+            / "implementation/aebs-autoware-nominal-vehicle-target-bench/README.md"
+        ).read_text(encoding="utf-8")
+        for document in (readiness, nominal):
+            with self.subTest(document=document[:40]):
+                self.assertIn("INC-AEBS-009B owns nominal moving-vehicle-target evidence", document)
+                self.assertIn("INC-AEBS-009C owns partial stationary-target native intervention-to-MRM/gate evidence", document)
+                self.assertIn("INC-AEBS-009D owns conscious driver override", document)
+                self.assertIn("INC-AEBS-009E owns non-activation and false-reaction scenarios", document)
+                self.assertIn("INC-AEBS-009F owns failed and degraded operation", document)
+                self.assertIn("INC-AEBS-009G owns pedestrian-target scenarios", document)
+                self.assertIn("INC-AEBS-009H owns bicycle-target scenarios", document)
+                self.assertIn("INC-AEBS-009I owns source-backed quantified criteria", document)
 
     def test_increment_contracts_cannot_be_erased(self):
         increments = yaml.safe_load((BENCH / "increments.yaml").read_text())

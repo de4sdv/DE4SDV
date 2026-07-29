@@ -1,0 +1,36 @@
+schema: de4sdv.aebs-009e-non-activation-matrix.v1
+inherits_runtime: INC-AEBS-009B
+native_observations:
+  diagnostics: /diagnostics
+  rss_distance: /control/autonomous_emergency_braking/debug/rss_distance
+  emergency_braking_request: /de4sdv/aebs_009b/emergency_braking_request
+contract:
+  observation_duration_s: 4.0
+  sample_max_gap_s: 0.75
+  required_input_max_age_s: 0.5
+  graph_sampling_max_gap_s: 1.0
+  expected_nominal_publisher: "/:de4sdv_aebs_coordinator"
+  diagnostic_node: autonomous_emergency_braking
+  diagnostic_task: aeb_emergency_stop
+  diagnostic_level: OK
+scenarios:
+  - id: SCN-AEBS-009E-CLEAR-PATH-001
+    profile: clear_path
+    expected_outcome: pass_bounded_silence
+    scenario_config: config/scenario-009e-clear-path.yaml
+  - id: SCN-AEBS-009E-ADJACENT-OBJECT-001
+    profile: adjacent_object
+    expected_outcome: pass_bounded_silence
+    scenario_config: config/scenario-009e-adjacent-object.yaml
+  - id: SCN-AEBS-009E-NON-CLOSING-TARGET-001
+    profile: non_closing_target
+    expected_outcome: pass_bounded_silence
+    scenario_config: config/scenario-009e-non-closing-target.yaml
+  - id: SCN-AEBS-009E-BELOW-TRIGGER-001
+    profile: below_trigger
+    expected_outcome: pass_bounded_silence
+    scenario_config: config/scenario-009e-below-trigger.yaml
+non_claims:
+  - Each scenario requires a separate pinned-runtime execution and verdict.
+  - Pure evaluator tests are not runtime evidence.
+  - This matrix does not establish safety, certification, compliance, homologation, or type approval.

@@ -1,9 +1,9 @@
 # INC-AEBS-008 — Autoware AEBS simulation deployment controls
 
-- **Status:** Reviewed deployment design; INC-AEBS-009A build/launch/readiness executed
+- **Status:** Reviewed deployment design; bounded execution evidence retained through INC-AEBS-009C
 - **Parent:** `INC-AEBS-007`
 - **Evidence:** static design review plus 009A pinned-source build, launch, and typed readiness
-- **Execution:** 009A readiness executed; stationary-target and fault scenarios remain 009B/009C
+- **Execution:** 009A readiness, 009B moving-target nominal chain, and partial 009C stationary-target intervention-to-MRM/gate chain executed; later matrices remain pending
 
 ## Decision requested
 
@@ -48,7 +48,7 @@ Availability is not selection or command generation. The MRM handler performs be
 
 ## Static control artifacts
 
-[`aebs.param.yaml`](aebs-simulation-deployment/aebs.param.yaml) is now a **complete derived simulation configuration**, not an overlay. It retains every value from pinned Universe [`control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml`](https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml) except `use_predicted_trajectory`, changed from `true` to `false` (Git blob `b23c3bbdd4d5954b69b70e92512610e9beaab234`, SHA-256 `6a620ee2275e48ea3a12b00a42657c1bab35ec5e0e722011556ddd08ca403e5c`). It is now runtime-loaded by INC-AEBS-009A; scenario behavior remains unexecuted.
+[`aebs.param.yaml`](aebs-simulation-deployment/aebs.param.yaml) is now a **complete derived simulation configuration**, not an overlay. It retains every value from pinned Universe [`control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml`](https://github.com/autowarefoundation/autoware_universe/blob/f603d8759c92fb2f423f1544844e13086d79ad09/control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml) except `use_predicted_trajectory`, changed from `true` to `false` (Git blob `b23c3bbdd4d5954b69b70e92512610e9beaab234`, SHA-256 `6a620ee2275e48ea3a12b00a42657c1bab35ec5e0e722011556ddd08ca403e5c`). It is runtime-loaded by 009A and the bounded 009B/009C executions; those runs do not establish calibration adequacy or broader scenario coverage.
 
 [`diagnostic-graph.yaml`](aebs-simulation-deployment/diagnostic-graph.yaml) uses the runtime-observed diagnostic identity `autonomous_emergency_braking: aeb_emergency_stop`; ROS namespace is not included in the emitted diagnostic status name. It keeps emergency-stop availability independently constant OK. `timeout: 1.0` and `hysteresis: 0.0` are explicit but **provisional**, pending timing, scheduling, and fault-injection review.
 
@@ -83,9 +83,9 @@ The simulator setup must load the intended map, set an initial pose, provide a t
 
 ## Evidence, blockers, and non-claims
 
-INC-AEBS-009A now proves selected-source build, map-enabled launch including the simulator, exact diagnostic receipt, and live typed endpoint readiness through MRM and gate outputs on the ARM64 target. It does not independently prove publisher/node provenance for simulator wiring, a diagnostic transition, MRM emergency selection caused by AEB, gate emergency selection, simulated braking response, or VSS transformations; those remain 009B/009C work. `DEF-AEBS-PHY-002` continues to block physical-behavior acceptance. The provisional timeout/hysteresis values need review, and the alternative control-command-gate route still lacks a source-selection service owner.
+INC-AEBS-009A proves selected-source build, map-enabled launch including the simulator, exact diagnostic receipt, and live typed endpoint readiness through MRM and gate outputs on the ARM64 target. INC-AEBS-009B separately retains a nominal moving-target warning/direct-braking observed chain. INC-AEBS-009C retains an explicitly partial stationary-target native-intervention-to-MRM/gate observed chain. These runs do not establish VSS transformations, physical braking behavior, complete nominal behavior, or later negative/fault/road-user matrices. `DEF-AEBS-PHY-002` continues to block physical-behavior acceptance. The provisional timeout/hysteresis values need review, and the alternative control-command-gate route still lacks a source-selection service owner.
 
-No stationary-target intervention, diagnostic-caused emergency selection, simulated braking response, raw command conversion, VSS execution, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, production readiness, upstream contact, or upstream acceptance is claimed.
+No complete stationary-target nominal AEBS behavior, physical braking response, raw command conversion, VSS execution, S-CORE integration, hardware/brake ECU/actuator behavior, safety acceptance, compliance, certification, homologation, production readiness, upstream contact, or upstream acceptance is claimed. The 009C diagnostic-caused emergency-path observation remains limited to its exact replay-validated fixture.
 
 ## Validation
 

@@ -24,7 +24,7 @@ jobs:
           echo "Contributors with Syside access may validate locally with the Syside Editor VS Code extension."
 
       - name: Install test dependencies
-        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2 pytest
 
       - name: Run repository checks
         run: python scripts/check_repo.py

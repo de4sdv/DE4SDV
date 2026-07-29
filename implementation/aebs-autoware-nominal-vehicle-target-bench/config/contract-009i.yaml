@@ -1,0 +1,68 @@
+# Contract for INC-AEBS-009I criterion measurement evidence pipeline.
+#
+# This increment uses a measurement-based evidence pipeline, not a
+# scenario-based one.  The framework's build_evidence does not currently
+# support this contract type because the 009I builder has a fundamentally
+# different signature (measurement + retained_evidence, not raw + profile).
+#
+# This contract documents the 009I pipeline parameters for reference and
+# future framework extension.  The per-increment criterion_measurement_evidence.py
+# remains the authoritative implementation.
+
+schema_id: de4sdv.aebs-009i.criterion-measurement-evidence.v1
+increment_id: INC-AEBS-009I
+claim_boundary: configuration_bounded_criterion_only_no_compliance_or_type_approval_claim
+
+# 009I does not use the standard raw-observer / profile-enum contract.
+# It uses a measurement document and retained evidence references instead.
+# These fields are documented for completeness; the framework builder
+# does not process them yet.
+contract_type: criterion_measurement
+
+# The measurement document has a closed key set:
+measurement_fields:
+  - scenario_family
+  - vehicle_category
+  - load_condition
+  - subject_speed_kmh
+  - target_speed_kmh
+  - warning_time_s
+  - braking_start_time_s
+  - minimum_braking_demand_mps2
+  - impact_speed_kmh
+  - successful_repetitions
+  - failed_repetitions
+  - conditions
+
+# Retained evidence references point to immutable 009G/009H evidence files.
+retained_evidence_fields:
+  - path
+  - sha256
+  - increment_id
+
+# Provenance is extended with source/criteria/evaluator hashes.
+provenance_extra_fields:
+  - source_metadata_path
+  - source_metadata_sha256
+  - criteria_path
+  - criteria_sha256
+  - evaluator_path
+  - evaluator_sha256
+  - source_original_sha256
+  - source_id
+
+evaluator_module: scripts.aebs_regulatory_criteria
+evaluator_function: evaluate_regulatory_measurement
+
+campaign_manifest_schema: de4sdv.aebs-009i.campaign-manifest.v1
+campaign_shape: single_scenario
+evidence_dir: evidence/009i
+
+evidence_root_fields:
+  - schema
+  - increment_id
+  - measurement
+  - retained_evidence
+  - provenance
+  - evaluation
+  - claim_boundary

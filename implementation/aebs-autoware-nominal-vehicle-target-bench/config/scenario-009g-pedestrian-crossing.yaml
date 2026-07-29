@@ -1,0 +1,30 @@
+schema: de4sdv.aebs-009g-pedestrian-crossing.v1
+increment_id: INC-AEBS-009G
+scenario_id: SCN-AEBS-009G-PEDESTRIAN-CROSSING-001
+target_type: pedestrian
+target:
+  geometry:
+    length_m: 0.3
+    width_m: 0.5
+    height_m: 1.8
+  crossing_speed_mps: 1.5
+  injection_pose_base_link: {x: 20.0, y: 3.0, yaw_rad: 1.5707963267948966}
+ego_footprint:
+  front_offset_m: 3.74
+  rear_offset_m: 1.03
+  width_m: 1.83
+contract:
+  max_source_age_s: 0.5
+  closed_window_s: 2.0
+  crossing_speed_mps: 1.5
+  diagnostic_node: autonomous_emergency_braking
+  diagnostic_task: aeb_emergency_stop
+  diagnostic_level: ERROR
+  diagnostic_message: "[AEB]: Emergency Brake"
+non_claims:
+  - Numeric fixture values are prototype scenario settings, not braking-performance requirements.
+  - A passing run is not a safety, certification, compliance, or homologation claim.
+  - The pedestrian target geometry is a pinned fixture, not a physical pedestrian model.
+  - The DE4SDV coordinator is an integration prototype, not an upstream Autoware component.
+  - Lateral crossing motion is a fixture kinematic, not a validated VRU behavior model.
+  - This increment does not cover longitudinal targets, multiple crossing targets, or quantified regulatory acceptance.

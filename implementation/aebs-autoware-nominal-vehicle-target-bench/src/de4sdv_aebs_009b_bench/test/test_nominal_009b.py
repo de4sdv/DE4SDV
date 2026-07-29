@@ -5,7 +5,12 @@ import json
 import runpy
 import pytest
 
-from de4sdv_aebs_009b_bench.aebs_coordination_core import InterventionLatch, warning_requested
+from de4sdv_aebs_009b_bench.aebs_coordination_core import (
+    InterventionLatch,
+    braking_authorized_for_disposition,
+    next_warning_state,
+    warning_requested,
+)
 from de4sdv_aebs_009b_bench.scenario_contract import Outcome, Pose2D, load_scenario_config
 from de4sdv_aebs_009b_bench.scenario_evaluator import Observation, ObservationKind, evaluate_scenario
 from de4sdv_aebs_009b_bench.footprint_geometry import footprint_relation
@@ -91,6 +96,18 @@ def test_intervention_latch_requires_fresh_clear_entry_and_verified_stop_release
     assert latch.state == "released_verified_stop"
 
 
+def test_only_fresh_conscious_override_suppresses_braking():
+    assert not braking_authorized_for_disposition("conscious_override")
+    for disposition in (
+        "control_clear",
+        "degraded_stale_source",
+        "inconclusive_missing_source",
+        "error_malformed_source",
+        "error_future_source",
+    ):
+        assert braking_authorized_for_disposition(disposition)
+
+
 def test_odometry_gap_resets_held_stop_release_evidence():
     latch = InterventionLatch(0.1, 0.5, 0.2)
     latch.observe_diagnostic(True, True)
@@ -133,6 +150,12 @@ def test_map_pose_footprints_detect_positive_separation_and_overlap():
 def test_warning_compares_native_rss_with_bumper_gap_not_base_link_distance():
     assert warning_requested(17.94, 13.69, 6.0)
     assert not warning_requested(24.0, 13.69, 6.0)
+
+
+def test_warning_transition_is_risk_driven_without_override_input():
+    assert next_warning_state(False, "armed", 17.94, 13.69, 7.0)
+    assert next_warning_state(True, "armed", 24.0, 13.69, 7.0)
+    assert not next_warning_state(False, "braking_latched", 17.94, 13.69, 7.0)
 
 
 def test_nominal_acceleration_stops_driving_speed_above_setpoint():

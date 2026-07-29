@@ -10,7 +10,8 @@ def test_nominal_launch_has_no_mrm_or_diagnostic_failure_route():
     assert "autoware_mrm" not in launch
     assert "diagnostic_graph" not in launch
     assert '"use_emergency_handling": False' in launch
-    assert '"warning_margin_m": 6.0' in launch
+    assert 'DeclareLaunchArgument("warning_margin_m", default_value="6.0")' in launch
+    assert 'ParameterValue(warning_margin_m, value_type=float)' in launch
     assert '"stop_speed_mps": 0.1' in launch
     assert '"stop_hold_s": 0.5' in launch
     assert '"odometry_max_age_s": 0.2' in launch

@@ -12,7 +12,7 @@ import struct
 
 from autoware_control_msgs.msg import Control
 from autoware_internal_debug_msgs.msg import BoolStamped
-from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
+from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from nav_msgs.msg import Odometry
 import rclpy
 from rclpy.node import Node
@@ -20,7 +20,12 @@ from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Bool, String
 from tier4_debug_msgs.msg import Float32Stamped
 
-from .aebs_coordination_core import InterventionLatch, warning_requested
+from .aebs_coordination_core import (
+    InterventionLatch,
+    braking_authorized_for_disposition,
+    classify_override_source,
+    next_warning_state,
+)
 
 _DIAGNOSTIC_NAME = "autonomous_emergency_braking: aeb_emergency_stop"
 _INTERVENTION_MESSAGE = "[AEB]: Emergency Brake"
@@ -75,6 +80,9 @@ class AebsCoordinator(Node):
         self.risk_pub = self.create_publisher(String, "/de4sdv/aebs_009b/risk_assessment", 1)
         self.brake_pub = self.create_publisher(Control, "/de4sdv/aebs_009b/emergency_braking_request", 1)
         self.state_pub = self.create_publisher(String, "/de4sdv/aebs_009b/coordination_state", 1)
+        self.override_authorization_pub = self.create_publisher(
+            DiagnosticArray, "/de4sdv/aebs_009d/override_authorization", 1
+        )
         self.control_pub = self.create_publisher(Control, "/control/trajectory_follower/control_cmd", 1)
         self.create_subscription(Control, "/de4sdv/aebs_009b/nominal_control_cmd", self._on_nominal, 1)
         self.create_subscription(BoolStamped, "/de4sdv/aebs_009b/driver_override", self._on_override, 1)
@@ -90,11 +98,6 @@ class AebsCoordinator(Node):
     def _on_override(self, message: BoolStamped) -> None:
         now_ns = self.get_clock().now().nanoseconds
         source_ns = _stamp_nanoseconds(message.stamp)
-        if _source_age_s(message.stamp, now_ns, self.override_max_age_s) is None:
-            self._override = None
-            self._override_received_ns = None
-            self._override_source_ns = None
-            return
         self._override = bool(message.data)
         self._override_received_ns = now_ns
         self._override_source_ns = source_ns
@@ -136,8 +139,19 @@ class AebsCoordinator(Node):
                 status.level == DiagnosticStatus.ERROR
                 and status.message == _INTERVENTION_MESSAGE
             )
-            override_clear = self._override_is_fresh_and_clear()
-            if intervention and override_clear:
+            diagnostic_ns = _stamp_nanoseconds(message.header.stamp)
+            disposition = classify_override_source(
+                self._override,
+                self._override_source_ns,
+                diagnostic_ns,
+                self.override_max_age_s,
+            )
+            if intervention:
+                self._publish_typed_override_authorization(
+                    message.header.stamp, diagnostic_ns, disposition
+                )
+            braking_authorized = braking_authorized_for_disposition(disposition)
+            if intervention and braking_authorized:
                 diagnostic_stamp = (
                     f"{int(message.header.stamp.sec)}."
                     f"{int(message.header.stamp.nanosec):09d}"
@@ -145,8 +159,55 @@ class AebsCoordinator(Node):
                 self._publish_override_evaluation(
                     "intervention", diagnostic_source_stamp=diagnostic_stamp
                 )
-            self._latch.observe_diagnostic(intervention, override_clear)
+            self._latch.observe_diagnostic(intervention, braking_authorized)
             return
+
+    @staticmethod
+    def _format_stamp(nanoseconds: int | None) -> str:
+        if nanoseconds is None:
+            return "none"
+        return (
+            f"{nanoseconds // 1_000_000_000}."
+            f"{nanoseconds % 1_000_000_000:09d}"
+        )
+
+    def _publish_typed_override_authorization(
+        self, diagnostic_stamp: object, diagnostic_ns: int, disposition: str
+    ) -> None:
+        authorization = DiagnosticArray()
+        authorization.header.stamp = diagnostic_stamp
+        status = DiagnosticStatus()
+        status.name = "de4sdv_aebs_009d: override_authorization"
+        status.hardware_id = "de4sdv_aebs_coordinator"
+        status.level = {
+            "control_clear": DiagnosticStatus.OK,
+            "conscious_override": DiagnosticStatus.OK,
+            "degraded_stale_source": DiagnosticStatus.WARN,
+            "inconclusive_missing_source": DiagnosticStatus.STALE,
+            "error_malformed_source": DiagnosticStatus.ERROR,
+            "error_future_source": DiagnosticStatus.ERROR,
+        }[disposition]
+        status.message = disposition
+        status.values = [
+            KeyValue(
+                key="override_source_stamp",
+                value=self._format_stamp(self._override_source_ns),
+            ),
+            KeyValue(
+                key="authorization_diagnostic_source_stamp",
+                value=self._format_stamp(diagnostic_ns),
+            ),
+            KeyValue(
+                key="override_source_value",
+                value=(
+                    "none" if self._override is None
+                    else "true" if self._override else "false"
+                ),
+            ),
+            KeyValue(key="disposition", value=disposition),
+        ]
+        authorization.status = [status]
+        self.override_authorization_pub.publish(authorization)
 
     def _on_odometry(self, message: Odometry) -> None:
         if message.header.frame_id != "map":
@@ -194,16 +255,18 @@ class AebsCoordinator(Node):
     def _publish(self) -> None:
         if self._nominal is None:
             return
-        clear = self._override_is_fresh_and_clear()
         state = String()
         state.data = self._latch.state
         self.state_pub.publish(state)
         self._publish_override_evaluation("monitoring")
         if self._rss_m is not None and self._distance_m is not None:
-            if clear and self._latch.state == "armed" and warning_requested(
-                self._distance_m, self._rss_m, self.warning_margin_m
-            ):
-                self._warning = True
+            self._warning = next_warning_state(
+                self._warning,
+                self._latch.state,
+                self._distance_m,
+                self._rss_m,
+                self.warning_margin_m,
+            )
             risk = String()
             risk.data = json.dumps({
                 "rss_distance_m": self._rss_m,

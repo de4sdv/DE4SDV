@@ -1,0 +1,43 @@
+schema: de4sdv.aebs-009f-degraded-input-matrix.v1
+inherits_runtime: INC-AEBS-009B
+source_topic:
+  name: /de4sdv/aebs_009f/degraded_input_authorization
+  type: diagnostic_msgs/msg/DiagnosticArray
+native_observations:
+  diagnostics: /diagnostics
+  rss_distance: /control/autonomous_emergency_braking/debug/rss_distance
+  emergency_braking_request: /de4sdv/aebs_009b/emergency_braking_request
+contract:
+  degraded_state_max_age_s: 0.2
+  closed_detection_window_s: 0.25
+  graph_sampling_max_gap_s: 0.2
+  expected_nominal_publisher: "/:de4sdv_aebs_coordinator"
+  diagnostic_node: autonomous_emergency_braking
+  diagnostic_task: aeb_emergency_stop
+  diagnostic_level: ERROR
+  diagnostic_message: "[AEB]: Emergency Brake"
+scenarios:
+  - id: SCN-AEBS-009F-STALE-INPUT
+    profile: stale_input
+    expected_disposition: pass_bounded_detection
+    expected_input_health: stale
+  - id: SCN-AEBS-009F-MISSING-INPUT
+    profile: missing_input
+    expected_disposition: pass_bounded_detection
+    expected_input_health: missing
+  - id: SCN-AEBS-009F-MALFORMED-INPUT
+    profile: malformed_input
+    expected_disposition: pass_bounded_detection
+    expected_input_health: malformed
+  - id: SCN-AEBS-009F-INCONSISTENT-INPUT
+    profile: inconsistent_input
+    expected_disposition: pass_bounded_detection
+    expected_input_health: inconsistent
+  - id: SCN-AEBS-009F-UNAVAILABLE-INPUT
+    profile: unavailable_input
+    expected_disposition: pass_bounded_detection
+    expected_input_health: unavailable
+non_claims:
+  - Each scenario requires a separate pinned-runtime execution and verdict.
+  - Pure evaluator tests are not runtime evidence.
+  - This matrix does not establish safety, certification, compliance, homologation, or type approval.

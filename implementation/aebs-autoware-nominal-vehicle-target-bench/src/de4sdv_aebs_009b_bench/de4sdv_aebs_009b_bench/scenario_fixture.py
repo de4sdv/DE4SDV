@@ -27,6 +27,8 @@ from std_srvs.srv import Trigger
 from tier4_system_msgs.msg import OperationModeAvailability
 
 from .scenario_contract import Pose2D, load_scenario_config
+from .override_fixture_core import override_publication
+from .override_matrix import OverrideScenario
 from .scenario_fixture_core import (
     ScenarioFixtureState,
     nominal_acceleration_for_speed,
@@ -54,10 +56,17 @@ class ScenarioFixture(Node):
     def __init__(self) -> None:
         super().__init__("scenario_fixture")
         self.declare_parameter("scenario_config")
+        self.declare_parameter("override_scenario", OverrideScenario.FRESH_FALSE_CONTROL.value)
         scenario_path = self.get_parameter("scenario_config").value
         if not isinstance(scenario_path, str) or not scenario_path:
             raise ValueError("scenario_config parameter must be a nonempty installed YAML path")
         config = load_scenario_config(scenario_path)
+        try:
+            self._override_scenario = OverrideScenario(
+                self.get_parameter("override_scenario").value
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError("override_scenario must be one of the closed 009D profiles") from error
         self._state = ScenarioFixtureState(config)
         self._ego_speed_mps = 0.0
 
@@ -229,10 +238,16 @@ class ScenarioFixture(Node):
         control.lateral.stamp = stamp
         self.control_pub.publish(control)
 
-        override = BoolStamped()
-        override.stamp = stamp
-        override.data = False
-        self.override_pub.publish(override)
+        publication = override_publication(
+            self._override_scenario, self.get_clock().now().nanoseconds
+        )
+        if publication is not None:
+            value, source_ns = publication
+            override = BoolStamped()
+            override.stamp.sec = source_ns // 1_000_000_000
+            override.stamp.nanosec = source_ns % 1_000_000_000
+            override.data = value
+            self.override_pub.publish(override)
         availability = OperationModeAvailability()
         availability.autonomous = True
         self.availability_pub.publish(availability)

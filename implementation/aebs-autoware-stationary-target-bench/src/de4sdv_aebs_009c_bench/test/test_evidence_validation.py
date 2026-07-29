@@ -35,6 +35,7 @@ from validate_scenario_evidence import (  # noqa: E402
     ValidationError,
     _live_provenance_fields,
     _repository_commit_is_ancestor,
+    _repository_head_is_accepted,
     validate_evidence,
 )
 
@@ -85,6 +86,29 @@ def passing_observations() -> list[Observation]:
     return items
 
 class EvidenceValidationTests(unittest.TestCase):
+    def test_squash_delivered_reviewed_head_accepts_retained_run_ancestor(self) -> None:
+        repository = BENCH.parents[1]
+        relation = {
+            "pull_request": 66,
+            "retained_run_head": "a6234b572659ad052ecd647585552ded98bca569",
+            "reviewed_head": "871ef95bbdf3b865d5761d692065674fc0b4e196",
+            "delivery_commit": "81e043386251118b302bafbed91922f8fa821522",
+        }
+        live_head = subprocess.check_output(
+            ["git", "-C", repository, "rev-parse", "HEAD"], text=True
+        ).strip()
+        self.assertTrue(
+            _repository_head_is_accepted(
+                repository, relation["retained_run_head"], live_head, relation
+            )
+        )
+        unrelated = subprocess.check_output(
+            ["git", "-C", repository, "rev-parse", "6dd6653^{commit}"], text=True
+        ).strip()
+        self.assertFalse(
+            _repository_head_is_accepted(repository, unrelated, live_head, relation)
+        )
+
     def test_recorded_run_base_may_precede_reviewing_commit(self) -> None:
         repository = Path(self.temp.name) / "ancestry-repository"
         repository.mkdir()
@@ -184,7 +208,29 @@ class EvidenceValidationTests(unittest.TestCase):
         self.launch_artifact = self.bench / "evidence" / "009c" / "launch.log"
         self.launch_artifact.write_text("launch output\n", encoding="utf-8")
         self.map_artifact = self.bench / "evidence" / "009c" / "map-runtime.json"
-        self.map_artifact.write_text("{}\n", encoding="utf-8")
+        authoritative_lock = yaml.safe_load(
+            (BENCH / "runtime-lock.yaml").read_text(encoding="utf-8")
+        )
+        (self.bench / "runtime-lock.yaml").write_text(
+            yaml.safe_dump({"map": authoritative_lock["map"]}), encoding="utf-8"
+        )
+        self.map_runtime = {
+            "command_exit_status": 0,
+            "error": None,
+            "execution_manifest_sha256": self.provenance["execution_manifest_sha256"],
+            "extracted_sha256": copy.deepcopy(
+                authoritative_lock["map"]["extracted_sha256"]
+            ),
+            "host_architecture": self.provenance["host_arch"],
+            "image_digest": self.provenance["image_digest"],
+            "image_id": None,
+            "lock_sha256": self.provenance["runtime_lock_sha256"],
+            "map_files_verified": True,
+            "map_sha256": self.provenance["map_digest"].removeprefix("sha256:"),
+            "repository_head": self.provenance["repository_head"],
+            "utc_time": "2026-07-26T12:00:00Z",
+        }
+        self.map_artifact.write_bytes(canonical_json_bytes(self.map_runtime))
         artifacts = {
             "observer_log": {
                 "path": "evidence/009c/observer.log",
@@ -326,6 +372,27 @@ class EvidenceValidationTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             self.validate()
 
+    def test_rejects_digest_shaped_map_substitution_even_when_rehashed(self) -> None:
+        changed_runtime = copy.deepcopy(self.map_runtime)
+        changed_runtime["extracted_sha256"]["lanelet2_map.osm"] = "0" * 64
+        self.map_artifact.write_bytes(canonical_json_bytes(changed_runtime))
+        changed = copy.deepcopy(self.document)
+        changed["artifacts"]["map_runtime"]["sha256"] = sha256_file(self.map_artifact)
+        self.write(changed)
+        with self.assertRaisesRegex(ValidationError, "do not match runtime lock"):
+            self.validate()
+
+    def test_rejects_hardlink_alias_across_artifact_roles(self) -> None:
+        self.launch_artifact.unlink()
+        os.link(self.artifact, self.launch_artifact)
+        changed = copy.deepcopy(self.document)
+        changed["artifacts"]["launch_log"]["sha256"] = sha256_file(
+            self.launch_artifact
+        )
+        self.write(changed)
+        with self.assertRaisesRegex(ValidationError, "distinct files"):
+            self.validate()
+
     def test_parser_rejects_duplicate_keys_and_nonfinite_numbers(self) -> None:
         self.path.write_text('{"schema":"x","schema":"y"}', encoding="utf-8")
         with self.assertRaisesRegex(ValidationError, "duplicate"):
@@ -409,6 +476,10 @@ class EvidenceValidationTests(unittest.TestCase):
         self.assertNotIn('mkdir -p "$RUNS"', wrapper)
         self.assertIn('mv -T -- "$STAGE" "$FINAL"', wrapper)
         self.assertIn("stop_runtime", wrapper)
+        self.assertIn("native geometry/process failure detected", wrapper)
+        self.assertIn("QH[0-9]+ qhull input error", wrapper)
+        self.assertIn("process has died", wrapper)
+        self.assertIn("Traceback \\(most recent call last\\)", wrapper)
         self.assertLess(
             wrapper.index("stop_runtime\nif"), wrapper.index("hashlib,json,pathlib")
         )

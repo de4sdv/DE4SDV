@@ -1,0 +1,93 @@
+schema: de4sdv.aebs-regulatory-source.v2
+source_id: E/ECE/TRANS/505/Rev.3/Add.151/Rev.2
+document_date: "2023-06-15"
+series: 02 series of amendments
+original_sha256: dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de
+extraction_sha256: 18131a63a1ff656fc4c9e8d8df829b40994b6577912bb6834b4c5d975b863fdd
+acquisition:
+  official_url: https://unece.org/sites/default/files/2023-07/R152r2e.pdf
+  acquired_on: "2026-06-27"
+  retained_byte_size: 880326
+  automated_retrieval_status: blocked_by_upstream_challenge
+  repository_copy_committed: false
+extraction:
+  tool: pdftotext
+  tool_version: "22.02.0"
+  command: pdftotext -layout INPUT.pdf OUTPUT.txt
+  output_sha256: 18131a63a1ff656fc4c9e8d8df829b40994b6577912bb6834b4c5d975b863fdd
+  page_number_basis: printed document page
+selected_clause_anchors:
+  driver_interruption: [5.3.1, 5.3.2]
+  pedestrian_performance: [5.2.2.1, 5.2.2.2, 5.2.2.4]
+  bicycle_performance: [5.2.3.1, 5.2.3.2, 5.2.3.4]
+  test_conditions: [6.1, 6.2]
+  target_fidelity: [6.3.2, 6.3.3, 6.3.4]
+  pedestrian_procedure: [6.6.1, 6.6.2]
+  bicycle_procedure: [6.7.1, 6.7.2]
+  robustness: [6.10.1, 6.10.2, 6.10.3]
+criterion_provenance:
+  minimum_braking_demand_mps2:
+    clause: 5.2.2.2 and 5.2.3.2
+    printed_pages: [10, 11]
+    value: -5.0
+    note: repository sign convention expresses braking demand as negative acceleration
+  warning_not_later_than_braking:
+    clause: 5.2.2.1 and 5.2.3.1
+    printed_pages: [10, 11]
+    value: true
+  required_successful_repetitions:
+    clause: 6.10.1
+    printed_page: 19
+    value: 2
+  next_higher_speed_row:
+    footnotes: [5, 6, 7, 8]
+    printed_pages: [11, 13]
+    rule: use the listed row for the next higher subject-vehicle speed
+  pedestrian_target_speed_kmh:
+    clause: 6.6.1
+    printed_page: 17
+    nominal: 5.0
+    tolerance: +0/-0.4
+    represented_range: {minimum: 4.6, maximum: 5.0}
+  pedestrian_impact_speed_tables_kmh:
+    clause: 5.2.2.4
+    printed_pages: [10, 11]
+    tables:
+      M1:
+        rows: [20, 25, 30, 35, 40, 42, 45, 50, 55, 60]
+        columns: [maximum_mass, mass_in_running_order]
+      N1:
+        rows: [20, 25, 30, 35, 38, 40, 42, 45, 50, 55, 60]
+        columns: [maximum_mass, mass_in_running_order]
+  bicycle_target_speed_kmh:
+    clause: 6.7.1
+    printed_pages: [18, 19]
+    nominal: 15.0
+    tolerance: +0/-1.0
+    represented_range: {minimum: 14.0, maximum: 15.0}
+  bicycle_impact_speed_tables_kmh:
+    clause: 5.2.3.4
+    printed_page: 12
+    tables:
+      M1:
+        rows: [20, 25, 30, 35, 38, 40, 45, 50, 55, 60]
+        columns: [maximum_mass, mass_in_running_order]
+      N1:
+        rows: [20, 25, 30, 35, 36, 38, 40, 45, 50, 55, 60]
+        columns: [maximum_mass, mass_in_running_order]
+  impact_speed_measurement_boundary:
+    clauses: [6.6.2, 6.7.2]
+    printed_pages: [18, 19]
+    rule: actual contact point accounting for vehicle shape
+applicability:
+  status: candidate_source_baseline
+  vehicle_category: unresolved
+  current_legal_applicability: not_established
+  authority_interpretation: not_established
+  amendment_selection_rationale: not_established
+claim_boundary:
+  source_text_committed: false
+  compliance_claim_permitted: false
+  homologation_claim_permitted: false
+  type_approval_claim_permitted: false
+  allowed_result: configuration-bounded criterion and evidence-fitness result

@@ -115,13 +115,76 @@ def _verify_artifacts(
     if set(document["artifacts"]) != required:
         raise ValidationError("canonical artifacts do not match the closed run set")
     verified: dict[str, Path] = {}
+    physical_files: dict[tuple[int, int], str] = {}
     for name, record in document["artifacts"].items():
         candidate = _regular_nonsymlink_under(bench_root, record["path"])
+        file_stat = candidate.stat()
+        physical_identity = (file_stat.st_dev, file_stat.st_ino)
+        if physical_identity in physical_files:
+            other = physical_files[physical_identity]
+            raise ValidationError(
+                f"artifact roles {other!r} and {name!r} must resolve to distinct files"
+            )
+        physical_files[physical_identity] = name
         actual = sha256_file(candidate)
         if actual != record["sha256"]:
             raise ValidationError(f"artifact {name!r} SHA-256 mismatch")
         verified[name] = candidate
     return verified
+
+
+def _verify_map_runtime(
+    document: Mapping[str, Any], artifacts: Mapping[str, Path], bench_root: Path
+) -> None:
+    try:
+        runtime = load_strict_json(artifacts["map_runtime"])
+    except (OSError, UnicodeError, ValueError, TypeError) as error:
+        raise ValidationError(f"cannot parse hash-bound map runtime: {error}") from error
+    required = {
+        "command_exit_status", "error", "execution_manifest_sha256",
+        "extracted_sha256", "host_architecture", "image_digest", "image_id",
+        "lock_sha256", "map_files_verified", "map_sha256",
+        "repository_head", "utc_time",
+    }
+    if not isinstance(runtime, Mapping) or set(runtime) != required:
+        raise ValidationError("map-runtime does not match the closed runtime contract")
+    provenance = document["provenance"]
+    expected = {
+        "command_exit_status": 0,
+        "error": None,
+        "execution_manifest_sha256": provenance["execution_manifest_sha256"],
+        "host_architecture": provenance["host_arch"],
+        "image_digest": provenance["image_digest"],
+        "lock_sha256": provenance["runtime_lock_sha256"],
+        "map_sha256": provenance["map_digest"].removeprefix("sha256:"),
+        "repository_head": provenance["repository_head"],
+        "map_files_verified": True,
+    }
+    for key, value in expected.items():
+        if runtime[key] != value:
+            raise ValidationError(f"map-runtime mismatch for {key}")
+    extracted = runtime["extracted_sha256"]
+    required_maps = {
+        "lanelet2_map.osm", "map_config.yaml",
+        "map_projector_info.yaml", "pointcloud_map.pcd",
+    }
+    if not isinstance(extracted, Mapping) or set(extracted) != required_maps:
+        raise ValidationError("map-runtime extracted map set is incomplete or open")
+    if any(
+        not isinstance(digest, str) or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+        for digest in extracted.values()
+    ):
+        raise ValidationError("map-runtime extracted map digest is not lowercase SHA-256")
+    try:
+        lock = _load_lock(bench_root / "runtime-lock.yaml")
+        locked_extracted = lock["map"]["extracted_sha256"]
+    except (KeyError, TypeError) as error:
+        raise ValidationError(
+            f"cannot read extracted-map identities from runtime lock: {error}"
+        ) from error
+    if not isinstance(locked_extracted, Mapping) or dict(extracted) != dict(locked_extracted):
+        raise ValidationError("map-runtime extracted map digests do not match runtime lock")
 
 
 def _verify_raw_contract(
@@ -203,6 +266,73 @@ def _repository_commit_is_ancestor(
     raise ValidationError(
         f"cannot verify repository ancestry: {result.stderr.decode().strip()}"
     )
+
+
+def _git_revision(repository: Path, revision: str) -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", revision], cwd=repository, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    if result.returncode != 0:
+        raise ValidationError(f"cannot resolve repository revision {revision!r}")
+    return result.stdout.strip()
+
+
+def _repository_head_is_accepted(
+    repository: Path,
+    stored_head: str,
+    live_head: str,
+    history: Mapping[str, Any],
+) -> bool:
+    """Accept ancestry or one exact, tree-preserving reviewed squash relation."""
+    try:
+        if _repository_commit_is_ancestor(repository, stored_head, live_head):
+            return True
+    except ValidationError:
+        return False
+    required = {
+        "pull_request", "retained_run_head", "reviewed_head", "delivery_commit"
+    }
+    if set(history) != required:
+        return False
+    pull_request = history.get("pull_request")
+    revisions = [
+        history.get("retained_run_head"), history.get("reviewed_head"),
+        history.get("delivery_commit"),
+    ]
+    if (
+        type(pull_request) is not int or pull_request <= 0
+        or any(
+            not isinstance(revision, str) or len(revision) != 40
+            or any(character not in "0123456789abcdef" for character in revision)
+            for revision in revisions
+        )
+        or stored_head != history["retained_run_head"]
+    ):
+        return False
+    try:
+        if not _repository_commit_is_ancestor(
+            repository, history["retained_run_head"], history["reviewed_head"]
+        ):
+            return False
+        reviewed_tree = _git_revision(repository, history["reviewed_head"] + "^{tree}")
+        delivery_tree = _git_revision(repository, history["delivery_commit"] + "^{tree}")
+        if reviewed_tree != delivery_tree:
+            return False
+        if not _repository_commit_is_ancestor(
+            repository, history["delivery_commit"], live_head
+        ):
+            return False
+        subject = subprocess.run(
+            ["git", "show", "-s", "--format=%s", history["delivery_commit"]],
+            cwd=repository, text=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, check=False,
+        )
+        return subject.returncode == 0 and subject.stdout.strip().endswith(
+            f"(#{pull_request})"
+        )
+    except ValidationError:
+        return False
 
 
 def _repository_root(bench_root: Path) -> Path:
@@ -296,11 +426,15 @@ def _verify_provenance(
     repository = _repository_root(bench_root)
     live_head = live.pop("repository_head")
     stored_head = stored.get("repository_head")
-    if not isinstance(stored_head, str) or not _repository_commit_is_ancestor(
-        repository, stored_head, live_head
+    lock = _load_lock(bench_root / "runtime-lock.yaml")
+    history = lock.get("repository_history")
+    if (
+        not isinstance(stored_head, str)
+        or not isinstance(history, Mapping)
+        or not _repository_head_is_accepted(repository, stored_head, live_head, history)
     ):
         raise ValidationError(
-            "recorded run repository head is not an ancestor of live HEAD"
+            "recorded run repository head is neither an ancestor nor the exact reviewed squash relation"
         )
     for key, value in live.items():
         if stored.get(key) != value:
@@ -354,6 +488,7 @@ def validate_evidence(
         raise ValidationError("stored evaluation differs from independent evaluator replay")
     artifacts = _verify_artifacts(document, root)
     _verify_raw_contract(document, config, artifacts)
+    _verify_map_runtime(document, artifacts, root)
     _verify_provenance(document["provenance"], root, expected_provenance)
     return document
 
