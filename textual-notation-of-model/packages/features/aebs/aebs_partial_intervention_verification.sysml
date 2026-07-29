@@ -3,6 +3,10 @@ package DE4SDV_AEBS009CVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
+  private import SAF_Viewpoints::*;
+  private import DE4SDV_Stakeholders::*;
+  private import Views::*;
+
 
   item def Retained009CObservationSet;
   item def Replayed009CEvaluation { attribute outcome : EvidenceOutcome009C; }
@@ -69,4 +73,23 @@ package DE4SDV_AEBS009CVerification {
 
   dependency partialInterventionEvidenceRelevantToBrakingCandidate
     from evidenceContract009CMRMGateChain to reqCommandEmergencyBraking;
+
+  concern physicalStructureConcern : PhysicalStructureConcern {
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
+    doc /* Evidence-based assurance claims and their supporting argumentation. */
+  }
+
+  view aebs009CVerificationAssuranceView {
+    viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
+    }
+
+    expose DE4SDV_AEBS009CVerification::*;
+    render asTreeDiagram;
+  }
 }

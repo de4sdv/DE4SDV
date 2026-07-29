@@ -4,6 +4,10 @@ package DE4SDV_AEBS009IVerification {
   private import VerificationMethodKind::*;
   private import ScalarValues::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
+  private import SAF_Viewpoints::*;
+  private import DE4SDV_Stakeholders::*;
+  private import Views::*;
+
 
   enum def ScenarioIdentity009I {
     pedestrianCriterion;
@@ -158,4 +162,23 @@ package DE4SDV_AEBS009IVerification {
     from evidenceContract009IBicycleApplicableCriterion to reqBicycleTargetResponse;
   dependency bicycleCriterionRelevantToBicycleResponseCandidate
     from evidenceContract009IBicycleApplicableCriterion to reqBicycleTargetControlledResponse;
+
+  concern physicalStructureConcern : PhysicalStructureConcern {
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
+    doc /* Evidence-based assurance claims and their supporting argumentation. */
+  }
+
+  view aebs009IVerificationAssuranceView {
+    viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
+    }
+
+    expose DE4SDV_AEBS009IVerification::*;
+    render asTreeDiagram;
+  }
 }

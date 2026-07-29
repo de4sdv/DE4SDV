@@ -3,6 +3,10 @@ package DE4SDV_AEBS009EVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
+  private import SAF_Viewpoints::*;
+  private import DE4SDV_Stakeholders::*;
+  private import Views::*;
+
 
   enum def ScenarioIdentity009E {
     clearPath;
@@ -111,4 +115,23 @@ package DE4SDV_AEBS009EVerification {
     from evidenceContract009EWarningSilenceWindow to reqResistFalseReaction;
   dependency brakingSilenceEvidenceRelevantToBrakingSilenceCandidate
     from evidenceContract009EBrakingSilenceWindow to reqResistFalseBrakingCommand;
+
+  concern physicalStructureConcern : PhysicalStructureConcern {
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
+    doc /* Evidence-based assurance claims and their supporting argumentation. */
+  }
+
+  view aebs009EVerificationAssuranceView {
+    viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
+    }
+
+    expose DE4SDV_AEBS009EVerification::*;
+    render asTreeDiagram;
+  }
 }

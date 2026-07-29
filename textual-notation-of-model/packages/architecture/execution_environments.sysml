@@ -1,4 +1,8 @@
 package DE4SDV_ExecutionEnvironments {
+  private import SAF_Viewpoints::*;
+  private import DE4SDV_Stakeholders::*;
+  private import Views::*;
+
 
   doc /*
    * Reusable execution-environment shared asset for DE4SDV model-based PLE.
@@ -145,5 +149,24 @@ package DE4SDV_ExecutionEnvironments {
       variant part nativeZephyr : NativeZephyrRuntimeCandidate;
       variant part noConcreteExecutionRuntime[0];
     }
+  }
+
+  concern physicalStructureConcern : PhysicalStructureConcern {
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
+    doc /* Evidence-based assurance claims and their supporting argumentation. */
+  }
+
+  view executionEnvironmentsAssuranceView {
+    viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
+    }
+
+    expose DE4SDV_ExecutionEnvironments::*;
+    render asTreeDiagram;
   }
 }

@@ -1,0 +1,9 @@
+schema: de4sdv.saf-source.v1
+source_id: GfSE/SAF-SysMLV2
+repository: https://github.com/GfSE/SAF-SysMLV2
+license: Apache-2.0
+userdoc: https://saf.gfse.org/userdoc/aspects.html
+extraction:
+  commit_sha: c57bd42db60a00c51168f6aba8e2229ba0165b6c
+  extracted_on: "2026-07-29"
+claim_boundary: source-backed reference, not a vendored copy
