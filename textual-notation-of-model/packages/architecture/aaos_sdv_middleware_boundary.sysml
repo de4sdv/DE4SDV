@@ -38,8 +38,9 @@
  *   The AEBS physical software realization defines required boundaries
  *   (RequiredROS2ApplicationRuntimeBoundary, RequiredVehicleInterfaceBoundary,
  *   RequiredHealthSupervisorBoundary, RequiredDiagnosticFailureBridgeBoundary,
- *   RequiredEmergencyMRMHandlerBoundary). This model declares traceability
- *   dependencies showing which AAOS SDV elements can satisfy those boundaries.
+ *   RequiredEmergencyMRMHandlerBoundary). Product-level traceability showing
+ *   which AAOS SDV elements satisfy these boundaries is declared in the
+ *   composite product model (aebs_autoware_reference_product.sysml), not here.
  *
  * Architectural notes:
  *   SDV Core is a minimal, headless operating system derived from Android.
@@ -64,7 +65,6 @@
 
 package DE4SDV_AAOSSDVMiddlewareBoundary {
   private import DE4SDV_SDVPlatformStack::*;
-  private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
@@ -384,40 +384,22 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
    * ──────────────────────────────────────────
    * These dependencies show which AAOS SDV elements can satisfy the
    * AEBS physical software realization's required boundaries. The
-   * adapter (AutowareToAAOSSDVAdapter) is the bridge.
+   * The adapter (AutowareToAAOSSDVAdapter from the SDV platform stack)
+   * connects to this boundary through the MiddlewareAdapterPort. The
+   * adapter translates Autoware ROS 2 topics to AAOS SDV VSIDL service
+   * calls and Data Tunnel publications.
    *
    * Key assumption (INC-MW-001, ASM-MW-003): the AEBS emergency
-   * intervention path (AEB node → emergency intervention request →
-   * vehicle command gate → brake actuation) does NOT go through the
+  * intervention path (AEB node -> emergency intervention request ->
+   * vehicle command gate -> brake actuation) does NOT go through the
    * adapter or the middleware. The adapter carries vehicle signals,
    * diagnostics, and lifecycle, not safety-critical brake commands.
+   *
+   * Product-level traceability (which AAOS SDV elements satisfy which
+   * AEBS required boundaries) is declared in the composite product model
+   * (aebs_autoware_reference_product.sysml), not here. This boundary model
+   * defines what the AAOS SDV elements ARE, not what they satisfy.
    */
-
-  dependency vsidlProvidesVehicleSignalAccess
-    from VSIDLMiddlewareBoundary to RequiredVehicleInterfaceBoundary;
-
-  dependency healthMonitorSatisfiesHealthSupervision
-    from HealthMonitorBoundary to RequiredHealthSupervisorBoundary;
-
-  dependency diagnosticsProvidesDiagnosticBridge
-    from AutomotiveDiagnosticsBoundary to RequiredDiagnosticFailureBridgeBoundary;
-
-  dependency lifecycleManagerProvidesRuntimeLifecycle
-    from ServiceLifecycleManagerBoundary to RequiredROS2ApplicationRuntimeBoundary;
-
-  dependency orchestratorProvidesMRMCoordination
-    from OrchestratorBoundary to RequiredEmergencyMRMHandlerBoundary;
-
-  dependency updateManagerCoordinatesEvidenceService
-    from UpdateManagerBoundary to RequiredEvidenceServiceBoundary;
-
-  /*
-   * The AutowareToAAOSSDVAdapter connects to this boundary through the
-   * MiddlewareAdapterPort. The adapter translates Autoware ROS 2 topics
-   * to AAOS SDV VSIDL service calls and Data Tunnel publications.
-   */
-  dependency adapterConnectsToAAOSSDV
-    from AutowareToAAOSSDVAdapter to SDVCoreBoundary;
 
   /* ──────────────────────────────────────────
    * Network topology boundary
@@ -445,48 +427,27 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
   }
 
   /* ──────────────────────────────────────────
-   * SAF concern and view
-   * ────────────────────────────────────────── */
+   * SAF physical-domain concern and view
+   * ──────────────────────────────────────────
+   * Uses SAF PhysicalStructureDefinitionViewpoint (P2_PSTD) — not an
+   * invented viewpoint. The AAOS SDV boundary is a physical/software
+   * structure that needs to be visible for integration review.
+   */
 
-  concern def AAOSSDVBoundaryConcern {
+  concern aaosSdvStructureConcern : PhysicalStructureConcern {
     doc /*
-     * Reviewers need the AAOS SDV middleware internal structure and its
-     * traceability to AEBS physical software realization required boundaries
-     * to be visible for the middleware integration increment.
+     * Reviewers need the AAOS SDV middleware internal structure visible
+     * for the middleware integration increment: core services, communication
+     * stack, automotive services, platform software, and network topology.
      */
-    require constraint {
-      doc /*
-       * An AAOS SDV boundary view shall show the core services, communication
-       * stack, automotive services, platform software boundary, and
-       * traceability dependencies to AEBS required boundaries.
-       */
-    }
-  }
-
-  concern aaosSdvBoundaryConcern : AAOSSDVBoundaryConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
-    stakeholder platformEngineer : OpenSourceReviewer;
-  }
-
-  viewpoint def AAOSSDVBoundaryViewpoint {
-    doc /*
-     * AAOS SDV middleware boundary viewpoint for reviewing the internal
-     * structure and integration surface of the AAOS SDV platform.
-     */
-    require constraint {
-      doc /*
-       * The view shall show the SDV Core boundary composition, core
-       * services, communication stack, automotive services, platform
-       * software, and traceability dependencies.
-       */
-    }
   }
 
   view aaosSdvBoundaryView {
-    viewpoint selectedAAOSSDVBoundaryViewpoint : AAOSSDVBoundaryViewpoint {
-      frame aaosSdvBoundaryConcern;
+    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
+      frame aaosSdvStructureConcern;
     }
 
     expose SDVCoreBoundary;
@@ -507,13 +468,6 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
     expose UserProfileBoundary;
     expose SDVPlatformSoftwareBoundary;
     expose VehicleNetworkBoundary;
-    expose vsidlProvidesVehicleSignalAccess;
-    expose healthMonitorSatisfiesHealthSupervision;
-    expose diagnosticsProvidesDiagnosticBridge;
-    expose lifecycleManagerProvidesRuntimeLifecycle;
-    expose orchestratorProvidesMRMCoordination;
-    expose updateManagerCoordinatesEvidenceService;
-    expose adapterConnectsToAAOSSDV;
     render asTreeDiagram;
   }
 }

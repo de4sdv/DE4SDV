@@ -23,11 +23,13 @@
  *
  * Scope:
  *   - Composition of platform stack, sensing boundary, and AEBS software
- *   - Dependency links from sensing boundary to AEB node ROS 2 topic types
+ *   - Product-level traceability dependencies (sensors to AEB node, AEBS
+ *     required boundaries to platform elements)
  *   - Allocation links from AEBS logical architecture to physical software
  *
  * Out of scope:
- *   - Vehicle-level middleware integration (S-CORE, Android SDV)
+ *   - Vehicle-level middleware integration (S-CORE, Android SDV) — this
+ *     product selects no vehicle-level middleware
  *   - Brake actuation, vehicle command gate, MRM handler
  *   - Runtime deployment configuration (INC-AEBS-008)
  *   - Evidence generation (INC-AEBS-009)
@@ -54,7 +56,7 @@ package DE4SDV_AEBSAutowareReferenceProduct {
     doc /*
      * Composite AEBS reference member product.
      *
-     * Platform: Autoware on Eclipse S-CORE on Linux, no hypervisor.
+     * Platform: Autoware on Linux, no vehicle-level middleware, no hypervisor.
      * Sensing: LiDAR + camera perception sensors, IMU + wheel odometry common.
      * AEBS: Vehicle-target forward collision mitigation only.
      *
@@ -80,19 +82,14 @@ package DE4SDV_AEBSAutowareReferenceProduct {
 
     /*
      * Product-level traceability: sensing assembly resides in the hardware
-     * layer of the platform stack. The sensing boundary model declares
-     * this dependency (sensingAssemblyResidesInHardwareLayer from
-     * VehicleSensingAssembly to HardwareLayer); restated here at the
-     * product level by linking the product's sensing assembly to its
-     * platform stack.
+     * layer of the platform stack.
      */
     dependency productSensingToPlatformStack from sensingAssembly to platformStack;
 
     /*
      * Product-level traceability: the AEB node's ROS 2 topic inputs trace
-     * back to sensors and the perception pipeline. These dependencies are
-     * declared in DE4SDV_VehicleSensingBoundary and are visible through
-     * the import. Key links:
+     * back to sensors and the perception pipeline. Key links (declared in
+     * DE4SDV_VehicleSensingBoundary, visible through import):
      *
      *   LiDARSensorBoundary -> PointCloud2Message (AEB node port pointCloudIn)
      *   IMUSensorBoundary -> ImuMessage (AEB node port imuIn)
@@ -109,26 +106,61 @@ package DE4SDV_AEBSAutowareReferenceProduct {
   }
 
   /*
-   * SAF concern: product-level traceability.
+   * SAF physical-domain concerns and views.
+   *
+   * Uses SAF PhysicalLogicalMappingViewpoint (P8_PLOM) for the
+   * product-level traceability view — not an invented viewpoint. The
+   * composite product maps logical architecture to physical software
+   * realization, which is exactly what P8_PLOM addresses.
+   *
+   * Uses SAF PhysicalStructureDefinitionViewpoint (P2_PSTD) for the
+   * product structure view showing the composition of platform stack,
+   * sensing boundary, and AEBS software.
    */
-  concern def ProductTraceabilityConcern {
-    doc /*
-     * Product-level traceability concern for composite member products
-     * that compose platform stack, sensing boundary, and ADAS physical
-     * software realization.
-     */
-    require constraint {
-      doc /*
-       * A product traceability view shall show the platform-stack layers,
-       * sensing boundary sensor types and observation items, perception
-       * pipeline, and AEBS physical software ROS 2 topic dependencies.
-       */
-    }
-  }
 
-  concern productTraceabilityConcern : ProductTraceabilityConcern {
+  concern productStructureConcern : PhysicalStructureConcern {
+    doc /*
+     * Reviewers need the product-level composition visible: platform stack,
+     * sensing boundary, AEBS physical software, and their structural
+     * relationships.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern productMappingConcern : PhysicalLogicalMappingConcern {
+    doc /*
+     * Reviewers need the product-level traceability visible: which physical
+     * elements (sensors, AEB node, required boundaries) realize which logical
+     * responsibilities, and where the gaps are.
+     */
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  view productStructureView {
+    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
+      frame productStructureConcern;
+    }
+
+    expose AEBSAutowareReferenceProduct;
+    expose SDVPlatformStack;
+    expose VehicleSensingAssembly;
+    expose VehicleTargetAEBSPhysicalSoftwareBoundary;
+    expose VehicleTargetAEBSLogicalSystem;
+    expose productSensingToPlatformStack;
+    render asTreeDiagram;
+  }
+
+  view productMappingView {
+    viewpoint selectedPhysicalLogicalMappingViewpoint : PhysicalLogicalMappingViewpoint {
+      frame productMappingConcern;
+    }
+
+    expose AEBSAutowareReferenceProduct;
+    expose productSensingToPlatformStack;
+    render asTreeDiagram;
   }
 }
