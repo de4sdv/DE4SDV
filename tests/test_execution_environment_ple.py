@@ -103,6 +103,7 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
         legacy = {
             "example-linux-score-autoware.yaml": "example_linux_score.sysml",
             "apollo-qnx-qvm.yaml": "apollo_qnx_qvm.sysml",
+            "aebs-autoware-linux-lidar-camera.yaml": "aebs_autoware_linux_lidar_camera.sysml",
         }
         for config_name, output_name in legacy.items():
             with self.subTest(configuration=config_name):

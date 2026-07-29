@@ -6,21 +6,21 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
  * Shared-assets model SHA-256: 15cd0e548e4478d9cc05b36f2b9c47a7cbb237167209388943e439f2f7b3e73f
  * Feature model SHA-256: ad7672d6a4886c622af498c28a7a3d9dd916307dd209a5b86fe9c622d7f2783b
- * Bill-of-Features SHA-256: 08d6a8315a9515e2c9ef164061c9d4a3d49f0c1ea56a4769685242a5f0ce586b
- * Regenerate from: model-based-product-line-engineering/feature-configurations/example-linux-score-autoware.yaml
+ * Bill-of-Features SHA-256: 08a73fd91ff18c09debd9f17a021139da1cd4943c65ba70c3c91f48a19f28879
+ * Regenerate from: model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml
  * Feature model: model-based-product-line-engineering/feature-models/sdv_product_line.yaml
  */
 
 private import DE4SDV_SDVPlatformStack::SDVPlatformStack;
 
-part def ExampleLinuxSCOREVariant :> SDVPlatformStack {
+part def AEBSAutowareLinuxLidarCamera :> SDVPlatformStack {
   doc /*
    * Derived platform-stack projection from Bill-of-Features.
-   * Single-domain reference configuration. Autoware (ADAS) on Eclipse S-CORE on Linux, no hypervisor. Vehicle-target AEBS only (no pedestrian/bicycle detection).
+   * AEBS reference member product. Autoware on Linux, single-domain (no middleware, no hypervisor). LiDAR + camera perception, IMU + wheel odometry common. Vehicle-target AEBS only (no pedestrian/bicycle detection).
    *
    * Variant selections:
    *   vehicleApplication = autoware
-   *   middleware = eclipseSCORE
+   *   middleware = none
    *   osPlatform = linux
    *   hypervisor = none
    *
@@ -33,7 +33,7 @@ part def ExampleLinuxSCOREVariant :> SDVPlatformStack {
    */
 
   part :>> vehicleApplication = vehicleApplication::autoware;
-  part :>> middleware = middleware::eclipseSCORE;
+  part :>> middleware = middleware::none;
   part :>> osPlatform = osPlatform::linux;
   part :>> hypervisor = hypervisor::none;
 }

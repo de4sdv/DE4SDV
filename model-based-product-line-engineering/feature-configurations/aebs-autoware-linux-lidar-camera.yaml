@@ -1,0 +1,39 @@
+# Bill-of-Features: AEBS Autoware reference member product
+# Member product of the DE4SDV SDV product line.
+#
+# This is the product configuration that matches the AEBS physical software
+# realization (INC-AEBS-007) and the bench evidence increments (009A-009I).
+# It selects Autoware as the ADAS application on Linux with LiDAR + camera
+# perception sensors and the common motion sensors (IMU, wheel odometry).
+# No vehicle-level middleware or hypervisor — this is a single-domain bench
+# configuration, not a deployed vehicle product.
+#
+# The sensing selections determine which ROS 2 topic inputs the AEB node
+# receives: PointCloud2 from LiDAR, PredictedObjects from the perception
+# pipeline (camera input), ImuMessage from IMU, and VelocityReportMessage
+# from wheel odometry.
+
+name: AEBSAutowareLinuxLidarCamera
+description: >
+  AEBS reference member product.
+  Autoware on Linux, single-domain (no middleware, no hypervisor).
+  LiDAR + camera perception, IMU + wheel odometry common.
+  Vehicle-target AEBS only (no pedestrian/bicycle detection).
+
+selections:
+  # Platform stack — one variant per layer (alternative groups)
+  PlatformStack.VehicleApplication: Autoware
+  PlatformStack.Middleware: None
+  PlatformStack.OS: Linux
+  PlatformStack.Hypervisor: None
+
+  # Capabilities
+  Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS: true
+  Capabilities.ForwardCollisionMitigation.PedestrianDetection: false
+  Capabilities.ForwardCollisionMitigation.BicycleDetection: false
+  Capabilities.AdaptiveCruiseControl: false
+  Capabilities.LaneKeepAssist: false
+
+  # Sensing boundary — motion sensors are mandatory (common capability)
+  # Perception sensors: LiDAR + camera for this configuration
+  SensingBoundary.PerceptionSensors: [LiDAR, Camera]

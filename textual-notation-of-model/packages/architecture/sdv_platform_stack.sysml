@@ -61,6 +61,7 @@ package DE4SDV_SDVPlatformStack {
       variant part eclipseSCORE : EclipseSCORE;
       variant part androidSDV : AndroidSDVMiddleware;
       variant part autosarAdaptive : AUTOSARAdaptive;
+      variant part none[0]; /* single-domain architecture, no vehicle-level middleware */
     }
 
     variation part osPlatform : OSPlatformLayer {
