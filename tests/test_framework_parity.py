@@ -3,12 +3,10 @@ byte-identical evidence documents to the per-increment builders.
 
 These tests prove that the framework (implementation/aebs-bench-framework/)
 can safely replace the per-increment evidence builders without changing any
-output.  If parity holds, the per-increment builders can be deleted and the
+output. If parity holds, the per-increment builders can be deleted and the
 framework can become the sole evidence pipeline.
 
-Currently covers 009G/009H (crossing-target) where complete test fixtures
-already exist.  009D/009E/009F require more complex raw-observer fixtures
-and are deferred to a follow-up.
+Covers 009D/009E/009F plus the existing 009G/009H crossing-target cases.
 """
 
 from __future__ import annotations
@@ -50,6 +48,7 @@ from de4sdv_aebs_009b_bench.scenario_evaluator import Observation, ObservationKi
 from evidence_document import (  # noqa: E402
     CLOCK_BOUNDARY,
     canonical_json_bytes,
+    load_strict_json,
 )
 
 _SOURCE_STAMP = "1700000000.000000000"
@@ -239,6 +238,143 @@ def _make_provenance(bench_root: Path, config_path: str) -> dict:
     value["crossing_config_sha256"] = sha256_file(bench_root / config_path)
     value["repository_head"] = head
     return value
+
+
+def _assert_byte_identical(label: str, per_increment_doc: dict, framework_doc: dict) -> None:
+    per_bytes = canonical_json_bytes(per_increment_doc)
+    framework_bytes = canonical_json_bytes(framework_doc)
+    assert per_bytes == framework_bytes, (
+        f"{label} evidence differs between per-increment and framework builders.\n"
+        f"Per-increment keys: {sorted(per_increment_doc.keys())}\n"
+        f"Framework keys: {sorted(framework_doc.keys())}\n"
+    )
+
+
+def _load_009d_fixture(profile) -> tuple[dict, dict, dict]:
+    manifest = load_strict_json(BENCH_ROOT / "evidence" / "009d" / "campaign-manifest.json")
+    entry = manifest["profiles"][profile.value]
+    run_dir = (
+        BENCH_ROOT
+        / "evidence"
+        / "009d"
+        / "profiles"
+        / profile.value
+        / "runs"
+        / entry["run_id"]
+    )
+    return (
+        load_strict_json(run_dir / "observer-raw.json"),
+        load_strict_json(run_dir / "provenance.json"),
+        load_strict_json(run_dir / "artifacts.json"),
+    )
+
+
+class TestFrameworkParity009D:
+    def test_override_evidence_is_byte_identical(self) -> None:
+        from evidence_pipeline import build_evidence, load_contract
+        from de4sdv_aebs_009b_bench.override_matrix import OverrideScenario
+        from override_evidence import build_override_evidence
+
+        profile = OverrideScenario.FRESH_FALSE_CONTROL
+        raw, provenance, artifacts = _load_009d_fixture(profile)
+        contract = load_contract(BENCH_ROOT / "config/contract-009d.yaml")
+
+        per_increment_doc = build_override_evidence(
+            raw,
+            profile,
+            provenance,
+            artifacts,
+            matrix_path=BENCH_ROOT / "config" / "scenario-009d-conscious-override-matrix.yaml",
+        )
+        framework_doc = build_evidence(
+            raw,
+            profile,
+            provenance,
+            artifacts,
+            contract=contract,
+            bench_root=BENCH_ROOT,
+        )
+        _assert_byte_identical("009D", per_increment_doc, framework_doc)
+
+
+class TestFrameworkParity009E:
+    def test_non_activation_evidence_is_byte_identical(self) -> None:
+        from de4sdv_aebs_009b_bench.non_activation_matrix import NonActivationScenario
+        from evidence_pipeline import build_evidence, load_contract
+        from non_activation_evidence import build_non_activation_evidence
+        from tests.test_aebs_009e_non_activation_matrix import (
+            _make_artifacts,
+            _make_provenance,
+            _make_raw,
+            _passing_observations,
+        )
+
+        profile = NonActivationScenario.CLEAR_PATH
+        raw = _make_raw(_passing_observations(), profile)
+        artifacts, _ = _make_artifacts(BENCH_ROOT, profile.value, "parity-009e-001", raw)
+        provenance = _make_provenance(BENCH_ROOT, profile.value)
+        contract = load_contract(BENCH_ROOT / "config/contract-009e.yaml")
+
+        try:
+            per_increment_doc = build_non_activation_evidence(
+                raw,
+                profile,
+                provenance,
+                artifacts,
+                matrix_path=BENCH_ROOT / "config" / "scenario-009e-non-activation-matrix.yaml",
+            )
+            framework_doc = build_evidence(
+                raw,
+                profile,
+                provenance,
+                artifacts,
+                contract=contract,
+                bench_root=BENCH_ROOT,
+            )
+            _assert_byte_identical("009E", per_increment_doc, framework_doc)
+        finally:
+            shutil.rmtree(BENCH_ROOT / "evidence" / "009e" / "test_fixtures", ignore_errors=True)
+
+
+class TestFrameworkParity009F:
+    def test_degraded_input_evidence_is_byte_identical(self) -> None:
+        from de4sdv_aebs_009b_bench.degraded_input_matrix import DegradedInputScenario
+        from evidence_pipeline import build_evidence, load_contract
+        from degraded_input_evidence import build_degraded_input_evidence
+        from tests.test_aebs_009f_degraded_input_matrix import (
+            _cleanup_fixtures,
+            _make_artifacts,
+            _make_provenance,
+            _make_raw,
+            _observations,
+        )
+
+        profile = DegradedInputScenario.STALE_INPUT
+        raw = _make_raw(_observations(profile), profile)
+        artifacts, _ = _make_artifacts(BENCH_ROOT, profile.value, "parity-009f-001", raw)
+        provenance = _make_provenance(BENCH_ROOT)
+        contract = load_contract(BENCH_ROOT / "config/contract-009f.yaml")
+
+        try:
+            per_increment_doc = build_degraded_input_evidence(
+                raw,
+                BENCH_ROOT / "config" / "scenario-009f-degraded-input-matrix.yaml",
+                provenance,
+                artifacts,
+                profile=profile.value,
+                bench_root=BENCH_ROOT,
+            )
+            framework_doc = build_evidence(
+                raw,
+                profile,
+                provenance,
+                artifacts,
+                contract=contract,
+                bench_root=BENCH_ROOT,
+            )
+            _assert_byte_identical("009F", per_increment_doc, framework_doc)
+        finally:
+            _cleanup_fixtures(BENCH_ROOT, profile.value)
 
 
 class TestFrameworkParity009G:
