@@ -78,7 +78,7 @@ package DE4SDV_AEBS009AExecutionEnvironment {
       frame physicalStructureConcern;
     }
 
-    expose *;
+    expose DE4SDV_AEBS009AExecutionEnvironment::*;
     render asTreeDiagram;
   }
 }

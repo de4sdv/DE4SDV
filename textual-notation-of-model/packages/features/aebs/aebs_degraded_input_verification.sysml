@@ -141,7 +141,7 @@ package DE4SDV_AEBS009FVerification {
       frame physicalStructureConcern;
     }
 
-    expose *;
+    expose DE4SDV_AEBS009FVerification::*;
     render asTreeDiagram;
   }
 }

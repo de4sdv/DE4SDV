@@ -670,7 +670,7 @@ package DE4SDV_SDVPlatformStack {
       frame physicalStructureConcern;
     }
 
-    expose *;
+    expose DE4SDV_SDVPlatformStack::*;
     render asTreeDiagram;
   }
 }

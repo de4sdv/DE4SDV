@@ -162,7 +162,7 @@ package DE4SDV_ExecutionEnvironments {
       frame physicalStructureConcern;
     }
 
-    expose *;
+    expose DE4SDV_ExecutionEnvironments::*;
     render asTreeDiagram;
   }
 }

@@ -310,7 +310,7 @@ package DE4SDV_AEBS009BNominalEvidence {
       frame physicalStructureConcern;
     }
 
-    expose *;
+    expose DE4SDV_AEBS009BNominalEvidence::*;
     render asTreeDiagram;
   }
 }
