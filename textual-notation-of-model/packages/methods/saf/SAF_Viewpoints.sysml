@@ -27,6 +27,7 @@ package SAF_Viewpoints {
   viewpoint def CommonTermsDefinitionViewpoint {
     doc /*
      * SAF Common Domain: Common Terms Definition Viewpoint.
+     * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -49,6 +50,7 @@ package SAF_Viewpoints {
   viewpoint def CommonStandardsDefinitionViewpoint {
     doc /*
      * SAF Common Domain: Common Standards Definition Viewpoint.
+     * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -82,6 +84,7 @@ package SAF_Viewpoints {
   viewpoint def StakeholderIdentificationViewpoint {
     doc /*
      * SAF Common Domain: Stakeholder Identification Viewpoint.
+     * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -106,6 +109,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalContextDefinitionViewpoint {
     doc /*
      * SAF Operational Domain: Operational Context Definition Viewpoint.
+     * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -129,6 +133,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalStoryViewpoint {
     doc /*
      * SAF Operational Domain: Operational Story Viewpoint.
+     * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -152,6 +157,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalCapabilityDefinitionViewpoint {
     doc /*
      * SAF Operational Domain: Operational Capability Definition Viewpoint.
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -174,6 +180,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalProcessViewpoint {
     doc /*
      * SAF Operational Domain: Operational Process Viewpoint.
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -196,6 +203,7 @@ package SAF_Viewpoints {
   viewpoint def StakeholderRequirementDefinitionViewpoint {
     doc /*
      * SAF Operational Domain: Stakeholder Requirement Definition Viewpoint.
+     * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -230,6 +238,7 @@ package SAF_Viewpoints {
   viewpoint def SystemUseCaseViewpoint {
     doc /*
      * SAF Functional Domain: System Use Case Viewpoint.
+     * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -251,6 +260,7 @@ package SAF_Viewpoints {
   viewpoint def SystemCapabilityDefinitionViewpoint {
     doc /*
      * SAF Functional Domain: System Capability Definition Viewpoint.
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -274,6 +284,7 @@ package SAF_Viewpoints {
   viewpoint def SystemFunctionalBreakdownStructureViewpoint {
     doc /*
      * SAF Functional Domain: System Functional Breakdown Structure Viewpoint.
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -297,6 +308,7 @@ package SAF_Viewpoints {
   viewpoint def SystemProcessViewpoint {
     doc /*
      * SAF Functional Domain: System Process Viewpoint.
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -321,6 +333,7 @@ package SAF_Viewpoints {
   viewpoint def SystemInterfaceDefinitionViewpoint {
     doc /*
      * SAF Functional Domain: System Interface Definition Viewpoint.
+     * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -345,6 +358,7 @@ package SAF_Viewpoints {
   viewpoint def SystemRequirementDefinitionViewpoint {
     doc /*
      * SAF Functional Domain: System Requirement Definition Viewpoint.
+     * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -359,6 +373,7 @@ package SAF_Viewpoints {
   viewpoint def SystemRequirementTraceabilityViewpoint {
     doc /*
      * SAF Functional Domain: System Requirement Traceability Viewpoint.
+     * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -384,6 +399,7 @@ package SAF_Viewpoints {
   viewpoint def LogicalStructureDefinitionViewpoint {
     doc /*
      * SAF Logical Domain: Logical Structure Definition Viewpoint.
+     * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -407,6 +423,7 @@ package SAF_Viewpoints {
   viewpoint def LogicalInternalExchangeViewpoint {
     doc /*
      * SAF Logical Domain: Logical Internal Exchange Viewpoint.
+     * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -430,6 +447,7 @@ package SAF_Viewpoints {
   viewpoint def LogicalInternalInteractionViewpoint {
     doc /*
      * SAF Logical Domain: Logical Internal Interaction Viewpoint.
+     * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -453,6 +471,7 @@ package SAF_Viewpoints {
   viewpoint def LogicalFunctionalMappingViewpoint {
     doc /*
      * SAF Logical Domain: Logical Functional Mapping Viewpoint.
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -478,6 +497,7 @@ package SAF_Viewpoints {
   viewpoint def PhysicalContextDefinitionViewpoint {
     doc /*
      * SAF Physical Domain: P1_PCXD Physical Context Definition Viewpoint.
+     * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -500,6 +520,7 @@ package SAF_Viewpoints {
   viewpoint def PhysicalContextExchangeViewpoint {
     doc /*
      * SAF Physical Domain: P1_PCXE Physical Context Exchange Viewpoint.
+     * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -534,6 +555,7 @@ package SAF_Viewpoints {
   viewpoint def PhysicalStructureDefinitionViewpoint {
     doc /*
      * SAF Physical Domain: P2_PSTD Physical Structure Definition Viewpoint.
+     * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -558,6 +580,7 @@ package SAF_Viewpoints {
   viewpoint def PhysicalInterfaceDefinitionViewpoint {
     doc /*
      * SAF Physical Domain: P5_PIFD Physical Interface Definition Viewpoint.
+     * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -581,6 +604,7 @@ package SAF_Viewpoints {
   viewpoint def PhysicalInternalExchangeViewpoint {
     doc /*
      * SAF Physical Domain: P4_PIEX Physical Internal Exchange Viewpoint.
+     * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -604,6 +628,7 @@ package SAF_Viewpoints {
   viewpoint def PhysicalFunctionalMappingViewpoint {
     doc /*
      * SAF Physical Domain: P8_PFUM Physical Functional Mapping Viewpoint.
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -627,6 +652,7 @@ package SAF_Viewpoints {
   viewpoint def PhysicalLogicalMappingViewpoint {
     doc /*
      * SAF Physical Domain: P8_PLOM Physical Logical Mapping Viewpoint.
+     * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -663,6 +689,7 @@ package SAF_Viewpoints {
   viewpoint def AssetIdentificationViewpoint {
     doc /*
      * SAF Safety/Security Domain: Asset Identification Viewpoint.
+     * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -686,6 +713,7 @@ package SAF_Viewpoints {
   viewpoint def SecurityContextViewpoint {
     doc /*
      * SAF Safety/Security Domain: Security Context Viewpoint.
+     * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -707,6 +735,7 @@ package SAF_Viewpoints {
   viewpoint def SecurityRiskAnalysisViewpoint {
     doc /*
      * SAF Safety/Security Domain: Security Risk Analysis Viewpoint.
+     * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -728,6 +757,7 @@ package SAF_Viewpoints {
   viewpoint def ThreatSzenarioViewpoint {
     doc /*
      * SAF Safety/Security Domain: Threat Szenario Viewpoint.
+     * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -750,6 +780,7 @@ package SAF_Viewpoints {
   viewpoint def ArgumentationAssuranceViewpoint {
     doc /*
      * SAF Safety/Security Domain: Argumentation Assurance Viewpoint.
+     * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
@@ -772,6 +803,7 @@ package SAF_Viewpoints {
   viewpoint def ImpactAnalysisViewpoint {
     doc /*
      * SAF Safety/Security Domain: ImpactAnalysis Viewpoint
+     * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: SeverityOfLoss.
      */
@@ -792,6 +824,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalDomainItemKindViewpoint {
     doc /*
      * SAF Operational Domain: OperationalDomainItemKind Viewpoint
+     * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: OperationalExchanges.
      */
@@ -812,6 +845,7 @@ package SAF_Viewpoints {
   viewpoint def SystemContextInteractionViewpoint {
     doc /*
      * SAF Functional Domain: SystemContextInteraction Viewpoint
+     * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: SystemUtilization, ResponseTimeRequirements, ConceptualInteractionSequence.
      */
@@ -832,6 +866,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalContextExchangeViewpoint {
     doc /*
      * SAF Operational Domain: OperationalContextExchange Viewpoint
+     * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: OperationalContextExchanges.
      */
@@ -852,6 +887,7 @@ package SAF_Viewpoints {
   viewpoint def SystemDomainItemKindViewpoint {
     doc /*
      * SAF Functional Domain: SystemDomainItemKind Viewpoint
+     * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: LogicalArchitectureItems.
      */
@@ -872,6 +908,7 @@ package SAF_Viewpoints {
   viewpoint def SystemFunctionalRefinementViewpoint {
     doc /*
      * SAF Functional Domain: SystemFunctionalRefinement Viewpoint
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: SubfunctionInteractions, SystemFunctionBreakdown, SystemFunctionDecomposition.
      */
@@ -892,6 +929,7 @@ package SAF_Viewpoints {
   viewpoint def SystemStateViewpoint {
     doc /*
      * SAF Functional Domain: SystemState Viewpoint
+     * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: SystemModes, SystemFunctionsDependentOnModes.
      */
@@ -912,6 +950,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalContextInteractionViewpoint {
     doc /*
      * SAF Operational Domain: OperationalContextInteraction Viewpoint
+     * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: OperationalProcessThreads.
      */
@@ -932,6 +971,7 @@ package SAF_Viewpoints {
   viewpoint def GridDefinitionViewpoint {
     doc /*
      * SAF Functional Domain: GridDefinition Viewpoint
+     * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ViewpointsUsedInSystemModel, FrameworkViewpoints.
      */
@@ -952,6 +992,7 @@ package SAF_Viewpoints {
   viewpoint def FrameworkConceptDefinitionViewpoint {
     doc /*
      * SAF Framework Domain: FrameworkConceptDefinition Viewpoint
+     * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: RelationsBetweenSEConcepts, ConstraintsOnSEConcepts, SEConceptsCovered.
      */
@@ -972,6 +1013,7 @@ package SAF_Viewpoints {
   viewpoint def FrameworkViewpointOverviewViewpoint {
     doc /*
      * SAF Framework Domain: Framework ViewpointOverview Viewpoint
+     * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: DefinitionOfGridRows, DefinitionOfGridColumns, FrameworkGridStructure, ViewpointLocationInGrid, MaturityOfViewpoints, AvailableViewpoints.
      */
@@ -992,6 +1034,7 @@ package SAF_Viewpoints {
   viewpoint def FrameworkStakeholderandConcernDefinitionViewpoint {
     doc /*
      * SAF Framework Domain: FrameworkStakeholderandConcernDefinition Viewpoint
+     * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: StakeholderConcerns, FrameworkStakeholders, StakeholderConcernsReasons.
      */
@@ -1012,6 +1055,7 @@ package SAF_Viewpoints {
   viewpoint def FrameworkViewpointDefinitionViewpoint {
     doc /*
      * SAF Framework Domain: Framework ViewpointDefinition Viewpoint
+     * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ConceptsExposedInViewpoints, ConcernsFramedByViewpoints, DefinitionOfViewpoints, ViewpointLocationInGrid, ViewpointPurpose, ViewpointPresentations, ViewpointDependencies, SupportForSEStandards.
      */
@@ -1032,6 +1076,7 @@ package SAF_Viewpoints {
   viewpoint def FrameworkViewpointImplementationViewpoint {
     doc /*
      * SAF Framework Domain: Framework ViewpointImplementation Viewpoint
+     * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ImplementationOfFrameworkConcepts, ViewpointImplementation.
      */
@@ -1052,6 +1097,7 @@ package SAF_Viewpoints {
   viewpoint def FrameworkImplementationTraceabilityViewpoint {
     doc /*
      * SAF Framework Domain: FrameworkImplementationTraceability Viewpoint
+     * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ImplementationOfFrameworkConcepts, FrameworkModelElements.
      */
@@ -1072,6 +1118,7 @@ package SAF_Viewpoints {
   viewpoint def FrameworkStereotypeOverviewViewpoint {
     doc /*
      * SAF Framework Domain: FrameworkStereotypeOverview Viewpoint
+     * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: FrameworkModelElements.
      */
@@ -1092,6 +1139,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalPerformerViewpoint {
     doc /*
      * SAF Operational Domain: OperationalPerformer Viewpoint
+     * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: OrganizationalEntitiesForCapability, RelationshipsBetweenParties.
      */
@@ -1112,6 +1160,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalCapabilityMappingViewpoint {
     doc /*
      * SAF Operational Domain: OperationalCapabilityMapping Viewpoint
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: OperationalCapabilityRelationships.
      */
@@ -1132,6 +1181,7 @@ package SAF_Viewpoints {
   viewpoint def OperationalProcessMappingViewpoint {
     doc /*
      * SAF Operational Domain: OperationalProcessMapping Viewpoint
+     * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: OperationalProcessRelationships.
      */
