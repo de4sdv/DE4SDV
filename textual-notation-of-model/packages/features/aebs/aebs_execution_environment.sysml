@@ -1,4 +1,8 @@
 package DE4SDV_AEBS009AExecutionEnvironment {
+  private import SAF_Viewpoints::*;
+  private import DE4SDV_Stakeholders::*;
+  private import Views::*;
+
 
   private import DE4SDV_AEBSSimulationDeployment::*;
   private import DE4SDV_ExecutionEnvironments::*;
@@ -61,5 +65,20 @@ package DE4SDV_AEBS009AExecutionEnvironment {
     dependency maintainedHostIdentity
       from environmentIdentityEvidence
       to executionEnvironment;
+  }
+
+  concern physicalStructureConcern : PhysicalStructureConcern {
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  view aebs009AExecutionEnvironmentStructureView {
+    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
+      frame physicalStructureConcern;
+    }
+
+    expose *;
+    render asTreeDiagram;
   }
 }

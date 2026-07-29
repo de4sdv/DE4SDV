@@ -32,6 +32,10 @@
  */
 
 package DE4SDV_SDVPlatformStack {
+  private import SAF_Viewpoints::*;
+  private import DE4SDV_Stakeholders::*;
+  private import Views::*;
+
 
   /* ──────────────────────────────────────────
    * Stack layer definitions
@@ -654,5 +658,19 @@ package DE4SDV_SDVPlatformStack {
      * by the PLE configurator (tools/configure_variant.py).
      */
   }
-}
 
+  concern physicalStructureConcern : PhysicalStructureConcern {
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  view sdvPlatformStackStructureView {
+    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
+      frame physicalStructureConcern;
+    }
+
+    expose *;
+    render asTreeDiagram;
+  }
+}

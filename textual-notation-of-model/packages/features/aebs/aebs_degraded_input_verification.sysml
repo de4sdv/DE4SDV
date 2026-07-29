@@ -3,6 +3,10 @@ package DE4SDV_AEBS009FVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
+  private import SAF_Viewpoints::*;
+  private import DE4SDV_Stakeholders::*;
+  private import Views::*;
+
 
   enum def ScenarioIdentity009F {
     staleInput;
@@ -125,4 +129,19 @@ package DE4SDV_AEBS009FVerification {
     from evidenceContract009FStateOwnership to reqHandleDegradedUnavailableInputs;
   dependency degradedStatusEvidenceRelevantToStatusIndicationCandidate
     from evidenceContract009FStatusIndication to reqIndicateDegradedUnavailableStatus;
+
+  concern physicalStructureConcern : PhysicalStructureConcern {
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  view aebs009FVerificationStructureView {
+    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
+      frame physicalStructureConcern;
+    }
+
+    expose *;
+    render asTreeDiagram;
+  }
 }

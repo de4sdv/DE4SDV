@@ -3,6 +3,10 @@ package DE4SDV_AEBS009HVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
+  private import SAF_Viewpoints::*;
+  private import DE4SDV_Stakeholders::*;
+  private import Views::*;
+
 
   enum def EvidenceOutcome009H {
     passBoundedTargetResponse;
@@ -74,4 +78,19 @@ package DE4SDV_AEBS009HVerification {
     from evidenceContract009HConfiguredBicycleTarget to reqBicycleTargetResponse;
   dependency bicycleOutcomeRelevantToBicycleResponseCandidate
     from evidenceContract009HIndependentFootprintOutcome to reqBicycleTargetControlledResponse;
+
+  concern physicalStructureConcern : PhysicalStructureConcern {
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  view aebs009HVerificationStructureView {
+    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
+      frame physicalStructureConcern;
+    }
+
+    expose *;
+    render asTreeDiagram;
+  }
 }
