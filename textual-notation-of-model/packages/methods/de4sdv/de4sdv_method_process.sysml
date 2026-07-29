@@ -19,7 +19,7 @@ package DE4SDV_MethodProcess {
 
   /* ─── Method phases ─── */
 
-  enumeration def MethodPhase {
+  enum def MethodPhase {
     doc /* The 13 phases of the DE4SDV increment workflow. */
 
     phase0_incrementFraming {
@@ -138,7 +138,7 @@ package DE4SDV_MethodProcess {
 
   /* ─── Increment size guidance ─── */
 
-  enumeration def IncrementSize {
+  enum def IncrementSize {
     XS {
       doc /* One correction or trace link. */
     }

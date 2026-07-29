@@ -14,8 +14,6 @@ package DE4SDV_MWOperationalContext {
         private import DE4SDV_Stakeholders::*;
         private import SAF_Viewpoints::*;
         private import Views::*;
-        private import COVESA_VSS::*;
-        private import DE4SDV_VSS_Extensions::*;
 
         item def LifecycleCommand {
           doc /* Start, stop, suspend, resume, and shutdown command bundle from the middleware lifecycle manager. */
@@ -98,7 +96,6 @@ package DE4SDV_MWOperationalContext {
             subject;
             actor :>> aebNode = 'integrate ADAS with vehicle platform'::aebNode;
             actor :>> vehicleCommandGate = 'integrate ADAS with vehicle platform'::vehicleCommandGate;
-            actor :>> vehicleMiddleware = 'integrate ADAS with vehicle platform'::vehicleMiddleware;
           }
           then include 'emergency intervention direct path' [0..1] {
             subject;
