@@ -157,9 +157,9 @@ package DE4SDV_ExecutionEnvironments {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view executionEnvironmentsStructureView {
-    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
-      frame physicalStructureConcern;
+  view executionEnvironmentsAssuranceView {
+    viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
     }
 
     expose DE4SDV_ExecutionEnvironments::*;

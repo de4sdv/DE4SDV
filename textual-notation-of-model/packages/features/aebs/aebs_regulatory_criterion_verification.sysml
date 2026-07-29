@@ -169,9 +169,9 @@ package DE4SDV_AEBS009IVerification {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs009IVerificationStructureView {
-    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
-      frame physicalStructureConcern;
+  view aebs009IVerificationAssuranceView {
+    viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
     }
 
     expose DE4SDV_AEBS009IVerification::*;

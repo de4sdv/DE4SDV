@@ -305,9 +305,9 @@ package DE4SDV_AEBS009BNominalEvidence {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs009BNominalEvidenceStructureView {
-    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
-      frame physicalStructureConcern;
+  view aebs009BNominalEvidenceAssuranceView {
+    viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
     }
 
     expose DE4SDV_AEBS009BNominalEvidence::*;

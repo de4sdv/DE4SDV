@@ -73,9 +73,9 @@ package DE4SDV_AEBS009AExecutionEnvironment {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs009AExecutionEnvironmentStructureView {
-    viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
-      frame physicalStructureConcern;
+  view aebs009AExecutionEnvironmentAssuranceView {
+    viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
     }
 
     expose DE4SDV_AEBS009AExecutionEnvironment::*;
