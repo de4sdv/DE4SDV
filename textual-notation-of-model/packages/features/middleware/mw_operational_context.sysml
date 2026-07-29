@@ -14,14 +14,8 @@ package DE4SDV_MWOperationalContext {
         private import DE4SDV_Stakeholders::*;
         private import SAF_Viewpoints::*;
         private import Views::*;
-
-        item def VehicleSignal {
-          doc /* Vehicle speed, steering, and yaw-rate information exchanged through middleware. */
-        }
-
-        item def DiagnosticState {
-          doc /* Diagnostic data and service-failure state exposed through middleware. */
-        }
+        private import COVESA_VSS::*;
+        private import DE4SDV_VSS_Extensions::*;
 
         item def LifecycleCommand {
           doc /* Start, stop, suspend, resume, and shutdown command bundle from the middleware lifecycle manager. */
@@ -35,10 +29,6 @@ package DE4SDV_MWOperationalContext {
           doc /* Over-the-air update coordination and notification data. */
         }
 
-        item def EmergencyBrakingCommand {
-          doc /* Emergency braking command issued directly to the vehicle command gate, bypassing middleware. */
-        }
-
         part def MiddlewareIntegratedVehicleSystem;
         part def ADASApplicationStack :> Stakeholder;
         part def VehiclePlatformMiddleware :> Stakeholder;
@@ -49,8 +39,11 @@ package DE4SDV_MWOperationalContext {
         part def VehicleCommandGate :> Stakeholder;
 
         action def ExchangeVehicleSignals {
-          doc /* ADAS application consumes vehicle speed, steering, and yaw rate from middleware. */
-          in vehicleSignal : VehicleSignal;
+          doc /* ADAS application consumes vehicle speed, yaw rate, longitudinal acceleration, and steering angle from middleware. */
+          out vehicleSpeed : Vehicle_Speed;
+          out vehicleAngularVelocityYaw : Vehicle_AngularVelocity_Yaw;
+          out vehicleAccelerationLongitudinal : Vehicle_Acceleration_Longitudinal;
+          out vehicleChassisSteeringWheelAngle : Vehicle_Chassis_SteeringWheel_Angle;
         }
 
         action def CoordinateLifecycle {
@@ -61,11 +54,13 @@ package DE4SDV_MWOperationalContext {
         action def MonitorHealth {
           doc /* Middleware health monitor detects service failures, and the adapter forwards health status to the ADAS application. */
           in healthStatus : HealthStatus;
+          in aebsError : Vehicle_ADAS_AEBS_IsError;
+          in aebsFailureIndication : Vehicle_ADAS_AEBS_FailureIndication_IsActive;
         }
 
         action def AccessDiagnostics {
           doc /* Diagnostic technician accesses diagnostic data through middleware. */
-          in diagnosticState : DiagnosticState;
+          in diagnosticState : Vehicle_ADAS_AEBS_IsError;
         }
 
         action def CoordinateUpdate {
@@ -75,19 +70,27 @@ package DE4SDV_MWOperationalContext {
 
         action def EmergencyInterventionDirect {
           doc /* AEB node issues emergency braking directly to the vehicle command gate, explicitly bypassing middleware. */
-          out emergencyBrakingCommand : EmergencyBrakingCommand;
+          out emergencyBrakingCommand : Vehicle_ADAS_AEBS_EmergencyBraking_IsCommanded;
         }
 
         action def MiddlewareIntegrationOperationalFlow {
           doc /* Operational flow for the middleware-mediated interactions; the emergency path is modeled separately as a direct bypass. */
-          in item vehicleSignal : VehicleSignal;
+          in item vehicleSpeed : Vehicle_Speed;
+          in item vehicleAngularVelocityYaw : Vehicle_AngularVelocity_Yaw;
+          in item vehicleAccelerationLongitudinal : Vehicle_Acceleration_Longitudinal;
+          in item vehicleChassisSteeringWheelAngle : Vehicle_Chassis_SteeringWheel_Angle;
           in item lifecycleCommand : LifecycleCommand;
           in item healthStatus : HealthStatus;
-          in item diagnosticState : DiagnosticState;
+          in item aebsError : Vehicle_ADAS_AEBS_IsError;
+          in item aebsFailureIndication : Vehicle_ADAS_AEBS_FailureIndication_IsActive;
+          in item diagnosticState : Vehicle_ADAS_AEBS_IsError;
           in item updateNotification : UpdateNotification;
 
           action exchangeVehicleSignals : ExchangeVehicleSignals {
-            in vehicleSignal = MiddlewareIntegrationOperationalFlow::vehicleSignal;
+            out vehicleSpeed = MiddlewareIntegrationOperationalFlow::vehicleSpeed;
+            out vehicleAngularVelocityYaw = MiddlewareIntegrationOperationalFlow::vehicleAngularVelocityYaw;
+            out vehicleAccelerationLongitudinal = MiddlewareIntegrationOperationalFlow::vehicleAccelerationLongitudinal;
+            out vehicleChassisSteeringWheelAngle = MiddlewareIntegrationOperationalFlow::vehicleChassisSteeringWheelAngle;
           }
 
           action coordinateLifecycle : CoordinateLifecycle {
@@ -96,6 +99,8 @@ package DE4SDV_MWOperationalContext {
 
           action monitorHealth : MonitorHealth {
             in healthStatus = MiddlewareIntegrationOperationalFlow::healthStatus;
+            in aebsError = MiddlewareIntegrationOperationalFlow::aebsError;
+            in aebsFailureIndication = MiddlewareIntegrationOperationalFlow::aebsFailureIndication;
           }
 
           action accessDiagnostics : AccessDiagnostics {
