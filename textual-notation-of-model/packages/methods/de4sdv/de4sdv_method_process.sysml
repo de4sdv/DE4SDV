@@ -20,53 +20,53 @@ package DE4SDV_MethodProcess {
   /* ─── Method phases ─── */
 
   enumeration def MethodPhase {
-    doc /* The 13 phases of the DE4SDV increment workflow. */;
+    doc /* The 13 phases of the DE4SDV increment workflow. */
 
     phase0_incrementFraming {
-      doc /* What are we changing or learning? Common domain. */;
+      doc /* What are we changing or learning? Common domain. */
     }
     phase1_concernFraming {
-      doc /* Who cares and why? Common/Operational domain. */;
+      doc /* Who cares and why? Common/Operational domain. */
     }
     phase2_operationalContext {
-      doc /* What happens in the world? Operational domain. */;
+      doc /* What happens in the world? Operational domain. */
     }
     phase3_capabilityClassification {
-      doc /* Feature, common capability, constraint, or evidence? DE4SDV ontology. */;
+      doc /* Feature, common capability, constraint, or evidence? DE4SDV ontology. */
     }
     phase4_needs {
-      doc /* What stakeholder needs exist? Operational domain. */;
+      doc /* What stakeholder needs exist? Operational domain. */
     }
     phase5_requirements {
-      doc /* What shall the system do? Functional domain. */;
+      doc /* What shall the system do? Functional domain. */
     }
     phase6_functionalArchitecture {
-      doc /* What functions, flows, states, interfaces? Functional domain. */;
+      doc /* What functions, flows, states, interfaces? Functional domain. */
     }
     phase7_logicalArchitecture {
-      doc /* What logical elements realize functions? Logical domain. */;
+      doc /* What logical elements realize functions? Logical domain. */
     }
     phase8_physicalRealization {
-      doc /* What software/hardware realizes the logical design? Physical domain. */;
+      doc /* What software/hardware realizes the logical design? Physical domain. */
     }
     phase9_variabilityConfiguration {
-      doc /* How does this vary across member products? DE4SDV product-line layer. */;
+      doc /* How does this vary across member products? DE4SDV product-line layer. */
     }
     phase10_vvEvidence {
-      doc /* How will satisfaction be checked? Common/Functional domain. */;
+      doc /* How will satisfaction be checked? Common/Functional domain. */
     }
     phase11_publication {
-      doc /* What is reviewable now? DE4SDV workflow. */;
+      doc /* What is reviewable now? DE4SDV workflow. */
     }
     phase12_baselineNextSlice {
-      doc /* What is accepted, deferred, or invalidated? Common domain. */;
+      doc /* What is accepted, deferred, or invalidated? Common domain. */
     }
   }
 
   /* ─── SAF domain mapping ─── */
 
   part def SAFDomainMapping {
-    doc /* Maps each method phase to its SAF domain. */;
+    doc /* Maps each method phase to its SAF domain. */
     attribute phase0Domain : ScalarValues::String = "Common";
     attribute phase1Domain : ScalarValues::String = "Common/Operational";
     attribute phase2Domain : ScalarValues::String = "Operational";
@@ -85,7 +85,7 @@ package DE4SDV_MethodProcess {
   /* ─── Required trace chain ─── */
 
   item def TraceLink {
-    doc /* A traceability link in the DE4SDV required trace chain. */;
+    doc /* A traceability link in the DE4SDV required trace chain. */
     attribute fromElement : ScalarValues::String;
     attribute toElement : ScalarValues::String;
     attribute status : ScalarValues::String = "draft";
@@ -96,18 +96,12 @@ package DE4SDV_MethodProcess {
      * Every substantial increment should establish this chain, even if
      * some links are draft:
      *
-     * Stakeholder concern
-     *   -> Need
-     *   -> Requirement / constraint
-     *   -> Feature or common capability
-     *   -> Architecture element / function / interface
-     *   -> Verification case and validation scenario
-     *   -> Acceptance criterion
-     *   -> Evidence artifact and evidence status
-     *   -> Baseline or release decision
+     * Stakeholder concern -> Need -> Requirement -> Feature or common
+     * capability -> Architecture element -> Verification case ->
+     * Acceptance criterion -> Evidence artifact -> Baseline decision.
      *
      * If a link is intentionally missing, record the gap.
-     */;
+     */
     part concernToNeed : TraceLink {
       attribute fromElement redefines TraceLink::fromElement = "StakeholderConcern";
       attribute toElement redefines TraceLink::toElement = "Need";
@@ -146,16 +140,16 @@ package DE4SDV_MethodProcess {
 
   enumeration def IncrementSize {
     XS {
-      doc /* One correction or trace link. */;
+      doc /* One correction or trace link. */
     }
     S {
-      doc /* One feature/scenario/context slice. */;
+      doc /* One feature/scenario/context slice. */
     }
     M {
-      doc /* Cross-viewpoint increment. */;
+      doc /* Cross-viewpoint increment. */
     }
     L {
-      doc /* End-to-end feature baseline. */;
+      doc /* End-to-end feature baseline. */
     }
   }
 
@@ -164,8 +158,7 @@ package DE4SDV_MethodProcess {
   concern methodProcessAssuranceConcern : ArgumentationAssuranceConcern {
     doc /*
      * Reviewers need the DE4SDV method process to be visible: phases,
-     * SAF domain mapping, required trace chain, and increment size
-     * guidance.
+     * SAF domain mapping, required trace chain, and increment size guidance.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
