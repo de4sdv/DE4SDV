@@ -22,9 +22,10 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 ### INC-MW-003: Feature/common-capability classification
 - Phase: 3 (Capability/feature semantics)
 - Question: Is each middleware element a feature, common capability, constraint, or evidence capability?
-- SAF viewpoints: GridDefinitionViewpoint, EATraceabilityViewpoint
+- Viewpoints: ProductLineClassificationViewpoint (DE4SDV method), EATraceabilityViewpoint (SAF)
 - Outputs: feature/common-capability classification, variation points
 - Content: adapter layer = common capability, AAOS SDV = feature, S-CORE = feature, variation points in SDV platform stack
+- Note: Phase 3 labels capabilities; Phase 9 assembles the variation points into configured product models
 - SysML file: textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml
 - YAML: methodologies/sysmod-sysmlv2/pilots/mw-feature-classification.yaml
 
@@ -76,9 +77,9 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 ### INC-MW-009: Variability and configuration
 - Phase: 9 (Variability and configuration)
 - Question: How does middleware integration vary across member products?
-- SAF viewpoints: GridDefinitionViewpoint
-- Outputs: variation points, feature configurations, applicability
-- Content: PLE feature model (middleware selection: AAOS SDV, S-CORE, AUTOSAR, none). Adapter variant follows from (app, middleware) pair. Bill-of-features for AAOS SDV member product. Product model projection
+- Viewpoints: ProductLineConfigurationViewpoint (DE4SDV method), ProductModelAssemblyViewpoint (DE4SDV method)
+- Outputs: variation points, feature configurations, product model assembly
+- Content: PLE feature model (middleware selection: AAOS SDV, S-CORE, AUTOSAR, none). Adapter variant follows from (app, middleware) pair. Bill-of-features for AAOS SDV member product. Product model projection. Consolidates variation points from phases 3-8.
 - SysML file: (updates to existing PLE feature model and product models)
 - YAML: methodologies/sysmod-sysmlv2/pilots/mw-variability-configuration.yaml
 
@@ -105,6 +106,24 @@ Stakeholder concern
   -> Evidence artifact and evidence status
   -> Baseline or release decision
 ```
+
+## Viewpoint flow
+
+Per PR #74 process-mapping.md, each phase has typical viewpoints. The middleware chain uses:
+
+| Phase | Viewpoints | Source |
+|---|---|---|
+| 0 — Framing | IncrementFramingViewpoint, CommonTermsDefinition, CommonStandardsDefinition, EATraceability | DE4SDV method + SAF |
+| 1 — Concern framing | StakeholderIdentificationViewpoint | SAF |
+| 2 — Operational context | OperationalContextDefinition, OperationalStory, OperationalCapabilityDefinition | SAF |
+| 3 — Capability classification | ProductLineClassificationViewpoint | DE4SDV method |
+| 4 — Needs | StakeholderRequirementDefinitionViewpoint | SAF |
+| 5 — Requirements | SystemRequirementDefinition, SystemRequirementTraceability | SAF |
+| 6 — Functional architecture | SystemFunctionalBreakdownStructure, SystemProcess, SystemInterfaceDefinition | SAF |
+| 7 — Logical architecture | LogicalStructureDefinition, LogicalInternalExchange, LogicalFunctionalMapping | SAF |
+| 8 — Physical realization | PhysicalStructureDefinition, PhysicalInterfaceDefinition, PhysicalFunctionalMapping, PhysicalLogicalMapping | SAF |
+| 9 — Variability and configuration | ProductLineConfigurationViewpoint, ProductModelAssemblyViewpoint | DE4SDV method |
+| 10 — V&V and evidence | ArgumentationAssurance | SAF |
 
 ## Key constraints
 
