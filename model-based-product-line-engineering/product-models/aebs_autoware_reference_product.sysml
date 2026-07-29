@@ -150,7 +150,6 @@ package DE4SDV_AEBSAutowareReferenceProduct {
     expose VehicleSensingAssembly;
     expose VehicleTargetAEBSPhysicalSoftwareBoundary;
     expose VehicleTargetAEBSLogicalSystem;
-    expose productSensingToPlatformStack;
     render asTreeDiagram;
   }
 
@@ -160,7 +159,6 @@ package DE4SDV_AEBSAutowareReferenceProduct {
     }
 
     expose AEBSAutowareReferenceProduct;
-    expose productSensingToPlatformStack;
     render asTreeDiagram;
   }
 }
