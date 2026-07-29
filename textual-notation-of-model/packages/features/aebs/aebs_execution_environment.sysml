@@ -73,6 +73,10 @@ package DE4SDV_AEBS009AExecutionEnvironment {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
+  concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
+    doc /* Evidence-based assurance claims and their supporting argumentation. */
+  }
+
   view aebs009AExecutionEnvironmentAssuranceView {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;

@@ -122,6 +122,10 @@ package DE4SDV_AEBS009EVerification {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
+  concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
+    doc /* Evidence-based assurance claims and their supporting argumentation. */
+  }
+
   view aebs009EVerificationAssuranceView {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
