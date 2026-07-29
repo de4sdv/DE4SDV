@@ -11,22 +11,24 @@ purpose: >-
   application stack (Autoware, ROS 2/DDS) with a vehicle-level platform
   middleware (AAOS SDV, Eclipse S-CORE, AUTOSAR Adaptive). This increment
   models what happens in the world when an ADAS application needs vehicle
-  signals, diagnostic access, lifecycle coordination, and health monitoring
-  through a platform middleware — before deriving requirements or designing
-  functional/logical architecture.
+  signals, diagnostic access, lifecycle coordination, health monitoring, and
+  software update coordination through a platform middleware — while
+  presenting both emergency intervention options for later decision-making in
+  requirements and logical architecture phases.
 
 engineering_question: >-
   What operational scenarios require middleware integration between an ADAS
-  application and the vehicle platform, and who are the operational actors?
+  application and the vehicle platform, and how should the alternative
+  emergency intervention paths be represented in the operational context?
 
 lifecycle_decision_supported:
   decision: approve_middleware_operational_context
   description: >-
     Decide whether the operational context for middleware integration is
     correctly scoped: vehicle signal exchange, diagnostic access, lifecycle
-    coordination, health monitoring, and software update coordination as
-    operational scenarios, with explicit exclusion of the safety-critical
-    braking path from the middleware scope.
+    coordination, health monitoring, software update coordination, and both
+    emergency intervention path options as operational scenarios, with the
+    decision about which emergency path to realize deferred to later phases.
 
 source_alignment:
   - source_id: SRC-AAOS-SDV-DOCS
@@ -44,7 +46,7 @@ source_alignment:
     artifact: textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml
     notes:
       - AEBS physical realization defines required boundaries (vehicle interface, health supervisor, diagnostic bridge) that the middleware may satisfy.
-      - The emergency intervention path does NOT go through the middleware (ASM-MW-003).
+      - The operational context presents both safety-path options; the selection is deferred to later requirements and architecture phases.
 
 selected_viewpoints:
   - id: common_terms_definition
@@ -58,7 +60,7 @@ selected_viewpoints:
     output: context, actors, environment
   - id: operational_story
     saf_domain: Operational
-    output: operational stories for signal exchange, diagnostics, lifecycle, health, updates
+    output: operational stories for signal exchange, diagnostics, lifecycle, health, updates, and emergency-path alternatives
   - id: operational_capability_definition
     saf_domain: Operational
     output: operational capability statement and classification hypothesis
@@ -66,6 +68,8 @@ selected_viewpoints:
     saf_domain: Common
     output: source-to-story-to-need trace links
 
+# Increment framing remains separate in the middleware framing slice; this
+# operational-context increment only consumes the result.
 deferred_viewpoints:
   - id: operational_process
     saf_domain: Operational
@@ -161,14 +165,22 @@ operational_scenarios:
       safe vehicle states, shared partitions, and rollback consistency across
       VMs are managed. The ADAS application may be suspended and resumed as part
       of the update.
-  - id: SCN-MW-006
-    name: Emergency intervention (NOT through middleware)
+  - id: SCN-MW-006a
+    name: Emergency intervention via safety path
     description: >-
-      When the AEB node detects an imminent collision, it issues an emergency
-      intervention request directly to the vehicle command gate. This path does
-      NOT go through the adapter or the middleware. The middleware carries
-      vehicle signals, diagnostics, and lifecycle — not safety-critical brake
-      commands. This scenario is explicitly modeled to document the boundary.
+      When the AEB node detects an imminent collision, the operational context
+      allows an emergency braking path through a safety-certified middleware
+      partition. This option maintains a unified lifecycle and health-monitoring
+      chain, but requires the middleware to be qualified for the required ASIL
+      level.
+  - id: SCN-MW-006b
+    name: Emergency intervention direct path
+    description: >-
+      When the AEB node detects an imminent collision, the operational context
+      also allows a direct emergency braking path to the vehicle command gate,
+      bypassing the middleware. This option minimizes latency and avoids
+      dependency on middleware safety qualification, but creates a parallel
+      communication path.
 
 out_of_scope:
   - AAOS SDV internal implementation (Orchestrator, VSIDL, APEX packages)
@@ -199,6 +211,11 @@ assumptions:
       Multiple SDV Core instances may operate together (as separate VMs on one
       SoC, on different SoCs, or across the vehicle network). The operational
       context covers the distributed case, not just a single instance.
+  - id: ASM-MW-008
+    statement: >-
+      The operational context presents both safety path options (through
+      middleware vs direct). The decision is deferred to requirements and
+      logical architecture phases.
 
 gaps:
   - id: GAP-MW-006
@@ -224,12 +241,13 @@ acceptance_criteria:
       relationship to the middleware integration.
   - id: AC-MW-OC-002
     statement: >-
-      At least five operational scenarios cover the main middleware integration
-      use cases: signal exchange, lifecycle, health, diagnostics, and updates.
+      At least six operational scenarios cover the main middleware integration
+      use cases: signal exchange, lifecycle, health, diagnostics, updates, and
+      both emergency-path alternatives.
   - id: AC-MW-OC-003
     statement: >-
-      The emergency intervention path is explicitly documented as NOT going
-      through the middleware.
+      The emergency intervention path is documented as two alternative options:
+      safety path through middleware and direct path bypassing middleware.
   - id: AC-MW-OC-004
     statement: >-
       No middleware implementation details (AAOS SDV, S-CORE, AUTOSAR) leak
@@ -237,6 +255,10 @@ acceptance_criteria:
   - id: AC-MW-OC-005
     statement: >-
       Trace links exist from the INC-MW-001 framing to this operational context.
+  - id: AC-MW-OC-006
+    statement: >-
+      The operational context explicitly defers the emergency-path selection to
+      requirements and logical architecture phases.
 
 next_increments:
   - id: INC-MW-003
