@@ -59,17 +59,28 @@ selected_viewpoints:
   - id: operational_story
     saf_domain: Operational
     output: operational stories for signal exchange, diagnostics, lifecycle, health, updates
+  - id: operational_capability_definition
+    saf_domain: Operational
+    output: operational capability statement and classification hypothesis
   - id: ea_traceability
     saf_domain: Common
     output: source-to-story-to-need trace links
 
 deferred_viewpoints:
-  - id: operational_capability_definition
-    saf_domain: Operational
-    reason: Capabilities are derived in INC-MW-003 (feature classification).
   - id: operational_process
     saf_domain: Operational
     reason: Detailed process flows are derived in INC-MW-006 (functional architecture).
+
+operational_capability:
+  id: CAP-MW-INTEGRATION
+  label: Vehicle platform middleware integration
+  classification_hypothesis: common_capability
+  rationale: >-
+    The capability to exchange vehicle signals, diagnostics, lifecycle
+    coordination, and health status through a platform middleware is required
+    whenever an ADAS application and a vehicle-level middleware are both
+    selected. It does not distinguish member products — it is required for the
+    combination to work. The classification is formally confirmed in INC-MW-003.
 
 operational_actors:
   - id: ACT-ADAS-APP

@@ -194,6 +194,28 @@ package DE4SDV_MWOperationalContext {
           expose OperationalContext::*;
           render asTreeDiagram;
         }
+
+        concern operationalCapabilityConcern : OperationalCapabilityConcern {
+          doc /*
+           * Reviewers need the operational capability expected from the
+           * middleware integration to be described: the system shall be
+           * able to exchange vehicle signals, diagnostics, lifecycle
+           * coordination, and health status between an ADAS application
+           * and a vehicle-level platform middleware.
+           */
+          subject;
+          stakeholder systemsEngineer : SystemsEngineer;
+          stakeholder reviewer : OpenSourceReviewer;
+        }
+
+        view mwOperationalCapabilityView {
+          viewpoint selectedOperationalCapabilityViewpoint : OperationalCapabilityDefinitionViewpoint {
+            frame operationalCapabilityConcern;
+          }
+
+          expose OperationalContext::*;
+          render asTreeDiagram;
+        }
       }
     }
   }
