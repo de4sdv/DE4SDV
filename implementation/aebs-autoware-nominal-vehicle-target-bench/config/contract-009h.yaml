@@ -38,16 +38,16 @@ additional_terminal_reasons:
   - terminal_scenario_failure
 
 evaluator_module: de4sdv_aebs_009b_bench.crossing_target_matrix
-parser_module: crossing_target_evidence
+parser_module: de4sdv_aebs_009b_bench.crossing_target_matrix
 evaluator_function: evaluate_crossing_target_scenario
 evaluator_result_key: evaluator_result
 result_serializer: crossing_target_result_to_json
 matrix_config: scenario-009h-bicycle-crossing.yaml
 
-raw_semantics_module: crossing_target_evidence
+raw_semantics_module: de4sdv_aebs_009b_bench.crossing_target_matrix
 raw_semantics_validator: _validate_crossing_raw_semantics
 
-extra_document_fields_module: crossing_target_evidence
+extra_document_fields_module: de4sdv_aebs_009b_bench.crossing_target_matrix
 extra_document_fields_function: _crossing_target_extra_document_fields
 
 campaign_manifest_schema: de4sdv.aebs-009h.campaign-manifest.v1

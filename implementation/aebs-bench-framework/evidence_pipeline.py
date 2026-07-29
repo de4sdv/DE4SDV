@@ -147,8 +147,10 @@ def build_evidence(
             f"the closed contract"
         )
     profile_field = contract["profile_field"]
-    if profile_field in raw and raw[profile_field] != profile.value:
-        raise ValueError(f"raw {profile_field} differs from selected profile")
+    if profile_field in raw:
+        profile_value = profile.value if hasattr(profile, "value") else profile
+        if raw[profile_field] != profile_value:
+            raise ValueError(f"raw {profile_field} differs from selected profile")
 
     # --- 2. Parse observations -----------------------------------------------
     observations = tuple(observation_from_json(item) for item in raw["observations"])

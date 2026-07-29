@@ -28,12 +28,40 @@ from evidence_document import (
     observation_to_json,
     validate_raw_semantics,
 )
-from override_evidence import build_override_evidence
-from validate_override_evidence import (
-    ValidationError,
-    _require_exact_execution_head,
-    _verify_009d_artifact_paths,
-)
+from evidence_pipeline import build_evidence, load_contract
+from evidence_validator import ValidationError
+
+
+def _verify_009d_artifact_paths(document, profile):
+    artifacts = document.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise ValidationError("009D artifacts must be an object")
+    paths = [record.get("path") for record in artifacts.values() if isinstance(record, dict)]
+    if len(paths) != len(artifacts) or len(set(paths)) != len(paths):
+        raise ValidationError("009D artifact roles require distinct paths")
+    prefix = f"evidence/009d/profiles/{profile.value}/runs/"
+    if any(not isinstance(path, str) or not path.startswith(prefix) for path in paths):
+        raise ValidationError("009D artifact path is not profile-specific")
+    run_parents = {str(Path(path).parent) for path in paths}
+    if len(run_parents) != 1:
+        raise ValidationError("009D artifacts must belong to one isolated run bundle")
+
+
+def _require_exact_execution_head(stored_head, expected_head):
+    if stored_head != expected_head:
+        raise ValidationError("recorded 009D repository head differs from exact campaign head")
+
+
+def build_override_evidence(raw, profile, provenance, artifacts, *, matrix_path):
+    contract = load_contract(BENCH_ROOT / "config/contract-009d.yaml")
+    return build_evidence(
+        raw,
+        profile,
+        provenance,
+        artifacts,
+        contract=contract,
+        bench_root=BENCH_ROOT,
+    )
 
 
 def obs(kind, at, source_stamp=None, **payload):

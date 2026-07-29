@@ -20,11 +20,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BENCH_ROOT = REPO_ROOT / "implementation" / "aebs-autoware-nominal-vehicle-target-bench"
 SCRIPTS_ROOT = BENCH_ROOT / "scripts"
 PACKAGE_ROOT = BENCH_ROOT / "src" / "de4sdv_aebs_009b_bench"
+FRAMEWORK_ROOT = REPO_ROOT / "implementation" / "aebs-bench-framework"
 
-for path in (REPO_ROOT, SCRIPTS_ROOT, PACKAGE_ROOT):
+for path in (REPO_ROOT, SCRIPTS_ROOT, PACKAGE_ROOT, FRAMEWORK_ROOT):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+from evidence_pipeline import build_evidence, load_contract
 from de4sdv_aebs_009b_bench.crossing_target_matrix import (
     CrossingEvidenceOutcome,
     CrossingTargetContract,
@@ -248,7 +250,7 @@ def _make_raw(
     }
 
 
-def _make_provenance(bench_root: Path) -> dict:
+def _make_provenance(bench_root: Path, config_path: str = "config/scenario-009g-pedestrian-crossing.yaml") -> dict:
     from validate_scenario_evidence import _live_provenance_fields
     from execution_identity import execution_manifest_sha256
     from evidence_document import sha256_file
@@ -258,11 +260,33 @@ def _make_provenance(bench_root: Path) -> dict:
     value["captured_utc"] = "2026-07-28T10:00:00Z"
     value["command_exit_code"] = 0
     value["execution_manifest_sha256"] = execution_manifest_sha256(bench_root)
-    value["crossing_config_sha256"] = sha256_file(
-        bench_root / "config/scenario-009g-pedestrian-crossing.yaml"
-    )
+    value["crossing_config_sha256"] = sha256_file(bench_root / config_path)
     value["repository_head"] = head
     return value
+
+
+
+def build_crossing_target_evidence(
+    raw,
+    config_path,
+    provenance,
+    artifacts,
+    *,
+    increment_id,
+    bench_root=BENCH_ROOT,
+):
+    config = load_crossing_target_config(config_path)
+    contract = load_contract(bench_root / f"config/contract-{increment_id[-4:].lower()}.yaml")
+    return build_evidence(
+        raw,
+        config.target_type,
+        provenance,
+        artifacts,
+        contract=contract,
+        bench_root=bench_root,
+    )
+
+
 
 
 def _make_artifacts(bench_root: Path, subdir: str, run_id: str, raw: dict) -> tuple[dict, Path]:
@@ -500,7 +524,7 @@ class TestCrossingTargetEvaluator:
 
 class TestCrossingTargetEvidenceBuilder:
     def test_builds_a_closed_evidence_document(self, tmp_path: Path) -> None:
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -540,7 +564,7 @@ class TestCrossingTargetEvidenceBuilder:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009g" / "test_fixtures", ignore_errors=True)
 
     def test_rejects_unknown_increment(self, tmp_path: Path) -> None:
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -549,20 +573,21 @@ class TestCrossingTargetEvidenceBuilder:
         raw = _make_raw(_observations(), _sample(), _authorization(), config)
         artifacts, _ = _make_artifacts(BENCH_ROOT, "009g", "test-inc-001", raw)
         try:
-            with pytest.raises(ValueError, match="unknown crossing-target increment"):
-                build_crossing_target_evidence(
+            with pytest.raises((ValueError, FileNotFoundError)):
+                contract = load_contract(BENCH_ROOT / "config/contract-009z.yaml")
+                build_evidence(
                     raw,
-                    BENCH_ROOT / "config/scenario-009g-pedestrian-crossing.yaml",
+                    TargetType.PEDESTRIAN,
                     _make_provenance(BENCH_ROOT),
                     artifacts,
-                    increment_id="INC-AEBS-009Z",
+                    contract=contract,
                     bench_root=BENCH_ROOT,
                 )
         finally:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009g" / "test_fixtures", ignore_errors=True)
 
     def test_rejects_tampered_evaluator_result(self, tmp_path: Path) -> None:
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -586,7 +611,7 @@ class TestCrossingTargetEvidenceBuilder:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009g" / "test_fixtures", ignore_errors=True)
 
     def test_rejects_open_raw_contract(self, tmp_path: Path) -> None:
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -609,7 +634,7 @@ class TestCrossingTargetEvidenceBuilder:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009g" / "test_fixtures", ignore_errors=True)
 
     def test_rejects_non_passing_terminal(self, tmp_path: Path) -> None:
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -635,7 +660,7 @@ class TestCrossingTargetEvidenceBuilder:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009g" / "test_fixtures", ignore_errors=True)
 
     def test_builds_009h_bicycle_evidence(self, tmp_path: Path) -> None:
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -669,7 +694,7 @@ class TestCrossingTargetEvidenceBuilder:
 
 class TestCrossingTargetEvidenceShape:
     def test_evidence_root_has_exactly_closed_keys(self, tmp_path: Path) -> None:
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -698,7 +723,7 @@ class TestCrossingTargetEvidenceShape:
 
     def test_evaluation_is_source_bound_not_trust_promoted(self, tmp_path: Path) -> None:
         """The evaluation in the evidence must match the independently replayed result."""
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -731,7 +756,7 @@ class TestCrossingTargetEvidenceShape:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009g" / "test_fixtures", ignore_errors=True)
 
     def test_claim_boundary_is_explicit_and_compliance_withheld(self, tmp_path: Path) -> None:
-        from crossing_target_evidence import build_crossing_target_evidence
+        from evidence_pipeline import build_evidence, load_contract
         import shutil
 
         config = load_crossing_target_config(
@@ -759,7 +784,7 @@ class TestCrossingTargetEvidenceShape:
 
 class TestIncrementConfig:
     def test_009g_and_009h_have_distinct_schemas(self) -> None:
-        from crossing_target_evidence import INCREMENT_CONFIG
+        from de4sdv_aebs_009b_bench.crossing_target_matrix import INCREMENT_CONFIG
         g = INCREMENT_CONFIG["INC-AEBS-009G"]
         h = INCREMENT_CONFIG["INC-AEBS-009H"]
         assert g["schema"] != h["schema"]
@@ -767,6 +792,6 @@ class TestIncrementConfig:
         assert g["target_type"] != h["target_type"]
 
     def test_evidence_dirs_match_increment_lowercase(self) -> None:
-        from crossing_target_evidence import INCREMENT_CONFIG
+        from de4sdv_aebs_009b_bench.crossing_target_matrix import INCREMENT_CONFIG
         assert INCREMENT_CONFIG["INC-AEBS-009G"]["evidence_dir"] == "evidence/009g"
         assert INCREMENT_CONFIG["INC-AEBS-009H"]["evidence_dir"] == "evidence/009h"

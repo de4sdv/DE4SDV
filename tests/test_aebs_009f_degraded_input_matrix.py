@@ -21,11 +21,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BENCH_ROOT = REPO_ROOT / "implementation" / "aebs-autoware-nominal-vehicle-target-bench"
 SCRIPTS_ROOT = BENCH_ROOT / "scripts"
 PACKAGE_ROOT = BENCH_ROOT / "src" / "de4sdv_aebs_009b_bench"
+FRAMEWORK_ROOT = REPO_ROOT / "implementation" / "aebs-bench-framework"
 
-for path in (REPO_ROOT, SCRIPTS_ROOT, PACKAGE_ROOT):
+for path in (REPO_ROOT, SCRIPTS_ROOT, PACKAGE_ROOT, FRAMEWORK_ROOT):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+from evidence_pipeline import build_evidence, load_contract
 from de4sdv_aebs_009b_bench.degraded_input_matrix import (
     DegradedInputAuthorization,
     DegradedInputDisposition,
@@ -210,6 +212,29 @@ def _observations(
 
 def _matrix():
     return load_matrix_contract(CONFIG_PATH)
+
+
+
+def build_degraded_input_evidence(
+    raw,
+    config_path,
+    provenance,
+    artifacts,
+    *,
+    profile,
+    bench_root=BENCH_ROOT,
+):
+    contract = load_contract(BENCH_ROOT / "config" / "contract-009f.yaml")
+    if isinstance(profile, str):
+        profile = DegradedInputScenario(profile)
+    return build_evidence(
+        raw,
+        profile,
+        provenance,
+        artifacts,
+        contract=contract,
+        bench_root=bench_root,
+    )
 
 
 def _obs_to_json(observations: list[Observation]) -> list[dict]:
@@ -774,7 +799,7 @@ class TestSerializationAndTerminal:
 
 class TestDegradedInputEvidenceBuilder:
     def test_builds_a_closed_evidence_document(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = DegradedInputScenario.STALE_INPUT
         obs = _observations(profile)
@@ -803,7 +828,7 @@ class TestDegradedInputEvidenceBuilder:
             _cleanup_fixtures(BENCH_ROOT, profile.value)
 
     def test_builds_all_five_profiles(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         for profile in DegradedInputScenario:
             obs = _observations(profile)
@@ -826,7 +851,7 @@ class TestDegradedInputEvidenceBuilder:
                 _cleanup_fixtures(BENCH_ROOT, profile.value)
 
     def test_rejects_tampered_evaluator_result(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = DegradedInputScenario.MISSING_INPUT
         raw = _make_raw(_observations(profile), profile)
@@ -846,7 +871,7 @@ class TestDegradedInputEvidenceBuilder:
             _cleanup_fixtures(BENCH_ROOT, profile.value)
 
     def test_rejects_open_raw_contract(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = DegradedInputScenario.STALE_INPUT
         raw = _make_raw(_observations(profile), profile)
@@ -866,7 +891,7 @@ class TestDegradedInputEvidenceBuilder:
             _cleanup_fixtures(BENCH_ROOT, profile.value)
 
     def test_rejects_non_passing_terminal(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = DegradedInputScenario.STALE_INPUT
         raw = _make_raw(_observations(profile), profile)
@@ -887,7 +912,7 @@ class TestDegradedInputEvidenceBuilder:
             _cleanup_fixtures(BENCH_ROOT, profile.value)
 
     def test_rejects_unknown_profile(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = DegradedInputScenario.STALE_INPUT
         raw = _make_raw(_observations(profile), profile)
@@ -912,7 +937,7 @@ class TestDegradedInputEvidenceBuilder:
 
 class TestDegradedInputEvidenceShape:
     def test_evidence_root_has_exactly_closed_keys(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = DegradedInputScenario.STALE_INPUT
         raw = _make_raw(_observations(profile), profile)
@@ -936,7 +961,7 @@ class TestDegradedInputEvidenceShape:
             _cleanup_fixtures(BENCH_ROOT, profile.value)
 
     def test_evaluation_is_source_bound_not_trust_promoted(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = DegradedInputScenario.INCONSISTENT_INPUT
         obs = _observations(profile)
@@ -960,7 +985,7 @@ class TestDegradedInputEvidenceShape:
             _cleanup_fixtures(BENCH_ROOT, profile.value)
 
     def test_claim_boundary_is_explicit_and_compliance_withheld(self) -> None:
-        from degraded_input_evidence import build_degraded_input_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = DegradedInputScenario.UNAVAILABLE_INPUT
         raw = _make_raw(_observations(profile), profile)

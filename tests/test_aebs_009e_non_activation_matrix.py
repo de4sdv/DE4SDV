@@ -18,11 +18,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BENCH_ROOT = REPO_ROOT / "implementation" / "aebs-autoware-nominal-vehicle-target-bench"
 SCRIPTS_ROOT = BENCH_ROOT / "scripts"
 PACKAGE_ROOT = BENCH_ROOT / "src" / "de4sdv_aebs_009b_bench"
+FRAMEWORK_ROOT = REPO_ROOT / "implementation" / "aebs-bench-framework"
 
-for path in (REPO_ROOT, SCRIPTS_ROOT, PACKAGE_ROOT):
+for path in (REPO_ROOT, SCRIPTS_ROOT, PACKAGE_ROOT, FRAMEWORK_ROOT):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+from evidence_pipeline import build_evidence, load_contract
 from de4sdv_aebs_009b_bench.non_activation_matrix import (
     MatrixConfig,
     NonActivationMatrixContract,
@@ -80,6 +82,26 @@ def _contract() -> NonActivationMatrixContract:
 def _load_matrix() -> MatrixConfig:
     return load_matrix_contract(
         BENCH_ROOT / "config" / "scenario-009e-non-activation-matrix.yaml"
+    )
+
+
+
+def build_non_activation_evidence(
+    raw,
+    profile,
+    provenance,
+    artifacts,
+    *,
+    matrix_path,
+):
+    contract = load_contract(BENCH_ROOT / "config" / "contract-009e.yaml")
+    return build_evidence(
+        raw,
+        profile,
+        provenance,
+        artifacts,
+        contract=contract,
+        bench_root=BENCH_ROOT,
     )
 
 
@@ -687,7 +709,7 @@ def _make_artifacts(
 
 class TestNonActivationEvidenceBuilder:
     def test_builds_a_closed_evidence_document(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = NonActivationScenario.CLEAR_PATH
         raw = _make_raw(_passing_observations(), profile)
@@ -716,7 +738,7 @@ class TestNonActivationEvidenceBuilder:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009e" / "test_fixtures", ignore_errors=True)
 
     def test_builds_all_four_profiles(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         for profile in NonActivationScenario:
             raw = _make_raw(_passing_observations(), profile)
@@ -739,7 +761,7 @@ class TestNonActivationEvidenceBuilder:
                 )
 
     def test_rejects_profile_mismatch(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = NonActivationScenario.CLEAR_PATH
         raw = _make_raw(_passing_observations(), profile)
@@ -760,7 +782,7 @@ class TestNonActivationEvidenceBuilder:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009e" / "test_fixtures", ignore_errors=True)
 
     def test_rejects_tampered_evaluator_result(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = NonActivationScenario.CLEAR_PATH
         raw = _make_raw(_passing_observations(), profile)
@@ -781,7 +803,7 @@ class TestNonActivationEvidenceBuilder:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009e" / "test_fixtures", ignore_errors=True)
 
     def test_rejects_open_raw_contract(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = NonActivationScenario.CLEAR_PATH
         raw = _make_raw(_passing_observations(), profile)
@@ -802,7 +824,7 @@ class TestNonActivationEvidenceBuilder:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009e" / "test_fixtures", ignore_errors=True)
 
     def test_rejects_non_passing_terminal(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = NonActivationScenario.CLEAR_PATH
         raw = _make_raw(_passing_observations(), profile)
@@ -831,7 +853,7 @@ class TestNonActivationEvidenceBuilder:
 
 class TestNonActivationEvidenceShape:
     def test_evidence_root_has_exactly_closed_keys(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = NonActivationScenario.CLEAR_PATH
         raw = _make_raw(_passing_observations(), profile)
@@ -856,7 +878,7 @@ class TestNonActivationEvidenceShape:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009e" / "test_fixtures", ignore_errors=True)
 
     def test_evaluation_is_source_bound_not_trust_promoted(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = NonActivationScenario.CLEAR_PATH
         obs = _passing_observations()
@@ -886,7 +908,7 @@ class TestNonActivationEvidenceShape:
             shutil.rmtree(BENCH_ROOT / "evidence" / "009e" / "test_fixtures", ignore_errors=True)
 
     def test_claim_boundary_is_explicit_and_compliance_withheld(self) -> None:
-        from non_activation_evidence import build_non_activation_evidence
+        from evidence_pipeline import build_evidence, load_contract
 
         profile = NonActivationScenario.CLEAR_PATH
         raw = _make_raw(_passing_observations(), profile)
