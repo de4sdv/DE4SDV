@@ -277,7 +277,13 @@ package DE4SDV_VehicleSensingBoundary {
      * sensor categories through observation items to the AEBS software message
      * types.
      */
-    frame SensingBoundaryConcern;
+    require constraint {
+      doc /*
+       * A sensing boundary view shall show physical sensor categories,
+       * observation item types, perception pipeline boundary, and traceability
+       * dependencies to AEBS physical-software message types.
+       */
+    }
   }
 
   view sensingBoundaryView {
