@@ -21,15 +21,10 @@ package DE4SDV_MWStakeholderNeeds {
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
 
-        requirement def StakeholderNeedCandidate;
         requirement def MiddlewareIntegrationNeed :> StakeholderNeedCandidate;
         requirement def PlatformDecouplingNeed :> StakeholderNeedCandidate;
-        requirement def TraceabilityNeed :> StakeholderNeedCandidate;
-        requirement def ProductLineFeatureNeed :> StakeholderNeedCandidate;
         requirement def SafetyPathIsolationNeed :> StakeholderNeedCandidate;
         requirement def UpstreamEngagementNeed :> StakeholderNeedCandidate;
-        requirement def EngineeringBoundaryNeed :> StakeholderNeedCandidate;
-        requirement def VVPlanningNeed :> StakeholderNeedCandidate;
 
         part incMW004 : NeedsRequirementsIncrement {
           doc /* INC-MW-004: middleware integration stakeholder needs. */
@@ -77,7 +72,7 @@ package DE4SDV_MWStakeholderNeeds {
             require constraint { doc /* Platform engineers need the SDV product line to ensure the ADAS application is not coupled to a specific middleware implementation so that middleware selection remains a product-line feature choice. */ }
           }
 
-          requirement needMiddlewareAsFeature : ProductLineFeatureNeed {
+          requirement needMiddlewareAsFeature : ProductLineClassificationNeed {
             doc /* N-MW-003 draft System 1 need. */
             subject productLine : SDVProductLine;
             stakeholder productLineEngineer : ProductLineEngineer;
@@ -100,21 +95,21 @@ package DE4SDV_MWStakeholderNeeds {
         }
 
         package System2EngineeringAssurance {
-          requirement needTraceabilityToOperationalContext : TraceabilityNeed {
+          requirement needTraceabilityToOperationalContext : EngineeringTraceabilityNeed {
             doc /* N-MW-006 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder systemsEngineer : SystemsEngineer;
             require constraint { doc /* Systems engineers need the DE4SDV middleware increment to maintain trace links from stakeholder needs to the operational context scenarios defined in INC-MW-002 and the feature classifications defined in INC-MW-003. */ }
           }
 
-          requirement needExplicitEngineeringBoundary : EngineeringBoundaryNeed {
+          requirement needExplicitEngineeringBoundary : EngineeringTraceabilityNeed {
             doc /* N-MW-007 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder systemsEngineer : SystemsEngineer;
             require constraint { doc /* Systems engineers need the DE4SDV middleware increment to keep its engineering boundary, assumptions, source constraints, and out-of-scope cases explicit while needs are derived. */ }
           }
 
-          requirement needVVPlanningAttachment : VVPlanningNeed {
+          requirement needVVPlanningAttachment : VerificationPlanningNeed {
             doc /* N-MW-008 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder reviewer : OpenSourceReviewer;
