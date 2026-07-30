@@ -30,17 +30,6 @@ package DE4SDV_MWStakeholderNeeds {
           doc /* INC-MW-004: middleware integration stakeholder needs. */
         }
 
-        requirement mwNeedsProblemStatement : ProblemStatement {
-          doc /* How can DE4SDV define stakeholder needs for middleware integration that preserve platform decoupling, traceability, product-line variability, safety path isolation, and upstream engagement without making realization or compliance claims? */
-          subject increment : NeedsRequirementsIncrement;
-          stakeholder platformEngineer : SystemsEngineer;
-          stakeholder systemsEngineer : SystemsEngineer;
-          stakeholder productLineEngineer : ProductLineEngineer;
-          stakeholder safetyExpert : SafetyExpert;
-          stakeholder maintainer : Maintainer;
-          stakeholder reviewer : OpenSourceReviewer;
-        }
-
         package System1Product {
           requirement needMiddlewareIntegration : MiddlewareIntegrationNeed {
             doc /* N-MW-001 draft System 1 need. */
