@@ -26,6 +26,18 @@ package DE4SDV_MWIncrementFraming {
            */
         }
 
+        requirement middlewareIntegrationProblemStatement : ProblemStatement {
+          doc /* How can DE4SDV model middleware integration between a domain-specific ADAS application and a vehicle platform so that platform decoupling, product-line variability, safety-path boundaries, upstream engagement, and evidence traceability remain explicit without selecting a concrete realization? */
+          subject increment : MiddlewareIncrement;
+          stakeholder platformEngineer : SystemsEngineer;
+          stakeholder systemsEngineer : SystemsEngineer;
+          stakeholder productLineEngineer : ProductLineEngineer;
+          stakeholder safetyExpert : SafetyExpert;
+          stakeholder maintainer : Maintainer;
+          stakeholder verificationEngineer : VerificationEngineer;
+          stakeholder reviewer : OpenSourceReviewer;
+        }
+
         part scopeMW002 : IncrementScope {
           doc /*
            * Scope: vehicle signals, lifecycle coordination, health monitoring,
