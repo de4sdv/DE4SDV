@@ -39,22 +39,6 @@ package DE4SDV_MWFeatureClassification {
         }
 
         /*
-         * Traceability concern: reviewers need classification decisions
-         * linked to the operational context and increment framing.
-         */
-        concern eaTraceabilityConcern : EATraceabilityConcern {
-          doc /*
-           * Reviewers need trace links from the INC-MW-002 operational
-           * context to this classification, and from classification to
-           * downstream needs and requirements increments.
-           */
-          subject;
-          stakeholder systemsEngineer : SystemsEngineer;
-          stakeholder productLineEngineer : ProductLineEngineer;
-          stakeholder reviewer : OpenSourceReviewer;
-        }
-
-        /*
          * Common capabilities — required for any app+middleware combination.
          * Not features: they do not distinguish member products.
          */
@@ -109,29 +93,6 @@ package DE4SDV_MWFeatureClassification {
         }
 
         /*
-         * Features — distinguish member products. These are the middleware
-         * platform selection and the application stack selection.
-         */
-        part middlewareSelection : ProductLineFeatureCandidate {
-          doc /*
-           * The selection of a vehicle-level middleware platform is a
-           * feature. It distinguishes member products: AAOS SDV,
-           * Eclipse S-CORE, AUTOSAR Adaptive, or none (single-domain
-           * architecture). The variation point exists in the SDV platform
-           * stack as the middleware layer variation.
-           */
-        }
-
-        part applicationStackSelection : ProductLineFeatureCandidate {
-          doc /*
-           * The selection of an ADAS application stack is a feature. It
-           * distinguishes member products: Autoware, OpenPilot, Apollo.
-           * The variation point exists in the SDV platform stack as the
-           * vehicle application layer variation.
-           */
-        }
-
-        /*
          * The adapter variant follows from the (application, middleware)
          * pair. It is not an independent feature — it is a derived
          * consequence of the two feature selections.
@@ -148,34 +109,38 @@ package DE4SDV_MWFeatureClassification {
         }
 
         /*
-         * Variation points in the SDV platform stack relevant to
-         * middleware integration. These are descriptive references to
-         * the variation structure in the architecture package, not
-         * duplicate definitions.
+         * Features are not modeled as SysML elements here. They are
+         * variation points in the SDV platform stack (middleware layer,
+         * vehicle application layer) and are managed in the YAML feature
+         * model. The classification decision is recorded in the YAML
+         * framing file. The parts below are descriptive references to
+         * those variation points for review traceability.
          */
         part middlewareVariationPoint : ProductLineVariantChoice {
           doc /*
-           * Variation point: middleware layer in the SDV platform stack.
-           * Variants: Eclipse S-CORE, Android SDV, AUTOSAR Adaptive,
-           * none. Located in DE4SDV_SDVPlatformStack.
+           * Feature: middleware platform selection. Variation point:
+           * middleware layer in the SDV platform stack. Variants:
+           * Eclipse S-CORE, Android SDV, AUTOSAR Adaptive, none.
+           * Located in DE4SDV_SDVPlatformStack. Managed in YAML.
            */
         }
 
         part applicationVariationPoint : ProductLineVariantChoice {
           doc /*
-           * Variation point: vehicle application layer in the SDV
-           * platform stack. Variants: Autoware, OpenPilot, Apollo.
-           * Located in DE4SDV_SDVPlatformStack.
+           * Feature: application stack selection. Variation point:
+           * vehicle application layer in the SDV platform stack.
+           * Variants: Autoware, OpenPilot, Apollo. Located in
+           * DE4SDV_SDVPlatformStack. Managed in YAML.
            */
         }
 
         part adapterVariationPoint : ProductLineVariantChoice {
           doc /*
-           * Variation point: application-middleware adapter layer in the
-           * SDV platform stack. Variants follow from (application,
+           * Derived variation point: application-middleware adapter layer
+           * in the SDV platform stack. Variants follow from (application,
            * middleware) pair: AutowareToSCORE, AutowareToAAOSSDV,
            * AutowareToAUTOSAR, OpenpilotToSCORE, ApolloToSCORE, none.
-           * Located in DE4SDV_SDVPlatformStack.
+           * Located in DE4SDV_SDVPlatformStack. Managed in YAML.
            */
         }
 
@@ -201,31 +166,11 @@ package DE4SDV_MWFeatureClassification {
         }
 
         /*
-         * Traceability links to prior increments.
-         */
-        dependency classificationFromOperationalContext
-          from FeatureClassification::eaTraceabilityConcern
-          to DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::operationalCapabilityConcern;
-
-        dependency classificationConfirmsHypothesis
-          from FeatureClassification::productLineCapabilityClassificationConcern
-          to DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::operationalCapabilityConcern;
-
-        /*
-         * Views
+         * View
          */
         view mwProductLineClassificationView {
           viewpoint selectedProductLineClassificationViewpoint : ProductLineClassificationViewpoint {
             frame productLineCapabilityClassificationConcern;
-          }
-
-          expose FeatureClassification::*;
-          render asTreeDiagram;
-        }
-
-        view mwClassificationTraceabilityView {
-          viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
-            frame eaTraceabilityConcern;
           }
 
           expose FeatureClassification::*;
