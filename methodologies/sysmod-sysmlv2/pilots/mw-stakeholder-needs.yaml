@@ -1,0 +1,70 @@
+schema: de4sdv.stakeholder-needs.v0
+id: INC-MW-004
+name: Middleware integration stakeholder needs
+status: draft
+type: NeedsRequirementsIncrement
+parent_increment: INC-MW-003
+owner: DE4SDV maintainers
+
+purpose: >-
+  Define stakeholder needs for middleware integration. Needs are separated
+  from requirements (INC-MW-005). System 1 needs are product-level needs from
+  operational stakeholders. System 2 needs are engineering-assurance needs from
+  the DE4SDV engineering team. Need statements, gaps, and trace links are in
+  the SysML model file; this YAML holds only the increment framing.
+
+engineering_question: >-
+  What stakeholder needs exist for middleware integration and how will they be
+  validated?
+
+lifecycle_decision_supported:
+  decision: approve_middleware_stakeholder_needs
+  description: >-
+    Confirm the stakeholder needs before deriving design-input requirements
+    in INC-MW-005.
+
+source_alignment:
+  - source_id: INC-MW-002
+    use: operational_context_baseline
+    artifact: textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml
+    notes:
+      - Operational scenarios are the source for stakeholder needs.
+  - source_id: INC-MW-003
+    use: classification_baseline
+    artifact: textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml
+    notes:
+      - Feature/common-capability classification determines which needs apply to all products vs feature-specific.
+  - source_id: INC-MW-001
+    use: framing_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
+
+selected_viewpoints:
+  - id: stakeholder_requirement_definition
+    source: SAF_Viewpoints
+    output: stakeholder needs separated from requirements
+
+need_ids:
+  system1_product:
+    - N-MW-001: Middleware integration capability (platform engineer)
+    - N-MW-002: Platform decoupling (platform engineer)
+    - N-MW-003: Middleware as feature (product-line engineer)
+    - N-MW-004: Safety path isolation (safety expert)
+    - N-MW-005: Upstream engagement (maintainer)
+  system2_engineering_assurance:
+    - N-MW-006: Traceability to operational context (systems engineer)
+    - N-MW-007: Explicit engineering boundary (systems engineer)
+    - N-MW-008: V&V planning attachment (reviewer)
+
+out_of_scope:
+  - Design-input requirements (INC-MW-005)
+  - Functional architecture (INC-MW-006)
+  - Logical architecture (INC-MW-007)
+  - Physical/software realization (INC-MW-008)
+  - PLE configuration (INC-MW-009)
+  - V&V evidence (INC-MW-010)
+  - Safety path selection (deferred to INC-MW-005)
+  - Compliance or certification claims
+
+next_increments:
+  - id: INC-MW-005
+    name: Requirements
