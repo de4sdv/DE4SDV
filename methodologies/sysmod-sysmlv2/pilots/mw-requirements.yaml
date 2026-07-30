@@ -1,0 +1,115 @@
+schema: de4sdv.requirements.v0
+id: INC-MW-005
+name: Middleware integration requirements
+status: draft
+type: RequirementsIncrement
+parent_increment: INC-MW-004
+owner: DE4SDV maintainers
+purpose: >-
+  Derive draft, verifiable design-input requirements from the middleware
+  stakeholder needs while preserving product-line boundaries, deferred safety
+  decisions, and explicit traceability.
+engineering_question: >-
+  What shall the middleware integration do and how will the resulting
+  requirements be verified without selecting a concrete realization?
+lifecycle_decision_supported: >-
+  Decide whether the middleware requirement baseline is sufficiently bounded
+  and traceable to begin functional architecture in INC-MW-006.
+scope:
+  in_scope:
+  - signal access
+  - diagnostic access
+  - lifecycle coordination
+  - health monitoring
+  - update coordination
+  - safety-path isolation constraint
+  - service discovery
+  - service-binding authentication constraint
+  - requirement-to-need and requirement-to-gap traceability
+  out_of_scope:
+  - functional decomposition
+  - logical allocation
+  - physical/software realization
+  - selection of AAOS SDV, S-CORE, AUTOSAR, or no vehicle-level middleware
+  - final safety-path architecture
+  - detailed security trust-boundary design
+  - numeric timing, performance, or signal thresholds
+source_alignment:
+- source_id: INC-MW-001
+  use: middleware-integration-framing
+  artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
+- source_id: INC-MW-002
+  use: operational-context-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-operational-context.yaml
+- source_id: INC-MW-003
+  use: feature-classification-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-feature-classification.yaml
+- source_id: INC-MW-004
+  use: stakeholder-needs-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-stakeholder-needs.yaml
+selected_viewpoints:
+- viewpoint: SystemRequirementDefinitionViewpoint
+  rationale: Review the requirement candidates, subjects, stakeholders, and constraint bodies.
+- viewpoint: SystemRequirementTraceabilityViewpoint
+  rationale: Review derivation links to stakeholder needs, operational context, classification, and deferred gaps.
+requirement_ids:
+- REQ-MW-001
+- REQ-MW-002
+- REQ-MW-003
+- REQ-MW-004
+- REQ-MW-005
+- REQ-MW-006
+- REQ-MW-007
+- REQ-MW-008
+- REQ-MW-009
+gap_ids:
+- GAP-MW-011
+- GAP-MW-012
+verification_planning:
+  status: planned_with_open_criteria
+  ownership: System 2 verification and assurance workflow
+  note: >-
+    Verification method and evidence status are planning attachments. They do
+    not change the normative requirement expressions in the SysML model.
+  records:
+  - requirement_ids:
+    - REQ-MW-001
+    - REQ-MW-002
+    method: inspection_and_test
+    evidence_status: planned
+    criterion_gap: Enumerate required signals and diagnostic data, including freshness and availability criteria.
+  - requirement_ids:
+    - REQ-MW-003
+    - REQ-MW-004
+    - REQ-MW-005
+    method: analysis_and_test
+    evidence_status: planned
+    criterion_gap: Define lifecycle states, health-state transitions, update coordination behavior, and timing criteria.
+  - requirement_ids:
+    - REQ-MW-006
+    method: analysis_and_fault_injection
+    evidence_status: planned
+    criterion_gap: Resolve the selected safety-path architecture and failure-containment criteria.
+  - requirement_ids:
+    - REQ-MW-007
+    method: test
+    evidence_status: planned
+    criterion_gap: Define service-discovery behavior, unavailable-service handling, and binding criteria.
+  - requirement_ids:
+    - REQ-MW-008
+    method: inspection_and_test
+    evidence_status: gap
+    criterion_gap: Derive the security trust boundary, credential source, authentication mechanism, and failure behavior.
+  - requirement_ids:
+    - REQ-MW-009
+    method: inspection
+    evidence_status: planned
+    criterion_gap: Define the complete trace-link and verification-record completeness check.
+acceptance_checks:
+- SysML requirement usages are the single source of truth for requirement statements.
+- Every requirement has a subject and a requirement candidate category.
+- Every System 1 requirement traces to an INC-MW-004 need or an explicitly identified deferred gap.
+- The System 2 traceability requirement is present.
+- Verification planning records identify open criteria without duplicating requirement text.
+next_increments:
+- INC-MW-006: Functional architecture for signal translation, lifecycle delegation, health forwarding, diagnostics, and update coordination.
