@@ -28,13 +28,13 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   private import DE4SDV_AEBSLogicalArchitecture::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
+  private import DE4SDV_MethodContext::*;
+  private import DE4SDV_ROS2Types::*;
   private import Views::*;
 
   /* ──────────────────────────────────────────
    * Concrete Autoware ROS 2 message definitions
    * ────────────────────────────────────────── */
-
-  abstract item def ROS2TopicMessage;
 
   item def PointCloud2Message :> ROS2TopicMessage {
     doc /* ROS 2 sensor_msgs/msg/PointCloud2. */
@@ -92,19 +92,11 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
    * definitions specialize these roles. The interface captures publish/
    * subscribe compatibility without selecting an RMW/DDS implementation.
    */
-  port def ROS2TopicEndpoint;
-  port def ROS2TopicSubscription :> ROS2TopicEndpoint {
-    in item payload : ROS2TopicMessage;
-  }
-  port def ROS2TopicPublication :> ROS2TopicEndpoint {
-    out item payload : ROS2TopicMessage;
-  }
-
   interface def ROS2PublishSubscribeTopicInterface {
     doc /*
      * Application-level ROS 2 topic protocol. The publisher and subscriber
      * roles are compatible through a common topic and a matching concrete
-     * message type; QoS and RMW/DDS selection are deferred to INC-AEBS-008.
+     * message type; QoS and RMW/DDS selection are deferred.
      */
     end publisher : ROS2TopicPublication;
     end subscriber : ROS2TopicSubscription;
@@ -422,9 +414,9 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
    * absent realization, a blocked source branch, and an observable source
    * contribution from a true logical-to-physical allocation.
    */
-  part def MissingPhysicalRealizationRecord;
-  part def BlockedPhysicalRealizationBranchRecord;
-  part def PhysicalSourceContributionRecord;
+  part def MissingPhysicalRealizationRecord :> MissingRealizationRecord;
+  part def BlockedPhysicalRealizationBranchRecord :> BlockedRealizationBranchRecord;
+  part def PhysicalSourceContributionRecord :> SourceContributionRecord;
 
   part driverWarningRealizationGap : MissingPhysicalRealizationRecord {
     doc /* DriverWarningManagement has no selected physical owner in INC-AEBS-007. */
