@@ -1,0 +1,186 @@
+schema: de4sdv.stakeholder-needs.v0
+id: INC-MW-004
+name: Middleware integration stakeholder needs
+status: draft
+type: NeedsRequirementsIncrement
+parent_increment: INC-MW-003
+owner: DE4SDV maintainers
+
+purpose: >-
+  Define stakeholder needs for middleware integration. Needs are separated
+  from requirements (INC-MW-005). System 1 needs are product-level needs from
+  operational stakeholders. System 2 needs are engineering-assurance needs from
+  the DE4SDV engineering team.
+
+engineering_question: >-
+  What stakeholder needs exist for middleware integration and how will they be
+  validated? Who needs what from the middleware integration, and what
+  constraints must it satisfy?
+
+lifecycle_decision_supported:
+  decision: approve_middleware_stakeholder_needs
+  description: >-
+    Confirm the stakeholder needs before deriving design-input requirements
+    in INC-MW-005. The needs determine what the middleware integration must
+    do and what it must not do.
+
+source_alignment:
+  - source_id: INC-MW-002
+    use: operational_context_baseline
+    artifact: textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml
+    notes:
+      - Operational scenarios (signal exchange, lifecycle, health, diagnostics, updates, emergency paths) are the source for stakeholder needs.
+  - source_id: INC-MW-003
+    use: classification_baseline
+    artifact: textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml
+    notes:
+      - Feature/common-capability classification determines which needs apply to all products vs. which are feature-specific.
+  - source_id: INC-MW-001
+    use: framing_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
+
+selected_viewpoints:
+  - id: stakeholder_requirement_definition
+    source: SAF_Viewpoints
+    output: stakeholder needs separated from requirements
+
+out_of_scope:
+  - Design-input requirements (INC-MW-005)
+  - Functional architecture (INC-MW-006)
+  - Logical architecture (INC-MW-007)
+  - Physical/software realization (INC-MW-008)
+  - PLE configuration (INC-MW-009)
+  - V&V evidence (INC-MW-010)
+  - Safety path selection (deferred to INC-MW-005)
+  - Compliance or certification claims
+
+stakeholder_needs:
+  system1_product:
+    - id: N-MW-001
+      name: Middleware integration capability
+      stakeholder: Platform engineer
+      statement: >-
+        Platform engineers need the SDV product line to provide middleware
+        integration that enables signal access, diagnostic access, lifecycle
+        coordination, health monitoring, and update coordination between an
+        ADAS application and a vehicle-level platform middleware.
+      source: INC-MW-002 operational scenarios
+      validation_intent: Confirmed by requirements in INC-MW-005.
+    - id: N-MW-002
+      name: Platform decoupling
+      stakeholder: Platform engineer
+      statement: >-
+        Platform engineers need the SDV product line to ensure the ADAS
+        application is not coupled to a specific middleware implementation so
+        that middleware selection remains a product-line feature choice.
+      source: INC-MW-003 feature classification
+      validation_intent: Verified by adapter layer design in INC-MW-007/008.
+    - id: N-MW-003
+      name: Middleware as feature
+      stakeholder: Product-line engineer
+      statement: >-
+        Product-line engineers need the SDV product line to treat middleware
+        platform selection as a feature that distinguishes member products,
+        with the adapter layer as a common capability derived from the
+        application-middleware feature pair.
+      source: INC-MW-003 feature classification
+      validation_intent: Confirmed by PLE configuration in INC-MW-009.
+    - id: N-MW-004
+      name: Safety path isolation
+      stakeholder: Safety expert
+      statement: >-
+        Safety experts need each SDV product-line member product to ensure
+        that the emergency intervention path is isolated from middleware
+        failures, whether routed through a safety-certified middleware
+        partition or via a direct vehicle-command path.
+      source: INC-MW-002 emergency intervention scenarios
+      validation_intent: Verified by safety analysis in INC-MW-010.
+    - id: N-MW-005
+      name: Upstream engagement
+      stakeholder: Maintainer
+      statement: >-
+        Maintainers need the SDV product line to engage upstream middleware
+        maintainers before deeper integration, vendoring, or presenting
+        borrowed methods as settled DE4SDV practice.
+      source: INC-MW-001 framing assumptions
+      validation_intent: Confirmed by upstream engagement record.
+
+  system2_engineering_assurance:
+    - id: N-MW-006
+      name: Traceability to operational context
+      stakeholder: Systems engineer
+      statement: >-
+        Systems engineers need the DE4SDV middleware increment to maintain
+        trace links from stakeholder needs to the operational context
+        scenarios defined in INC-MW-002 and the feature classifications
+        defined in INC-MW-003.
+      source: DE4SDV method trace chain requirement
+      validation_intent: Confirmed by trace dependency links in the SysML model.
+    - id: N-MW-007
+      name: Explicit engineering boundary
+      stakeholder: Systems engineer
+      statement: >-
+        Systems engineers need the DE4SDV middleware increment to keep its
+        engineering boundary, assumptions, source constraints, and
+        out-of-scope cases explicit while needs are derived.
+      source: DE4SDV method increment boundary rule
+      validation_intent: Confirmed by increment review.
+    - id: N-MW-008
+      name: V&V planning attachment
+      stakeholder: Open-source reviewer
+      statement: >-
+        Reviewers need the DE4SDV middleware increment to maintain a separate
+        controlled V&V planning attachment for each stakeholder need without
+        changing the product obligation.
+      source: DE4SDV method V&V separation rule
+      validation_intent: Confirmed by V&V evidence increment INC-MW-010.
+
+assumptions:
+  - id: ASM-MW-012
+    statement: >-
+      The stakeholder needs are derived from the operational scenarios in
+      INC-MW-002 and the feature classification in INC-MW-003. They do not
+      introduce new operational scenarios or classification decisions.
+  - id: ASM-MW-013
+    statement: >-
+      The safety path decision (through middleware vs direct) is not made
+      in this increment. Both options are presented as needs; the selection
+      is deferred to INC-MW-005 (requirements) and INC-MW-007 (logical
+      architecture).
+
+gaps:
+  - id: GAP-MW-011
+    statement: >-
+      The specific vehicle signals needed by the ADAS application are not
+      enumerated at the needs level. This is deferred to INC-MW-005
+      (requirements).
+  - id: GAP-MW-012
+    statement: >-
+      The security and trust boundary needs are not yet derived. Deferred to
+      a security-focused increment or INC-MW-005.
+
+acceptance_criteria:
+  - id: AC-MW-SN-001
+    statement: >-
+      Stakeholder needs are separated from requirements.
+  - id: AC-MW-SN-002
+    statement: >-
+      System 1 product needs cover platform decoupling, product-line
+      feature classification, safety path isolation, and upstream
+      engagement.
+  - id: AC-MW-SN-003
+    statement: >-
+      System 2 engineering-assurance needs cover traceability, engineering
+      boundary, and V&V planning.
+  - id: AC-MW-SN-004
+    statement: >-
+      Trace links exist from needs to INC-MW-002 operational context and
+      INC-MW-003 feature classification.
+  - id: AC-MW-SN-005
+    statement: >-
+      The safety path decision is not made in this increment; both options
+      are presented.
+
+next_increments:
+  - id: INC-MW-005
+    name: Requirements
