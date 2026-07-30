@@ -14,15 +14,10 @@ package DE4SDV_MWIncrementFraming {
       package IncrementFraming {
         private import Views::*;
         private import DE4SDV_Stakeholders::*;
+        private import DE4SDV_MethodContext::*;
         private import SAF_Viewpoints::*;
 
-        part def MiddlewareIncrement;
-        part def MiddlewareScope;
-        part def MiddlewareTraceabilityShell;
-        part def MiddlewareEngineeringQuestion;
-        part def MiddlewareLifecycleDecision;
-        part def IncrementAssumption;
-        part def IncrementGap;
+        part def MiddlewareIncrement :> EngineeringIncrement;
 
         part incMW002 : MiddlewareIncrement {
           doc /*
@@ -31,7 +26,7 @@ package DE4SDV_MWIncrementFraming {
            */
         }
 
-        part scopeMW002 : MiddlewareScope {
+        part scopeMW002 : IncrementScope {
           doc /*
            * Scope: vehicle signals, lifecycle coordination, health monitoring,
            * diagnostics, update coordination, and the explicit emergency
@@ -39,14 +34,14 @@ package DE4SDV_MWIncrementFraming {
            */
         }
 
-        part traceabilityShellMW002 : MiddlewareTraceabilityShell {
+        part traceabilityShellMW002 : IncrementTraceabilityShell {
           doc /*
            * Traceability shell: increment framing -> concerns/views ->
            * operational context -> operational story -> assumptions/gaps.
            */
         }
 
-        part engineeringQuestionMW002 : MiddlewareEngineeringQuestion {
+        part engineeringQuestionMW002 : IncrementEngineeringQuestion {
           doc /*
            * What operational scenarios require middleware integration between an
            * ADAS application and the vehicle platform, and who are the
@@ -54,7 +49,7 @@ package DE4SDV_MWIncrementFraming {
            */
         }
 
-        part lifecycleDecisionMW002 : MiddlewareLifecycleDecision {
+        part lifecycleDecisionMW002 : IncrementLifecycleDecision {
           doc /*
            * Decide whether the middleware operational context is correctly scoped
            * before deriving requirements or functional architecture.

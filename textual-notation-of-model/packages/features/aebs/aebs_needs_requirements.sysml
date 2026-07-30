@@ -19,22 +19,8 @@ package DE4SDV_AEBSNeedsRequirements {
 
         part def AEBSCapability :> CommonProductLineCapability;
 
-        requirement def StakeholderNeedCandidate;
-        requirement def ProductLineCommonCapabilityNeed :> StakeholderNeedCandidate;
-        requirement def EngineeringTraceabilityNeed :> StakeholderNeedCandidate;
-        requirement def ProductLineClassificationNeed :> StakeholderNeedCandidate;
-        requirement def RegulatoryVisibilityNeed :> StakeholderNeedCandidate;
-        requirement def VerificationPlanningNeed :> StakeholderNeedCandidate;
         requirement def PedestrianCollisionRiskNeed :> StakeholderNeedCandidate;
         requirement def BicycleCollisionRiskNeed :> StakeholderNeedCandidate;
-        requirement def ProductSafetyAvailabilityNeed :> StakeholderNeedCandidate;
-
-        requirement def RequirementCandidate;
-        requirement def FunctionalRequirementCandidate :> RequirementCandidate;
-        requirement def SafetyConstraintRequirementCandidate :> RequirementCandidate;
-        requirement def ProductLineConstraintRequirementCandidate :> RequirementCandidate;
-        requirement def TraceabilityConstraintRequirementCandidate :> RequirementCandidate;
-        requirement def EvidenceContractTraceabilityRequirementCandidate :> RequirementCandidate;
 
         part incAEBS003 : NeedsRequirementsIncrement;
         part sdvProductLine : SDVProductLine;
@@ -222,6 +208,54 @@ package DE4SDV_AEBSNeedsRequirements {
 
         public import System1Product::*;
         public import System2EngineeringAssurance::*;
+
+        /*
+         * Gaps — deferred scope items per the DE4SDV method.
+         * These are the most important gap categories; individual
+         * requirement-level gaps are referenced in the YAML V&V planning.
+         */
+        part operatingConditionsGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-001: Selected operating conditions remain undefined. */
+        }
+        part detectionCriteriaGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-002: Vehicle-target detection criteria remain undefined. */
+        }
+        part warningCriteriaGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-003: Collision-warning timing, modality, and observability criteria remain undefined. */
+        }
+        part brakingActivationGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-004: Emergency-braking activation conditions and braking demand profile remain undefined. */
+        }
+        part nonActivationGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-005: Non-activation and false-reaction constraints remain undefined. */
+        }
+        part overrideCriteriaGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-006: Conscious driver override inputs and resulting behavior remain undefined. */
+        }
+        part failureDetectionGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-007: AEBS failure detection, indication, and safe-operation criteria remain undefined. */
+        }
+        part variationModelingGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-008: Native SysML v2 variation and variant choices are not yet modeled. */
+        }
+        part vssSignalGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-009: VSS signal candidates are intentionally deferred until the functional-interface increment. */
+        }
+        part satisfactionGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-010: Requirement satisfaction assertions are deferred until functional/logical realization exists. */
+        }
+        part regulatoryApplicabilityGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-013: Source identity is controlled, but amendment-selection rationale, vehicle-category applicability, and authority interpretation remain unresolved. */
+        }
+        part quantifiedThresholdGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-014: Promotion of quantified thresholds into System 1 obligations remains deferred. */
+        }
+        part pedestrianTargetGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-015: Pedestrian target definition, operating conditions, response criteria, and applicability remain unresolved. */
+        }
+        part bicycleTargetGap : DeferredProductLineScope {
+          doc /* GAP-AEBS-REQ-016: Bicycle target definition, operating conditions, response criteria, and applicability remain unresolved. */
+        }
 
         concern stakeholderNeedsConcern : StakeholderNeedsConcern {
           subject;
