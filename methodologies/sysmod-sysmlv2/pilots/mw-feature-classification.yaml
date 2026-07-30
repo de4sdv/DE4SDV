@@ -1,0 +1,208 @@
+schema: de4sdv.feature-classification.v0
+id: INC-MW-003
+name: Middleware integration feature/common-capability classification
+status: draft
+type: FeatureIncrement
+parent_increment: INC-MW-002
+owner: DE4SDV maintainers
+
+purpose: >-
+  Classify each middleware integration element as a feature, common capability,
+  constraint, or evidence capability per the DE4SDV feature/common-capability
+  rule (ISO/IEC 26580-aligned). Confirm the classification hypothesis from
+  INC-MW-002 and record variation points from the SDV platform stack that are
+  relevant to middleware integration.
+
+engineering_question: >-
+  Is each middleware element a feature, common capability, constraint, or
+  evidence capability? Which elements distinguish member products and which
+  are required for any app+middleware combination?
+
+lifecycle_decision_supported:
+  decision: approve_middleware_feature_classification
+  description: >-
+    Confirm the feature/common-capability classification before deriving
+    stakeholder needs and requirements. The classification determines what
+    enters the PLE feature model as variation points and what remains a
+    shared common asset.
+
+source_alignment:
+  - source_id: INC-MW-002
+    use: operational_context_baseline
+    artifact: textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml
+    notes:
+      - The operational context identified the capability CAP-MW-INTEGRATION with classification_hypothesis: common_capability.
+      - This increment confirms or refines that hypothesis.
+  - source_id: INC-MW-001
+    use: framing_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
+  - source_id: DE4SDV_SDVPlatformStack
+    use: variation_structure_reference
+    artifact: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
+    notes:
+      - The SDV platform stack defines the variation points for middleware, application, and adapter layers.
+      - This increment references those variation points descriptively; it does not duplicate them.
+  - source_id: ISO_IEC_26580
+    use: classification_rule
+    notes:
+      - Feature: a product-line characteristic that distinguishes member products.
+      - Common capability: a capability required across member products; not a feature unless it distinguishes them.
+
+selected_viewpoints:
+  - id: product_line_classification
+    source: DE4SDV_MethodViewpoints
+    output: common capabilities separated from features and variation points
+  - id: ea_traceability
+    source: SAF_Viewpoints
+    output: trace links from operational context to classification and from classification to downstream increments
+
+classification:
+  common_capabilities:
+    - id: CC-MW-001
+      name: Application-middleware adapter layer
+      rationale: >-
+        Required for any (application, middleware) pair to translate between
+        incompatible communication paradigms. Does not distinguish member
+        products. Present when middleware is not "none", absent when it is.
+        The specific adapter variant follows from the feature combination.
+    - id: CC-MW-002
+      name: Vehicle signal access
+      rationale: >-
+        The capability to exchange vehicle signals through the middleware
+        is required whenever an ADAS application and middleware are both
+        selected. Does not distinguish member products.
+    - id: CC-MW-003
+      name: Lifecycle coordination
+      rationale: >-
+        Startup, shutdown, suspend, and resume coordination through the
+        middleware is required for all middleware-integrated products.
+    - id: CC-MW-004
+      name: Health monitoring
+      rationale: >-
+        Health and fault detection through the middleware is required for
+        all middleware-integrated products.
+    - id: CC-MW-005
+      name: Diagnostic access
+      rationale: >-
+        Authenticated diagnostic access through the middleware is required
+        for all middleware-integrated products.
+    - id: CC-MW-006
+      name: Update coordination
+      rationale: >-
+        OTA software update coordination through the middleware is required
+        for all middleware-integrated products.
+    - id: CC-MW-007
+      name: Adapter variant derivation
+      rationale: >-
+        The adapter variant is derived from the (application, middleware)
+        feature pair, not selected independently. A common capability because
+        the adapter is always needed when middleware is present.
+
+  features:
+    - id: FEAT-MW-001
+      name: Middleware platform selection
+      rationale: >-
+        The choice of vehicle-level middleware (AAOS SDV, Eclipse S-CORE,
+        AUTOSAR Adaptive, none) distinguishes member products. Variation
+        point: middleware layer in SDV platform stack.
+      variation_point: SDVPlatformStack.middleware
+      variants:
+        - Eclipse S-CORE
+        - Android SDV (AAOS SDV)
+        - AUTOSAR Adaptive
+        - none (single-domain architecture)
+    - id: FEAT-MW-002
+      name: Application stack selection
+      rationale: >-
+        The choice of ADAS application stack (Autoware, OpenPilot, Apollo)
+        distinguishes member products. Variation point: vehicle application
+        layer in SDV platform stack.
+      variation_point: SDVPlatformStack.vehicleApplication
+      variants:
+        - Autoware
+        - OpenPilot
+        - Apollo
+
+  deferred:
+    - id: DEF-MW-001
+      name: Safety path decision
+      rationale: >-
+        The decision about which emergency intervention path to realize
+        (safety-certified middleware partition vs direct vehicle-command
+        gate) is deferred to INC-MW-004 (needs) and INC-MW-005 (requirements).
+    - id: DEF-MW-002
+      name: Security and trust boundary
+      rationale: >-
+        The security and trust boundary for middleware communication (DICE
+        identity, attestation, VLAN segmentation) is not yet classified.
+        Deferred to a security-focused increment or INC-MW-005.
+
+out_of_scope:
+  - Stakeholder needs (INC-MW-004)
+  - Requirements (INC-MW-005)
+  - Functional architecture (INC-MW-006)
+  - Logical architecture (INC-MW-007)
+  - Physical/software realization (INC-MW-008)
+  - PLE feature model configuration (INC-MW-009)
+  - V&V evidence (INC-MW-010)
+  - Safety path selection (deferred)
+  - Security boundary classification (deferred)
+
+assumptions:
+  - id: ASM-MW-009
+    statement: >-
+      The adapter layer is a common capability, not a feature. It does not
+      distinguish member products. The specific adapter variant is derived
+      from the (application, middleware) feature pair.
+  - id: ASM-MW-010
+    statement: >-
+      The vehicle signal access, lifecycle coordination, health monitoring,
+      diagnostic access, and update coordination capabilities are common
+      capabilities. They are required whenever middleware is selected and
+      do not distinguish member products.
+  - id: ASM-MW-011
+    statement: >-
+      The middleware platform selection and the application stack selection
+      are features. They distinguish member products and enter the PLE
+      feature model as variation points.
+
+gaps:
+  - id: GAP-MW-009
+    statement: >-
+      The emergency intervention path decision (safety path through
+      middleware vs direct path) is not yet classified as feature or
+      constraint. This is deferred to INC-MW-004 and INC-MW-005.
+  - id: GAP-MW-010
+    statement: >-
+      The security and trust boundary classification is not yet performed.
+      Deferred to a security-focused increment or INC-MW-005.
+
+acceptance_criteria:
+  - id: AC-MW-FC-001
+    statement: >-
+      Each middleware integration element is classified as a common
+      capability, feature, or deferred scope.
+  - id: AC-MW-FC-002
+    statement: >-
+      The adapter layer is classified as a common capability, not a feature.
+  - id: AC-MW-FC-003
+    statement: >-
+      The middleware platform selection and application stack selection are
+      classified as features that distinguish member products.
+  - id: AC-MW-FC-004
+    statement: >-
+      Variation points in the SDV platform stack are referenced descriptively,
+      not duplicated.
+  - id: AC-MW-FC-005
+    statement: >-
+      The classification confirms or refines the hypothesis from INC-MW-002
+      (CAP-MW-INTEGRATION: common_capability).
+  - id: AC-MW-FC-006
+    statement: >-
+      Trace links exist from the operational context to this classification.
+
+next_increments:
+  - id: INC-MW-004
+    name: Stakeholder needs
+  - id: INC-MW-005
+    name: Requirements
