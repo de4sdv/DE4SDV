@@ -32,15 +32,6 @@ package DE4SDV_MWRequirements {
           doc /* INC-MW-005: middleware integration design-input requirements. */
         }
 
-        requirement mwRequirementsProblemStatement : ProblemStatement {
-          doc /* How can DE4SDV derive verifiable middleware integration requirements that preserve platform decoupling, bounded safety-path behavior, service access, and traceability without selecting a concrete realization? */
-          subject increment : NeedsRequirementsIncrement;
-          stakeholder platformEngineer : SystemsEngineer;
-          stakeholder systemsEngineer : SystemsEngineer;
-          stakeholder safetyExpert : SafetyExpert;
-          stakeholder verificationEngineer : VerificationEngineer;
-        }
-
         package System1Product {
           requirement reqProvideMiddlewareSignalAccess : MiddlewareSignalAccessRequirement {
             doc /* REQ-MW-001 draft design-input requirement. */
