@@ -1,0 +1,267 @@
+schema: de4sdv.operational-context.v0
+id: INC-MW-002
+name: Middleware integration operational context and story
+status: draft
+type: FeatureIncrement
+parent_increment: INC-MW-001
+owner: DE4SDV maintainers
+
+purpose: >-
+  Define the operational context for integrating a domain-specific ADAS
+  application stack (Autoware, ROS 2/DDS) with a vehicle-level platform
+  middleware (AAOS SDV, Eclipse S-CORE, AUTOSAR Adaptive). This increment
+  models what happens in the world when an ADAS application needs vehicle
+  signals, diagnostic access, lifecycle coordination, health monitoring, and
+  software update coordination through a platform middleware — while
+  presenting both emergency intervention options for later decision-making in
+  requirements and logical architecture phases.
+
+engineering_question: >-
+  What operational scenarios require middleware integration between an ADAS
+  application and the vehicle platform, and how should the alternative
+  emergency intervention paths be represented in the operational context?
+
+lifecycle_decision_supported:
+  decision: approve_middleware_operational_context
+  description: >-
+    Decide whether the operational context for middleware integration is
+    correctly scoped: vehicle signal exchange, diagnostic access, lifecycle
+    coordination, health monitoring, software update coordination, and both
+    emergency intervention path options as operational scenarios, with the
+    decision about which emergency path to realize deferred to later phases.
+
+source_alignment:
+  - source_id: SRC-AAOS-SDV-DOCS
+    url: https://source.android.com/docs/automotive/sdv/workstreams/core/integration-guide
+    use: reference_architecture
+    notes:
+      - AAOS SDV integration guide describes distributed vehicle services, communication stack, lifecycle, health, and update management.
+      - This increment models the operational need, not the AAOS SDV implementation.
+      - AAOS SDV is Apache 2.0 (AOSP).
+  - source_id: INC-MW-001
+    use: framing_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
+  - source_id: INC-AEBS-007
+    use: integration_target
+    artifact: textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml
+    notes:
+      - AEBS physical realization defines required boundaries (vehicle interface, health supervisor, diagnostic bridge) that the middleware may satisfy.
+      - The operational context presents both safety-path options; the selection is deferred to later requirements and architecture phases.
+
+selected_viewpoints:
+  - id: common_terms_definition
+    saf_domain: Common
+    output: operational term candidates for middleware integration
+  - id: stakeholder_identification
+    saf_domain: Operational
+    output: stakeholder and concern coverage
+  - id: operational_context_definition
+    saf_domain: Operational
+    output: context, actors, environment
+  - id: operational_story
+    saf_domain: Operational
+    output: operational stories for signal exchange, diagnostics, lifecycle, health, updates, and emergency-path alternatives
+  - id: operational_capability_definition
+    saf_domain: Operational
+    output: operational capability statement and classification hypothesis
+  - id: ea_traceability
+    saf_domain: Common
+    output: source-to-story-to-need trace links
+
+# Increment framing remains separate in the middleware framing slice; this
+# operational-context increment only consumes the result.
+deferred_viewpoints:
+  - id: operational_process
+    saf_domain: Operational
+    reason: Detailed process flows are derived in INC-MW-006 (functional architecture).
+
+operational_capability:
+  id: CAP-MW-INTEGRATION
+  label: Vehicle platform middleware integration
+  classification_hypothesis: common_capability
+  rationale: >-
+    The capability to exchange vehicle signals, diagnostics, lifecycle
+    coordination, and health status through a platform middleware is required
+    whenever an ADAS application and a vehicle-level middleware are both
+    selected. It does not distinguish member products — it is required for the
+    combination to work. The classification is formally confirmed in INC-MW-003.
+
+operational_actors:
+  - id: ACT-ADAS-APP
+    name: ADAS Application Stack
+    description: >-
+      The autonomous emergency braking application (Autoware AEB node) running
+      on a ROS 2/DDS runtime. It consumes vehicle signals, publishes diagnostic
+      state, and receives lifecycle commands.
+  - id: ACT-VEHICLE-MW
+    name: Vehicle Platform Middleware
+    description: >-
+      The vehicle-level service platform (AAOS SDV, S-CORE, or AUTOSAR Adaptive)
+      that provides distributed vehicle services: signal access, diagnostics,
+      lifecycle, health monitoring, and update coordination.
+  - id: ACT-ADAPTER
+    name: Application-Middleware Adapter
+    description: >-
+      The translation layer between the ADAS application's native communication
+      (ROS 2 topics) and the middleware's native communication (VSIDL, LoLa,
+      SOME/IP). It is a common capability, not a feature.
+  - id: ACT-DRIVER
+    name: Driver
+    description: >-
+      The vehicle driver who receives warnings and failure indications. The
+      driver does not interact with the middleware directly — the middleware
+      carries HMI-relevant signals indirectly.
+  - id: ACT-DIAG-TECH
+    name: Diagnostic Technician
+    description: >-
+      A service technician who accesses vehicle diagnostics through the
+      middleware's diagnostic service. Needs authenticated diagnostic access.
+  - id: ACT-OTA-COORD
+    name: OTA Update Coordinator
+    description: >-
+      The system or person coordinating over-the-air software updates. The
+      middleware's update manager treats updates as distributed transactions
+      across VMs and SoCs.
+
+operational_scenarios:
+  - id: SCN-MW-001
+    name: Normal driving signal exchange
+    description: >-
+      During normal driving, the ADAS application continuously consumes vehicle
+      speed, steering angle, and yaw rate from the vehicle platform. These
+      signals flow through the middleware's vehicle signal service (VSIDL or
+      equivalent) and are translated by the adapter into ROS 2 topics that the
+      AEB node subscribes to. No safety-critical braking command passes through
+      this path.
+  - id: SCN-MW-002
+    name: Vehicle startup and lifecycle coordination
+    description: >-
+      At vehicle startup, the middleware's lifecycle manager starts, stops, and
+      supervises services. The ADAS application registers as a managed service
+      and receives lifecycle commands (init, running, suspend, resume, shutdown).
+      The adapter translates middleware lifecycle commands into ROS 2 node
+      lifecycle state transitions.
+  - id: SCN-MW-003
+    name: Fault detection and health monitoring
+    description: >-
+      When a service or input fails, the middleware's health monitor detects
+      the failure and publishes health status. The adapter forwards health
+      status to the ADAS application, which may transition to a degraded or
+      unavailable state. The AEBS health supervisor (separate from the
+      middleware health monitor) owns the AEBS availability decision.
+  - id: SCN-MW-004
+    name: Diagnostic access during service
+    description: >-
+      A diagnostic technician connects to the vehicle and requests diagnostic
+      data. The middleware's diagnostic service provides authenticated access
+      to vehicle and ADAS diagnostic information. The adapter may expose ADAS
+      diagnostic topics to the middleware's diagnostic service.
+  - id: SCN-MW-005
+    name: Over-the-air software update
+    description: >-
+      An OTA update coordinator initiates a software update for the ADAS
+      application or the middleware itself. The middleware's update manager
+      coordinates the update as a distributed transaction: service dependencies,
+      safe vehicle states, shared partitions, and rollback consistency across
+      VMs are managed. The ADAS application may be suspended and resumed as part
+      of the update.
+  - id: SCN-MW-006a
+    name: Emergency intervention via safety path
+    description: >-
+      When the AEB node detects an imminent collision, the operational context
+      allows an emergency braking path through a safety-certified middleware
+      partition. This option maintains a unified lifecycle and health-monitoring
+      chain, but requires the middleware to be qualified for the required ASIL
+      level.
+  - id: SCN-MW-006b
+    name: Emergency intervention direct path
+    description: >-
+      When the AEB node detects an imminent collision, the operational context
+      also allows a direct emergency braking path to the vehicle command gate,
+      bypassing the middleware. This option minimizes latency and avoids
+      dependency on middleware safety qualification, but creates a parallel
+      communication path.
+
+out_of_scope:
+  - AAOS SDV internal implementation (Orchestrator, VSIDL, APEX packages)
+  - S-CORE internal implementation (LoLa, modules)
+  - AUTOSAR Adaptive internal implementation (SOME/IP, RA)
+  - Adapter functional behavior (message translation logic — INC-MW-006)
+  - Logical architecture of the adapter (INC-MW-007)
+  - Physical/software realization (INC-MW-008)
+  - PLE configuration (INC-MW-009)
+  - V&V evidence (INC-MW-010)
+  - Safety case for the adapter (ASIL allocation, fault analysis)
+  - Compliance or certification claims
+
+assumptions:
+  - id: ASM-MW-005
+    statement: >-
+      The operational scenarios assume the ADAS application is already
+      functionally complete (INC-AEBS-006 through INC-AEBS-009). The middleware
+      integration does not change what the ADAS application does — it changes
+      how the ADAS application accesses vehicle platform services.
+  - id: ASM-MW-006
+    statement: >-
+      The middleware provides vehicle signals, diagnostics, lifecycle, health,
+      and update coordination as distributed services. The operational context
+      does not assume a specific middleware implementation.
+  - id: ASM-MW-007
+    statement: >-
+      Multiple SDV Core instances may operate together (as separate VMs on one
+      SoC, on different SoCs, or across the vehicle network). The operational
+      context covers the distributed case, not just a single instance.
+  - id: ASM-MW-008
+    statement: >-
+      The operational context presents both safety path options (through
+      middleware vs direct). The decision is deferred to requirements and
+      logical architecture phases.
+
+gaps:
+  - id: GAP-MW-006
+    statement: >-
+      The specific vehicle signals that the ADAS application needs from the
+      middleware are not yet enumerated. This is deferred to INC-MW-005
+      (requirements).
+  - id: GAP-MW-007
+    statement: >-
+      The mapping between ROS 2 topics and middleware service interfaces is not
+      yet defined. This is deferred to INC-MW-006 (functional architecture) and
+      INC-MW-008 (physical realization).
+  - id: GAP-MW-008
+    statement: >-
+      The security and trust boundary for middleware communication (DICE
+      identity, attestation, VLAN segmentation) is not yet modeled. This is
+      deferred to a security-focused increment or INC-MW-005 (requirements).
+
+acceptance_criteria:
+  - id: AC-MW-OC-001
+    statement: >-
+      The operational context identifies all operational actors and their
+      relationship to the middleware integration.
+  - id: AC-MW-OC-002
+    statement: >-
+      At least six operational scenarios cover the main middleware integration
+      use cases: signal exchange, lifecycle, health, diagnostics, updates, and
+      both emergency-path alternatives.
+  - id: AC-MW-OC-003
+    statement: >-
+      The emergency intervention path is documented as two alternative options:
+      safety path through middleware and direct path bypassing middleware.
+  - id: AC-MW-OC-004
+    statement: >-
+      No middleware implementation details (AAOS SDV, S-CORE, AUTOSAR) leak
+      into the operational context.
+  - id: AC-MW-OC-005
+    statement: >-
+      Trace links exist from the INC-MW-001 framing to this operational context.
+  - id: AC-MW-OC-006
+    statement: >-
+      The operational context explicitly defers the emergency-path selection to
+      requirements and logical architecture phases.
+
+next_increments:
+  - id: INC-MW-003
+    name: Feature/common-capability classification
+  - id: INC-MW-004
+    name: Stakeholder needs
