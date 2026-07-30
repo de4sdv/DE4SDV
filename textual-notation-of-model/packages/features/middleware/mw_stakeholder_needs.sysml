@@ -122,6 +122,44 @@ package DE4SDV_MWStakeholderNeeds {
           }
         }
 
+        /*
+         * Gaps — deferred scope items, same pattern as INC-MW-003.
+         */
+        part vehicleSignalEnumerationGap : DeferredProductLineScope {
+          doc /*
+           * GAP-MW-011: The specific vehicle signals needed by the ADAS
+           * application are not enumerated at the needs level. Deferred
+           * to INC-MW-005 (requirements).
+           */
+        }
+
+        part securityTrustBoundaryGap : DeferredProductLineScope {
+          doc /*
+           * GAP-MW-012: The security and trust boundary needs are not yet
+           * derived. Deferred to a security-focused increment or
+           * INC-MW-005.
+           */
+        }
+
+        /*
+         * Trace links from needs to prior increments.
+         */
+        dependency need001FromOperationalContext
+          from needMiddlewareIntegration
+          to DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::operationalCapabilityConcern;
+
+        dependency need002FromClassification
+          from needPlatformDecoupling
+          to DE4SDV_MWFeatureClassification::Features::Middleware::FeatureClassification::productLineCapabilityClassificationConcern;
+
+        dependency need003FromClassification
+          from needMiddlewareAsFeature
+          to DE4SDV_MWFeatureClassification::Features::Middleware::FeatureClassification::productLineCapabilityClassificationConcern;
+
+        dependency need004FromOperationalContext
+          from needSafetyPathIsolation
+          to DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::operationalCapabilityConcern;
+
         public import System1Product::*;
         public import System2EngineeringAssurance::*;
 

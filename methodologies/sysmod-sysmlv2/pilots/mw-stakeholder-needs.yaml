@@ -10,8 +10,8 @@ purpose: >-
   Define stakeholder needs for middleware integration. Needs are separated
   from requirements (INC-MW-005). System 1 needs are product-level needs from
   operational stakeholders. System 2 needs are engineering-assurance needs from
-  the DE4SDV engineering team. Need statements are in the SysML model file;
-  this YAML holds only the increment framing.
+  the DE4SDV engineering team. Need statements, gaps, and trace links are in
+  the SysML model file; this YAML holds only the increment framing.
 
 engineering_question: >-
   What stakeholder needs exist for middleware integration and how will they be
@@ -64,51 +64,6 @@ out_of_scope:
   - V&V evidence (INC-MW-010)
   - Safety path selection (deferred to INC-MW-005)
   - Compliance or certification claims
-
-assumptions:
-  - id: ASM-MW-012
-    statement: >-
-      The stakeholder needs are derived from the operational scenarios in
-      INC-MW-002 and the feature classification in INC-MW-003. They do not
-      introduce new operational scenarios or classification decisions.
-  - id: ASM-MW-013
-    statement: >-
-      The safety path decision (through middleware vs direct) is not made
-      in this increment. Both options are presented as needs; the selection
-      is deferred to INC-MW-005 (requirements) and INC-MW-007 (logical
-      architecture).
-
-gaps:
-  - id: GAP-MW-011
-    statement: >-
-      The specific vehicle signals needed by the ADAS application are not
-      enumerated at the needs level. Deferred to INC-MW-005 (requirements).
-  - id: GAP-MW-012
-    statement: >-
-      The security and trust boundary needs are not yet derived. Deferred to
-      a security-focused increment or INC-MW-005.
-
-acceptance_criteria:
-  - id: AC-MW-SN-001
-    statement: >-
-      Stakeholder needs are separated from requirements.
-  - id: AC-MW-SN-002
-    statement: >-
-      System 1 product needs cover platform decoupling, product-line
-      feature classification, safety path isolation, and upstream
-      engagement.
-  - id: AC-MW-SN-003
-    statement: >-
-      System 2 engineering-assurance needs cover traceability, engineering
-      boundary, and V&V planning.
-  - id: AC-MW-SN-004
-    statement: >-
-      Trace links exist from needs to INC-MW-002 operational context and
-      INC-MW-003 feature classification.
-  - id: AC-MW-SN-005
-    statement: >-
-      The safety path decision is not made in this increment; both options
-      are presented.
 
 next_increments:
   - id: INC-MW-005
