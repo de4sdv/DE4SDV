@@ -32,23 +32,13 @@ package DE4SDV_MWRequirements {
           doc /* INC-MW-005: middleware integration design-input requirements. */
         }
 
-        part mwRequirementsSystemContext : SystemContext {
-          doc /* DE4SDV method system context for INC-MW-005. */
-          part productLine : SDVProductLine :>> systemOfInterest;
-          part memberProduct : ProductLineMemberProduct;
-          part platformEngineer : SystemsEngineer;
-          part systemsEngineer : SystemsEngineer;
-          part safetyExpert : SafetyExpert;
-          part verificationEngineer : VerificationEngineer;
-
-          requirement mwRequirementsProblemStatement : ProblemStatement {
-            doc /* How can DE4SDV derive verifiable middleware integration requirements that preserve platform decoupling, bounded safety-path behavior, service access, and traceability without selecting a concrete realization? */
-            subject increment : NeedsRequirementsIncrement;
-            stakeholder platformEngineer : SystemsEngineer;
-            stakeholder systemsEngineer : SystemsEngineer;
-            stakeholder safetyExpert : SafetyExpert;
-            stakeholder verificationEngineer : VerificationEngineer;
-          }
+        requirement mwRequirementsProblemStatement : ProblemStatement {
+          doc /* How can DE4SDV derive verifiable middleware integration requirements that preserve platform decoupling, bounded safety-path behavior, service access, and traceability without selecting a concrete realization? */
+          subject increment : NeedsRequirementsIncrement;
+          stakeholder platformEngineer : SystemsEngineer;
+          stakeholder systemsEngineer : SystemsEngineer;
+          stakeholder safetyExpert : SafetyExpert;
+          stakeholder verificationEngineer : VerificationEngineer;
         }
 
         package System1Product {
