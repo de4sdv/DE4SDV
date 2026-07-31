@@ -21,6 +21,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_AAOSSDVMiddlewareBoundary::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
+  private import COVESA_VSS::**;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
@@ -54,6 +55,19 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Manifest repository:
      * https://android.googlesource.com/platform/manifest
      * Build target: sdv_core_cf-trunk_staging-userdebug.
+     */
+  }
+
+  part def COVESAVehicleSpeedSemanticSource {
+    doc /*
+     * Source-backed semantic definition for VSS Vehicle.Speed. This is the
+     * canonical vehicle-speed meaning used between the AAOS contract and the
+     * Autoware ROS 2 representation; it is not an AAOS VSIDL service contract.
+     * Source repository:
+     * https://github.com/COVESA/vehicle_signal_specification
+     * Source commit: 6fb1dac2630a8910ee996863b2af02b310dcd7ce.
+     * Source path: spec/VehicleSignalSpecification.vspec.
+     * VSS path: Vehicle.Speed; quantity: speed; unit: km/h.
      */
   }
 
@@ -235,6 +249,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part adapter : AutowareToAAOSSDVAdapterPhysical;
     part aaosSdvBoundary : SDVCoreBoundary;
     part aaosSourceArtifact : AAOSSDVSourceArtifact;
+    part vssVehicleSpeedSource : COVESAVehicleSpeedSemanticSource;
     part vsidlProviderSource : AAOSVSIDLProviderAgentSource;
     part middlewareSource : AAOSMiddlewareSource;
     part hardwareInterfacesSource : AAOSHardwareSDVInterfacesSource;
@@ -349,6 +364,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     from physicalSoftware::adapter::aaosDiagnostics
     to physicalSoftware::adapter::ros2DiagnosticsOut;
 
+  dependency vehicleSpeedSemanticTrace
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::vssVehicleSpeedSource;
   dependency aaosVSIDLSourceTrace
     from physicalSoftware::adapter::aaosSignal
     to physicalSoftware::vsidlProviderSource;

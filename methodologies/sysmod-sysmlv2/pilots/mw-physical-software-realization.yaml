@@ -43,6 +43,14 @@ source_alignment:
 - source_id: AAOS-SDV-BOUNDARY
   use: candidate-platform-boundary
   artifact: textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml
+- source_id: COVESA-VSS-VEHICLE-SPEED
+  use: semantic-vehicle-speed-contract
+  repository: https://github.com/COVESA/vehicle_signal_specification
+  commit: 6fb1dac2630a8910ee996863b2af02b310dcd7ce
+  path: spec/VehicleSignalSpecification.vspec
+  signal: Vehicle.Speed
+  quantity: speed
+  unit: km/h
 - source_id: AOSP-AAOS-SDV-MANIFEST
   use: pinned-source-manifest
   repository: https://android.googlesource.com/platform/manifest
@@ -107,6 +115,7 @@ physical_element_ids:
 - UpdateClient
 - ServiceDiscoveryClient
 - AAOSSDVSourceArtifact
+- COVESAVehicleSpeedSemanticSource
 - AAOSVSIDLProviderAgentSource
 - AAOSMiddlewareSource
 - AAOSHardwareSDVInterfacesSource
@@ -134,6 +143,7 @@ mapping_ids:
 - aaosHealthSourceTrace
 - aaosDiagnosticsSourceTrace
 - aaosAdapterSourceManifestTrace
+- vehicleSpeedSemanticTrace
 requirement_trace_ids:
 - REQ-MW-001
 - REQ-MW-002
