@@ -1,0 +1,98 @@
+schema: de4sdv.logical-architecture.v0
+id: INC-MW-007
+name: Middleware integration logical architecture
+status: draft
+type: LogicalArchitectureIncrement
+parent_increment: INC-MW-006
+owner: DE4SDV maintainers
+purpose: >-
+  Allocate the technology-neutral middleware integration functions to logical
+  responsibilities and define logical boundary exchanges without selecting a
+  concrete middleware, software runtime, process, ECU, network, or deployment.
+engineering_question: >-
+  What logical elements realize the middleware integration functions and how do
+  they exchange information at the logical boundary?
+lifecycle_decision_supported: >-
+  Decide whether the logical decomposition and functional mappings are explicit
+  enough to begin physical/software realization in INC-MW-008.
+scope:
+  in_scope:
+  - logical signal translation responsibility
+  - logical diagnostic proxy responsibility
+  - logical lifecycle bridge responsibility
+  - logical health proxy responsibility
+  - logical update coordination responsibility
+  - logical service discovery and binding responsibility
+  - logical safety-path observation/protection status
+  - logical boundary delegation and typed exchanges
+  - functional-to-logical allocation
+  out_of_scope:
+  - ROS 2, DDS, AAOS SDV, S-CORE, AUTOSAR, or vendor selection
+  - software processes, executors, nodes, ECUs, networks, or deployment
+  - concrete signal schemas, units, transport, or API contracts
+  - physical safety mechanism or safety certification claim
+  - emergency intervention command path through middleware
+source_alignment:
+- source_id: INC-MW-005
+  use: requirements-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-requirements.yaml
+- source_id: INC-MW-006
+  use: functional-architecture-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-functional-architecture.yaml
+selected_viewpoints:
+- viewpoint: LogicalStructureDefinitionViewpoint
+  rationale: Review logical decomposition and responsibility boundaries.
+- viewpoint: LogicalInternalExchangeViewpoint
+  rationale: Review typed boundary interfaces, delegation, and exchanges.
+- viewpoint: LogicalFunctionalMappingViewpoint
+  rationale: Review functional-to-logical responsibility allocation.
+logical_element_ids:
+- SignalTranslator
+- DiagnosticProxy
+- LifecycleBridge
+- HealthProxy
+- UpdateCoordinator
+- ServiceBindingManager
+logical_interface_ids:
+- SignalAccessApplicationPort
+- DiagnosticApplicationPort
+- LifecycleApplicationPort
+- HealthApplicationPort
+- UpdateApplicationPort
+- ServiceBindingApplicationPort
+- SafetyPathObservationPort
+functional_mapping_ids:
+- signalTranslationAllocation
+- diagnosticProxyAllocation
+- lifecycleBridgeAllocation
+- healthProxyAllocation
+- updateCoordinatorAllocation
+- serviceBindingAllocation
+- safetyPathObservationAllocation
+requirement_trace_ids:
+- REQ-MW-001
+- REQ-MW-002
+- REQ-MW-003
+- REQ-MW-004
+- REQ-MW-005
+- REQ-MW-006
+- REQ-MW-007
+- REQ-MW-008
+assumptions:
+- id: ASM-MW-016
+  statement: >-
+    Logical elements represent technology-neutral responsibilities and are not
+    software components, processes, nodes, ECUs, or vendor services.
+- id: ASM-MW-017
+  statement: >-
+    The emergency intervention command path remains outside the middleware
+    logical system; this increment models only health and protection status.
+gaps:
+- id: GAP-MW-016
+  model_element: logicalSignalDefinitionGap
+- id: GAP-MW-017
+  model_element: logicalServiceContractGap
+- id: GAP-MW-018
+  model_element: logicalSafetyOwnershipGap
+next_increments:
+- INC-MW-008: Physical/software realization of the selected logical responsibilities.
