@@ -19,6 +19,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_SDVPlatformStack::*;
   private import DE4SDV_AAOSSDVMiddlewareBoundary::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
+  private import DE4SDV_ROS2Types::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
