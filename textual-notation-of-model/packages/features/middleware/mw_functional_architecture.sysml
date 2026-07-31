@@ -103,6 +103,12 @@ package DE4SDV_MWFunctionalArchitecture {
             state operational;
             state degraded;
             state shuttingDown;
+            transition first uninitialized then initializing;
+            transition initializing then operational;
+            transition operational then degraded;
+            transition degraded then operational;
+            transition operational then shuttingDown;
+            transition degraded then shuttingDown;
           }
         }
 
@@ -114,6 +120,10 @@ package DE4SDV_MWFunctionalArchitecture {
             state unavailable;
             state degraded;
             state available;
+            transition first unavailable then degraded;
+            transition degraded then available;
+            transition available then degraded;
+            transition degraded then unavailable;
           }
         }
 
@@ -132,6 +142,13 @@ package DE4SDV_MWFunctionalArchitecture {
             state authenticating;
             state bound;
             state failed;
+            transition first undiscovered then discovered;
+            transition discovered then authenticating;
+            transition authenticating then bound;
+            transition discovered then failed;
+            transition authenticating then failed;
+            transition bound then failed;
+            transition failed then discovered;
           }
         }
 
