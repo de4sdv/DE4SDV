@@ -84,7 +84,6 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part serviceDiscoveryClient : ServiceDiscoveryClient;
   }
 
-  part logicalSystem : MiddlewareLogicalSystem;
   part physicalSoftware : MiddlewarePhysicalSoftwareBoundary;
 
   allocation def LogicalToPhysicalSoftwareCandidate {
@@ -92,22 +91,22 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   allocation signalTranslatorCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate logicalSystem::signalTranslator
+    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::signalTranslator
     to physicalSoftware::signalAccessClient;
   allocation diagnosticProxyCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate logicalSystem::diagnosticProxy
+    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::diagnosticProxy
     to physicalSoftware::diagnosticAccessClient;
   allocation lifecycleBridgeCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate logicalSystem::lifecycleBridge
+    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::lifecycleBridge
     to physicalSoftware::lifecycleClient;
   allocation healthProxyCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate logicalSystem::healthProxy
+    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::healthProxy
     to physicalSoftware::healthClient;
   allocation updateCoordinatorCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate logicalSystem::updateCoordinator
+    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::updateCoordinator
     to physicalSoftware::updateClient;
   allocation serviceBindingManagerCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate logicalSystem::serviceBindingManager
+    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::serviceBindingManager
     to physicalSoftware::serviceDiscoveryClient;
 
   dependency aaosBoundaryCandidateForSignalAccess
@@ -131,7 +130,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   dependency adapterCandidateAtApplicationBoundary
     from physicalSoftware::adapter
-    to logicalSystem;
+    to DE4SDV_MWLogicalArchitecture::logicalSystem;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
