@@ -542,7 +542,6 @@ package DE4SDV_AEBSSimulationDeployment {
   part universeSource : PinnedAutowareUniverseSource;
   part launchSource : PinnedAutowareLaunchSource;
   part deployment : AEBTwoSystemSimulationDeployment;
-  part logicalSystem : VehicleTargetAEBSLogicalSystem;
 
   dependency deploymentTracesUniverse from deployment::system1 to universeSource;
   dependency deploymentTracesLaunch from deployment to launchSource;
@@ -550,19 +549,19 @@ package DE4SDV_AEBSSimulationDeployment {
   /* P8_PLOM: logical responsibility to physical role only. */
   allocation def SimulationLogicalToPhysicalRealization;
   allocation stateAcquisitionToAEB : SimulationLogicalToPhysicalRealization
-    allocate logicalSystem.stateAcquisition to deployment.system1.aeb;
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.stateAcquisition to deployment.system1.aeb;
   allocation interventionDecisionToAEB : SimulationLogicalToPhysicalRealization
-    allocate logicalSystem.interventionDecision to deployment.system1.aeb;
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.interventionDecision to deployment.system1.aeb;
   allocation emergencyCoordinationToAggregator : SimulationLogicalToPhysicalRealization
-    allocate logicalSystem.emergencyCoordination to deployment.system1.aggregator;
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.aggregator;
   allocation emergencyCoordinationToAvailabilityConverter : SimulationLogicalToPhysicalRealization
-    allocate logicalSystem.emergencyCoordination to deployment.system1.commandModeToOperationModeAvailabilityConverter;
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.commandModeToOperationModeAvailabilityConverter;
   allocation emergencyCoordinationToMrmHandler : SimulationLogicalToPhysicalRealization
-    allocate logicalSystem.emergencyCoordination to deployment.system1.mrmHandler;
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.mrmHandler;
   allocation emergencyCoordinationToOperator : SimulationLogicalToPhysicalRealization
-    allocate logicalSystem.emergencyCoordination to deployment.system1.emergencyStopOperator;
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.emergencyStopOperator;
   allocation emergencyCoordinationToLegacyVehicleGate : SimulationLogicalToPhysicalRealization
-    allocate logicalSystem.emergencyCoordination to deployment.system1.legacyVehicleCommandGate;
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.legacyVehicleCommandGate;
   /* Proposed Physical Logical Item Mapping: logical to physical only. */
   allocation def LogicalToPhysicalItemRealization {
     doc /*
@@ -575,17 +574,17 @@ package DE4SDV_AEBSSimulationDeployment {
      */
   }
   allocation emergencyRequestToOperateMrm : LogicalToPhysicalItemRealization
-    allocate logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
       to deployment.system1.mrmHandler.operateMrmOut.request;
   allocation emergencyRequestToLegacyGateControl : LogicalToPhysicalItemRealization
-    allocate logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
       to deployment.system1.legacyVehicleCommandGate.emergencyControlCommandIn.command;
 
   allocation vehicleMotionToVelocityFeedback : LogicalToPhysicalItemRealization
-    allocate logicalSystem.vehicleMotionObservationIn.vehicleMotionState
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.vehicleMotionObservationIn.vehicleMotionState
       to deployment.system1.velocityFeedbackIn.velocity;
   allocation vehicleMotionToKinematicFeedback : LogicalToPhysicalItemRealization
-    allocate logicalSystem.vehicleMotionObservationIn.vehicleMotionState
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.vehicleMotionObservationIn.vehicleMotionState
       to deployment.system1.kinematicStateIn.odometry;
 
 
