@@ -18,6 +18,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_MWLogicalArchitecture::*;
   private import DE4SDV_SDVPlatformStack::*;
   private import DE4SDV_AAOSSDVMiddlewareBoundary::*;
+  private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
@@ -87,6 +88,16 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     port aaosHealth : HealthStatusPort;
     port aaosUpdate : UpdateCoordinationPort;
     port aaosDiscovery : ServiceDiscoveryPort;
+
+    port ros2VelocityIn : VelocityReportSubscription {
+      doc /* Existing Autoware topic /vehicle/status/velocity_status. */
+    }
+    port ros2AutowareStateIn : AutowareStateSubscription {
+      doc /* Existing Autoware topic /autoware/state. */
+    }
+    port ros2DiagnosticsOut : DiagnosticPublication {
+      doc /* Existing Autoware diagnostic publication /diagnostics. */
+    }
   }
 
   part def MiddlewarePhysicalSoftwareBoundary {
@@ -191,6 +202,16 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency adapterDiscoveryServiceCandidate
     from physicalSoftware::adapter::aaosDiscovery
     to physicalSoftware::aaosSdvBoundary::serviceDiscovery;
+
+  dependency ros2VelocityToVSIDLSignalAccess
+    from physicalSoftware::adapter::ros2VelocityIn
+    to physicalSoftware::adapter::aaosSignal;
+  dependency ros2AutowareStateToVSIDLLifecycle
+    from physicalSoftware::adapter::ros2AutowareStateIn
+    to physicalSoftware::adapter::aaosLifecycle;
+  dependency vsidlDiagnosticsToROS2Diagnostics
+    from physicalSoftware::adapter::aaosDiagnostics
+    to physicalSoftware::adapter::ros2DiagnosticsOut;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
