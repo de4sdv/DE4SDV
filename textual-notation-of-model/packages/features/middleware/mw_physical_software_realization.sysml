@@ -67,13 +67,35 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     port discovery : ServiceDiscoveryPort;
   }
 
+  part def AutowareToAAOSSDVAdapterPhysical :> AutowareToAAOSSDVAdapter {
+    doc /*
+     * Physical adapter candidate with explicit application-side logical ports
+     * and AAOS SDV-side service ports. The port contracts are integration
+     * boundaries; concrete ROS 2 topic and VSIDL schemas remain controlled by
+     * GAP-MW-019 until reviewed source revisions are pinned.
+     */
+    port applicationSignal : SignalAccessApplicationPort;
+    port applicationDiagnostics : DiagnosticApplicationPort;
+    port applicationLifecycle : LifecycleApplicationPort;
+    port applicationHealth : HealthApplicationPort;
+    port applicationUpdate : UpdateApplicationPort;
+    port applicationDiscovery : ServiceBindingApplicationPort;
+
+    port aaosSignal : VehicleSignalAccessPort;
+    port aaosDiagnostics : DiagnosticAccessPort;
+    port aaosLifecycle : LifecycleCoordinationPort;
+    port aaosHealth : HealthStatusPort;
+    port aaosUpdate : UpdateCoordinationPort;
+    port aaosDiscovery : ServiceDiscoveryPort;
+  }
+
   part def MiddlewarePhysicalSoftwareBoundary {
     doc /*
      * Candidate physical/software integration boundary for an Autoware-to-AAOS
      * SDV configuration. The AAOS model is a boundary reference; no internal
      * implementation, deployment, or runtime claim is made.
      */
-    part adapter : AutowareToAAOSSDVAdapter;
+    part adapter : AutowareToAAOSSDVAdapterPhysical;
     part aaosSdvBoundary : SDVCoreBoundary;
 
     part signalAccessClient : SignalAccessClient;
@@ -131,6 +153,44 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency adapterCandidateAtApplicationBoundary
     from physicalSoftware::adapter
     to DE4SDV_MWLogicalArchitecture::logicalSystem;
+
+  dependency adapterSignalMapping
+    from physicalSoftware::adapter::applicationSignal
+    to physicalSoftware::adapter::aaosSignal;
+  dependency adapterDiagnosticMapping
+    from physicalSoftware::adapter::applicationDiagnostics
+    to physicalSoftware::adapter::aaosDiagnostics;
+  dependency adapterLifecycleMapping
+    from physicalSoftware::adapter::applicationLifecycle
+    to physicalSoftware::adapter::aaosLifecycle;
+  dependency adapterHealthMapping
+    from physicalSoftware::adapter::applicationHealth
+    to physicalSoftware::adapter::aaosHealth;
+  dependency adapterUpdateMapping
+    from physicalSoftware::adapter::applicationUpdate
+    to physicalSoftware::adapter::aaosUpdate;
+  dependency adapterDiscoveryMapping
+    from physicalSoftware::adapter::applicationDiscovery
+    to physicalSoftware::adapter::aaosDiscovery;
+
+  dependency adapterSignalServiceCandidate
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::aaosSdvBoundary::vsidlMiddleware;
+  dependency adapterDiagnosticServiceCandidate
+    from physicalSoftware::adapter::aaosDiagnostics
+    to physicalSoftware::aaosSdvBoundary::diagnostics;
+  dependency adapterLifecycleServiceCandidate
+    from physicalSoftware::adapter::aaosLifecycle
+    to physicalSoftware::aaosSdvBoundary::lifecycleManager;
+  dependency adapterHealthServiceCandidate
+    from physicalSoftware::adapter::aaosHealth
+    to physicalSoftware::aaosSdvBoundary::healthMonitor;
+  dependency adapterUpdateServiceCandidate
+    from physicalSoftware::adapter::aaosUpdate
+    to physicalSoftware::aaosSdvBoundary::updateManager;
+  dependency adapterDiscoveryServiceCandidate
+    from physicalSoftware::adapter::aaosDiscovery
+    to physicalSoftware::aaosSdvBoundary::serviceDiscovery;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
