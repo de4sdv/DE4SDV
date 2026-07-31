@@ -11,6 +11,7 @@
 
 package DE4SDV_MWLogicalArchitecture {
   private import DE4SDV_MethodContext::*;
+  private import DE4SDV_ProductLine::*;
   private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
   private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
   private import DE4SDV_MWRequirements::Features::Middleware::Requirements::*;
@@ -165,22 +166,22 @@ package DE4SDV_MWLogicalArchitecture {
     to logicalSystem.healthProxy;
 
   dependency signalTranslatorDerivedFromRequirement
-    from logicalSystem.signalTranslator
+    from logicalSystem::signalTranslator
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideMiddlewareSignalAccess;
   dependency diagnosticProxyDerivedFromRequirement
-    from logicalSystem.diagnosticProxy
+    from logicalSystem::diagnosticProxy
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideMiddlewareDiagnosticAccess;
   dependency lifecycleBridgeDerivedFromRequirement
-    from logicalSystem.lifecycleBridge
+    from logicalSystem::lifecycleBridge
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqCoordinateMiddlewareLifecycle;
   dependency healthProxyDerivedFromRequirement
-    from logicalSystem.healthProxy
+    from logicalSystem::healthProxy
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqMonitorMiddlewareHealth;
   dependency updateCoordinatorDerivedFromRequirement
-    from logicalSystem.updateCoordinator
+    from logicalSystem::updateCoordinator
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqCoordinateMiddlewareUpdates;
   dependency serviceBindingDerivedFromRequirement
-    from logicalSystem.serviceBindingManager
+    from logicalSystem::serviceBindingManager
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideServiceDiscovery;
 
   concern logicalStructureConcern : LogicalStructureConcern {
