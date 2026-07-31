@@ -7,9 +7,9 @@ parent_increment: INC-MW-007
 owner: DE4SDV maintainers
 purpose: >-
   Map the middleware logical responsibilities to a candidate Autoware-to-AAOS
-  SDV physical/software integration boundary without claiming pinned source,
-  executable runtime behavior, complete requirement satisfaction, or safety
-  certification.
+  SDV physical/software integration boundary with traceability to pinned
+  Autoware and AOSP source artifacts, without claiming executable runtime
+  behavior, complete requirement satisfaction, or safety certification.
 engineering_question: >-
   What candidate software and platform boundary elements can realize the
   middleware logical responsibilities, and what source contracts remain to be
@@ -23,6 +23,7 @@ scope:
   - AAOS SDV boundary reference model
   - candidate physical/software clients for signal, diagnostic, lifecycle, health, update, and discovery responsibilities
   - logical-to-physical candidate mappings
+  - pinned AOSP source-artifact traceability for AAOS SDV middleware projects
   - physical structure, interface, functional-mapping, and logical-mapping views
   out_of_scope:
   - vendoring or implementing AAOS SDV
@@ -42,6 +43,39 @@ source_alignment:
 - source_id: AAOS-SDV-BOUNDARY
   use: candidate-platform-boundary
   artifact: textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml
+- source_id: AOSP-AAOS-SDV-MANIFEST
+  use: pinned-source-manifest
+  repository: https://android.googlesource.com/platform/manifest
+  branch: android-latest-release
+  revision: ad156f32caaa06dae91c02d443f6a8fe210eaa54
+- source_id: AOSP-AAOS-SDV-VSIDL
+  use: VSIDL-provider-agent-source
+  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/vsidl
+  branch: android17-release
+  revision: 9d6bfa55d7448844c36af7c5aeadb3e981b6c995
+  paths:
+  - provider/agent/sdv/src/main.rs
+  - provider/agent/sdv/api/protos/messages.proto
+- source_id: AOSP-AAOS-SDV-MIDDLEWARE
+  use: middleware-communication-source
+  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/middleware
+  branch: android17-release
+  revision: 7ab87b58959e638fc9f1e5a5860cfed20ed29cab
+- source_id: AOSP-AAOS-SDV-LIFECYCLE
+  use: lifecycle-service-source
+  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/lifecycle_management
+  branch: android17-release
+  revision: 74813463c7293bf12e0791701b2037b1a26f48f8
+- source_id: AOSP-AAOS-SDV-HEALTH
+  use: health-monitor-source
+  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/health_monitor
+  branch: android17-release
+  revision: a3ffbe9caf8b94041c013deac36c4e5f27b69932
+- source_id: AOSP-AAOS-SDV-DIAGNOSTICS
+  use: automotive-diagnostics-source
+  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/automotive_services
+  branch: android17-release
+  revision: 1d4dcb7f908a6df97b036a90a5802de8cedebd63
 selected_viewpoints:
 - viewpoint: PhysicalStructureDefinitionViewpoint
   rationale: Review candidate physical/software boundary composition.
@@ -61,6 +95,12 @@ physical_element_ids:
 - HealthClient
 - UpdateClient
 - ServiceDiscoveryClient
+- AAOSSDVSourceArtifact
+- AAOSVSIDLProviderAgentSource
+- AAOSMiddlewareSource
+- AAOSLifecycleServiceSource
+- AAOSHealthMonitorSource
+- AAOSDiagnosticsSource
 mapping_ids:
 - signalTranslatorCandidate
 - diagnosticProxyCandidate
@@ -68,6 +108,12 @@ mapping_ids:
 - healthProxyCandidate
 - updateCoordinatorCandidate
 - serviceBindingManagerCandidate
+- aaosVSIDLSourceTrace
+- aaosMiddlewareSourceTrace
+- aaosLifecycleSourceTrace
+- aaosHealthSourceTrace
+- aaosDiagnosticsSourceTrace
+- aaosAdapterSourceManifestTrace
 requirement_trace_ids:
 - REQ-MW-001
 - REQ-MW-002

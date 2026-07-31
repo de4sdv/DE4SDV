@@ -38,6 +38,45 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     doc /* GAP-MW-021: The candidate AAOS SDV boundary has not been shown to satisfy the logical service responsibilities or requirements. */
   }
 
+  part def AAOSSDVSourceArtifact {
+    doc /*
+     * Pinned AOSP source manifest for the AAOS SDV build. Manifest branch:
+     * android-latest-release; manifest revision:
+     * ad156f32caaa06dae91c02d443f6a8fe210eaa54. The SDV projects below use
+     * the android17-release revision declared by that manifest.
+     */
+  }
+
+  part def AAOSVSIDLProviderAgentSource {
+    doc /*
+     * Source-backed VSIDL provider agent from
+     * system/software_defined_vehicle/vsidl/provider/agent/sdv. The pinned
+     * implementation exposes metadata RPCs including diagnostics declaration,
+     * message descriptor, publication descriptor, and RPC method descriptor.
+     * Source revision: 9d6bfa55d7448844c36af7c5aeadb3e981b6c995.
+     */
+  }
+
+  part def AAOSMiddlewareSource {
+    doc /*
+     * Source-backed AAOS SDV middleware communication implementation from
+     * system/software_defined_vehicle/middleware. Source revision:
+     * 7ab87b58959e638fc9f1e5a5860cfed20ed29cab.
+     */
+  }
+
+  part def AAOSLifecycleServiceSource {
+    doc /* Source-backed lifecycle-management project at system/software_defined_vehicle/lifecycle_management; revision 74813463c7293bf12e0791701b2037b1a26f48f8. */
+  }
+
+  part def AAOSHealthMonitorSource {
+    doc /* Source-backed health-monitor project at system/software_defined_vehicle/health_monitor; revision a3ffbe9caf8b94041c013deac36c4e5f27b69932. */
+  }
+
+  part def AAOSDiagnosticsSource {
+    doc /* Source-backed automotive diagnostics project at system/software_defined_vehicle/automotive_services; revision 1d4dcb7f908a6df97b036a90a5802de8cedebd63. */
+  }
+
   part def SignalAccessClient {
     doc /* Candidate physical/software client for vehicle signal access through the selected adapter and platform boundary. */
     port vehicleSignal : VehicleSignalAccessPort;
@@ -108,6 +147,12 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      */
     part adapter : AutowareToAAOSSDVAdapterPhysical;
     part aaosSdvBoundary : SDVCoreBoundary;
+    part aaosSourceArtifact : AAOSSDVSourceArtifact;
+    part vsidlProviderSource : AAOSVSIDLProviderAgentSource;
+    part middlewareSource : AAOSMiddlewareSource;
+    part lifecycleServiceSource : AAOSLifecycleServiceSource;
+    part healthMonitorSource : AAOSHealthMonitorSource;
+    part diagnosticsSource : AAOSDiagnosticsSource;
 
     part signalAccessClient : SignalAccessClient;
     part diagnosticAccessClient : DiagnosticAccessClient;
@@ -212,6 +257,25 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency vsidlDiagnosticsToROS2Diagnostics
     from physicalSoftware::adapter::aaosDiagnostics
     to physicalSoftware::adapter::ros2DiagnosticsOut;
+
+  dependency aaosVSIDLSourceTrace
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::vsidlProviderSource;
+  dependency aaosMiddlewareSourceTrace
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::middlewareSource;
+  dependency aaosLifecycleSourceTrace
+    from physicalSoftware::aaosSdvBoundary::lifecycleManager
+    to physicalSoftware::lifecycleServiceSource;
+  dependency aaosHealthSourceTrace
+    from physicalSoftware::aaosSdvBoundary::healthMonitor
+    to physicalSoftware::healthMonitorSource;
+  dependency aaosDiagnosticsSourceTrace
+    from physicalSoftware::aaosSdvBoundary::diagnostics
+    to physicalSoftware::diagnosticsSource;
+  dependency aaosAdapterSourceManifestTrace
+    from physicalSoftware::adapter
+    to physicalSoftware::aaosSourceArtifact;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
