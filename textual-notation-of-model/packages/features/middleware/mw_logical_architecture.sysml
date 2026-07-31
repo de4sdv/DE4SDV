@@ -10,6 +10,8 @@
  */
 
 package DE4SDV_MWLogicalArchitecture {
+  private import DE4SDV_MethodContext::*;
+  private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
   private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
   private import DE4SDV_MWRequirements::Features::Middleware::Requirements::*;
   private import DE4SDV_Stakeholders::*;
@@ -141,25 +143,25 @@ package DE4SDV_MWLogicalArchitecture {
   allocation def FunctionalToLogicalResponsibility;
 
   allocation signalTranslationAllocation : FunctionalToLogicalResponsibility
-    allocate functionalFlow.translateSignal
+    allocate functionalFlow::translateSignal
     to logicalSystem.signalTranslator;
   allocation diagnosticProxyAllocation : FunctionalToLogicalResponsibility
-    allocate functionalFlow.proxyDiagnostics
+    allocate functionalFlow::proxyDiagnostics
     to logicalSystem.diagnosticProxy;
   allocation lifecycleBridgeAllocation : FunctionalToLogicalResponsibility
-    allocate functionalFlow.coordinateLifecycle
+    allocate functionalFlow::coordinateLifecycle
     to logicalSystem.lifecycleBridge;
   allocation healthProxyAllocation : FunctionalToLogicalResponsibility
-    allocate functionalFlow.forwardHealth
+    allocate functionalFlow::forwardHealth
     to logicalSystem.healthProxy;
   allocation updateCoordinatorAllocation : FunctionalToLogicalResponsibility
-    allocate functionalFlow.coordinateUpdate
+    allocate functionalFlow::coordinateUpdate
     to logicalSystem.updateCoordinator;
   allocation serviceBindingAllocation : FunctionalToLogicalResponsibility
-    allocate functionalFlow.bindService
+    allocate functionalFlow::bindService
     to logicalSystem.serviceBindingManager;
   allocation safetyPathObservationAllocation : FunctionalToLogicalResponsibility
-    allocate functionalFlow.protectSafetyPath
+    allocate functionalFlow::protectSafetyPath
     to logicalSystem.healthProxy;
 
   dependency signalTranslatorDerivedFromRequirement
