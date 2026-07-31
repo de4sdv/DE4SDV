@@ -15,6 +15,7 @@ package DE4SDV_MWLogicalArchitecture {
   private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
   private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
   private import DE4SDV_MWRequirements::Features::Middleware::Requirements::*;
+  private import DE4SDV_AEBSLogicalArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
@@ -183,6 +184,22 @@ package DE4SDV_MWLogicalArchitecture {
   dependency serviceBindingDerivedFromRequirement
     from logicalSystem::serviceBindingManager
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideServiceDiscovery;
+
+  dependency aebsVehicleMotionDependsOnSignalTranslator
+    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::vehicleMotionObservationIn
+    to logicalSystem::signalTranslator;
+  dependency aebsTargetObservationDependsOnSignalTranslator
+    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::targetObservationIn
+    to logicalSystem::signalTranslator;
+  dependency aebsDriverOverrideDependsOnSignalTranslator
+    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::driverOverrideObservationIn
+    to logicalSystem::signalTranslator;
+  dependency aebsOperatingContextDependsOnLifecycleBridge
+    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::operatingContextIn
+    to logicalSystem::lifecycleBridge;
+  dependency aebsHealthStatusDependsOnHealthProxy
+    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::subsystemHealthIn
+    to logicalSystem::healthProxy;
 
   concern logicalStructureConcern : LogicalStructureConcern {
     subject;
