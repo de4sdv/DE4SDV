@@ -1,0 +1,103 @@
+schema: de4sdv.functional-architecture.v0
+id: INC-MW-006
+name: Middleware integration functional architecture
+status: draft
+type: FunctionalArchitectureIncrement
+parent_increment: INC-MW-005
+owner: DE4SDV maintainers
+purpose: >-
+  Define the middleware integration functional breakdown, information items,
+  sequencing, and boundary interfaces derived from the accepted requirement
+  candidates without allocating functions to logical or physical elements.
+engineering_question: >-
+  What functions, flows, and interfaces are needed for middleware integration
+  between the ADAS application and the vehicle platform?
+lifecycle_decision_supported: >-
+  Decide whether the functional boundary is sufficiently explicit to begin
+  logical architecture and functional allocation in INC-MW-007.
+scope:
+  in_scope:
+  - vehicle-signal translation and access
+  - diagnostic proxying
+  - lifecycle coordination
+  - middleware health forwarding
+  - integration update coordination
+  - service discovery and binding
+  - safety-path protection status
+  - functional boundary ports and information flows
+  out_of_scope:
+  - logical component allocation
+  - physical/software realization
+  - AAOS SDV, S-CORE, AUTOSAR, or no-middleware selection
+  - final safety-path architecture
+  - detailed trust-boundary implementation
+  - concrete transport, API, or vendor protocol selection
+source_alignment:
+- source_id: INC-MW-002
+  use: operational-context-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-operational-context.yaml
+- source_id: INC-MW-003
+  use: feature-classification-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-feature-classification.yaml
+- source_id: INC-MW-004
+  use: stakeholder-needs-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-stakeholder-needs.yaml
+- source_id: INC-MW-005
+  use: requirements-baseline
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-requirements.yaml
+selected_viewpoints:
+- viewpoint: SystemFunctionalBreakdownStructureViewpoint
+  rationale: Review the middleware functional actions and their decomposition.
+- viewpoint: SystemInterfaceDefinitionViewpoint
+  rationale: Review typed functional boundary ports and information directions.
+function_ids:
+- TranslateVehicleSignal
+- ProxyDiagnosticAccess
+- CoordinateLifecycle
+- ForwardServiceHealth
+- CoordinateIntegrationUpdate
+- DiscoverAndBindService
+- ProtectEmergencyInterventionPath
+interface_ids:
+- VehicleSignalAccessInbound
+- VehicleSignalAccessOutbound
+- DiagnosticAccessInbound
+- DiagnosticAccessOutbound
+- LifecycleCoordinationInbound
+- LifecycleCoordinationOutbound
+- HealthStatusInbound
+- HealthStatusOutbound
+- UpdateCoordinationInbound
+- UpdateCoordinationOutbound
+- ServiceBindingInbound
+- ServiceBindingOutbound
+- SafetyPathStatusOutbound
+requirement_trace_ids:
+- REQ-MW-001
+- REQ-MW-002
+- REQ-MW-003
+- REQ-MW-004
+- REQ-MW-005
+- REQ-MW-006
+- REQ-MW-007
+- REQ-MW-008
+assumptions:
+- id: ASM-MW-013
+  statement: >-
+    Functional actions describe behavior and information exchange only; they
+    do not identify logical components, processes, middleware products, or
+    physical owners.
+- id: ASM-MW-014
+  statement: >-
+    Service discovery and authentication are represented as a functional
+    boundary responsibility; their concrete protocol and trust-boundary
+    realization remain deferred.
+gaps:
+- id: GAP-MW-013
+  model_element: functionalSignalDefinitionGap
+- id: GAP-MW-014
+  model_element: lifecycleVocabularyGap
+- id: GAP-MW-015
+  model_element: safetyPathFunctionalOwnershipGap
+next_increments:
+- INC-MW-007: Logical architecture for the middleware integration functions and exchanges.
