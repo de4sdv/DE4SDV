@@ -96,11 +96,35 @@ package DE4SDV_MWFunctionalArchitecture {
         action def CoordinateLifecycle {
           in lifecycleRequest : LifecycleCoordinationRequest;
           out lifecycleStatus : LifecycleCoordinationStatus;
+
+          exhibit state lifecycleStates {
+            state uninitialized;
+            state initializing;
+            state operational;
+            state degraded;
+            state shuttingDown;
+            transition first uninitialized then initializing;
+            transition initializing then operational;
+            transition operational then degraded;
+            transition degraded then operational;
+            transition operational then shuttingDown;
+            transition degraded then shuttingDown;
+          }
         }
 
         action def ForwardServiceHealth {
           in healthStatus : HealthStatus;
           out forwardedHealth : HealthForwardingStatus;
+
+          exhibit state healthStates {
+            state unavailable;
+            state degraded;
+            state available;
+            transition first unavailable then degraded;
+            transition degraded then available;
+            transition available then degraded;
+            transition degraded then unavailable;
+          }
         }
 
         action def CoordinateIntegrationUpdate {
@@ -111,6 +135,21 @@ package DE4SDV_MWFunctionalArchitecture {
         action def DiscoverAndBindService {
           in bindingRequest : ServiceBindingRequest;
           out bindingStatus : ServiceBindingStatus;
+
+          exhibit state connectionStates {
+            state undiscovered;
+            state discovered;
+            state authenticating;
+            state bound;
+            state failed;
+            transition first undiscovered then discovered;
+            transition discovered then authenticating;
+            transition authenticating then bound;
+            transition discovered then failed;
+            transition authenticating then failed;
+            transition bound then failed;
+            transition failed then discovered;
+          }
         }
 
         action def ProtectEmergencyInterventionPath {
@@ -279,6 +318,11 @@ package DE4SDV_MWFunctionalArchitecture {
           stakeholder systemsEngineer : SystemsEngineer;
           stakeholder reviewer : OpenSourceReviewer;
         }
+        concern functionalProcessConcern : SystemProcessConcern {
+          subject;
+          stakeholder systemsEngineer : SystemsEngineer;
+          stakeholder reviewer : OpenSourceReviewer;
+        }
 
         view mwFunctionalBehaviorView {
           viewpoint selectedFunctionalBehaviorViewpoint : SystemFunctionalBreakdownStructureViewpoint {
@@ -290,6 +334,13 @@ package DE4SDV_MWFunctionalArchitecture {
         view mwFunctionalInterfaceView {
           viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
             frame functionalInterfaceConcern;
+          }
+          expose FunctionalArchitecture::*;
+          render asTreeDiagram;
+        }
+        view mwFunctionalProcessView {
+          viewpoint selectedFunctionalProcessViewpoint : SystemProcessViewpoint {
+            frame functionalProcessConcern;
           }
           expose FunctionalArchitecture::*;
           render asTreeDiagram;
