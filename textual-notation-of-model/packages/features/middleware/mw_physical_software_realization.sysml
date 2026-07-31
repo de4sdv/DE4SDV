@@ -44,16 +44,25 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * android-latest-release; manifest revision:
      * ad156f32caaa06dae91c02d443f6a8fe210eaa54. The SDV projects below use
      * the android17-release revision declared by that manifest.
+     *
+     * Manifest repository:
+     * https://android.googlesource.com/platform/manifest
+     * Build target: sdv_core_cf-trunk_staging-userdebug.
      */
   }
 
   part def AAOSVSIDLProviderAgentSource {
     doc /*
-     * Source-backed VSIDL provider agent from
+     * VSIDL provider agent from
      * system/software_defined_vehicle/vsidl/provider/agent/sdv. The pinned
      * implementation exposes metadata RPCs including diagnostics declaration,
      * message descriptor, publication descriptor, and RPC method descriptor.
+     * Source repository:
+     * https://android.googlesource.com/platform/system/software_defined_vehicle/vsidl
      * Source revision: 9d6bfa55d7448844c36af7c5aeadb3e981b6c995.
+     * Source files:
+     * provider/agent/sdv/src/main.rs
+     * provider/agent/sdv/api/protos/messages.proto
      */
   }
 
@@ -62,19 +71,52 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Source-backed AAOS SDV middleware communication implementation from
      * system/software_defined_vehicle/middleware. Source revision:
      * 7ab87b58959e638fc9f1e5a5860cfed20ed29cab.
+     * Source repository:
+     * https://android.googlesource.com/platform/system/software_defined_vehicle/middleware
+     */
+  }
+
+  part def AAOSHardwareSDVInterfacesSource {
+    doc /*
+     * Source-backed hardware/sdv interface definitions for middleware,
+     * lifecycle, service discovery, RPC, and data-tunnel boundaries.
+     * Source repository:
+     * https://android.googlesource.com/platform/hardware/sdv/interfaces
+     * Source revision: 3682a3968292032a31d74c450380aa81d5e547ec.
      */
   }
 
   part def AAOSLifecycleServiceSource {
-    doc /* Source-backed lifecycle-management project at system/software_defined_vehicle/lifecycle_management; revision 74813463c7293bf12e0791701b2037b1a26f48f8. */
+    doc /*
+     * Source-backed lifecycle-management project at
+     * system/software_defined_vehicle/lifecycle_management; revision
+     * 74813463c7293bf12e0791701b2037b1a26f48f8.
+     * Source repository:
+     * https://android.googlesource.com/platform/system/software_defined_vehicle/lifecycle_management
+     * Relevant source areas: aidl, src, service_bundle_runner, tests.
+     */
   }
 
   part def AAOSHealthMonitorSource {
-    doc /* Source-backed health-monitor project at system/software_defined_vehicle/health_monitor; revision a3ffbe9caf8b94041c013deac36c4e5f27b69932. */
+    doc /*
+     * Source-backed health-monitor project at
+     * system/software_defined_vehicle/health_monitor; revision
+     * a3ffbe9caf8b94041c013deac36c4e5f27b69932.
+     * Source repository:
+     * https://android.googlesource.com/platform/system/software_defined_vehicle/health_monitor
+     * Relevant source areas: src, apex, catalog, integration_tests.
+     */
   }
 
   part def AAOSDiagnosticsSource {
-    doc /* Source-backed automotive diagnostics project at system/software_defined_vehicle/automotive_services; revision 1d4dcb7f908a6df97b036a90a5802de8cedebd63. */
+    doc /*
+     * Source-backed automotive diagnostics project at
+     * system/software_defined_vehicle/automotive_services; revision
+     * 1d4dcb7f908a6df97b036a90a5802de8cedebd63.
+     * Source repository:
+     * https://android.googlesource.com/platform/system/software_defined_vehicle/automotive_services
+     * Relevant source area: diagnostics.
+     */
   }
 
   part def SignalAccessClient {
@@ -150,6 +192,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part aaosSourceArtifact : AAOSSDVSourceArtifact;
     part vsidlProviderSource : AAOSVSIDLProviderAgentSource;
     part middlewareSource : AAOSMiddlewareSource;
+    part hardwareInterfacesSource : AAOSHardwareSDVInterfacesSource;
     part lifecycleServiceSource : AAOSLifecycleServiceSource;
     part healthMonitorSource : AAOSHealthMonitorSource;
     part diagnosticsSource : AAOSDiagnosticsSource;
@@ -264,6 +307,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency aaosMiddlewareSourceTrace
     from physicalSoftware::adapter::aaosSignal
     to physicalSoftware::middlewareSource;
+  dependency aaosHardwareInterfacesSourceTrace
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::hardwareInterfacesSource;
   dependency aaosLifecycleSourceTrace
     from physicalSoftware::aaosSdvBoundary::lifecycleManager
     to physicalSoftware::lifecycleServiceSource;

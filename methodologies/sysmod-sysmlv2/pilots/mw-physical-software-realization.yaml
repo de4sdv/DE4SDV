@@ -61,6 +61,11 @@ source_alignment:
   repository: https://android.googlesource.com/platform/system/software_defined_vehicle/middleware
   branch: android17-release
   revision: 7ab87b58959e638fc9f1e5a5860cfed20ed29cab
+- source_id: AOSP-AAOS-SDV-INTERFACES
+  use: hardware-and-service-interface-source
+  repository: https://android.googlesource.com/platform/hardware/sdv/interfaces
+  branch: android17-release
+  revision: 3682a3968292032a31d74c450380aa81d5e547ec
 - source_id: AOSP-AAOS-SDV-LIFECYCLE
   use: lifecycle-service-source
   repository: https://android.googlesource.com/platform/system/software_defined_vehicle/lifecycle_management
@@ -98,6 +103,7 @@ physical_element_ids:
 - AAOSSDVSourceArtifact
 - AAOSVSIDLProviderAgentSource
 - AAOSMiddlewareSource
+- AAOSHardwareSDVInterfacesSource
 - AAOSLifecycleServiceSource
 - AAOSHealthMonitorSource
 - AAOSDiagnosticsSource
@@ -110,6 +116,7 @@ mapping_ids:
 - serviceBindingManagerCandidate
 - aaosVSIDLSourceTrace
 - aaosMiddlewareSourceTrace
+- aaosHardwareInterfacesSourceTrace
 - aaosLifecycleSourceTrace
 - aaosHealthSourceTrace
 - aaosDiagnosticsSourceTrace
