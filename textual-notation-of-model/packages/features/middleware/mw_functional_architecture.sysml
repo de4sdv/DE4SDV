@@ -168,6 +168,8 @@ package DE4SDV_MWFunctionalArchitecture {
           first forwardHealth then protectSafetyPath;
         }
 
+        action middlewareIntegrationFunctionalFlow : MiddlewareIntegrationFunctionalFlow;
+
         port def VehicleSignalAccessInbound {
           in item signalRequest : VehicleSignalAccessRequest;
         }
