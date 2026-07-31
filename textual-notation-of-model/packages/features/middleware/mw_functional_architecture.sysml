@@ -244,28 +244,28 @@ package DE4SDV_MWFunctionalArchitecture {
 
         part middlewareFunctionalBoundary : MiddlewareFunctionalBoundary;
 
-        dependency functionalSignalAccessTracesToRequirement
+        dependency functionalSignalAccessDerivedFromRequirement
           from TranslateVehicleSignal
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideMiddlewareSignalAccess;
-        dependency functionalDiagnosticAccessTracesToRequirement
+        dependency functionalDiagnosticAccessDerivedFromRequirement
           from ProxyDiagnosticAccess
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideMiddlewareDiagnosticAccess;
-        dependency functionalLifecycleTracesToRequirement
+        dependency functionalLifecycleDerivedFromRequirement
           from CoordinateLifecycle
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqCoordinateMiddlewareLifecycle;
-        dependency functionalHealthTracesToRequirement
+        dependency functionalHealthDerivedFromRequirement
           from ForwardServiceHealth
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqMonitorMiddlewareHealth;
-        dependency functionalUpdateTracesToRequirement
+        dependency functionalUpdateDerivedFromRequirement
           from CoordinateIntegrationUpdate
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqCoordinateMiddlewareUpdates;
-        dependency functionalSafetyPathTracesToRequirement
+        dependency functionalSafetyPathDerivedFromRequirement
           from ProtectEmergencyInterventionPath
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqIsolateSafetyPath;
-        dependency functionalBindingTracesToRequirement
+        dependency functionalBindingDerivedFromRequirement
           from DiscoverAndBindService
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideServiceDiscovery;
-        dependency functionalAuthenticationBoundaryTracesToRequirement
+        dependency functionalAuthenticationBoundaryDerivedFromRequirement
           from DiscoverAndBindService
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqAuthenticateServiceBinding;
 
