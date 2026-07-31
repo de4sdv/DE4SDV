@@ -28,7 +28,7 @@ scope:
   out_of_scope:
   - vendoring or implementing AAOS SDV
   - pinned ROS 2 topic schemas
-  - pinned VSIDL or SOME/IP service schemas
+  - complete/pinned vehicle-signal VSIDL or SOME/IP service schemas
   - process, executor, RMW/DDS, VM, ECU, network, or deployment selection
   - executable runtime evidence
   - safety certification or complete requirement satisfaction claim
@@ -61,11 +61,17 @@ source_alignment:
   repository: https://android.googlesource.com/platform/system/software_defined_vehicle/middleware
   branch: android17-release
   revision: 7ab87b58959e638fc9f1e5a5860cfed20ed29cab
+  paths:
+  - rpc_agent/cpp/RpcAgentServer.h
+  - rpc_agent/cpp/RpcAgentServer.cpp
 - source_id: AOSP-AAOS-SDV-INTERFACES
   use: hardware-and-service-interface-source
   repository: https://android.googlesource.com/platform/hardware/sdv/interfaces
   branch: android17-release
   revision: 3682a3968292032a31d74c450380aa81d5e547ec
+  paths:
+  - sdv_gateway/aidl/google/sdv/gateway/ISdvGatewaySession.aidl
+  - sdv_gateway/aidl/google/sdv/gateway/IDataTunnelPublication.aidl
 - source_id: AOSP-AAOS-SDV-LIFECYCLE
   use: lifecycle-service-source
   repository: https://android.googlesource.com/platform/system/software_defined_vehicle/lifecycle_management
@@ -104,9 +110,13 @@ physical_element_ids:
 - AAOSVSIDLProviderAgentSource
 - AAOSMiddlewareSource
 - AAOSHardwareSDVInterfacesSource
+- AAOSSDVGatewaySessionSource
+- AAOSSDVDataTunnelPublicationSource
+- AAOSSDVRpcAgentSource
 - AAOSLifecycleServiceSource
 - AAOSHealthMonitorSource
 - AAOSDiagnosticsSource
+- velocitySignalContractGap
 mapping_ids:
 - signalTranslatorCandidate
 - diagnosticProxyCandidate
@@ -117,6 +127,9 @@ mapping_ids:
 - aaosVSIDLSourceTrace
 - aaosMiddlewareSourceTrace
 - aaosHardwareInterfacesSourceTrace
+- aaosGatewaySessionSourceTrace
+- aaosDataTunnelSourceTrace
+- aaosRpcAgentSourceTrace
 - aaosLifecycleSourceTrace
 - aaosHealthSourceTrace
 - aaosDiagnosticsSourceTrace
@@ -147,6 +160,8 @@ gaps:
   model_element: physicalProcessDeploymentGap
 - id: GAP-MW-021
   model_element: physicalServiceSatisfactionGap
+- id: GAP-MW-022
+  model_element: velocitySignalContractGap
 next_increments:
 - INC-MW-009: Middleware variability and configuration across member products.
 - INC-MW-010: Middleware verification, validation, and evidence.

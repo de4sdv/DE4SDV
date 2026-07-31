@@ -6,9 +6,10 @@
  * the AAOS SDV boundary model. This is a model of the integration boundary,
  * not a vendored AAOS implementation and not runtime evidence.
  *
- * The adapter and AAOS boundary remain candidate realizations. Concrete ROS 2
- * topics, VSIDL service schemas, SOME/IP mappings, process deployment, and
- * executable behavior are deferred until their source contracts are pinned.
+ * The adapter and AAOS boundary remain candidate realizations. The selected
+ * Autoware ROS 2 topic and AOSP SDV gateway/middleware source artifacts are
+ * pinned; the vehicle-velocity VSIDL service bundle, process deployment, and
+ * executable behavior remain deferred until their source contracts are pinned.
  */
 
 package DE4SDV_MWPhysicalSoftwareRealization {
@@ -28,7 +29,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   part physicalSourceContractGap : DeferredProductLineScope {
-    doc /* GAP-MW-019: Candidate ROS 2, VSIDL, SOME/IP, and service schemas are not pinned to reviewed source revisions. */
+    doc /* GAP-MW-019: The Autoware ROS 2 topic and AOSP SDV transport sources are pinned, but the selected vehicle-velocity VSIDL/service-bundle schema and its generated client contract are not. */
   }
 
   part physicalProcessDeploymentGap : DeferredProductLineScope {
@@ -37,6 +38,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   part physicalServiceSatisfactionGap : DeferredProductLineScope {
     doc /* GAP-MW-021: The candidate AAOS SDV boundary has not been shown to satisfy the logical service responsibilities or requirements. */
+  }
+
+  part velocitySignalContractGap : DeferredProductLineScope {
+    doc /* GAP-MW-022: The pinned public AOSP SDV tree provides gateway, service-discovery, data-tunnel, RPC-agent, and transport interfaces, but does not provide the selected vehicle-velocity VSIDL service bundle, FQIN, message contract, or generated client binding. */
   }
 
   part def AAOSSDVSourceArtifact {
@@ -84,6 +89,41 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Source repository:
      * https://android.googlesource.com/platform/hardware/sdv/interfaces
      * Source revision: 3682a3968292032a31d74c450380aa81d5e547ec.
+     */
+  }
+
+  part def AAOSSDVGatewaySessionSource {
+    doc /*
+     * Source-backed AAOS SDV gateway session interface. It exposes
+     * serviceDiscoveryAgent(), dataTunnelAgent(), createPublication(), and
+     * findRpcServerByName().
+     * Source repository:
+     * https://android.googlesource.com/platform/hardware/sdv/interfaces
+     * Source revision: 3682a3968292032a31d74c450380aa81d5e547ec.
+     * Source path: sdv_gateway/aidl/google/sdv/gateway/ISdvGatewaySession.aidl
+     */
+  }
+
+  part def AAOSSDVDataTunnelPublicationSource {
+    doc /*
+     * Source-backed AAOS SDV data-tunnel publication interface. It exposes
+     * publication ownership and publisher metadata at the gateway boundary.
+     * Source repository:
+     * https://android.googlesource.com/platform/hardware/sdv/interfaces
+     * Source revision: 3682a3968292032a31d74c450380aa81d5e547ec.
+     * Source path: sdv_gateway/aidl/google/sdv/gateway/IDataTunnelPublication.aidl
+     */
+  }
+
+  part def AAOSSDVRpcAgentSource {
+    doc /*
+     * Source-backed AAOS SDV RPC-agent implementation. It registers RPC
+     * servers and transport metadata with the SDV middleware.
+     * Source repository:
+     * https://android.googlesource.com/platform/system/software_defined_vehicle/middleware
+     * Source revision: 7ab87b58959e638fc9f1e5a5860cfed20ed29cab.
+     * Source paths: rpc_agent/cpp/RpcAgentServer.h and
+     * rpc_agent/cpp/RpcAgentServer.cpp.
      */
   }
 
@@ -198,6 +238,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part vsidlProviderSource : AAOSVSIDLProviderAgentSource;
     part middlewareSource : AAOSMiddlewareSource;
     part hardwareInterfacesSource : AAOSHardwareSDVInterfacesSource;
+    part gatewaySessionSource : AAOSSDVGatewaySessionSource;
+    part dataTunnelPublicationSource : AAOSSDVDataTunnelPublicationSource;
+    part rpcAgentSource : AAOSSDVRpcAgentSource;
     part lifecycleServiceSource : AAOSLifecycleServiceSource;
     part healthMonitorSource : AAOSHealthMonitorSource;
     part diagnosticsSource : AAOSDiagnosticsSource;
@@ -315,6 +358,15 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency aaosHardwareInterfacesSourceTrace
     from physicalSoftware::adapter::aaosSignal
     to physicalSoftware::hardwareInterfacesSource;
+  dependency aaosGatewaySessionSourceTrace
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::gatewaySessionSource;
+  dependency aaosDataTunnelSourceTrace
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::dataTunnelPublicationSource;
+  dependency aaosRpcAgentSourceTrace
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::rpcAgentSource;
   dependency aaosLifecycleSourceTrace
     from physicalSoftware::aaosSdvBoundary::lifecycleManager
     to physicalSoftware::lifecycleServiceSource;
