@@ -149,6 +149,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     port discovery : ServiceDiscoveryPort;
   }
 
+  port def VelocityReportPublication :> ROS2TopicPublication {
+    out item velocityReport : VelocityReportMessage redefines payload;
+  }
+
   part def AutowareToAAOSSDVAdapterPhysical :> AutowareToAAOSSDVAdapter {
     doc /*
      * Physical adapter candidate with explicit application-side logical ports
@@ -170,8 +174,8 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     port aaosUpdate : UpdateCoordinationPort;
     port aaosDiscovery : ServiceDiscoveryPort;
 
-    port ros2VelocityIn : VelocityReportSubscription {
-      doc /* Existing Autoware topic /vehicle/status/velocity_status. */
+    port ros2VelocityOut : VelocityReportPublication {
+      doc /* Adapter publication to Autoware topic /vehicle/status/velocity_status. */
     }
     port ros2AutowareStateIn : AutowareStateSubscription {
       doc /* Existing Autoware topic /autoware/state. */
@@ -291,9 +295,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     from physicalSoftware::adapter::aaosDiscovery
     to physicalSoftware::aaosSdvBoundary::serviceDiscovery;
 
-  dependency ros2VelocityToVSIDLSignalAccess
-    from physicalSoftware::adapter::ros2VelocityIn
-    to physicalSoftware::adapter::aaosSignal;
+  dependency vsidlSignalToROS2Velocity
+    from physicalSoftware::adapter::aaosSignal
+    to physicalSoftware::adapter::ros2VelocityOut;
   dependency ros2AutowareStateToVSIDLLifecycle
     from physicalSoftware::adapter::ros2AutowareStateIn
     to physicalSoftware::adapter::aaosLifecycle;
