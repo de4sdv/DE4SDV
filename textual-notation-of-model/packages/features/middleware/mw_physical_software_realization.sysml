@@ -86,6 +86,23 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      */
   }
 
+  part def DE4SDVAAOSSDVReferenceInteropBenchSource {
+    doc /*
+     * Source-backed DE4SDV-owned reference contract and executable rehearsal.
+     * Repository: https://github.com/de4sdv/DE4SDV
+     * Branch: feat/mw-008-physical-software-realization
+     * Commit: d0a00c22d664b3a62c0029a8aaccb71ba8dbb3d9.
+     * Source paths:
+     * implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.proto
+     * implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.vsidl
+     * implementation/aaos-sdv-reference-interop-bench/src/de4sdv_aaos_sdv_reference_bench/reference_bench.py
+     * implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
+     * The rehearsal proves the DE4SDV reference contract and independent
+     * observer path. AAOS runtime interoperability remains pending an AOSP
+     * SDV target and generated VSIDL binding.
+     */
+  }
+
   part def AAOSVSIDLProviderAgentSource {
     doc /*
      * VSIDL provider agent from
@@ -266,6 +283,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part aaosSourceArtifact : AAOSSDVSourceArtifact;
     part vssVehicleSpeedSource : COVESAVehicleSpeedSemanticSource;
     part de4sdvVehicleSpeedAdapterSource : DE4SDVVSSVehicleSpeedAdapterSource;
+    part referenceInteropBenchSource : DE4SDVAAOSSDVReferenceInteropBenchSource;
     part vsidlProviderSource : AAOSVSIDLProviderAgentSource;
     part middlewareSource : AAOSMiddlewareSource;
     part hardwareInterfacesSource : AAOSHardwareSDVInterfacesSource;
@@ -386,6 +404,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency de4sdvAdapterImplementationTrace
     from physicalSoftware::adapter
     to physicalSoftware::de4sdvVehicleSpeedAdapterSource;
+  dependency referenceInteropBenchTrace
+    from physicalSoftware::adapter
+    to physicalSoftware::referenceInteropBenchSource;
   dependency aaosVSIDLSourceTrace
     from physicalSoftware::adapter::aaosSignal
     to physicalSoftware::vsidlProviderSource;

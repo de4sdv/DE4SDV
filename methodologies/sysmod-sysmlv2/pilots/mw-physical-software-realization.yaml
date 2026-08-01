@@ -59,6 +59,16 @@ source_alignment:
   paths:
   - implementation/vss-vehicle-speed-adapter/src/de4sdv_vss_vehicle_speed_adapter/adapter.py
   - implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
+- source_id: DE4SDV-AAOS-SDV-REFERENCE-INTEROP-BENCH
+  use: owned-reference-contract-and-rehearsal
+  repository: https://github.com/de4sdv/DE4SDV
+  branch: feat/mw-008-physical-software-realization
+  commit: d0a00c22d664b3a62c0029a8aaccb71ba8dbb3d9
+  paths:
+  - implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.proto
+  - implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.vsidl
+  - implementation/aaos-sdv-reference-interop-bench/src/de4sdv_aaos_sdv_reference_bench/reference_bench.py
+  - implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
 - source_id: AOSP-AAOS-SDV-MANIFEST
   use: pinned-source-manifest
   repository: https://android.googlesource.com/platform/manifest
@@ -125,6 +135,7 @@ physical_element_ids:
 - AAOSSDVSourceArtifact
 - COVESAVehicleSpeedSemanticSource
 - DE4SDVVSSVehicleSpeedAdapterSource
+- DE4SDVAAOSSDVReferenceInteropBenchSource
 - AAOSVSIDLProviderAgentSource
 - AAOSMiddlewareSource
 - AAOSHardwareSDVInterfacesSource
@@ -154,6 +165,7 @@ mapping_ids:
 - aaosAdapterSourceManifestTrace
 - vehicleSpeedSemanticTrace
 - de4sdvAdapterImplementationTrace
+- referenceInteropBenchTrace
 requirement_trace_ids:
 - REQ-MW-001
 - REQ-MW-002
