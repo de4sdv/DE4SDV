@@ -1,0 +1,33 @@
+schema: de4sdv.aaos-sdv-reference-interop.v0
+status: reference_contract_pending_aaos_runtime
+ownership: de4sdv
+production_compatibility: not_claimed
+semantic_signal:
+  vss_path: Vehicle.Speed
+  unit: km/h
+  source_commit: 6fb1dac2630a8910ee996863b2af02b310dcd7ce
+vsidl:
+  syntax: aosp-vsidl-v1
+  package: de4sdv.reference.vehicle_speed
+  service_bundle: DE4SDVVehicleSpeedProvider
+  publisher:
+    message: VehicleSpeed
+    channel: VEHICLE_SPEED
+    topic: vehicle-speed
+    capacity: 8
+  fqin:
+    status: proposed_for_reference_runtime
+    sdv_vm_name: de4sdv-reference-vm
+    sdv_package_name: de4sdv.reference.vehicle_speed
+    service_unit_name: DE4SDVVehicleSpeedProvider
+ros2:
+  target_topic: /vehicle/status/velocity_status
+  target_type: autoware_vehicle_msgs/msg/VelocityReport
+  target_field: longitudinal_velocity
+  target_unit: m/s
+  transform: speed_kmh / 3.6
+runtime:
+  aaos_image: unavailable
+  adb_target: unavailable
+  generated_binding: pending_aosp_vsidlc_toolchain
+  transport: pending_aaos_runtime_execution

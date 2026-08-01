@@ -1,0 +1,14 @@
+# DE4SDV-owned reference VSIDL catalog.
+# This follows the public AOSP VSIDL v1 syntax. It is not an OEM contract.
+package: "de4sdv.reference.vehicle_speed"
+
+service_bundle {
+  name: "DE4SDVVehicleSpeedProvider"
+
+  publisher {
+    message: "VehicleSpeed"
+    channel: "VEHICLE_SPEED"
+    topic: "vehicle-speed"
+    capacity: 8
+  }
+}
