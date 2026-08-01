@@ -6,6 +6,13 @@ printf 'DE4SDV AAOS SDV WSL preflight\n\n'
 printf '[system]\n'
 uname -a
 printf 'architecture: '; uname -m
+if [ -r /etc/os-release ]; then
+  . /etc/os-release
+  printf 'distribution: %s %s\n' "${ID:-unknown}" "${VERSION_ID:-unknown}"
+  if [ "${ID:-}" = "docker-desktop" ]; then
+    printf 'WARNING: this is Docker Desktop internal WSL; use Ubuntu-22.04 instead.\n'
+  fi
+fi
 printf '\n[memory]\n'
 free -h
 printf '\n[storage]\n'
