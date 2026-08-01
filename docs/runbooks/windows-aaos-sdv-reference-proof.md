@@ -28,6 +28,15 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\windows\check_aaos_sdv_host.ps1
 ```
 
+Because the AOSP build will run inside WSL2, also run the Linux-side check from the WSL terminal:
+
+```bash
+cd /path/to/DE4SDV
+bash scripts/windows/check_aaos_sdv_wsl.sh
+```
+
+The WSL-side output is the more important result for the AOSP build.
+
 For an existing checkout:
 
 ```powershell
