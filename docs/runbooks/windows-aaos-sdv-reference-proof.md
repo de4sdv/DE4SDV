@@ -17,14 +17,28 @@ Do not build AOSP from `/mnt/c`. WSL's Linux filesystem is materially faster and
 
 ## Preflight
 
-From PowerShell, run the read-only check:
+The preflight script is stored in the DE4SDV repository. It must first be cloned or checked out on the Windows machine; it is not installed there automatically.
+
+For a fresh Windows checkout, run from PowerShell:
 
 ```powershell
+git clone -b feat/mw-008-physical-software-realization https://github.com/de4sdv/DE4SDV.git
+cd DE4SDV
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\windows\check_aaos_sdv_host.ps1
 ```
 
-Record the output in the integration evidence directory. Do not include usernames, tokens, private hostnames, or connection strings.
+For an existing checkout:
+
+```powershell
+git fetch origin
+git checkout feat/mw-008-physical-software-realization
+git pull
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\windows\check_aaos_sdv_host.ps1
+```
+
+The script performs read-only checks. Record the output in the integration evidence directory. Do not include usernames, tokens, private hostnames, or connection strings.
 
 Minimum practical capacity:
 
