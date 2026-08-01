@@ -71,6 +71,21 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      */
   }
 
+  part def DE4SDVVSSVehicleSpeedAdapterSource {
+    doc /*
+     * Source-backed DE4SDV provider-neutral adapter implementation.
+     * Repository: https://github.com/de4sdv/DE4SDV
+     * Branch: feat/mw-008-physical-software-realization
+     * Commit: 0e60049ac91da4a4e0f71858d68ab9c27a56ea80.
+     * Source paths:
+     * implementation/vss-vehicle-speed-adapter/src/de4sdv_vss_vehicle_speed_adapter/adapter.py
+     * implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
+     * This implementation normalizes VSS Vehicle.Speed [km/h] to a
+     * provider-neutral longitudinal velocity [m/s]. It does not claim AAOS,
+     * VSIDL, ROS 2, transport, deployment, or runtime interoperability.
+     */
+  }
+
   part def AAOSVSIDLProviderAgentSource {
     doc /*
      * VSIDL provider agent from
@@ -250,6 +265,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part aaosSdvBoundary : SDVCoreBoundary;
     part aaosSourceArtifact : AAOSSDVSourceArtifact;
     part vssVehicleSpeedSource : COVESAVehicleSpeedSemanticSource;
+    part de4sdvVehicleSpeedAdapterSource : DE4SDVVSSVehicleSpeedAdapterSource;
     part vsidlProviderSource : AAOSVSIDLProviderAgentSource;
     part middlewareSource : AAOSMiddlewareSource;
     part hardwareInterfacesSource : AAOSHardwareSDVInterfacesSource;
@@ -367,6 +383,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency vehicleSpeedSemanticTrace
     from physicalSoftware::adapter::aaosSignal
     to physicalSoftware::vssVehicleSpeedSource;
+  dependency de4sdvAdapterImplementationTrace
+    from physicalSoftware::adapter
+    to physicalSoftware::de4sdvVehicleSpeedAdapterSource;
   dependency aaosVSIDLSourceTrace
     from physicalSoftware::adapter::aaosSignal
     to physicalSoftware::vsidlProviderSource;

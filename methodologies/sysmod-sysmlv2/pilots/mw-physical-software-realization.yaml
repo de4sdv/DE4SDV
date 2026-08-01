@@ -51,6 +51,14 @@ source_alignment:
   signal: Vehicle.Speed
   quantity: speed
   unit: km/h
+- source_id: DE4SDV-VSS-VEHICLE-SPEED-ADAPTER
+  use: provider-neutral-reference-implementation
+  repository: https://github.com/de4sdv/DE4SDV
+  branch: feat/mw-008-physical-software-realization
+  commit: 0e60049ac91da4a4e0f71858d68ab9c27a56ea80
+  paths:
+  - implementation/vss-vehicle-speed-adapter/src/de4sdv_vss_vehicle_speed_adapter/adapter.py
+  - implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
 - source_id: AOSP-AAOS-SDV-MANIFEST
   use: pinned-source-manifest
   repository: https://android.googlesource.com/platform/manifest
@@ -116,6 +124,7 @@ physical_element_ids:
 - ServiceDiscoveryClient
 - AAOSSDVSourceArtifact
 - COVESAVehicleSpeedSemanticSource
+- DE4SDVVSSVehicleSpeedAdapterSource
 - AAOSVSIDLProviderAgentSource
 - AAOSMiddlewareSource
 - AAOSHardwareSDVInterfacesSource
@@ -144,6 +153,7 @@ mapping_ids:
 - aaosDiagnosticsSourceTrace
 - aaosAdapterSourceManifestTrace
 - vehicleSpeedSemanticTrace
+- de4sdvAdapterImplementationTrace
 requirement_trace_ids:
 - REQ-MW-001
 - REQ-MW-002
