@@ -49,11 +49,11 @@ package DE4SDV_ExecutionEnvironments {
      * and a Cuttlefish execution attempt. These values describe a readiness
      * requirement, not evidence that a candidate host currently provides it.
      */
-    attribute targetArchitecture : String = "x86_64";
-    attribute minimumMemoryGiB : Integer = 64;
-    attribute minimumFreeStorageGiB : Integer = 400;
-    attribute nestedVirtualizationRequired : Boolean = true;
-    attribute targetRuntime : String = "AAOS Cuttlefish";
+    attribute targetArchitecture : ScalarValues::String = "x86_64";
+    attribute minimumMemoryGiB : ScalarValues::Integer = 64;
+    attribute minimumFreeStorageGiB : ScalarValues::Integer = 400;
+    attribute nestedVirtualizationRequired : ScalarValues::Boolean = true;
+    attribute targetRuntime : ScalarValues::String = "AAOS Cuttlefish";
   }
 
   part def AOSPAAOSBuildRuntimeHost :> EngineeringComputeNode {
