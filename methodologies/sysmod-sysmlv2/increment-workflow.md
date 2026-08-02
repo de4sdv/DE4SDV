@@ -42,11 +42,31 @@ If these cannot be stated, the increment is not ready.
 | 5. Requirements | What shall the system or product line do and how will those requirements be verified? | Functional | design input requirements, constraints, verification methods, trace links |
 | 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Functional | functional breakdown, interfaces, behavior slices |
 | 7. Logical architecture | What logical elements realize the functions? | Logical | logical structure, exchanges, allocation/mapping |
-| 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the logical design? | Physical | physical/software structure, interfaces, mappings |
+| 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the logical design? | Physical | physical/software structure, interfaces, mappings, readiness probes when required |
 | 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, applicability |
 | 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Functional | verification cases, validation scenarios, acceptance criteria, evidence records, open gaps |
 | 11. Publication | What is reviewable now? | DE4SDV workflow | SysML v2, Markdown, YAML, generated views, reports, PR |
 | 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision, open issues, next increment |
+
+## Realization-readiness control
+
+Phase 8 uses a realization-readiness probe when the candidate physical/software
+realization depends on an enabling system such as a build host, toolchain,
+hypervisor, runtime, simulator, or verification environment. This is a
+cross-phase control, not an additional lifecycle phase.
+
+Run the probe before expensive source synchronization, build, deployment, or
+runtime evidence collection. Record:
+
+- the realization question and candidate enabling system;
+- the required resource, operating-system, toolchain, and runtime capabilities;
+- the evidence status and retained observations;
+- affected SysML constraints, assumptions, allocations, or gaps; and
+- the disposition: proceed, re-scope, or defer.
+
+A successful readiness probe establishes only that the enabling system passed
+the stated gate. It does not prove target-runtime interoperability, product
+acceptance, safety, certification, or production readiness.
 
 ## Increment sizes
 
