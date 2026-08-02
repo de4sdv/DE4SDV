@@ -23,9 +23,6 @@ package DE4SDV_AEBSNeedsRequirements {
         requirement def BicycleCollisionRiskNeed :> StakeholderNeedCandidate;
 
         part incAEBS003 : NeedsRequirementsIncrement;
-        part sdvProductLine : SDVProductLine;
-        part productLineMemberProduct : ProductLineMemberProduct;
-        part aebsCommonCapability : AEBSCapability;
 
         part aebsNeedsRequirementsSystemContext : SystemContext {
           doc /* DE4SDV method system context for INC-AEBS-003. */

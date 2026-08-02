@@ -338,7 +338,6 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
     bind processingTimeOut = aebNode.processingTimeOut;
   }
 
-  part logicalSystem : VehicleTargetAEBSLogicalSystem;
   part physicalSoftware : VehicleTargetAEBSPhysicalSoftwareBoundary;
   part requiredRuntime : RequiredROS2ApplicationRuntimeBoundary;
   part requiredWarningProvider : RequiredDriverWarningProviderBoundary;
@@ -382,31 +381,31 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   }
 
   allocation stateAcquisitionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate logicalSystem.stateAcquisition
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::stateAcquisition
     to physicalSoftware.aebNode;
 
   allocation egoPathPredictionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate logicalSystem.egoPathPrediction
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::egoPathPrediction
     to physicalSoftware.aebNode;
 
   allocation targetProcessingAvailable : AvailableLogicalToPhysicalSoftwareRealization
-    allocate logicalSystem.targetProcessing
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::targetProcessing
     to physicalSoftware.aebNode;
 
   allocation collisionRiskEvaluationAvailable : AvailableLogicalToPhysicalSoftwareRealization
-    allocate logicalSystem.collisionRiskEvaluation
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::collisionRiskEvaluation
     to physicalSoftware.aebNode;
 
   allocation interventionDecisionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate logicalSystem.interventionDecision
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::interventionDecision
     to physicalSoftware.aebNode;
 
   allocation healthSupervisionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate logicalSystem.healthSupervision
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::healthSupervision
     to physicalSoftware.aebNode;
 
   allocation evidenceRecordingPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate logicalSystem.evidenceRecording
+    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::evidenceRecording
     to physicalSoftware.aebNode;
 
   /*
@@ -420,7 +419,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
 
   part driverWarningRealizationGap : MissingPhysicalRealizationRecord {
     doc /* DriverWarningManagement has no selected physical owner in INC-AEBS-007. */
-    ref part logicalRole = logicalSystem.warningManagement;
+    ref part logicalRole = DE4SDV_AEBSLogicalArchitecture::logicalSystem::warningManagement;
     ref part requiredPhysicalRole = requiredWarningProvider;
   }
 
@@ -435,7 +434,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      * keeps use_predicted_trajectory false; disabling the branch is containment,
      * not resolution.
      */
-    ref part logicalRole = logicalSystem.egoPathPrediction;
+    ref part logicalRole = DE4SDV_AEBSLogicalArchitecture::logicalSystem::egoPathPrediction;
     ref part physicalCandidate = physicalSoftware.aebNode;
     ref part pinnedSource = physicalSoftware.sourceArtifact;
   }
@@ -446,20 +445,20 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      * the logical EmergencyInterventionCoordination contract or emit the
      * logical EmergencyInterventionRequest.
      */
-    ref part logicalConcern = logicalSystem.emergencyCoordination;
+    ref part logicalConcern = DE4SDV_AEBSLogicalArchitecture::logicalSystem::emergencyCoordination;
     ref part physicalSource = physicalSoftware.aebNode;
     ref part requiredPhysicalRole = requiredDiagnosticBridge;
   }
 
   part healthCoverageGap : MissingPhysicalRealizationRecord {
     doc /* Complete valid/degraded/unavailable state ownership remains missing. */
-    ref part logicalRole = logicalSystem.healthSupervision;
+    ref part logicalRole = DE4SDV_AEBSLogicalArchitecture::logicalSystem::healthSupervision;
     ref part requiredPhysicalRole = requiredHealthSupervisor;
   }
 
   part evidenceCoverageGap : MissingPhysicalRealizationRecord {
     doc /* Evidence persistence, provenance, retention, and acceptance remain missing. */
-    ref part logicalRole = logicalSystem.evidenceRecording;
+    ref part logicalRole = DE4SDV_AEBSLogicalArchitecture::logicalSystem::evidenceRecording;
     ref part requiredPhysicalRole = requiredEvidenceService;
   }
 
