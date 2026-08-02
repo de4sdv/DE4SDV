@@ -81,8 +81,15 @@ graph TD
     P0 --> P1 --> P2 --> P3 --> P4 --> P5
     P5 --> P6 --> P7 --> P8 --> P9 --> P10
     P10 --> P11 --> P12
-
     P12 -.->|"next increment"| P0
+
+    P8 -->|"when enabling-system evidence is needed"| RP[Realization-readiness probe]
+    RP --> RI[Implementation and toolchain inspection]
+    RI --> RE[Observed constraint or enabling evidence]
+    RE -->|"proceed"| P9
+    RE -.->|"refine requirements"| P5
+    RE -.->|"refine architecture or realization"| P7
+    RE -.->|"plan verification"| P10
 
     P7 -.->|"refine requirements"| P5
     P8 -.->|"refine architecture"| P7
@@ -93,6 +100,30 @@ graph TD
 Solid arrows show the forward logical sequence. Dashed arrows show
 typical feedback loops — going back to refine earlier phases is
 expected, not a failure.
+
+### Cross-phase realization-readiness control
+
+A realization-readiness probe is a control around Phase 8, not a new phase.
+Use it when the selected software or physical realization depends on an
+enabling system such as a build host, toolchain, hypervisor, runtime,
+simulator, or verification environment.
+
+Run the probe before source synchronization, large builds, deployment, or
+runtime evidence collection. The probe should:
+
+1. state the realization question;
+2. compare the candidate enabling system with the required capability envelope;
+3. perform a bounded implementation, toolchain, or environment inspection;
+4. retain the observed constraint or enabling evidence;
+5. update SysML assumptions, constraints, allocations, or gaps;
+6. update YAML planning/index metadata; and
+7. record a disposition: proceed, re-scope, or defer.
+
+A probe can return to requirements, logical architecture, physical/software
+realization, or V&V planning. A passing host probe only establishes enabling
+system readiness for the stated scope; it does not prove target-runtime
+interoperability, product acceptance, safety, certification, or production
+readiness.
 
 ### Phase 0 — Increment framing
 
