@@ -27,9 +27,6 @@ package DE4SDV_AEBSFunctionalBehavior {
         private import Views::*;
 
         part incAEBS004 : FeatureIncrement;
-        part sdvProductLine : SDVProductLine;
-        part memberProduct : ProductLineMemberProduct;
-        part aebsCommonCapability : CommonProductLineCapability;
 
         item def VehicleMotionState {
           doc /* Abstract state needed to reason about subject-vehicle motion for the AEBS vehicle-target slice. */
