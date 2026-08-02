@@ -43,6 +43,47 @@ package DE4SDV_ExecutionEnvironments {
   part def EngineeringExecutionRuntime :> ExecutionRuntime;
   part def VehicleExecutionRuntime :> ExecutionRuntime;
 
+  part def AOSPAAOSBuildResourceEnvelope {
+    doc /*
+     * Minimum engineering-system capability envelope for a pinned AAOS build
+     * and a Cuttlefish execution attempt. These values describe a readiness
+     * requirement, not evidence that a candidate host currently provides it.
+     */
+    attribute targetArchitecture : String = "x86_64";
+    attribute minimumMemoryGiB : Integer = 64;
+    attribute minimumFreeStorageGiB : Integer = 400;
+    attribute nestedVirtualizationRequired : Boolean = true;
+    attribute targetRuntime : String = "AAOS Cuttlefish";
+  }
+
+  part def AOSPAAOSBuildRuntimeHost :> EngineeringComputeNode {
+    doc /*
+     * System 2 enabling-system role for building the pinned AAOS target and
+     * attempting a Cuttlefish runtime. It is separate from the System 1
+     * vehicle/platform runtime and does not imply interoperability evidence.
+     */
+    part resourceEnvelope : AOSPAAOSBuildResourceEnvelope;
+  }
+
+  part def IntelX8664NestedKvmHostCandidate :> AOSPAAOSBuildRuntimeHost {
+    doc /*
+     * Provider-neutral candidate for an Intel x86_64 Linux host with nested
+     * virtualization. Cloud provider, region, quota, disk performance, and
+     * /dev/kvm availability remain planned preflight questions.
+     */
+  }
+
+  part def LinuxX8664AOSPBuildOperatingSystem :> EngineeringOperatingSystem {
+    doc /* Candidate Linux x86_64 operating-system environment for the AAOS build. */
+  }
+
+  part def NestedKvmCuttlefishRuntimeCandidate :> EngineeringExecutionRuntime {
+    doc /*
+     * Candidate nested-KVM execution runtime for Cuttlefish. Presence of the
+     * runtime definition does not prove that KVM is available on a host.
+     */
+  }
+
   part def Arm64ProcessorArchitecture;
 
   part def NVIDIAJetsonOrinNanoDeveloperKitSuper8GiB :> EngineeringComputeNode {
@@ -115,17 +156,31 @@ package DE4SDV_ExecutionEnvironments {
     variation part computeNode : EngineeringComputeNode {
       variant part jetsonOrinNano : NVIDIAJetsonOrinNanoDeveloperKitSuper8GiB;
       variant part appleSiliconMac : AppleSiliconMacCandidate;
+      variant part intelX8664NestedKvmHost : IntelX8664NestedKvmHostCandidate;
     }
 
     variation part operatingSystem : EngineeringOperatingSystem {
       variant part ubuntu2204Tegra : Ubuntu2204TegraLinux;
       variant part macOSAppleSilicon : MacOSOnAppleSiliconCandidate;
+      variant part linuxX8664AOSPBuild : LinuxX8664AOSPBuildOperatingSystem;
     }
 
     variation part executionRuntime : EngineeringExecutionRuntime {
       variant part nativeLinuxArm64OCI : NativeLinuxArm64OCI;
       variant part virtualizedLinuxArm64OCIOnMacOS : VirtualizedLinuxArm64OCIOnMacOSCandidate;
+      variant part nestedKvmCuttlefish : NestedKvmCuttlefishRuntimeCandidate;
     }
+  }
+
+  part def AOSPAAOSBuildRuntimeEnvironment :> EngineeringExecutionEnvironment {
+    doc /*
+     * Candidate System 2 enabling environment for the pinned AAOS target and
+     * Cuttlefish. It is a reusable candidate configuration, not a selected
+     * cloud deployment or runtime-interoperability result.
+     */
+    part :>> computeNode = computeNode::intelX8664NestedKvmHost;
+    part :>> operatingSystem = operatingSystem::linuxX8664AOSPBuild;
+    part :>> executionRuntime = executionRuntime::nestedKvmCuttlefish;
   }
 
   part def VehicleTargetExecutionEnvironment :> ExecutionEnvironment {

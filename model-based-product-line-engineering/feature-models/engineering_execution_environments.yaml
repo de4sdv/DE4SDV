@@ -27,6 +27,10 @@ root:
               id: F-ENG-COMPUTE-APPLE-SILICON
               binding_time: design
               maps_to_variant: appleSiliconMac
+            - name: IntelX8664NestedKvmHost
+              id: F-ENG-COMPUTE-INTEL-X86-64-NESTED-KVM
+              binding_time: design
+              maps_to_variant: intelX8664NestedKvmHost
         - name: OperatingSystem
           id: F-ENG-OS
           type: alternative
@@ -41,6 +45,10 @@ root:
               id: F-ENG-OS-MACOS-APPLE-SILICON
               binding_time: design
               maps_to_variant: macOSAppleSilicon
+            - name: LinuxX8664AOSPBuild
+              id: F-ENG-OS-LINUX-X86-64-AOSP
+              binding_time: design
+              maps_to_variant: linuxX8664AOSPBuild
         - name: ExecutionRuntime
           id: F-ENG-RUNTIME
           type: alternative
@@ -55,6 +63,10 @@ root:
               id: F-ENG-RUNTIME-VIRTUAL-LINUX-ARM64-OCI-MACOS
               binding_time: design
               maps_to_variant: virtualizedLinuxArm64OCIOnMacOS
+            - name: NestedKvmCuttlefish
+              id: F-ENG-RUNTIME-NESTED-KVM-CUTTLEFISH
+              binding_time: design
+              maps_to_variant: nestedKvmCuttlefish
 constraints:
   - id: C-ENG-JETSON-REQUIRES-TEGRA-LINUX
     type: requires
@@ -76,3 +88,13 @@ constraints:
     if: Environment.ComputeNode == AppleSiliconMac
     then: Environment.ExecutionRuntime == VirtualizedLinuxArm64OCIOnMacOS
     rationale: Linux containers on macOS execute through virtualization and are not native-Linux evidence.
+  - id: C-ENG-AOSP-HOST-REQUIRES-LINUX-X86-64
+    type: requires
+    if: Environment.ComputeNode == IntelX8664NestedKvmHost
+    then: Environment.OperatingSystem == LinuxX8664AOSPBuild
+    rationale: The candidate AAOS build host requires a Linux x86_64 environment.
+  - id: C-ENG-AOSP-HOST-REQUIRES-NESTED-KVM
+    type: requires
+    if: Environment.ComputeNode == IntelX8664NestedKvmHost
+    then: Environment.ExecutionRuntime == NestedKvmCuttlefish
+    rationale: The candidate Cuttlefish path requires a nested-KVM-capable runtime.

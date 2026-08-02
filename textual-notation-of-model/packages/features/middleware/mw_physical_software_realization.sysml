@@ -16,6 +16,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
+  private import DE4SDV_ExecutionEnvironments::*;
   private import DE4SDV_MWLogicalArchitecture::*;
   private import DE4SDV_SDVPlatformStack::*;
   private import DE4SDV_AAOSSDVMiddlewareBoundary::*;
@@ -39,6 +40,14 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   part physicalServiceSatisfactionGap : DeferredProductLineScope {
     doc /* GAP-MW-021: The candidate AAOS SDV boundary has not been shown to satisfy the logical service responsibilities or requirements. */
+  }
+
+  part physicalEnablingSystemGap : DeferredProductLineScope {
+    doc /*
+     * GAP-MW-023: The candidate AAOS build/runtime enabling environment has
+     * not yet passed a readiness probe for the resource envelope, Linux
+     * execution, storage, quota, and nested-KVM requirements.
+     */
   }
 
   part velocitySignalContractGap : DeferredProductLineScope {
@@ -304,6 +313,15 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   part physicalSoftware : MiddlewarePhysicalSoftwareBoundary;
 
+  part aaosBuildRuntimeEnvironmentCandidate : AOSPAAOSBuildRuntimeEnvironment {
+    doc /*
+     * Planned System 2 enabling-system candidate for the AAOS source/build
+     * and Cuttlefish attempt. Provider, region, quota, disk, KVM, and access
+     * remain unverified; this candidate does not claim AAOS or ROS 2 runtime
+     * interoperability.
+     */
+  }
+
   allocation def LogicalToPhysicalSoftwareCandidate {
     doc /* Candidate logical-to-physical mapping. This does not imply complete realization, satisfaction, runtime execution, or acceptance. */
   }
@@ -437,6 +455,12 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency aaosAdapterSourceManifestTrace
     from physicalSoftware::adapter
     to physicalSoftware::aaosSourceArtifact;
+  dependency aaosSourceBuildEnvironmentCandidate
+    from physicalSoftware::aaosSourceArtifact
+    to aaosBuildRuntimeEnvironmentCandidate;
+  dependency aaosCuttlefishEnvironmentCandidate
+    from physicalSoftware::aaosSdvBoundary
+    to aaosBuildRuntimeEnvironmentCandidate;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;

@@ -12,11 +12,13 @@ purpose: >-
   behavior, complete requirement satisfaction, or safety certification.
 engineering_question: >-
   What candidate software and platform boundary elements can realize the
-  middleware logical responsibilities, and what source contracts remain to be
-  pinned before execution claims are possible?
+  middleware logical responsibilities, and what source contracts and
+  enabling-system requirements remain to be satisfied before execution claims
+  are possible?
 lifecycle_decision_supported: >-
-  Decide whether the candidate physical/software boundary is sufficiently
-  explicit to begin variability/configuration and V&V planning.
+  Decide whether the candidate physical/software boundary and its enabling
+  system are sufficiently explicit to begin variability/configuration and V&V
+  planning.
 scope:
   in_scope:
   - Autoware-to-AAOS SDV adapter candidate
@@ -24,12 +26,14 @@ scope:
   - candidate physical/software clients for signal, diagnostic, lifecycle, health, update, and discovery responsibilities
   - logical-to-physical candidate mappings
   - pinned AOSP source-artifact traceability for AAOS SDV middleware projects
+  - engineering enabling-system resource envelope and realization-readiness probe
   - physical structure, interface, functional-mapping, and logical-mapping views
   out_of_scope:
   - vendoring or implementing AAOS SDV
   - pinned ROS 2 topic schemas
   - complete/pinned vehicle-signal VSIDL or SOME/IP service schemas
-  - process, executor, RMW/DDS, VM, ECU, network, or deployment selection
+  - vehicle process, executor, RMW/DDS, ECU, network, or deployment selection
+  - engineering-host provider, region, quota, or cost commitment
   - executable runtime evidence
   - safety certification or complete requirement satisfaction claim
   - emergency intervention command path through the middleware
@@ -43,6 +47,12 @@ source_alignment:
 - source_id: AAOS-SDV-BOUNDARY
   use: candidate-platform-boundary
   artifact: textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml
+- source_id: DE4SDV-ENGINEERING-EXECUTION-ENVIRONMENTS
+  use: aaos-build-runtime-enabling-system
+  artifact: textual-notation-of-model/packages/architecture/execution_environments.sysml
+- source_id: DE4SDV-ENGINEERING-EXECUTION-ENVIRONMENT-FEATURES
+  use: enabling-system-configuration-options
+  artifact: model-based-product-line-engineering/feature-models/engineering_execution_environments.yaml
 - source_id: COVESA-VSS-VEHICLE-SPEED
   use: semantic-vehicle-speed-contract
   repository: https://github.com/COVESA/vehicle_signal_specification
@@ -126,6 +136,14 @@ physical_element_ids:
 - MiddlewarePhysicalSoftwareBoundary
 - AutowareToAAOSSDVAdapter
 - SDVCoreBoundary
+- AOSPAAOSBuildResourceEnvelope
+- AOSPAAOSBuildRuntimeHost
+- IntelX8664NestedKvmHostCandidate
+- LinuxX8664AOSPBuildOperatingSystem
+- NestedKvmCuttlefishRuntimeCandidate
+- AOSPAAOSBuildRuntimeEnvironment
+- aaosBuildRuntimeEnvironmentCandidate
+- physicalEnablingSystemGap
 - SignalAccessClient
 - DiagnosticAccessClient
 - LifecycleClient
@@ -185,6 +203,11 @@ assumptions:
     Physical/software realization is broader than hardware: software clients,
     adapter elements, service boundaries, and platform services are included,
     while deployment remains deferred.
+- id: ASM-MW-020
+  statement: >-
+    AAOS source assembly and a Cuttlefish execution attempt require a separate
+    System 2 enabling system whose resource envelope and runtime capability are
+    checked before source synchronization or build execution.
 gaps:
 - id: GAP-MW-019
   model_element: physicalSourceContractGap
@@ -194,6 +217,30 @@ gaps:
   model_element: physicalServiceSatisfactionGap
 - id: GAP-MW-022
   model_element: velocitySignalContractGap
+- id: GAP-MW-023
+  model_element: physicalEnablingSystemGap
+realization_probes:
+- id: PROBE-MW-008-AAOS-HOST-READINESS
+  phase: physical-software-realization
+  question: >-
+    Can the selected enabling system build the pinned AAOS target and provide
+    a Cuttlefish runtime with the required KVM capability?
+  candidate: IntelX8664NestedKvmHostCandidate
+  planned_realization: Google Compute Engine Intel x86_64 candidate
+  evidence_status: planned
+  disposition: pending
+  preflight_gate:
+  - eligible Intel x86_64 capacity and quota
+  - at least 64 GiB RAM
+  - at least 400 GiB free Linux-backed storage
+  - Ubuntu or compatible Linux x86_64 environment
+  - nested virtualization enabled and /dev/kvm present
+  - network and controlled SSH access
+  - bounded cost controls and automatic shutdown
+  model_impact:
+  - AOSPAAOSBuildResourceEnvelope
+  - aaosBuildRuntimeEnvironmentCandidate
+  - physicalEnablingSystemGap
 next_increments:
 - INC-MW-009: Middleware variability and configuration across member products.
 - INC-MW-010: Middleware verification, validation, and evidence.
