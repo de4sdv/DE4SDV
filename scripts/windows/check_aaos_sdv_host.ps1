@@ -21,6 +21,6 @@ Check "ADB" "adb.exe version"
 Check "Fastboot" "fastboot.exe --version"
 
 Write-Host "`nMinimum recommendation:" -ForegroundColor Yellow
-Write-Host "  x86_64 CPU, 16+ GiB RAM, 300+ GiB free Linux-backed storage"
+Write-Host "  x86_64 CPU, 64+ GiB RAM, 400+ GiB free Linux-backed storage"
 Write-Host "  WSL2 Ubuntu 22.04, source under the WSL ext4 filesystem (not /mnt/c)"
 Write-Host "  Android SDK/platform tools with adb, if a device/emulator will be used"

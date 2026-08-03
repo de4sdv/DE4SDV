@@ -33,4 +33,4 @@ else
 fi
 printf '\n[recommendation]\n'
 printf 'Keep AOSP under the WSL Linux filesystem, for example ~/aosp, not /mnt/c.\n'
-printf 'Minimum practical target: x86_64, 16 GiB RAM, 300 GiB free storage.\n'
+printf 'Minimum proof target: x86_64, 64 GiB RAM, 400 GiB free storage.\n'

@@ -49,12 +49,14 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 The script performs read-only checks. Record the output in the integration evidence directory. Do not include usernames, tokens, private hostnames, or connection strings.
 
-Minimum practical capacity:
+Minimum capacity for the pinned AAOS/Cuttlefish proof profile
+(corresponding to `AOSPAAOSBuildResourceEnvelope` in the execution-environment
+model):
 
 ```text
 x86_64 CPU
-16 GiB RAM minimum; 32 GiB preferred
-300 GiB free storage preferred
+64 GiB RAM
+400 GiB free Linux-backed storage
 WSL2 Ubuntu 22.04
 virtualization enabled in firmware
 ```

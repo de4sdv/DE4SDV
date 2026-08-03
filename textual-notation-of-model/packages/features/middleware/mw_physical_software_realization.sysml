@@ -4,7 +4,10 @@
  * INC-MW-008 maps the middleware logical responsibilities to a concrete
  * candidate software/platform boundary: the Autoware-to-AAOS SDV adapter and
  * the AAOS SDV boundary model. This is a model of the integration boundary,
- * not a vendored AAOS implementation and not runtime evidence.
+ * not a vendored AAOS implementation and not middleware runtime evidence.
+ * A bounded AAOS/Cuttlefish build-and-boot observation is retained as
+ * enabling-system evidence in the companion record; it does not establish
+ * framework, service, adapter, ROS 2, Autoware, or vehicle interoperability.
  *
  * The adapter and AAOS boundary remain candidate realizations. The selected
  * Autoware ROS 2 topic and AOSP SDV gateway/middleware source artifacts are
@@ -14,6 +17,7 @@
 
 package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_MethodContext::*;
+  private import DE4SDV_MethodProcess::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_ExecutionEnvironments::*;
@@ -51,44 +55,37 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   part velocitySignalContractGap : DeferredProductLineScope {
-    doc /* GAP-MW-022: The pinned public AOSP SDV tree provides gateway, service-discovery, data-tunnel, RPC-agent, and transport interfaces, but does not provide the selected vehicle-velocity VSIDL service bundle, FQIN, message contract, or generated client binding. */
+    doc /* GAP-MW-022: The pinned public AOSP SDV tree provides gateway, service-discovery, data-tunnel, RPC-agent, and transport interfaces, but does not provide the selected production vehicle-velocity VSIDL service bundle, FQIN, payload contract, or generated client binding. The DE4SDV reference payload and VSIDL catalog remain candidates only. */
   }
 
   part def AAOSSDVSourceArtifact {
     doc /*
-     * Pinned AOSP source manifest for the AAOS SDV build. Manifest branch:
-     * android-latest-release; manifest revision:
-     * ad156f32caaa06dae91c02d443f6a8fe210eaa54. The SDV projects below use
-     * the android17-release revision declared by that manifest.
-     *
-     * Manifest repository:
-     * https://android.googlesource.com/platform/manifest
-     * Build target: sdv_core_cf-trunk_staging-userdebug.
+     * Source ID: AOSP-AAOS-SDV-MANIFEST.
+     * Pinned AOSP source manifest and build target for the AAOS SDV build.
+     * Detailed repository, revision, branch, and path provenance is maintained
+     * in the INC-MW-008 pilot source_alignment record.
      */
   }
 
   part def COVESAVehicleSpeedSemanticSource {
     doc /*
+     * Source ID: COVESA-VSS-VEHICLE-SPEED.
      * Source-backed semantic definition for VSS Vehicle.Speed. This is the
      * canonical vehicle-speed meaning used between the AAOS contract and the
      * Autoware ROS 2 representation; it is not an AAOS VSIDL service contract.
-     * Source repository:
-     * https://github.com/COVESA/vehicle_signal_specification
-     * Source commit: 6fb1dac2630a8910ee996863b2af02b310dcd7ce.
-     * Source path: spec/VehicleSignalSpecification.vspec.
      * VSS path: Vehicle.Speed; quantity: speed; unit: km/h.
+     * The canonical field/unit transformation is recorded by mapping
+     * VSS-SIM-AEBS-001 in
+     * methodologies/sysmod-sysmlv2/pilots/aebs-simulation-deployment/
+     * vss-simulation-realization.yaml; this increment traces that mapping
+     * rather than redefining it.
      */
   }
 
   part def DE4SDVVSSVehicleSpeedAdapterSource {
     doc /*
+     * Source ID: DE4SDV-VSS-VEHICLE-SPEED-ADAPTER.
      * Source-backed DE4SDV provider-neutral adapter implementation.
-     * Repository: https://github.com/de4sdv/DE4SDV
-     * Branch: feat/mw-008-physical-software-realization
-     * Commit: 0e60049ac91da4a4e0f71858d68ab9c27a56ea80.
-     * Source paths:
-     * implementation/vss-vehicle-speed-adapter/src/de4sdv_vss_vehicle_speed_adapter/adapter.py
-     * implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
      * This implementation normalizes VSS Vehicle.Speed [km/h] to a
      * provider-neutral longitudinal velocity [m/s]. It does not claim AAOS,
      * VSIDL, ROS 2, transport, deployment, or runtime interoperability.
@@ -97,126 +94,119 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   part def DE4SDVAAOSSDVReferenceInteropBenchSource {
     doc /*
+     * Source ID: DE4SDV-AAOS-SDV-REFERENCE-INTEROP-BENCH.
      * Source-backed DE4SDV-owned reference contract and executable rehearsal.
-     * Repository: https://github.com/de4sdv/DE4SDV
-     * Branch: feat/mw-008-physical-software-realization
-     * Commit: d0a00c22d664b3a62c0029a8aaccb71ba8dbb3d9.
-     * Source paths:
-     * implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.proto
-     * implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.vsidl
-     * implementation/aaos-sdv-reference-interop-bench/src/de4sdv_aaos_sdv_reference_bench/reference_bench.py
-     * implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
+     * The reference protobuf message is `VehicleSpeed` with the semantic
+     * field `speed_kmh`; the companion VSIDL catalog identifies the
+     * `DE4SDVVehicleSpeedProvider` publisher, `VehicleSpeed` message, and
+     * `VEHICLE_SPEED` channel. These artifacts define a reference contract
+     * candidate, not a selected OEM or production AAOS service.
      * The rehearsal proves the DE4SDV reference contract and independent
      * observer path. AAOS runtime interoperability remains pending an AOSP
      * SDV target and generated VSIDL binding.
      */
   }
 
+  item def DE4SDVReferenceVehicleSpeedPayload {
+    doc /*
+     * Candidate semantic payload slice for the DE4SDV-owned reference
+     * contract. `speed_kmh` is the explicit identity mapping from COVESA VSS
+     * `Vehicle.Speed` [km/h]. The reference protobuf also carries timestamp
+     * and quality fields; their semantics remain outside this signal slice
+     * until they are separately mapped.
+     */
+    attribute speed_kmh : Vehicle_Speed;
+  }
+
+  port def DE4SDVReferenceVehicleSpeedAccessPort :> VehicleSignalAccessPort {
+    doc /*
+     * Candidate typed AAOS-side access port for the reference vehicle-speed
+     * slice. The type binds the current signal boundary to the reference
+     * payload without selecting a production VSIDL service, generated
+     * binding, deployment, or runtime transport.
+     */
+    inout item vehicleSpeed : DE4SDVReferenceVehicleSpeedPayload redefines vehicleSignals;
+  }
+
   part def AAOSVSIDLProviderAgentSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-VSIDL.
      * VSIDL provider agent from
      * system/software_defined_vehicle/vsidl/provider/agent/sdv. The pinned
      * implementation exposes metadata RPCs including diagnostics declaration,
      * message descriptor, publication descriptor, and RPC method descriptor.
-     * Source repository:
-     * https://android.googlesource.com/platform/system/software_defined_vehicle/vsidl
-     * Source revision: 9d6bfa55d7448844c36af7c5aeadb3e981b6c995.
-     * Source files:
-     * provider/agent/sdv/src/main.rs
-     * provider/agent/sdv/api/protos/messages.proto
      */
   }
 
   part def AAOSMiddlewareSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-MIDDLEWARE.
      * Source-backed AAOS SDV middleware communication implementation from
-     * system/software_defined_vehicle/middleware. Source revision:
-     * 7ab87b58959e638fc9f1e5a5860cfed20ed29cab.
-     * Source repository:
-     * https://android.googlesource.com/platform/system/software_defined_vehicle/middleware
+     * system/software_defined_vehicle/middleware.
+     * The pinned source provides the middleware communication boundary.
      */
   }
 
   part def AAOSHardwareSDVInterfacesSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-INTERFACES.
      * Source-backed hardware/sdv interface definitions for middleware,
      * lifecycle, service discovery, RPC, and data-tunnel boundaries.
-     * Source repository:
-     * https://android.googlesource.com/platform/hardware/sdv/interfaces
-     * Source revision: 3682a3968292032a31d74c450380aa81d5e547ec.
      */
   }
 
   part def AAOSSDVGatewaySessionSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-INTERFACES.
      * Source-backed AAOS SDV gateway session interface. It exposes
      * serviceDiscoveryAgent(), dataTunnelAgent(), createPublication(), and
      * findRpcServerByName().
-     * Source repository:
-     * https://android.googlesource.com/platform/hardware/sdv/interfaces
-     * Source revision: 3682a3968292032a31d74c450380aa81d5e547ec.
-     * Source path: sdv_gateway/aidl/google/sdv/gateway/ISdvGatewaySession.aidl
      */
   }
 
   part def AAOSSDVDataTunnelPublicationSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-INTERFACES.
      * Source-backed AAOS SDV data-tunnel publication interface. It exposes
      * publication ownership and publisher metadata at the gateway boundary.
-     * Source repository:
-     * https://android.googlesource.com/platform/hardware/sdv/interfaces
-     * Source revision: 3682a3968292032a31d74c450380aa81d5e547ec.
-     * Source path: sdv_gateway/aidl/google/sdv/gateway/IDataTunnelPublication.aidl
      */
   }
 
   part def AAOSSDVRpcAgentSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-MIDDLEWARE.
      * Source-backed AAOS SDV RPC-agent implementation. It registers RPC
      * servers and transport metadata with the SDV middleware.
-     * Source repository:
-     * https://android.googlesource.com/platform/system/software_defined_vehicle/middleware
-     * Source revision: 7ab87b58959e638fc9f1e5a5860cfed20ed29cab.
-     * Source paths: rpc_agent/cpp/RpcAgentServer.h and
-     * rpc_agent/cpp/RpcAgentServer.cpp.
      */
   }
 
   part def AAOSLifecycleServiceSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-LIFECYCLE.
      * Source-backed lifecycle-management project at
-     * system/software_defined_vehicle/lifecycle_management; revision
-     * 74813463c7293bf12e0791701b2037b1a26f48f8.
-     * Source repository:
-     * https://android.googlesource.com/platform/system/software_defined_vehicle/lifecycle_management
-     * Relevant source areas: aidl, src, service_bundle_runner, tests.
+     * system/software_defined_vehicle/lifecycle_management.
      */
   }
 
   part def AAOSHealthMonitorSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-HEALTH.
      * Source-backed health-monitor project at
-     * system/software_defined_vehicle/health_monitor; revision
-     * a3ffbe9caf8b94041c013deac36c4e5f27b69932.
-     * Source repository:
-     * https://android.googlesource.com/platform/system/software_defined_vehicle/health_monitor
-     * Relevant source areas: src, apex, catalog, integration_tests.
+     * system/software_defined_vehicle/health_monitor.
      */
   }
 
   part def AAOSDiagnosticsSource {
     doc /*
+     * Source ID: AOSP-AAOS-SDV-DIAGNOSTICS.
      * Source-backed automotive diagnostics project at
-     * system/software_defined_vehicle/automotive_services; revision
-     * 1d4dcb7f908a6df97b036a90a5802de8cedebd63.
-     * Source repository:
-     * https://android.googlesource.com/platform/system/software_defined_vehicle/automotive_services
-     * Relevant source area: diagnostics.
+     * system/software_defined_vehicle/automotive_services, relevant source
+     * area: diagnostics.
      */
   }
 
   part def SignalAccessClient {
-    doc /* Candidate physical/software client for vehicle signal access through the selected adapter and platform boundary. */
+    doc /* Candidate generic physical/software client for vehicle signal access through the selected adapter and platform boundary. Concrete signal slices specialize the adapter endpoint and retain their own mapping records. */
     port vehicleSignal : VehicleSignalAccessPort;
   }
 
@@ -253,8 +243,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     doc /*
      * Physical adapter candidate with explicit application-side logical ports
      * and AAOS SDV-side service ports. The port contracts are integration
-     * boundaries; concrete ROS 2 topic and VSIDL schemas remain controlled by
-     * GAP-MW-019 until reviewed source revisions are pinned.
+     * boundaries; concrete production ROS 2 topic and VSIDL schemas remain
+     * controlled by GAP-MW-019 and GAP-MW-022 until reviewed source revisions
+     * are pinned. The typed vehicle-speed port below is a DE4SDV reference
+     * contract candidate, not that production binding.
      */
     port applicationSignal : SignalAccessApplicationPort;
     port applicationDiagnostics : DiagnosticApplicationPort;
@@ -263,7 +255,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     port applicationUpdate : UpdateApplicationPort;
     port applicationDiscovery : ServiceBindingApplicationPort;
 
-    port aaosSignal : VehicleSignalAccessPort;
+    port aaosSignal : DE4SDVReferenceVehicleSpeedAccessPort;
     port aaosDiagnostics : DiagnosticAccessPort;
     port aaosLifecycle : LifecycleCoordinationPort;
     port aaosHealth : HealthStatusPort;
@@ -289,19 +281,19 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      */
     part adapter : AutowareToAAOSSDVAdapterPhysical;
     part aaosSdvBoundary : SDVCoreBoundary;
-    part aaosSourceArtifact : AAOSSDVSourceArtifact;
-    part vssVehicleSpeedSource : COVESAVehicleSpeedSemanticSource;
-    part de4sdvVehicleSpeedAdapterSource : DE4SDVVSSVehicleSpeedAdapterSource;
-    part referenceInteropBenchSource : DE4SDVAAOSSDVReferenceInteropBenchSource;
-    part vsidlProviderSource : AAOSVSIDLProviderAgentSource;
-    part middlewareSource : AAOSMiddlewareSource;
-    part hardwareInterfacesSource : AAOSHardwareSDVInterfacesSource;
-    part gatewaySessionSource : AAOSSDVGatewaySessionSource;
-    part dataTunnelPublicationSource : AAOSSDVDataTunnelPublicationSource;
-    part rpcAgentSource : AAOSSDVRpcAgentSource;
-    part lifecycleServiceSource : AAOSLifecycleServiceSource;
-    part healthMonitorSource : AAOSHealthMonitorSource;
-    part diagnosticsSource : AAOSDiagnosticsSource;
+    ref part aaosSourceArtifact : AAOSSDVSourceArtifact;
+    ref part vssVehicleSpeedSource : COVESAVehicleSpeedSemanticSource;
+    ref part de4sdvVehicleSpeedAdapterSource : DE4SDVVSSVehicleSpeedAdapterSource;
+    ref part referenceInteropBenchSource : DE4SDVAAOSSDVReferenceInteropBenchSource;
+    ref part vsidlProviderSource : AAOSVSIDLProviderAgentSource;
+    ref part middlewareSource : AAOSMiddlewareSource;
+    ref part hardwareInterfacesSource : AAOSHardwareSDVInterfacesSource;
+    ref part gatewaySessionSource : AAOSSDVGatewaySessionSource;
+    ref part dataTunnelPublicationSource : AAOSSDVDataTunnelPublicationSource;
+    ref part rpcAgentSource : AAOSSDVRpcAgentSource;
+    ref part lifecycleServiceSource : AAOSLifecycleServiceSource;
+    ref part healthMonitorSource : AAOSHealthMonitorSource;
+    ref part diagnosticsSource : AAOSDiagnosticsSource;
 
     part signalAccessClient : SignalAccessClient;
     part diagnosticAccessClient : DiagnosticAccessClient;
@@ -329,6 +321,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   allocation signalTranslatorCandidate : LogicalToPhysicalSoftwareCandidate
     allocate DE4SDV_MWLogicalArchitecture::logicalSystem::signalTranslator
     to physicalSoftware::signalAccessClient;
+  allocation vehicleSpeedLogicalToSoftwareSignalCandidate : LogicalToSoftwareSignalMappingCandidate
+    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::signalTranslator
+    to physicalSoftware::adapter::aaosSignal::vehicleSpeed;
   allocation diagnosticProxyCandidate : LogicalToPhysicalSoftwareCandidate
     allocate DE4SDV_MWLogicalArchitecture::logicalSystem::diagnosticProxy
     to physicalSoftware::diagnosticAccessClient;
@@ -371,6 +366,12 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency adapterSignalMapping
     from physicalSoftware::adapter::applicationSignal
     to physicalSoftware::adapter::aaosSignal;
+  dependency referenceVehicleSpeedContractTrace
+    from physicalSoftware::adapter::aaosSignal::vehicleSpeed
+    to physicalSoftware::referenceInteropBenchSource;
+  dependency referenceVehicleSpeedVSIDLCandidate
+    from physicalSoftware::adapter::aaosSignal::vehicleSpeed
+    to physicalSoftware::aaosSdvBoundary::vsidlMiddleware;
   dependency adapterDiagnosticMapping
     from physicalSoftware::adapter::applicationDiagnostics
     to physicalSoftware::adapter::aaosDiagnostics;
@@ -407,7 +408,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     to physicalSoftware::aaosSdvBoundary::serviceDiscovery;
 
   dependency vsidlSignalToROS2Velocity
-    from physicalSoftware::adapter::aaosSignal
+    from physicalSoftware::adapter::aaosSignal::vehicleSpeed
     to physicalSoftware::adapter::ros2VelocityOut;
   dependency ros2AutowareStateToVSIDLLifecycle
     from physicalSoftware::adapter::ros2AutowareStateIn
@@ -417,7 +418,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     to physicalSoftware::adapter::ros2DiagnosticsOut;
 
   dependency vehicleSpeedSemanticTrace
-    from physicalSoftware::adapter::aaosSignal
+    from physicalSoftware::adapter::aaosSignal::vehicleSpeed
     to physicalSoftware::vssVehicleSpeedSource;
   dependency de4sdvAdapterImplementationTrace
     from physicalSoftware::adapter

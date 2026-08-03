@@ -48,6 +48,44 @@ If these cannot be stated, the increment is not ready.
 | 11. Publication | What is reviewable now? | DE4SDV workflow | SysML v2, Markdown, YAML, generated views, reports, PR |
 | 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision, open issues, next increment |
 
+## Cross-phase logical-to-software signal mapping control
+
+Whenever a logical or semantic information item crosses into a concrete
+software, service, topic, API, or physical interface, create an explicit
+logical-to-software signal mapping. This is a recurring control applied at
+each applicable boundary, variant, and contract revision; it is not a new
+lifecycle phase and it is not limited to VSS or VSIDL.
+
+The mapping is required for interface-bearing information items, not for every
+internal calculation. Internal items receive an explicit `not_applicable`
+disposition. If the downstream contract is not pinned, record a candidate or
+deferred mapping and its gap rather than treating the signal as unmapped.
+
+Each applicable mapping record should identify:
+
+- a stable mapping ID and the qualified logical/semantic source item or catalog
+  path;
+- the software contract identity: service/API/topic, message, field, and
+  source artifact/revision, marked exact or candidate;
+- physical/software adapter endpoints and direction;
+- datatype, unit, timing/freshness, quality, availability, and state semantics
+  that matter at the boundary;
+- pass-through, unit conversion, derivation, filtering, or state rule;
+- realization status, open gap, and the verification or evidence record that
+  can demonstrate the mapping.
+
+SysML owns the semantic endpoints, typed ports/items, and trace relationships.
+A machine-readable control artifact may carry exact contract fields and
+status. `.proto`, `.vsidl`, generated bindings, implementation code, tests,
+and runtime observations remain authoritative in their respective external
+artifacts. A mapping is not a runtime-interoperability claim.
+
+The physical/software realization exit gate is satisfied only when every
+applicable crossing has a `mapped`, `candidate`, `deferred`, or
+`not_applicable` disposition with an owner and next action. A generic
+dependency, same-name element, or port allocation cannot substitute for the
+mapping.
+
 ## Realization-readiness control
 
 Phase 8 uses a realization-readiness probe when the candidate physical/software
@@ -104,6 +142,8 @@ Stakeholder concern
   -> Requirement / constraint
   -> Feature or common capability
   -> Architecture element / function / interface
+  -> Logical-to-software signal mapping (when a boundary is crossed)
+  -> Physical/software realization or configuration
   -> Verification case and validation scenario
   -> Acceptance criterion
   -> Evidence artifact and evidence status

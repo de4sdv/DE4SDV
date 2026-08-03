@@ -6,7 +6,8 @@
  * The phase sequence and feedback loops are documented in
  * methodologies/sysmod-sysmlv2/process-mapping.md (PR #74) as a mermaid
  * diagram. This SysML model provides the structured data: phase enumeration,
- * SAF domain mapping, required trace chain, and increment size guidance.
+ * SAF domain mapping, required trace chain, recurring logical-to-software
+ * signal-mapping control, and increment size guidance.
  *
  * Source: methodologies/sysmod-sysmlv2/increment-workflow.md
  *         methodologies/sysmod-sysmlv2/process-mapping.md
@@ -47,7 +48,7 @@ package DE4SDV_MethodProcess {
       doc /* What logical elements realize functions? Logical domain. */
     }
     phase8_physicalRealization {
-      doc /* What software/hardware realizes the logical design? Physical domain. */
+      doc /* What software/hardware realizes the logical design, and which applicable logical or semantic signals cross into typed software contracts? Physical domain. */
     }
     phase9_variabilityConfiguration {
       doc /* How does this vary across member products? DE4SDV product-line layer. */
@@ -97,8 +98,10 @@ package DE4SDV_MethodProcess {
      * some links are draft:
      *
      * Stakeholder concern -> Need -> Requirement -> Feature or common
-     * capability -> Architecture element -> Verification case ->
-     * Acceptance criterion -> Evidence artifact -> Baseline decision.
+     * capability -> Architecture element -> Logical-to-software signal
+     * mapping when a boundary is crossed -> Physical/software realization ->
+     * Verification case -> Acceptance criterion -> Evidence artifact ->
+     * Baseline decision.
      *
      * If a link is intentionally missing, record the gap.
      */
@@ -118,8 +121,16 @@ package DE4SDV_MethodProcess {
       attribute fromElement redefines TraceLink::fromElement = "FeatureOrCommonCapability";
       attribute toElement redefines TraceLink::toElement = "ArchitectureElement";
     }
+    part architectureToSignalMapping : TraceLink {
+      attribute fromElement redefines TraceLink::fromElement = "ArchitectureElementOrFunctionInterface";
+      attribute toElement redefines TraceLink::toElement = "LogicalToSoftwareSignalMapping";
+    }
+    part signalMappingToPhysicalRealization : TraceLink {
+      attribute fromElement redefines TraceLink::fromElement = "LogicalToSoftwareSignalMapping";
+      attribute toElement redefines TraceLink::toElement = "PhysicalSoftwareRealization";
+    }
     part architectureToVerification : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "ArchitectureElement";
+      attribute fromElement redefines TraceLink::fromElement = "PhysicalSoftwareRealization";
       attribute toElement redefines TraceLink::toElement = "VerificationCase";
     }
     part verificationToAcceptance : TraceLink {
@@ -134,6 +145,58 @@ package DE4SDV_MethodProcess {
       attribute fromElement redefines TraceLink::fromElement = "EvidenceArtifact";
       attribute toElement redefines TraceLink::toElement = "BaselineDecision";
     }
+  }
+
+  /* ─── Recurring logical-to-software signal mapping control ─── */
+
+  enum def SignalMappingDisposition {
+    mapped {
+      doc /* The applicable logical/semantic signal has an accepted software-contract mapping for the declared scope. */
+    }
+    candidate {
+      doc /* A reference or proposed contract mapping exists, but the selected platform realization remains open. */
+    }
+    deferred {
+      doc /* The mapping is known to be needed but is intentionally postponed with an owned gap and next action. */
+    }
+    notApplicable {
+      doc /* The signal does not cross the applicable software/physical boundary; the reason is recorded externally. */
+    }
+  }
+
+  item def LogicalToSoftwareSignalMappingRecord {
+    doc /*
+     * Reusable control-record shape for an interface-bearing logical or
+     * semantic information item crossing into a software, service, topic, API,
+     * or physical boundary. Exact .proto/.vsidl fields and runtime observations
+     * remain in their authoritative external artifacts; this record preserves
+     * the stable trace and review obligations.
+     */
+    attribute mappingId : ScalarValues::String;
+    attribute semanticSource : ScalarValues::String;
+    attribute softwareContractArtifact : ScalarValues::String;
+    attribute softwareContractMessage : ScalarValues::String;
+    attribute softwareContractField : ScalarValues::String;
+    attribute adapterEndpoints : ScalarValues::String;
+    attribute direction : ScalarValues::String;
+    attribute dataTypeAndUnit : ScalarValues::String;
+    attribute timingQualityAndState : ScalarValues::String;
+    attribute transformationRule : ScalarValues::String;
+    attribute disposition : SignalMappingDisposition;
+    attribute owner : ScalarValues::String;
+    attribute nextAction : ScalarValues::String;
+    attribute evidenceOrGap : ScalarValues::String;
+  }
+
+  allocation def LogicalToSoftwareSignalMappingCandidate {
+    doc /*
+     * Reusable non-claiming allocation relationship from a logical/function
+     * signal responsibility to a concrete software/adapter signal endpoint.
+     * A specialization must still provide the typed payload/port, contract
+     * mapping record, transformation, status, owner, next action, and evidence
+     * or gap. The allocation alone never proves field identity or runtime
+     * interoperability.
+     */
   }
 
   /* ─── Increment size guidance ─── */
@@ -158,7 +221,8 @@ package DE4SDV_MethodProcess {
   concern methodProcessAssuranceConcern : ArgumentationAssuranceConcern {
     doc /*
      * Reviewers need the DE4SDV method process to be visible: phases,
-     * SAF domain mapping, required trace chain, and increment size guidance.
+     * SAF domain mapping, required trace chain, recurring logical-to-software
+     * signal-mapping control, and increment size guidance.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;

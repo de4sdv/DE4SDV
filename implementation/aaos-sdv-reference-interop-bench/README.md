@@ -11,10 +11,23 @@ This bench defines the DE4SDV-owned reference vehicle-speed contract and runs a 
 - publisher message: `VehicleSpeed`
 - channel: `VEHICLE_SPEED`
 - topic: `vehicle-speed`
-- proposed reference FQIN fields: recorded in `contract/contract.yaml`
 - Autoware target: `/vehicle/status/velocity_status`, `VelocityReport.longitudinal_velocity`, `m/s`
 
 The `.vsidl` syntax follows the public AOSP VSIDL v1 test catalog shape. The `.proto` and `.vsidl` files are DE4SDV-owned reference artifacts, not OEM contracts.
+
+The explicit reference mapping is:
+
+```text
+VSS Vehicle.Speed [km/h]
+    → VehicleSpeed.speed_kmh [km/h]       identity
+    → VSIDL VehicleSpeed / VEHICLE_SPEED  candidate service envelope
+    → VelocityReport.longitudinal_velocity [m/s]
+```
+
+The final edge uses the existing `VSS-SIM-AEBS-001` km/h-to-m/s mapping. The
+reference VSIDL service, generated binding, provider deployment, discovery,
+transport, and AAOS runtime remain unproven; this map does not upgrade the
+bench to AAOS interoperability.
 
 ## Local rehearsal
 
@@ -54,3 +67,19 @@ ros2_runtime_interoperability: not_proven
 8. Retain runtime logs, discovery results, contract identity, deployment configuration, and exact source hashes.
 
 Until those steps run on an AAOS SDV target, this bench proves only the DE4SDV reference contract and provider-neutral adapter rehearsal.
+
+## Bounded AAOS/Cuttlefish enabling-system proof
+
+The physical-realization increment now has a separate bounded proof record:
+[`evidence/aaos-cuttlefish-cloud-proof.yaml`](evidence/aaos-cuttlefish-cloud-proof.yaml).
+
+The recorded run built the pinned `sdv_core_cf-trunk_staging-userdebug` target,
+launched it with Cuttlefish/QEMU, reached Android boot completion, exposed the
+expected `super` block-device link, and accepted ADB commands over an explicit
+TCP fallback transport.
+
+This is **bootability evidence only**. The target's default Cuttlefish vsock
+ADB path was offline, and this minimal SDV core image did not expose Android
+framework services such as Package Manager, `system_server`, or Car Service.
+The record therefore does not upgrade the bench to AAOS middleware, VSIDL,
+adapter, ROS 2, Autoware, or vehicle runtime interoperability.
