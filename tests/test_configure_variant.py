@@ -67,12 +67,160 @@ class TestConfigureVariant(unittest.TestCase):
         self.assertIn("Configuration valid", err)
 
     def test_valid_apollo_qnx_qvm(self):
-        """Valid: Apollo + AUTOSAR Adaptive + QNX + QVM."""
+        """Valid: the maintained Apollo + QNX + QVM configuration."""
         rc, out, err = self.run_config(
             BOF_DIR / "apollo-qnx-qvm.yaml",
             extra_args=["--check-only"]
         )
         self.assertIn("Configuration valid", err)
+
+    def test_unsupported_application_middleware_pair_is_rejected(self):
+        """An application/middleware pair without an adapter cannot configure."""
+        bof_data = yaml.safe_load(
+            (BOF_DIR / "example-linux-score-autoware.yaml").read_text()
+        )
+        bof_data["name"] = "UnsupportedOpenpilotAndroidSDV"
+        bof_data["selections"]["PlatformStack.VehicleApplication"] = "Openpilot"
+        bof_data["selections"]["PlatformStack.Middleware"] = "AndroidSDV"
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as bof:
+            yaml.safe_dump(bof_data, bof, sort_keys=False)
+        try:
+            rc, out, err = self.run_config(Path(bof.name), expect_fail=True)
+            self.assertIn("derived asset", err.lower())
+            self.assertIn("applicationMiddlewareAdapter", err)
+            self.assertNotIn("Traceback", err)
+        finally:
+            os.unlink(bof.name)
+
+    def test_adapter_cannot_be_selected_independently(self):
+        """The BoF controls source choices, never the derived adapter variant."""
+        bof_data = yaml.safe_load(
+            (BOF_DIR / "example-linux-score-autoware.yaml").read_text()
+        )
+        bof_data["selections"][
+            "PlatformStack.ApplicationMiddlewareAdapter"
+        ] = "autowareToSCORE"
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as bof:
+            yaml.safe_dump(bof_data, bof, sort_keys=False)
+        try:
+            rc, out, err = self.run_config(Path(bof.name), expect_fail=True)
+            self.assertIn("Unknown feature path", err)
+            self.assertIn("ApplicationMiddlewareAdapter", err)
+        finally:
+            os.unlink(bof.name)
+
+    def test_duplicate_derived_asset_condition_is_rejected(self):
+        """Two rules cannot resolve the same application/middleware pair."""
+        feature_data = yaml.safe_load(FM.read_text())
+        rules = feature_data["derived_asset_selections"][0]["rules"]
+        rules.append(copy.deepcopy(rules[0]))
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as feature_model:
+            yaml.safe_dump(feature_data, feature_model, sort_keys=False)
+        try:
+            rc, out, err = self.run_config(
+                BOF_DIR / "example-linux-score-autoware.yaml",
+                feature_model_path=Path(feature_model.name),
+                expect_fail=True,
+            )
+            self.assertIn("duplicates the condition", err)
+            self.assertNotIn("Traceback", err)
+        finally:
+            os.unlink(feature_model.name)
+
+    def test_derived_asset_sources_and_sysml_targets_are_validated(self):
+        """Derived rules must reference real choices, variations, and variants."""
+        base = yaml.safe_load(FM.read_text())
+        cases = []
+
+        unknown_source = copy.deepcopy(base)
+        unknown_source["derived_asset_selections"][0]["source_selections"][0] = (
+            "PlatformStack.NoSuchApplication"
+        )
+        cases.append((unknown_source, "references unknown path"))
+
+        missing_variation = copy.deepcopy(base)
+        missing_variation["derived_asset_selections"][0]["maps_to"] = (
+            "SDVPlatformStack.noSuchDerivedVariation"
+        )
+        cases.append((missing_variation, "Derived SysML variation"))
+
+        missing_variant = copy.deepcopy(base)
+        missing_variant["derived_asset_selections"][0]["rules"][0][
+            "maps_to_variant"
+        ] = "noSuchAdapter"
+        cases.append((missing_variant, "Derived SysML variant"))
+
+        selectable_target = copy.deepcopy(base)
+        selectable_target["derived_asset_selections"][0]["maps_to"] = (
+            "SDVPlatformStack.middleware"
+        )
+        cases.append((selectable_target, "already independently selectable"))
+
+        for feature_data, expected in cases:
+            with self.subTest(expected=expected), tempfile.NamedTemporaryFile(
+                mode="w", suffix=".yaml", delete=False
+            ) as feature_model:
+                yaml.safe_dump(feature_data, feature_model, sort_keys=False)
+                feature_path = feature_model.name
+            try:
+                rc, out, err = self.run_config(
+                    BOF_DIR / "example-linux-score-autoware.yaml",
+                    feature_model_path=Path(feature_path),
+                    expect_fail=True,
+                )
+                self.assertIn(expected, err)
+                self.assertNotIn("Traceback", err)
+            finally:
+                os.unlink(feature_path)
+
+    def test_malformed_derived_asset_metadata_fails_without_traceback(self):
+        """Bad declarative shapes produce diagnostics, not parser crashes."""
+        feature_data = yaml.safe_load(FM.read_text())
+        derivation = feature_data["derived_asset_selections"][0]
+        derivation["source_selections"] = "not-a-list"
+        derivation["rules"] = [None]
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as feature_model:
+            yaml.safe_dump(feature_data, feature_model, sort_keys=False)
+        try:
+            rc, out, err = self.run_config(
+                BOF_DIR / "example-linux-score-autoware.yaml",
+                feature_model_path=Path(feature_model.name),
+                expect_fail=True,
+            )
+            self.assertIn("source_selections must be a non-empty YAML list", err)
+            self.assertIn("rules[0] must be a YAML mapping", err)
+            self.assertNotIn("Traceback", err)
+        finally:
+            os.unlink(feature_model.name)
+
+    def test_unhashable_derived_condition_value_fails_without_traceback(self):
+        """A compound YAML choice is rejected before duplicate-rule hashing."""
+        feature_data = yaml.safe_load(FM.read_text())
+        feature_data["derived_asset_selections"][0]["rules"][0]["when"][
+            "PlatformStack.VehicleApplication"
+        ] = ["Autoware"]
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as feature_model:
+            yaml.safe_dump(feature_data, feature_model, sort_keys=False)
+        try:
+            rc, out, err = self.run_config(
+                BOF_DIR / "example-linux-score-autoware.yaml",
+                feature_model_path=Path(feature_model.name),
+                expect_fail=True,
+            )
+            self.assertIn("must be a string choice", err)
+            self.assertNotIn("Traceback", err)
+        finally:
+            os.unlink(feature_model.name)
 
     # ── Invalid configurations ────────────────────────────
 
@@ -925,8 +1073,24 @@ selections:
         self.assertIn(f"Bill-of-Features SHA-256: {bof_hash}", out)
         self.assertIn("part :>> vehicleApplication = vehicleApplication::autoware;", out)
         self.assertIn("part :>> middleware = middleware::eclipseSCORE;", out)
+        self.assertIn(
+            "part :>> applicationMiddlewareAdapter = "
+            "applicationMiddlewareAdapter::autowareToSCORE;",
+            out,
+        )
         self.assertIn("part :>> osPlatform = osPlatform::linux;", out)
         self.assertIn("part :>> hypervisor = hypervisor::none;", out)
+
+    def test_none_middleware_derives_absent_adapter(self):
+        """The adapter is absent when no vehicle-level middleware is selected."""
+        rc, out, err = self.run_config(
+            BOF_DIR / "aebs-autoware-linux-lidar-camera.yaml"
+        )
+        self.assertIn(
+            "part :>> applicationMiddlewareAdapter = "
+            "applicationMiddlewareAdapter::none;",
+            out,
+        )
 
     def test_projection_metadata_targets_declared_package_and_owner(self):
         """One configurator derives projections from reusable non-platform assets."""
@@ -1254,7 +1418,7 @@ selections:
             os.unlink(bof.name)
 
     def test_constraint_c002_android_sdv_on_linux(self):
-        """C002: AndroidSDV + Linux should pass."""
+        """C002: supported Autoware + AndroidSDV + Linux derives its adapter."""
         bof = tempfile.NamedTemporaryFile(
             mode="w", suffix=".yaml", delete=False
         )
@@ -1262,7 +1426,7 @@ selections:
 name: TestAndroidSDVLinux
 description: Android SDV + Linux — valid per C002
 selections:
-  PlatformStack.VehicleApplication: Apollo
+  PlatformStack.VehicleApplication: Autoware
   PlatformStack.Middleware: AndroidSDV
   PlatformStack.OS: Linux
   PlatformStack.Hypervisor: None
@@ -1276,9 +1440,14 @@ selections:
         bof.close()
         try:
             rc, out, err = self.run_config(
-                bof.name, extra_args=["--check-only"]
+                bof.name
             )
             self.assertIn("Configuration valid", err)
+            self.assertIn(
+                "part :>> applicationMiddlewareAdapter = "
+                "applicationMiddlewareAdapter::autowareToAAOSSDV;",
+                out,
+            )
         finally:
             os.unlink(bof.name)
 

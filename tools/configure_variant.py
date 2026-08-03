@@ -6,6 +6,8 @@ Reads a Bill-of-Features (YAML), validates it against the feature model (YAML),
 then generates a SysML v2 product-model projection of the catalogue's declared
 shared-asset owner.
 Selections without mapped variable shared assets are validated but not derived.
+Assets declared under ``derived_asset_selections`` are resolved from their
+source feature choices and cannot be selected independently in the BoF.
 
 The configurator implements three of the four ISO/IEC 26580 PLE Factory
 components in a lightweight, in-repo way:
@@ -203,6 +205,12 @@ def validate_document_shapes(feature_data, bof_data):
             for field in ("type", "if", "then"):
                 if not isinstance(constraint.get(field), str):
                     errors.append(f"constraint[{index}].{field} must be a string")
+
+    derived_assets = feature_data.get("derived_asset_selections", [])
+    if not isinstance(derived_assets, list):
+        errors.append(
+            "feature model 'derived_asset_selections' must be a YAML list"
+        )
 
     def check_node(node, path):
         if not isinstance(node, dict):
@@ -856,6 +864,205 @@ def validate_platform_mapping_metadata(root, projection_owner="SDVPlatformStack"
     return errors
 
 
+def validate_derived_asset_selections(feature_data, all_nodes,
+                                      projection_owner="SDVPlatformStack"):
+    """Validate deterministic, non-selectable shared-asset derivation rules."""
+    declarations = feature_data.get("derived_asset_selections", [])
+    if not isinstance(declarations, list):
+        return []  # The document-shape pass owns this diagnostic.
+
+    errors = []
+    seen_ids = {}
+    seen_targets = {}
+    allowed_fields = {"id", "maps_to", "source_selections", "rules"}
+    mapped_feature_targets = {
+        node.maps_to for node in all_nodes.values()
+        if node.is_selection_group() and node.maps_to is not None
+    }
+
+    for index, declaration in enumerate(declarations):
+        label = f"derived_asset_selections[{index}]"
+        if not isinstance(declaration, dict):
+            errors.append(f"{label} must be a YAML mapping")
+            continue
+
+        unknown_fields = sorted(
+            set(declaration) - allowed_fields, key=lambda field: str(field)
+        )
+        for field in unknown_fields:
+            errors.append(f"{label} has unknown field '{field}'")
+        missing_fields = sorted(allowed_fields - set(declaration))
+        for field in missing_fields:
+            errors.append(f"{label} is missing '{field}'")
+
+        derivation_id = declaration.get("id")
+        if not isinstance(derivation_id, str) or not re.fullmatch(
+            r"[A-Z][A-Z0-9-]*", derivation_id
+        ):
+            errors.append(f"{label}.id must be a stable uppercase identifier")
+        elif derivation_id in seen_ids:
+            errors.append(
+                f"Duplicate derived asset id '{derivation_id}' on {label} and "
+                f"{seen_ids[derivation_id]}"
+            )
+        else:
+            seen_ids[derivation_id] = label
+
+        target = declaration.get("maps_to")
+        if not isinstance(target, str) or not re.fullmatch(
+            rf"{re.escape(projection_owner)}\.[A-Za-z_]\w*", target
+        ):
+            errors.append(f"{label}.maps_to has invalid target: '{target}'")
+        elif target in seen_targets:
+            errors.append(
+                f"Duplicate derived maps_to target '{target}' on {label} and "
+                f"{seen_targets[target]}"
+            )
+        else:
+            seen_targets[target] = label
+            if target in mapped_feature_targets:
+                errors.append(
+                    f"Derived asset target '{target}' is already independently "
+                    "selectable from the feature tree"
+                )
+
+        source_paths = declaration.get("source_selections")
+        valid_source_paths = []
+        if not isinstance(source_paths, list) or not source_paths:
+            errors.append(f"{label}.source_selections must be a non-empty YAML list")
+        elif any(not isinstance(path, str) for path in source_paths):
+            errors.append(f"{label}.source_selections must contain only strings")
+        else:
+            valid_source_paths = source_paths
+            if len(source_paths) != len(set(source_paths)):
+                errors.append(f"{label}.source_selections contains duplicates")
+            for path in source_paths:
+                node = all_nodes.get(path)
+                if node is None:
+                    errors.append(
+                        f"{label}.source_selections references unknown path '{path}'"
+                    )
+                elif not node.is_selection_group() or node.type != "alternative":
+                    errors.append(
+                        f"{label}.source_selections path '{path}' must be an "
+                        "alternative selection group"
+                    )
+
+        rules = declaration.get("rules")
+        if not isinstance(rules, list) or not rules:
+            errors.append(f"{label}.rules must be a non-empty YAML list")
+            continue
+
+        seen_conditions = {}
+        for rule_index, rule in enumerate(rules):
+            rule_label = f"{label}.rules[{rule_index}]"
+            if not isinstance(rule, dict):
+                errors.append(f"{rule_label} must be a YAML mapping")
+                continue
+            unknown_rule_fields = sorted(
+                set(rule) - {"when", "maps_to_variant"},
+                key=lambda field: str(field),
+            )
+            for field in unknown_rule_fields:
+                errors.append(f"{rule_label} has unknown field '{field}'")
+            for field in sorted({"when", "maps_to_variant"} - set(rule)):
+                errors.append(f"{rule_label} is missing '{field}'")
+
+            conditions = rule.get("when")
+            if not isinstance(conditions, dict) or not conditions:
+                errors.append(f"{rule_label}.when must be a non-empty YAML mapping")
+                continue
+            if valid_source_paths:
+                condition_paths = set(conditions)
+                expected_paths = set(valid_source_paths)
+                for path in sorted(
+                    condition_paths - expected_paths, key=lambda item: str(item)
+                ):
+                    errors.append(
+                        f"{rule_label}.when references undeclared source path '{path}'"
+                    )
+                for path in sorted(
+                    expected_paths - condition_paths, key=lambda item: str(item)
+                ):
+                    errors.append(
+                        f"{rule_label}.when is missing source path '{path}'"
+                    )
+
+                condition_values_valid = condition_paths == expected_paths
+                for path in valid_source_paths:
+                    value = conditions.get(path)
+                    node = all_nodes.get(path)
+                    if not isinstance(value, str):
+                        condition_values_valid = False
+                        errors.append(
+                            f"{rule_label}.when['{path}'] must be a string choice"
+                        )
+                    elif node is not None and node.is_selection_group() and value not in {
+                        child.name for child in node.children
+                    }:
+                        condition_values_valid = False
+                        errors.append(
+                            f"{rule_label}.when['{path}'] has unknown choice '{value}'"
+                        )
+                if condition_values_valid:
+                    condition_key = tuple(
+                        (path, conditions[path]) for path in valid_source_paths
+                    )
+                    if condition_key in seen_conditions:
+                        errors.append(
+                            f"{rule_label} duplicates the condition in "
+                            f"{seen_conditions[condition_key]}"
+                        )
+                    else:
+                        seen_conditions[condition_key] = rule_label
+
+            variant = rule.get("maps_to_variant")
+            if not isinstance(variant, str) or not re.fullmatch(
+                r"[A-Za-z_]\w*", variant
+            ):
+                errors.append(
+                    f"{rule_label}.maps_to_variant must be a valid SysML identifier"
+                )
+    return errors
+
+
+def resolve_derived_asset_selections(feature_data, selections):
+    """Resolve exactly one shared-asset variant for each derived declaration."""
+    resolved = []
+    errors = []
+    for declaration in feature_data.get("derived_asset_selections", []):
+        matches = [
+            rule for rule in declaration["rules"]
+            if all(
+                selections.get(path) == value
+                for path, value in rule["when"].items()
+            )
+        ]
+        target = declaration["maps_to"]
+        derivation_id = declaration["id"]
+        source_summary = ", ".join(
+            f"{path}={selections.get(path)!r}"
+            for path in declaration["source_selections"]
+        )
+        if not matches:
+            errors.append(
+                f"Derived asset '{derivation_id}' for '{target}' has no rule "
+                f"matching {source_summary}"
+            )
+        elif len(matches) > 1:
+            errors.append(
+                f"Derived asset '{derivation_id}' for '{target}' has "
+                f"{len(matches)} matching rules for {source_summary}"
+            )
+        else:
+            resolved.append((
+                target.rsplit(".", 1)[-1],
+                matches[0]["maps_to_variant"],
+                derivation_id,
+            ))
+    return resolved, errors
+
+
 def validate_sysml_lexical_balance(source):
     """Check global comment/string termination and brace balance."""
     brace_depth = 0
@@ -983,8 +1190,9 @@ def unique_direct_braced_body(source, pattern, label):
     return bodies[0], None
 
 
-def validate_sysml_mapping_targets(root, shared_model_path, projection=None):
-    """Verify mapped variants belong to the declared shared-asset variation."""
+def validate_sysml_mapping_targets(root, shared_model_path, projection=None,
+                                   feature_data=None):
+    """Verify selected and derived variants belong to their shared variations."""
     projection = projection or DEFAULT_PROJECTION
     package_name = projection["package"]
     owner_name = projection["owner"]
@@ -1059,6 +1267,41 @@ def validate_sysml_mapping_targets(root, shared_model_path, projection=None):
                     f"not found as a complete direct declaration in "
                     f"'{shared_model_path}'"
                 )
+
+    for declaration in (feature_data or {}).get("derived_asset_selections", []):
+        target = declaration["maps_to"]
+        part_name = target.rsplit(".", 1)[-1]
+        variation_body, variation_error = unique_direct_braced_body(
+            stack_body,
+            rf"\bvariation\s+part\s+{re.escape(part_name)}\b"
+            rf"(?:\s*:\s*[A-Za-z_]\w*)?"
+            rf"(?:\s*\[(?:\d+|\d+\.\.(?:\d+|\*))\])?\s*",
+            f"Derived SysML variation '{target}'",
+        )
+        if variation_error:
+            errors.append(f"{variation_error} in '{shared_model_path}'")
+            continue
+        variant_names = {
+            rule["maps_to_variant"] for rule in declaration["rules"]
+        }
+        for variant_name in sorted(variant_names):
+            variant_pattern = (
+                rf"\bvariant\s+part\s+{re.escape(variant_name)}"
+                rf"(?:\s*\[0\])?"
+                rf"(?:\s*:\s*[A-Za-z_]\w*)?\s*;"
+            )
+            matches = direct_declaration_matches(variation_body, variant_pattern)
+            if len(matches) > 1:
+                errors.append(
+                    f"Derived SysML variant '{target}::{variant_name}' has "
+                    f"multiple direct declarations in '{shared_model_path}'"
+                )
+            elif not matches:
+                errors.append(
+                    f"Derived SysML variant '{target}::{variant_name}' was not "
+                    f"found as a complete direct declaration in "
+                    f"'{shared_model_path}'"
+                )
     return errors
 
 
@@ -1123,7 +1366,7 @@ def shared_asset_baseline(path):
 
 def generate_sysml(bof_name, bof_description, root, all_nodes, selections,
                    feature_model_path, bof_path, shared_model_path,
-                   projection=None):
+                   projection=None, derived_redefinitions=None):
     """Generate a derived product-model projection of one shared-asset owner."""
     projection = projection or DEFAULT_PROJECTION
     package_name = projection["package"]
@@ -1131,6 +1374,11 @@ def generate_sysml(bof_name, bof_description, root, all_nodes, selections,
     projection_label = projection["label"]
     redefinitions = []
     capability_annotations = []
+    derived_redefinitions = derived_redefinitions or []
+    derived_ids_by_part = {
+        part_name: derivation_id
+        for part_name, _variant_name, derivation_id in derived_redefinitions
+    }
 
     for group in find_alternative_groups(root):
         selected = selections.get(group.path)
@@ -1150,6 +1398,11 @@ def generate_sysml(bof_name, bof_description, root, all_nodes, selections,
                 else str(selected)
             )
             capability_annotations.append((group.path, annotation_value))
+
+    redefinitions.extend(
+        (part_name, variant_name)
+        for part_name, variant_name, _derivation_id in derived_redefinitions
+    )
 
     for path, node in all_nodes.items():
         # Optional booleans without mapped assets remain provenance only.
@@ -1198,9 +1451,15 @@ def generate_sysml(bof_name, bof_description, root, all_nodes, selections,
     lines.append("   *")
     lines.append("   * Variant selections:")
     for part_name, variant_name in redefinitions:
+        derivation_suffix = ""
+        if part_name in derived_ids_by_part:
+            derivation_suffix = (
+                " (derived by "
+                f"{sysml_comment_text(derived_ids_by_part[part_name])})"
+            )
         lines.append(
             f"   *   {sysml_comment_text(part_name)} = "
-            f"{sysml_comment_text(variant_name)}"
+            f"{sysml_comment_text(variant_name)}{derivation_suffix}"
         )
 
     if capability_annotations:
@@ -1303,9 +1562,22 @@ def main():
     bof_metadata_errors = validate_bof_metadata(bof_name, bof_description)
     evidence_errors = validate_bof_evidence(bof_data)
     mapping_errors = validate_platform_mapping_metadata(root, projection["owner"])
-    mapping_target_errors = validate_sysml_mapping_targets(
-        root, args.shared_assets_model, projection
+    derived_metadata_errors = validate_derived_asset_selections(
+        feature_model_data, all_nodes, projection["owner"]
     )
+    if derived_metadata_errors:
+        derived_redefinitions = []
+        derived_resolution_errors = []
+        mapping_target_errors = validate_sysml_mapping_targets(
+            root, args.shared_assets_model, projection
+        )
+    else:
+        derived_redefinitions, derived_resolution_errors = (
+            resolve_derived_asset_selections(feature_model_data, selections)
+        )
+        mapping_target_errors = validate_sysml_mapping_targets(
+            root, args.shared_assets_model, projection, feature_model_data
+        )
     # Pass 2: Constraint validation
     constraint_definition_errors = validate_constraint_definitions(
         constraints, all_nodes
@@ -1314,8 +1586,8 @@ def main():
 
     all_errors = (
         structural_errors + bof_metadata_errors + evidence_errors + mapping_errors
-        + mapping_target_errors + constraint_definition_errors
-        + constraint_errors
+        + derived_metadata_errors + derived_resolution_errors
+        + mapping_target_errors + constraint_definition_errors + constraint_errors
     )
 
     if all_errors:
@@ -1338,7 +1610,8 @@ def main():
     # Pass 3: Generate
     sysml_output = generate_sysml(
         bof_name, bof_description, root, all_nodes, selections,
-        args.feature_model, args.bof, args.shared_assets_model, projection
+        args.feature_model, args.bof, args.shared_assets_model, projection,
+        derived_redefinitions
     )
 
     if args.output:

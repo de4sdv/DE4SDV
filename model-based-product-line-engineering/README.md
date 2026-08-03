@@ -29,6 +29,23 @@ machine used to execute verification is an evidence context. A vehicle compute
 node running Zephyr is product architecture. The separate owners and catalogues
 prevent evidence portability from being inferred across those roles.
 
+## Derived technical variations
+
+A Bill-of-Features records user-visible product choices. It must not select a
+technical adapter independently when that adapter is determined by other
+choices. The feature catalogue declares such rules under
+`derived_asset_selections`.
+
+For the SDV platform stack, `VehicleApplication` and `Middleware` resolve
+`applicationMiddlewareAdapter`. Exactly one declared rule must match. The
+configurator rejects an unsupported or ambiguous pair and verifies that both
+the target variation and resolved variant exist in the shared SysML model.
+The generated projection annotates the adapter as derived.
+
+For example, selecting `Autoware` and `AndroidSDV` derives
+`autowareToAAOSSDV`. Selecting middleware `None` derives the absent `none`
+variant. Neither adapter value belongs in the BoF.
+
 ## Evidence contract
 
 A Bill-of-Features may declare:
@@ -50,6 +67,7 @@ configured structure.
 
 Generated files are product-model **projections**, not complete member-product
 specifications. A valid configuration proves that the declared choices and
-cross-tree constraints are consistent with mapped SysML variation declarations.
+cross-tree constraints are consistent with mapped and derived SysML variation
+declarations.
 It does not prove runtime support, safety, compliance, certification, or semantic
 validity of the full model. Privileged SysML validation remains a review gate.
