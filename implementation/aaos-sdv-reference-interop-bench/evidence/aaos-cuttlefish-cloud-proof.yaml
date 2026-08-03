@@ -1,0 +1,132 @@
+schema: de4sdv.aaos-cuttlefish-cloud-proof.v1
+id: E-MW-008-AAOS-CUTTLEFISH-BOOT-2026-08-03
+status: observed
+claim:
+  statement: >-
+    The pinned AAOS SDV target was built successfully and launched as a
+    Cuttlefish guest on an x86_64 Linux host with nested KVM. The guest reached
+    Android boot completion, exposed the expected storage link and enforcing
+    SELinux state, and was reachable through an explicitly recorded TCP ADB
+    fallback transport.
+  supported:
+  - pinned AOSP source synchronization and target build
+  - Cuttlefish QEMU launch and guest boot completion
+  - guest identity, boot, storage-link, and SELinux observations
+  - ADB command execution over the recorded fallback transport
+  not_proven:
+  - the default Cuttlefish vsock ADB path for this target
+  - a complete Android framework or Car Service runtime
+  - VSIDL provider deployment or generated vehicle-service bindings
+  - adapter deployment, transport/QoS behavior, ROS 2 graph connectivity, or Autoware integration
+  - vehicle-level runtime interoperability, safety evidence, certification, homologation, or type approval
+execution:
+  repository: https://github.com/de4sdv/DE4SDV
+  branch: feat/mw-008-physical-software-realization
+  execution_head: 9607edfdde49c8e46f305582806160858f0d2327
+  retention_head: working-tree-change-after-execution
+source:
+  manifest_repository: https://android.googlesource.com/platform/manifest
+  manifest_revision: ad156f32caaa06dae91c02d443f6a8fe210eaa54
+  manifest_head_observed: ad156f32caaa06dae91c02d443f6a8fe210eaa54
+  manifest_snapshot_sha256: a97bb91ebe99656ae59f87cfb2059932c477c679b1f27287651cdeadde892bc1
+  target: sdv_core_cf-trunk_staging-userdebug
+  product: sdv_core_cf
+  architecture: x86_64
+  android_release: "17"
+  build_id: CP2A.260605.016
+build:
+  start_utc: 2026-08-02T21:51:58Z
+  end_utc: 2026-08-03T00:28:26Z
+  exit_code: 0
+  evidence_ref: external-cloud:aosp-build/build.log
+  artifacts:
+  - path: out/target/product/sdv_core_cf/android-info.txt
+    size_bytes: 48
+    sha256: 43119be98f3d8d65cbf4f0658b5d01d5a9097d60abf659ee790b59c6dfc7518d
+  - path: out/target/product/sdv_core_cf/boot.img
+    size_bytes: 67108864
+    sha256: 253823b100a74c354dcf0732ca5bafd2365564942f55324d8ae755317047ca34
+  - path: out/target/product/sdv_core_cf/init_boot.img
+    size_bytes: 8388608
+    sha256: f6fa0795d51a2dffe3251ffcb1f641bf3c5c9dd03725539a4c6088b164310973
+  - path: out/target/product/sdv_core_cf/vendor_boot.img
+    size_bytes: 67108864
+    sha256: 29f941f580399be91ac00fba4e3f23e18e4b343e78238c5e7c472ca32618b089
+  - path: out/target/product/sdv_core_cf/vbmeta.img
+    size_bytes: 65536
+    sha256: 7c24dcd92029855fbd9bd38f9777cf81be693c864c1bbbf555dc50768213d552
+  - path: out/target/product/sdv_core_cf/vbmeta_system.img
+    size_bytes: 65536
+    sha256: 573d0a3f50b8615c46dbf31395cb0e53ab449f576832fa739765a2d8f6264ee7
+  - path: out/target/product/sdv_core_cf/super.img
+    size_bytes: 2151677952
+    sha256: 816f3568f323a74c66d3d02fc1fbaf22988db9f56a6ad14f3abb858d1ebe2ae7
+  - path: out/target/product/sdv_core_cf/userdata.img
+    size_bytes: 996147200
+    sha256: d365c6b5c24fc4ad077215815b41cb80e261e543984e886c14095444a3ea0959
+host:
+  platform: x86_64 Linux
+  kernel: 6.8.0-1064-gcp
+  memory_total: 62GiB
+  kvm_device: present
+  free_storage_at_final_snapshot: 102GiB
+  cuttlefish_base_version: 1.51.0
+  cuttlefish_user_version: 1.51.0
+  qemu_capability_query: pass
+  cost_control:
+    max_run_duration: 12h
+    termination_action: STOP
+    persistent_disk_retained_on_stop: true
+launch:
+  status: pass
+  start_utc: 2026-08-03T03:05:39Z
+  end_utc: 2026-08-03T03:06:10Z
+  exit_code: 0
+  vm_manager: qemu_cli
+  gpu_mode: guest_swiftshader
+  display: 1920x1080
+  bootconfig_device_address_override: observed-host-QEMU-address-correction
+  boot_completed_observation: VIRTUAL_DEVICE_BOOT_COMPLETED
+  evidence_ref: external-cloud:aosp-boot/launch.log
+  qemu_address_evidence_ref: external-cloud:aosp-boot/qemu-pci-address-evidence.txt
+health:
+  status: pass_with_transport_limitation
+  evidence_ref: external-cloud:aosp-boot/guest-health.log
+  boot_completed: "1"
+  product: sdv_core_cf
+  build_id: CP2A.260605.016
+  slot_suffix: _a
+  verified_boot_state: orange
+  vbmeta_device_state: unlocked
+  selinux: Enforcing
+  super_partition_link: /dev/block/vda12
+  adb:
+    default_cuttlefish_vsock: fail_offline
+    tcp_ipv4_fallback: pass
+    endpoint: "[REDACTED]:5555"
+  framework:
+    servicemanager: observed
+    zygote: not_observed
+    system_server: not_observed
+    surfaceflinger: not_observed
+    package_manager: not_observed
+    car_service: not_observed
+    disposition: gap_for_this_minimal_sdv_core_target
+repository_validation:
+  check_repo: pass
+  smoke_test: pass
+  git_diff_check: pass
+  sysml_local_wrapper: blocked
+  sysml_local_observation: >-
+    The repository wrapper reached the installed SysIDE executable, which
+    returned Exec format error on the aarch64 agent host.
+  privileged_syside_validation: required
+retained_evidence:
+  remote_namespace: external-cloud:de4sdv-evidence/
+  tracked_summary: implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
+  raw_logs_tracked_in_git: false
+  credentials_retained: false
+next_action:
+  - use this as a bounded enabling-system baseline for the V&V increment
+  - keep VSIDL/provider, adapter deployment, ROS 2, Autoware, and bidirectional runtime proof separate
+  - do not promote the increment to complete realization or interoperability

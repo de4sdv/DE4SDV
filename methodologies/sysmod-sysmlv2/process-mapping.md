@@ -182,7 +182,13 @@ annotation.
 Concrete software, hardware, deployment, and tool elements. Include
 adapter layer between application and middleware. Concrete part
 definitions carry vendor/size/interface properties as SysML v2
-attributes.
+attributes. For every logical or semantic information item that crosses into
+the concrete software boundary, create or update the recurring
+logical-to-software signal mapping: qualified source item, software contract
+message/field, physical adapter endpoints and direction, unit/type/timing and
+quality semantics, transformation rule, realization status, and evidence or
+gap. A candidate or deferred mapping is acceptable for a draft increment when
+the exact service contract is not pinned; an unrecorded mapping is not.
 
 ### Phase 9 — Variability and configuration
 

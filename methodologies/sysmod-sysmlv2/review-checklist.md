@@ -24,6 +24,14 @@ Use this checklist for future contributions that adopt or extend the SYSMOD SysM
 - [ ] Product-line variability, evidence, and baseline impacts are identified when relevant.
 - [ ] Syntax has been checked with the chosen SysML v2 tooling when executable model files are changed.
 
+## Logical-to-software signal mapping
+
+- [ ] Every applicable logical or semantic information item crossing into a software, service, topic, API, or physical interface has a stable mapping record.
+- [ ] The mapping identifies the qualified source item/catalog path, contract message/field, adapter endpoints, direction, units/types, and transformation or state rule.
+- [ ] Exact, candidate, deferred, and not-applicable mappings are distinguished; a generic dependency or same-name element is not treated as field-level traceability.
+- [ ] Each candidate or deferred mapping names its open gap, owner/next action, and planned verification or evidence.
+- [ ] The mapping does not duplicate executable `.proto`, `.vsidl`, implementation, test, or runtime evidence artifacts.
+
 ## Contribution scope
 
 - [ ] The contribution size is declared as XS, S, M, or L.
