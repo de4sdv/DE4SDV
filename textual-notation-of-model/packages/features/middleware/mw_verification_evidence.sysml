@@ -69,7 +69,7 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   item def LifecycleObservation010 {
-    attribute state : String;
+    attribute stateName : String;
     attribute predecessorState : String;
     attribute successorState : String;
     attribute transitionObserved : Boolean;
