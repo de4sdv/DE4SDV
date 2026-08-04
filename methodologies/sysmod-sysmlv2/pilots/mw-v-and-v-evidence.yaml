@@ -1,0 +1,323 @@
+schema: de4sdv.verification-and-validation-evidence.v0
+id: INC-MW-010
+name: Middleware verification, validation, and evidence
+status: draft
+type: VerificationAndValidationEvidenceIncrement
+parent_increment: INC-MW-009
+owner: DE4SDV maintainers
+purpose: >-
+  Define reviewable verification cases, validation scenarios, acceptance
+  criteria, evidence roles, and claim boundaries for the configured Autoware +
+  AndroidSDV member. Start V&V planning now while keeping target-runtime
+  execution and retained interoperability evidence explicitly deferred until
+  the supporting implementation exists.
+engineering_question: >-
+  What evidence is required to determine whether the configured direct
+  Vehicle.Speed path, lifecycle/health boundary, startup behavior, update
+  coordination, and fault detection are realized for the selected member
+  product, and which claims remain blocked by missing provider, transport,
+  consumer, or independent-observer implementation?
+lifecycle_decision_supported: >-
+  Decide whether the configured member has bounded contract/rehearsal evidence,
+  target-runtime evidence, or an explicit blocker for each middleware
+  verification and validation claim. Do not promote a lower evidence layer to
+  target-runtime interoperability.
+
+scope:
+  in_scope:
+    - signal translation correctness for Vehicle.Speed [km/h] to VelocityReport [m/s]
+    - lifecycle coordination and readiness ordering
+    - health forwarding and stale/missing/inconsistent fault disposition
+    - vehicle/application startup validation
+    - update/OTA contract-preservation validation
+    - provider, discovery, transport, adapter, and consumer fault detection
+    - independent observer and retained-evidence obligations
+    - configured-member and System 2 execution-environment traceability
+    - ArgumentationAssuranceViewpoint
+  out_of_scope:
+    - emergency-braking actuation through the generic middleware adapter
+    - safety certification, compliance, homologation, or type approval
+    - production readiness or vehicle-road testing
+    - KUKSA broker deployment
+    - claims that the minimal Cuttlefish boot target provides a complete Android framework or Car Service
+
+system_boundary:
+  system_1_member_product:
+    status: configured_planned_runtime
+    configuration_artifact: model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
+    product_projection: model-based-product-line-engineering/product-models/mw_autoware_aaos_sdv_reference.sysml
+    selected_path: >-
+      COVESA VSS Vehicle.Speed [km/h] -> reference/selected VSIDL provider
+      contract -> adapter normalization -> ROS 2
+      autoware_vehicle_msgs/msg/VelocityReport.longitudinal_velocity [m/s]
+    configured_member_id: MW-CONFIG-001
+    runtime_status: not_yet_realized
+  system_2_test_system:
+    status: bounded_boot_baseline_with_target_runtime_gap
+    candidate: google-cloud-x86_64-linux-nested-kvm
+    model_artifact: textual-notation-of-model/packages/architecture/execution_environments.sysml
+    retained_baseline: implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
+    role: >-
+      Build, deploy, execute, observe, and retain evidence for the System 1
+      candidate. Cloud provider, VM identity, region, disk, and cost controls
+      are System 2 metadata and are not product selections.
+
+verification_cases:
+  - id: VC-MW-010-01
+    name: Vehicle.Speed translation correctness
+    scenario: signalTranslation
+    requirement_ids: [REQ-MW-001]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-MW-010-01
+    deterministic_examples:
+      - input_kmh: 36
+        expected_mps: 10
+      - input_kmh: 72
+        expected_mps: 20
+    current_evidence:
+      - implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
+      - implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
+    status: bounded_contract_and_rehearsal_only
+    missing_evidence:
+      - generated_or_usable_vsid_binding
+      - deployed_provider
+      - cross_domain_transport
+      - independent_autoware_observation
+  - id: VC-MW-010-02
+    name: Lifecycle coordination
+    scenario: lifecycleCoordination
+    requirement_ids: [REQ-MW-003]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-MW-010-02
+    required_states: [uninitialized, initializing, operational, degraded, shuttingDown]
+    status: planned_target_runtime_case
+  - id: VC-MW-010-03
+    name: Health forwarding
+    scenario: healthForwarding
+    requirement_ids: [REQ-MW-004, REQ-MW-002]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-MW-010-03
+    injected_conditions: [stale, missing, inconsistent, unavailable]
+    status: planned_target_runtime_case
+  - id: VC-MW-010-04
+    name: Vehicle/application startup
+    scenario: vehicleStartup
+    requirement_ids: [REQ-MW-001, REQ-MW-003, REQ-MW-007]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-MW-010-04
+    required_order:
+      - provider_registration
+      - service_discovery_and_binding
+      - transport_ready
+      - adapter_ready
+      - ros2_consumer_ready
+      - signal_accepted
+    status: planned_target_runtime_case
+  - id: VC-MW-010-05
+    name: Update/OTA contract preservation
+    scenario: updateCoordination
+    requirement_ids: [REQ-MW-005]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-MW-010-05
+    required_observations:
+      - pre_update_source_and_contract_identity
+      - update_or_rollback_outcome
+      - post_update_source_and_contract_identity
+      - post_update_signal_lifecycle_health_and_discovery_observations
+    status: planned_target_runtime_case
+  - id: VC-MW-010-06
+    name: Middleware fault detection and containment
+    scenario: faultDetection
+    requirement_ids: [REQ-MW-004, REQ-MW-006, REQ-MW-008]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-MW-010-06
+    fault_classes: [provider, binding, discovery, transport, adapter, consumer]
+    status: planned_target_runtime_case
+
+acceptance_criteria:
+  - id: AC-MW-010-01
+    statement: >-
+      Preserve Vehicle.Speed [km/h] semantics, perform speed_kmh / 3.6, prove
+      36 -> 10 and 72 -> 20, reject invalid/non-finite samples, and retain an
+      independent observation of the ROS 2 consumer field.
+    status: partial_lower_layer_evidence
+    sysml_element: acceptanceCriterion010SignalTranslation
+  - id: AC-MW-010-02
+    statement: >-
+      Make startup, initializing, operational, degraded, and shutdown behavior
+      observable with the declared transition ordering and no use before
+      binding/readiness.
+    status: planned
+    sysml_element: acceptanceCriterion010LifecycleCoordination
+  - id: AC-MW-010-03
+    statement: >-
+      Map stale, missing, inconsistent, and unavailable integration health to an
+      observable degraded or unavailable disposition and forward it without
+      relabeling it healthy.
+    status: planned
+    sysml_element: acceptanceCriterion010HealthForwarding
+  - id: AC-MW-010-04
+    statement: >-
+      Prove provider registration, service discovery/binding, transport, adapter,
+      and ROS 2 readiness in causal order before signal acceptance.
+    status: blocked_target_runtime
+    sysml_element: acceptanceCriterion010VehicleStartup
+  - id: AC-MW-010-05
+    statement: >-
+      Detect rather than silently accept update/OTA loss or incompatible change
+      of the signal, lifecycle, health, discovery, or consumer contracts.
+    status: blocked_target_runtime
+    sysml_element: acceptanceCriterion010UpdateCoordination
+  - id: AC-MW-010-06
+    statement: >-
+      Detect and classify provider, binding, discovery, transport, adapter, and
+      consumer faults and contain non-safety middleware failure at the boundary.
+    status: blocked_target_runtime
+    sysml_element: acceptanceCriterion010FaultDetection
+  - id: AC-MW-010-07
+    statement: >-
+      Bind every verdict to the configured member, execution environment,
+      contract identities, raw observations, and independent observer evidence;
+      missing target-runtime evidence is inconclusive or blocked, never a pass.
+    status: planned_evidence_integrity_control
+    sysml_element: acceptanceCriterion010EvidenceIndependence
+
+evidence_ladder:
+  - layer: repository_and_sysml
+    status: required
+    claim: structural traceability and licensed SysML validity
+  - layer: unit_and_contract_tests
+    status: observed_bounded
+    claim: provider-neutral conversion and exact reference-contract behavior
+    artifacts:
+      - implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
+      - implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
+  - layer: reference_rehearsal
+    status: observed_bounded
+    claim: DE4SDV-owned reference contract and observer behavior only
+    artifact: implementation/aaos-sdv-reference-interop-bench
+  - layer: aaos_cuttlefish_boot
+    status: observed_bounded
+    claim: pinned AAOS target build and bounded Cuttlefish bootability only
+    artifact: implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
+  - layer: target_runtime_interoperability
+    status: blocked
+    claim: provider, discovery, transport, adapter, ROS 2, and Autoware runtime behavior
+    blockers: [GAP-MW-025, GAP-MW-026, GAP-MW-027]
+  - layer: lifecycle_update_fault_validation
+    status: blocked
+    claim: startup, update/OTA, health, and fault behavior on the configured member
+    blockers: [GAP-MW-028]
+
+cloud_readiness:
+  purpose: >-
+    Use a Google Cloud VM as the System 2 build/run/evidence environment only
+    after read-only project, quota, billing/credit, budget, shutdown, and host
+    capability checks.
+  candidate: google-cloud-x86_64-linux-nested-kvm
+  required_capabilities:
+    architecture: x86_64
+    operating_system: Linux
+    minimum_memory_gib: 64
+    minimum_free_storage_gib: 400
+    nested_kvm: true
+    kvm_device: /dev/kvm
+    target_runtime: AAOS Cuttlefish
+  previous_baseline:
+    artifact: implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
+    status: observed_bounded_boot_baseline
+    observed_memory: 62GiB
+    observed_free_storage: 102GiB
+    observed_kvm: present
+    observed_target: sdv_core_cf-trunk_staging-userdebug
+    interpretation: >-
+      The previous host built and booted the pinned target but did not satisfy
+      the current full-campaign resource envelope and did not provide framework,
+      provider, transport, ROS 2, or Autoware interoperability evidence.
+  provisioning_status: not_started
+  cost_control_required:
+    - bounded_run_duration
+    - automatic_stop_or_termination
+    - persistent_disk_review
+    - no_unbounded_source_sync_or_build
+
+source_alignment:
+  - source_id: INC-MW-009
+    use: configured_member_and_derived_adapter
+    artifact: methodologies/sysmod-sysmlv2/pilots/mw-variability-configuration.yaml
+  - source_id: INC-MW-008
+    use: physical_boundary_and_bounded_boot_baseline
+    artifact: methodologies/sysmod-sysmlv2/pilots/mw-physical-software-realization.yaml
+  - source_id: MAP-MW-008-VEHICLE-SPEED
+    use: semantic_and_contract_mapping
+    artifact: methodologies/sysmod-sysmlv2/pilots/mw-physical-software-realization.yaml
+  - source_id: DE4SDV-AAOS-SDV-REFERENCE-INTEROP-BENCH
+    use: reference_contract_and_rehearsal
+    artifact: implementation/aaos-sdv-reference-interop-bench
+  - source_id: DE4SDV-VSS-VEHICLE-SPEED-ADAPTER
+    use: provider_neutral_conversion_core
+    artifact: implementation/vss-vehicle-speed-adapter
+  - source_id: DE4SDV-ENGINEERING-EXECUTION-ENVIRONMENTS
+    use: System_2_readiness_envelope
+    artifact: textual-notation-of-model/packages/architecture/execution_environments.sysml
+
+model_artifacts:
+  sysml: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
+  configured_member: model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
+  product_projection: model-based-product-line-engineering/product-models/mw_autoware_aaos_sdv_reference.sysml
+  evidence_baseline: implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
+
+runtime_evidence_gaps:
+  - id: GAP-MW-025
+    model_element: providerBindingEvidenceGap010
+    owner: supporting_implementation
+    next_action: identify_exact_vsidlc_or_binding_toolchain_and_deploy_the_provider
+  - id: GAP-MW-026
+    model_element: crossDomainTransportEvidenceGap010
+    owner: supporting_implementation
+    next_action: demonstrate_discovery_binding_and_android_kvm_to_linux_ros2_transport
+  - id: GAP-MW-027
+    model_element: independentAutowareObservationGap010
+    owner: supporting_implementation
+    next_action: retain_independent_observation_of_vehicle_status_velocity_status
+  - id: GAP-MW-028
+    model_element: lifecycleUpdateFaultEvidenceGap010
+    owner: supporting_implementation_and_v_and_v
+    next_action: execute_startup_update_health_and_fault_scenarios_after_vertical_slice_exists
+
+claim_boundary:
+  supported_now:
+    - Phase 10 verification and validation plan
+    - exact acceptance criteria and traceability
+    - provider-neutral 36/72 kmh conversion evidence
+    - reference contract rehearsal evidence
+    - bounded AAOS/Cuttlefish build-and-boot baseline
+  not_supported_now:
+    - deployed AAOS VSIDL provider or generated binding
+    - service discovery or cross-domain transport
+    - ROS 2 publication or independent Autoware observation
+    - lifecycle, update/OTA, health, or fault runtime acceptance
+    - safety, compliance, certification, homologation, or type approval
+
+supporting_implementation:
+  status: required-separate-change
+  branch: feat/mw-vsidl-vehicle-speed-bridge
+  scope: >-
+    Implement the smallest direct Vehicle.Speed vertical slice needed to produce
+    target-runtime evidence for AC-MW-010-01 and then extend only as required by
+    lifecycle, health, startup, update, and fault scenarios.
+
+validation:
+  repository_checks: required
+  smoke_test: required
+  targeted_phase10_tests: required
+  local_sysml_validation: architecture_blocked_on_arm64_host
+  privileged_sysml_validation: required_before_ready_claim
+  runtime_interoperability: blocked_until_supporting_implementation_and_independent_observer_exist
+
+next_actions:
+  - complete Phase 10 model review and repository gates
+  - run read-only GCP project and host readiness checks
+  - provision only a capability-qualified, budget-bounded VM
+  - implement the direct Vehicle.Speed vertical slice on the separate branch
+  - execute target-runtime evidence and update verdict statuses without rewriting the claim boundary
