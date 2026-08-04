@@ -234,7 +234,15 @@ cloud_readiness:
       The previous host built and booted the pinned target but did not satisfy
       the current full-campaign resource envelope and did not provide framework,
       provider, transport, ROS 2, or Autoware interoperability evidence.
-  provisioning_status: not_started
+  provisioning_status: observed_bounded_campaign
+  campaign_instance: de4sdv-aaos-build
+  campaign_state_after: TERMINATED
+  campaign_evidence: implementation/aaos-sdv-reference-interop-bench/evidence/mw-010-google-cloud-vsidlc-cuttlefish.yaml
+  campaign_interpretation: >-
+    The campaign proved the x86_64 host, VSIDL catalog compilation, generated
+    service-bundle binding, and bounded Cuttlefish boot path. The selected
+    target remains insufficient for provider registration, discovery,
+    transport, ROS 2, Autoware, lifecycle, update, or fault evidence.
   cost_control_required:
     - bounded_run_duration
     - automatic_stop_or_termination

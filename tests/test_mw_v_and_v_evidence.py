@@ -135,7 +135,9 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
     def test_cloud_vm_is_system2_candidate_with_readiness_and_cost_gates(self):
         cloud = self.pilot["cloud_readiness"]
         self.assertEqual(cloud["candidate"], "google-cloud-x86_64-linux-nested-kvm")
-        self.assertEqual(cloud["provisioning_status"], "not_started")
+        self.assertEqual(cloud["provisioning_status"], "observed_bounded_campaign")
+        self.assertEqual(cloud["campaign_instance"], "de4sdv-aaos-build")
+        self.assertEqual(cloud["campaign_state_after"], "TERMINATED")
         self.assertEqual(cloud["required_capabilities"]["minimum_memory_gib"], 64)
         self.assertEqual(cloud["required_capabilities"]["minimum_free_storage_gib"], 400)
         self.assertTrue(cloud["required_capabilities"]["nested_kvm"])
