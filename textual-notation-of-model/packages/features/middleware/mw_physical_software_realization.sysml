@@ -98,7 +98,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Source-backed DE4SDV-owned reference contract and executable rehearsal.
      * The reference protobuf message is `VehicleSpeed` with the semantic
      * field `speed_kmh`; the companion VSIDL catalog identifies the
-     * `DE4SDVVehicleSpeedProvider` publisher, `VehicleSpeed` message, and
+     * `VehicleSpeedProvider` publisher, `VehicleSpeed` message, and
      * `VEHICLE_SPEED` channel. These artifacts define a reference contract
      * candidate, not a selected OEM or production AAOS service.
      * The rehearsal proves the DE4SDV reference contract and independent

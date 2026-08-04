@@ -3,12 +3,21 @@
 package: "de4sdv.reference.vehicle_speed"
 
 service_bundle {
-  name: "DE4SDVVehicleSpeedProvider"
+  name: "VehicleSpeedProvider"
 
   publisher {
     message: "VehicleSpeed"
     channel: "VEHICLE_SPEED"
     topic: "vehicle-speed"
     capacity: 8
+  }
+}
+
+service_bundle {
+  name: "VehicleSpeedObserver"
+
+  subscriber {
+    message: "VehicleSpeed"
+    topic: "vehicle-speed"
   }
 }

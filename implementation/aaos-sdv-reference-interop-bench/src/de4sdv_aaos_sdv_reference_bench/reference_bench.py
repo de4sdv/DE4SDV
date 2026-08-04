@@ -88,7 +88,7 @@ def run_reference_rehearsal(
     return {
         "claim": "de4sdv_reference_contract_rehearsal",
         "passed": True,
-        "provider": "DE4SDVVehicleSpeedProvider reference stand-in",
+        "provider": "VehicleSpeedProvider reference stand-in",
         "semantic_path": "Vehicle.Speed",
         "input_speed_kmh": speed_kmh,
         "output_longitudinal_velocity_mps": speed_kmh / 3.6,

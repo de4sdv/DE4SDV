@@ -7,7 +7,7 @@ This bench defines the DE4SDV-owned reference vehicle-speed contract and runs a 
 - VSS semantic: `Vehicle.Speed`
 - VSS unit: `km/h`
 - VSIDL package: `de4sdv.reference.vehicle_speed`
-- service bundle: `DE4SDVVehicleSpeedProvider`
+- service bundle: `VehicleSpeedProvider`
 - publisher message: `VehicleSpeed`
 - channel: `VEHICLE_SPEED`
 - topic: `vehicle-speed`
@@ -67,6 +67,22 @@ ros2_runtime_interoperability: not_proven
 8. Retain runtime logs, discovery results, contract identity, deployment configuration, and exact source hashes.
 
 Until those steps run on an AAOS SDV target, this bench proves only the DE4SDV reference contract and provider-neutral adapter rehearsal.
+
+## AOSP Vehicle.Speed provider/observer slice
+
+The first executable AOSP middleware slice is maintained under
+[`aosp/vehicle_speed_bridge`](aosp/vehicle_speed_bridge/README.md). Its staging
+wrapper runs the x86_64 AOSP `vsidlc` generator for both the
+`VehicleSpeedProvider` publisher and the independent
+`VehicleSpeedObserver` subscriber, then installs the maintained service
+behavior overrides into the generated output.
+
+The provider currently emits a deterministic `36.0 km/h` reference sample and
+the observer records received `VehicleSpeed` messages through logcat. This is a
+useful provider/discovery/transport implementation seam, but it is not a VSS
+hardware binding and it does not publish ROS 2. Build, target deployment,
+service registration, service discovery, transport, lifecycle, ROS 2
+publication, and independent Autoware observation remain evidence-gated.
 
 ## Bounded AAOS/Cuttlefish enabling-system proof
 

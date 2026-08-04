@@ -1,0 +1,30 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+rust_protobuf {
+    name: "libde4sdv_reference_vehicle_speed_proto",
+    crate_name: "de4sdv_reference_vehicle_speed_proto",
+    protos: [
+        "vehicle_speed.proto",
+    ],
+    source_stem: "de4sdv_reference_vehicle_speed_proto_source",
+    rustlibs: [
+        "libvsidl_v1_stdlib_proto_rs",
+    ],
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+    vendor_available: true,
+    product_available: true,
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+    min_sdk_version: "35",
+}
+
+filegroup {
+    name: "vsidl_de4sdv_vehicle_speed_catalog",
+    srcs: ["**/*"],
+}
