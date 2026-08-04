@@ -31,6 +31,34 @@ projection:
   owner: SDVPlatformStack
   label: platform-stack
 
+# Derived assets are resolved from product decisions; they are not selectable
+# features. Exactly one rule must match each Bill-of-Features. Unsupported
+# application/middleware pairs fail configuration instead of emitting a product
+# projection with a missing or independently chosen adapter.
+derived_asset_selections:
+  - id: D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER
+    maps_to: SDVPlatformStack.applicationMiddlewareAdapter
+    source_selections:
+      - PlatformStack.VehicleApplication
+      - PlatformStack.Middleware
+    rules:
+      - when: { PlatformStack.VehicleApplication: Autoware, PlatformStack.Middleware: EclipseSCORE }
+        maps_to_variant: autowareToSCORE
+      - when: { PlatformStack.VehicleApplication: Autoware, PlatformStack.Middleware: AndroidSDV }
+        maps_to_variant: autowareToAAOSSDV
+      - when: { PlatformStack.VehicleApplication: Autoware, PlatformStack.Middleware: AUTOSARAdaptive }
+        maps_to_variant: autowareToAUTOSAR
+      - when: { PlatformStack.VehicleApplication: Openpilot, PlatformStack.Middleware: EclipseSCORE }
+        maps_to_variant: openpilotToSCORE
+      - when: { PlatformStack.VehicleApplication: Apollo, PlatformStack.Middleware: EclipseSCORE }
+        maps_to_variant: apolloToSCORE
+      - when: { PlatformStack.VehicleApplication: Autoware, PlatformStack.Middleware: None }
+        maps_to_variant: none
+      - when: { PlatformStack.VehicleApplication: Openpilot, PlatformStack.Middleware: None }
+        maps_to_variant: none
+      - when: { PlatformStack.VehicleApplication: Apollo, PlatformStack.Middleware: None }
+        maps_to_variant: none
+
 root:
   name: SDVProductLine
   id: PL-DE4SDV

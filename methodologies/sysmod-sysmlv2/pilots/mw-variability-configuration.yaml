@@ -1,0 +1,96 @@
+schema: de4sdv.variability-configuration.v0
+id: INC-MW-009
+name: Middleware variability and configured AAOS SDV member
+status: draft
+type: VariabilityConfigurationIncrement
+parent_increment: INC-MW-008
+owner: DE4SDV maintainers
+purpose: >-
+  Resolve the application-middleware adapter from the selected application and
+  middleware, generate a deterministic Autoware + AAOS SDV member projection,
+  and make the selected direct realization, external interface sources,
+  unselected brokered alternative, and runtime non-claims reviewable.
+engineering_question: >-
+  Can DE4SDV produce one reproducible member-product projection for the
+  selected application and middleware without allowing an incompatible or
+  independently selected adapter and without promoting interface sources or
+  candidate software to deployed runtime evidence?
+lifecycle_decision_supported: >-
+  Approve the configured member and its derived adapter as the controlled input
+  to a separate implementation change before INC-MW-010 V&V and evidence work.
+source_alignment:
+  - source_id: INC-MW-008
+    use: accepted-physical-software-candidate
+    artifact: methodologies/sysmod-sysmlv2/pilots/mw-physical-software-realization.yaml
+  - source_id: SDV-PRODUCT-LINE-CATALOGUE
+    use: feature-and-derived-asset-decision-model
+    artifact: model-based-product-line-engineering/feature-models/sdv_product_line.yaml
+  - source_id: COVESA-VSS-VEHICLE-SPEED
+    use: canonical-vehicle-speed-semantics
+    repository: https://github.com/COVESA/vehicle_signal_specification
+    revision: 6fb1dac2630a8910ee996863b2af02b310dcd7ce
+    path: spec/VehicleSignalSpecification.vspec
+    claim_boundary: Semantic source only; no runtime provider or transport.
+  - source_id: COVESA-IFEX
+    use: property-method-event-interface-design-source
+    repository: https://github.com/COVESA/ifex
+    revision: 987038066ecd05d62a382eeed650449b7144e7f7
+    license: MPL-2.0
+    claim_boundary: >-
+      Interface-model source only; no VSIDL generator, generated binding,
+      provider behavior, transport, ROS 2 consumer, or deployed adapter is
+      selected by this increment.
+  - source_id: ECLIPSE-KUKSA-DATABROKER
+    use: unselected-brokered-realization-candidate
+    repository: https://github.com/eclipse-kuksa/kuksa-databroker
+    revision: fb07cafd2564e29032a5aeacc1a3361657eca0cb
+    license: Apache-2.0
+    claim_boundary: >-
+      Candidate broker source only. A brokered realization would still require
+      AAOS-side provider and Autoware-side consumer bindings and is not selected.
+selected_viewpoints:
+  - id: product-line-configuration
+    viewpoint: ProductLineConfigurationViewpoint
+    purpose: Review native variations and the generated selection against the catalogue and BoF.
+  - id: product-model-assembly
+    viewpoint: ProductModelAssemblyViewpoint
+    purpose: Review configured-member composition and cross-increment traceability.
+element_ids:
+  configured_member: MW-CONFIG-001
+  source_contributions:
+    - SRC-MW-IFEX-001
+    - SRC-MW-VSS-001
+  realization_records:
+    - REAL-MW-DIRECT-001
+    - ALT-MW-KUKSA-001
+  gaps:
+    - GAP-MW-019
+    - GAP-MW-022
+    - GAP-MW-024
+model_artifacts:
+  sysml: textual-notation-of-model/packages/features/middleware/mw_variability_configuration.sysml
+  feature_model: model-based-product-line-engineering/feature-models/sdv_product_line.yaml
+  bill_of_features: model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
+  generated_projection: model-based-product-line-engineering/product-models/mw_autoware_aaos_sdv_reference.sysml
+out_of_scope:
+  - IFEX toolchain or generated-contract adoption
+  - KUKSA Databroker, provider, or consumer deployment
+  - generated VSIDL language binding
+  - deployed AAOS vehicle-speed provider
+  - service discovery and cross-domain transport
+  - ROS 2 VelocityReport publisher and independent Autoware observation
+  - safety, compliance, certification, or runtime interoperability claims
+  - emergency-braking actuation through the generic middleware adapter
+supporting_implementation:
+  status: planned-separate-change
+  scope: >-
+    Implement and exercise the direct vehicle-speed slice from the selected
+    VSIDL provider contract through semantic normalization to the Autoware ROS 2
+    VelocityReport publication edge. This is application engineering, not a new
+    method increment.
+validation:
+  repository_checks: required
+  deterministic_projection: required
+  sysml: maintainer-run licensed validation required before readiness
+next_increments:
+  - INC-MW-010

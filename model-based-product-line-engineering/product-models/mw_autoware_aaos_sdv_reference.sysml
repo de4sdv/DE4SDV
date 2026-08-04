@@ -6,24 +6,24 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
  * Shared-assets model SHA-256: bef1d826729bd94b151f8e34df160c04ebc5cea771e8e3973d42ee097b3425fd
  * Feature model SHA-256: 57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c
- * Bill-of-Features SHA-256: 08d6a8315a9515e2c9ef164061c9d4a3d49f0c1ea56a4769685242a5f0ce586b
- * Regenerate from: model-based-product-line-engineering/feature-configurations/example-linux-score-autoware.yaml
+ * Bill-of-Features SHA-256: 8b608ae515d3a7401e6eb8c87ad7542946ae5194d3542c2a5bc9b8b649842380
+ * Regenerate from: model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
  * Feature model: model-based-product-line-engineering/feature-models/sdv_product_line.yaml
  */
 
 private import DE4SDV_SDVPlatformStack::SDVPlatformStack;
 
-part def ExampleLinuxSCOREVariant :> SDVPlatformStack {
+part def MWAutowareAAOSSDVReference :> SDVPlatformStack {
   doc /*
    * Derived platform-stack projection from Bill-of-Features.
-   * Single-domain reference configuration. Autoware (ADAS) on Eclipse S-CORE on Linux, no hypervisor. Vehicle-target AEBS only (no pedestrian/bicycle detection).
+   * Planned Autoware + AAOS SDV middleware reference member on the Android/KVM SDV Core platform domain with LiDAR and camera perception. Autoware retains its ROS 2/Linux application runtime; cross-domain deployment and transport remain unresolved. This configuration and its projection do not prove provider, generated binding, discovery, transport, adapter deployment, ROS 2 publication, Autoware observation, safety, compliance, or runtime interoperability.
    *
    * Variant selections:
    *   vehicleApplication = autoware
-   *   middleware = eclipseSCORE
-   *   osPlatform = linux
-   *   hypervisor = none
-   *   applicationMiddlewareAdapter = autowareToSCORE (derived by D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER)
+   *   middleware = androidSDV
+   *   osPlatform = android
+   *   hypervisor = kvm
+   *   applicationMiddlewareAdapter = autowareToAAOSSDV (derived by D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER)
    *
    * Feature selections outside this projection (not resolved in SysML):
    *   SensingBoundary.PerceptionSensors = LiDAR, Camera
@@ -34,8 +34,8 @@ part def ExampleLinuxSCOREVariant :> SDVPlatformStack {
    */
 
   part :>> vehicleApplication = vehicleApplication::autoware;
-  part :>> middleware = middleware::eclipseSCORE;
-  part :>> osPlatform = osPlatform::linux;
-  part :>> hypervisor = hypervisor::none;
-  part :>> applicationMiddlewareAdapter = applicationMiddlewareAdapter::autowareToSCORE;
+  part :>> middleware = middleware::androidSDV;
+  part :>> osPlatform = osPlatform::android;
+  part :>> hypervisor = hypervisor::kvm;
+  part :>> applicationMiddlewareAdapter = applicationMiddlewareAdapter::autowareToAAOSSDV;
 }

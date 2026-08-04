@@ -107,6 +107,14 @@ challenging SysML v2 adequacy for SDV product-line engineering.
    that boundary with the YAML decision layer, mapping metadata, provenance,
    generator, and review conventions.
 
+6. **Derive technical variations from their driving feature choices.** A
+   feature catalogue may declare `derived_asset_selections` for a mapped SysML
+   variation that must not be selected independently in a Bill-of-Features.
+   The configurator requires exactly one rule to match the declared source
+   selections, rejects unsupported or ambiguous combinations, and verifies the
+   derived variation and variant against the shared SysML model before emitting
+   the configured projection.
+
 ## Consequences
 
 - Variant selection in DE4SDV SysML v2 models follows the OMG reference
@@ -124,6 +132,10 @@ challenging SysML v2 adequacy for SDV product-line engineering.
   assessing changes.
 - Capability feature selections are not evidence of a derived capability model
   until DE4SDV maps them to variable shared assets and resolves them.
+- A derived technical variation is reviewable in the feature catalogue and
+  generated projection, while the Bill-of-Features remains limited to its
+  driving product choices. A syntactically valid but unrealizable feature pair
+  is rejected instead of yielding a product with an omitted adapter.
 
 ## Non-decisions
 

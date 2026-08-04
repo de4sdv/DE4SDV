@@ -398,7 +398,11 @@ package DE4SDV_SDVPlatformStack {
 
   part def AutowareToAAOSSDVAdapter :> ApplicationMiddlewareAdapterLayer {
     doc /*
-     * Adapts Autoware ROS 2 topics to AAOS SDV VSIDL service bundles and SOME/IP.
+     * Candidate boundary between Autoware ROS 2 and AAOS SDV service
+     * interfaces. A configured product may select a direct VSIDL-to-ROS 2
+     * realization or a separately justified brokered realization. This
+     * definition does not claim generated bindings, transport, deployment,
+     * runtime behavior, or interoperability evidence.
      */
   }
 

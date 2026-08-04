@@ -1,19 +1,19 @@
-# Bill-of-Features: Apollo on AUTOSAR Adaptive on QNX with QVM
+# Bill-of-Features: Apollo on Eclipse S-CORE on QNX with QVM
 # Member product of the DE4SDV SDV product line.
 #
 # Mixed-criticality architecture: QVM hypervisor hosting a QNX guest
-# running AUTOSAR Adaptive middleware with the Apollo ADAS stack.
+# running Eclipse S-CORE middleware with the Apollo ADAS stack.
 
 name: ApolloQNXQVMVariant
 description: >
   Mixed-criticality reference configuration.
-  Apollo (ADAS) on AUTOSAR Adaptive on QNX with QNX QVM hypervisor.
+  Apollo (ADAS) on Eclipse S-CORE on QNX with QNX QVM hypervisor.
   Vehicle-target AEBS only.
 
 selections:
   # Platform stack — alternative groups
   PlatformStack.VehicleApplication: Apollo
-  PlatformStack.Middleware: AUTOSARAdaptive
+  PlatformStack.Middleware: EclipseSCORE
   PlatformStack.OS: QNX
   PlatformStack.Hypervisor: QVM
 
