@@ -26,7 +26,7 @@ use log::{debug, error, info, warn};
 use sdv::mw::{clientlib, Communicate, SdvComms};
 use sdv::status::{SdvResult, SdvStatus, SdvStatusCode};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
@@ -101,17 +101,23 @@ async fn sdv_main(comms: Arc<dyn Communicate>) -> SdvResult<()> {
     )
     .await?;
 
-    let mut sequence = 0_u64;
     loop {
-        let message = reference_vehicle_speed_message(sequence);
+        let message = reference_vehicle_speed_message(unix_timestamp_ns());
         info!(
             "DE4SDV_VEHICLE_SPEED_PUBLISHED speed_kmh={} timestamp_ns={}",
             message.speed_kmh, message.timestamp_ns
         );
         publisher.publish(&message)?;
-        sequence = sequence.saturating_add(1);
         sleep(Duration::from_secs(1)).await;
     }
+}
+
+fn unix_timestamp_ns() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos()
+        .min(u64::MAX as u128) as u64
 }
 
 fn reference_vehicle_speed_message(timestamp_ns: u64) -> VehicleSpeed {

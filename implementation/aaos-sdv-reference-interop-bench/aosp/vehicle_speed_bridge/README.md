@@ -13,8 +13,11 @@ of AOSP and it is not a production VSS binding.
   reference publisher using the generated `PublisherDescriptors` API. It emits
   a deterministic `36.0 km/h` sample once per second.
 - `overrides/services/VehicleSpeedObserver/src/main.rs` — independent
-  lifecycle-managed subscriber. It waits for service discovery and records raw
-  received samples through a structured log line.
+  lifecycle-managed subscriber. It waits for service discovery and emits a
+  strict wire envelope through a structured log line. Direct TCP egress is an
+  opt-in path only; the default campaign transport is host-side ADB/logcat
+  forwarding because the service-bundle SELinux domain has no network socket
+  permission.
 
 Generated output is deliberately not committed. The generator emits Rust
 service bundles, Android.bp files, APEX metadata, permissions, orchestration
@@ -70,23 +73,32 @@ The provider and observer are intentionally narrow:
 reference VehicleSpeed.speed_kmh [km/h]
   → AOSP VSIDL publisher
   → service discovery / SDV transport
-  → independent AOSP VSIDL observer log
+  → independent AOSP VSIDL observer
+  → structured logcat wire envelope
+  → host-side ADB/logcat forwarder
+  → private TCP transfer envelope
+  → ROS 2 / Autoware edge
 ```
 
+The observer emits `DE4SDV_VEHICLE_SPEED_WIRE {json}` for every valid sample.
+The nested Cuttlefish campaign reads that record from the AAOS host with ADB
+logcat and forwards the validated envelope over the private VPC to the ROS 2
+VM. `DE4SDV_VEHICLE_SPEED_EGRESS_ENDPOINT` remains available as an explicit
+opt-in for a target policy that grants the service bundle network access; it is
+not enabled by default. Neither path is a production network binding.
+
 The provider's deterministic source is a test/reference source. It does not
-read a vehicle sensor or claim a production VSS binding. The observer does not
-publish ROS 2 and does not assert Autoware output. Service discovery, transport,
-lifecycle manager, APEX installation, and target orchestration must be present
-before this can run; the minimal `sdv_core_cf` target used in the cloud campaign
-did not provide those services.
+read a vehicle sensor or claim a production VSS binding. The retained bounded
+campaign evidence covers APEX activation, lifecycle startup, provider
+publication, observer discovery and receipt, host-side logcat extraction,
+private VPC forwarding, ROS 2 `VelocityReport.longitudinal_velocity`
+publication, canonical km/h-to-m/s conversion, and independent observation
+of `36 km/h → 10 m/s`.
 
-The following claims remain **not proven** until a suitable target executes the
-staged APEX and retains independent evidence:
+The following claims remain **not proven**:
 
-- provider registration and lifecycle startup;
-- publisher/observer service discovery;
-- cross-domain transport behavior;
-- ROS 2 `VelocityReport.longitudinal_velocity` publication;
-- independent Autoware observation;
-- km/h-to-m/s runtime conversion;
+- full Autoware application-stack integration beyond the official vehicle
+  message interface;
+- production/native SDV transport interoperability;
+- VSS hardware or vehicle-sensor binding;
 - update, health, and fault behavior.

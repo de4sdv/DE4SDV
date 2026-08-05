@@ -48,6 +48,10 @@ def test_observer_waits_for_discovery_and_records_independent_messages():
     assert "Availability::Available" in source
     assert "clientlib::create_observer" in source
     assert "SubscriberDescriptors::<VehicleSpeed>::VEHICLE_SPEED" in source
+    assert "TcpStream" in source
+    assert "DE4SDV_VEHICLE_SPEED_EGRESS_ENDPOINT" in source
+    assert "WIRE_SCHEMA" in source
+    assert "WIRE_CLOCK_DOMAIN" in source
     assert "libsdv_mw_rs_de4sdv_reference_vehicle_speed_vehicle_speed_observer" in _read(GENERATOR)
     assert "libsdv_lm_vehicle_speed_observer" in _read(GENERATOR)
     assert "generated output" in _read(BRIDGE / "README.md").lower()
