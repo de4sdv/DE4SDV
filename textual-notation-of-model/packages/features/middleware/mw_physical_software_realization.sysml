@@ -344,6 +344,8 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     doc /*
      * Reference protobuf/VSIDL message published by the generated AAOS
      * Vehicle.Speed provider and consumed by the generated observer.
+     * The bounded bridge accepts the VALID quality value for publication;
+     * STALE and INVALID remain contract values rejected before publication.
      */
     attribute timestamp_ns : ScalarValues::Integer;
     attribute quality : VehicleSpeedCampaignQuality;
@@ -362,7 +364,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Typed campaign envelope emitted by the AAOS observer. The JSON/logcat
      * transport adds `schema` and `clock_domain` to the provider message. The
      * executable JSON/protobuf/VSIDL contracts remain authoritative for exact
-     * serialization and validation.
+     * serialization and validation. The source timestamp remains available in
+     * the envelope and bridge logs; the current VelocityReport evidence proves
+     * velocity transfer, not source-timestamp propagation through ROS.
      */
     attribute schema : ScalarValues::String;
     attribute clock_domain : ScalarValues::String;
@@ -431,7 +435,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     doc /*
      * VM-B ingress validates the campaign envelope, applies speed_kmh / 3.6,
      * and publishes the official autoware_vehicle_msgs/msg/VelocityReport
-     * boundary on /vehicle/status/velocity_status.
+     * boundary on /vehicle/status/velocity_status. The conversion is a role-level
+     * implementation claim; this deployment view is not a complete internal
+     * behavior model of the executable bridge.
      */
     port privateTcpIn : VehicleSpeedCampaignWireSubscription;
     port velocityReportOut : VelocityReportPublication;
@@ -440,7 +446,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   part def ROS2VelocityReportIndependentObserver {
     doc /*
      * Independent VM-B observer of the published VelocityReport. Its
-     * observation is separate from the ingress node's conversion and state.
+     * observation is separate from the ingress node's conversion and state. It
+     * validates the published velocity and records local receipt time; it does
+     * not validate source-timestamp propagation.
      */
     port velocityReportIn : VelocityReportSubscription;
   }
@@ -469,7 +477,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * campaign: AAOS guest -> structured logcat -> VM-A host forwarder ->
      * private TCP -> VM-B ROS 2 ingress -> VelocityReport -> independent
      * observer. The deployment is evidence infrastructure, not a production
-     * SDV deployment or a direct AAOS-service-to-ROS socket claim.
+     * SDV deployment or a direct AAOS-service-to-ROS socket claim. The flows
+     * establish typed boundary topology; executable forwarding and conversion
+     * semantics remain owned by the implementation and evidence artifacts.
      */
     part vmA : AAOSVehicleSpeedCampaignHostVm;
     part vmB : ROS2VehicleSpeedCampaignHostVm;
@@ -762,6 +772,8 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     expose VehicleSpeedProviderMessage;
     expose VehicleSpeedProviderPublication;
     expose VehicleSpeedProviderSubscription;
+    expose VehicleSpeedCampaignQuality;
+    expose DE4SDVReferenceVehicleSpeedPayload;
     expose VehicleSpeedCampaignWireEnvelope;
     expose VehicleSpeedCampaignWirePublication;
     expose VehicleSpeedCampaignWireSubscription;

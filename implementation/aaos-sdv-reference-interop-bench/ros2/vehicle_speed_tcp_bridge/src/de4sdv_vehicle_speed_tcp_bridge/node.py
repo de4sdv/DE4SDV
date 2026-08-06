@@ -64,7 +64,7 @@ class VehicleSpeedTcpBridgeNode(Node):
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--listen-host", default="0.0.0.0")
+    parser.add_argument("--listen-host", default="127.0.0.1")
     parser.add_argument("--listen-port", type=int, default=4711)
     parser.add_argument("--topic", default=ROS_VELOCITY_REPORT_TOPIC)
     args = parser.parse_args(argv)

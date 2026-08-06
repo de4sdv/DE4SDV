@@ -46,7 +46,9 @@ export PYTHONPATH=/path/to/implementation/vss-vehicle-speed-adapter/src:${PYTHON
 cd ros2/vehicle_speed_tcp_bridge
 colcon build --packages-select de4sdv_vehicle_speed_tcp_bridge
 source install/setup.bash
-ros2 run de4sdv_vehicle_speed_tcp_bridge vehicle_speed_tcp_bridge
+ros2 run de4sdv_vehicle_speed_tcp_bridge vehicle_speed_tcp_bridge \
+  --listen-host <ROS_VM_PRIVATE_IP> \
+  --listen-port 4711
 ```
 
 In a separate shell on the same VM, run the independent observer:
@@ -77,7 +79,11 @@ python3 scripts/adb_logcat_bridge.py \
 
 This is an explicit development/evidence transport: the AAOS guest produces the
 record, ADB carries it to the AAOS host, and the host forwards it over the VPC.
-It must not be described as the production transport architecture.
+The ingress defaults to loopback; the explicit private-IP bind above is required
+for the two-VM campaign. The listener is unauthenticated plaintext TCP and is
+acceptable only inside the isolated campaign VPC/firewall boundary. It must not
+be exposed on a shared network or described as the production transport
+architecture.
 
 ## Independent evidence
 
@@ -86,10 +92,14 @@ A valid campaign retains, separately:
 1. AAOS provider publish log containing `36.0 km/h` and source timestamp;
 2. AAOS observer receive plus structured wire log for the same payload;
 3. ADB/logcat forwarder connection and validated-payload log;
-4. ROS bridge publish log containing the normalized value;
+4. ROS bridge publish log containing the normalized value and retained source
+   timestamp;
 5. independent observer output containing the actual received
-   `longitudinal_velocity_mps == 10.0`.
+   `longitudinal_velocity_mps == 10.0` plus its local receipt timestamp.
 
 The independent observer is a separate ROS 2 node and does not reuse the bridge
 node's state or conversion result. These artifacts are necessary for a runtime
-transfer claim; unit tests and a local socket rehearsal are not sufficient.
+transfer claim; unit tests and a local socket rehearsal are not sufficient. The
+source timestamp is retained in the provider, wire, and bridge logs; the current
+`VelocityReport` proof carries and observes the velocity value, not source-timestamp
+propagation through the ROS message.
