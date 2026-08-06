@@ -746,7 +746,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     expose vehicleSpeedCampaignDeployment::vmA::**;
     expose vehicleSpeedCampaignDeployment::vmB::**;
     expose vehicleSpeedCampaignDeployment::privateTcpBoundary::*;
-    attribute depth = 1;
+    attribute depth = 3;
     render asInterconnectionDiagram;
   }
 
