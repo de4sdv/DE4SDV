@@ -155,7 +155,7 @@ package DE4SDV_ExecutionEnvironments {
 
     variation part computeNode : EngineeringComputeNode {
       variant part jetsonOrinNano : NVIDIAJetsonOrinNanoDeveloperKitSuper8GiB;
-      part appleSiliconMac : AppleSiliconMacCandidate;
+      variant part appleSiliconMac : AppleSiliconMacCandidate;
       variant part intelX8664NestedKvmHost : IntelX8664NestedKvmHostCandidate;
     }
 
