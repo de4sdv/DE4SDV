@@ -405,8 +405,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
     flow from provider.vehicleSpeedOut.vehicleSpeed
       to observer.vehicleSpeedIn.vehicleSpeed;
-    flow from observer.structuredLogcatOut.envelope
-      to structuredLogcatOut.envelope;
+    bind structuredLogcatOut = observer.structuredLogcatOut;
   }
 
   part def AAOSHostLogcatForwarder {
