@@ -85,6 +85,29 @@ def _viewpoint_blocks(text: str):
             raise AssertionError(f"Unterminated viewpoint block starting at {start}")
 
 
+def _named_definition_block(text: str, declaration: str, name: str) -> str:
+    needle = f"{declaration} def {name}"
+    start = text.find(needle)
+    assert start != -1, f"Missing {needle}"
+    brace = text.find("{", start)
+    depth = 0
+    for index in range(brace, len(text)):
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+    raise AssertionError(f"Unterminated {needle}")
+
+
+def _normalized_doc_block(block: str) -> str:
+    return " ".join(
+        line.strip().removeprefix("*").strip()
+        for line in block.splitlines()
+    )
+
+
 def test_saf_viewpoint_names_match_published_catalog() -> None:
     text = SAF_FILE.read_text(encoding="utf-8")
     found = []
@@ -118,3 +141,40 @@ def test_catalog_contains_at_least_original_viewpoint_count() -> None:
     text = SAF_FILE.read_text(encoding="utf-8")
     names = [block.splitlines()[0].split()[2] for block in _viewpoint_blocks(text)]
     assert len(names) >= 35
+
+
+def test_physical_internal_exchange_method_text_keeps_delegation_conditional() -> None:
+    text = SAF_FILE.read_text(encoding="utf-8")
+    blocks = {
+        block.splitlines()[0].split()[2]: _normalized_doc_block(block)
+        for block in _viewpoint_blocks(text)
+    }
+    physical_internal_concern = _normalized_doc_block(
+        _named_definition_block(
+            text,
+            "concern",
+            "PhysicalInternalExchangeConcern",
+        )
+    )
+    physical_internal_exchange = blocks["PhysicalInternalExchangeViewpoint"]
+
+    for required_term in ("internal physical roles", "typed exchanges"):
+        assert required_term in physical_internal_exchange
+
+    for conditional_term in (
+        "When an exchange crosses the subject boundary",
+        "boundary interface",
+        "delegation to an internal role",
+    ):
+        assert conditional_term in physical_internal_exchange
+
+    for concern_term in (
+        "When an exchange crosses the subject boundary",
+        "interface delegates it to an internal role",
+    ):
+        assert concern_term in physical_internal_concern
+
+    unconditional_rule = (
+        "shall show internal physical roles, typed exchanges, and boundary delegation"
+    )
+    assert unconditional_rule not in physical_internal_exchange
