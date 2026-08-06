@@ -740,13 +740,11 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     }
     doc /*
      * Rendering-focused view for inspecting the typed campaign handoffs as
-     * port interconnections. It deliberately exposes the nested VM members
-     * and private TCP boundary that the two-domain context view hides.
+     * port interconnections. It exposes the deployment definition's owned
+     * member subtree so nested typed ports can be materialized by the renderer.
      */
-    expose vehicleSpeedCampaignDeployment::vmA::**;
-    expose vehicleSpeedCampaignDeployment::vmB::**;
-    expose vehicleSpeedCampaignDeployment::privateTcpBoundary::*;
-    attribute depth = 3;
+    expose VehicleSpeedCampaignCommunicationDeployment::*::**;
+    attribute depth = -1;
     render asInterconnectionDiagram;
   }
 
