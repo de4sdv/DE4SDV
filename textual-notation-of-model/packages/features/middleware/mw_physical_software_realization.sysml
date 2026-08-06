@@ -719,14 +719,18 @@ package DE4SDV_MWPhysicalSoftwareRealization {
       frame vehicleSpeedCampaignContextExchangeConcern;
     }
     doc /*
-     * Primary bounded campaign communication view. It shows the exchange
-     * crossing from the AAOS/Cuttlefish VM-A domain to the independent ROS 2
-     * VM-B domain through the host forwarder and private TCP boundary.
+     * Focused bounded campaign transfer view. It exposes only the two
+     * top-level System 2 host/VM domains: AAOS/Cuttlefish VM-A and the
+     * independent ROS 2 VM-B. The nested guest, forwarder, private TCP
+     * boundary, ingress, and observer remain available in the supporting
+     * internal-exchange and structure views.
+     *
+     * The deployment still owns the complete typed flow chain. This view is
+     * intentionally a two-domain context slice, not a rendering of every
+     * implementation member.
      */
-    expose vehicleSpeedCampaignDeployment;
-    expose vehicleSpeedCampaignDeployment::vmA::*;
-    expose vehicleSpeedCampaignDeployment::vmB::*;
-    expose vehicleSpeedCampaignDeployment::privateTcpBoundary;
+    expose vehicleSpeedCampaignDeployment::vmA;
+    expose vehicleSpeedCampaignDeployment::vmB;
     render asTreeDiagram;
   }
 
