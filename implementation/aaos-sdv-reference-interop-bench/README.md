@@ -58,6 +58,30 @@ ros2_autoware_message_boundary: bounded_pass
 full_autoware_application_runtime: not_proven
 ```
 
+## SysML campaign communication view
+
+The physical realization model records the bounded campaign separately from the
+candidate System 1 middleware boundary:
+[`mw_physical_software_realization.sysml`](../../textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml).
+
+The campaign structure is explicitly:
+
+```text
+AAOS/Cuttlefish guest on VM A
+  → structured logcat Vehicle.Speed record
+  → VM-A host ADB/logcat forwarder
+  → private TCP campaign boundary
+  → VM-B ROS 2 ingress
+  → VelocityReport.longitudinal_velocity
+  → independent ROS 2 observer
+```
+
+The model includes a cross-domain exchange view plus supporting structure and
+interface views. It is a System 2 evidence-transport model, not a production
+deployment decision, native SDV transport claim, or direct AAOS-service-to-ROS
+socket claim. The assurance verdict and retained runtime artifacts remain in
+the separate V&V/evidence increment.
+
 ## What remains beyond the bounded campaign
 
 1. Replace the deterministic source with a target-owned VSS hardware or vehicle
