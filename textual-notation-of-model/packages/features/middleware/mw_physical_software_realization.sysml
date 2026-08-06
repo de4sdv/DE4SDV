@@ -669,9 +669,17 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   concern vehicleSpeedCampaignInternalExchangeConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * Review the typed handoffs among the concrete campaign deployment roles.
+     * The current campaign source and observer are both inside the subject, so
+     * there is no external boundary exchange or boundary delegation to claim.
+     */
     subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
+    stakeholder systemArchitect : SystemArchitect;
+    stakeholder softwareDeveloper : SoftwareDeveloper;
+    stakeholder verificationEngineer : VerificationEngineer;
   }
 
   concern vehicleSpeedCampaignStructureConcern : PhysicalStructureConcern {
@@ -734,33 +742,24 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     render asTreeDiagram;
   }
 
-  view mwVehicleSpeedCampaignPortInterconnectionView {
-    viewpoint selectedVehicleSpeedCampaignPortInterconnectionViewpoint : PhysicalInternalExchangeViewpoint {
-      frame vehicleSpeedCampaignInternalExchangeConcern;
-    }
-    doc /*
-     * Rendering-focused view for inspecting the typed campaign handoffs as
-     * port interconnections. It exposes the deployment definition's owned
-     * member subtree so nested typed ports can be materialized by the renderer.
-     */
-    expose VehicleSpeedCampaignCommunicationDeployment::*::**;
-    attribute depth = -1;
-    render asInterconnectionDiagram;
-  }
-
   view mwVehicleSpeedCampaignInternalExchangeView {
     viewpoint selectedVehicleSpeedCampaignInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
       frame vehicleSpeedCampaignInternalExchangeConcern;
     }
     doc /*
-     * Supporting exchange view for the typed handoffs inside the bounded
-     * campaign path: guest logcat, host forwarding, private TCP, ROS 2 ingress,
-     * VelocityReport publication, and independent observation.
+     * The concrete campaign deployment is the system of interest for this
+     * internal-exchange slice. It shows the typed handoffs among guest logcat,
+     * host forwarding, private TCP, ROS 2 ingress, VelocityReport publication,
+     * and independent observation.
+     *
+     * The campaign source and independent observer are both contained by the
+     * deployment. There is no external boundary exchange in the current scope,
+     * so no boundary delegation is modeled or claimed.
      */
-    expose vehicleSpeedCampaignDeployment::vmA::*;
-    expose vehicleSpeedCampaignDeployment::vmB::*;
-    expose vehicleSpeedCampaignDeployment::privateTcpBoundary;
-    render asTreeDiagram;
+    expose vehicleSpeedCampaignDeployment;
+    expose vehicleSpeedCampaignDeployment::**;
+    attribute depth = -1;
+    render asInterconnectionDiagram;
   }
 
   view mwVehicleSpeedCampaignStructureView {
