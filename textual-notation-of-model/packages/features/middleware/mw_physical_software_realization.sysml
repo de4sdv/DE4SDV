@@ -734,6 +734,22 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     render asTreeDiagram;
   }
 
+  view mwVehicleSpeedCampaignPortInterconnectionView {
+    viewpoint selectedVehicleSpeedCampaignPortInterconnectionViewpoint : PhysicalInternalExchangeViewpoint {
+      frame vehicleSpeedCampaignInternalExchangeConcern;
+    }
+    doc /*
+     * Rendering-focused view for inspecting the typed campaign handoffs as
+     * port interconnections. It deliberately exposes the nested VM members
+     * and private TCP boundary that the two-domain context view hides.
+     */
+    expose vehicleSpeedCampaignDeployment::vmA::**;
+    expose vehicleSpeedCampaignDeployment::vmB::**;
+    expose vehicleSpeedCampaignDeployment::privateTcpBoundary::*;
+    attribute depth = 1;
+    render asInterconnectionDiagram;
+  }
+
   view mwVehicleSpeedCampaignInternalExchangeView {
     viewpoint selectedVehicleSpeedCampaignInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
       frame vehicleSpeedCampaignInternalExchangeConcern;
