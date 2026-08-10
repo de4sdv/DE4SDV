@@ -133,6 +133,12 @@ try {
   const viewSpecEl = await evaluate(`document.getElementById('view-spec').textContent`);
   assert(viewSpecEl.includes("viewpoint") && viewSpecEl.includes("frame"), "view spec header missing", viewSpecEl);
 
+  // --- Directed-flow notation: arrowheads + port direction glyphs. ---
+  const arrowedPaths = await evaluate(`document.querySelectorAll('.flow-path[marker-end]').length`);
+  assert(arrowedPaths === g.flows.length, "flow paths missing arrowheads", { arrowedPaths, flows: g.flows.length });
+  const directionGlyphs = await evaluate(`document.querySelectorAll('.port-direction').length`);
+  assert(directionGlyphs === g.ports.length, "port direction glyphs missing", { directionGlyphs, ports: g.ports.length });
+
   // Click a role box and verify the docs panel fills with the source doc.
   await evaluate(`(() => {
     const g = document.querySelector('[data-role="${roleId}"]');

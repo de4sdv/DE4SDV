@@ -240,6 +240,21 @@ function render() {
   title.textContent = graph.view;
   svg.appendChild(title);
 
+  // Arrowhead marker for directed flows (mirrors the static renderer).
+  const defs = document.createElementNS(svgNS, "defs");
+  const arrowMarker = document.createElementNS(svgNS, "marker");
+  arrowMarker.setAttribute("id", "arrowhead");
+  arrowMarker.setAttribute("viewBox", "0 0 10 10");
+  arrowMarker.setAttribute("refX", "9"); arrowMarker.setAttribute("refY", "5");
+  arrowMarker.setAttribute("markerWidth", "8"); arrowMarker.setAttribute("markerHeight", "8");
+  arrowMarker.setAttribute("orient", "auto-start-reverse");
+  const arrowShape = document.createElementNS(svgNS, "path");
+  arrowShape.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+  arrowShape.setAttribute("fill", "#d97706");
+  arrowMarker.appendChild(arrowShape);
+  defs.appendChild(arrowMarker);
+  svg.appendChild(defs);
+
   // Flows (under nodes).
   for (const f of graph.flows) {
     const src = placed[resolveEndpoint(f.source).port];
@@ -248,6 +263,7 @@ function render() {
     const x1 = src.x, y1 = src.y, x2 = tgt.x, y2 = tgt.y, mx = (x1 + x2) / 2;
     path.setAttribute("d", `M ${x1} ${y1} L ${mx} ${y1} L ${mx} ${y2} L ${x2} ${y2}`);
     path.setAttribute("class", "flow-path");
+    path.setAttribute("marker-end", "url(#arrowhead)");
     path.setAttribute("data-flow", `flow-${f.index}`);
     const flowTitle = document.createElementNS(svgNS, "title");
     flowTitle.textContent = f.doc || `${f.payload} from ${f.source} to ${f.target}`;
@@ -368,6 +384,18 @@ function render() {
       selectElement("port", port.id);
     });
     svg.appendChild(circle);
+
+    // Direction glyph inside the port symbol (SysML v2 shows in/out on ports).
+    // Out ports sit on the right edge (flow leaves rightward), in ports on the
+    // left edge (flow enters rightward); the triangle apex marks travel direction.
+    const dir = document.createElementNS(svgNS, "path");
+    const apex = side === "out" ? cx + 3 : cx + 5;
+    const base = side === "out" ? cx - 5 : cx - 3;
+    dir.setAttribute("d", `M ${base} ${n.y - 3.5} L ${base} ${n.y + 3.5} L ${apex} ${n.y} Z`);
+    dir.setAttribute("fill", "#e2e8f0");
+    dir.setAttribute("pointer-events", "none");
+    dir.classList.add("port-direction");
+    svg.appendChild(dir);
 
     const label = document.createElementNS(svgNS, "text");
     const lx = side === "out" ? cx + PORT_R + 6 : cx - PORT_R - 6;

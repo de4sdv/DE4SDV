@@ -276,6 +276,13 @@ def render_svg(
             f'<circle cx="{cx}" cy="{cy}" r="{PORT_R}" fill="#38bdf8" '
             f'stroke="#0ea5e9"><title>{_esc(port_title)}</title></circle>'
         )
+        # Direction glyph inside the port symbol (in/out), matching the editor.
+        apex = cx + 3 if side == "out" else cx + 5
+        base = cx - 5 if side == "out" else cx - 3
+        parts.append(
+            f'<path d="M {base} {cy - 3.5} L {base} {cy + 3.5} L {apex} {cy} Z" '
+            f'fill="#e2e8f0" pointer-events="none" />'
+        )
         label_x = cx + (PORT_R + 6 if side == "out" else -(PORT_R + 6))
         anchor = "start" if side == "out" else "end"
         # Out-port labels go ABOVE the port, in-port labels go BELOW the port.
