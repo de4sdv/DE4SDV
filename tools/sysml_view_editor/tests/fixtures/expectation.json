@@ -1,0 +1,26 @@
+{
+  "roles": [
+    "privateTcpBoundary",
+    "vmA.cuttlefishGuest",
+    "vmA.hostForwarder",
+    "vmB.independentObserver",
+    "vmB.ros2Ingress"
+  ],
+  "ports": [
+    "privateTcpBoundary.vmAIn",
+    "privateTcpBoundary.vmBOut",
+    "vmA.cuttlefishGuest.structuredLogcatOut",
+    "vmA.hostForwarder.privateTcpOut",
+    "vmA.hostForwarder.structuredLogcatIn",
+    "vmB.independentObserver.velocityReportIn",
+    "vmB.ros2Ingress.privateTcpIn",
+    "vmB.ros2Ingress.velocityReportOut"
+  ],
+  "flows": [
+    ["vmA.cuttlefishGuest.structuredLogcatOut.envelope", "vmA.hostForwarder.structuredLogcatIn.envelope"],
+    ["vmA.hostForwarder.privateTcpOut.envelope", "privateTcpBoundary.vmAIn.envelope"],
+    ["privateTcpBoundary.vmBOut.envelope", "vmB.ros2Ingress.privateTcpIn.envelope"],
+    ["vmB.ros2Ingress.velocityReportOut.velocityReport", "vmB.independentObserver.velocityReportIn.velocityReport"]
+  ],
+  "payloads": ["envelope", "velocityReport"]
+}

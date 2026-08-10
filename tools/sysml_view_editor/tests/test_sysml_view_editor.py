@@ -1,0 +1,201 @@
+"""Tests for the DE4SDV SysML v2 view editor.
+
+The fixture mirrors the DE4SDV middleware topology: five roles, eight ports,
+four directed typed flows. Tests lock the semantic-graph extraction, the
+parity gate, the layout sidecar lifecycle, and the SVG render.
+"""
+
+import json
+import re
+from pathlib import Path
+
+from tools.sysml_view_editor.graph import build_graph, load_graph
+from tools.sysml_view_editor.layout import (
+    LayoutError,
+    empty_layout,
+    load_layout,
+    reconcile,
+    save_layout,
+)
+from tools.sysml_view_editor.parity import ParityExpectation, check_parity
+from tools.sysml_view_editor.parser import load_model
+from tools.sysml_view_editor.render import render_svg
+
+TOOLS = Path(__file__).resolve().parents[1]
+FIXTURES = TOOLS / "tests" / "fixtures"
+MODEL = FIXTURES / "mw_physical_software_realization.sysml"
+EXPECTATION = json.loads((FIXTURES / "expectation.json").read_text(encoding="utf-8"))
+
+
+def _expected() -> ParityExpectation:
+    return ParityExpectation(
+        roles=EXPECTATION["roles"],
+        ports=EXPECTATION["ports"],
+        flows=[tuple(f) for f in EXPECTATION["flows"]],
+        payloads=EXPECTATION["payloads"],
+    )
+
+
+def test_fixture_mirrors_de4sdv_topology() -> None:
+    model = load_model(MODEL)
+    deployment = re.search(
+        r"part def VehicleSpeedCampaignCommunicationDeployment\s*\{",
+        model,
+    )
+    assert deployment, "fixture missing deployment part def"
+    assert model.count("flow from ") == 4
+    assert " render asInterconnectionDiagram;" in model
+
+
+def test_graph_extracts_five_roles_eight_ports_four_flows() -> None:
+    graph = load_graph(MODEL)
+    assert len(graph.roles) == 5
+    assert len(graph.ports) == 8
+    assert len(graph.flows) == 4
+
+    role_ids = set(graph.role_ids)
+    assert role_ids == {
+        "vmA.cuttlefishGuest",
+        "vmA.hostForwarder",
+        "vmB.ros2Ingress",
+        "vmB.independentObserver",
+        "privateTcpBoundary",
+    }
+
+    # Exact authoritative flow endpoints preserved.
+    endpoints = [(f.source, f.target) for f in graph.flows]
+    assert endpoints == [
+        (
+            "vmA.cuttlefishGuest.structuredLogcatOut.envelope",
+            "vmA.hostForwarder.structuredLogcatIn.envelope",
+        ),
+        (
+            "vmA.hostForwarder.privateTcpOut.envelope",
+            "privateTcpBoundary.vmAIn.envelope",
+        ),
+        (
+            "privateTcpBoundary.vmBOut.envelope",
+            "vmB.ros2Ingress.privateTcpIn.envelope",
+        ),
+        (
+            "vmB.ros2Ingress.velocityReportOut.velocityReport",
+            "vmB.independentObserver.velocityReportIn.velocityReport",
+        ),
+    ]
+
+
+def test_graph_is_deterministic() -> None:
+    first = load_graph(MODEL)
+    second = load_graph(MODEL)
+    assert first.to_json() == second.to_json()
+    assert first.semantic_hash() == second.semantic_hash()
+
+
+def test_parity_passes_on_fixture() -> None:
+    graph = load_graph(MODEL)
+    result = check_parity(graph, _expected())
+    assert result.passed, result.errors
+    assert result.errors == []
+
+
+def test_parity_catches_missing_flow() -> None:
+    graph = load_graph(MODEL)
+    expected = _expected()
+    # Add a flow to the expectation that the graph does not contain.
+    expected.flows.append(
+        ("vmA.cuttlefishGuest.inventedOut.envelope", "vmB.inventedIn.envelope")
+    )
+    result = check_parity(graph, expected)
+    assert not result.passed
+    assert any("missing flows" in e for e in result.errors)
+
+
+def test_parity_catches_extra_role() -> None:
+    graph = load_graph(MODEL)
+    expected = _expected()
+    # Remove a role from the expectation so the graph has an unexpected one.
+    expected.roles.remove("vmA.cuttlefishGuest")
+    result = check_parity(graph, expected)
+    assert not result.passed
+    assert any("unexpected roles" in e for e in result.errors)
+
+
+def test_layout_sidecar_roundtrip() -> None:
+    graph = load_graph(MODEL)
+    layout = empty_layout(graph.view_name, graph.semantic_hash())
+    layout["nodes"]["vmA.cuttlefishGuest"] = {
+        "x": 42,
+        "y": 77,
+        "width": 200,
+        "height": 120,
+    }
+    layout["edges"]["flow-0"] = {"bend_points": [[10, 10], [20, 20]]}
+
+    path = FIXTURES / "tmp-layout.json"
+    try:
+        save_layout(layout, path)
+        loaded = load_layout(path)
+        assert loaded["schema_version"] == 1
+        assert loaded["nodes"]["vmA.cuttlefishGuest"]["x"] == 42
+        assert loaded["edges"]["flow-0"]["bend_points"] == [[10, 10], [20, 20]]
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_layout_rejects_unknown_schema_version() -> None:
+    path = FIXTURES / "tmp-bad-layout.json"
+    try:
+        path.write_text(
+            json.dumps({"schema_version": 999, "nodes": {}, "edges": {}}),
+            encoding="utf-8",
+        )
+        try:
+            load_layout(path)
+            raise AssertionError("expected LayoutError")
+        except LayoutError:
+            pass
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_reconcile_reports_unplaced_and_orphans() -> None:
+    graph = load_graph(MODEL)
+    layout = empty_layout(graph.view_name, graph.semantic_hash())
+
+    warnings = reconcile(layout, graph)
+    assert any("unplaced: vmA.cuttlefishGuest" in w for w in warnings)
+    assert any("unplaced: flow-0" in w for w in warnings)
+
+    # Orphan entries are reported, never silently dropped.
+    layout["nodes"]["vmA.deletedRole"] = {"x": 0, "y": 0}
+    warnings = reconcile(layout, graph)
+    assert any("orphan: vmA.deletedRole" in w for w in warnings)
+
+
+def test_render_produces_svg_with_topology() -> None:
+    graph = load_graph(MODEL)
+    layout = empty_layout(graph.view_name, graph.semantic_hash())
+    svg = render_svg(graph, layout, title=graph.view_name)
+
+    assert svg.startswith("<svg")
+    assert svg.endswith("</svg>")
+
+    # All five role names appear as box labels.
+    for role in graph.roles:
+        assert role.name in svg
+
+    # All four flow payload labels appear.
+    assert svg.count(">envelope<") >= 3
+    assert svg.count(">velocityReport<") >= 1
+
+    # Role boxes exist: count rects >= roles.
+    assert svg.count("<rect ") >= len(graph.roles)
+
+
+def test_render_ignores_layout_only_state() -> None:
+    """Layout entries do not add semantic elements to the rendered graph."""
+    graph = load_graph(MODEL)
+    layout = empty_layout(graph.view_name, graph.semantic_hash())
+    layout["nodes"]["vmA.inventedRole"] = {"x": 0, "y": 0}  # orphan, not semantic
+    svg = render_svg(graph, layout)
+    assert "inventedRole" not in svg
