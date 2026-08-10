@@ -39,9 +39,11 @@
     overflow: auto; min-height: 420px;
   }
   svg { display: block; }
-  .role-box { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; }
-  .role-box:hover { stroke: var(--accent); cursor: grab; }
-  .role-box.dragging { stroke: var(--accent); stroke-width: 2.5; }
+  .role-box { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; cursor: grab; }
+  .role-box:hover, .role-box.dragging { stroke: var(--accent); }
+  .role-box.dragging { stroke-width: 2.5; cursor: grabbing; }
+  .resize-handle { fill: var(--accent); stroke: #075985; stroke-width: 1; cursor: nwse-resize; opacity: 0.8; }
+  .resize-handle:hover { opacity: 1; }
   .role-name { fill: var(--text); font-weight: bold; font-size: 13px; }
   .role-host { fill: var(--muted); font-size: 10px; }
   .port-circle { fill: var(--accent); stroke: #0ea5e9; }
@@ -118,13 +120,14 @@ function resolveEndpoint(path) {
   throw new Error(`unsupported endpoint: ${path}`);
 }
 
-function computePlacement() {
-  // Mirror render.py: roles in chain order, ports on edges, layout overrides.
+function derivePorts(roleNodes) {
+  // Ports are derived presentation geometry. Recompute them from the CURRENT
+  // role rectangles so moves/resizes cannot detach endpoints or flow paths.
   const nodes = {};
-  const ordered = chainOrder(graph.roles, graph.flows);
-  ordered.forEach((rid, col) => {
-    nodes[rid] = { x: PAD + col * (ROLE_W + GAP_X), y: PAD, w: ROLE_W, h: ROLE_H };
-  });
+  for (const role of graph.roles) {
+    const n = roleNodes[role.id];
+    nodes[role.id] = { x: n.x, y: n.y, w: n.w, h: n.h };
+  }
 
   const portIndex = {};
   for (const f of graph.flows) {
@@ -138,17 +141,27 @@ function computePlacement() {
       };
     }
   }
+  return nodes;
+}
 
-  // Apply layout sidecar overrides for roles.
+function computePlacement() {
+  // Initialize role geometry once from deterministic defaults + sidecar.
+  // Ports are derived only AFTER overrides have been applied.
+  const roles = {};
+  const ordered = chainOrder(graph.roles, graph.flows);
+  ordered.forEach((rid, col) => {
+    roles[rid] = { x: PAD + col * (ROLE_W + GAP_X), y: PAD, w: ROLE_W, h: ROLE_H };
+  });
+
   for (const [rid, entry] of Object.entries(layout.nodes || {})) {
-    if (nodes[rid] && typeof entry.x === "number" && typeof entry.y === "number") {
-      nodes[rid].x = entry.x;
-      nodes[rid].y = entry.y;
-      nodes[rid].w = entry.width || ROLE_W;
-      nodes[rid].h = entry.height || ROLE_H;
+    if (roles[rid] && typeof entry.x === "number" && typeof entry.y === "number") {
+      roles[rid].x = entry.x;
+      roles[rid].y = entry.y;
+      roles[rid].w = entry.width || ROLE_W;
+      roles[rid].h = entry.height || ROLE_H;
     }
   }
-  return nodes;
+  return derivePorts(roles);
 }
 
 function roleCenter(roleId) {
@@ -157,7 +170,9 @@ function roleCenter(roleId) {
 }
 
 function render() {
-  placed = computePlacement();
+  // `placed` is the live presentation state. Re-derive ports from its current
+  // role rectangles; never reload the saved sidecar during interaction.
+  placed = derivePorts(placed);
   const canvas = document.getElementById("canvas-wrap");
 
   // Compute bounds.
@@ -218,6 +233,7 @@ function render() {
     rect.setAttribute("width", n.w); rect.setAttribute("height", n.h);
     rect.setAttribute("rx", "8");
     rect.setAttribute("class", "role-box");
+    if (dragging?.id === role.id && dragging.kind === "move") rect.classList.add("dragging");
     g.appendChild(rect);
 
     const name = document.createElementNS(svgNS, "text");
@@ -231,6 +247,19 @@ function render() {
     host.setAttribute("class", "role-host");
     host.textContent = role.host;
     g.appendChild(host);
+
+    // Resize handle in the bottom-right corner.
+    const handle = document.createElementNS(svgNS, "rect");
+    handle.setAttribute("x", n.x + n.w - 14);
+    handle.setAttribute("y", n.y + n.h - 14);
+    handle.setAttribute("width", "14");
+    handle.setAttribute("height", "14");
+    handle.setAttribute("class", "resize-handle");
+    handle.setAttribute("data-resize", role.id);
+    const handleTitle = document.createElementNS(svgNS, "title");
+    handleTitle.textContent = `Resize ${role.name}`;
+    handle.appendChild(handleTitle);
+    g.appendChild(handle);
 
     svg.appendChild(g);
   }
@@ -310,6 +339,7 @@ async function saveLayout() {
 
 function resetLayout() {
   layout = { schema_version: 1, view: graph.view, semantic_hash: graph.semantic_hash, nodes: {}, edges: {} };
+  placed = computePlacement();
   render();
 }
 
@@ -327,38 +357,79 @@ function exportSvg() {
 
 function setupDrag() {
   const canvas = document.getElementById("canvas-wrap");
-  const svg = canvas.querySelector("svg");
 
   canvas.addEventListener("mousedown", (ev) => {
+    const resizeEl = ev.target.closest("[data-resize]");
     const roleEl = ev.target.closest("[data-role]");
-    if (!roleEl) return;
+    if (!resizeEl && !roleEl) return;
+    ev.preventDefault();
+
+    // Freeze the viewport-to-SVG scale for the gesture. The SVG bounds may
+    // change while the whole connected diagram is re-rendered.
+    const svg = canvas.querySelector("svg");
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    const scaleX = vb.width / rect.width;
+    const scaleY = vb.height / rect.height;
+
+    if (resizeEl) {
+      const roleId = resizeEl.getAttribute("data-resize");
+      const n = placed[roleId];
+      dragging = {
+        id: roleId,
+        kind: "resize",
+        startClientX: ev.clientX,
+        startClientY: ev.clientY,
+        scaleX,
+        scaleY,
+        baseW: n.w,
+        baseH: n.h,
+      };
+      render();
+      return;
+    }
+
     const roleId = roleEl.getAttribute("data-role");
     const n = placed[roleId];
-    dragging = { id: roleId, dx: ev.offsetX - n.x, dy: ev.offsetY - n.y };
-    roleEl.classList.add("dragging");
-    ev.preventDefault();
-  });
-
-  canvas.addEventListener("mousemove", (ev) => {
-    if (!dragging) return;
-    const n = placed[dragging.id];
-    // Map viewport offset to SVG coordinates.
-    const rect = canvas.getBoundingClientRect();
-    const vx = ev.clientX - rect.left + canvas.scrollLeft;
-    const vy = ev.clientY - rect.top + canvas.scrollTop;
-    const box = svg.getBoundingClientRect();
-    const scaleX = svg.viewBox.baseVal.width / box.width;
-    const scaleY = svg.viewBox.baseVal.height / box.height;
-    const ox = svg.viewBox.baseVal.x, oy = svg.viewBox.baseVal.y;
-    const sx = ox + (vx * scaleX) - dragging.dx;
-    const sy = oy + (vy * scaleY) - dragging.dy;
-    n.x = Math.max(0, Math.round(sx));
-    n.y = Math.max(0, Math.round(sy));
+    dragging = {
+      id: roleId,
+      kind: "move",
+      startClientX: ev.clientX,
+      startClientY: ev.clientY,
+      scaleX,
+      scaleY,
+      baseX: n.x,
+      baseY: n.y,
+    };
     render();
   });
 
-  canvas.addEventListener("mouseup", () => { dragging = null; render(); });
-  canvas.addEventListener("mouseleave", () => { dragging = null; render(); });
+  // Window-level listeners survive replacement of the SVG subtree during a
+  // gesture. Every update redraws roles, derived ports, flows, and labels from
+  // the same live presentation state.
+  window.addEventListener("mousemove", (ev) => {
+    if (!dragging) return;
+    const dx = (ev.clientX - dragging.startClientX) * dragging.scaleX;
+    const dy = (ev.clientY - dragging.startClientY) * dragging.scaleY;
+    const n = placed[dragging.id];
+
+    if (dragging.kind === "move") {
+      n.x = Math.max(0, Math.round(dragging.baseX + dx));
+      n.y = Math.max(0, Math.round(dragging.baseY + dy));
+    } else {
+      n.w = Math.max(120, Math.round(dragging.baseW + dx));
+      n.h = Math.max(60, Math.round(dragging.baseH + dy));
+    }
+    render();
+  });
+
+  const commit = () => {
+    if (!dragging) return;
+    dragging = null;
+    render();
+  };
+  window.addEventListener("mouseup", commit);
+  window.addEventListener("blur", commit);
 }
 
 async function init() {
@@ -368,6 +439,7 @@ async function init() {
     document.getElementById("view-name").textContent = graph.view;
     document.getElementById("semantic-status").textContent =
       `${graph.roles.length} roles · ${graph.ports.length} ports · ${graph.flows.length} flows`;
+    placed = computePlacement();
     render();
     setupDrag();
     document.getElementById("save-btn").addEventListener("click", saveLayout);

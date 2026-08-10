@@ -43,12 +43,31 @@ python -m tools.sysml_view_editor render \
 python -m tools.sysml_view_editor check \
   --model path/to/model.sysml \
   --expectation tools/sysml_view_editor/tests/fixtures/expectation.json
+
+# Start the presentation-only interactive editor
+python -m tools.sysml_view_editor serve \
+  --model path/to/model.sysml \
+  --layout out.layout.json \
+  --port 8123
 ```
+
+Open `http://127.0.0.1:8123`. Drag a role box to move it; drag its blue
+bottom-right handle to resize it. Ports, typed flows, and labels are derived
+from the current role rectangles and remain connected throughout the gesture.
+`Save layout` writes only presentation state to the sidecar.
 
 ## Tests
 
 ```bash
 python -m pytest tools/sysml_view_editor/tests/test_sysml_view_editor.py -v
+```
+
+The browser interaction regression requires a live editor and Chromium with a
+DevTools port. It verifies connected drag, connected resize, and save/reload:
+
+```bash
+chromium --remote-debugging-port=9223 http://127.0.0.1:8123
+node tools/sysml_view_editor/tests/browser_interaction_check.mjs --port 9223
 ```
 
 ## Design notes
