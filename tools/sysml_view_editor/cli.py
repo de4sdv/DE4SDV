@@ -95,6 +95,10 @@ def main(argv: list[str] | None = None) -> int:
     p_check = sub.add_parser("check", parents=[common], help="Run the parity gate")
     p_check.add_argument("--expectation", required=True, help="Parity expectation JSON")
 
+    p_serve = sub.add_parser("serve", parents=[common], help="Run the interactive editor")
+    p_serve.add_argument("--layout", help="Layout sidecar path")
+    p_serve.add_argument("--port", type=int, default=8000, help="Port to bind")
+
     args = parser.parse_args(argv)
     if args.command == "graph":
         return _cmd_graph(args)
@@ -102,6 +106,11 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_render(args)
     if args.command == "check":
         return _cmd_check(args)
+    if args.command == "serve":
+        from .serve import serve
+
+        serve(args.model, args.layout, args.port)
+        return 0
     parser.error(f"unknown command {args.command}")
     return 2
 

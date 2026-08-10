@@ -199,3 +199,128 @@ def test_render_ignores_layout_only_state() -> None:
     layout["nodes"]["vmA.inventedRole"] = {"x": 0, "y": 0}  # orphan, not semantic
     svg = render_svg(graph, layout)
     assert "inventedRole" not in svg
+
+
+# ---------------------------------------------------------------------------
+# serve module tests: endpoints and layout write-back.
+# ---------------------------------------------------------------------------
+
+def test_put_requires_global_layout_update() -> None:
+    """PUT /layout.json must update the in-memory layout (global state)."""
+    import json
+    import threading
+    import urllib.request
+
+    from tools.sysml_view_editor import serve as serve_module
+
+    layout_path = FIXTURES / "tmp-serve-global-layout.json"
+    layout_path.unlink(missing_ok=True)
+
+    # Start the server on an ephemeral port by reserving one.
+    import socket
+
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+
+    thread = threading.Thread(
+        target=serve_module.serve,
+        args=(MODEL, layout_path, port),
+        daemon=True,
+    )
+    thread.start()
+
+    base = f"http://127.0.0.1:{port}"
+    try:
+        import time
+
+        deadline = time.time() + 5
+        while True:
+            try:
+                urllib.request.urlopen(base + "/graph.json", timeout=0.5)
+                break
+            except Exception:
+                if time.time() > deadline:
+                    raise
+                time.sleep(0.1)
+
+        # PUT a moved role.
+        layout = json.load(urllib.request.urlopen(base + "/layout.json"))
+        layout["nodes"]["vmA.cuttlefishGuest"] = {
+            "x": 80,
+            "y": 160,
+            "width": 200,
+            "height": 120,
+        }
+        req = urllib.request.Request(
+            base + "/layout.json",
+            data=json.dumps(layout).encode(),
+            headers={"Content-Type": "application/json"},
+            method="PUT",
+        )
+        resp = json.load(urllib.request.urlopen(req))
+        assert resp["saved"] is True
+
+        # The server's in-memory layout must now contain the moved role.
+        fresh = json.load(urllib.request.urlopen(base + "/layout.json"))
+        assert fresh["nodes"]["vmA.cuttlefishGuest"]["x"] == 80
+
+        # The sidecar on disk must also contain it.
+        disk = json.loads(layout_path.read_text(encoding="utf-8"))
+        assert disk["nodes"]["vmA.cuttlefishGuest"]["y"] == 160
+    finally:
+        layout_path.unlink(missing_ok=True)
+
+
+def test_put_rejects_unknown_schema() -> None:
+    """PUT with an unsupported schema version must be rejected (400)."""
+    import json
+    import socket
+    import threading
+    import time
+    import urllib.error
+    import urllib.request
+
+    from tools.sysml_view_editor import serve as serve_module
+
+    layout_path = FIXTURES / "tmp-serve-bad-layout.json"
+    layout_path.unlink(missing_ok=True)
+
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+
+    thread = threading.Thread(
+        target=serve_module.serve,
+        args=(MODEL, layout_path, port),
+        daemon=True,
+    )
+    thread.start()
+
+    base = f"http://127.0.0.1:{port}"
+    try:
+        deadline = time.time() + 5
+        while True:
+            try:
+                urllib.request.urlopen(base + "/graph.json", timeout=0.5)
+                break
+            except Exception:
+                if time.time() > deadline:
+                    raise
+                time.sleep(0.1)
+
+        req = urllib.request.Request(
+            base + "/layout.json",
+            data=json.dumps({"schema_version": 99}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="PUT",
+        )
+        try:
+            urllib.request.urlopen(req)
+            raise AssertionError("expected HTTP 400 for unknown schema")
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 400
+    finally:
+        layout_path.unlink(missing_ok=True)

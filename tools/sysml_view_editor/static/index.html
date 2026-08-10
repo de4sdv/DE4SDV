@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DE4SDV SysML v2 View Editor</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --flow: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 15px; margin: 0; }
+  header .view-name { color: var(--muted); font-size: 12px; }
+  .btn {
+    background: var(--accent); color: #0c4a6e; border: none; border-radius: 6px;
+    padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .status { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .status.warn { color: #fbbf24; }
+  main { padding: 12px; }
+  #canvas-wrap {
+    background: #0b1220; border: 1px solid var(--border); border-radius: 8px;
+    overflow: auto; min-height: 420px;
+  }
+  svg { display: block; }
+  .role-box { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; }
+  .role-box:hover { stroke: var(--accent); cursor: grab; }
+  .role-box.dragging { stroke: var(--accent); stroke-width: 2.5; }
+  .role-name { fill: var(--text); font-weight: bold; font-size: 13px; }
+  .role-host { fill: var(--muted); font-size: 10px; }
+  .port-circle { fill: var(--accent); stroke: #0ea5e9; }
+  .port-label { fill: #cbd5e1; font-size: 10px; }
+  .flow-path { fill: none; stroke: #d97706; stroke-width: 2; }
+  .flow-label-bg { fill: var(--bg); stroke: var(--flow); stroke-width: 1; rx: 3; }
+  .flow-label { fill: var(--flow); font-size: 11px; text-anchor: middle; }
+  #warnings {
+    margin-top: 10px; font-size: 12px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; min-height: 20px; white-space: pre-wrap;
+  }
+  #warnings:empty { display: none; }
+  .legend { font-size: 12px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>DE4SDV SysML v2 View Editor</h1>
+  <span class="view-name" id="view-name"></span>
+  <span class="status" id="semantic-status"></span>
+  <button class="btn" id="save-btn">Save layout</button>
+  <button class="btn secondary" id="reset-btn">Reset layout</button>
+  <button class="btn secondary" id="export-btn">Export SVG</button>
+</header>
+<main>
+  <div id="canvas-wrap"></div>
+  <div id="warnings"></div>
+  <p class="legend">Drag role boxes to arrange. Layout is presentation-only —
+    semantics come from the authoritative SysML source. Save writes the sidecar.</p>
+</main>
+<script>
+"use strict";
+
+const ROLE_W = 200, ROLE_H = 120, PORT_R = 8, GAP_X = 220, PAD = 40;
+
+let graph = null;
+let layout = null;
+let placed = {};       // resolved positions: role id -> {x,y,w,h}, port id -> {x,y}
+let dragging = null;   // {id, dx, dy} while dragging
+
+async function getJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return res.json();
+}
+
+function chainOrder(roles, flows) {
+  // Topological order of roles following flow direction (mirrors render.py).
+  const indegree = {}; const outgoing = {};
+  for (const r of roles) { indegree[r.id] = 0; outgoing[r.id] = []; }
+  for (const f of flows) {
+    const src = resolveEndpoint(f.source).role;
+    const tgt = resolveEndpoint(f.target).role;
+    if (src === tgt) continue;
+    outgoing[src].push(tgt);
+    indegree[tgt] += 1;
+  }
+  const ready = Object.keys(indegree).filter(id => indegree[id] === 0).sort();
+  const ordered = [];
+  while (ready.length) {
+    const id = ready.shift();
+    ordered.push(id);
+    outgoing[id].sort().forEach(n => { indegree[n] -= 1; if (indegree[n] === 0) ready.push(n); });
+  }
+  const remaining = roles.map(r => r.id).filter(id => !ordered.includes(id)).sort();
+  return ordered.concat(remaining);
+}
+
+function resolveEndpoint(path) {
+  const parts = path.split(".");
+  if (parts.length === 4) return { role: parts.slice(0, 2).join("."), port: parts.slice(0, 3).join(".") };
+  if (parts.length === 3) return { role: parts[0], port: parts.slice(0, 2).join(".") };
+  throw new Error(`unsupported endpoint: ${path}`);
+}
+
+function computePlacement() {
+  // Mirror render.py: roles in chain order, ports on edges, layout overrides.
+  const nodes = {};
+  const ordered = chainOrder(graph.roles, graph.flows);
+  ordered.forEach((rid, col) => {
+    nodes[rid] = { x: PAD + col * (ROLE_W + GAP_X), y: PAD, w: ROLE_W, h: ROLE_H };
+  });
+
+  const portIndex = {};
+  for (const f of graph.flows) {
+    for (const [endpoint, kind] of [[f.source, "out"], [f.target, "in"]]) {
+      const { role, port } = resolveEndpoint(endpoint);
+      const n = portIndex[port] = (portIndex[port] || 0) + 1;
+      const base = nodes[role];
+      nodes[port] = {
+        x: kind === "out" ? base.x + base.w : base.x,
+        y: base.y + 20 + (n - 1) * 28,
+      };
+    }
+  }
+
+  // Apply layout sidecar overrides for roles.
+  for (const [rid, entry] of Object.entries(layout.nodes || {})) {
+    if (nodes[rid] && typeof entry.x === "number" && typeof entry.y === "number") {
+      nodes[rid].x = entry.x;
+      nodes[rid].y = entry.y;
+      nodes[rid].w = entry.width || ROLE_W;
+      nodes[rid].h = entry.height || ROLE_H;
+    }
+  }
+  return nodes;
+}
+
+function roleCenter(roleId) {
+  const n = placed[roleId];
+  return { cx: n.x + n.w / 2, cy: n.y + n.h / 2 };
+}
+
+function render() {
+  placed = computePlacement();
+  const canvas = document.getElementById("canvas-wrap");
+
+  // Compute bounds.
+  let xMin = Infinity, yMin = Infinity, xMax = -Infinity, yMax = -Infinity;
+  for (const n of Object.values(placed)) {
+    xMin = Math.min(xMin, n.x); yMin = Math.min(yMin, n.y);
+    xMax = Math.max(xMax, n.x + (n.w || 0)); yMax = Math.max(yMax, n.y + (n.h || 0));
+  }
+  xMin -= 140; xMax += 140; yMin -= 70; yMax += 40;
+
+  const W = Math.max(400, xMax - xMin), H = Math.max(200, yMax - yMin);
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", `${xMin} ${yMin} ${W} ${H}`);
+
+  // Title.
+  const title = document.createElementNS(svgNS, "text");
+  title.setAttribute("x", xMin + 10); title.setAttribute("y", yMin + 24);
+  title.setAttribute("font-size", "16"); title.setAttribute("font-weight", "bold");
+  title.setAttribute("fill", "#e2e8f0");
+  title.textContent = graph.view;
+  svg.appendChild(title);
+
+  // Flows (under nodes).
+  for (const f of graph.flows) {
+    const src = placed[resolveEndpoint(f.source).port];
+    const tgt = placed[resolveEndpoint(f.target).port];
+    const path = document.createElementNS(svgNS, "path");
+    const x1 = src.x, y1 = src.y, x2 = tgt.x, y2 = tgt.y, mx = (x1 + x2) / 2;
+    path.setAttribute("d", `M ${x1} ${y1} L ${mx} ${y1} L ${mx} ${y2} L ${x2} ${y2}`);
+    path.setAttribute("class", "flow-path");
+    svg.appendChild(path);
+
+    // Payload label with background.
+    const textW = 8 + 7 * f.payload.length;
+    const bg = document.createElementNS(svgNS, "rect");
+    bg.setAttribute("x", mx - textW / 2); bg.setAttribute("y", Math.min(y1, y2) - 11);
+    bg.setAttribute("width", textW); bg.setAttribute("height", 16);
+    bg.setAttribute("class", "flow-label-bg");
+    svg.appendChild(bg);
+    const label = document.createElementNS(svgNS, "text");
+    label.setAttribute("x", mx); label.setAttribute("y", Math.min(y1, y2));
+    label.setAttribute("class", "flow-label");
+    label.textContent = f.payload;
+    svg.appendChild(label);
+  }
+
+  // Roles.
+  for (const role of graph.roles) {
+    const n = placed[role.id];
+    const g = document.createElementNS(svgNS, "g");
+    g.setAttribute("data-role", role.id);
+    g.classList.add("role-group");
+
+    const rect = document.createElementNS(svgNS, "rect");
+    rect.setAttribute("x", n.x); rect.setAttribute("y", n.y);
+    rect.setAttribute("width", n.w); rect.setAttribute("height", n.h);
+    rect.setAttribute("rx", "8");
+    rect.setAttribute("class", "role-box");
+    g.appendChild(rect);
+
+    const name = document.createElementNS(svgNS, "text");
+    name.setAttribute("x", n.x + 12); name.setAttribute("y", n.y + 24);
+    name.setAttribute("class", "role-name");
+    name.textContent = role.name;
+    g.appendChild(name);
+
+    const host = document.createElementNS(svgNS, "text");
+    host.setAttribute("x", n.x + 12); host.setAttribute("y", n.y + 42);
+    host.setAttribute("class", "role-host");
+    host.textContent = role.host;
+    g.appendChild(host);
+
+    svg.appendChild(g);
+  }
+
+  // Ports.
+  for (const port of graph.ports) {
+    const n = placed[port.id];
+    const side = graph.flows.some(f => resolveEndpoint(f.source).port === port.id) ? "out" : "in";
+    const cx = side === "out" ? n.x : n.x;
+    const circle = document.createElementNS(svgNS, "circle");
+    circle.setAttribute("cx", cx); circle.setAttribute("cy", n.y);
+    circle.setAttribute("r", PORT_R);
+    circle.setAttribute("class", "port-circle");
+    svg.appendChild(circle);
+
+    const label = document.createElementNS(svgNS, "text");
+    const lx = side === "out" ? cx + PORT_R + 6 : cx - PORT_R - 6;
+    label.setAttribute("x", lx); label.setAttribute("y", side === "out" ? n.y - (PORT_R + 6) : n.y + PORT_R + 14);
+    label.setAttribute("text-anchor", side === "out" ? "start" : "end");
+    label.setAttribute("class", "port-label");
+    label.textContent = port.name;
+    svg.appendChild(label);
+  }
+
+  canvas.replaceChildren(svg);
+  updateWarnings();
+}
+
+function updateWarnings() {
+  const el = document.getElementById("warnings");
+  const warnings = [];
+  const nodeIds = new Set(graph.roles.map(r => r.id));
+  graph.ports.forEach(p => nodeIds.add(p.id));
+  const edgeIds = new Set(graph.flows.map(f => `flow-${f.index}`));
+  for (const id of nodeIds) if (!(id in (layout.nodes || {}))) warnings.push(`unplaced: ${id}`);
+  for (const id of edgeIds) if (!(id in (layout.edges || {}))) warnings.push(`unplaced: ${id}`);
+  for (const id of Object.keys(layout.nodes || {})) if (!nodeIds.has(id)) warnings.push(`orphan: ${id}`);
+  for (const id of Object.keys(layout.edges || {})) if (!edgeIds.has(id)) warnings.push(`orphan: ${id}`);
+  el.textContent = warnings.length ? warnings.join("\n") : "";
+  document.getElementById("semantic-status").textContent =
+    `${graph.roles.length} roles · ${graph.ports.length} ports · ${graph.flows.length} flows · hash ${graph.semantic_hash}`;
+}
+
+function serializeLayout() {
+  const nodes = {};
+  for (const [id, n] of Object.entries(placed)) {
+    if (graph.roles.some(r => r.id === id)) {
+      nodes[id] = { x: Math.round(n.x), y: Math.round(n.y), width: n.w, height: n.h };
+    }
+  }
+  return {
+    schema_version: 1,
+    view: graph.view,
+    semantic_hash: graph.semantic_hash,
+    nodes,
+    edges: layout.edges || {},
+  };
+}
+
+async function saveLayout() {
+  const res = await fetch("/layout.json", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(serializeLayout()),
+  });
+  const data = await res.json();
+  const status = document.getElementById("semantic-status");
+  if (res.ok) {
+    status.textContent = "saved ✓";
+    layout = { ...layout, ...serializeLayout() };
+    updateWarnings();
+  } else {
+    status.textContent = `save failed: ${data.error || "unknown"}`;
+    status.className = "status warn";
+  }
+}
+
+function resetLayout() {
+  layout = { schema_version: 1, view: graph.view, semantic_hash: graph.semantic_hash, nodes: {}, edges: {} };
+  render();
+}
+
+function exportSvg() {
+  const svg = document.querySelector("#canvas-wrap svg");
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${graph.view || "view"}.svg`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function setupDrag() {
+  const canvas = document.getElementById("canvas-wrap");
+  const svg = canvas.querySelector("svg");
+
+  canvas.addEventListener("mousedown", (ev) => {
+    const roleEl = ev.target.closest("[data-role]");
+    if (!roleEl) return;
+    const roleId = roleEl.getAttribute("data-role");
+    const n = placed[roleId];
+    dragging = { id: roleId, dx: ev.offsetX - n.x, dy: ev.offsetY - n.y };
+    roleEl.classList.add("dragging");
+    ev.preventDefault();
+  });
+
+  canvas.addEventListener("mousemove", (ev) => {
+    if (!dragging) return;
+    const n = placed[dragging.id];
+    // Map viewport offset to SVG coordinates.
+    const rect = canvas.getBoundingClientRect();
+    const vx = ev.clientX - rect.left + canvas.scrollLeft;
+    const vy = ev.clientY - rect.top + canvas.scrollTop;
+    const box = svg.getBoundingClientRect();
+    const scaleX = svg.viewBox.baseVal.width / box.width;
+    const scaleY = svg.viewBox.baseVal.height / box.height;
+    const ox = svg.viewBox.baseVal.x, oy = svg.viewBox.baseVal.y;
+    const sx = ox + (vx * scaleX) - dragging.dx;
+    const sy = oy + (vy * scaleY) - dragging.dy;
+    n.x = Math.max(0, Math.round(sx));
+    n.y = Math.max(0, Math.round(sy));
+    render();
+  });
+
+  canvas.addEventListener("mouseup", () => { dragging = null; render(); });
+  canvas.addEventListener("mouseleave", () => { dragging = null; render(); });
+}
+
+async function init() {
+  try {
+    graph = await getJSON("/graph.json");
+    layout = await getJSON("/layout.json");
+    document.getElementById("view-name").textContent = graph.view;
+    document.getElementById("semantic-status").textContent =
+      `${graph.roles.length} roles · ${graph.ports.length} ports · ${graph.flows.length} flows`;
+    render();
+    setupDrag();
+    document.getElementById("save-btn").addEventListener("click", saveLayout);
+    document.getElementById("reset-btn").addEventListener("click", resetLayout);
+    document.getElementById("export-btn").addEventListener("click", exportSvg);
+  } catch (err) {
+    document.getElementById("warnings").textContent = `Failed to load: ${err.message}`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
