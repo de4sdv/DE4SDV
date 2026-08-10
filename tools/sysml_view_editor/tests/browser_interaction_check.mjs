@@ -126,8 +126,12 @@ try {
   const g = await evaluate("graph");
   assert(g.roles.some(r => r.doc), "no role doc in graph.json", g.roles.map(r => r.doc));
   assert(g.deployment_doc, "no deployment doc in graph.json", g);
+  assert(g.view_spec?.viewpoint_type, "no view spec in graph.json", g.view_spec);
+  assert(g.view_spec?.deployment_source === "view", "diagram not sourced from the view", g.view_spec);
   const tooltipCount = await evaluate(`document.querySelectorAll('#canvas-wrap svg title').length`);
   assert(tooltipCount >= g.roles.length + g.flows.length, "missing tooltips", { tooltipCount, roles: g.roles.length, flows: g.flows.length });
+  const viewSpecEl = await evaluate(`document.getElementById('view-spec').textContent`);
+  assert(viewSpecEl.includes("viewpoint") && viewSpecEl.includes("frame"), "view spec header missing", viewSpecEl);
 
   // Click a role box and verify the docs panel fills with the source doc.
   await evaluate(`(() => {

@@ -193,3 +193,67 @@ def flow_docs(deployment_block_raw: str) -> list[str]:
                 best = doc_match
         docs.append(_normalize_doc(best.group(1)) if best else "")
     return docs
+
+
+@dataclass
+class ViewSpec:
+    """What a SysML v2 `view` usage declares (the diagram's source spec).
+
+    Views are the normative source for diagrams: a view satisfies one or more
+    viewpoints, exposes the model subset it shows, and names a rendering.
+    Selection is therefore driven by this spec, not by a hardcoded deployment
+    name. Fields are empty when the view block omits them.
+    """
+
+    name: str  # view usage name, e.g. mwVehicleSpeedCampaignInternalExchangeView
+    viewpoint: str = ""  # viewpoint usage name nested in the view
+    viewpoint_type: str = ""  # e.g. PhysicalInternalExchangeViewpoint
+    concern: str = ""  # frame target, e.g. vehicleSpeedCampaignInternalExchangeConcern
+    exposes: list[str] = field(default_factory=list)  # expose targets (raw paths, may have ::)
+    depth: int | None = None  # attribute depth, e.g. -1 (all levels)
+    render: str = ""  # render hint, e.g. asInterconnectionDiagram
+    doc: str = ""  # doc comment on the view usage
+
+
+VIEW_POINT_USAGE_RE = re.compile(
+    r"\bviewpoint\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*\{"
+)
+FRAME_RE = re.compile(r"\bframe\s+([A-Za-z_][A-Za-z0-9_.]*)\s*;")
+EXPOSE_RE = re.compile(r"\bexpose\s+([A-Za-z_][A-Za-z0-9_.:]*)\s*;")
+VIEW_DEPTH_RE = re.compile(r"\battribute\s+depth\s*=\s*(-?\d+)\s*;")
+VIEW_RENDER_RE = re.compile(r"\brender\s+([A-Za-z_][A-Za-z0-9_]*)\s*;")
+
+
+def parse_view_spec(model_text: str, view_name: str) -> ViewSpec | None:
+    """Extract the `view <view_name> { ... }` block's declaration spec.
+
+    Operates on comment-stripped text (structure only). Returns None when the
+    view block is absent, so callers can fall back to legacy defaults.
+    """
+    try:
+        block = named_block(model_text, "view", view_name)
+    except AssertionError:
+        return None
+
+    spec = ViewSpec(name=view_name)
+    viewpoint = VIEW_POINT_USAGE_RE.search(block)
+    if viewpoint:
+        spec.viewpoint = viewpoint.group(1)
+        spec.viewpoint_type = viewpoint.group(2)
+        # The frame lives inside the viewpoint usage body.
+        viewpoint_block = named_block(block, "viewpoint", spec.viewpoint)
+        frame = FRAME_RE.search(viewpoint_block)
+        if frame:
+            spec.concern = frame.group(1)
+
+    spec.exposes = [m.group(1) for m in EXPOSE_RE.finditer(block)]
+    depth = VIEW_DEPTH_RE.search(block)
+    if depth:
+        spec.depth = int(depth.group(1))
+    render = VIEW_RENDER_RE.search(block)
+    if render:
+        spec.render = render.group(1)
+    doc_match = DOC_BLOCK_RE.search(block)
+    if doc_match:
+        spec.doc = _normalize_doc(doc_match.group(1))
+    return spec

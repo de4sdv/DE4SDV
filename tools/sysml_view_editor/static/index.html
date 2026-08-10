@@ -25,6 +25,7 @@
   }
   header h1 { font-size: 15px; margin: 0; }
   header .view-name { color: var(--muted); font-size: 12px; }
+  header .view-spec { color: var(--flow); font-size: 11px; }
   .btn {
     background: var(--accent); color: #0c4a6e; border: none; border-radius: 6px;
     padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
@@ -79,6 +80,7 @@
 <header>
   <h1>DE4SDV SysML v2 View Editor</h1>
   <span class="view-name" id="view-name"></span>
+  <span class="view-spec" id="view-spec"></span>
   <span class="status" id="semantic-status"></span>
   <button class="btn" id="save-btn">Save layout</button>
   <button class="btn secondary" id="reset-btn">Reset layout</button>
@@ -591,6 +593,23 @@ async function init() {
     graph = await getJSON("/graph.json");
     layout = await getJSON("/layout.json");
     document.getElementById("view-name").textContent = graph.view;
+    const vs = graph.view_spec || {};
+    const specParts = [];
+    if (vs.viewpoint) specParts.push(`viewpoint ${vs.viewpoint}`);
+    if (vs.viewpoint_type) specParts.push(`(${vs.viewpoint_type})`);
+    if (vs.concern) specParts.push(`frame ${vs.concern}`);
+    if (vs.render) specParts.push(`render ${vs.render}`);
+    document.getElementById("view-spec").textContent = specParts.length ? specParts.join(" · ") : "";
+    if (vs.deployment_source !== "view") {
+      const docPanel = document.getElementById("docs");
+      const reason = vs.unresolved_exposes && vs.unresolved_exposes.length
+        ? `view exposes ${vs.unresolved_exposes.join(", ")} — none resolve to a deployment part usage`
+        : "no view block found in the model";
+      docPanel.innerHTML = `
+        <div class="doc-title">View-source warning</div>
+        <div class="doc-body">Diagram content sourced from ${vs.deployment_source || "default"} deployment
+        (${reason}). The declared view could not select the rendered content.</div>`;
+    }
     document.getElementById("semantic-status").textContent =
       `${graph.roles.length} roles · ${graph.ports.length} ports · ${graph.flows.length} flows`;
     placed = computePlacement();
@@ -600,8 +619,9 @@ async function init() {
     document.getElementById("reset-btn").addEventListener("click", resetLayout);
     document.getElementById("export-btn").addEventListener("click", exportSvg);
     // Show the deployment-level context by default so a reviewer sees the
-    // campaign narrative without having to click anything.
-    if (graph.deployment_doc) {
+    // campaign narrative without having to click anything. Skip when the
+    // diagram was NOT sourced from the declared view (warning already shown).
+    if (graph.deployment_doc && graph.view_spec?.deployment_source === "view") {
       document.getElementById("docs").innerHTML = `
         <div class="doc-title">Deployment — source doc</div>
         <div class="doc-body">${escapeHtml(graph.deployment_doc)}</div>`;

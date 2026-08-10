@@ -57,12 +57,33 @@ python -m tools.sysml_view_editor serve \
   --model path/to/model.sysml \
   --layout out.layout.json \
   --port 8123
+
+# Select a different declared view usage (its expose sources the diagram)
+python -m tools.sysml_view_editor render \
+  --model path/to/model.sysml \
+  --view mwVehicleSpeedCampaignStructureView \
+  --output out.svg
 ```
 
 Open `http://127.0.0.1:8123`. Drag a role box to move it; drag its blue
 bottom-right handle to resize it. Ports, typed flows, and labels are derived
 from the current role rectangles and remain connected throughout the gesture.
 `Save layout` writes only presentation state to the sidecar.
+
+## View-driven sourcing
+
+Diagrams are sourced from the **declared view usage**, per the SysML v2 spec
+("a diagram is also a view usage"): the view's `expose` targets resolve to the
+deployment part def whose parts and flows become the graph. The header shows
+the view's viewpoint, framed concern, and render hint, so a reviewer sees what
+sourced the diagram. The deployment name is a fallback only:
+
+- `view` — the view's expose resolved to a deployment part usage (preferred).
+- `explicit` — a `--deployment`/kwarg override was given.
+- `default` — no resolvable view block (legacy model), or the view exposes
+  types this flow-graph renderer cannot project (e.g. item/port-only views).
+  In the latter case the unresolved exposes are surfaced as a warning rather
+  than silently drawing the default content.
 
 ## Tests
 

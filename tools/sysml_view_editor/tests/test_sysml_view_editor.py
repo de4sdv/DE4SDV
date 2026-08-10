@@ -18,7 +18,7 @@ from tools.sysml_view_editor.layout import (
     save_layout,
 )
 from tools.sysml_view_editor.parity import ParityExpectation, check_parity
-from tools.sysml_view_editor.parser import load_model
+from tools.sysml_view_editor.parser import load_model, parse_view_spec
 from tools.sysml_view_editor.render import render_svg
 
 TOOLS = Path(__file__).resolve().parents[1]
@@ -198,6 +198,65 @@ def test_doc_wrap_is_deterministic_and_capped() -> None:
     assert lines[-1].endswith("…")
     # Same input -> same output (Python renderer and JS editor must agree).
     assert _wrap_doc(long_doc, 200) == lines
+
+
+# ---------------------------------------------------------------------------
+# View/viewpoint-driven sourcing: diagrams come from the declared view usage.
+# ---------------------------------------------------------------------------
+
+def test_view_spec_parses_from_fixture() -> None:
+    """The view block's viewpoint/frame/expose/depth/render are extracted."""
+    model = load_model(MODEL)
+    spec = parse_view_spec(model, "mwVehicleSpeedCampaignInternalExchangeView")
+    assert spec is not None
+    assert spec.viewpoint == "selectedVehicleSpeedCampaignInternalExchangeViewpoint"
+    assert spec.viewpoint_type == "PhysicalInternalExchangeViewpoint"
+    assert spec.concern == "vehicleSpeedCampaignInternalExchangeConcern"
+    assert "vehicleSpeedCampaignDeployment" in spec.exposes
+    assert spec.depth == -1
+    assert spec.render == "asInterconnectionDiagram"
+
+
+def test_graph_is_sourced_from_view_expose() -> None:
+    """Without an explicit deployment, the view's expose selects it."""
+    graph = load_graph(MODEL)  # no deployment kwarg -> view-driven
+    assert graph.deployment == "VehicleSpeedCampaignCommunicationDeployment"
+    assert graph.view_spec["deployment_source"] == "view"
+    assert graph.view_spec["viewpoint_type"] == "PhysicalInternalExchangeViewpoint"
+    assert len(graph.roles) == 5
+    assert len(graph.ports) == 8
+    assert len(graph.flows) == 4
+
+
+def test_explicit_deployment_overrides_view() -> None:
+    """An explicit deployment kwarg wins over view-driven resolution."""
+    graph = load_graph(MODEL, deployment="VehicleSpeedCampaignCommunicationDeployment")
+    assert graph.deployment == "VehicleSpeedCampaignCommunicationDeployment"
+    assert graph.view_spec["deployment_source"] == "explicit"
+    assert len(graph.roles) == 5
+
+
+def test_view_metadata_does_not_change_shash() -> None:
+    """View annotations (viewpoint/concern/render) stay out of the topology hash."""
+    explicit = load_graph(MODEL, deployment="VehicleSpeedCampaignCommunicationDeployment")
+    view_driven = load_graph(MODEL)
+    assert explicit.semantic_hash() == view_driven.semantic_hash()
+
+
+def test_unresolvable_view_falls_back_to_default_deployment() -> None:
+    """A view whose exposes resolve to nothing falls back, marked as default."""
+    stripped = load_model(MODEL)
+    # Remove the deployment part usage so the expose target disappears.
+    import re as _re
+    broken = _re.sub(
+        r"part vehicleSpeedCampaignDeployment : VehicleSpeedCampaignCommunicationDeployment;",
+        "",
+        stripped,
+    )
+    graph = build_graph(broken, view_name="mwVehicleSpeedCampaignInternalExchangeView")
+    assert graph.deployment == "VehicleSpeedCampaignCommunicationDeployment"
+    assert graph.view_spec["deployment_source"] == "default"
+    assert "vehicleSpeedCampaignDeployment" in graph.view_spec["unresolved_exposes"]
 
 
 def test_layout_sidecar_roundtrip() -> None:

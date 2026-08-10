@@ -112,9 +112,15 @@ def serve(
     model_path: str | Path,
     layout_path: str | Path | None,
     port: int,
+    view_name: str | None = None,
+    deployment: str | None = None,
 ) -> None:
     global _server_graph, _server_layout_path, _server_layout
-    graph = load_graph(model_path)
+    graph = load_graph(
+        model_path,
+        view_name=view_name if view_name else "mwVehicleSpeedCampaignInternalExchangeView",
+        deployment=deployment,
+    )
 
     if layout_path is not None and Path(layout_path).exists():
         layout = load_layout(layout_path)

@@ -73,6 +73,7 @@ class SemanticGraph:
     ports: list[Port] = field(default_factory=list)
     flows: list[Flow] = field(default_factory=list)
     deployment_doc: str = ""  # doc comment on the deployment part def
+    view_spec: dict = field(default_factory=dict)  # the view usage that sourced this diagram
 
     @property
     def role_ids(self) -> list[str]:
@@ -85,8 +86,9 @@ class SemanticGraph:
     def semantic_hash(self) -> str:
         """Stable hash of the semantic content (no layout, no ordering noise).
 
-        Docs are explanatory content, not topology: they do not affect the
-        hash, so an existing layout sidecar stays valid when docs change.
+        Docs and view metadata are explanatory content, not topology: they do
+        not affect the hash, so an existing layout sidecar stays valid when
+        docs or view annotations change.
         """
         payload = {
             "deployment": self.deployment,
@@ -102,6 +104,7 @@ class SemanticGraph:
         return {
             "deployment": self.deployment,
             "view": self.view_name,
+            "view_spec": self.view_spec,
             "deployment_doc": self.deployment_doc,
             "roles": [
                 {"id": r.id, "name": r.name, "host": r.host, "type": r.type_name, "doc": r.doc}
@@ -192,16 +195,73 @@ def attach_docs(graph: SemanticGraph, raw_text: str) -> None:
         flow.doc = doc
 
 
+def _resolve_deployment_from_view(model_text: str, view_spec) -> str | None:
+    """Resolve the view's expose targets to a deployment part def name.
+
+    Expose targets may carry path qualifiers (`vehicleSpeedCampaignDeployment::**`);
+    the root name is looked up as a `part <name> : <Type>;` usage, whose type
+    is the deployment definition. A direct `part def <name>` expose also works.
+    Returns None when nothing resolves (e.g. the view exposes item/port types,
+    which this flow-graph renderer cannot project).
+    """
+    for expose in view_spec.exposes:
+        root = expose.split("::", 1)[0].strip()
+        if not root:
+            continue
+        usage = re.search(
+            rf"\bpart\s+{re.escape(root)}\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*;",
+            model_text,
+        )
+        if usage:
+            return usage.group(1)
+        try:
+            named_block(model_text, "part def", root)
+            return root
+        except AssertionError:
+            continue
+    return None
+
+
 def build_graph(
     model_text: str,
     *,
-    deployment: str = "VehicleSpeedCampaignCommunicationDeployment",
+    deployment: str | None = None,
     view_name: str = "mwVehicleSpeedCampaignInternalExchangeView",
 ) -> SemanticGraph:
     """Extract the deterministic semantic graph for a deployment view.
 
     `model_text` must be comment-stripped SysML v2 textual notation.
+
+    Selection is view-driven: when `deployment` is not given explicitly, the
+    named `view` block's `expose` targets are resolved to the deployment part
+    def (the diagram is sourced from the declared view, per the SysML v2 spec:
+    diagrams are rendered view usages). The legacy default deployment name is
+    used only when the model has no resolving view block.
     """
+    from .parser import parse_view_spec
+
+    view_spec = parse_view_spec(model_text, view_name)
+    deployment_source = "explicit"
+    unresolved_exposes: list[str] = []
+    if deployment is None:
+        resolved = _resolve_deployment_from_view(model_text, view_spec) if view_spec else None
+        if resolved:
+            deployment = resolved
+            deployment_source = "view"
+        elif view_spec is not None:
+            # The view exists but exposes no deployment part usage — this
+            # renderer cannot project its declared content. Fall back, but
+            # mark it so consumers surface the mismatch instead of silently
+            # drawing the default deployment as if it were the view.
+            deployment = "VehicleSpeedCampaignCommunicationDeployment"
+            deployment_source = "default"
+            unresolved_exposes = list(view_spec.exposes)
+        else:
+            # No view block in the model at all (legacy input): keep the
+            # default deployment as the anchor.
+            deployment = "VehicleSpeedCampaignCommunicationDeployment"
+            deployment_source = "default"
+
     deployment_block = named_block(model_text, "part def", deployment)
     flows = extract_flows(deployment_block)
     part_usages = extract_part_usages(deployment_block)
@@ -239,12 +299,28 @@ def build_graph(
         flow.target_role = target_role
         flow.target_port = target_port
 
+    view_spec_dict = {}
+    if view_spec is not None:
+        view_spec_dict = {
+            "name": view_spec.name,
+            "viewpoint": view_spec.viewpoint,
+            "viewpoint_type": view_spec.viewpoint_type,
+            "concern": view_spec.concern,
+            "exposes": view_spec.exposes,
+            "depth": view_spec.depth,
+            "render": view_spec.render,
+            "doc": view_spec.doc,
+            "deployment_source": deployment_source,
+            "unresolved_exposes": unresolved_exposes,
+        }
+
     return SemanticGraph(
         deployment=deployment,
         view_name=view_name,
         roles=[role_map[k] for k in sorted(role_map)],
         ports=[port_map[k] for k in sorted(port_map)],
         flows=flows,
+        view_spec=view_spec_dict,
     )
 
 

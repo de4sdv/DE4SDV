@@ -32,13 +32,13 @@ DEFAULT_MODEL = (
 
 
 def _cmd_graph(args: argparse.Namespace) -> int:
-    graph = load_graph(args.model)
+    graph = load_graph(args.model, view_name=args.view, deployment=args.deployment)
     print(json.dumps(graph.to_json(), indent=2, sort_keys=True))
     return 0
 
 
 def _cmd_render(args: argparse.Namespace) -> int:
-    graph = load_graph(args.model)
+    graph = load_graph(args.model, view_name=args.view, deployment=args.deployment)
     if args.layout and Path(args.layout).exists():
         layout = load_layout(args.layout)
     else:
@@ -57,7 +57,7 @@ def _cmd_render(args: argparse.Namespace) -> int:
 
 
 def _cmd_check(args: argparse.Namespace) -> int:
-    graph = load_graph(args.model)
+    graph = load_graph(args.model, view_name=args.view, deployment=args.deployment)
     expected_data = json.loads(Path(args.expectation).read_text(encoding="utf-8"))
     expected = ParityExpectation(
         roles=expected_data["roles"],
@@ -85,6 +85,16 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_MODEL,
         help="Path to the authoritative .sysml model file",
     )
+    common.add_argument(
+        "--view",
+        default="mwVehicleSpeedCampaignInternalExchangeView",
+        help="View usage that sources the diagram (its expose selects the deployment)",
+    )
+    common.add_argument(
+        "--deployment",
+        default=None,
+        help="Override: use this deployment part def directly instead of resolving the view's expose",
+    )
 
     p_graph = sub.add_parser("graph", parents=[common], help="Extract the semantic graph (JSON)")
 
@@ -109,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "serve":
         from .serve import serve
 
-        serve(args.model, args.layout, args.port)
+        serve(args.model, args.layout, args.port, view_name=args.view, deployment=args.deployment)
         return 0
     parser.error(f"unknown command {args.command}")
     return 2
