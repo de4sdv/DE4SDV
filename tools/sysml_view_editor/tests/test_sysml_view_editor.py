@@ -167,6 +167,39 @@ def test_render_embeds_doc_tooltips() -> None:
     assert "logcat" in svg.lower()
 
 
+def test_render_shows_doc_compartment_inside_roles() -> None:
+    """Docs are visible in the role compartment, not only on hover/click."""
+    graph = load_graph(MODEL)
+    layout = empty_layout(graph.view_name, graph.semantic_hash())
+    svg = render_svg(graph, layout, title=graph.view_name)
+
+    # A separatory line per documented role.
+    documented_roles = [r for r in graph.roles if r.doc]
+    assert documented_roles, "fixture must document roles"
+    assert svg.count("<line ") >= len(documented_roles)
+
+    # The doc text appears as visible SVG text (not only in <title>).
+    cuttlefish = next(r for r in graph.roles if r.id == "vmA.cuttlefishGuest")
+    first_words = " ".join(cuttlefish.doc.split()[:4])
+    assert first_words in svg
+
+    # Boxes grow: documented roles are taller than the base height.
+    import re as _re
+    rects = _re.findall(r'<rect x="[^"]+" y="[^"]+" width="200" height="(\d+)"', svg)
+    assert any(int(h) > 120 for h in rects), f"expected taller doc boxes, got {rects}"
+
+
+def test_doc_wrap_is_deterministic_and_capped() -> None:
+    from tools.sysml_view_editor.render import _wrap_doc
+
+    long_doc = "word " * 200
+    lines = _wrap_doc(long_doc, 200)
+    assert len(lines) == 4  # DOC_MAX_LINES cap with ellipsis
+    assert lines[-1].endswith("…")
+    # Same input -> same output (Python renderer and JS editor must agree).
+    assert _wrap_doc(long_doc, 200) == lines
+
+
 def test_layout_sidecar_roundtrip() -> None:
     graph = load_graph(MODEL)
     layout = empty_layout(graph.view_name, graph.semantic_hash())

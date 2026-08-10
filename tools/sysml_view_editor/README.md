@@ -26,10 +26,12 @@ SVG render  (derived artifact)
   of silently corrupting layout.
 - **Source docs surface in the view.** `doc /* ... */` comments in the SysML
   source attach to roles (part defs), ports (port defs), flows (preceding
-  comment), and the deployment. The SVG renderer emits them as `<title>`
-  tooltips; the interactive editor shows them in a details panel when an
-  element is clicked. Docs never enter the layout sidecar and never change
-  the semantic hash — they are explanatory model content, not presentation.
+  comment), and the deployment. Documented roles show a **doc compartment**
+  inside the box (wrapped, capped, shown in both the SVG render and the
+  interactive editor); every element also carries a `<title>` tooltip, and
+  the interactive editor shows the full doc in a details panel on click.
+  Docs never enter the layout sidecar and never change the semantic hash —
+  they are explanatory model content, not presentation.
 - **Parity gate** compares the extracted graph against a hand-authored
   expectation before any render is trusted.
 

@@ -29,6 +29,32 @@ GAP_X = 220  # wide enough that out-port labels (~90px) never reach the midpoint
 GAP_Y = 80
 PAD = 40
 
+# Doc compartment (inside role boxes when the source carries a doc comment).
+DOC_LINE_H = 13
+DOC_TOP = 52       # first doc line baseline, below the host label
+DOC_MAX_LINES = 4  # cap; longer docs are ellipsized (full text in tooltip/panel)
+DOC_CAP_CHAR = 5.5  # ~avg glyph width at font-size 9
+
+
+def _wrap_doc(doc: str, box_width: int) -> list[str]:
+    """Greedy word-wrap a doc string to a role box's inner width.
+
+    Deterministic so the Python renderer and the JS editor produce the same
+    compartments. Truncated lines are ellipsized; the full text stays
+    available in the tooltip and details panel.
+    """
+    cap = max(10, int((box_width - 20) / DOC_CAP_CHAR))
+    lines: list[str] = []
+    for word in doc.split():
+        if lines and len(lines[-1]) + 1 + len(word) <= cap:
+            lines[-1] += " " + word
+        else:
+            lines.append(word)
+    if len(lines) > DOC_MAX_LINES:
+        lines = lines[:DOC_MAX_LINES]
+        lines[-1] = lines[-1][: cap - 1] + "…"
+    return lines
+
 
 def _esc(s: str) -> str:
     return html.escape(s, quote=True)
@@ -82,10 +108,16 @@ def _default_positions(graph: SemanticGraph, layout: dict) -> dict[str, dict]:
     role_index = {rid: col for col, rid in enumerate(ordered)}
 
     # Compute role boxes.
+    doc_lines = {rid: [] for rid in ordered}
+    for role in graph.roles:
+        if role.doc:
+            doc_lines[role.id] = _wrap_doc(role.doc, ROLE_W)
     for rid in ordered:
+        lines = doc_lines.get(rid, [])
+        height = ROLE_H + (len(lines) * DOC_LINE_H + 6) if lines else ROLE_H
         x = PAD + role_index[rid] * (ROLE_W + GAP_X)
         y = PAD
-        nodes[rid] = {"x": x, "y": y, "width": ROLE_W, "height": ROLE_H}
+        nodes[rid] = {"x": x, "y": y, "width": ROLE_W, "height": height}
 
     # Ports: place on right edge for out-flows, left edge for in-flows.
     port_index: dict[str, int] = {}
@@ -219,6 +251,19 @@ def render_svg(
             f'<text x="{node["x"] + 12}" y="{node["y"] + 42}" font-size="10" fill="#94a3b8">'
             f'{_esc(role.host)}</text>'
         )
+        # Doc compartment: separator + wrapped doc text inside the box.
+        if role.doc:
+            lines = _wrap_doc(role.doc, node["width"])
+            sep_y = node["y"] + 47
+            parts.append(
+                f'<line x1="{node["x"] + 8}" y1="{sep_y}" x2="{node["x"] + node["width"] - 8}" '
+                f'y2="{sep_y}" stroke="#475569" stroke-width="1" />'
+            )
+            for i, line in enumerate(lines):
+                parts.append(
+                    f'<text x="{node["x"] + 12}" y="{node["y"] + DOC_TOP + i * DOC_LINE_H}" '
+                    f'font-size="9" fill="#cbd5e1">{_esc(line)}</text>'
+                )
 
     # Ports.
     for port in graph.ports:

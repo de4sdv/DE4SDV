@@ -169,7 +169,10 @@ function computePlacement() {
   const roles = {};
   const ordered = chainOrder(graph.roles, graph.flows);
   ordered.forEach((rid, col) => {
-    roles[rid] = { x: PAD + col * (ROLE_W + GAP_X), y: PAD, w: ROLE_W, h: ROLE_H };
+    const role = graph.roles.find(r => r.id === rid);
+    const lines = role && role.doc ? wrapDoc(role.doc, ROLE_W) : [];
+    const h = lines.length ? ROLE_H + lines.length * DOC_LINE_H + 6 : ROLE_H;
+    roles[rid] = { x: PAD + col * (ROLE_W + GAP_X), y: PAD, w: ROLE_W, h };
   });
 
   for (const [rid, entry] of Object.entries(layout.nodes || {})) {
@@ -177,10 +180,29 @@ function computePlacement() {
       roles[rid].x = entry.x;
       roles[rid].y = entry.y;
       roles[rid].w = entry.width || ROLE_W;
-      roles[rid].h = entry.height || ROLE_H;
+      roles[rid].h = entry.height || roles[rid].h;
     }
   }
   return derivePorts(roles);
+}
+
+const DOC_LINE_H = 13, DOC_TOP = 52, DOC_MAX_LINES = 4, DOC_CAP_CHAR = 5.5;
+function wrapDoc(doc, boxWidth) {
+  const cap = Math.max(10, Math.floor((boxWidth - 20) / DOC_CAP_CHAR));
+  const lines = [];
+  for (const word of doc.split(/\s+/)) {
+    if (!word) continue;
+    if (lines.length && lines[lines.length - 1].length + 1 + word.length <= cap) {
+      lines[lines.length - 1] += " " + word;
+    } else {
+      lines.push(word);
+    }
+  }
+  if (lines.length > DOC_MAX_LINES) {
+    lines.length = DOC_MAX_LINES;
+    lines[lines.length - 1] = lines[lines.length - 1].slice(0, cap - 1) + "…";
+  }
+  return lines;
 }
 
 function roleCenter(roleId) {
@@ -279,6 +301,35 @@ function render() {
     host.setAttribute("class", "role-host");
     host.textContent = role.host;
     g.appendChild(host);
+
+    // Doc compartment: separator + wrapped doc text inside the box, clipped
+    // to the role rectangle so manual resize never overflows visually.
+    if (role.doc) {
+      const clip = document.createElementNS(svgNS, "clipPath");
+      clip.setAttribute("id", `clip-${CSS.escape(role.id)}`);
+      const clipRect = document.createElementNS(svgNS, "rect");
+      clipRect.setAttribute("x", n.x); clipRect.setAttribute("y", n.y);
+      clipRect.setAttribute("width", n.w); clipRect.setAttribute("height", n.h);
+      clip.appendChild(clipRect);
+      svg.appendChild(clip);
+      g.setAttribute("clip-path", `url(#clip-${CSS.escape(role.id)})`);
+
+      const sep = document.createElementNS(svgNS, "line");
+      sep.setAttribute("x1", n.x + 8); sep.setAttribute("y1", n.y + 47);
+      sep.setAttribute("x2", n.x + n.w - 8); sep.setAttribute("y2", n.y + 47);
+      sep.setAttribute("stroke", "#475569"); sep.setAttribute("stroke-width", "1");
+      sep.classList.add("role-doc");
+      g.appendChild(sep);
+      const lines = wrapDoc(role.doc, n.w);
+      lines.forEach((line, i) => {
+        const t = document.createElementNS(svgNS, "text");
+        t.setAttribute("x", n.x + 12); t.setAttribute("y", n.y + DOC_TOP + i * DOC_LINE_H);
+        t.setAttribute("font-size", "9"); t.setAttribute("fill", "#cbd5e1");
+        t.classList.add("role-doc");
+        t.textContent = line;
+        g.appendChild(t);
+      });
+    }
 
     // Resize handle in the bottom-right corner.
     const handle = document.createElementNS(svgNS, "rect");
