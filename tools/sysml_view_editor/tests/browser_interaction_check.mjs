@@ -122,7 +122,35 @@ try {
   const afterReload = await evaluate(`({...placed['${roleId}']})`);
   assert(JSON.stringify(afterReload) === JSON.stringify(beforeSave), "layout did not survive save/reload", { beforeSave, afterReload });
 
-  console.log(JSON.stringify({ move: moved, resize: resized, saved: afterReload, result: "PASS" }, null, 2));
+  // --- Source-doc surfacing: tooltips + details panel. ---
+  const g = await evaluate("graph");
+  assert(g.roles.some(r => r.doc), "no role doc in graph.json", g.roles.map(r => r.doc));
+  assert(g.deployment_doc, "no deployment doc in graph.json", g);
+  const tooltipCount = await evaluate(`document.querySelectorAll('#canvas-wrap svg title').length`);
+  assert(tooltipCount >= g.roles.length + g.flows.length, "missing tooltips", { tooltipCount, roles: g.roles.length, flows: g.flows.length });
+
+  // Click a role box and verify the docs panel fills with the source doc.
+  await evaluate(`(() => {
+    const g = document.querySelector('[data-role="${roleId}"]');
+    g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return true;
+  })()`);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const docsText = await evaluate(`document.getElementById('docs').textContent`);
+  const role = g.roles.find(r => r.id === roleId);
+  assert(role.doc && docsText.includes(role.doc.slice(0, 40)), "docs panel missing role doc", { roleId, docsText, doc: role.doc });
+
+  // Click a flow and verify its doc (or derived fallback) appears.
+  await evaluate(`(() => {
+    const f = document.querySelector('.flow-path');
+    f.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return true;
+  })()`);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const flowDocsText = await evaluate(`document.getElementById('docs').textContent`);
+  assert(flowDocsText.includes("Flow"), "docs panel missing flow", flowDocsText);
+
+  console.log(JSON.stringify({ move: moved, resize: resized, saved: afterReload, docs: { tooltipCount, roleDoc: role.doc, flowPanel: flowDocsText.slice(0, 80) }, result: "PASS" }, null, 2));
 } finally {
   socket.close();
 }

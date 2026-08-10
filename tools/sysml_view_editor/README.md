@@ -24,6 +24,12 @@ SVG render  (derived artifact)
 - **Stable qualified IDs** (`vmA.cuttlefishGuest.structuredLogcatOut`) key the
   sidecar, so renames and deletions produce explicit orphan warnings instead
   of silently corrupting layout.
+- **Source docs surface in the view.** `doc /* ... */` comments in the SysML
+  source attach to roles (part defs), ports (port defs), flows (preceding
+  comment), and the deployment. The SVG renderer emits them as `<title>`
+  tooltips; the interactive editor shows them in a details panel when an
+  element is clicked. Docs never enter the layout sidecar and never change
+  the semantic hash — they are explanatory model content, not presentation.
 - **Parity gate** compares the extracted graph against a hand-authored
   expectation before any render is trusted.
 

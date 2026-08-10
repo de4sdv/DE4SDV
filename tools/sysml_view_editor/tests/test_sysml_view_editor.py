@@ -28,11 +28,14 @@ EXPECTATION = json.loads((FIXTURES / "expectation.json").read_text(encoding="utf
 
 
 def _expected() -> ParityExpectation:
+    # Deep-copy the module-level expectation: parity-mutation tests must not
+    # leak their edits into later tests that read the same fixture data.
+    expectation = json.loads(json.dumps(EXPECTATION))
     return ParityExpectation(
-        roles=EXPECTATION["roles"],
-        ports=EXPECTATION["ports"],
-        flows=[tuple(f) for f in EXPECTATION["flows"]],
-        payloads=EXPECTATION["payloads"],
+        roles=expectation["roles"],
+        ports=expectation["ports"],
+        flows=[tuple(f) for f in expectation["flows"]],
+        payloads=expectation["payloads"],
     )
 
 
@@ -118,6 +121,50 @@ def test_parity_catches_extra_role() -> None:
     result = check_parity(graph, expected)
     assert not result.passed
     assert any("unexpected roles" in e for e in result.errors)
+
+
+def test_docs_extracted_from_fixture() -> None:
+    """Source `doc` comments attach to roles, ports, flows, and deployment."""
+    graph = load_graph(MODEL)
+
+    assert "provider/observer" in graph.deployment_doc.lower() or "campaign" in graph.deployment_doc.lower()
+
+    cuttlefish = next(r for r in graph.roles if r.id == "vmA.cuttlefishGuest")
+    assert "guest-side" in cuttlefish.doc.lower()
+    assert "logcat" in cuttlefish.doc.lower()
+
+    boundary = next(r for r in graph.roles if r.id == "privateTcpBoundary")
+    assert "private tcp" in boundary.doc.lower()
+
+    # Port docs resolve through the role's part definition -> port definition.
+    logcat_in = next(p for p in graph.ports if p.id == "vmA.hostForwarder.structuredLogcatIn")
+    assert "logcat" in logcat_in.doc.lower()
+
+    # Flow docs attach to the immediately preceding doc comment.
+    assert any(f.doc for f in graph.flows), "expected at least one flow doc"
+    first = graph.flows[0]
+    assert "envelope" in first.doc.lower()
+
+
+def test_docs_do_not_change_semantic_hash_or_parity() -> None:
+    """Docs are explanatory, not topological: hash and parity stay stable."""
+    stripped_only = build_graph(load_model(MODEL))
+    with_docs = load_graph(MODEL)
+    assert stripped_only.semantic_hash() == with_docs.semantic_hash()
+    result = check_parity(with_docs, _expected())
+    assert result.passed, result.errors
+
+
+def test_render_embeds_doc_tooltips() -> None:
+    graph = load_graph(MODEL)
+    layout = empty_layout(graph.view_name, graph.semantic_hash())
+    svg = render_svg(graph, layout, title=graph.view_name)
+
+    # Roles and flows carry <title> tooltips populated from source docs.
+    assert "<title>" in svg
+    assert svg.count("<title>") >= len(graph.roles) + len(graph.flows)
+    # A specific role doc text appears inside a tooltip.
+    assert "logcat" in svg.lower()
 
 
 def test_layout_sidecar_roundtrip() -> None:

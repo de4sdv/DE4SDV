@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -47,6 +48,7 @@ class Role:
     name: str  # short name, e.g. cuttlefishGuest
     host: str  # owning host part usage, e.g. vmA (or the role itself)
     type_name: str  # SysML type of the role part, if resolvable
+    doc: str = ""  # doc comment from the role's part definition
 
 
 @dataclass
@@ -58,6 +60,7 @@ class Port:
     role_id: str  # owning role id
     host: str  # owning host
     payload: str  # typed item flowing through this port (from flows)
+    doc: str = ""  # doc comment from the port's definition, if resolvable
 
 
 @dataclass
@@ -69,6 +72,7 @@ class SemanticGraph:
     roles: list[Role] = field(default_factory=list)
     ports: list[Port] = field(default_factory=list)
     flows: list[Flow] = field(default_factory=list)
+    deployment_doc: str = ""  # doc comment on the deployment part def
 
     @property
     def role_ids(self) -> list[str]:
@@ -79,7 +83,11 @@ class SemanticGraph:
         return [p.id for p in self.ports]
 
     def semantic_hash(self) -> str:
-        """Stable hash of the semantic content (no layout, no ordering noise)."""
+        """Stable hash of the semantic content (no layout, no ordering noise).
+
+        Docs are explanatory content, not topology: they do not affect the
+        hash, so an existing layout sidecar stays valid when docs change.
+        """
         payload = {
             "deployment": self.deployment,
             "view": self.view_name,
@@ -94,16 +102,30 @@ class SemanticGraph:
         return {
             "deployment": self.deployment,
             "view": self.view_name,
+            "deployment_doc": self.deployment_doc,
             "roles": [
-                {"id": r.id, "name": r.name, "host": r.host, "type": r.type_name}
+                {"id": r.id, "name": r.name, "host": r.host, "type": r.type_name, "doc": r.doc}
                 for r in self.roles
             ],
             "ports": [
-                {"id": p.id, "name": p.name, "role": p.role_id, "host": p.host, "payload": p.payload}
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "role": p.role_id,
+                    "host": p.host,
+                    "payload": p.payload,
+                    "doc": p.doc,
+                }
                 for p in self.ports
             ],
             "flows": [
-                {"id": f.stable_id, "source": f.source, "target": f.target, "payload": f.payload}
+                {
+                    "id": f.stable_id,
+                    "source": f.source,
+                    "target": f.target,
+                    "payload": f.payload,
+                    "doc": f.doc,
+                }
                 for f in self.flows
             ],
             "semantic_hash": self.semantic_hash(),
@@ -126,6 +148,48 @@ def _role_type(part_usages: dict[str, str], role_path: list[str], text: str) -> 
     parent_def = named_block(text, "part def", parent_type)
     nested = extract_part_usages(parent_def)
     return nested.get(role_path[1], "")
+
+
+def _port_type(text: str, role_type: str, port_name: str) -> str:
+    """Resolve a port usage's SysML type inside the role's part definition."""
+    if not role_type:
+        return ""
+    try:
+        role_def = named_block(text, "part def", role_type)
+    except AssertionError:
+        return ""
+    match = re.search(
+        rf"\bport\s+{re.escape(port_name)}\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*;",
+        role_def,
+    )
+    return match.group(1) if match else ""
+
+
+def attach_docs(graph: SemanticGraph, raw_text: str) -> None:
+    """Attach `doc /* ... */` text from the raw SysML source to graph elements.
+
+    Docs are explanatory model content, not presentation: they come from the
+    authoritative source and are surfaced by the renderer/editor. Elements
+    whose definitions are absent or undocumented keep an empty doc.
+    """
+    from .parser import doc_for_decl, flow_docs
+
+    graph.deployment_doc = doc_for_decl(raw_text, "part def", graph.deployment)
+
+    for role in graph.roles:
+        role.doc = doc_for_decl(raw_text, "part def", role.type_name)
+
+    for port in graph.ports:
+        role_type = next(
+            (r.type_name for r in graph.roles if r.id == port.role_id), ""
+        )
+        port_type = _port_type(raw_text, role_type, port.name)
+        port.doc = doc_for_decl(raw_text, "port def", port_type)
+
+    deployment_block = named_block(raw_text, "part def", graph.deployment)
+    docs = flow_docs(deployment_block)
+    for flow, doc in zip(graph.flows, docs):
+        flow.doc = doc
 
 
 def build_graph(
@@ -185,7 +249,14 @@ def build_graph(
 
 
 def load_graph(model_path: str | Path, **kwargs) -> SemanticGraph:
-    """Build a semantic graph directly from a .sysml file path."""
+    """Build a semantic graph directly from a .sysml file path.
+
+    Structural parsing uses comment-stripped text; doc comments are then
+    attached from the raw source.
+    """
     from .parser import load_model
 
-    return build_graph(load_model(model_path), **kwargs)
+    raw = Path(model_path).read_text(encoding="utf-8")
+    graph = build_graph(load_model(model_path), **kwargs)
+    attach_docs(graph, raw)
+    return graph

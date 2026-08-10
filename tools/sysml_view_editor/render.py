@@ -183,9 +183,10 @@ def render_svg(
         y2 = tgt["y"]
         mx = (x1 + x2) / 2
         path = f"M {x1} {y1} L {mx} {y1} L {mx} {y2} L {x2} {y2}"
+        flow_title = flow.doc or f"{flow.payload} from {flow.source} to {flow.target}"
         parts.append(
             f'<path d="{path}" fill="none" stroke="#d97706" stroke-width="2" '
-            f'marker-end="url(#arrow)" />'
+            f'marker-end="url(#arrow)"><title>{_esc(flow_title)}</title></path>'
         )
         # Payload label centered on the arrow midpoint with a solid background
         # rect so it reads over any line crossing.
@@ -204,10 +205,11 @@ def render_svg(
     # Role boxes + labels.
     for role in graph.roles:
         node = role_nodes[role.id]
+        role_title = role.doc or f"{role.name} ({role.type_name})"
         parts.append(
             f'<rect x="{node["x"]}" y="{node["y"]}" width="{node["width"]}" '
             f'height="{node["height"]}" rx="8" fill="#1e293b" stroke="#475569" '
-            f'stroke-width="1.5" />'
+            f'stroke-width="1.5"><title>{_esc(role_title)}</title></rect>'
         )
         parts.append(
             f'<text x="{node["x"] + 12}" y="{node["y"] + 24}" font-size="13" '
@@ -224,7 +226,11 @@ def render_svg(
         side = "out" if any(f.source_port == port.id for f in graph.flows) else "in"
         cx = node["x"] + (node.get("width", 0) if side == "out" else 0)
         cy = node["y"]
-        parts.append(f'<circle cx="{cx}" cy="{cy}" r="{PORT_R}" fill="#38bdf8" stroke="#0ea5e9" />')
+        port_title = port.doc or f"{port.name}: {port.payload}"
+        parts.append(
+            f'<circle cx="{cx}" cy="{cy}" r="{PORT_R}" fill="#38bdf8" '
+            f'stroke="#0ea5e9"><title>{_esc(port_title)}</title></circle>'
+        )
         label_x = cx + (PORT_R + 6 if side == "out" else -(PORT_R + 6))
         anchor = "start" if side == "out" else "end"
         # Out-port labels go ABOVE the port, in-port labels go BELOW the port.

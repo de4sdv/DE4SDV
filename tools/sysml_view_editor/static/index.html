@@ -39,18 +39,6 @@
     overflow: auto; min-height: 420px;
   }
   svg { display: block; }
-  .role-box { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; cursor: grab; }
-  .role-box:hover, .role-box.dragging { stroke: var(--accent); }
-  .role-box.dragging { stroke-width: 2.5; cursor: grabbing; }
-  .resize-handle { fill: var(--accent); stroke: #075985; stroke-width: 1; cursor: nwse-resize; opacity: 0.8; }
-  .resize-handle:hover { opacity: 1; }
-  .role-name { fill: var(--text); font-weight: bold; font-size: 13px; }
-  .role-host { fill: var(--muted); font-size: 10px; }
-  .port-circle { fill: var(--accent); stroke: #0ea5e9; }
-  .port-label { fill: #cbd5e1; font-size: 10px; }
-  .flow-path { fill: none; stroke: #d97706; stroke-width: 2; }
-  .flow-label-bg { fill: var(--bg); stroke: var(--flow); stroke-width: 1; rx: 3; }
-  .flow-label { fill: var(--flow); font-size: 11px; text-anchor: middle; }
   #warnings {
     margin-top: 10px; font-size: 12px; color: var(--muted);
     background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
@@ -58,6 +46,33 @@
   }
   #warnings:empty { display: none; }
   .legend { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  #docs {
+    margin-top: 10px; font-size: 12.5px; line-height: 1.5;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px;
+  }
+  #docs .doc-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  #docs .doc-id { font-weight: 600; color: var(--accent); }
+  #docs .doc-kind { color: var(--muted); }
+  #docs .doc-kind .tag { color: var(--flow); }
+  #docs .doc-body { margin-top: 6px; color: var(--text); white-space: pre-wrap; }
+  #docs .doc-body.empty { color: var(--muted); font-style: italic; }
+  .role-group.selected .role-box { stroke: var(--flow); stroke-width: 2.5; }
+  .port-circle.selected { fill: var(--flow); }
+  .flow-path.selected { stroke: var(--accent); stroke-width: 3; }
+  .flow-path, .port-circle { cursor: pointer; }
+  .role-box { cursor: grab; }
+  .role-box:hover, .role-box.dragging { stroke: var(--accent); }
+  .role-box.dragging { stroke-width: 2.5; cursor: grabbing; }
+  .resize-handle { fill: var(--accent); stroke: #075985; stroke-width: 1; cursor: nwse-resize; opacity: 0.8; }
+  .resize-handle:hover { opacity: 1; }
+  .role-name { fill: var(--text); font-weight: bold; font-size: 13px; pointer-events: none; }
+  .role-host { fill: var(--muted); font-size: 10px; pointer-events: none; }
+  .port-circle { fill: var(--accent); stroke: #0ea5e9; }
+  .port-label { fill: #cbd5e1; font-size: 10px; pointer-events: none; }
+  .flow-path { fill: none; stroke: #d97706; stroke-width: 2; }
+  .flow-label-bg { fill: var(--bg); stroke: var(--flow); stroke-width: 1; rx: 3; pointer-events: none; }
+  .flow-label { fill: var(--flow); font-size: 11px; text-anchor: middle; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -72,8 +87,10 @@
 <main>
   <div id="canvas-wrap"></div>
   <div id="warnings"></div>
+  <div id="docs"></div>
   <p class="legend">Drag role boxes to arrange. Layout is presentation-only —
-    semantics come from the authoritative SysML source. Save writes the sidecar.</p>
+    semantics come from the authoritative SysML source. Save writes the sidecar.
+    Click a role, port, or flow for its source `doc` description.</p>
 </main>
 <script>
 "use strict";
@@ -84,6 +101,8 @@ let graph = null;
 let layout = null;
 let placed = {};       // resolved positions: role id -> {x,y,w,h}, port id -> {x,y}
 let dragging = null;   // {id, dx, dy} while dragging
+let selected = null;   // {kind: "role"|"port"|"flow", id: string}
+let movedDuringDrag = false;  // suppress click-to-select after a real drag
 
 async function getJSON(url) {
   const res = await fetch(url);
@@ -205,6 +224,11 @@ function render() {
     const x1 = src.x, y1 = src.y, x2 = tgt.x, y2 = tgt.y, mx = (x1 + x2) / 2;
     path.setAttribute("d", `M ${x1} ${y1} L ${mx} ${y1} L ${mx} ${y2} L ${x2} ${y2}`);
     path.setAttribute("class", "flow-path");
+    path.setAttribute("data-flow", `flow-${f.index}`);
+    const flowTitle = document.createElementNS(svgNS, "title");
+    flowTitle.textContent = f.doc || `${f.payload} from ${f.source} to ${f.target}`;
+    path.appendChild(flowTitle);
+    path.addEventListener("click", (ev) => { ev.stopPropagation(); selectElement("flow", `flow-${f.index}`); });
     svg.appendChild(path);
 
     // Payload label with background.
@@ -227,6 +251,11 @@ function render() {
     const g = document.createElementNS(svgNS, "g");
     g.setAttribute("data-role", role.id);
     g.classList.add("role-group");
+    g.addEventListener("click", (ev) => {
+      if (movedDuringDrag) return;  // it was a drag, not a selection click
+      ev.stopPropagation();
+      selectElement("role", role.id);
+    });
 
     const rect = document.createElementNS(svgNS, "rect");
     rect.setAttribute("x", n.x); rect.setAttribute("y", n.y);
@@ -234,6 +263,9 @@ function render() {
     rect.setAttribute("rx", "8");
     rect.setAttribute("class", "role-box");
     if (dragging?.id === role.id && dragging.kind === "move") rect.classList.add("dragging");
+    const roleTitle = document.createElementNS(svgNS, "title");
+    roleTitle.textContent = role.doc || `${role.name} (${role.type || "(unresolved)"})`;
+    rect.appendChild(roleTitle);
     g.appendChild(rect);
 
     const name = document.createElementNS(svgNS, "text");
@@ -273,6 +305,15 @@ function render() {
     circle.setAttribute("cx", cx); circle.setAttribute("cy", n.y);
     circle.setAttribute("r", PORT_R);
     circle.setAttribute("class", "port-circle");
+    circle.setAttribute("data-port", port.id);
+    const portTitle = document.createElementNS(svgNS, "title");
+    portTitle.textContent = port.doc || `${port.name}: ${port.payload}`;
+    circle.appendChild(portTitle);
+    circle.addEventListener("click", (ev) => {
+      if (movedDuringDrag) return;
+      ev.stopPropagation();
+      selectElement("port", port.id);
+    });
     svg.appendChild(circle);
 
     const label = document.createElementNS(svgNS, "text");
@@ -285,6 +326,7 @@ function render() {
   }
 
   canvas.replaceChildren(svg);
+  if (selected) selectElement(selected.kind, selected.id);
   updateWarnings();
 }
 
@@ -301,6 +343,58 @@ function updateWarnings() {
   el.textContent = warnings.length ? warnings.join("\n") : "";
   document.getElementById("semantic-status").textContent =
     `${graph.roles.length} roles · ${graph.ports.length} ports · ${graph.flows.length} flows · hash ${graph.semantic_hash}`;
+}
+
+function showDocs(kind, id) {
+  selected = kind && id ? { kind, id } : null;
+  const el = document.getElementById("docs");
+  if (!selected) {
+    el.innerHTML = "";
+    return;
+  }
+  const doc = findDoc(kind, id);
+  el.innerHTML = `
+    <div class="doc-title">${doc.kind} — source doc</div>
+    <div><span class="doc-id">${escapeHtml(doc.id)}</span> <span class="doc-kind">${doc.meta}</span></div>
+    <div class="doc-body ${doc.body ? "" : "empty"}">${escapeHtml(doc.body || "No doc comment in the SysML source for this element.")}</div>`;
+}
+
+function findDoc(kind, id) {
+  if (kind === "role") {
+    const r = graph.roles.find(x => x.id === id);
+    return { kind: "Role", id: r.id, meta: `type ${r.type || "(unresolved)"}`, body: r.doc || "" };
+  }
+  if (kind === "port") {
+    const p = graph.ports.find(x => x.id === id);
+    return { kind: "Port", id: p.id, meta: `payload ${p.payload}`, body: p.doc || "" };
+  }
+  const f = graph.flows.find(x => x.id === id || `flow-${x.index}` === id);
+  return {
+    kind: "Flow", id: `${f.source} → ${f.target}`,
+    meta: `payload ${f.payload}`, body: f.doc || "",
+  };
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function selectElement(kind, id) {
+  // Preserve selection across renders; draw order redraws highlight classes.
+  showDocs(kind, id);
+  const svg = document.querySelector("#canvas-wrap svg");
+  if (!svg) return;
+  svg.querySelectorAll(".selected").forEach(n => n.classList.remove("selected"));
+  if (!selected) return;
+  if (selected.kind === "role") {
+    svg.querySelectorAll(`[data-role="${CSS.escape(selected.id)}"]`).forEach(n => n.classList.add("selected"));
+  } else if (selected.kind === "port") {
+    svg.querySelectorAll(`[data-port="${CSS.escape(selected.id)}"]`).forEach(n => n.classList.add("selected"));
+  } else {
+    svg.querySelectorAll(`[data-flow="${CSS.escape(selected.id)}"]`).forEach(n => n.classList.add("selected"));
+  }
 }
 
 function serializeLayout() {
@@ -361,6 +455,12 @@ function setupDrag() {
   canvas.addEventListener("mousedown", (ev) => {
     const resizeEl = ev.target.closest("[data-resize]");
     const roleEl = ev.target.closest("[data-role]");
+    const portEl = ev.target.closest("[data-port]");
+    const flowEl = ev.target.closest("[data-flow]");
+    // Click on empty canvas clears the selection.
+    if (!resizeEl && !roleEl && !portEl && !flowEl) {
+      selectElement(null, null);
+    }
     if (!resizeEl && !roleEl) return;
     ev.preventDefault();
 
@@ -420,6 +520,7 @@ function setupDrag() {
       n.w = Math.max(120, Math.round(dragging.baseW + dx));
       n.h = Math.max(60, Math.round(dragging.baseH + dy));
     }
+    movedDuringDrag = true;
     render();
   });
 
@@ -427,6 +528,8 @@ function setupDrag() {
     if (!dragging) return;
     dragging = null;
     render();
+    // Let any trailing click event see the flag before we clear it.
+    setTimeout(() => { movedDuringDrag = false; }, 0);
   };
   window.addEventListener("mouseup", commit);
   window.addEventListener("blur", commit);
@@ -445,6 +548,13 @@ async function init() {
     document.getElementById("save-btn").addEventListener("click", saveLayout);
     document.getElementById("reset-btn").addEventListener("click", resetLayout);
     document.getElementById("export-btn").addEventListener("click", exportSvg);
+    // Show the deployment-level context by default so a reviewer sees the
+    // campaign narrative without having to click anything.
+    if (graph.deployment_doc) {
+      document.getElementById("docs").innerHTML = `
+        <div class="doc-title">Deployment — source doc</div>
+        <div class="doc-body">${escapeHtml(graph.deployment_doc)}</div>`;
+    }
   } catch (err) {
     document.getElementById("warnings").textContent = `Failed to load: ${err.message}`;
   }

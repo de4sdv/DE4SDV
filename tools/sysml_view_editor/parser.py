@@ -93,6 +93,7 @@ class Flow:
     source_port: str = ""  # e.g. vmA.cuttlefishGuest.structuredLogcatOut
     target_role: str = ""  # e.g. privateTcpBoundary
     target_port: str = ""  # e.g. privateTcpBoundary.vmAIn
+    doc: str = ""  # doc comment preceding the flow declaration
 
     @property
     def source_path(self) -> list[str]:
@@ -147,3 +148,48 @@ def extract_part_usages(deployment_body: str) -> dict[str, str]:
 def load_model(path: str | Path) -> str:
     """Read a .sysml file and strip comments for structural parsing."""
     return strip_comments(Path(path).read_text(encoding="utf-8"))
+
+
+DOC_BLOCK_RE = re.compile(r"\bdoc\s*/\*(.*?)\*/", flags=re.DOTALL)
+
+
+def _normalize_doc(raw: str) -> str:
+    """Collapse a `doc /* ... */` body to one trimmed line of prose."""
+    lines = [re.sub(r"^\s*\*\s?", "", line) for line in raw.splitlines()]
+    return " ".join(line.strip() for line in lines if line.strip())
+
+
+def doc_for_decl(raw_text: str, decl_kind: str, name: str) -> str:
+    """Return the first `doc /* ... */` inside a `decl_kind name { ... }` block.
+
+    `decl_kind` is the full leading keyword, e.g. "part def" or "port def".
+    Returns "" when the declaration is absent (e.g. imported from another
+    file) or carries no doc comment.
+    """
+    try:
+        block = named_block(raw_text, decl_kind, name)
+    except AssertionError:
+        return ""
+    match = DOC_BLOCK_RE.search(block)
+    if not match:
+        return ""
+    return _normalize_doc(match.group(1))
+
+
+def flow_docs(deployment_block_raw: str) -> list[str]:
+    """Return the doc text preceding each `flow from ... to ...;` declaration.
+
+    A doc attaches to a flow only when it is immediately followed by that flow
+    (whitespace, no other statement between). Entries align with
+    `extract_flows()` order; flows without a preceding doc yield "".
+    """
+    flows = list(FLOW_RE.finditer(deployment_block_raw))
+    docs: list[str] = []
+    for flow_match in flows:
+        best = None
+        for doc_match in DOC_BLOCK_RE.finditer(deployment_block_raw[: flow_match.start()]):
+            between = deployment_block_raw[doc_match.end() : flow_match.start()]
+            if between.strip() == "":
+                best = doc_match
+        docs.append(_normalize_doc(best.group(1)) if best else "")
+    return docs
