@@ -1,8 +1,10 @@
 """Tests for the DE4SDV SysML v2 view editor.
 
-The fixture mirrors the DE4SDV middleware topology: five roles, eight ports,
-four directed typed flows. Tests lock the semantic-graph extraction, the
-parity gate, the layout sidecar lifecycle, and the SVG render.
+The test model is a small synthetic fixture (synthetic_exchange_view.sysml)
+that exercises the same pipeline features as the real middleware model —
+view-driven sourcing, typed ports and flows, source docs, payload labels —
+without duplicating any authoritative model. The middleware model itself is
+exercised by the integration gate that becomes mandatory after PR #90 merges.
 """
 
 import json
@@ -23,7 +25,9 @@ from tools.sysml_view_editor.render import render_svg
 
 TOOLS = Path(__file__).resolve().parents[1]
 FIXTURES = TOOLS / "tests" / "fixtures"
-MODEL = FIXTURES / "mw_physical_software_realization.sysml"
+MODEL = FIXTURES / "synthetic_exchange_view.sysml"
+VIEW = "syntheticExchangeView"
+DEPLOYMENT = "SyntheticExchangeDeployment"
 EXPECTATION = json.loads((FIXTURES / "expectation.json").read_text(encoding="utf-8"))
 
 
@@ -39,74 +43,53 @@ def _expected() -> ParityExpectation:
     )
 
 
-def test_fixture_mirrors_de4sdv_topology() -> None:
-    model = load_model(MODEL)
-    deployment = re.search(
-        r"part def VehicleSpeedCampaignCommunicationDeployment\s*\{",
-        model,
-    )
-    assert deployment, "fixture missing deployment part def"
-    assert model.count("flow from ") == 4
-    assert " render asInterconnectionDiagram;" in model
+def test_fixture_is_synthetic_and_self_contained() -> None:
+    """The fixture must be original test data, not a copy of a real model."""
+    text = Path(MODEL).read_text(encoding="utf-8")
+    assert "SYNTHETIC TEST MODEL" in text
+    assert "NOT a copy of any DE4SDV model" in text
+    # It must not silently mirror the middleware model's identifiers.
+    assert "VehicleSpeedCampaign" not in text
+    assert "structuredLogcat" not in text
 
 
-def test_graph_extracts_five_roles_eight_ports_four_flows() -> None:
-    graph = load_graph(MODEL)
-    assert len(graph.roles) == 5
-    assert len(graph.ports) == 8
-    assert len(graph.flows) == 4
+def test_graph_extracts_three_roles_four_ports_two_flows() -> None:
+    graph = load_graph(MODEL, view_name=VIEW)
+    assert len(graph.roles) == 3
+    assert len(graph.ports) == 4
+    assert len(graph.flows) == 2
 
     role_ids = set(graph.role_ids)
-    assert role_ids == {
-        "vmA.cuttlefishGuest",
-        "vmA.hostForwarder",
-        "vmB.ros2Ingress",
-        "vmB.independentObserver",
-        "privateTcpBoundary",
-    }
+    assert role_ids == {"producer", "relay", "consumer"}
 
-    # Exact authoritative flow endpoints preserved.
+    # Exact flow endpoints preserved.
     endpoints = [(f.source, f.target) for f in graph.flows]
     assert endpoints == [
-        (
-            "vmA.cuttlefishGuest.structuredLogcatOut.envelope",
-            "vmA.hostForwarder.structuredLogcatIn.envelope",
-        ),
-        (
-            "vmA.hostForwarder.privateTcpOut.envelope",
-            "privateTcpBoundary.vmAIn.envelope",
-        ),
-        (
-            "privateTcpBoundary.vmBOut.envelope",
-            "vmB.ros2Ingress.privateTcpIn.envelope",
-        ),
-        (
-            "vmB.ros2Ingress.velocityReportOut.velocityReport",
-            "vmB.independentObserver.velocityReportIn.velocityReport",
-        ),
+        ("producer.requestOut.request", "relay.requestIn.request"),
+        ("relay.responseOut.response", "consumer.responseIn.response"),
     ]
 
 
 def test_graph_is_deterministic() -> None:
-    first = load_graph(MODEL)
-    second = load_graph(MODEL)
+    first = load_graph(MODEL, view_name=VIEW)
+    second = load_graph(MODEL, view_name=VIEW)
     assert first.to_json() == second.to_json()
     assert first.semantic_hash() == second.semantic_hash()
 
 
 def test_parity_passes_on_fixture() -> None:
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     result = check_parity(graph, _expected())
     assert result.passed, result.errors
     assert result.errors == []
 
 
 def test_parity_catches_missing_flow() -> None:
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     expected = _expected()
     # Add a flow to the expectation that the graph does not contain.
     expected.flows.append(
-        ("vmA.cuttlefishGuest.inventedOut.envelope", "vmB.inventedIn.envelope")
+        ("producer.inventedOut.request", "consumer.inventedIn.request")
     )
     result = check_parity(graph, expected)
     assert not result.passed
@@ -114,10 +97,10 @@ def test_parity_catches_missing_flow() -> None:
 
 
 def test_parity_catches_extra_role() -> None:
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     expected = _expected()
     # Remove a role from the expectation so the graph has an unexpected one.
-    expected.roles.remove("vmA.cuttlefishGuest")
+    expected.roles.remove("producer")
     result = check_parity(graph, expected)
     assert not result.passed
     assert any("unexpected roles" in e for e in result.errors)
@@ -125,38 +108,38 @@ def test_parity_catches_extra_role() -> None:
 
 def test_docs_extracted_from_fixture() -> None:
     """Source `doc` comments attach to roles, ports, flows, and deployment."""
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
 
-    assert "provider/observer" in graph.deployment_doc.lower() or "campaign" in graph.deployment_doc.lower()
+    assert "synthetic deployment" in graph.deployment_doc.lower()
 
-    cuttlefish = next(r for r in graph.roles if r.id == "vmA.cuttlefishGuest")
-    assert "guest-side" in cuttlefish.doc.lower()
-    assert "logcat" in cuttlefish.doc.lower()
+    producer = next(r for r in graph.roles if r.id == "producer")
+    assert "producer" in producer.doc.lower()
+    assert "request" in producer.doc.lower()
 
-    boundary = next(r for r in graph.roles if r.id == "privateTcpBoundary")
-    assert "private tcp" in boundary.doc.lower()
+    relay = next(r for r in graph.roles if r.id == "relay")
+    assert "relay" in relay.doc.lower()
 
     # Port docs resolve through the role's part definition -> port definition.
-    logcat_in = next(p for p in graph.ports if p.id == "vmA.hostForwarder.structuredLogcatIn")
-    assert "logcat" in logcat_in.doc.lower()
+    relay_in = next(p for p in graph.ports if p.id == "relay.requestIn")
+    assert "request" in relay_in.doc.lower()
 
     # Flow docs attach to the immediately preceding doc comment.
     assert any(f.doc for f in graph.flows), "expected at least one flow doc"
     first = graph.flows[0]
-    assert "envelope" in first.doc.lower()
+    assert "request" in first.doc.lower()
 
 
 def test_docs_do_not_change_semantic_hash_or_parity() -> None:
     """Docs are explanatory, not topological: hash and parity stay stable."""
-    stripped_only = build_graph(load_model(MODEL))
-    with_docs = load_graph(MODEL)
+    stripped_only = build_graph(load_model(MODEL), view_name=VIEW)
+    with_docs = load_graph(MODEL, view_name=VIEW)
     assert stripped_only.semantic_hash() == with_docs.semantic_hash()
     result = check_parity(with_docs, _expected())
     assert result.passed, result.errors
 
 
 def test_render_embeds_doc_tooltips() -> None:
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     layout = empty_layout(graph.view_name, graph.semantic_hash())
     svg = render_svg(graph, layout, title=graph.view_name)
 
@@ -164,12 +147,12 @@ def test_render_embeds_doc_tooltips() -> None:
     assert "<title>" in svg
     assert svg.count("<title>") >= len(graph.roles) + len(graph.flows)
     # A specific role doc text appears inside a tooltip.
-    assert "logcat" in svg.lower()
+    assert "producer" in svg.lower()
 
 
 def test_render_shows_doc_compartment_inside_roles() -> None:
     """Docs are visible in the role compartment, not only on hover/click."""
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     layout = empty_layout(graph.view_name, graph.semantic_hash())
     svg = render_svg(graph, layout, title=graph.view_name)
 
@@ -179,8 +162,8 @@ def test_render_shows_doc_compartment_inside_roles() -> None:
     assert svg.count("<line ") >= len(documented_roles)
 
     # The doc text appears as visible SVG text (not only in <title>).
-    cuttlefish = next(r for r in graph.roles if r.id == "vmA.cuttlefishGuest")
-    first_words = " ".join(cuttlefish.doc.split()[:4])
+    producer = next(r for r in graph.roles if r.id == "producer")
+    first_words = " ".join(producer.doc.split()[:4])
     assert first_words in svg
 
     # Boxes grow: documented roles are taller than the base height.
@@ -207,80 +190,40 @@ def test_doc_wrap_is_deterministic_and_capped() -> None:
 def test_view_spec_parses_from_fixture() -> None:
     """The view block's viewpoint/frame/expose/depth/render are extracted."""
     model = load_model(MODEL)
-    spec = parse_view_spec(model, "mwVehicleSpeedCampaignInternalExchangeView")
+    spec = parse_view_spec(model, VIEW)
     assert spec is not None
-    assert spec.viewpoint == "selectedVehicleSpeedCampaignInternalExchangeViewpoint"
+    assert spec.viewpoint == "selectedSyntheticExchangeViewpoint"
     assert spec.viewpoint_type == "PhysicalInternalExchangeViewpoint"
-    assert spec.concern == "vehicleSpeedCampaignInternalExchangeConcern"
-    assert "vehicleSpeedCampaignDeployment" in spec.exposes
+    assert spec.concern == "syntheticExchangeConcern"
+    assert "syntheticDeployment" in spec.exposes
     assert spec.depth == -1
     assert spec.render == "asInterconnectionDiagram"
 
 
 def test_graph_is_sourced_from_view_expose() -> None:
     """Without an explicit deployment, the view's expose selects it."""
-    graph = load_graph(MODEL)  # no deployment kwarg -> view-driven
-    assert graph.deployment == "VehicleSpeedCampaignCommunicationDeployment"
+    graph = load_graph(MODEL, view_name=VIEW)  # no deployment kwarg -> view-driven
+    assert graph.deployment == DEPLOYMENT
     assert graph.view_spec["deployment_source"] == "view"
     assert graph.view_spec["viewpoint_type"] == "PhysicalInternalExchangeViewpoint"
-    assert len(graph.roles) == 5
-    assert len(graph.ports) == 8
-    assert len(graph.flows) == 4
+    assert len(graph.roles) == 3
+    assert len(graph.ports) == 4
+    assert len(graph.flows) == 2
 
 
 def test_explicit_deployment_overrides_view() -> None:
     """An explicit deployment kwarg wins over view-driven resolution."""
-    graph = load_graph(MODEL, deployment="VehicleSpeedCampaignCommunicationDeployment")
-    assert graph.deployment == "VehicleSpeedCampaignCommunicationDeployment"
+    graph = load_graph(MODEL, view_name=VIEW, deployment=DEPLOYMENT)
+    assert graph.deployment == DEPLOYMENT
     assert graph.view_spec["deployment_source"] == "explicit"
-    assert len(graph.roles) == 5
+    assert len(graph.roles) == 3
 
 
 def test_view_metadata_does_not_change_shash() -> None:
     """View annotations (viewpoint/concern/render) stay out of the topology hash."""
-    explicit = load_graph(MODEL, deployment="VehicleSpeedCampaignCommunicationDeployment")
-    view_driven = load_graph(MODEL)
+    explicit = load_graph(MODEL, view_name=VIEW, deployment=DEPLOYMENT)
+    view_driven = load_graph(MODEL, view_name=VIEW)
     assert explicit.semantic_hash() == view_driven.semantic_hash()
-
-
-def test_drift_guard_ok_when_mirror_matches() -> None:
-    """The drift guard passes when fixture and authoritative graph agree."""
-    from tools.sysml_view_editor.tests import drift_guard
-
-    # Self-compare: point the authoritative path at the fixture so the guard
-    # is meaningful on branches that lack the pre-#90 real model.
-    drift_guard.AUTHORITATIVE = drift_guard.FIXTURE
-    assert drift_guard.main() == 0
-
-
-def test_drift_guard_fails_when_mirror_diverges() -> None:
-    """A tampered fixture must be caught by the drift guard."""
-    import tempfile
-    from pathlib import Path
-
-    from tools.sysml_view_editor.tests import drift_guard
-
-    tampered = load_model(MODEL).replace(
-        "flow from vmA.cuttlefishGuest.structuredLogcatOut.envelope",
-        "flow from vmA.cuttlefishGuest.structuredLogcatOut.velocityReport",
-    )
-    original_fixture = drift_guard.FIXTURE
-    with tempfile.TemporaryDirectory() as tmp:
-        fake = Path(tmp) / "tampered.sysml"
-        fake.write_text(tampered, encoding="utf-8")
-        drift_guard.FIXTURE = fake
-        try:
-            assert drift_guard.main() == 1
-        finally:
-            drift_guard.FIXTURE = original_fixture
-
-
-def test_fixture_header_disclaims_independent_authority() -> None:
-    """The fixture must state it is a derived snapshot, not a second authority."""
-    header = Path(MODEL).read_text(encoding="utf-8")[:600]
-    assert "TEST FIXTURE" in header
-    assert "derived snapshot" in header
-    assert "NOT an independent model authority" in header
 
 
 def test_unresolvable_view_falls_back_to_default_deployment() -> None:
@@ -289,20 +232,20 @@ def test_unresolvable_view_falls_back_to_default_deployment() -> None:
     # Remove the deployment part usage so the expose target disappears.
     import re as _re
     broken = _re.sub(
-        r"part vehicleSpeedCampaignDeployment : VehicleSpeedCampaignCommunicationDeployment;",
+        r"part syntheticDeployment : SyntheticExchangeDeployment;",
         "",
         stripped,
     )
-    graph = build_graph(broken, view_name="mwVehicleSpeedCampaignInternalExchangeView")
-    assert graph.deployment == "VehicleSpeedCampaignCommunicationDeployment"
+    graph = build_graph(broken, view_name=VIEW, default_deployment=DEPLOYMENT)
+    assert graph.deployment == DEPLOYMENT
     assert graph.view_spec["deployment_source"] == "default"
-    assert "vehicleSpeedCampaignDeployment" in graph.view_spec["unresolved_exposes"]
+    assert "syntheticDeployment" in graph.view_spec["unresolved_exposes"]
 
 
 def test_layout_sidecar_roundtrip() -> None:
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     layout = empty_layout(graph.view_name, graph.semantic_hash())
-    layout["nodes"]["vmA.cuttlefishGuest"] = {
+    layout["nodes"]["producer"] = {
         "x": 42,
         "y": 77,
         "width": 200,
@@ -315,7 +258,7 @@ def test_layout_sidecar_roundtrip() -> None:
         save_layout(layout, path)
         loaded = load_layout(path)
         assert loaded["schema_version"] == 1
-        assert loaded["nodes"]["vmA.cuttlefishGuest"]["x"] == 42
+        assert loaded["nodes"]["producer"]["x"] == 42
         assert loaded["edges"]["flow-0"]["bend_points"] == [[10, 10], [20, 20]]
     finally:
         path.unlink(missing_ok=True)
@@ -338,34 +281,34 @@ def test_layout_rejects_unknown_schema_version() -> None:
 
 
 def test_reconcile_reports_unplaced_and_orphans() -> None:
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     layout = empty_layout(graph.view_name, graph.semantic_hash())
 
     warnings = reconcile(layout, graph)
-    assert any("unplaced: vmA.cuttlefishGuest" in w for w in warnings)
+    assert any("unplaced: producer" in w for w in warnings)
     assert any("unplaced: flow-0" in w for w in warnings)
 
     # Orphan entries are reported, never silently dropped.
-    layout["nodes"]["vmA.deletedRole"] = {"x": 0, "y": 0}
+    layout["nodes"]["deletedRole"] = {"x": 0, "y": 0}
     warnings = reconcile(layout, graph)
-    assert any("orphan: vmA.deletedRole" in w for w in warnings)
+    assert any("orphan: deletedRole" in w for w in warnings)
 
 
 def test_render_produces_svg_with_topology() -> None:
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     layout = empty_layout(graph.view_name, graph.semantic_hash())
     svg = render_svg(graph, layout, title=graph.view_name)
 
     assert svg.startswith("<svg")
     assert svg.endswith("</svg>")
 
-    # All five role names appear as box labels.
+    # All role names appear as box labels.
     for role in graph.roles:
         assert role.name in svg
 
-    # All four flow payload labels appear.
-    assert svg.count(">envelope<") >= 3
-    assert svg.count(">velocityReport<") >= 1
+    # Both flow payload labels appear.
+    assert svg.count(">request<") >= 1
+    assert svg.count(">response<") >= 1
 
     # Role boxes exist: count rects >= roles.
     assert svg.count("<rect ") >= len(graph.roles)
@@ -373,9 +316,9 @@ def test_render_produces_svg_with_topology() -> None:
 
 def test_render_ignores_layout_only_state() -> None:
     """Layout entries do not add semantic elements to the rendered graph."""
-    graph = load_graph(MODEL)
+    graph = load_graph(MODEL, view_name=VIEW)
     layout = empty_layout(graph.view_name, graph.semantic_hash())
-    layout["nodes"]["vmA.inventedRole"] = {"x": 0, "y": 0}  # orphan, not semantic
+    layout["nodes"]["inventedRole"] = {"x": 0, "y": 0}  # orphan, not semantic
     svg = render_svg(graph, layout)
     assert "inventedRole" not in svg
 
@@ -406,6 +349,7 @@ def test_put_requires_global_layout_update() -> None:
     thread = threading.Thread(
         target=serve_module.serve,
         args=(MODEL, layout_path, port),
+        kwargs={"view_name": VIEW},
         daemon=True,
     )
     thread.start()
@@ -426,7 +370,7 @@ def test_put_requires_global_layout_update() -> None:
 
         # PUT a moved role.
         layout = json.load(urllib.request.urlopen(base + "/layout.json"))
-        layout["nodes"]["vmA.cuttlefishGuest"] = {
+        layout["nodes"]["producer"] = {
             "x": 80,
             "y": 160,
             "width": 200,
@@ -443,11 +387,11 @@ def test_put_requires_global_layout_update() -> None:
 
         # The server's in-memory layout must now contain the moved role.
         fresh = json.load(urllib.request.urlopen(base + "/layout.json"))
-        assert fresh["nodes"]["vmA.cuttlefishGuest"]["x"] == 80
+        assert fresh["nodes"]["producer"]["x"] == 80
 
         # The sidecar on disk must also contain it.
         disk = json.loads(layout_path.read_text(encoding="utf-8"))
-        assert disk["nodes"]["vmA.cuttlefishGuest"]["y"] == 160
+        assert disk["nodes"]["producer"]["y"] == 160
     finally:
         layout_path.unlink(missing_ok=True)
 
@@ -474,6 +418,7 @@ def test_put_rejects_unknown_schema() -> None:
     thread = threading.Thread(
         target=serve_module.serve,
         args=(MODEL, layout_path, port),
+        kwargs={"view_name": VIEW},
         daemon=True,
     )
     thread.start()

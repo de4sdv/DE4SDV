@@ -85,18 +85,14 @@ sourced the diagram. The deployment name is a fallback only:
   In the latter case the unresolved exposes are surfaced as a warning rather
   than silently drawing the default content.
 
-## Test fixture lifecycle
+## Test fixture
 
-`tools/sysml_view_editor/tests/fixtures/mw_physical_software_realization.sysml`
-is a **derived snapshot**, not a second model authority: it mirrors the
-topology of the authoritative
-`textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml`
-from the middleware feature branch (PR #90 lineage) so unit tests run
-self-contained until that PR merges. The fixture header states this
-explicitly. `tools/sysml_view_editor/tests/drift_guard.py` fails when the
-fixture and the authoritative model diverge (verified by the test suite).
-After PR #90 merges to `origin/main`, the fixture is deleted and tests read
-the authoritative file directly as a mandatory integration gate.
+`tools/sysml_view_editor/tests/fixtures/synthetic_exchange_view.sysml` is a
+small **synthetic** model: original test data exercising the same pipeline
+features as a real model (view-driven sourcing, typed ports and flows, source
+docs, payload labels) without duplicating any authoritative DE4SDV model. The
+authoritative middleware model (`textual-notation-of-model/...`) is exercised
+by an integration gate that becomes mandatory after PR #90 merges.
 
 ## Tests
 

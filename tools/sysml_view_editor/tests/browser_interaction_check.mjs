@@ -7,8 +7,8 @@
  * No npm packages are required on Node 22+.
  */
 
-const roleId = "vmA.cuttlefishGuest";
-const portId = `${roleId}.structuredLogcatOut`;
+const roleId = "producer";
+const portId = `${roleId}.requestOut`;
 const portArg = process.argv.indexOf("--port");
 const port = portArg >= 0 ? Number(process.argv[portArg + 1]) : 9223;
 

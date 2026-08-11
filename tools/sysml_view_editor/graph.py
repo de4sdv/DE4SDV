@@ -227,6 +227,7 @@ def build_graph(
     *,
     deployment: str | None = None,
     view_name: str = "mwVehicleSpeedCampaignInternalExchangeView",
+    default_deployment: str = "VehicleSpeedCampaignCommunicationDeployment",
 ) -> SemanticGraph:
     """Extract the deterministic semantic graph for a deployment view.
 
@@ -235,8 +236,8 @@ def build_graph(
     Selection is view-driven: when `deployment` is not given explicitly, the
     named `view` block's `expose` targets are resolved to the deployment part
     def (the diagram is sourced from the declared view, per the SysML v2 spec:
-    diagrams are rendered view usages). The legacy default deployment name is
-    used only when the model has no resolving view block.
+    diagrams are rendered view usages). `default_deployment` is used only when
+    the model has no resolving view block.
     """
     from .parser import parse_view_spec
 
@@ -253,13 +254,13 @@ def build_graph(
             # renderer cannot project its declared content. Fall back, but
             # mark it so consumers surface the mismatch instead of silently
             # drawing the default deployment as if it were the view.
-            deployment = "VehicleSpeedCampaignCommunicationDeployment"
+            deployment = default_deployment
             deployment_source = "default"
             unresolved_exposes = list(view_spec.exposes)
         else:
             # No view block in the model at all (legacy input): keep the
             # default deployment as the anchor.
-            deployment = "VehicleSpeedCampaignCommunicationDeployment"
+            deployment = default_deployment
             deployment_source = "default"
 
     deployment_block = named_block(model_text, "part def", deployment)
