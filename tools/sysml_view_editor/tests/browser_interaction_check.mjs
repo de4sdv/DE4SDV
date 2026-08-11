@@ -32,6 +32,11 @@ socket.addEventListener("message", (event) => {
   }
 });
 
+// CDP input is dropped when another tab is active; make this tab frontmost
+// before any mouse dispatch (e.g. after the user's GitHub auth tab).
+await call("Page.bringToFront");
+await new Promise((resolve) => setTimeout(resolve, 300));
+
 function call(method, params = {}) {
   const id = nextId++;
   socket.send(JSON.stringify({ id, method, params }));

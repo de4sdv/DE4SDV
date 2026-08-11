@@ -1,3 +1,18 @@
+/*
+ * TEST FIXTURE — derived snapshot, NOT an independent model authority.
+ *
+ * Mirrors the topology of the authoritative middleware model:
+ *   textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml
+ *   (branch feat/mw-vsidl-vehicle-speed-bridge / PR #90 lineage; semantic hash
+ *    of this fixture == hash of the real model, verified by tests).
+ *
+ * Purpose: give the editor unit tests a self-contained target until PR #90
+ * merges to origin/main. After that merge this fixture is deleted and tests
+ * read the authoritative file directly (mandatory integration gate).
+ *
+ * The doc comments below are test content for the doc-compartment renderer;
+ * they are not claimed to exist in the authoritative model.
+ */
 package DE4SDV_MWPhysicalSoftwareRealization {
 
   /* Item types for the campaign handoffs. */

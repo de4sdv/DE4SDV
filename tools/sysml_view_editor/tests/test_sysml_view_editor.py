@@ -243,6 +243,46 @@ def test_view_metadata_does_not_change_shash() -> None:
     assert explicit.semantic_hash() == view_driven.semantic_hash()
 
 
+def test_drift_guard_ok_when_mirror_matches() -> None:
+    """The drift guard passes when fixture and authoritative graph agree."""
+    from tools.sysml_view_editor.tests import drift_guard
+
+    # Self-compare: point the authoritative path at the fixture so the guard
+    # is meaningful on branches that lack the pre-#90 real model.
+    drift_guard.AUTHORITATIVE = drift_guard.FIXTURE
+    assert drift_guard.main() == 0
+
+
+def test_drift_guard_fails_when_mirror_diverges() -> None:
+    """A tampered fixture must be caught by the drift guard."""
+    import tempfile
+    from pathlib import Path
+
+    from tools.sysml_view_editor.tests import drift_guard
+
+    tampered = load_model(MODEL).replace(
+        "flow from vmA.cuttlefishGuest.structuredLogcatOut.envelope",
+        "flow from vmA.cuttlefishGuest.structuredLogcatOut.velocityReport",
+    )
+    original_fixture = drift_guard.FIXTURE
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = Path(tmp) / "tampered.sysml"
+        fake.write_text(tampered, encoding="utf-8")
+        drift_guard.FIXTURE = fake
+        try:
+            assert drift_guard.main() == 1
+        finally:
+            drift_guard.FIXTURE = original_fixture
+
+
+def test_fixture_header_disclaims_independent_authority() -> None:
+    """The fixture must state it is a derived snapshot, not a second authority."""
+    header = Path(MODEL).read_text(encoding="utf-8")[:600]
+    assert "TEST FIXTURE" in header
+    assert "derived snapshot" in header
+    assert "NOT an independent model authority" in header
+
+
 def test_unresolvable_view_falls_back_to_default_deployment() -> None:
     """A view whose exposes resolve to nothing falls back, marked as default."""
     stripped = load_model(MODEL)
