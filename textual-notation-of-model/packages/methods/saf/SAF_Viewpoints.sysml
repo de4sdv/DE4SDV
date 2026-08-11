@@ -596,7 +596,8 @@ package SAF_Viewpoints {
     require constraint {
       doc /*
        * Reviewer question: Which internal physical roles exchange each typed
-       * item, and how are those exchanges delegated through boundaries?
+       * item? When an exchange crosses the subject boundary, which boundary
+       * interface delegates it to an internal role?
        */
     }
   }
@@ -609,9 +610,11 @@ package SAF_Viewpoints {
      */
     require constraint {
       doc /*
-       * A physical internal exchange view shall show internal physical roles,
-       * typed exchanges, and boundary delegation. Textual bindings and flows
-       * remain authoritative for exchange direction.
+       * A physical internal exchange view shall show internal physical roles
+       * and typed exchanges. When an exchange crosses the subject boundary,
+       * the view shall show the boundary interface and its delegation to an
+       * internal role. Textual bindings and flows remain authoritative for
+       * exchange direction.
        */
     }
   }
