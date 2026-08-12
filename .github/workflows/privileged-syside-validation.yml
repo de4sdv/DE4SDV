@@ -126,3 +126,23 @@ jobs:
           echo "Running licensed Syside validation for: ${MODEL_PATHS}"
           read -r -a model_paths <<< "${MODEL_PATHS}"
           syside check "${model_paths[@]}"
+
+      - name: Generate view diagrams (Labs)
+        if: steps.syside-secret.outputs.available == 'true'
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          echo "Generating diagrams for views under: ${MODEL_PATHS}"
+          read -r -a model_paths <<< "${MODEL_PATHS}"
+          syside viz view "${model_paths[@]}" \
+            --format svg \
+            --output-dir diagrams \
+            --exclude "textual-notation-of-model/snapshots/**"
+
+      - name: Upload generated diagrams
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: syside-diagrams
+          path: diagrams/
+          if-no-files-found: warn
