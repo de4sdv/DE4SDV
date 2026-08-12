@@ -78,11 +78,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Syside CLI
+      - name: Set up Java (Modeler CLI runtime)
+        if: steps.syside-secret.outputs.available == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Syside Modeler CLI
         if: steps.syside-secret.outputs.available == 'true'
         run: |
           python -m pip install --upgrade pip
-          python -m pip install syside==0.10.0
+          SYSIDE_VERSION="0.10.3"
+          SYSIDE_FILE="syside-${SYSIDE_VERSION}-x86_64-linux-glibc.tar.xz"
+          SYSIDE_URL="https://gitlab.com/api/v4/projects/sensmetry%2Fpublic%2Fsyside/packages/generic/syside-modeler-cli/${SYSIDE_VERSION}/${SYSIDE_FILE}"
+          curl -fL -o /tmp/${SYSIDE_FILE} "${SYSIDE_URL}"
+          mkdir -p ~/.local
+          tar -xJf /tmp/${SYSIDE_FILE} --directory ~/.local
+          echo "~/.local/bin" >> "${GITHUB_PATH}"
+          syside --version
 
       - name: Validate model path input
         if: steps.syside-secret.outputs.available == 'true'
