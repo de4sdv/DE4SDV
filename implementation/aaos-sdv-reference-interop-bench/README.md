@@ -25,9 +25,9 @@ VSS Vehicle.Speed [km/h]
 ```
 
 The final edge uses the existing `VSS-SIM-AEBS-001` km/h-to-m/s mapping. The
-reference VSIDL service, generated binding, provider deployment, discovery,
-transport, and AAOS runtime remain unproven; this map does not upgrade the
-bench to AAOS interoperability.
+reference VSIDL service, provider deployment, discovery, transport, and AAOS
+runtime remain unproven; this map does not upgrade the bench to AAOS
+interoperability.
 
 ## Local rehearsal
 
@@ -67,6 +67,31 @@ ros2_runtime_interoperability: not_proven
 8. Retain runtime logs, discovery results, contract identity, deployment configuration, and exact source hashes.
 
 Until those steps run on an AAOS SDV target, this bench proves only the DE4SDV reference contract and provider-neutral adapter rehearsal.
+
+## AOSP VSIDL catalog compilation
+
+The catalog includes [`contract/Android.bp`](contract/Android.bp) because the
+AOSP `vsidlc` compiler needs an Android build declaration that names the proto
+library. Without it, the compiler rejects the catalog with an undefined proto
+library diagnostic. On the x86_64 AOSP build host, the bounded compilation
+command is:
+
+```bash
+${AOSP_ROOT}/out/host/linux-x86/bin/vsidlc \
+  -c implementation/aaos-sdv-reference-interop-bench/contract \
+  -o /tmp/de4sdv-vsidlc-output \
+  --no-pest \
+  --rust-formatter none \
+  --android-bp-formatter none \
+  --textproto-formatter none
+```
+
+This generated a Rust service-bundle binding for
+`de4sdv.reference.vehicle_speed.DE4SDVVehicleSpeedProvider`. It is **contract
+and binding-generation evidence**, not provider deployment or runtime
+interoperability evidence. The exact cloud execution and generated-artifact
+hashes are retained in
+[`evidence/mw-010-google-cloud-vsidlc-cuttlefish.yaml`](evidence/mw-010-google-cloud-vsidlc-cuttlefish.yaml).
 
 ## Bounded AAOS/Cuttlefish enabling-system proof
 
