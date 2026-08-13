@@ -1,0 +1,1 @@
+syside viz view Car.sysml --output-dir diagrams

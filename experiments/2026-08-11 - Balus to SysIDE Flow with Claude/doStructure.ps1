@@ -1,0 +1,1 @@
+syside viz element Car.sysml --name "CarTestModel::car" -o Car.svg

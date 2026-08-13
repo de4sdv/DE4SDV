@@ -1,0 +1,113 @@
+schema: de4sdv.executable-integration-evidence.v1
+id: E-MW-010-GCP-VSIDLC-CF-2026-08-04
+increment: INC-MW-010
+status: partial
+recorded_at: "2026-08-04T21:51:53Z"
+claim:
+  statement: >-
+    The retained Google Cloud x86_64 enabling environment can execute the AOSP
+    VSIDL compiler against the DE4SDV Vehicle.Speed catalog and can launch the
+    pinned Cuttlefish AAOS target. The selected target currently provides only
+    bounded boot evidence; provider deployment, lifecycle-manager discovery,
+    cross-domain transport, ROS 2 publication, and independent Autoware
+    observation remain blocked.
+  system_1_subject: "Configured Autoware + AndroidSDV member product"
+  system_2_enabler: "Google Cloud de4sdv-aaos-build host and persistent build disk"
+  evidence_boundary: "System 2 toolchain and bounded target-runtime evidence; not end-to-end interoperability"
+cloud:
+  provider: Google Cloud
+  instance: de4sdv-aaos-build
+  zone: europe-west4-a
+  machine_type: n2-standard-16
+  architecture: x86_64
+  guest_cpu_count: 16
+  guest_memory_gib: 62
+  persistent_disk_gib: 500
+  root_filesystem_free_gib_at_probe: 101
+  nested_kvm: true
+  billing_budget_gate: "project budget observed at EUR 50"
+  state_after_campaign: TERMINATED
+  persistent_disk_retained: true
+  private_project_identifier_published: false
+toolchain:
+  aosp_build_target: sdv_core_cf-trunk_staging-userdebug
+  aosp_build_id: CP2A.260605.016
+  vsidlc_path: /home/mrk/aosp/out/host/linux-x86/bin/vsidlc
+  vsidlc_executable: true
+  vsidlc_catalog_without_android_bp:
+    status: failed_expected_input_gap
+    exit_code: 1
+    diagnostic: "E611: Library name for proto file 'vehicle_speed.proto' is undefined"
+  vsidlc_catalog_with_android_bp:
+    status: tested
+    exit_code: 0
+    command_shape: >-
+      vsidlc -c <catalog> -o <output> --no-pest --rust-formatter none
+      --android-bp-formatter none --textproto-formatter none
+    generated_service_bundle: de4sdv_vehicle_speed_provider/service_bundle.rs
+    generated_android_bp: de4sdv_vehicle_speed_provider/Android.bp
+    service_bundle_identity: de4sdv.reference.vehicle_speed.DE4SDVVehicleSpeedProvider
+    generated_service_bundle_sha256: 4ae8b063d50004e64cd3cb834e3a365495388a0ed7127305deef7842acfd77e0
+    generated_android_bp_sha256: 3d2a363ba717464fd1bd3e9cb7c1104a275f43b287084cee3c344473ff945f8e
+  source_contract_hashes:
+    vehicle_speed.vsidl_sha256: 63be858021eca00c304402e577364d4549ac010a6766782933660ec522bfce68
+    vehicle_speed.proto_sha256: 6653ea2d93344a9e7e08930f589556419a591b6a7d4b6efc95fdb57e60b60af6
+cuttlefish:
+  launch_status: tested_bounded
+  launch_exit_code: 0
+  guest_boot_completed: true
+  selinux: Enforcing
+  adb_transport: "Cuttlefish TCP fallback 192.168.98.3:5555"
+  guest_health_procedure_exit_code: 0
+  service_presence:
+    activity_manager: absent
+    package_manager: absent
+    car_service: absent
+    sdv_service_discovery_agent: absent
+    sdv_transport_agent: absent
+    vsidl_provider_agent: absent
+  launch_limitations:
+    - "fetcher_config.json was absent from the retained Cuttlefish runtime directory"
+    - "Vulkan detector assertions were emitted during launch"
+  interpretation: >-
+    The health procedure reached the boot-complete state, but the absent
+    framework and SDV service agents prevent a provider/discovery/transport
+    interoperability claim.
+execution_evidence:
+  observed:
+    - id: E-MW-010-ENV-001
+      status: tested
+      statement: x86_64 nested-KVM AOSP/Cuttlefish enabling environment is executable.
+    - id: E-MW-010-CONTRACT-001
+      status: tested
+      statement: VSIDL catalog compiles and generates a Rust service-bundle binding when AOSP Android.bp metadata names the proto library.
+    - id: E-MW-010-BOOT-001
+      status: observed_bounded
+      statement: Pinned Cuttlefish guest reaches Android boot completion with enforcing SELinux.
+  blocked:
+    - id: GAP-MW-025
+      status: blocked
+      statement: Generated binding is not deployed as a provider service bundle on the target.
+    - id: GAP-MW-026
+      status: blocked
+      statement: Lifecycle-manager discovery and Android/KVM-to-Linux/ROS 2 transport are not available on the selected target.
+    - id: GAP-MW-027
+      status: blocked
+      statement: No independent Autoware-side observation of autoware_vehicle_msgs/msg/VelocityReport exists.
+    - id: GAP-MW-028
+      status: blocked
+      statement: Target-runtime lifecycle, update/OTA, health, and fault scenarios cannot execute on the selected minimal target.
+not_proven:
+  - provider_registration
+  - service_discovery
+  - cross_domain_transport
+  - ros2_publication
+  - autoware_observation
+  - ota_update_coordination
+  - provider_transport_consumer_fault_detection
+  - end_to_end_vehicle_speed_interoperability
+next_action: >-
+  Add the generated provider/service-bundle implementation and an independent
+  ROS 2 observer, then execute them on a target image that includes the SDV
+  lifecycle manager, discovery, transport, and required guest services. Keep
+  this record partial; do not upgrade it from bounded evidence to acceptance.
