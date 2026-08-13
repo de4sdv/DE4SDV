@@ -535,109 +535,53 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   requirement signalTranslationArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-01: argues bounded signal translation semantics. */
+    doc /* AGT-MW-010-01: argues that AC-MW-010-01 (bounded signal translation semantics) is satisfied within the claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* Vehicle.Speed km/h semantics are preserved; 36 km/h maps to 10 m/s
-        and 72 km/h to 20 m/s via division by 3.6; invalid or non-finite
-        samples are rejected; the resulting VelocityReport field is exposed to
-        an independent observer. */
-    }
   }
 
   requirement lifecycleCoordinationArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-02: argues observable integration lifecycle coordination. */
+    doc /* AGT-MW-010-02: argues that AC-MW-010-02 (observable integration lifecycle coordination) is satisfied within the claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* Startup, initializing, operational, degraded, and shutdown behavior
-        are observable at the integration boundary, preserve the declared
-        transition ordering, and prevent use before required binding and
-        readiness. */
-    }
   }
 
   requirement healthForwardingArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-03: argues health forwarding without relabeling. */
+    doc /* AGT-MW-010-03: argues that AC-MW-010-03 (health forwarding without relabeling) is satisfied within the claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* Missing, stale, inconsistent, or unavailable provider/transport/
-        consumer health produces an observable degraded or unavailable
-        disposition and is forwarded to the application boundary without being
-        relabeled as healthy. */
-    }
   }
 
   requirement vehicleStartupArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-04: argues causally ordered startup readiness. */
+    doc /* AGT-MW-010-04: argues that AC-MW-010-04 (causally ordered startup readiness) is satisfied within the claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* A configured member startup scenario proves provider registration,
-        service discovery and binding, transport readiness, adapter readiness,
-        and ROS 2 consumer readiness in causal order before the signal is
-        accepted. */
-    }
   }
 
   requirement updateCoordinationArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-05: argues update coordination with identity retention. */
+    doc /* AGT-MW-010-05: argues that AC-MW-010-05 (update coordination with identity retention) is satisfied within the claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* An update/OTA scenario retains pre-update and post-update
-        identities and observations and detects, rather than silently accepts,
-        loss or incompatible change of required signal, lifecycle, health,
-        discovery, or consumer contracts. */
-    }
   }
 
   requirement faultDetectionArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-06: argues fault detection and containment. */
+    doc /* AGT-MW-010-06: argues that AC-MW-010-06 (fault detection and containment) is satisfied within the claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* Provider, binding, discovery, transport, adapter, and consumer
-        faults are detected and classified at the integration boundary;
-        non-safety middleware failure does not create an uncontrolled
-        emergency intervention command. */
-    }
   }
 
   requirement counterClaim010ProviderBinding : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-01: provider binding and deployed provider behavior are
-      not yet evidenced (GAP-MW-025). */
+    doc /* CCM-MW-010-01: bounds the claim for GAP-MW-025 scope (provider binding and deployed provider behavior). */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* The reference-contract claim does not extend to generated or
-        usable VSIDL binding or deployed provider behavior. */
-    }
   }
 
   requirement counterClaim010CrossDomainTransport : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-02: Android/KVM-to-Linux/ROS 2 transport, discovery, and
-      deployment are not yet evidenced (GAP-MW-026). */
+    doc /* CCM-MW-010-02: bounds the claim for GAP-MW-026 scope (Android/KVM-to-Linux/ROS 2 transport, discovery, deployment). */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* The reference-contract claim does not extend to cross-domain
-        transport, discovery, or deployment on the configured member. */
-    }
   }
 
   requirement counterClaim010IndependentObservation : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-03: independent Autoware observation is not yet evidenced
-      (GAP-MW-027). */
+    doc /* CCM-MW-010-03: bounds the claim for GAP-MW-027 scope (independent Autoware observation). */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* The claim does not extend to an independent observation of
-        /vehicle/status/velocity_status and Autoware-side provenance. */
-    }
   }
 
   requirement counterClaim010LifecycleUpdateFault : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-04: target-runtime lifecycle, update/OTA, health, and
-      fault evidence is not yet available (GAP-MW-028). */
+    doc /* CCM-MW-010-04: bounds the claim for GAP-MW-028 scope (target-runtime lifecycle, update/OTA, health, fault). */
     subject bench : MiddlewareIntegrationVandVBench010;
-    require constraint {
-      doc /* The claim does not extend to target-runtime lifecycle, update/OTA,
-        health, or fault behavior. */
-    }
   }
 
   dependency claimSupportedBySignalArgument
@@ -679,6 +623,15 @@ package DE4SDV_MW010VerificationEvidence {
     from counterClaim010IndependentObservation to mw010ReferenceContractClaim;
   dependency counterClaimLifecycleCountersClaim
     from counterClaim010LifecycleUpdateFault to mw010ReferenceContractClaim;
+
+  dependency counterClaimProviderBindingGapTrace
+    from counterClaim010ProviderBinding to providerBindingEvidenceGap010;
+  dependency counterClaimTransportGapTrace
+    from counterClaim010CrossDomainTransport to crossDomainTransportEvidenceGap010;
+  dependency counterClaimObservationGapTrace
+    from counterClaim010IndependentObservation to independentAutowareObservationGap010;
+  dependency counterClaimLifecycleGapTrace
+    from counterClaim010LifecycleUpdateFault to lifecycleUpdateFaultEvidenceGap010;
 
   concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
     doc /* Evidence-based assurance claims and their supporting argumentation. */

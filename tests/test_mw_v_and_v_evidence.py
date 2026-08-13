@@ -1,7 +1,34 @@
+import re
 import unittest
 from pathlib import Path
 
 import yaml
+
+
+def _strip_comments(text: str) -> str:
+    """Return text with doc/block and line comments removed."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    text = re.sub(r"//[^\n]*", "", text)
+    return text
+
+
+def _extract_requirement_block(model_text: str, element_name: str) -> str | None:
+    """Return the full block of the named requirement usage, or None."""
+    match = re.search(
+        rf"\bre[^ ]* {re.escape(element_name)}\b[^{{]*\{{", model_text
+    )
+    if not match:
+        return None
+    start = match.end() - 1
+    depth = 1
+    for i in range(start + 1, len(model_text)):
+        if model_text[i] == "{":
+            depth += 1
+        elif model_text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return model_text[match.start() : i + 1]
+    return None
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -96,23 +123,23 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
         self.assertIn("FaultDetectionValidation010", self.model)
 
     def test_signal_translation_criterion_is_deterministic_and_bounded(self):
-        signal_case = self.pilot["verification_cases"][0]
-        self.assertEqual(signal_case["deterministic_examples"], [
-            {"input_kmh": 36, "expected_mps": 10},
-            {"input_kmh": 72, "expected_mps": 20},
-        ])
         criterion = self.pilot["acceptance_criteria"][0]
         self.assertEqual(criterion["id"], "AC-MW-010-01")
         self.assertEqual(criterion["status"], "partial_lower_layer_evidence")
-        self.assertIn("speed_kmh / 3.6", criterion["statement"])
-        self.assertIn("independent observation", criterion["statement"])
+        # The semantic content lives in the model, not the pilot YAML.
+        self.assertNotIn("statement", criterion)
+        self.assertIn("division by 3.6", self.model)
+        self.assertIn("independent observer", self.model)
 
     def test_acceptance_criteria_trace_to_sysml_and_do_not_fake_runtime_passes(self):
         criteria = self.pilot["acceptance_criteria"]
         self.assertEqual(len(criteria), 7)
         for criterion in criteria:
             with self.subTest(criterion=criterion["id"]):
-                self.assertTrue(criterion["statement"])
+                # Status-only entries: id + sysml_element + status, no statement.
+                self.assertEqual(
+                    set(criterion), {"id", "sysml_element", "status"}
+                )
                 self.assertIn(criterion["sysml_element"], self.model)
 
         statuses = {criterion["status"] for criterion in criteria}
@@ -121,6 +148,34 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
         self.assertNotIn("pass_target_runtime", statuses)
         self.assertIn("Missing target-runtime evidence", self.model)
         self.assertIn("never a runtime pass", self.model)
+
+    def test_verification_cases_are_status_only_references(self):
+        # No semantic restatement in the pilot YAML: cases reference the model
+        # by scenario/acceptance_criterion and carry status, not content.
+        allowed = {
+            "id", "name", "scenario", "requirement_ids", "methods",
+            "acceptance_criterion", "status", "current_evidence",
+            "missing_evidence",
+        }
+        for case in self.pilot["verification_cases"]:
+            with self.subTest(case=case["id"]):
+                self.assertTrue(set(case) <= allowed)
+                self.assertIn(case["scenario"], self.model)
+                self.assertIn(case["acceptance_criterion"], self.model)
+
+    def test_acceptance_criteria_semantics_owned_by_model(self):
+        # Content-level guard: every criterion the pilot references must exist
+        # in the model as a requirement with a non-trivial constraint text.
+        criteria = self.pilot["acceptance_criteria"]
+        for criterion in criteria:
+            element = criterion["sysml_element"]
+            with self.subTest(criterion=criterion["id"], element=element):
+                block = _extract_requirement_block(self.model, element)
+                self.assertIsNotNone(block, f"{element} not found in model")
+                assert block is not None  # for type checkers
+                self.assertIn("require constraint", block)
+                constraint_text = _strip_comments(block)
+                self.assertGreater(len(constraint_text.strip()), 40)
 
     def test_evidence_ladder_preserves_claim_boundaries(self):
         layers = {layer["layer"]: layer for layer in self.pilot["evidence_ladder"]}

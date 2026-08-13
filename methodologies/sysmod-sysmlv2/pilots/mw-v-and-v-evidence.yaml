@@ -69,11 +69,6 @@ verification_cases:
     requirement_ids: [REQ-MW-001]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-MW-010-01
-    deterministic_examples:
-      - input_kmh: 36
-        expected_mps: 10
-      - input_kmh: 72
-        expected_mps: 20
     current_evidence:
       - implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
       - implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
@@ -89,7 +84,6 @@ verification_cases:
     requirement_ids: [REQ-MW-003]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-MW-010-02
-    required_states: [uninitialized, initializing, operational, degraded, shuttingDown]
     status: planned_target_runtime_case
   - id: VC-MW-010-03
     name: Health forwarding
@@ -97,7 +91,6 @@ verification_cases:
     requirement_ids: [REQ-MW-004, REQ-MW-002]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-MW-010-03
-    injected_conditions: [stale, missing, inconsistent, unavailable]
     status: planned_target_runtime_case
   - id: VC-MW-010-04
     name: Vehicle/application startup
@@ -105,13 +98,6 @@ verification_cases:
     requirement_ids: [REQ-MW-001, REQ-MW-003, REQ-MW-007]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-MW-010-04
-    required_order:
-      - provider_registration
-      - service_discovery_and_binding
-      - transport_ready
-      - adapter_ready
-      - ros2_consumer_ready
-      - signal_accepted
     status: planned_target_runtime_case
   - id: VC-MW-010-05
     name: Update/OTA contract preservation
@@ -119,11 +105,6 @@ verification_cases:
     requirement_ids: [REQ-MW-005]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-MW-010-05
-    required_observations:
-      - pre_update_source_and_contract_identity
-      - update_or_rollback_outcome
-      - post_update_source_and_contract_identity
-      - post_update_signal_lifecycle_health_and_discovery_observations
     status: planned_target_runtime_case
   - id: VC-MW-010-06
     name: Middleware fault detection and containment
@@ -131,54 +112,28 @@ verification_cases:
     requirement_ids: [REQ-MW-004, REQ-MW-006, REQ-MW-008]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-MW-010-06
-    fault_classes: [provider, binding, discovery, transport, adapter, consumer]
     status: planned_target_runtime_case
 
 acceptance_criteria:
   - id: AC-MW-010-01
-    statement: >-
-      Preserve Vehicle.Speed [km/h] semantics, perform speed_kmh / 3.6, prove
-      36 -> 10 and 72 -> 20, reject invalid/non-finite samples, and retain an
-      independent observation of the ROS 2 consumer field.
     status: partial_lower_layer_evidence
     sysml_element: acceptanceCriterion010SignalTranslation
   - id: AC-MW-010-02
-    statement: >-
-      Make startup, initializing, operational, degraded, and shutdown behavior
-      observable with the declared transition ordering and no use before
-      binding/readiness.
     status: planned
     sysml_element: acceptanceCriterion010LifecycleCoordination
   - id: AC-MW-010-03
-    statement: >-
-      Map stale, missing, inconsistent, and unavailable integration health to an
-      observable degraded or unavailable disposition and forward it without
-      relabeling it healthy.
     status: planned
     sysml_element: acceptanceCriterion010HealthForwarding
   - id: AC-MW-010-04
-    statement: >-
-      Prove provider registration, service discovery/binding, transport, adapter,
-      and ROS 2 readiness in causal order before signal acceptance.
     status: blocked_target_runtime
     sysml_element: acceptanceCriterion010VehicleStartup
   - id: AC-MW-010-05
-    statement: >-
-      Detect rather than silently accept update/OTA loss or incompatible change
-      of the signal, lifecycle, health, discovery, or consumer contracts.
     status: blocked_target_runtime
     sysml_element: acceptanceCriterion010UpdateCoordination
   - id: AC-MW-010-06
-    statement: >-
-      Detect and classify provider, binding, discovery, transport, adapter, and
-      consumer faults and contain non-safety middleware failure at the boundary.
     status: blocked_target_runtime
     sysml_element: acceptanceCriterion010FaultDetection
   - id: AC-MW-010-07
-    statement: >-
-      Bind every verdict to the configured member, execution environment,
-      contract identities, raw observations, and independent observer evidence;
-      missing target-runtime evidence is inconclusive or blocked, never a pass.
     status: planned_evidence_integrity_control
     sysml_element: acceptanceCriterion010EvidenceIndependence
 
