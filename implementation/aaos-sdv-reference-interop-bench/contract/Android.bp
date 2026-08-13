@@ -1,5 +1,4 @@
 package {
-    // This catalog is intended to be copied into an AOSP SDV source tree.
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
@@ -13,6 +12,9 @@ rust_protobuf {
     rustlibs: [
         "libvsidl_v1_stdlib_proto_rs",
     ],
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
     vendor_available: true,
     product_available: true,
     apex_available: [
@@ -20,4 +22,9 @@ rust_protobuf {
         "//apex_available:anyapex",
     ],
     min_sdk_version: "35",
+}
+
+filegroup {
+    name: "vsidl_de4sdv_vehicle_speed_catalog",
+    srcs: ["**/*"],
 }

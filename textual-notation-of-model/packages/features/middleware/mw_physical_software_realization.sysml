@@ -4,15 +4,16 @@
  * INC-MW-008 maps the middleware logical responsibilities to a concrete
  * candidate software/platform boundary: the Autoware-to-AAOS SDV adapter and
  * the AAOS SDV boundary model. This is a model of the integration boundary,
- * not a vendored AAOS implementation and not middleware runtime evidence.
- * A bounded AAOS/Cuttlefish build-and-boot observation is retained as
- * enabling-system evidence in the companion record; it does not establish
- * framework, service, adapter, ROS 2, Autoware, or vehicle interoperability.
+ * not a vendored AAOS implementation. A bounded Vehicle.Speed
+ * AAOS/Cuttlefish-to-ROS 2 campaign path is represented separately below as
+ * System 2 evidence transport; it is not production middleware runtime
+ * deployment or native SDV transport interoperability evidence.
  *
  * The adapter and AAOS boundary remain candidate realizations. The selected
  * Autoware ROS 2 topic and AOSP SDV gateway/middleware source artifacts are
- * pinned; the vehicle-velocity VSIDL service bundle, process deployment, and
- * executable behavior remain deferred until their source contracts are pinned.
+ * pinned. The vehicle-velocity VSIDL service bundle remains a DE4SDV reference
+ * contract, while production process deployment and executable behavior remain
+ * deferred until their target-owned source contracts are pinned.
  */
 
 package DE4SDV_MWPhysicalSoftwareRealization {
@@ -39,7 +40,12 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   part physicalProcessDeploymentGap : DeferredProductLineScope {
-    doc /* GAP-MW-020: Adapter process, executor, runtime, VM, and network deployment are not selected in this realization slice. */
+    doc /*
+     * GAP-MW-020: No System 1 production adapter process, executor, runtime,
+     * VM, or network deployment is selected. The bounded Vehicle.Speed
+     * campaign deployment below is System 2 evidence infrastructure and must
+     * not be read as the production deployment decision.
+     */
   }
 
   part physicalServiceSatisfactionGap : DeferredProductLineScope {
@@ -48,9 +54,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   part physicalEnablingSystemGap : DeferredProductLineScope {
     doc /*
-     * GAP-MW-023: The candidate AAOS build/runtime enabling environment has
-     * not yet passed a readiness probe for the resource envelope, Linux
-     * execution, storage, quota, and nested-KVM requirements.
+     * GAP-MW-023: The bounded campaign exercised one AAOS/Cuttlefish host and
+     * one ROS 2 host, but no reusable or selected System 2 capability envelope
+     * is baselined for future campaigns. The observed campaign hosts do not
+     * establish a System 1 product deployment.
      */
   }
 
@@ -98,12 +105,14 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Source-backed DE4SDV-owned reference contract and executable rehearsal.
      * The reference protobuf message is `VehicleSpeed` with the semantic
      * field `speed_kmh`; the companion VSIDL catalog identifies the
-     * `DE4SDVVehicleSpeedProvider` publisher, `VehicleSpeed` message, and
+     * `VehicleSpeedProvider` publisher, `VehicleSpeed` message, and
      * `VEHICLE_SPEED` channel. These artifacts define a reference contract
      * candidate, not a selected OEM or production AAOS service.
-     * The rehearsal proves the DE4SDV reference contract and independent
-     * observer path. AAOS runtime interoperability remains pending an AOSP
-     * SDV target and generated VSIDL binding.
+     * The bounded campaign proves the reference provider/observer path,
+     * structured logcat extraction, host-side forwarding, private TCP transfer,
+     * ROS 2 publication, and independent observation for one target execution.
+     * It remains a development-campaign transport slice, not an OEM contract,
+     * production deployment, or native SDV transport result.
      */
   }
 
@@ -307,12 +316,190 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   part aaosBuildRuntimeEnvironmentCandidate : AOSPAAOSBuildRuntimeEnvironment {
     doc /*
-     * Planned System 2 enabling-system candidate for the AAOS source/build
-     * and Cuttlefish attempt. Provider, region, quota, disk, KVM, and access
-     * remain unverified; this candidate does not claim AAOS or ROS 2 runtime
-     * interoperability.
+     * System 2 enabling-system candidate for the AAOS source/build and
+     * Cuttlefish attempt. The bounded campaign used an exercised instance of
+     * this capability shape, but provider, region, quota, disk, KVM, and access
+     * are not a reusable product or production-deployment selection.
      */
   }
+
+  /*
+   * Bounded Vehicle.Speed campaign communication/deployment slice.
+   *
+   * This is deliberately separate from physicalSoftware: the two VM domains,
+   * host-side forwarder, and private TCP boundary are System 2 evidence
+   * infrastructure. The AAOS service bundle emits a structured logcat record;
+   * it does not own the network socket in the accepted path because the active
+   * guest SELinux policy restricts that service domain. The host-side forwarder
+   * owns the private TCP connection instead.
+   */
+  enum def VehicleSpeedCampaignQuality {
+    QUALITY_UNSPECIFIED;
+    VALID;
+    STALE;
+    INVALID;
+  }
+
+  item def VehicleSpeedProviderMessage :> DE4SDVReferenceVehicleSpeedPayload {
+    doc /*
+     * Reference protobuf/VSIDL message published by the generated AAOS
+     * Vehicle.Speed provider and consumed by the generated observer.
+     * The bounded bridge accepts the VALID quality value for publication;
+     * STALE and INVALID remain contract values rejected before publication.
+     */
+    attribute timestamp_ns : ScalarValues::Integer;
+    attribute quality : VehicleSpeedCampaignQuality;
+  }
+
+  port def VehicleSpeedProviderPublication {
+    out item vehicleSpeed : VehicleSpeedProviderMessage;
+  }
+
+  port def VehicleSpeedProviderSubscription {
+    in item vehicleSpeed : VehicleSpeedProviderMessage;
+  }
+
+  item def VehicleSpeedCampaignWireEnvelope :> VehicleSpeedProviderMessage {
+    doc /*
+     * Typed campaign envelope emitted by the AAOS observer. The JSON/logcat
+     * transport adds `schema` and `clock_domain` to the provider message. The
+     * executable JSON/protobuf/VSIDL contracts remain authoritative for exact
+     * serialization and validation. The source timestamp remains available in
+     * the envelope and bridge logs; the current VelocityReport evidence proves
+     * velocity transfer, not source-timestamp propagation through ROS.
+     */
+    attribute schema : ScalarValues::String;
+    attribute clock_domain : ScalarValues::String;
+  }
+
+  port def VehicleSpeedCampaignWirePublication {
+    out item envelope : VehicleSpeedCampaignWireEnvelope;
+  }
+
+  port def VehicleSpeedCampaignWireSubscription {
+    in item envelope : VehicleSpeedCampaignWireEnvelope;
+  }
+
+  part def AAOSVehicleSpeedProvider {
+    doc /*
+     * Generated AAOS Vehicle.Speed provider. The provider publishes the
+     * reference message through the service-bundle discovery boundary.
+     */
+    port vehicleSpeedOut : VehicleSpeedProviderPublication;
+  }
+
+  part def AAOSVehicleSpeedObserver {
+    doc /*
+     * Generated independent AAOS Vehicle.Speed observer. It receives the
+     * provider message and emits the structured campaign envelope through
+     * logcat.
+     */
+    port vehicleSpeedIn : VehicleSpeedProviderSubscription;
+    port structuredLogcatOut : VehicleSpeedCampaignWirePublication;
+  }
+
+  part def AAOSVehicleSpeedServiceBundle {
+    doc /*
+     * AAOS Cuttlefish guest-side provider/observer boundary. The service bundle
+     * does not claim direct network-socket ownership.
+     */
+    part provider : AAOSVehicleSpeedProvider;
+    part observer : AAOSVehicleSpeedObserver;
+    port structuredLogcatOut : VehicleSpeedCampaignWirePublication;
+
+    flow from provider.vehicleSpeedOut.vehicleSpeed
+      to observer.vehicleSpeedIn.vehicleSpeed;
+    bind structuredLogcatOut = observer.structuredLogcatOut;
+  }
+
+  part def AAOSHostLogcatForwarder {
+    doc /*
+     * VM-A host-side ADB/logcat extractor and forwarder. It reads the guest's
+     * structured record and opens the private TCP connection to the ROS 2 host.
+     */
+    port structuredLogcatIn : VehicleSpeedCampaignWireSubscription;
+    port privateTcpOut : VehicleSpeedCampaignWirePublication;
+  }
+
+  part def VehicleSpeedPrivateTcpTransport {
+    doc /*
+     * Private TCP boundary between independent campaign VM domains. This is
+     * development/evidence transport only; it is not native SDV transport or
+     * a production vehicle-network decision.
+     */
+    port vmAIn : VehicleSpeedCampaignWireSubscription;
+    port vmBOut : VehicleSpeedCampaignWirePublication;
+  }
+
+  part def ROS2VehicleSpeedTcpIngress {
+    doc /*
+     * VM-B ingress validates the campaign envelope, applies speed_kmh / 3.6,
+     * and publishes the official autoware_vehicle_msgs/msg/VelocityReport
+     * boundary on /vehicle/status/velocity_status. The conversion is a role-level
+     * implementation claim; this deployment view is not a complete internal
+     * behavior model of the executable bridge.
+     */
+    port privateTcpIn : VehicleSpeedCampaignWireSubscription;
+    port velocityReportOut : VelocityReportPublication;
+  }
+
+  part def ROS2VelocityReportIndependentObserver {
+    doc /*
+     * Independent VM-B observer of the published VelocityReport. Its
+     * observation is separate from the ingress node's conversion and state. It
+     * validates the published velocity and records local receipt time; it does
+     * not validate source-timestamp propagation.
+     */
+    port velocityReportIn : VelocityReportSubscription;
+  }
+
+  part def AAOSVehicleSpeedCampaignHostVm :> AOSPAAOSBuildRuntimeEnvironment {
+    doc /*
+     * VM-A/System-2 campaign host containing the nested AAOS/Cuttlefish guest
+     * and the host-side ADB/logcat forwarder.
+     */
+    part cuttlefishGuest : AAOSVehicleSpeedServiceBundle;
+    part hostForwarder : AAOSHostLogcatForwarder;
+  }
+
+  part def ROS2VehicleSpeedCampaignHostVm :> EngineeringExecutionEnvironment {
+    doc /*
+     * VM-B/System-2 campaign host containing the ROS 2 ingress and independent
+     * observer. It is not a System 1 vehicle compute target.
+     */
+    part ros2Ingress : ROS2VehicleSpeedTcpIngress;
+    part independentObserver : ROS2VelocityReportIndependentObserver;
+  }
+
+  part def VehicleSpeedCampaignCommunicationDeployment {
+    doc /*
+     * Bounded cross-domain communication path exercised by the reference
+     * campaign: AAOS guest -> structured logcat -> VM-A host forwarder ->
+     * private TCP -> VM-B ROS 2 ingress -> VelocityReport -> independent
+     * observer. The deployment is evidence infrastructure, not a production
+     * SDV deployment or a direct AAOS-service-to-ROS socket claim. The flows
+     * establish typed boundary topology; executable forwarding and conversion
+     * semantics remain owned by the implementation and evidence artifacts.
+     */
+    part vmA : AAOSVehicleSpeedCampaignHostVm;
+    part vmB : ROS2VehicleSpeedCampaignHostVm;
+    part privateTcpBoundary : VehicleSpeedPrivateTcpTransport;
+
+    flow from vmA.cuttlefishGuest.structuredLogcatOut.envelope
+      to vmA.hostForwarder.structuredLogcatIn.envelope;
+    flow from vmA.hostForwarder.privateTcpOut.envelope
+      to privateTcpBoundary.vmAIn.envelope;
+    flow from privateTcpBoundary.vmBOut.envelope
+      to vmB.ros2Ingress.privateTcpIn.envelope;
+    flow from vmB.ros2Ingress.velocityReportOut.velocityReport
+      to vmB.independentObserver.velocityReportIn.velocityReport;
+  }
+
+  part vehicleSpeedCampaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
+
+  dependency vehicleSpeedCampaignImplementationTrace
+    from vehicleSpeedCampaignDeployment
+    to physicalSoftware::referenceInteropBenchSource;
 
   allocation def LogicalToPhysicalSoftwareCandidate {
     doc /* Candidate logical-to-physical mapping. This does not imply complete realization, satisfaction, runtime execution, or acceptance. */
@@ -475,6 +662,38 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
+  concern vehicleSpeedCampaignContextExchangeConcern : PhysicalContextExchangeConcern {
+    subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern vehicleSpeedCampaignInternalExchangeConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * Review the typed handoffs among the concrete campaign deployment roles.
+     * The current campaign source and observer are both inside the subject, so
+     * there is no external boundary exchange or boundary delegation to claim.
+     */
+    subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+    stakeholder systemArchitect : SystemArchitect;
+    stakeholder softwareDeveloper : SoftwareDeveloper;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
+  concern vehicleSpeedCampaignStructureConcern : PhysicalStructureConcern {
+    subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern vehicleSpeedCampaignInterfaceConcern : PhysicalInterfaceConcern {
+    subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
   concern physicalFunctionalMappingConcern : PhysicalFunctionalMappingConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -500,6 +719,84 @@ package DE4SDV_MWPhysicalSoftwareRealization {
       frame physicalInterfaceConcern;
     }
     expose DE4SDV_MWPhysicalSoftwareRealization::*;
+    render asTreeDiagram;
+  }
+
+  view mwVehicleSpeedCampaignContextExchangeView {
+    viewpoint selectedVehicleSpeedCampaignContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
+      frame vehicleSpeedCampaignContextExchangeConcern;
+    }
+    doc /*
+     * Focused bounded campaign transfer view. It exposes only the two
+     * top-level System 2 host/VM domains: AAOS/Cuttlefish VM-A and the
+     * independent ROS 2 VM-B. The nested guest, forwarder, private TCP
+     * boundary, ingress, and observer remain available in the supporting
+     * internal-exchange and structure views.
+     *
+     * The deployment still owns the complete typed flow chain. This view is
+     * intentionally a two-domain context slice, not a rendering of every
+     * implementation member.
+     */
+    expose vehicleSpeedCampaignDeployment::vmA;
+    expose vehicleSpeedCampaignDeployment::vmB;
+    render asTreeDiagram;
+  }
+
+  view mwVehicleSpeedCampaignInternalExchangeView {
+    viewpoint selectedVehicleSpeedCampaignInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
+      frame vehicleSpeedCampaignInternalExchangeConcern;
+    }
+    doc /*
+     * The concrete campaign deployment is the system of interest for this
+     * internal-exchange slice. It shows the typed handoffs among guest logcat,
+     * host forwarding, private TCP, ROS 2 ingress, VelocityReport publication,
+     * and independent observation.
+     *
+     * The campaign source and independent observer are both contained by the
+     * deployment. There is no external boundary exchange in the current scope,
+     * so no boundary delegation is modeled or claimed.
+     */
+    expose vehicleSpeedCampaignDeployment;
+    expose vehicleSpeedCampaignDeployment::**;
+    attribute depth = -1;
+    render asInterconnectionDiagram;
+  }
+
+  view mwVehicleSpeedCampaignStructureView {
+    viewpoint selectedVehicleSpeedCampaignStructureViewpoint : PhysicalStructureDefinitionViewpoint {
+      frame vehicleSpeedCampaignStructureConcern;
+    }
+    doc /*
+     * Supporting structure view for the two independent System 2 hosts, the
+     * nested AAOS guest, host-side forwarder, ROS 2 ingress, and observer.
+     */
+    expose vehicleSpeedCampaignDeployment;
+    expose vehicleSpeedCampaignDeployment::vmA::*;
+    expose vehicleSpeedCampaignDeployment::vmB::*;
+    expose vehicleSpeedCampaignDeployment::privateTcpBoundary;
+    render asTreeDiagram;
+  }
+
+  view mwVehicleSpeedCampaignInterfaceView {
+    viewpoint selectedVehicleSpeedCampaignInterfaceViewpoint : PhysicalInterfaceDefinitionViewpoint {
+      frame vehicleSpeedCampaignInterfaceConcern;
+    }
+    doc /*
+     * Supporting interface view for the campaign envelope and the official
+     * VelocityReport publication/subscription boundary. Exact serialization
+     * and transport parameters remain owned by the executable contracts.
+     */
+    expose VehicleSpeedProviderMessage;
+    expose VehicleSpeedProviderPublication;
+    expose VehicleSpeedProviderSubscription;
+    expose VehicleSpeedCampaignQuality;
+    expose DE4SDVReferenceVehicleSpeedPayload;
+    expose VehicleSpeedCampaignWireEnvelope;
+    expose VehicleSpeedCampaignWirePublication;
+    expose VehicleSpeedCampaignWireSubscription;
+    expose VelocityReportMessage;
+    expose VelocityReportPublication;
+    expose VelocityReportSubscription;
     render asTreeDiagram;
   }
 
