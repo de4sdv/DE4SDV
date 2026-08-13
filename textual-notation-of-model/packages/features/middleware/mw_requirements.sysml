@@ -17,6 +17,8 @@ package DE4SDV_MWRequirements {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
+        private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
+        private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
 
         requirement def MiddlewareSignalAccessRequirement :> FunctionalRequirementCandidate;
         requirement def MiddlewareDiagnosticAccessRequirement :> FunctionalRequirementCandidate;
@@ -118,6 +120,59 @@ package DE4SDV_MWRequirements {
           from reqMaintainMiddlewareBoundaryTraceability
           to DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::needTraceabilityToOperationalContext;
 
+        /* Requirement traceability to the operational use cases that justify
+         * each requirement (SystemRequirementTraceabilityViewpoint targets:
+         * use case, process, context). Each requirement is justified by the
+         * operational scenario it enables. */
+        dependency req001TracedToExchangeVehicleSignals
+          from reqProvideMiddlewareSignalAccess
+          to 'exchange vehicle signals';
+        dependency req001TracedToTranslateSignalAction
+          from reqProvideMiddlewareSignalAccess
+          to middlewareIntegrationFunctionalFlow::translateSignal;
+        dependency req002TracedToAccessDiagnostics
+          from reqProvideMiddlewareDiagnosticAccess
+          to 'access diagnostics';
+        dependency req002TracedToProxyDiagnosticsAction
+          from reqProvideMiddlewareDiagnosticAccess
+          to middlewareIntegrationFunctionalFlow::proxyDiagnostics;
+        dependency req003TracedToCoordinateLifecycle
+          from reqCoordinateMiddlewareLifecycle
+          to 'coordinate lifecycle';
+        dependency req003TracedToCoordinateLifecycleAction
+          from reqCoordinateMiddlewareLifecycle
+          to middlewareIntegrationFunctionalFlow::coordinateLifecycle;
+        dependency req004TracedToMonitorServiceHealth
+          from reqMonitorMiddlewareHealth
+          to 'monitor service health';
+        dependency req004TracedToForwardHealthAction
+          from reqMonitorMiddlewareHealth
+          to middlewareIntegrationFunctionalFlow::forwardHealth;
+        dependency req005TracedToCoordinateUpdate
+          from reqCoordinateMiddlewareUpdates
+          to 'coordinate software update';
+        dependency req005TracedToCoordinateUpdateAction
+          from reqCoordinateMiddlewareUpdates
+          to middlewareIntegrationFunctionalFlow::coordinateUpdate;
+        dependency req006TracedToEmergencySafetyPath
+          from reqIsolateSafetyPath
+          to 'emergency intervention via safety path';
+        dependency req006TracedToProtectSafetyPathAction
+          from reqIsolateSafetyPath
+          to middlewareIntegrationFunctionalFlow::protectSafetyPath;
+        dependency req007TracedToExchangeVehicleSignals
+          from reqProvideServiceDiscovery
+          to 'exchange vehicle signals';
+        dependency req007TracedToBindServiceAction
+          from reqProvideServiceDiscovery
+          to middlewareIntegrationFunctionalFlow::bindService;
+        dependency req008TracedToExchangeVehicleSignals
+          from reqAuthenticateServiceBinding
+          to 'exchange vehicle signals';
+        dependency req008TracedToBindServiceAction
+          from reqAuthenticateServiceBinding
+          to middlewareIntegrationFunctionalFlow::bindService;
+
         public import System1Product::*;
         public import System2EngineeringAssurance::*;
 
@@ -142,7 +197,14 @@ package DE4SDV_MWRequirements {
           }
           expose System1Product::*;
           expose System2EngineeringAssurance::*;
-          render asTreeDiagram;
+          expose 'exchange vehicle signals';
+          expose 'access diagnostics';
+          expose 'coordinate lifecycle';
+          expose 'monitor service health';
+          expose 'coordinate software update';
+          expose 'emergency intervention via safety path';
+          expose middlewareIntegrationFunctionalFlow;
+          render asInterconnectionDiagram;
         }
       }
     }
