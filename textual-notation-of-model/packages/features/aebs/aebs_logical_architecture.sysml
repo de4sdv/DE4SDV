@@ -514,7 +514,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   view aebsLogicalStructureView {
-    viewpoint selectedLogicalStructureViewpoint : LogicalStructureDefinitionViewpoint {
+    viewpoint selectedLogicalStructureViewpoint : SystemStructureDefinitionViewpoint {
       frame logicalStructureConcern;
     }
 
@@ -538,7 +538,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   view aebsLogicalInternalExchangeView {
-    viewpoint selectedLogicalInternalExchangeViewpoint : LogicalInternalExchangeViewpoint {
+    viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
       frame logicalInternalExchangeConcern;
     }
 
@@ -554,7 +554,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   view aebsLogicalFunctionalMappingView {
-    viewpoint selectedLogicalFunctionalMappingViewpoint : LogicalFunctionalMappingViewpoint {
+    viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
       frame logicalFunctionalMappingConcern;
     }
 

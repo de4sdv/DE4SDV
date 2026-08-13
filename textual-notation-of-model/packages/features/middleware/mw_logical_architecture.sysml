@@ -220,7 +220,7 @@ package DE4SDV_MWLogicalArchitecture {
   }
 
   view mwLogicalStructureView {
-    viewpoint selectedLogicalStructureViewpoint : LogicalStructureDefinitionViewpoint {
+    viewpoint selectedLogicalStructureViewpoint : SystemStructureDefinitionViewpoint {
       frame logicalStructureConcern;
     }
     expose DE4SDV_MWLogicalArchitecture::*;
@@ -228,7 +228,7 @@ package DE4SDV_MWLogicalArchitecture {
   }
 
   view mwLogicalExchangeView {
-    viewpoint selectedLogicalExchangeViewpoint : LogicalInternalExchangeViewpoint {
+    viewpoint selectedLogicalExchangeViewpoint : SystemInternalExchangeViewpoint {
       frame logicalExchangeConcern;
     }
     expose DE4SDV_MWLogicalArchitecture::*;
@@ -236,7 +236,7 @@ package DE4SDV_MWLogicalArchitecture {
   }
 
   view mwLogicalMappingView {
-    viewpoint selectedLogicalMappingViewpoint : LogicalFunctionalMappingViewpoint {
+    viewpoint selectedLogicalMappingViewpoint : SystemFunctionMappingViewpoint {
       frame logicalMappingConcern;
     }
     expose DE4SDV_MWLogicalArchitecture::*;

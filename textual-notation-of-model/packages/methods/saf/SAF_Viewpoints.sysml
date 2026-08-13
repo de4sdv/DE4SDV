@@ -396,9 +396,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def LogicalStructureDefinitionViewpoint {
+  viewpoint def SystemStructureDefinitionViewpoint {
     doc /*
-     * SAF Logical Domain: Logical Structure Definition Viewpoint.
+     * SAF Conceptual Domain: System Structure Definition Viewpoint.
      * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -420,9 +420,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def LogicalInternalExchangeViewpoint {
+  viewpoint def SystemInternalExchangeViewpoint {
     doc /*
-     * SAF Logical Domain: Logical Internal Exchange Viewpoint.
+     * SAF Conceptual Domain: System Internal Exchange Viewpoint.
      * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -444,9 +444,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def LogicalInternalInteractionViewpoint {
+  viewpoint def SystemInternalInteractionViewpoint {
     doc /*
-     * SAF Logical Domain: Logical Internal Interaction Viewpoint.
+     * SAF Conceptual Domain: System Internal Interaction Viewpoint.
      * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -468,9 +468,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def LogicalFunctionalMappingViewpoint {
+  viewpoint def SystemFunctionMappingViewpoint {
     doc /*
-     * SAF Logical Domain: Logical Functional Mapping Viewpoint.
+     * SAF Conceptual Domain: System Functional Mapping Viewpoint.
      * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */

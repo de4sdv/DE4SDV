@@ -40,11 +40,11 @@ source_alignment:
   use: functional-architecture-baseline
   artifact: methodologies/sysmod-sysmlv2/pilots/mw-functional-architecture.yaml
 selected_viewpoints:
-- viewpoint: LogicalStructureDefinitionViewpoint
+- viewpoint: SystemStructureDefinitionViewpoint
   rationale: Review logical decomposition and responsibility boundaries.
-- viewpoint: LogicalInternalExchangeViewpoint
+- viewpoint: SystemInternalExchangeViewpoint
   rationale: Review typed boundary interfaces, delegation, and exchanges.
-- viewpoint: LogicalFunctionalMappingViewpoint
+- viewpoint: SystemFunctionMappingViewpoint
   rationale: Review functional-to-logical responsibility allocation.
 logical_element_ids:
 - SignalTranslator

@@ -59,7 +59,7 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 ### INC-MW-007: Logical architecture
 - Phase: 7 (Logical architecture)
 - Question: What logical elements realize the middleware integration functions?
-- SAF viewpoints: LogicalStructureDefinitionViewpoint, LogicalInternalExchangeViewpoint, LogicalFunctionalMappingViewpoint
+- SAF viewpoints: SystemStructureDefinitionViewpoint, SystemInternalExchangeViewpoint, SystemFunctionMappingViewpoint
 - Outputs: logical structure, exchanges, allocation/mapping
 - Content: SignalTranslator, LifecycleBridge, HealthProxy, DiagnosticProxy, UpdateCoordinator. Mapping from AEBS logical architecture external service dependencies to middleware logical components
 - SysML file: textual-notation-of-model/packages/features/middleware/mw_logical_architecture.sysml
