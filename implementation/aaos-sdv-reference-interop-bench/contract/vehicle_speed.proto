@@ -6,6 +6,7 @@ package de4sdv.reference.vehicle_speed;
 message VehicleSpeed {
   // VSS Vehicle.Speed, expressed in km/h.
   double speed_kmh = 1;
+  // Unix epoch nanoseconds from the AAOS system clock.
   uint64 timestamp_ns = 2;
   Quality quality = 3;
 
