@@ -205,7 +205,7 @@ package DE4SDV_MWRequirements {
           expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'coordinate software update';
           expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'emergency intervention via safety path';
           expose DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::middlewareIntegrationFunctionalFlow;
-          render asTreeDiagram;
+          attribute depth = 1;
         }
       }
     }
