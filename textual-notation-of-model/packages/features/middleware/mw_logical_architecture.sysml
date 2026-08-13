@@ -232,7 +232,7 @@ package DE4SDV_MWLogicalArchitecture {
       frame logicalExchangeConcern;
     }
     expose DE4SDV_MWLogicalArchitecture::*;
-    render asTreeDiagram;
+    render asInterconnectionDiagram;
   }
 
   view mwLogicalMappingView {

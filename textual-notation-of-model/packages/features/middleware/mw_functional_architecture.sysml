@@ -12,6 +12,7 @@ package DE4SDV_MWFunctionalArchitecture {
     package Middleware {
       package FunctionalArchitecture {
         private import Views::*;
+        private import StandardViewDefinitions::*;
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
@@ -338,12 +339,11 @@ package DE4SDV_MWFunctionalArchitecture {
           expose FunctionalArchitecture::*;
           render asTreeDiagram;
         }
-        view mwFunctionalProcessView {
+        view mwFunctionalProcessView : ActionFlowView {
           viewpoint selectedFunctionalProcessViewpoint : SystemProcessViewpoint {
             frame functionalProcessConcern;
           }
           expose FunctionalArchitecture::*;
-          render asTreeDiagram;
         }
       }
     }

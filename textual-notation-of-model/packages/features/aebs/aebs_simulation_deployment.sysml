@@ -634,7 +634,7 @@ package DE4SDV_AEBSSimulationDeployment {
   view aebsSimulationPhysicalContextExchangeView {
     viewpoint selected : PhysicalContextExchangeViewpoint { frame physicalContextExchangeConcern; }
     expose deployment::*;
-    render asTreeDiagram;
+    render asInterconnectionDiagram;
   }
   view aebsSimulationPhysicalExchangeTypeView {
     viewpoint selected : PhysicalInterfaceDefinitionViewpoint { frame physicalExchangeTypeConcern; }
@@ -649,7 +649,7 @@ package DE4SDV_AEBSSimulationDeployment {
   view aebsSimulationPhysicalInternalExchangeView {
     viewpoint selected : PhysicalInternalExchangeViewpoint { frame physicalInternalExchangeConcern; }
     expose deployment::system1::*; expose deployment::system2::*;
-    render asTreeDiagram;
+    render asInterconnectionDiagram;
   }
   view aebsSimulationPhysicalInterfaceView {
     viewpoint selected : PhysicalInterfaceDefinitionViewpoint { frame physicalInterfaceConcern; }

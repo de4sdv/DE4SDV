@@ -545,12 +545,10 @@ package DE4SDV_AEBSLogicalArchitecture {
     /*
      * Exposing direct logical-system members selects the boundary ports,
      * bindings, flows, and component usages that define connectivity. The
-     * current tree renderer is not relationship-complete: it may list ports
-     * without drawing bind or flow edges. Review the textual bind/flow usages
-     * as the authoritative exchange topology.
+     * interconnection renderer draws bind and flow edges between ports.
      */
     expose logicalSystem::*;
-    render asTreeDiagram;
+    render asInterconnectionDiagram;
   }
 
   view aebsLogicalFunctionalMappingView {
