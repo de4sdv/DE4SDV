@@ -231,7 +231,12 @@ package DE4SDV_MWLogicalArchitecture {
     viewpoint selectedLogicalExchangeViewpoint : LogicalInternalExchangeViewpoint {
       frame logicalExchangeConcern;
     }
-    expose DE4SDV_MWLogicalArchitecture::*;
+    /*
+     * Expose the part-usage subtree, not the package: the interconnection
+     * renderer draws part usages with their ports and flow edges; a
+     * package-level expose resolves to definitions, which are skipped.
+     */
+    expose logicalSystem::*;
     render asInterconnectionDiagram;
   }
 
