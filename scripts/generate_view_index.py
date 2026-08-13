@@ -33,7 +33,7 @@ class ViewSpec:
     render: str = ""
 
 
-VIEW_RE = re.compile(r"\bview\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{")
+VIEW_RE = re.compile(r"\bview\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[A-Za-z_][A-Za-z0-9_]*)?\s*\{")
 VIEWPOINT_RE = re.compile(
     r"viewpoint\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*\{"
 )
