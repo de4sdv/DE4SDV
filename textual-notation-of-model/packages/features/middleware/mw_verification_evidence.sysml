@@ -499,6 +499,187 @@ package DE4SDV_MW010VerificationEvidence {
     from plannedTargetRuntimeEvidence010
     to DE4SDV_MWPhysicalSoftwareRealization::velocitySignalContractGap;
 
+  /* Claim-argument-evidence layer (INC-MW-010).
+   *
+   * The claim states what the configured member is asserted to realize within
+   * the declared claim boundary. Arguments support the claim per verification
+   * dimension. Counter-claims bound the claim where evidence is not yet
+   * established (GAP-MW-025..028). Verification cases and evidence items
+   * reinforce the arguments they are traced to. Planned or blocked evidence
+   * never upgrades a verdict to pass.
+   */
+
+  requirement def MiddlewareClaim010
+    :> EvidenceContractTraceabilityRequirementCandidate;
+
+  requirement def MiddlewareArgument010
+    :> EvidenceContractTraceabilityRequirementCandidate;
+
+  requirement def MiddlewareCounterClaim010
+    :> EvidenceContractTraceabilityRequirementCandidate;
+
+  requirement mw010ReferenceContractClaim : MiddlewareClaim010 {
+    doc /*
+     * CLM-MW-010-01: the configured Autoware + AndroidSDV member realizes the
+     * Vehicle.Speed reference contract within the declared claim boundary:
+     * signal translation semantics, lifecycle coordination, health forwarding,
+     * startup and update coordination, and fault containment are observable,
+     * replayable, and independently observed.
+     */
+    subject claimSubject : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* The claim is bounded by retained, replayable, independently
+        observed evidence bound to the configured member, execution
+        environment, and contract identities. It is not target-runtime proof. */
+    }
+  }
+
+  requirement signalTranslationArgument010 : MiddlewareArgument010 {
+    doc /* AGT-MW-010-01: argues bounded signal translation semantics. */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* Vehicle.Speed km/h semantics are preserved; 36 km/h maps to 10 m/s
+        and 72 km/h to 20 m/s via division by 3.6; invalid or non-finite
+        samples are rejected; the resulting VelocityReport field is exposed to
+        an independent observer. */
+    }
+  }
+
+  requirement lifecycleCoordinationArgument010 : MiddlewareArgument010 {
+    doc /* AGT-MW-010-02: argues observable integration lifecycle coordination. */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* Startup, initializing, operational, degraded, and shutdown behavior
+        are observable at the integration boundary, preserve the declared
+        transition ordering, and prevent use before required binding and
+        readiness. */
+    }
+  }
+
+  requirement healthForwardingArgument010 : MiddlewareArgument010 {
+    doc /* AGT-MW-010-03: argues health forwarding without relabeling. */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* Missing, stale, inconsistent, or unavailable provider/transport/
+        consumer health produces an observable degraded or unavailable
+        disposition and is forwarded to the application boundary without being
+        relabeled as healthy. */
+    }
+  }
+
+  requirement vehicleStartupArgument010 : MiddlewareArgument010 {
+    doc /* AGT-MW-010-04: argues causally ordered startup readiness. */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* A configured member startup scenario proves provider registration,
+        service discovery and binding, transport readiness, adapter readiness,
+        and ROS 2 consumer readiness in causal order before the signal is
+        accepted. */
+    }
+  }
+
+  requirement updateCoordinationArgument010 : MiddlewareArgument010 {
+    doc /* AGT-MW-010-05: argues update coordination with identity retention. */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* An update/OTA scenario retains pre-update and post-update
+        identities and observations and detects, rather than silently accepts,
+        loss or incompatible change of required signal, lifecycle, health,
+        discovery, or consumer contracts. */
+    }
+  }
+
+  requirement faultDetectionArgument010 : MiddlewareArgument010 {
+    doc /* AGT-MW-010-06: argues fault detection and containment. */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* Provider, binding, discovery, transport, adapter, and consumer
+        faults are detected and classified at the integration boundary;
+        non-safety middleware failure does not create an uncontrolled
+        emergency intervention command. */
+    }
+  }
+
+  requirement counterClaim010ProviderBinding : MiddlewareCounterClaim010 {
+    doc /* CCM-MW-010-01: provider binding and deployed provider behavior are
+      not yet evidenced (GAP-MW-025). */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* The reference-contract claim does not extend to generated or
+        usable VSIDL binding or deployed provider behavior. */
+    }
+  }
+
+  requirement counterClaim010CrossDomainTransport : MiddlewareCounterClaim010 {
+    doc /* CCM-MW-010-02: Android/KVM-to-Linux/ROS 2 transport, discovery, and
+      deployment are not yet evidenced (GAP-MW-026). */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* The reference-contract claim does not extend to cross-domain
+        transport, discovery, or deployment on the configured member. */
+    }
+  }
+
+  requirement counterClaim010IndependentObservation : MiddlewareCounterClaim010 {
+    doc /* CCM-MW-010-03: independent Autoware observation is not yet evidenced
+      (GAP-MW-027). */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* The claim does not extend to an independent observation of
+        /vehicle/status/velocity_status and Autoware-side provenance. */
+    }
+  }
+
+  requirement counterClaim010LifecycleUpdateFault : MiddlewareCounterClaim010 {
+    doc /* CCM-MW-010-04: target-runtime lifecycle, update/OTA, health, and
+      fault evidence is not yet available (GAP-MW-028). */
+    subject bench : MiddlewareIntegrationVandVBench010;
+    require constraint {
+      doc /* The claim does not extend to target-runtime lifecycle, update/OTA,
+        health, or fault behavior. */
+    }
+  }
+
+  dependency claimSupportedBySignalArgument
+    from signalTranslationArgument010 to mw010ReferenceContractClaim;
+  dependency claimSupportedByLifecycleArgument
+    from lifecycleCoordinationArgument010 to mw010ReferenceContractClaim;
+  dependency claimSupportedByHealthArgument
+    from healthForwardingArgument010 to mw010ReferenceContractClaim;
+  dependency claimSupportedByStartupArgument
+    from vehicleStartupArgument010 to mw010ReferenceContractClaim;
+  dependency claimSupportedByUpdateArgument
+    from updateCoordinationArgument010 to mw010ReferenceContractClaim;
+  dependency claimSupportedByFaultArgument
+    from faultDetectionArgument010 to mw010ReferenceContractClaim;
+
+  dependency signalVerificationReinforcesArgument
+    from signalTranslationVerification010 to signalTranslationArgument010;
+  dependency lifecycleVerificationReinforcesArgument
+    from lifecycleCoordinationVerification010 to lifecycleCoordinationArgument010;
+  dependency healthVerificationReinforcesArgument
+    from healthForwardingVerification010 to healthForwardingArgument010;
+  dependency startupValidationReinforcesArgument
+    from vehicleStartupValidation010 to vehicleStartupArgument010;
+  dependency updateValidationReinforcesArgument
+    from updateCoordinationValidation010 to updateCoordinationArgument010;
+  dependency faultValidationReinforcesArgument
+    from faultDetectionValidation010 to faultDetectionArgument010;
+
+  dependency contractEvidenceReinforcesArgument
+    from contractAndRehearsalEvidence010 to signalTranslationArgument010;
+  dependency bootBaselineReinforcesArgument
+    from boundedAAOSBootBaseline010 to vehicleStartupArgument010;
+
+  dependency counterClaimProviderBindingCountersClaim
+    from counterClaim010ProviderBinding to mw010ReferenceContractClaim;
+  dependency counterClaimTransportCountersClaim
+    from counterClaim010CrossDomainTransport to mw010ReferenceContractClaim;
+  dependency counterClaimObservationCountersClaim
+    from counterClaim010IndependentObservation to mw010ReferenceContractClaim;
+  dependency counterClaimLifecycleCountersClaim
+    from counterClaim010LifecycleUpdateFault to mw010ReferenceContractClaim;
+
   concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
     doc /* Evidence-based assurance claims and their supporting argumentation. */
     subject;
