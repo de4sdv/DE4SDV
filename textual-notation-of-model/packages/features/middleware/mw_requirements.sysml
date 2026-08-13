@@ -197,13 +197,13 @@ package DE4SDV_MWRequirements {
           }
           expose System1Product::*;
           expose System2EngineeringAssurance::*;
-          expose 'exchange vehicle signals';
-          expose 'access diagnostics';
-          expose 'coordinate lifecycle';
-          expose 'monitor service health';
-          expose 'coordinate software update';
-          expose 'emergency intervention via safety path';
-          expose middlewareIntegrationFunctionalFlow;
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'exchange vehicle signals';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'access diagnostics';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'coordinate lifecycle';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'monitor service health';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'coordinate software update';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'emergency intervention via safety path';
+          expose DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::middlewareIntegrationFunctionalFlow;
           render asInterconnectionDiagram;
         }
       }
