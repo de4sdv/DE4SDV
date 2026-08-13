@@ -12,6 +12,7 @@ package DE4SDV_MWRequirements {
     package Middleware {
       package Requirements {
         private import Views::*;
+        private import StandardViewDefinitions::*;
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
