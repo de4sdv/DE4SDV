@@ -191,7 +191,7 @@ package DE4SDV_MWRequirements {
           expose System2EngineeringAssurance::*;
           render asTreeDiagram;
         }
-        view mwRequirementTraceView {
+        view mwRequirementTraceView : GeneralView {
           viewpoint selectedRequirementTraceViewpoint : SystemRequirementTraceabilityViewpoint {
             frame requirementTraceConcern;
           }
@@ -204,7 +204,7 @@ package DE4SDV_MWRequirements {
           expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'coordinate software update';
           expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'emergency intervention via safety path';
           expose DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::middlewareIntegrationFunctionalFlow;
-          render asInterconnectionDiagram;
+          render asTreeDiagram;
         }
       }
     }
