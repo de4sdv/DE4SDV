@@ -103,6 +103,7 @@ def test_privileged_workflow_exports_and_renders_grid_views() -> None:
     assert 'syside viz view "${model_paths[@]}" \\' in workflow
     assert '--include "${SYSIDE_VIEWS_SOURCE}"' in workflow
     assert 'syside table export "${model_paths[@]}" \\' in workflow
+    assert 'export PYTHONHOME="${pythonLocation}"' in workflow
     assert "syside table export" in workflow
     assert "python scripts/render_grid_csv.py grid-csv diagrams" in workflow
     assert "grid-csv/" in workflow
