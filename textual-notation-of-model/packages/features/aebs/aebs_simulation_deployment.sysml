@@ -696,9 +696,21 @@ package DE4SDV_AEBSSimulationDeployment {
   }
   view aebsSimulationPhysicalInternalExchangeView {
     viewpoint selected : PhysicalInternalExchangeViewpoint { frame physicalInternalExchangeConcern; }
-    expose deployment::candidateVehicleSystem1;
-    expose deployment::candidateVehicleSystem1::**;
-    attribute depth = 2;
+    expose AEBSystem1CandidateDeployment::aeb;
+    expose AEBSystem1CandidateDeployment::aeb::**;
+    expose AEBSystem1CandidateDeployment::aggregator;
+    expose AEBSystem1CandidateDeployment::aggregator::**;
+    expose AEBSystem1CandidateDeployment::commandModeToOperationModeAvailabilityConverter;
+    expose AEBSystem1CandidateDeployment::commandModeToOperationModeAvailabilityConverter::**;
+    expose AEBSystem1CandidateDeployment::mrmHandler;
+    expose AEBSystem1CandidateDeployment::mrmHandler::**;
+    expose AEBSystem1CandidateDeployment::emergencyStopOperator;
+    expose AEBSystem1CandidateDeployment::emergencyStopOperator::**;
+    expose AEBSystem1CandidateDeployment::legacyVehicleCommandGate;
+    expose AEBSystem1CandidateDeployment::legacyVehicleCommandGate::**;
+    expose AEBSystem1CandidateDeployment::*[istype SysML::FlowUsage];
+    attribute exposeMode = "promoted";
+    attribute depth = 1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;

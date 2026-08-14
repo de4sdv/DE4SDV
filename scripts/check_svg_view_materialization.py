@@ -32,6 +32,7 @@ def check_materialization(
     required_labels: list[str],
     forbidden_labels: list[str],
     min_flow_count: int,
+    max_flow_count: int | None,
 ) -> list[str]:
     labels = _text_labels(svg)
     graph_labels = [label for label in labels if not label.startswith("expose ")]
@@ -54,6 +55,10 @@ def check_materialization(
         errors.append(
             f"materialized flow count {flow_count} is below required {min_flow_count}"
         )
+    if max_flow_count is not None and flow_count > max_flow_count:
+        errors.append(
+            f"materialized flow count {flow_count} is above allowed {max_flow_count}"
+        )
 
     return errors
 
@@ -65,6 +70,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--require-label", action="append", default=[])
     parser.add_argument("--forbid-label", action="append", default=[])
     parser.add_argument("--min-flow-count", type=int, default=0)
+    parser.add_argument("--max-flow-count", type=int)
     return parser
 
 
@@ -77,6 +83,7 @@ def main() -> int:
             required_labels=args.require_label,
             forbidden_labels=args.forbid_label,
             min_flow_count=args.min_flow_count,
+            max_flow_count=args.max_flow_count,
         )
     except ValueError as exc:
         print(exc, file=sys.stderr)

@@ -68,6 +68,29 @@ def test_rejects_forbidden_graph_label(tmp_path: Path) -> None:
     assert "forbidden graph label materialized" in result.stderr
 
 
+def test_rejects_more_than_the_allowed_flow_count(tmp_path: Path) -> None:
+    svg = tmp_path / "extra-flow.svg"
+    svg.write_text(
+        """<svg xmlns="http://www.w3.org/2000/svg">
+        <text>«view» exampleView</text>
+        <text>«flow»</text>
+        <text>«flow»</text>
+        </svg>""",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        svg,
+        "--view-name",
+        "exampleView",
+        "--max-flow-count",
+        "1",
+    )
+
+    assert result.returncode == 1
+    assert "above allowed 1" in result.stderr
+
+
 def test_privileged_workflow_gates_aebs_internal_exchange_artifact() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
 
@@ -76,3 +99,4 @@ def test_privileged_workflow_gates_aebs_internal_exchange_artifact() -> None:
     assert "diagram-aebsSimulationPhysicalInternalExchangeView.svg" in workflow
     assert "--forbid-label simulationEvidenceSystem2" in workflow
     assert "--min-flow-count 10" in workflow
+    assert "--max-flow-count 10" in workflow

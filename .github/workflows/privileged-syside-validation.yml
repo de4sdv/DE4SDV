@@ -183,7 +183,8 @@ jobs:
             --require-label "emergencyStopOperator : EmergencyStopOperatorNode" \
             --require-label "legacyVehicleCommandGate : LegacyVehicleCommandGateNode" \
             --forbid-label simulationEvidenceSystem2 \
-            --min-flow-count 10
+            --min-flow-count 10 \
+            --max-flow-count 10
 
       - name: Export grid views and render review SVGs (Labs)
         if: steps.syside-secret.outputs.available == 'true'
