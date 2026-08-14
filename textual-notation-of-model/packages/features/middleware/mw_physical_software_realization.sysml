@@ -29,6 +29,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_ROS2Types::*;
   private import COVESA_VSS::**;
   private import SAF_Viewpoints::*;
+  private import SysideViews::*;
   private import Views::*;
 
   part incMW008 : FeatureIncrement {
@@ -800,19 +801,39 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     render asTreeDiagram;
   }
 
-  view mwPhysicalFunctionalMappingView {
-    viewpoint selectedPhysicalFunctionalMappingViewpoint : PhysicalFunctionalMappingViewpoint {
-      frame physicalFunctionalMappingConcern;
-    }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
-    render asTreeDiagram;
-  }
+  /*
+   * No physical-function allocation is modeled in this increment. Publishing a
+   * Physical Functional Mapping view would therefore present package contents
+   * as a false mapping. Add the view only when physical actions and their
+   * allocations exist in the model.
+   */
 
-  view mwPhysicalLogicalMappingView {
+  view mwPhysicalLogicalMappingView : MVD::MatrixView {
     viewpoint selectedPhysicalLogicalMappingViewpoint : PhysicalLogicalMappingViewpoint {
       frame physicalLogicalMappingConcern;
     }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose system::signalTranslator;
+      expose system::diagnosticProxy;
+      expose system::lifecycleBridge;
+      expose system::healthProxy;
+      expose system::updateCoordinator;
+      expose system::serviceBindingManager;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose physicalSoftware::signalAccessClient;
+      expose physicalSoftware::diagnosticAccessClient;
+      expose physicalSoftware::lifecycleClient;
+      expose physicalSoftware::healthClient;
+      expose physicalSoftware::updateClient;
+      expose physicalSoftware::serviceDiscoveryClient;
+      expose physicalSoftware::adapter::aaosSignal::vehicleSpeed;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_MWPhysicalSoftwareRealization::*;
+      attribute :>> direction = Dir::row2col;
+    }
   }
 }

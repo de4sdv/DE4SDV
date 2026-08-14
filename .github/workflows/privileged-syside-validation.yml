@@ -18,6 +18,9 @@ on:
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
+      - "scripts/render_grid_csv.py"
+      - ".project.json"
+      - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
       - "textual-notation-of-model/**/.meta.json"
       - ".github/workflows/privileged-syside-validation.yml"
@@ -29,6 +32,9 @@ on:
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
+      - "scripts/render_grid_csv.py"
+      - ".project.json"
+      - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
       - "textual-notation-of-model/**/.meta.json"
       - ".github/workflows/privileged-syside-validation.yml"
@@ -98,6 +104,12 @@ jobs:
           echo "~/.local/bin" >> "${GITHUB_PATH}"
           syside --version
 
+      - name: Resolve pinned SysML library dependencies
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          python -m pip install sysand==0.1.0
+          sysand sync
+
       - name: Validate model path input
         if: steps.syside-secret.outputs.available == 'true'
         run: |
@@ -153,10 +165,21 @@ jobs:
             --output-dir diagrams \
             --exclude "textual-notation-of-model/snapshots/**"
 
+      - name: Export grid views and render review SVGs (Labs)
+        if: steps.syside-secret.outputs.available == 'true'
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          read -r -a model_paths <<< "${MODEL_PATHS}"
+          syside table export "${model_paths[@]}" --output-dir grid-csv
+          python scripts/render_grid_csv.py grid-csv diagrams
+
       - name: Upload generated diagrams
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: syside-diagrams
-          path: diagrams/
+          path: |
+            diagrams/
+            grid-csv/
           if-no-files-found: warn

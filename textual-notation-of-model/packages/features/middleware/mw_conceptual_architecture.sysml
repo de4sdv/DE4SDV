@@ -18,6 +18,7 @@ package DE4SDV_MWConceptualArchitecture {
   private import DE4SDV_AEBSConceptualArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
+  private import SysideViews::*;
   private import Views::*;
 
   part incMW007 : FeatureIncrement {
@@ -240,11 +241,32 @@ package DE4SDV_MWConceptualArchitecture {
     render asInterconnectionDiagram;
   }
 
-  view mwSystemFunctionMappingView {
+  view mwSystemFunctionMappingView : MVD::MatrixView {
     viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
       frame conceptualFunctionMappingConcern;
     }
-    expose DE4SDV_MWConceptualArchitecture::*;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose functionalFlow::translateSignal;
+      expose functionalFlow::proxyDiagnostics;
+      expose functionalFlow::coordinateLifecycle;
+      expose functionalFlow::forwardHealth;
+      expose functionalFlow::coordinateUpdate;
+      expose functionalFlow::bindService;
+      expose functionalFlow::protectSafetyPath;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose system::signalTranslator;
+      expose system::diagnosticProxy;
+      expose system::lifecycleBridge;
+      expose system::healthProxy;
+      expose system::updateCoordinator;
+      expose system::serviceBindingManager;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_MWConceptualArchitecture::*;
+      attribute :>> direction = Dir::row2col;
+    }
   }
 }

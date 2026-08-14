@@ -1,0 +1,12 @@
+{
+  "name": "de4sdv-model",
+  "publisher": "de4sdv",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "usage": [
+    {
+      "resource": "pkg:sysand/sensmetry/syside-views",
+      "versionConstraint": "=0.10.3"
+    }
+  ]
+}

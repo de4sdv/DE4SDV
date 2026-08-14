@@ -111,6 +111,21 @@ git diff --check
    or a maintainer-run environment. Report this evidence separately from
    semantic quality.
 
+The repository root is also a Sysand project. `sysand-lock.toml` pins the
+SysIDE grid-view definitions used for requirement tables and allocation
+matrices. On a supported host, resolve the lock before validation or rendering:
+
+```bash
+python -m pip install sysand==0.1.0
+sysand sync
+```
+
+The privileged workflow validates the textual model, renders topology and
+behavior diagrams, exports grid views as CSV, and generates reviewer-facing
+SVG tables/matrices from those CSV files. The SysML view and SysIDE CSV remain
+the semantic source; `scripts/render_grid_csv.py` only formats the exported
+grid.
+
 Local SysML validation with Sensmetry SysIDE/SysML tooling may still be useful
 for a maintainer on a supported host, but Hermes should not run local SysML
 validation unless explicitly asked.

@@ -18,6 +18,7 @@ package DE4SDV_MWRequirements {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
+        private import SysideViews::*;
         private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
         private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
 
@@ -184,13 +185,25 @@ package DE4SDV_MWRequirements {
           stakeholder reviewer : OpenSourceReviewer;
         }
 
-        view mwSystemRequirementsView {
+        view mwSystemRequirementsView : TVD::TableView {
           viewpoint selectedSystemRequirementsViewpoint : SystemRequirementDefinitionViewpoint {
             frame requirementTraceConcern;
           }
           expose System1Product::*;
           expose System2EngineeringAssurance::*;
-          render asTreeDiagram;
+          filter @ SysML::RequirementUsage;
+          attribute :>> includeReferenceElements = true;
+          attribute :>> maxRowHeight = 300;
+          view ID :> columnViews {
+            attribute :>> featureToRender = CT::declaredName;
+          }
+          view Name :> columnViews {
+            attribute :>> featureToRender = CT::heritage;
+          }
+          view Statement :> columnViews {
+            attribute :>> featureToRender = CT::documentation;
+            attribute :>> columnWidth = 360;
+          }
         }
         view mwRequirementTraceView : GeneralView {
           viewpoint selectedRequirementTraceViewpoint : SystemRequirementTraceabilityViewpoint {

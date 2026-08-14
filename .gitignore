@@ -23,6 +23,7 @@ env/
 
 # SysML / SysIDE build artifacts
 *.kpar
+.sysand/
 
 # SysIDE license / env (never commit)
 .syside.env

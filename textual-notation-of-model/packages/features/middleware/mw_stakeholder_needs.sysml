@@ -20,6 +20,7 @@ package DE4SDV_MWStakeholderNeeds {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
+        private import SysideViews::*;
 
         requirement def MiddlewareIntegrationNeed :> StakeholderNeedCandidate;
         requirement def PlatformDecouplingNeed :> StakeholderNeedCandidate;
@@ -143,14 +144,26 @@ package DE4SDV_MWStakeholderNeeds {
           stakeholder reviewer : OpenSourceReviewer;
         }
 
-        view mwStakeholderNeedsView {
+        view mwStakeholderNeedsView : TVD::TableView {
           viewpoint selectedStakeholderNeedsViewpoint : StakeholderRequirementDefinitionViewpoint {
             frame stakeholderNeedsConcern;
           }
 
           expose System1Product::*;
           expose System2EngineeringAssurance::*;
-          render asTreeDiagram;
+          filter @ SysML::RequirementUsage;
+          attribute :>> includeReferenceElements = true;
+          attribute :>> maxRowHeight = 300;
+          view ID :> columnViews {
+            attribute :>> featureToRender = CT::declaredName;
+          }
+          view Name :> columnViews {
+            attribute :>> featureToRender = CT::heritage;
+          }
+          view Statement :> columnViews {
+            attribute :>> featureToRender = CT::documentation;
+            attribute :>> columnWidth = 360;
+          }
         }
       }
     }

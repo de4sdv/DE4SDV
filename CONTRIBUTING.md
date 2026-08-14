@@ -131,8 +131,14 @@ validation paths:
    before submitting or updating a PR:
 
 ```bash
+python -m pip install sysand==0.1.0
+sysand sync
 python scripts/validate_sysml.py
 ```
+
+The lock file resolves the pinned grid-view library used by model-defined
+tables and matrices. Do not commit `.sysand/`; commit changes to
+`.project.json` and `sysand-lock.toml` when intentionally changing a dependency.
 
 2. **Maintainer-run privileged validation.** If local Syside validation is not
    available, request maintainer-run licensed Syside validation in the PR after
@@ -145,6 +151,8 @@ prerequisite for contributing.
 Maintainer-run validation uses the `Privileged Syside Validation` workflow. It
 requires the `SYSIDE_LICENSE_KEY` repository secret and validates a reviewed
 branch, tag, or commit SHA without exposing the key to contributors.
+The same workflow exports native SysIDE grid views and publishes their CSV and
+reviewer-facing SVG representations with the diagram artifact.
 Maintainers run it from GitHub Actions by selecting the workflow, choosing
 **Run workflow**, and entering the reviewed `ref` and `model_path`.
 

@@ -101,7 +101,7 @@ The viewpoint and view usage now distinguishes:
 - **8 reusable viewpoint defs** in `DE4SDV_MethodViewpoints`: 3 method-governance + 5 engineering-domain, each engineering-domain viewpoint def carrying a `doc` comment naming its SAF source;
 - **concrete `view` usages in all 4 AEBS SysML slices** (increment framing, operational context, needs/requirements, functional behavior) — not just the framing slice;
 - **targeted `expose`** with specific element names in all views, replacing the earlier `expose *` namespace dumps;
-- `render asTreeDiagram` as the only validated renderer — views serve as filtered model queries for human navigation.
+- concern-appropriate tree, action-flow, interconnection, table, and matrix presentations; views remain source-synchronized model queries.
 
 The V&V planning fields, evidence status, gaps, and requirement quality findings remain in the Markdown/YAML reviewer artifacts for PR #42. They are intentionally not modeled as generic SysML part taxonomies in `aebs_needs_requirements.sysml`.
 
@@ -111,7 +111,7 @@ The V&V planning fields, evidence status, gaps, and requirement quality findings
 - Operational assumptions and gaps remain in YAML/Markdown until a dedicated V&V/evidence SysML slice chooses native representation.
 - Native SysML v2 variation/variant usage is now introduced only for deferred product-line choices; concrete AEBS sensor-package and evidence-level variants still require traceable functional/evidence increments before becoming accepted product-line choices.
 - Functional item defs now structurally reuse generated/extended VSS signal definitions via direct `attribute` declarations and recursive import. INC-AEBS-005 adds typed functional interface ports and signal character classification. Accepted conceptual interfaces, signal ownership/direction at the architecture level, and upstream suitability of DE4SDV extension signals still need a conceptual realization increment and upstream VSS review.
-- Views use targeted `expose` for human-filtered navigation, but `render asTreeDiagram` is the only validated renderer. SysIDE `syside viz view` currently renders ownership hierarchy, not relationship diagrams. Alternative renderers (`asInteractionDiagram`, `asStateTransitionDiagram`) are untested.
+- Diagram views use targeted `expose` and concern-appropriate render kinds. Requirement definitions and allocation mappings use pinned native grid views; privileged rendering exports their CSV and formats matching review SVGs. Renderer omissions remain presentation limits and never override textual semantics.
 - SDV platform stack compatibility constraints, including the adapter compatibility constraint, are documented as doc comments only. Formal `require constraint` bodies encoding valid/invalid layer combinations depend on SysML v2 constraint expression syntax validation for cross-variant references.
 - Candidate realization `part def`s (Autoware, S-CORE, Android SDV, etc.) carry doc-only provenance. No conformance claim to DE4SDV boundary contracts is made without evidence. Reference contract packages and evidence-status documentation are deferred to later increments.
 

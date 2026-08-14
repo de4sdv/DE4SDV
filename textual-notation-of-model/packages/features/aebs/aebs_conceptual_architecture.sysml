@@ -22,6 +22,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
+  private import SysideViews::*;
   private import Views::*;
 
   /* ──────────────────────────────────────────
@@ -551,21 +552,35 @@ package DE4SDV_AEBSConceptualArchitecture {
     render asInterconnectionDiagram;
   }
 
-  view aebsSystemFunctionMappingView {
+  view aebsSystemFunctionMappingView : MVD::MatrixView {
     viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
       frame conceptualFunctionMappingConcern;
     }
-
-    expose acquireStateAllocation;
-    expose assessRiskPathAllocation;
-    expose assessRiskTargetAllocation;
-    expose assessRiskEvaluationAllocation;
-    expose requestWarningAllocation;
-    expose evaluateOverrideAllocation;
-    expose requestBrakingDecisionAllocation;
-    expose requestBrakingCoordinationAllocation;
-    expose monitorFailureAllocation;
-    expose recordEvidenceAllocation;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose functionalFlow::acquireState;
+      expose functionalFlow::assessRisk;
+      expose functionalFlow::requestWarning;
+      expose functionalFlow::evaluateOverride;
+      expose functionalFlow::requestBraking;
+      expose functionalFlow::monitorFailure;
+      expose functionalFlow::recordEvidence;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose system::stateAcquisition;
+      expose system::egoPathPrediction;
+      expose system::targetProcessing;
+      expose system::collisionRiskEvaluation;
+      expose system::interventionDecision;
+      expose system::warningManagement;
+      expose system::emergencyCoordination;
+      expose system::healthSupervision;
+      expose system::evidenceRecording;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_AEBSConceptualArchitecture::*;
+      attribute :>> direction = Dir::row2col;
+    }
   }
 }

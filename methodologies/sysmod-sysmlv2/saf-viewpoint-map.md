@@ -171,15 +171,15 @@ DE4SDV method-governance viewpoints are in `textual-notation-of-model/packages/m
 New SAF viewpoints are added to `SAF_Viewpoints` incrementally as DE4SDV increments need them.
 
 Each concrete `view` uses a `viewpoint` selection with `frame` bindings to
-concerns, and `expose Package::*` to render the package content. SysML v2
-`expose` only accepts a membership pattern (e.g. `Package::*`), not a
-comma-separated element list — verified against the Pilot Implementation
-corpus. The filtering value comes from the viewpoint selection and frame
-binding, not from the expose syntax.
+concerns. Exposures are scoped to the elements and relationships needed to
+answer that concern rather than dumping whole packages.
 
-Rendering uses `render asTreeDiagram` — the only renderer validated in SysIDE.
-Views serve as filtered model queries for human navigation; rendered SVGs
-currently show ownership hierarchy, not relationship diagrams.
+Presentation follows the concern: ownership/decomposition uses trees,
+processes use action-flow diagrams, exchanges use interconnection diagrams,
+requirement definitions use tables, and allocation mappings use matrices.
+Grid views are modeled with a pinned library and exported by the privileged
+workflow as both CSV and review SVG. SysML remains authoritative when a
+renderer omits or simplifies a valid relationship.
 
 ## Guardrails
 
