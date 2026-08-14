@@ -696,19 +696,19 @@ package DE4SDV_AEBSSimulationDeployment {
   }
   view aebsSimulationPhysicalInternalExchangeView {
     viewpoint selected : PhysicalInternalExchangeViewpoint { frame physicalInternalExchangeConcern; }
-    expose deployment::candidateVehicleSystem1;
-    expose deployment::candidateVehicleSystem1::aeb;
-    expose deployment::candidateVehicleSystem1::aeb::*[istype SysML::PortUsage];
-    expose deployment::candidateVehicleSystem1::aggregator;
-    expose deployment::candidateVehicleSystem1::aggregator::*[istype SysML::PortUsage];
-    expose deployment::candidateVehicleSystem1::commandModeToOperationModeAvailabilityConverter;
-    expose deployment::candidateVehicleSystem1::commandModeToOperationModeAvailabilityConverter::*[istype SysML::PortUsage];
-    expose deployment::candidateVehicleSystem1::mrmHandler;
-    expose deployment::candidateVehicleSystem1::mrmHandler::*[istype SysML::PortUsage];
-    expose deployment::candidateVehicleSystem1::emergencyStopOperator;
-    expose deployment::candidateVehicleSystem1::emergencyStopOperator::*[istype SysML::PortUsage];
-    expose deployment::candidateVehicleSystem1::legacyVehicleCommandGate;
-    expose deployment::candidateVehicleSystem1::legacyVehicleCommandGate::*[istype SysML::PortUsage];
+    expose AEBSystem1CandidateDeployment;
+    expose AEBSystem1CandidateDeployment::aeb;
+    expose AEBSystem1CandidateDeployment::aeb::*[istype SysML::PortUsage];
+    expose AEBSystem1CandidateDeployment::aggregator;
+    expose AEBSystem1CandidateDeployment::aggregator::*[istype SysML::PortUsage];
+    expose AEBSystem1CandidateDeployment::commandModeToOperationModeAvailabilityConverter;
+    expose AEBSystem1CandidateDeployment::commandModeToOperationModeAvailabilityConverter::*[istype SysML::PortUsage];
+    expose AEBSystem1CandidateDeployment::mrmHandler;
+    expose AEBSystem1CandidateDeployment::mrmHandler::*[istype SysML::PortUsage];
+    expose AEBSystem1CandidateDeployment::emergencyStopOperator;
+    expose AEBSystem1CandidateDeployment::emergencyStopOperator::*[istype SysML::PortUsage];
+    expose AEBSystem1CandidateDeployment::legacyVehicleCommandGate;
+    expose AEBSystem1CandidateDeployment::legacyVehicleCommandGate::*[istype SysML::PortUsage];
     expose AEBSystem1CandidateDeployment::*[istype SysML::FlowUsage];
     attribute depth = -1;
     attribute showAnnotationRows = false;
