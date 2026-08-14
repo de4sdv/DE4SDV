@@ -186,8 +186,13 @@ def test_function_and_interface_views_do_not_dump_packages() -> None:
         assert f"expose {flow_name};" in behavior
         assert "::*;" not in behavior
         interface = _block(model, f"view {interface_name}")
-        assert "istype SysML::PortDefinition" in interface
-        assert "istype SysML::ItemDefinition" in interface
+        if interface_name == "mwFunctionalInterfaceView":
+            assert "expose FunctionalArchitecture::VehicleSignalAccessInbound;" in interface
+            assert "expose FunctionalArchitecture::VehicleSignalAccessRequest;" in interface
+            assert "FunctionalArchitecture::*[" not in interface
+        else:
+            assert "istype SysML::PortDefinition" in interface
+            assert "istype SysML::ItemDefinition" in interface
 
     middleware = (ROOT / next(path for path in cases if "middleware" in path)).read_text(
         encoding="utf-8"
@@ -223,5 +228,12 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     assert "expose physicalSoftware::*;" in physical_structure
     assert "expose DE4SDV_MWPhysicalSoftwareRealization::*;" not in physical_structure
     interface = _block(physical, "view mwPhysicalInterfaceView")
-    assert "istype SysML::PortDefinition" in interface
-    assert "istype SysML::ItemDefinition" in interface
+    assert (
+        "expose DE4SDV_MWPhysicalSoftwareRealization::"
+        "DE4SDVReferenceVehicleSpeedAccessPort;"
+    ) in interface
+    assert (
+        "expose DE4SDV_MWPhysicalSoftwareRealization::"
+        "DE4SDVReferenceVehicleSpeedPayload;"
+    ) in interface
+    assert "DE4SDV_MWPhysicalSoftwareRealization::*[" not in interface
