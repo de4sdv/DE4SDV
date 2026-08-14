@@ -385,81 +385,81 @@ package SAF_Viewpoints {
     }
   }
 
-  // ─── Logical Domain ───
+  // ─── Conceptual Domain ───
 
-  concern def LogicalStructureConcern {
+  concern def ConceptualStructureConcern {
     require constraint {
       doc /*
-       * Reviewers need the logical system decomposition, logical element
+       * Reviewers need the conceptual system decomposition, conceptual element
        * responsibilities, and ownership boundaries to be visible.
        */
     }
   }
 
-  viewpoint def LogicalStructureDefinitionViewpoint {
+  viewpoint def SystemStructureDefinitionViewpoint {
     doc /*
-     * SAF Logical Domain: Logical Structure Definition Viewpoint.
+     * SAF Conceptual Domain: System Structure Definition Viewpoint.
      * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
       doc /*
-       * A logical structure view shall show the logical system boundary and
-       * its hierarchical decomposition into logical elements responsible for
+       * A logical structure view shall show the conceptual system boundary and
+       * its hierarchical decomposition into conceptual elements responsible for
        * realizing system functions.
        */
     }
   }
 
-  concern def LogicalInternalExchangeConcern {
+  concern def ConceptualInternalExchangeConcern {
     require constraint {
       doc /*
-       * Reviewers need the typed logical interfaces, exchanges, directions,
-       * and delegation from the logical system boundary to internal elements.
+       * Reviewers need the typed conceptual interfaces, exchanges, directions,
+       * and delegation from the conceptual system boundary to internal elements.
        */
     }
   }
 
-  viewpoint def LogicalInternalExchangeViewpoint {
+  viewpoint def SystemInternalExchangeViewpoint {
     doc /*
-     * SAF Logical Domain: Logical Internal Exchange Viewpoint.
+     * SAF Conceptual Domain: System Internal Exchange Viewpoint.
      * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
       doc /*
-       * A logical internal exchange view shall show the logical system
-       * boundary, internal logical elements, connected interfaces, delegated
+       * A logical internal exchange view shall show the conceptual system
+       * boundary, internal conceptual elements, connected interfaces, delegated
        * boundary interfaces, and exchanged logical items.
        */
     }
   }
 
-  concern def LogicalInternalInteractionConcern {
+  concern def ConceptualInternalInteractionConcern {
     require constraint {
       doc /*
-       * Reviewers need logical interactions (sequences, message ordering)
+       * Reviewers need conceptual interactions (sequences, message ordering)
        * described for the increment.
        */
     }
   }
 
-  viewpoint def LogicalInternalInteractionViewpoint {
+  viewpoint def SystemInternalInteractionViewpoint {
     doc /*
-     * SAF Logical Domain: Logical Internal Interaction Viewpoint.
+     * SAF Conceptual Domain: System Internal Interaction Viewpoint.
      * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
       doc /*
        * A logical internal interaction view shall show interactions
-       * between logical elements, including message sequencing and
+       * between conceptual elements, including message sequencing and
        * temporal relationships.
        */
     }
   }
 
-  concern def LogicalFunctionalMappingConcern {
+  concern def ConceptualFunctionMappingConcern {
     require constraint {
       doc /*
        * Reviewers need every system function allocated to one or more logical
@@ -468,16 +468,16 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def LogicalFunctionalMappingViewpoint {
+  viewpoint def SystemFunctionMappingViewpoint {
     doc /*
-     * SAF Logical Domain: Logical Functional Mapping Viewpoint.
+     * SAF Conceptual Domain: System Functional Mapping Viewpoint.
      * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
     require constraint {
       doc /*
        * A logical functional mapping view shall show the allocation of system
-       * functions and partial functions to logical system elements.
+       * functions and partial functions to conceptual system elements.
        */
     }
   }
@@ -646,7 +646,7 @@ package SAF_Viewpoints {
   concern def PhysicalLogicalMappingConcern {
     require constraint {
       doc /*
-       * Reviewer question: Which logical element roles are realized by which
+       * Reviewer question: Which conceptual element roles are realized by which
        * physical element roles?
        */
     }
@@ -662,7 +662,7 @@ package SAF_Viewpoints {
       doc /*
        * A physical logical mapping view shall show logical and physical
        * element breakdowns and the realization relationships that identify
-       * which physical element roles implement each logical element role.
+       * which physical element roles implement each conceptual element role.
        */
     }
   }

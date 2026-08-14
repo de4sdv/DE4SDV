@@ -5,7 +5,7 @@
  * exercised by the executable bench. Its native verification case verifies only
  * the measurable System 2 evidence contracts defined here. Relevance links to
  * draft System 1 product-requirement candidates are neither verification nor
- * satisfaction claims. The model does not claim complete logical realization,
+ * satisfaction claims. The model does not claim complete conceptual realization,
  * physical brake performance, regulatory compliance, certification,
  * homologation, or type approval.
  */
@@ -104,7 +104,7 @@ package DE4SDV_AEBS009BNominalEvidence {
      * telemetry, requires a fresh source-stamped false override sample,
      * recognizes only the exact native intervention tuple, emits the direct
      * nominal-path braking request, and releases after continuously fresh held
-     * stop evidence. This is not the complete logical intervention-decision or
+     * stop evidence. This is not the complete conceptual intervention-decision or
      * emergency-intervention-coordination responsibility.
      */
     port riskTelemetryIn : RiskTelemetryInput;

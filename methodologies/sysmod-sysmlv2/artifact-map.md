@@ -29,8 +29,8 @@ This map shows how the upstream SYSMOD SysML v2 concepts can connect to existing
   - Candidate artifacts: `approach/process-set/`, future functional model package.
 
 - `logicalContext`
-  - Logical architecture and allocation decisions.
-  - Candidate artifacts: future logical architecture model package, `sysmlv2-api/`, `digital-continuity/`.
+  - System architecture and allocation decisions.
+  - Candidate artifacts: future system architecture model package, `sysmlv2-api/`, `digital-continuity/`.
 
 - `productContext`
   - Product-line variants, configured product models, and shared assets.

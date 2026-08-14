@@ -9,7 +9,7 @@ purpose: Define the operational context for integrating a domain-specific ADAS a
   a vehicle-level platform middleware (AAOS SDV, Eclipse S-CORE, AUTOSAR Adaptive). This increment models what happens in
   the world when an ADAS application needs vehicle signals, diagnostic access, lifecycle coordination, health monitoring,
   and software update coordination through a platform middleware — while presenting both emergency intervention options for
-  later decision-making in requirements and logical architecture phases.
+  later decision-making in requirements and system architecture phases.
 engineering_question: What operational scenarios require middleware integration between an ADAS application and the vehicle
   platform, and how should the alternative emergency intervention paths be represented in the operational context?
 lifecycle_decision_supported:
@@ -80,7 +80,7 @@ out_of_scope:
 - S-CORE internal implementation (LoLa, modules)
 - AUTOSAR Adaptive internal implementation (SOME/IP, RA)
 - Adapter functional behavior (message translation logic — INC-MW-006)
-- Logical architecture of the adapter (INC-MW-007)
+- System architecture of the adapter (INC-MW-007)
 - Physical/software realization (INC-MW-008)
 - PLE configuration (INC-MW-009)
 - V&V evidence (INC-MW-010)
@@ -99,7 +99,7 @@ assumptions:
     vehicle network). The operational context covers the distributed case, not just a single instance.
 - id: ASM-MW-008
   statement: The operational context presents both safety path options (through middleware vs direct). The decision is deferred
-    to requirements and logical architecture phases.
+    to requirements and system architecture phases.
 gaps:
 - id: GAP-MW-006
   statement: The specific vehicle signals that the ADAS application needs from the middleware are not yet enumerated. This
@@ -124,7 +124,7 @@ acceptance_criteria:
 - id: AC-MW-OC-005
   statement: Trace links exist from the INC-MW-001 framing to this operational context.
 - id: AC-MW-OC-006
-  statement: The operational context explicitly defers the emergency-path selection to requirements and logical architecture
+  statement: The operational context explicitly defers the emergency-path selection to requirements and system architecture
     phases.
 next_increments:
 - id: INC-MW-003

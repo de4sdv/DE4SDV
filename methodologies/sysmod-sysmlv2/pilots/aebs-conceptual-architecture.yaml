@@ -1,16 +1,16 @@
-schema: de4sdv.logical-architecture.v0
+schema: de4sdv.conceptual-architecture.v0
 id: INC-AEBS-006
-name: AEBS logical architecture
+name: AEBS system architecture
 status: draft
 type: EngineeringIncrement
 parent_increment: INC-AEBS-005
 owner: DE4SDV maintainers
 
-domain: logical
+domain: system
 selected_baseline: decomposed_rule_based
 
 purpose: >-
-  Define a technology-neutral logical architecture that allocates every
+  Define a technology-neutral system architecture that allocates every
   vehicle-target AEBS functional responsibility from INC-AEBS-004/005 to a
   bounded logical owner, exposes typed logical exchanges while marking nominal
   opaque contracts explicitly, separates the
@@ -57,9 +57,9 @@ source_alignment:
   - source_id: SAF-LOGICAL-DOMAIN
     use: viewpoint_selection
     notes:
-      - Logical Structure Definition Viewpoint
-      - Logical Internal Exchange Viewpoint
-      - Logical Functional Mapping Viewpoint
+      - System Structure Definition Viewpoint
+      - System Internal Exchange Viewpoint
+      - System Function Mapping Viewpoint
 
 system_of_interest:
   system_1: SDV product-line member product realizing the common AEBS capability.
@@ -262,7 +262,7 @@ logical_service_boundaries:
 
 logical_states:
   lifecycle:
-    owner: VehicleTargetAEBSLogicalSystem
+    owner: VehicleTargetAEBSSystem
     states: [standby, monitoring]
   warning:
     owner: DriverWarningManagement
@@ -285,7 +285,7 @@ logical_states:
 
 review_views:
   logical_structure:
-    exposes: logical system and nine component usages
+    exposes: conceptual system and nine component usages
     limitation: the tree renderer may list component ports but does not render their bind and flow edges; this view is decomposition-only
   logical_internal_exchange:
     exposes: direct logical-system members, including ports, boundary bindings, and internal flows
@@ -304,7 +304,7 @@ architecture_decisions:
     decision: Separate logical emergency-intervention request from physical actuator command.
     rationale: EmergencyInterventionRequest is a distinct logical item traced to, but not specialized from, the functional EmergencyBrakingCommand; downstream supervision, arbitration, vehicle interface, and brake actuation are physical-domain responsibilities.
   - id: DEC-AEBS-LOG-004
-    decision: Keep middleware products outside the logical architecture.
+    decision: Keep middleware products outside the system architecture.
     rationale: ROS 2/DDS, S-CORE, Android SDV, AAOS, and their adapters are physical software/platform realizations of logical service contracts.
 
 open_architecture_options:
@@ -362,7 +362,7 @@ gaps:
     status: open
   - id: GAP-AEBS-LOG-012
     statement: System lifecycle transition triggers, guards, and source contract remain undefined and are not carried by AEBSOperatingContext.
-    owner: VehicleTargetAEBSLogicalSystem
+    owner: VehicleTargetAEBSSystem
     status: open
   - id: GAP-AEBS-LOG-013
     statement: ObservationHealthStatus lacks observation-specific freshness, consistency, validity, timing, and aggregation semantics; it intentionally does not carry AEBS availability.

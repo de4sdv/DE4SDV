@@ -1,19 +1,19 @@
-schema: de4sdv.logical-architecture.v0
+schema: de4sdv.conceptual-architecture.v0
 id: INC-MW-007
-name: Middleware integration logical architecture
+name: Middleware integration system architecture
 status: draft
 type: LogicalArchitectureIncrement
 parent_increment: INC-MW-006
 owner: DE4SDV maintainers
 purpose: >-
   Allocate the technology-neutral middleware integration functions to logical
-  responsibilities and define logical boundary exchanges without selecting a
+  responsibilities and define system boundary exchanges without selecting a
   concrete middleware, software runtime, process, ECU, network, or deployment.
 engineering_question: >-
-  What logical elements realize the middleware integration functions and how do
+  What system elements realize the middleware integration functions and how do
   they exchange information at the logical boundary?
 lifecycle_decision_supported: >-
-  Decide whether the logical decomposition and functional mappings are explicit
+  Decide whether the system decomposition and functional mappings are explicit
   enough to begin physical/software realization in INC-MW-008.
 scope:
   in_scope:
@@ -40,11 +40,11 @@ source_alignment:
   use: functional-architecture-baseline
   artifact: methodologies/sysmod-sysmlv2/pilots/mw-functional-architecture.yaml
 selected_viewpoints:
-- viewpoint: LogicalStructureDefinitionViewpoint
-  rationale: Review logical decomposition and responsibility boundaries.
-- viewpoint: LogicalInternalExchangeViewpoint
+- viewpoint: SystemStructureDefinitionViewpoint
+  rationale: Review conceptual decomposition and responsibility boundaries.
+- viewpoint: SystemInternalExchangeViewpoint
   rationale: Review typed boundary interfaces, delegation, and exchanges.
-- viewpoint: LogicalFunctionalMappingViewpoint
+- viewpoint: SystemFunctionMappingViewpoint
   rationale: Review functional-to-logical responsibility allocation.
 logical_element_ids:
 - SignalTranslator
@@ -89,10 +89,10 @@ assumptions:
     logical system; this increment models only health and protection status.
 gaps:
 - id: GAP-MW-016
-  model_element: logicalSignalDefinitionGap
+  model_element: systemSignalDefinitionGap
 - id: GAP-MW-017
-  model_element: logicalServiceContractGap
+  model_element: systemServiceContractGap
 - id: GAP-MW-018
-  model_element: logicalSafetyOwnershipGap
+  model_element: systemSafetyOwnershipGap
 next_increments:
 - INC-MW-008: Physical/software realization of the selected logical responsibilities.
