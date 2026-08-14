@@ -99,6 +99,9 @@ def test_privileged_workflow_exports_and_renders_grid_views() -> None:
     )
     assert "python -m pip install sysand==0.1.0" in workflow
     assert "sysand sync" in workflow
+    assert 'SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"' in workflow
+    assert 'syside viz view "${SYSIDE_VIEWS_SOURCE}"' in workflow
+    assert 'syside table export "${SYSIDE_VIEWS_SOURCE}"' in workflow
     assert "syside table export" in workflow
     assert "python scripts/render_grid_csv.py grid-csv diagrams" in workflow
     assert "grid-csv/" in workflow
