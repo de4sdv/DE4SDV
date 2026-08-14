@@ -11,13 +11,13 @@
   <path d="M 1778,52 H 1778 V 52 H 1778 V 52 Z" fill="none"/>
   <path d="M 12,1486 H 12 V 1486 H 12 V 1486 Z" fill="none"/>
   <path d="M 18,52 H 1772 A 6,6 0 0 1 1778,58 V 1480 A 6,6 0 0 1 1772,1486 H 18 A 6,6 0 0 1 12,1480 V 58 A 6,6 0 0 1 18,52 Z" fill="#F9FAFF" fill-opacity="1.000"/>
-  <path d="M 18,52 H 174 V 66 A 6,6 0 0 1 168,72 H 12 V 58 A 6,6 0 0 1 18,52 Z" fill="#BDDCFF" fill-opacity="1.000" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 18,52 H 210 V 66 A 6,6 0 0 1 204,72 H 12 V 58 A 6,6 0 0 1 18,52 Z" fill="#BDDCFF" fill-opacity="1.000" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1578,1466 H 1778 V 1480 A 6,6 0 0 1 1772,1486 H 1572 V 1472 A 6,6 0 0 1 1578,1466 Z" fill="#BDDCFF" fill-opacity="1.000" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 18,52 H 1772 A 6,6 0 0 1 1778,58 V 1480 A 6,6 0 0 1 1772,1486 H 18 A 6,6 0 0 1 12,1480 V 58 A 6,6 0 0 1 18,52 Z" fill="none" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 283,245 H 541 A 6,6 0 0 1 547,251 V 309 A 6,6 0 0 1 541,315 H 283 A 6,6 0 0 1 277,309 V 251 A 6,6 0 0 1 283,245 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1081,245 H 1649 A 6,6 0 0 1 1655,251 V 309 A 6,6 0 0 1 1649,315 H 1081 A 6,6 0 0 1 1075,309 V 251 A 6,6 0 0 1 1081,245 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 978,504 H 1665 A 6,6 0 0 1 1671,510 V 568 A 6,6 0 0 1 1665,574 H 978 A 6,6 0 0 1 972,568 V 510 A 6,6 0 0 1 978,504 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 385,347 H 1033 A 6,6 0 0 1 1039,353 V 411 A 6,6 0 0 1 1033,417 H 385 A 6,6 0 0 1 379,411 V 353 A 6,6 0 0 1 385,347 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 508,504 H 1195 A 6,6 0 0 1 1201,510 V 568 A 6,6 0 0 1 1195,574 H 508 A 6,6 0 0 1 502,568 V 510 A 6,6 0 0 1 508,504 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 34,347 H 682 A 6,6 0 0 1 688,353 V 411 A 6,6 0 0 1 682,417 H 34 A 6,6 0 0 1 28,411 V 353 A 6,6 0 0 1 34,347 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 567,245 H 798 V 327 H 567 V 245 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 817,245 H 1055 V 327 H 817 V 245 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 28,245 H 258 V 327 H 28 V 245 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -26,20 +26,20 @@
   <path d="M 1173,144 H 1368 V 226 H 1173 V 144 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 930,144 H 1154 V 214 H 930 V 144 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 382,808 H 927 V 912 H 382 V 808 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 520,627 H 994 V 731 H 520 V 627 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 28,627 H 501 V 731 H 28 V 627 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1013,627 H 1355 V 776 H 1013 V 627 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 498,504 H 953 V 608 H 498 V 504 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 28,504 H 479 V 608 H 28 V 504 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 28,627 H 502 V 731 H 28 V 627 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1221,504 H 1694 V 608 H 1221 V 504 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 521,627 H 863 V 776 H 521 V 627 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 28,504 H 483 V 608 H 28 V 504 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 707,347 H 1158 V 451 H 707 V 347 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 297,1147 H 694 V 1450 H 297 V 1147 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1324,808 H 1576 A 6,6 0 0 1 1582,814 V 1122 A 6,6 0 0 1 1576,1128 H 1324 A 6,6 0 0 1 1318,1122 V 814 A 6,6 0 0 1 1324,808 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 34,1158 H 272 A 6,6 0 0 1 278,1164 V 1433 A 6,6 0 0 1 272,1439 H 34 A 6,6 0 0 1 28,1433 V 1164 A 6,6 0 0 1 34,1158 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 28,88 H 200 V 124 H 28 V 88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1380,627 H 1702 A 6,6 0 0 1 1708,633 V 782 A 6,6 0 0 1 1702,788 H 1380 A 6,6 0 0 1 1374,782 V 633 A 6,6 0 0 1 1380,627 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1279,627 H 1601 A 6,6 0 0 1 1607,633 V 782 A 6,6 0 0 1 1601,788 H 1279 A 6,6 0 0 1 1273,782 V 633 A 6,6 0 0 1 1279,627 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 34,808 H 357 A 6,6 0 0 1 363,814 V 963 A 6,6 0 0 1 357,969 H 34 A 6,6 0 0 1 28,963 V 814 A 6,6 0 0 1 34,808 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 952,808 H 1292 A 6,6 0 0 1 1298,814 V 963 A 6,6 0 0 1 1292,969 H 952 A 6,6 0 0 1 946,963 V 814 A 6,6 0 0 1 952,808 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1065,347 H 1393 A 6,6 0 0 1 1399,353 V 478 A 6,6 0 0 1 1393,484 H 1065 A 6,6 0 0 1 1059,478 V 353 A 6,6 0 0 1 1065,347 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 34,347 H 354 A 6,6 0 0 1 360,353 V 478 A 6,6 0 0 1 354,484 H 34 A 6,6 0 0 1 28,478 V 353 A 6,6 0 0 1 34,347 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1183,347 H 1511 A 6,6 0 0 1 1517,353 V 478 A 6,6 0 0 1 1511,484 H 1183 A 6,6 0 0 1 1177,478 V 353 A 6,6 0 0 1 1183,347 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 888,627 H 1248 A 6,6 0 0 1 1254,633 V 758 A 6,6 0 0 1 1248,764 H 888 A 6,6 0 0 1 882,758 V 633 A 6,6 0 0 1 888,627 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1464,88 H 1755 A 6,6 0 0 1 1761,94 V 118 A 6,6 0 0 1 1755,124 H 1464 A 6,6 0 0 1 1458,118 V 94 A 6,6 0 0 1 1464,88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1146,88 H 1432 A 6,6 0 0 1 1438,94 V 118 A 6,6 0 0 1 1432,124 H 1146 A 6,6 0 0 1 1140,118 V 94 A 6,6 0 0 1 1146,88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 834,88 H 1114 A 6,6 0 0 1 1120,94 V 118 A 6,6 0 0 1 1114,124 H 834 A 6,6 0 0 1 828,118 V 94 A 6,6 0 0 1 834,88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -49,8 +49,8 @@
   <path d="M 362,144 H 678 A 6,6 0 0 1 684,150 V 174 A 6,6 0 0 1 678,180 H 362 A 6,6 0 0 1 356,174 V 150 A 6,6 0 0 1 362,144 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 283,245 H 541 A 6,6 0 0 1 547,251 V 281 H 277 V 251 A 6,6 0 0 1 283,245 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1081,245 H 1649 A 6,6 0 0 1 1655,251 V 281 H 1075 V 251 A 6,6 0 0 1 1081,245 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 978,504 H 1665 A 6,6 0 0 1 1671,510 V 540 H 972 V 510 A 6,6 0 0 1 978,504 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 385,347 H 1033 A 6,6 0 0 1 1039,353 V 383 H 379 V 353 A 6,6 0 0 1 385,347 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 508,504 H 1195 A 6,6 0 0 1 1201,510 V 540 H 502 V 510 A 6,6 0 0 1 508,504 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 34,347 H 682 A 6,6 0 0 1 688,353 V 383 H 28 V 353 A 6,6 0 0 1 34,347 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 567,245 H 798 V 281 H 567 V 245 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 817,245 H 1055 V 281 H 817 V 245 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 28,245 H 258 V 281 H 28 V 245 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -59,20 +59,20 @@
   <path d="M 1173,144 H 1368 V 180 H 1173 V 144 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 930,144 H 1154 V 180 H 930 V 144 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 382,808 H 927 V 844 H 382 V 808 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 520,627 H 994 V 663 H 520 V 627 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 28,627 H 501 V 663 H 28 V 627 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1013,627 H 1355 V 663 H 1013 V 627 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 498,504 H 953 V 540 H 498 V 504 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 28,504 H 479 V 540 H 28 V 504 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 28,627 H 502 V 663 H 28 V 627 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1221,504 H 1694 V 540 H 1221 V 504 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 521,627 H 863 V 663 H 521 V 627 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 28,504 H 483 V 540 H 28 V 504 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 707,347 H 1158 V 383 H 707 V 347 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 297,1147 H 694 V 1183 H 297 V 1147 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1324,808 H 1576 A 6,6 0 0 1 1582,814 V 844 H 1318 V 814 A 6,6 0 0 1 1324,808 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 34,1158 H 272 A 6,6 0 0 1 278,1164 V 1194 H 28 V 1164 A 6,6 0 0 1 34,1158 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 28,88 H 200 V 124 H 28 V 88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1380,627 H 1702 A 6,6 0 0 1 1708,633 V 663 H 1374 V 633 A 6,6 0 0 1 1380,627 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1279,627 H 1601 A 6,6 0 0 1 1607,633 V 663 H 1273 V 633 A 6,6 0 0 1 1279,627 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 34,808 H 357 A 6,6 0 0 1 363,814 V 844 H 28 V 814 A 6,6 0 0 1 34,808 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 952,808 H 1292 A 6,6 0 0 1 1298,814 V 844 H 946 V 814 A 6,6 0 0 1 952,808 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1065,347 H 1393 A 6,6 0 0 1 1399,353 V 383 H 1059 V 353 A 6,6 0 0 1 1065,347 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 34,347 H 354 A 6,6 0 0 1 360,353 V 383 H 28 V 353 A 6,6 0 0 1 34,347 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1183,347 H 1511 A 6,6 0 0 1 1517,353 V 383 H 1177 V 353 A 6,6 0 0 1 1183,347 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 888,627 H 1248 A 6,6 0 0 1 1254,633 V 663 H 882 V 633 A 6,6 0 0 1 888,627 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1464,88 H 1755 A 6,6 0 0 1 1761,94 V 118 A 6,6 0 0 1 1755,124 H 1464 A 6,6 0 0 1 1458,118 V 94 A 6,6 0 0 1 1464,88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1146,88 H 1432 A 6,6 0 0 1 1438,94 V 118 A 6,6 0 0 1 1432,124 H 1146 A 6,6 0 0 1 1140,118 V 94 A 6,6 0 0 1 1146,88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 834,88 H 1114 A 6,6 0 0 1 1120,94 V 118 A 6,6 0 0 1 1114,124 H 834 A 6,6 0 0 1 828,118 V 94 A 6,6 0 0 1 834,88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -84,10 +84,10 @@
   <path d="M 283,245 H 541 A 6,6 0 0 1 547,251 V 309 A 6,6 0 0 1 541,315 H 283 A 6,6 0 0 1 277,309 V 251 A 6,6 0 0 1 283,245 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1075,281 1655,281" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1081,245 H 1649 A 6,6 0 0 1 1655,251 V 309 A 6,6 0 0 1 1649,315 H 1081 A 6,6 0 0 1 1075,309 V 251 A 6,6 0 0 1 1081,245 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="972,540 1671,540" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 978,504 H 1665 A 6,6 0 0 1 1671,510 V 568 A 6,6 0 0 1 1665,574 H 978 A 6,6 0 0 1 972,568 V 510 A 6,6 0 0 1 978,504 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="379,383 1039,383" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 385,347 H 1033 A 6,6 0 0 1 1039,353 V 411 A 6,6 0 0 1 1033,417 H 385 A 6,6 0 0 1 379,411 V 353 A 6,6 0 0 1 385,347 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="502,540 1201,540" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 508,504 H 1195 A 6,6 0 0 1 1201,510 V 568 A 6,6 0 0 1 1195,574 H 508 A 6,6 0 0 1 502,568 V 510 A 6,6 0 0 1 508,504 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,383 688,383" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 34,347 H 682 A 6,6 0 0 1 688,353 V 411 A 6,6 0 0 1 682,417 H 34 A 6,6 0 0 1 28,411 V 353 A 6,6 0 0 1 34,347 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="567,281 798,281" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 567,245 H 798 V 327 H 567 V 245 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="817,281 1055,281" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -105,22 +105,22 @@
   <polyline points="382,844 927,844" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="382,878 927,878" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 382,808 H 927 V 912 H 382 V 808 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="520,663 994,663" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="520,697 994,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 520,627 H 994 V 731 H 520 V 627 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,663 501,663" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,697 501,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 28,627 H 501 V 731 H 28 V 627 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1013,663 1355,663" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1013,697 1355,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1013,743 1355,743" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1013,627 H 1355 V 776 H 1013 V 627 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="498,540 953,540" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="498,574 953,574" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 498,504 H 953 V 608 H 498 V 504 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,540 479,540" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,574 479,574" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 28,504 H 479 V 608 H 28 V 504 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,663 502,663" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,697 502,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 28,627 H 502 V 731 H 28 V 627 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1221,540 1694,540" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1221,574 1694,574" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1221,504 H 1694 V 608 H 1221 V 504 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="521,663 863,663" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="521,697 863,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="521,743 863,743" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 521,627 H 863 V 776 H 521 V 627 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,540 483,540" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,574 483,574" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 28,504 H 483 V 608 H 28 V 504 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="707,383 1158,383" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="707,417 1158,417" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 707,347 H 1158 V 451 H 707 V 347 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="297,1183 694,1183" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="297,1217 694,1217" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="297,1311 694,1311" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -134,10 +134,10 @@
   <polyline points="28,1406 278,1406" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 34,1158 H 272 A 6,6 0 0 1 278,1164 V 1433 A 6,6 0 0 1 272,1439 H 34 A 6,6 0 0 1 28,1433 V 1164 A 6,6 0 0 1 34,1158 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 28,88 H 200 V 124 H 28 V 88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1374,663 1708,663" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1374,697 1708,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1374,743 1708,743" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1380,627 H 1702 A 6,6 0 0 1 1708,633 V 782 A 6,6 0 0 1 1702,788 H 1380 A 6,6 0 0 1 1374,782 V 633 A 6,6 0 0 1 1380,627 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1273,663 1607,663" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1273,697 1607,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1273,743 1607,743" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1279,627 H 1601 A 6,6 0 0 1 1607,633 V 782 A 6,6 0 0 1 1601,788 H 1279 A 6,6 0 0 1 1273,782 V 633 A 6,6 0 0 1 1279,627 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,844 363,844" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,878 363,878" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,924 363,924" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -146,14 +146,14 @@
   <polyline points="946,878 1298,878" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="946,924 1298,924" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 952,808 H 1292 A 6,6 0 0 1 1298,814 V 963 A 6,6 0 0 1 1292,969 H 952 A 6,6 0 0 1 946,963 V 814 A 6,6 0 0 1 952,808 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1059,383 1399,383" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1059,417 1399,417" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1059,451 1399,451" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1065,347 H 1393 A 6,6 0 0 1 1399,353 V 478 A 6,6 0 0 1 1393,484 H 1065 A 6,6 0 0 1 1059,478 V 353 A 6,6 0 0 1 1065,347 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,383 360,383" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,417 360,417" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,451 360,451" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 34,347 H 354 A 6,6 0 0 1 360,353 V 478 A 6,6 0 0 1 354,484 H 34 A 6,6 0 0 1 28,478 V 353 A 6,6 0 0 1 34,347 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1177,383 1517,383" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1177,417 1517,417" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1177,451 1517,451" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1183,347 H 1511 A 6,6 0 0 1 1517,353 V 478 A 6,6 0 0 1 1511,484 H 1183 A 6,6 0 0 1 1177,478 V 353 A 6,6 0 0 1 1183,347 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="882,663 1254,663" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="882,697 1254,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="882,731 1254,731" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 888,627 H 1248 A 6,6 0 0 1 1254,633 V 758 A 6,6 0 0 1 1248,764 H 888 A 6,6 0 0 1 882,758 V 633 A 6,6 0 0 1 888,627 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1464,88 H 1755 A 6,6 0 0 1 1761,94 V 118 A 6,6 0 0 1 1755,124 H 1464 A 6,6 0 0 1 1458,118 V 94 A 6,6 0 0 1 1464,88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1146,88 H 1432 A 6,6 0 0 1 1438,94 V 118 A 6,6 0 0 1 1432,124 H 1146 A 6,6 0 0 1 1140,118 V 94 A 6,6 0 0 1 1146,88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 834,88 H 1114 A 6,6 0 0 1 1120,94 V 118 A 6,6 0 0 1 1114,124 H 834 A 6,6 0 0 1 828,118 V 94 A 6,6 0 0 1 834,88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -167,7 +167,7 @@
   <circle cx="18.75" cy="-3.5" r="1.5" fill="black" stroke="black" data-render="filled"/>
   <circle cx="18.75" cy="3.5" r="1.5" fill="black" stroke="black" data-render="filled"/>
   </g>
-  <text x="20" y="64" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700"> mwLogicalExchangeView</tspan></text>
+  <text x="20" y="64" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700"> mwSystemInternalExchangeView</tspan></text>
   <text x="1580" y="1478" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expose DE4SDV_MWLogicalArchitecture::*</tspan></text>
   <text x="412" y="257" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
   <text x="412" y="273" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">incMW007 : FeatureIncrement</tspan></text>
@@ -177,14 +177,14 @@
   <text x="1365" y="273" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">logicalSignalDefinitionGap : DeferredProductLineScope</tspan></text>
   <text x="1365" y="291.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
   <text x="1083" y="307" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GAP-MW-016: Logical signal contracts remain nominal until signal identity, units, freshness, and conversion rules are baselined.</tspan></text>
-  <text x="1321.5" y="516" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="1321.5" y="532" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">logicalServiceContractGap : DeferredProductLineScope</tspan></text>
-  <text x="1321.5" y="550.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="980" y="566" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GAP-MW-017: Logical service discovery, authentication, and binding contracts remain technology-neutral and incomplete until physical interface selection.</tspan></text>
-  <text x="709" y="359" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="709" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">logicalSafetyOwnershipGap : DeferredProductLineScope</tspan></text>
-  <text x="709" y="393.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="387" y="409" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GAP-MW-018: Ownership and failure-response semantics for safety-path protection remain open pending safety analysis and physical realization.</tspan></text>
+  <text x="851.5" y="516" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="851.5" y="532" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">logicalServiceContractGap : DeferredProductLineScope</tspan></text>
+  <text x="851.5" y="550.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="510" y="566" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GAP-MW-017: Logical service discovery, authentication, and binding contracts remain technology-neutral and incomplete until physical interface selection.</tspan></text>
+  <text x="358" y="359" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="358" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">logicalSafetyOwnershipGap : DeferredProductLineScope</tspan></text>
+  <text x="358" y="393.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="36" y="409" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GAP-MW-018: Ownership and failure-response semantics for safety-path protection remain open pending safety analysis and physical realization.</tspan></text>
   <text x="682.5" y="257" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«port def»</tspan></text>
   <text x="682.5" y="273" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">SignalAccessApplicationPort</tspan></text>
   <text x="682.5" y="291.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">items</tspan></text>
@@ -224,39 +224,39 @@
   <text x="390" y="870" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for translating and exposing vehicle-signal access without selecting a signal schema or transport.</tspan></text>
   <text x="654.5" y="888.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
   <text x="390" y="904" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : SignalAccessApplicationPort</tspan></text>
-  <text x="757" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
-  <text x="757" y="655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">DiagnosticProxy</tspan></text>
-  <text x="757" y="673.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="528" y="689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for proxying diagnostic requests and responses across the middleware boundary.</tspan></text>
-  <text x="757" y="707.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="528" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : DiagnosticApplicationPort</tspan></text>
-  <text x="264.5" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
-  <text x="264.5" y="655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">LifecycleBridge</tspan></text>
-  <text x="264.5" y="673.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="36" y="689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for coordinating application-visible lifecycle state with middleware lifecycle state.</tspan></text>
-  <text x="264.5" y="707.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="36" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : LifecycleApplicationPort</tspan></text>
-  <text x="1184" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
-  <text x="1184" y="655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">HealthProxy</tspan></text>
-  <text x="1184" y="673.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1021" y="689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for forwarding service health and availability status.</tspan></text>
-  <text x="1184" y="707.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="1021" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : HealthApplicationPort</tspan></text>
-  <text x="1021" y="735" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">safetyObservation : SafetyPathObservationPort</tspan></text>
-  <text x="1184" y="753.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">exhibit states</tspan></text>
-  <text x="1021" y="769" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">healthStates</tspan></text>
-  <text x="725.5" y="516" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
-  <text x="725.5" y="532" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">UpdateCoordinator</tspan></text>
-  <text x="725.5" y="550.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="506" y="566" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for coordinating integration updates without selecting an update mechanism.</tspan></text>
-  <text x="725.5" y="584.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="506" y="600" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : UpdateApplicationPort</tspan></text>
-  <text x="253.5" y="516" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
-  <text x="253.5" y="532" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">ServiceBindingManager</tspan></text>
-  <text x="253.5" y="550.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="36" y="566" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for service discovery, authentication boundary handling, and service binding.</tspan></text>
-  <text x="253.5" y="584.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="36" y="600" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : ServiceBindingApplicationPort</tspan></text>
+  <text x="265" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
+  <text x="265" y="655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">DiagnosticProxy</tspan></text>
+  <text x="265" y="673.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="36" y="689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for proxying diagnostic requests and responses across the middleware boundary.</tspan></text>
+  <text x="265" y="707.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
+  <text x="36" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : DiagnosticApplicationPort</tspan></text>
+  <text x="1457.5" y="516" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
+  <text x="1457.5" y="532" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">LifecycleBridge</tspan></text>
+  <text x="1457.5" y="550.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1229" y="566" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for coordinating application-visible lifecycle state with middleware lifecycle state.</tspan></text>
+  <text x="1457.5" y="584.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
+  <text x="1229" y="600" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : LifecycleApplicationPort</tspan></text>
+  <text x="692" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
+  <text x="692" y="655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">HealthProxy</tspan></text>
+  <text x="692" y="673.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="529" y="689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for forwarding service health and availability status.</tspan></text>
+  <text x="692" y="707.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
+  <text x="529" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : HealthApplicationPort</tspan></text>
+  <text x="529" y="735" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">safetyObservation : SafetyPathObservationPort</tspan></text>
+  <text x="692" y="753.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">exhibit states</tspan></text>
+  <text x="529" y="769" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">healthStates</tspan></text>
+  <text x="255.5" y="516" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
+  <text x="255.5" y="532" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">UpdateCoordinator</tspan></text>
+  <text x="255.5" y="550.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="36" y="566" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for coordinating integration updates without selecting an update mechanism.</tspan></text>
+  <text x="255.5" y="584.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
+  <text x="36" y="600" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : UpdateApplicationPort</tspan></text>
+  <text x="932.5" y="359" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
+  <text x="932.5" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">ServiceBindingManager</tspan></text>
+  <text x="932.5" y="393.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="715" y="409" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Logical responsibility for service discovery, authentication boundary handling, and service binding.</tspan></text>
+  <text x="932.5" y="427.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
+  <text x="715" y="443" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application : ServiceBindingApplicationPort</tspan></text>
   <text x="495.5" y="1159" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="495.5" y="1175" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">MiddlewareLogicalSystem</tspan></text>
   <text x="495.5" y="1193.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -324,18 +324,18 @@
   <text x="36" y="1432" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^lifecycleStates</tspan></text>
   <text x="114" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocation def»</tspan></text>
   <text x="114" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">FunctionalToLogicalResponsibility</tspan></text>
-  <text x="1541" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
-  <text x="1541" y="655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">logicalStructureConcern : LogicalStructureConcern</tspan></text>
-  <text x="1541" y="673.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1382" y="689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
-  <text x="1541" y="707.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
-  <text x="1382" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemsEngineer : SystemsEngineer</tspan></text>
-  <text x="1382" y="735" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
-  <text x="1541" y="753.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1382" y="769" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the logical system decomposition, logical element</tspan></text>
-  <text x="1382" y="781" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">responsibilities, and ownership boundaries to be visible.</tspan></text>
+  <text x="1440" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
+  <text x="1440" y="655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">systemStructureConcern : SystemStructureConcern</tspan></text>
+  <text x="1440" y="673.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1281" y="689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
+  <text x="1440" y="707.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
+  <text x="1281" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemsEngineer : SystemsEngineer</tspan></text>
+  <text x="1281" y="735" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
+  <text x="1440" y="753.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1281" y="769" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the logical system decomposition, logical element</tspan></text>
+  <text x="1281" y="781" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">responsibilities, and ownership boundaries to be visible.</tspan></text>
   <text x="195.5" y="820" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
-  <text x="195.5" y="836" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">logicalExchangeConcern : LogicalInternalExchangeConcern</tspan></text>
+  <text x="195.5" y="836" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">systemInternalExchangeConcern : SystemInternalExchangeConcern</tspan></text>
   <text x="195.5" y="854.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
   <text x="36" y="870" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
   <text x="195.5" y="888.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
@@ -345,7 +345,7 @@
   <text x="36" y="950" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the typed logical interfaces, exchanges, directions,</tspan></text>
   <text x="36" y="962" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">and delegation from the logical system boundary to internal elements.</tspan></text>
   <text x="1122" y="820" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
-  <text x="1122" y="836" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">logicalMappingConcern : LogicalFunctionalMappingConcern</tspan></text>
+  <text x="1122" y="836" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">systemFunctionMappingConcern : SystemFunctionMappingConcern</tspan></text>
   <text x="1122" y="854.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
   <text x="954" y="870" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
   <text x="1122" y="888.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
@@ -354,22 +354,22 @@
   <text x="1122" y="934.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
   <text x="954" y="950" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need every system function allocated to one or more logical</tspan></text>
   <text x="954" y="962" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">elements without implying a physical or software implementation.</tspan></text>
-  <text x="1229" y="359" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan></text>
-  <text x="1229" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">mwLogicalStructureView</tspan></text>
-  <text x="1229" y="393.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">viewpoints</tspan></text>
-  <text x="1067" y="409" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">selectedLogicalStructureViewpoint : SystemStructureDefinitionViewpoint</tspan></text>
-  <text x="1229" y="427.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">exposes</tspan></text>
-  <text x="1067" y="443" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_MWLogicalArchitecture::*</tspan></text>
-  <text x="1229" y="461.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">rendering</tspan></text>
-  <text x="1067" y="477" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">viewRendering ::&gt; asTreeDiagram</tspan></text>
-  <text x="194" y="359" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan></text>
-  <text x="194" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">mwLogicalMappingView</tspan></text>
-  <text x="194" y="393.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">viewpoints</tspan></text>
-  <text x="36" y="409" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">selectedLogicalMappingViewpoint : SystemFunctionMappingViewpoint</tspan></text>
-  <text x="194" y="427.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">exposes</tspan></text>
-  <text x="36" y="443" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_MWLogicalArchitecture::*</tspan></text>
-  <text x="194" y="461.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">rendering</tspan></text>
-  <text x="36" y="477" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">viewRendering ::&gt; asTreeDiagram</tspan></text>
+  <text x="1347" y="359" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan></text>
+  <text x="1347" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">mwSystemStructureView</tspan></text>
+  <text x="1347" y="393.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">viewpoints</tspan></text>
+  <text x="1185" y="409" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint</tspan></text>
+  <text x="1347" y="427.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">exposes</tspan></text>
+  <text x="1185" y="443" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_MWLogicalArchitecture::*</tspan></text>
+  <text x="1347" y="461.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">rendering</tspan></text>
+  <text x="1185" y="477" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">viewRendering ::&gt; asTreeDiagram</tspan></text>
+  <text x="1068" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan></text>
+  <text x="1068" y="655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">mwSystemFunctionMappingView</tspan></text>
+  <text x="1068" y="673.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">viewpoints</tspan></text>
+  <text x="890" y="689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint</tspan></text>
+  <text x="1068" y="707.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">exposes</tspan></text>
+  <text x="890" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_MWLogicalArchitecture::*</tspan></text>
+  <text x="1068" y="741.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">rendering</tspan></text>
+  <text x="890" y="757" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">viewRendering ::&gt; asTreeDiagram</tspan></text>
   <text x="1609.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
   <text x="1609.5" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">signalTranslationAllocation : FunctionalToLogicalResponsibility</tspan></text>
   <text x="1289" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
