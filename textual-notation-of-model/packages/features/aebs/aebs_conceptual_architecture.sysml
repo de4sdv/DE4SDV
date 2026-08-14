@@ -1,10 +1,10 @@
 /*
- * DE4SDV AEBS logical architecture model slice.
+ * DE4SDV AEBS system architecture model slice.
  *
  * This package mirrors INC-AEBS-006 from
- * methodologies/sysmod-sysmlv2/pilots/aebs-logical-architecture.yaml.
+ * methodologies/sysmod-sysmlv2/pilots/aebs-conceptual-architecture.yaml.
  *
- * Domain boundary: logical architecture only. Autoware, ROS 2/DDS,
+ * Domain boundary: system architecture only. Autoware, ROS 2/DDS,
  * Eclipse S-CORE, Android SDV/AAOS, middleware adapters, processes, ECUs,
  * sensors, networks, actuators, calibrated thresholds, and compliance claims
  * are intentionally excluded.
@@ -18,14 +18,14 @@
  *   Behavior/5-State-based Behavior-1.sysml.
  */
 
-package DE4SDV_AEBSLogicalArchitecture {
+package DE4SDV_AEBSConceptualArchitecture {
   private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import Views::*;
 
   /* ──────────────────────────────────────────
-   * Logical information definitions
+   * Conceptual information definitions
    * ────────────────────────────────────────── */
 
   enum def AEBSAvailabilityKind {
@@ -43,7 +43,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   item def AEBSOperatingContext {
     doc /*
      * Technology-neutral intervention-eligibility and inhibition context
-     * supplied to the logical decision boundary. Concrete providers and
+     * supplied to the conceptual decision boundary. Concrete providers and
      * middleware are deferred to physical realization. System lifecycle and
      * AEBS availability are intentionally excluded; they have separate owners.
      *
@@ -64,14 +64,14 @@ package DE4SDV_AEBSLogicalArchitecture {
      * This is intentionally a nominal, opaque contract in INC-AEBS-006.
      * Horizon, coordinate frame, validity, timing, uncertainty, and path
      * representation remain requirements/interface gaps. The item name
-     * establishes the logical producer-consumer boundary without inventing
+     * establishes the conceptual producer-consumer boundary without inventing
      * a physical or software schema.
      */
   }
 
   item def InterventionDecision {
     doc /*
-     * Logical emergency-intervention intent after considering collision risk,
+     * Conceptual emergency-intervention intent after considering collision risk,
      * intervention eligibility/inhibition context, driver override, degradation,
      * and other inhibiting conditions.
      */
@@ -93,7 +93,7 @@ package DE4SDV_AEBSLogicalArchitecture {
 
   item def AEBSDegradationState {
     doc /*
-     * Logical valid/degraded/unavailable result from health supervision.
+     * Conceptual valid/degraded/unavailable result from health supervision.
      * Concrete diagnostic codes and middleware health services are deferred.
      */
     attribute availability : AEBSAvailabilityKind;
@@ -101,7 +101,7 @@ package DE4SDV_AEBSLogicalArchitecture {
 
   item def ObservationHealthStatus {
     doc /*
-     * Logical freshness, consistency, and validity status produced while
+     * Conceptual freshness, consistency, and validity status produced while
      * acquiring vehicle-motion and target observations.
      *
      * This is intentionally a nominal, opaque contract in INC-AEBS-006.
@@ -113,7 +113,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   /* ──────────────────────────────────────────
-   * Logical port definitions
+   * Conceptual port definitions
    * ────────────────────────────────────────── */
 
   port def VehicleMotionInput {
@@ -213,7 +213,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   /* ──────────────────────────────────────────
-   * Logical component definitions
+   * Conceptual component definitions
    * ────────────────────────────────────────── */
 
   part def StateAcquisitionAndNormalization {
@@ -271,7 +271,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   part def DriverWarningManagement {
-    doc /* Produces a logical driver-warning request without prescribing HMI technology. */
+    doc /* Produces a conceptual driver-warning request without prescribing HMI technology. */
     port collisionRiskIn : CollisionRiskInput;
     port driverWarningRequestOut : DriverWarningRequestOutput;
 
@@ -284,7 +284,7 @@ package DE4SDV_AEBSLogicalArchitecture {
 
   part def EmergencyInterventionCoordination {
     doc /*
-     * Issues and retains a logical emergency-intervention request only from an
+     * Issues and retains a conceptual emergency-intervention request only from an
      * affirmative arbitrated decision. Physical emergency supervision, command
      * gating, vehicle interfacing, and brake actuation are outside INC-AEBS-006.
      */
@@ -304,7 +304,7 @@ package DE4SDV_AEBSLogicalArchitecture {
 
   part def HealthAndDegradationSupervision {
     doc /*
-     * Sole logical owner of valid, degraded, and unavailable AEBS operation;
+     * Sole conceptual owner of valid, degraded, and unavailable AEBS operation;
      * reconciles input and subsystem health and requests failure indication.
      */
     port failureStatusIn : AEBSFailureStatusInput;
@@ -322,7 +322,7 @@ package DE4SDV_AEBSLogicalArchitecture {
   part def EvidenceRecording {
     doc /*
      * Observes risk, decision, degradation, warning, intervention, and failure
-     * events and emits a logical evidence event. Storage technology, retention,
+     * events and emits a conceptual evidence event. Storage technology, retention,
      * and evidence acceptance criteria remain open.
      */
     port collisionRiskIn : CollisionRiskInput;
@@ -335,13 +335,13 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   /* ──────────────────────────────────────────
-   * Logical system composition and exchanges
+   * Conceptual system composition and exchanges
    * ────────────────────────────────────────── */
 
-  part def VehicleTargetAEBSLogicalSystem {
+  part def VehicleTargetAEBSSystem {
     doc /*
-     * Technology-neutral logical realization of the vehicle-target AEBS
-     * functional baseline. Logical elements own responsibilities and exchange
+     * Technology-neutral conceptual realization of the vehicle-target AEBS
+     * functional baseline. Conceptual elements own responsibilities and exchange
      * typed information; no physical software or hardware realization is
      * implied.
      */
@@ -376,7 +376,7 @@ package DE4SDV_AEBSLogicalArchitecture {
       state monitoring;
     }
 
-    // Boundary delegation binds external ports to their logical owners.
+    // Boundary delegation binds external ports to their conceptual owners.
     bind vehicleMotionObservationIn = stateAcquisition.vehicleMotionIn;
     bind targetObservationIn = stateAcquisition.targetObservationIn;
     bind driverOverrideObservationIn = interventionDecision.driverOverrideIn;
@@ -433,129 +433,129 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   action functionalFlow : VehicleTargetAEBSFunctionalFlow;
-  part logicalSystem : VehicleTargetAEBSLogicalSystem;
+  part system : VehicleTargetAEBSSystem;
 
   /*
-   * Functional-to-logical responsibility allocation. One functional action may
-   * allocate to multiple logical elements when the logical decomposition makes
+   * Functional-to-conceptual responsibility allocation. One functional action may
+   * allocate to multiple conceptual elements when the conceptual decomposition makes
    * previously combined responsibilities explicit.
    */
-  allocation def FunctionalToLogicalResponsibility;
+  allocation def FunctionalToSystemResponsibility;
 
-  allocation acquireStateAllocation : FunctionalToLogicalResponsibility
+  allocation acquireStateAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.acquireState
-    to logicalSystem.stateAcquisition;
+    to system.stateAcquisition;
 
-  allocation assessRiskPathAllocation : FunctionalToLogicalResponsibility
+  allocation assessRiskPathAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.assessRisk
-    to logicalSystem.egoPathPrediction;
-  allocation assessRiskTargetAllocation : FunctionalToLogicalResponsibility
+    to system.egoPathPrediction;
+  allocation assessRiskTargetAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.assessRisk
-    to logicalSystem.targetProcessing;
-  allocation assessRiskEvaluationAllocation : FunctionalToLogicalResponsibility
+    to system.targetProcessing;
+  allocation assessRiskEvaluationAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.assessRisk
-    to logicalSystem.collisionRiskEvaluation;
+    to system.collisionRiskEvaluation;
 
-  allocation requestWarningAllocation : FunctionalToLogicalResponsibility
+  allocation requestWarningAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.requestWarning
-    to logicalSystem.warningManagement;
+    to system.warningManagement;
 
-  allocation evaluateOverrideAllocation : FunctionalToLogicalResponsibility
+  allocation evaluateOverrideAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.evaluateOverride
-    to logicalSystem.interventionDecision;
+    to system.interventionDecision;
 
-  allocation requestBrakingDecisionAllocation : FunctionalToLogicalResponsibility
+  allocation requestBrakingDecisionAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.requestBraking
-    to logicalSystem.interventionDecision;
-  allocation requestBrakingCoordinationAllocation : FunctionalToLogicalResponsibility
+    to system.interventionDecision;
+  allocation requestBrakingCoordinationAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.requestBraking
-    to logicalSystem.emergencyCoordination;
+    to system.emergencyCoordination;
 
-  allocation monitorFailureAllocation : FunctionalToLogicalResponsibility
+  allocation monitorFailureAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.monitorFailure
-    to logicalSystem.healthSupervision;
+    to system.healthSupervision;
 
-  allocation recordEvidenceAllocation : FunctionalToLogicalResponsibility
+  allocation recordEvidenceAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.recordEvidence
-    to logicalSystem.evidenceRecording;
+    to system.evidenceRecording;
 
   /* ──────────────────────────────────────────
    * Concerns and human-reviewable views
    * ────────────────────────────────────────── */
 
-  concern logicalStructureConcern : LogicalStructureConcern {
+  concern conceptualStructureConcern : ConceptualStructureConcern {
     doc /*
-     * Reviewers need the logical AEBS boundary, decomposition, responsibility
-     * ownership, and logical/physical separation to be explicit.
+     * Reviewers need the conceptual AEBS boundary, decomposition, responsibility
+     * ownership, and conceptual/physical separation to be explicit.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern logicalInternalExchangeConcern : LogicalInternalExchangeConcern {
+  concern conceptualInternalExchangeConcern : ConceptualInternalExchangeConcern {
     doc /*
      * Reviewers need typed boundary and internal exchanges, direction, and
-     * delegation to logical owners without middleware leakage.
+     * delegation to conceptual owners without middleware leakage.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern logicalFunctionalMappingConcern : LogicalFunctionalMappingConcern {
+  concern conceptualFunctionMappingConcern : ConceptualFunctionMappingConcern {
     doc /*
      * Reviewers need every AEBS functional action allocated to one or more
-     * logical elements without implying physical realization.
+     * conceptual elements without implying physical realization.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebsLogicalStructureView {
-    viewpoint selectedLogicalStructureViewpoint : LogicalStructureDefinitionViewpoint {
-      frame logicalStructureConcern;
+  view aebsSystemStructureView {
+    viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
+      frame conceptualStructureConcern;
     }
 
-    expose logicalSystem;
-    expose logicalSystem::stateAcquisition;
-    expose logicalSystem::egoPathPrediction;
-    expose logicalSystem::targetProcessing;
-    expose logicalSystem::collisionRiskEvaluation;
-    expose logicalSystem::interventionDecision;
-    expose logicalSystem::warningManagement;
-    expose logicalSystem::emergencyCoordination;
-    expose logicalSystem::healthSupervision;
-    expose logicalSystem::evidenceRecording;
+    expose system;
+    expose system::stateAcquisition;
+    expose system::egoPathPrediction;
+    expose system::targetProcessing;
+    expose system::collisionRiskEvaluation;
+    expose system::interventionDecision;
+    expose system::warningManagement;
+    expose system::emergencyCoordination;
+    expose system::healthSupervision;
+    expose system::evidenceRecording;
     /*
      * This is a decomposition view. The tree renderer may list ports owned by
      * the exposed parts, but it does not render the bind and flow edges below.
-     * Port connectivity is defined in VehicleTargetAEBSLogicalSystem and
-     * selected by aebsLogicalInternalExchangeView.
+     * Port connectivity is defined in VehicleTargetAEBSSystem and
+     * selected by aebsSystemInternalExchangeView.
      */
     render asTreeDiagram;
   }
 
-  view aebsLogicalInternalExchangeView {
-    viewpoint selectedLogicalInternalExchangeViewpoint : LogicalInternalExchangeViewpoint {
-      frame logicalInternalExchangeConcern;
+  view aebsSystemInternalExchangeView {
+    viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
+      frame conceptualInternalExchangeConcern;
     }
 
     /*
-     * Exposing direct logical-system members selects the boundary ports,
+     * Exposing direct conceptual-system members selects the boundary ports,
      * bindings, flows, and component usages that define connectivity. The
      * current tree renderer is not relationship-complete: it may list ports
      * without drawing bind or flow edges. Review the textual bind/flow usages
      * as the authoritative exchange topology.
      */
-    expose logicalSystem::*;
+    expose system::*;
     render asTreeDiagram;
   }
 
-  view aebsLogicalFunctionalMappingView {
-    viewpoint selectedLogicalFunctionalMappingViewpoint : LogicalFunctionalMappingViewpoint {
-      frame logicalFunctionalMappingConcern;
+  view aebsSystemFunctionMappingView {
+    viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
+      frame conceptualFunctionMappingConcern;
     }
 
     expose acquireStateAllocation;

@@ -53,7 +53,7 @@ classes:
     definition: A logical service, component, or responsibility grouping that realizes functions.
     subClassOf: ArchitectureElement
   PhysicalElement:
-    definition: A physical, software, hardware, deployment, or platform element that realizes logical elements or functions.
+    definition: A physical, software, hardware, deployment, or platform element that realizes conceptual elements or functions.
     subClassOf: ArchitectureElement
   Interface:
     definition: A boundary or interaction point through which items, signals, services, or information are exchanged.

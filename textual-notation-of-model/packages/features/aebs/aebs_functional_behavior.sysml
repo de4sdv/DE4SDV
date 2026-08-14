@@ -3,7 +3,7 @@
  *
  * This package mirrors INC-AEBS-004 from
  * methodologies/sysmod-sysmlv2/pilots/aebs-functional-behavior.yaml.
- * It is a functional-domain slice only: no logical component allocation,
+ * It is a functional-domain slice only: no conceptual component allocation,
  * physical/software realization, accepted VSS interface mapping, or UNECE R152
  * compliance/type-approval claim is made here.
  *
@@ -245,7 +245,7 @@ package DE4SDV_AEBSFunctionalBehavior {
         part def VehicleTargetAEBSFunctionalChain {
           doc /*
            * Functional chain part owning the AEBS vehicle-target interface ports.
-           * Not a logical component allocation — no ECU, software, sensor, or bus
+           * Not a conceptual component allocation — no ECU, software, sensor, or bus
            * assignment is implied. The chain performs the composite functional
            * flow from INC-AEBS-004 and exposes its boundary as typed ports.
            */

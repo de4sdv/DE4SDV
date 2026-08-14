@@ -90,8 +90,8 @@ Out of scope for the first pilot:
 
 Deferred viewpoints:
 
-- Logical Structure Definition,
-- Logical Functional Mapping,
+- System Structure Definition,
+- System Function Mapping,
 - Physical Structure Definition,
 - Physical Interface Definition,
 - Security Risk Analysis,

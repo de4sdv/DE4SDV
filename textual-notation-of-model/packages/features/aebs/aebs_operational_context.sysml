@@ -4,7 +4,7 @@
  * This package mirrors INC-AEBS-002 from
  * methodologies/sysmod-sysmlv2/pilots/aebs-operational-context.yaml.
  * It is an operational-domain model slice only: no design-input requirements,
- * VSS signal mapping, logical realization, physical/software realization, or
+ * VSS signal mapping, conceptual realization, physical/software realization, or
  * UNECE R152 compliance claim is made here.
  *
  * Shared operational actors/context entities are imported from
@@ -133,7 +133,7 @@ package DE4SDV_AEBSOperationalContext {
              * Establish the operational story for vehicle-target forward
              * collision risk mitigation in the AEBS pilot. This use case
              * frames the operational context only; requirements, functional
-             * interfaces, VSS signal candidates, logical realization,
+             * interfaces, VSS signal candidates, conceptual realization,
              * physical/software realization, and compliance evidence are
              * intentionally deferred to later increments.
              */

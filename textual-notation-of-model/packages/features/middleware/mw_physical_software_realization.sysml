@@ -22,7 +22,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_ExecutionEnvironments::*;
-  private import DE4SDV_MWLogicalArchitecture::*;
+  private import DE4SDV_MWConceptualArchitecture::*;
   private import DE4SDV_SDVPlatformStack::*;
   private import DE4SDV_AAOSSDVMiddlewareBoundary::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
@@ -506,25 +506,25 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   allocation signalTranslatorCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::signalTranslator
+    allocate DE4SDV_MWConceptualArchitecture::system::signalTranslator
     to physicalSoftware::signalAccessClient;
-  allocation vehicleSpeedLogicalToSoftwareSignalCandidate : LogicalToSoftwareSignalMappingCandidate
-    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::signalTranslator
+  allocation vehicleSpeedSystemToSoftwareSignalCandidate : SystemToSoftwareSignalMappingCandidate
+    allocate DE4SDV_MWConceptualArchitecture::system::signalTranslator
     to physicalSoftware::adapter::aaosSignal::vehicleSpeed;
   allocation diagnosticProxyCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::diagnosticProxy
+    allocate DE4SDV_MWConceptualArchitecture::system::diagnosticProxy
     to physicalSoftware::diagnosticAccessClient;
   allocation lifecycleBridgeCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::lifecycleBridge
+    allocate DE4SDV_MWConceptualArchitecture::system::lifecycleBridge
     to physicalSoftware::lifecycleClient;
   allocation healthProxyCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::healthProxy
+    allocate DE4SDV_MWConceptualArchitecture::system::healthProxy
     to physicalSoftware::healthClient;
   allocation updateCoordinatorCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::updateCoordinator
+    allocate DE4SDV_MWConceptualArchitecture::system::updateCoordinator
     to physicalSoftware::updateClient;
   allocation serviceBindingManagerCandidate : LogicalToPhysicalSoftwareCandidate
-    allocate DE4SDV_MWLogicalArchitecture::logicalSystem::serviceBindingManager
+    allocate DE4SDV_MWConceptualArchitecture::system::serviceBindingManager
     to physicalSoftware::serviceDiscoveryClient;
 
   dependency aaosBoundaryCandidateForSignalAccess
@@ -548,7 +548,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   dependency adapterCandidateAtApplicationBoundary
     from physicalSoftware::adapter
-    to DE4SDV_MWLogicalArchitecture::logicalSystem;
+    to DE4SDV_MWConceptualArchitecture::system;
 
   dependency adapterSignalMapping
     from physicalSoftware::adapter::applicationSignal
