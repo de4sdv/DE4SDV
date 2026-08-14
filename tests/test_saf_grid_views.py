@@ -72,7 +72,10 @@ def test_saf_mapping_views_are_native_allocation_matrices() -> None:
             assert "view :>> rowView" in block
             assert "view :>> columnView" in block
             assert "view :>> cellView" in block
-            assert "attribute :>> direction = Dir::row2col;" in block
+            assert (
+                "attribute :>> direction = "
+                "SysideViews::MatrixTraceabilityDirection::row2col;"
+            ) in block
             assert "render asTreeDiagram;" not in block
 
 

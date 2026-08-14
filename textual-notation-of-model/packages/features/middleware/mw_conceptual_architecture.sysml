@@ -273,7 +273,7 @@ package DE4SDV_MWConceptualArchitecture {
     }
     view :>> cellView {
       expose DE4SDV_MWConceptualArchitecture::*;
-      attribute :>> direction = Dir::row2col;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }
 }

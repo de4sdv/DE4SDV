@@ -757,7 +757,7 @@ package DE4SDV_AEBSSimulationDeployment {
     }
     view :>> cellView {
       expose DE4SDV_AEBSSimulationDeployment::*;
-      attribute :>> direction = Dir::row2col;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }
   view aebsSimulationPhysicalLogicalItemMappingView : MVD::MatrixView {
@@ -776,7 +776,7 @@ package DE4SDV_AEBSSimulationDeployment {
     }
     view :>> cellView {
       expose DE4SDV_AEBSSimulationDeployment::*;
-      attribute :>> direction = Dir::row2col;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }
 }

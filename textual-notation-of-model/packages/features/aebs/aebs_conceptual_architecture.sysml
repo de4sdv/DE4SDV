@@ -584,7 +584,7 @@ package DE4SDV_AEBSConceptualArchitecture {
     }
     view :>> cellView {
       expose DE4SDV_AEBSConceptualArchitecture::*;
-      attribute :>> direction = Dir::row2col;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }
 }

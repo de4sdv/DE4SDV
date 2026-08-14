@@ -613,7 +613,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
     }
     view :>> cellView {
       expose DE4SDV_AEBSPhysicalSoftwareRealization::*;
-      attribute :>> direction = Dir::row2col;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }
 }
