@@ -707,7 +707,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     }
     expose physicalSoftware;
     expose physicalSoftware::*;
-    attribute depth = 1;
+    attribute depth = 2;
     attribute showAnnotationRows = false;
     render asTreeDiagram;
   }

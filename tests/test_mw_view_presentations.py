@@ -83,3 +83,12 @@ def test_physical_interface_view_exposes_only_owned_interface_types() -> None:
         assert f"expose DE4SDV_MWPhysicalSoftwareRealization::{definition};" in view
     assert "istype SysML::" not in view
     assert "attribute showAnnotationRows = false;" in view
+
+
+def test_physical_structure_view_reaches_boundary_components() -> None:
+    text = PHYSICAL_MODEL.read_text(encoding="utf-8")
+    view = _block(text, "view mwPhysicalStructureView")
+
+    assert "expose physicalSoftware;" in view
+    assert "expose physicalSoftware::*;" in view
+    assert "attribute depth = 2;" in view

@@ -190,6 +190,11 @@ jobs:
             --view-name mwPhysicalInterfaceView \
             --require-label DE4SDVReferenceVehicleSpeedAccessPort \
             --require-label DE4SDVReferenceVehicleSpeedPayload
+          python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-mwPhysicalStructureView.svg \
+            --view-name mwPhysicalStructureView \
+            --require-label "adapter : AutowareToAAOSSDVAdapterPhysical" \
+            --require-label "aaosSdvBoundary : SDVCoreBoundary"
 
       - name: Export grid views and render review SVGs (Labs)
         if: steps.syside-secret.outputs.available == 'true'
