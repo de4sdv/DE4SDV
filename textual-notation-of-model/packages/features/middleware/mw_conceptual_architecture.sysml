@@ -1,38 +1,38 @@
 /*
- * DE4SDV middleware logical architecture model slice.
+ * DE4SDV middleware system architecture model slice.
  *
  * INC-MW-007 allocates the technology-neutral middleware functions to logical
  * responsibilities and defines their internal exchanges. It does not select
  * ROS 2, DDS, AAOS SDV, S-CORE, AUTOSAR, processes, ECUs, networks, or a
  * physical deployment. The emergency intervention command path remains
- * outside this middleware logical architecture; only its health/protection
+ * outside this middleware system architecture; only its health/protection
  * status is represented here.
  */
 
-package DE4SDV_MWLogicalArchitecture {
+package DE4SDV_MWConceptualArchitecture {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
   private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
   private import DE4SDV_MWRequirements::Features::Middleware::Requirements::*;
-  private import DE4SDV_AEBSLogicalArchitecture::*;
+  private import DE4SDV_AEBSConceptualArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
   part incMW007 : FeatureIncrement {
-    doc /* INC-MW-007: middleware integration logical architecture. */
+    doc /* INC-MW-007: middleware integration system architecture. */
   }
 
-  part logicalSignalDefinitionGap : DeferredProductLineScope {
-    doc /* GAP-MW-016: Logical signal contracts remain nominal until signal identity, units, freshness, and conversion rules are baselined. */
+  part systemSignalDefinitionGap : DeferredProductLineScope {
+    doc /* GAP-MW-016: Conceptual signal contracts remain nominal until signal identity, units, freshness, and conversion rules are baselined. */
   }
 
-  part logicalServiceContractGap : DeferredProductLineScope {
-    doc /* GAP-MW-017: Logical service discovery, authentication, and binding contracts remain technology-neutral and incomplete until physical interface selection. */
+  part systemServiceContractGap : DeferredProductLineScope {
+    doc /* GAP-MW-017: System service discovery, authentication, and binding contracts remain technology-neutral and incomplete until physical interface selection. */
   }
 
-  part logicalSafetyOwnershipGap : DeferredProductLineScope {
+  part systemSafetyOwnershipGap : DeferredProductLineScope {
     doc /* GAP-MW-018: Ownership and failure-response semantics for safety-path protection remain open pending safety analysis and physical realization. */
   }
 
@@ -70,22 +70,22 @@ package DE4SDV_MWLogicalArchitecture {
   }
 
   part def SignalTranslator {
-    doc /* Logical responsibility for translating and exposing vehicle-signal access without selecting a signal schema or transport. */
+    doc /* Conceptual responsibility for translating and exposing vehicle-signal access without selecting a signal schema or transport. */
     port application : SignalAccessApplicationPort;
   }
 
   part def DiagnosticProxy {
-    doc /* Logical responsibility for proxying diagnostic requests and responses across the middleware boundary. */
+    doc /* Conceptual responsibility for proxying diagnostic requests and responses across the middleware boundary. */
     port application : DiagnosticApplicationPort;
   }
 
   part def LifecycleBridge {
-    doc /* Logical responsibility for coordinating application-visible lifecycle state with middleware lifecycle state. */
+    doc /* Conceptual responsibility for coordinating application-visible lifecycle state with middleware lifecycle state. */
     port application : LifecycleApplicationPort;
   }
 
   part def HealthProxy {
-    doc /* Logical responsibility for forwarding service health and availability status. */
+    doc /* Conceptual responsibility for forwarding service health and availability status. */
     port application : HealthApplicationPort;
     port safetyObservation : SafetyPathObservationPort;
     exhibit state healthStates {
@@ -96,16 +96,16 @@ package DE4SDV_MWLogicalArchitecture {
   }
 
   part def UpdateCoordinator {
-    doc /* Logical responsibility for coordinating integration updates without selecting an update mechanism. */
+    doc /* Conceptual responsibility for coordinating integration updates without selecting an update mechanism. */
     port application : UpdateApplicationPort;
   }
 
   part def ServiceBindingManager {
-    doc /* Logical responsibility for service discovery, authentication boundary handling, and service binding. */
+    doc /* Conceptual responsibility for service discovery, authentication boundary handling, and service binding. */
     port application : ServiceBindingApplicationPort;
   }
 
-  part def MiddlewareLogicalSystem {
+  part def MiddlewareSystem {
     doc /* Technology-neutral logical composition of the middleware integration responsibilities. */
     port signalAccess : SignalAccessApplicationPort;
     port diagnosticAccess : DiagnosticApplicationPort;
@@ -140,111 +140,111 @@ package DE4SDV_MWLogicalArchitecture {
   }
 
   action functionalFlow : MiddlewareIntegrationFunctionalFlow;
-  part logicalSystem : MiddlewareLogicalSystem;
+  part system : MiddlewareSystem;
 
-  allocation def FunctionalToLogicalResponsibility;
+  allocation def FunctionalToSystemResponsibility;
 
-  allocation signalTranslationAllocation : FunctionalToLogicalResponsibility
+  allocation signalTranslationAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow::translateSignal
-    to logicalSystem.signalTranslator;
-  allocation diagnosticProxyAllocation : FunctionalToLogicalResponsibility
+    to system.signalTranslator;
+  allocation diagnosticProxyAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow::proxyDiagnostics
-    to logicalSystem.diagnosticProxy;
-  allocation lifecycleBridgeAllocation : FunctionalToLogicalResponsibility
+    to system.diagnosticProxy;
+  allocation lifecycleBridgeAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow::coordinateLifecycle
-    to logicalSystem.lifecycleBridge;
-  allocation healthProxyAllocation : FunctionalToLogicalResponsibility
+    to system.lifecycleBridge;
+  allocation healthProxyAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow::forwardHealth
-    to logicalSystem.healthProxy;
-  allocation updateCoordinatorAllocation : FunctionalToLogicalResponsibility
+    to system.healthProxy;
+  allocation updateCoordinatorAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow::coordinateUpdate
-    to logicalSystem.updateCoordinator;
-  allocation serviceBindingAllocation : FunctionalToLogicalResponsibility
+    to system.updateCoordinator;
+  allocation serviceBindingAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow::bindService
-    to logicalSystem.serviceBindingManager;
-  allocation safetyPathObservationAllocation : FunctionalToLogicalResponsibility
+    to system.serviceBindingManager;
+  allocation safetyPathObservationAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow::protectSafetyPath
-    to logicalSystem.healthProxy;
+    to system.healthProxy;
 
   dependency signalTranslatorDerivedFromRequirement
-    from logicalSystem::signalTranslator
+    from system::signalTranslator
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideMiddlewareSignalAccess;
   dependency diagnosticProxyDerivedFromRequirement
-    from logicalSystem::diagnosticProxy
+    from system::diagnosticProxy
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideMiddlewareDiagnosticAccess;
   dependency lifecycleBridgeDerivedFromRequirement
-    from logicalSystem::lifecycleBridge
+    from system::lifecycleBridge
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqCoordinateMiddlewareLifecycle;
   dependency healthProxyDerivedFromRequirement
-    from logicalSystem::healthProxy
+    from system::healthProxy
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqMonitorMiddlewareHealth;
   dependency updateCoordinatorDerivedFromRequirement
-    from logicalSystem::updateCoordinator
+    from system::updateCoordinator
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqCoordinateMiddlewareUpdates;
   dependency serviceBindingDerivedFromRequirement
-    from logicalSystem::serviceBindingManager
+    from system::serviceBindingManager
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideServiceDiscovery;
 
   dependency aebsVehicleMotionDependsOnSignalTranslator
-    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::vehicleMotionObservationIn
-    to logicalSystem::signalTranslator;
+    from DE4SDV_AEBSConceptualArchitecture::system::vehicleMotionObservationIn
+    to system::signalTranslator;
   dependency aebsTargetObservationDependsOnSignalTranslator
-    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::targetObservationIn
-    to logicalSystem::signalTranslator;
+    from DE4SDV_AEBSConceptualArchitecture::system::targetObservationIn
+    to system::signalTranslator;
   dependency aebsDriverOverrideDependsOnSignalTranslator
-    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::driverOverrideObservationIn
-    to logicalSystem::signalTranslator;
+    from DE4SDV_AEBSConceptualArchitecture::system::driverOverrideObservationIn
+    to system::signalTranslator;
   dependency aebsOperatingContextDependsOnLifecycleBridge
-    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::operatingContextIn
-    to logicalSystem::lifecycleBridge;
+    from DE4SDV_AEBSConceptualArchitecture::system::operatingContextIn
+    to system::lifecycleBridge;
   dependency aebsHealthStatusDependsOnHealthProxy
-    from DE4SDV_AEBSLogicalArchitecture::logicalSystem::subsystemHealthIn
-    to logicalSystem::healthProxy;
+    from DE4SDV_AEBSConceptualArchitecture::system::subsystemHealthIn
+    to system::healthProxy;
 
-  concern logicalStructureConcern : LogicalStructureConcern {
+  concern conceptualStructureConcern : ConceptualStructureConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern logicalExchangeConcern : LogicalInternalExchangeConcern {
+  concern conceptualInternalExchangeConcern : ConceptualInternalExchangeConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern logicalMappingConcern : LogicalFunctionalMappingConcern {
+  concern conceptualFunctionMappingConcern : ConceptualFunctionMappingConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view mwLogicalStructureView {
-    viewpoint selectedLogicalStructureViewpoint : LogicalStructureDefinitionViewpoint {
-      frame logicalStructureConcern;
+  view mwSystemStructureView {
+    viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
+      frame conceptualStructureConcern;
     }
-    expose DE4SDV_MWLogicalArchitecture::*;
+    expose DE4SDV_MWConceptualArchitecture::*;
     render asTreeDiagram;
   }
 
-  view mwLogicalExchangeView {
-    viewpoint selectedLogicalExchangeViewpoint : LogicalInternalExchangeViewpoint {
-      frame logicalExchangeConcern;
+  view mwSystemInternalExchangeView {
+    viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
+      frame conceptualInternalExchangeConcern;
     }
     /*
      * Expose the part-usage subtree, not the package: the interconnection
      * renderer draws part usages with their ports and flow edges; a
      * package-level expose resolves to definitions, which are skipped.
      */
-    expose logicalSystem::*;
+    expose system::*;
     render asInterconnectionDiagram;
   }
 
-  view mwLogicalMappingView {
-    viewpoint selectedLogicalMappingViewpoint : LogicalFunctionalMappingViewpoint {
-      frame logicalMappingConcern;
+  view mwSystemFunctionMappingView {
+    viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
+      frame conceptualFunctionMappingConcern;
     }
-    expose DE4SDV_MWLogicalArchitecture::*;
+    expose DE4SDV_MWConceptualArchitecture::*;
     render asTreeDiagram;
   }
 }

@@ -33,7 +33,7 @@ package DE4SDV_MWFunctionalArchitecture {
         }
 
         part safetyPathFunctionalOwnershipGap : DeferredProductLineScope {
-          doc /* GAP-MW-015: Functional ownership of safety-path protection remains unresolved until logical architecture and safety analysis. */
+          doc /* GAP-MW-015: Functional ownership of safety-path protection remains unresolved until system architecture and safety analysis. */
         }
 
         item def VehicleSignalAccessRequest {

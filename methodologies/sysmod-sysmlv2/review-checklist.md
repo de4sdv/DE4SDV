@@ -24,7 +24,7 @@ Use this checklist for future contributions that adopt or extend the SYSMOD SysM
 - [ ] Product-line variability, evidence, and baseline impacts are identified when relevant.
 - [ ] Syntax has been checked with the chosen SysML v2 tooling when executable model files are changed.
 
-## Logical-to-software signal mapping
+## System-to-software signal mapping
 
 - [ ] Every applicable logical or semantic information item crossing into a software, service, topic, API, or physical interface has a stable mapping record.
 - [ ] The mapping identifies the qualified source item/catalog path, contract message/field, adapter endpoints, direction, units/types, and transformation or state rule.

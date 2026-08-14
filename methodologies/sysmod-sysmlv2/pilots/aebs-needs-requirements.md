@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft needs and requirements increment for `INC-AEBS-003`. This is not a functional design, VSS mapping, logical architecture, test procedure, or UNECE R152 compliance/type-approval claim. UNECE R152 is treated here as a regulatory driver for the common AEBS capability, not as fulfilled evidence.
+Draft needs and requirements increment for `INC-AEBS-003`. This is not a functional design, VSS mapping, system architecture, test procedure, or UNECE R152 compliance/type-approval claim. UNECE R152 is treated here as a regulatory driver for the common AEBS capability, not as fulfilled evidence.
 
 ## Purpose
 

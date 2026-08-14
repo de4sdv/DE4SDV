@@ -25,6 +25,6 @@
 | Life Cycle Domain System | The environment of engineering, production, operations, sustainment, verification, validation, evidence, and other capabilities responsible for System 1 across its life cycle. |
 | Innovation Ecosystem | The environment of organizations, contributors, standards, methods, tools, and governance mechanisms responsible for improving System 2. |
 | System of Access | An intermediate medium or mechanism through which an interaction occurs, such as an API, sensor, actuator, connector, network, or user interface. |
-| Logical-to-software signal mapping | An explicit trace from a logical or semantic information item to a software contract field, physical adapter endpoints, transformation, and realization/evidence status; it may remain a candidate or deferred and does not by itself prove runtime interoperability. |
+| System-to-software signal mapping | An explicit trace from a logical or semantic information item to a software contract field, physical adapter endpoints, transformation, and realization/evidence status; it may remain a candidate or deferred and does not by itself prove runtime interoperability. |
 | Consistency management | The work of checking, maintaining, or reconciling consistency among requirements, designs, models, variants, simulations, evidence, baselines, stakeholder needs, and real-world behavior. |
 | Credibility assessment | Structured assessment of how much confidence can be placed in a model, simulation, digital twin, or evidence artifact for a declared purpose and scope. |

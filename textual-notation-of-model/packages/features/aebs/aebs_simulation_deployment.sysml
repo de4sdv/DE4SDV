@@ -13,11 +13,11 @@
  * autoware_raw_vehicle_cmd_converter, and HardwareLayer realization are absent.
  */
 package DE4SDV_AEBSSimulationDeployment {
-  // The logical baseline supplies VehicleTargetAEBSLogicalSystem and the logical
+  // The conceptual baseline supplies VehicleTargetAEBSSystem and the conceptual
   // responsibility/item usages used as allocation sources below. Functional
-  // semantics are reached through that accepted logical baseline; no direct
+  // semantics are reached through that accepted conceptual baseline; no direct
   // functional-package import is needed in this deployment model.
-  private import DE4SDV_AEBSLogicalArchitecture::*;
+  private import DE4SDV_AEBSConceptualArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
   private import DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment;
@@ -546,22 +546,22 @@ package DE4SDV_AEBSSimulationDeployment {
   dependency deploymentTracesUniverse from deployment::system1 to universeSource;
   dependency deploymentTracesLaunch from deployment to launchSource;
 
-  /* P8_PLOM: logical responsibility to physical role only. */
+  /* P8_PLOM: conceptual responsibility to physical role only. */
   allocation def SimulationLogicalToPhysicalRealization;
   allocation stateAcquisitionToAEB : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.stateAcquisition to deployment.system1.aeb;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.stateAcquisition to deployment.system1.aeb;
   allocation interventionDecisionToAEB : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.interventionDecision to deployment.system1.aeb;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.interventionDecision to deployment.system1.aeb;
   allocation emergencyCoordinationToAggregator : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.aggregator;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.aggregator;
   allocation emergencyCoordinationToAvailabilityConverter : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.commandModeToOperationModeAvailabilityConverter;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.commandModeToOperationModeAvailabilityConverter;
   allocation emergencyCoordinationToMrmHandler : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.mrmHandler;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.mrmHandler;
   allocation emergencyCoordinationToOperator : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.emergencyStopOperator;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.emergencyStopOperator;
   allocation emergencyCoordinationToLegacyVehicleGate : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyCoordination to deployment.system1.legacyVehicleCommandGate;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.legacyVehicleCommandGate;
   /* Proposed Physical Logical Item Mapping: logical to physical only. */
   allocation def LogicalToPhysicalItemRealization {
     doc /*
@@ -574,17 +574,17 @@ package DE4SDV_AEBSSimulationDeployment {
      */
   }
   allocation emergencyRequestToOperateMrm : LogicalToPhysicalItemRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyInterventionRequestOut.emergencyInterventionRequest
       to deployment.system1.mrmHandler.operateMrmOut.request;
   allocation emergencyRequestToLegacyGateControl : LogicalToPhysicalItemRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.emergencyInterventionRequestOut.emergencyInterventionRequest
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyInterventionRequestOut.emergencyInterventionRequest
       to deployment.system1.legacyVehicleCommandGate.emergencyControlCommandIn.command;
 
   allocation vehicleMotionToVelocityFeedback : LogicalToPhysicalItemRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.vehicleMotionObservationIn.vehicleMotionState
+    allocate DE4SDV_AEBSConceptualArchitecture::system.vehicleMotionObservationIn.vehicleMotionState
       to deployment.system1.velocityFeedbackIn.velocity;
   allocation vehicleMotionToKinematicFeedback : LogicalToPhysicalItemRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem.vehicleMotionObservationIn.vehicleMotionState
+    allocate DE4SDV_AEBSConceptualArchitecture::system.vehicleMotionObservationIn.vehicleMotionState
       to deployment.system1.kinematicStateIn.odometry;
 
 
@@ -691,7 +691,7 @@ package DE4SDV_AEBSSimulationDeployment {
   view aebsSimulationPhysicalLogicalMappingView {
     viewpoint selected : PhysicalLogicalMappingViewpoint { frame physicalLogicalMappingConcern; }
     /* System 2 is external and intentionally excluded from the System 1 realization mapping. */
-    expose logicalSystem::*; expose deployment::system1::*;
+    expose system::*; expose deployment::system1::*;
     expose stateAcquisitionToAEB; expose interventionDecisionToAEB;
     expose emergencyCoordinationToAggregator; expose emergencyCoordinationToAvailabilityConverter;
     expose emergencyCoordinationToMrmHandler; expose emergencyCoordinationToOperator;
