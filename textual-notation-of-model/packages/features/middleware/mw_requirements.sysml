@@ -12,11 +12,14 @@ package DE4SDV_MWRequirements {
     package Middleware {
       package Requirements {
         private import Views::*;
+        private import StandardViewDefinitions::*;
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
+        private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
+        private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
 
         requirement def MiddlewareSignalAccessRequirement :> FunctionalRequirementCandidate;
         requirement def MiddlewareDiagnosticAccessRequirement :> FunctionalRequirementCandidate;
@@ -118,6 +121,59 @@ package DE4SDV_MWRequirements {
           from reqMaintainMiddlewareBoundaryTraceability
           to DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::needTraceabilityToOperationalContext;
 
+        /* Requirement traceability to the operational use cases that justify
+         * each requirement (SystemRequirementTraceabilityViewpoint targets:
+         * use case, process, context). Each requirement is justified by the
+         * operational scenario it enables. */
+        dependency req001TracedToExchangeVehicleSignals
+          from reqProvideMiddlewareSignalAccess
+          to 'exchange vehicle signals';
+        dependency req001TracedToTranslateSignalAction
+          from reqProvideMiddlewareSignalAccess
+          to middlewareIntegrationFunctionalFlow::translateSignal;
+        dependency req002TracedToAccessDiagnostics
+          from reqProvideMiddlewareDiagnosticAccess
+          to 'access diagnostics';
+        dependency req002TracedToProxyDiagnosticsAction
+          from reqProvideMiddlewareDiagnosticAccess
+          to middlewareIntegrationFunctionalFlow::proxyDiagnostics;
+        dependency req003TracedToCoordinateLifecycle
+          from reqCoordinateMiddlewareLifecycle
+          to 'coordinate lifecycle';
+        dependency req003TracedToCoordinateLifecycleAction
+          from reqCoordinateMiddlewareLifecycle
+          to middlewareIntegrationFunctionalFlow::coordinateLifecycle;
+        dependency req004TracedToMonitorServiceHealth
+          from reqMonitorMiddlewareHealth
+          to 'monitor service health';
+        dependency req004TracedToForwardHealthAction
+          from reqMonitorMiddlewareHealth
+          to middlewareIntegrationFunctionalFlow::forwardHealth;
+        dependency req005TracedToCoordinateUpdate
+          from reqCoordinateMiddlewareUpdates
+          to 'coordinate software update';
+        dependency req005TracedToCoordinateUpdateAction
+          from reqCoordinateMiddlewareUpdates
+          to middlewareIntegrationFunctionalFlow::coordinateUpdate;
+        dependency req006TracedToEmergencySafetyPath
+          from reqIsolateSafetyPath
+          to 'emergency intervention via safety path';
+        dependency req006TracedToProtectSafetyPathAction
+          from reqIsolateSafetyPath
+          to middlewareIntegrationFunctionalFlow::protectSafetyPath;
+        dependency req007TracedToExchangeVehicleSignals
+          from reqProvideServiceDiscovery
+          to 'exchange vehicle signals';
+        dependency req007TracedToBindServiceAction
+          from reqProvideServiceDiscovery
+          to middlewareIntegrationFunctionalFlow::bindService;
+        dependency req008TracedToExchangeVehicleSignals
+          from reqAuthenticateServiceBinding
+          to 'exchange vehicle signals';
+        dependency req008TracedToBindServiceAction
+          from reqAuthenticateServiceBinding
+          to middlewareIntegrationFunctionalFlow::bindService;
+
         public import System1Product::*;
         public import System2EngineeringAssurance::*;
 
@@ -136,13 +192,20 @@ package DE4SDV_MWRequirements {
           expose System2EngineeringAssurance::*;
           render asTreeDiagram;
         }
-        view mwRequirementTraceView {
+        view mwRequirementTraceView : GeneralView {
           viewpoint selectedRequirementTraceViewpoint : SystemRequirementTraceabilityViewpoint {
             frame requirementTraceConcern;
           }
           expose System1Product::*;
           expose System2EngineeringAssurance::*;
-          render asTreeDiagram;
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'exchange vehicle signals';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'access diagnostics';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'coordinate lifecycle';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'monitor service health';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'coordinate software update';
+          expose DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'emergency intervention via safety path';
+          expose DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::middlewareIntegrationFunctionalFlow;
+          attribute depth = 1;
         }
       }
     }
