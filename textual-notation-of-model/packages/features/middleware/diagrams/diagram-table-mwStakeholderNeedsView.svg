@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="928" height="574" viewBox="0 0 928 574" role="img" aria-labelledby="title description">
+  <title id="title">table-mwStakeholderNeedsView</title>
+  <desc id="description">table-mwStakeholderNeedsView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="928" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-mwStakeholderNeedsView</text>
+  <rect x="0" y="54" width="312" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="312" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">Name</tspan>
+  </text>
+  <rect x="672" y="54" width="256" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Statement</tspan>
+  </text>
+  <rect x="0" y="94" width="312" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needMiddlewareIntegration</tspan>
+  </text>
+  <rect x="312" y="94" width="360" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">MiddlewareIntegrationNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+  </text>
+  <rect x="672" y="94" width="256" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">N-MW-001 draft System 1 need.</tspan>
+  </text>
+  <rect x="0" y="154" width="312" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needPlatformDecoupling</tspan>
+  </text>
+  <rect x="312" y="154" width="360" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">PlatformDecouplingNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+  </text>
+  <rect x="672" y="154" width="256" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">N-MW-002 draft System 1 need.</tspan>
+  </text>
+  <rect x="0" y="214" width="312" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needMiddlewareAsFeature</tspan>
+  </text>
+  <rect x="312" y="214" width="360" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">ProductLineClassificationNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+  </text>
+  <rect x="672" y="214" width="256" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">N-MW-003 draft System 1 need.</tspan>
+  </text>
+  <rect x="0" y="274" width="312" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needSafetyPathIsolation</tspan>
+  </text>
+  <rect x="312" y="274" width="360" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">SafetyPathIsolationNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+  </text>
+  <rect x="672" y="274" width="256" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">N-MW-004 draft System 1 need.</tspan>
+  </text>
+  <rect x="0" y="334" width="312" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needUpstreamEngagement</tspan>
+  </text>
+  <rect x="312" y="334" width="360" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">UpstreamEngagementNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+  </text>
+  <rect x="672" y="334" width="256" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">N-MW-005 draft System 1 need.</tspan>
+  </text>
+  <rect x="0" y="394" width="312" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needTraceabilityToOperationalContext</tspan>
+  </text>
+  <rect x="312" y="394" width="360" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">EngineeringTraceabilityNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+  </text>
+  <rect x="672" y="394" width="256" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">N-MW-006 draft System 2 need.</tspan>
+  </text>
+  <rect x="0" y="454" width="312" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needExplicitEngineeringBoundary</tspan>
+  </text>
+  <rect x="312" y="454" width="360" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">EngineeringTraceabilityNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+  </text>
+  <rect x="672" y="454" width="256" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">N-MW-007 draft System 2 need.</tspan>
+  </text>
+  <rect x="0" y="514" width="312" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needVVPlanningAttachment</tspan>
+  </text>
+  <rect x="312" y="514" width="360" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">VerificationPlanningNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+  </text>
+  <rect x="672" y="514" width="256" height="60" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">N-MW-008 draft System 2 need.</tspan>
+  </text>
+</svg>

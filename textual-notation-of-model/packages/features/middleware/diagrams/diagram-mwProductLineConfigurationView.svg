@@ -635,7 +635,7 @@
   <text x="920" y="1873" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The boundary port to the vehicle-level middleware handles</tspan></text>
   <text x="920" y="1885" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">vehicle signal access, diagnostics, and lifecycle coordination.</tspan></text>
   <text x="1098" y="1903.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="920" y="1919" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">middlewarePort : ApplicationMiddlewarePort</tspan></text>
+  <text x="920" y="1919" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">middlewarePort : ApplicationAdapterPort</tspan></text>
   <text x="614.5" y="2562" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="614.5" y="2578" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">ApplicationMiddlewareAdapterLayer</tspan></text>
   <text x="614.5" y="2596.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -659,7 +659,7 @@
   <text x="2919" y="1969" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Note: AGL is a full platform (OS + IVI + app framework),</tspan></text>
   <text x="2919" y="1981" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">not a middleware layer. It is modeled at the OS platform layer.</tspan></text>
   <text x="3056" y="1999.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="2919" y="2015" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">applicationPort : ApplicationMiddlewarePort</tspan></text>
+  <text x="2919" y="2015" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">applicationPort : MiddlewareAdapterPort</tspan></text>
   <text x="2919" y="2027" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">osPort : MiddlewareOSPort</tspan></text>
   <text x="467.5" y="1751" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="467.5" y="1767" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">OSPlatformLayer</tspan></text>
@@ -835,7 +835,7 @@
   <text x="634" y="2038" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">conformance to DE4SDV boundary contracts without</tspan></text>
   <text x="634" y="2050" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">evidence.</tspan></text>
   <text x="759" y="2068.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="634" y="2084" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^middlewarePort : ApplicationMiddlewarePort</tspan></text>
+  <text x="634" y="2084" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^middlewarePort : ApplicationAdapterPort</tspan></text>
   <text x="767.5" y="1757" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="767.5" y="1773" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">OpenpilotStack :&gt; VehicleApplicationLayer</tspan></text>
   <text x="767.5" y="1791.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -846,7 +846,7 @@
   <text x="651" y="1855" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">License: MIT / comma.ai custom.</tspan></text>
   <text x="651" y="1867" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Status: candidate realization.</tspan></text>
   <text x="767.5" y="1885.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="651" y="1901" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^middlewarePort : ApplicationMiddlewarePort</tspan></text>
+  <text x="651" y="1901" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^middlewarePort : ApplicationAdapterPort</tspan></text>
   <text x="762" y="1586" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="762" y="1602" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">ApolloStack :&gt; VehicleApplicationLayer</tspan></text>
   <text x="762" y="1620.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -856,7 +856,7 @@
   <text x="640" y="1672" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">License: Apache 2.0.</tspan></text>
   <text x="640" y="1684" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Status: candidate realization.</tspan></text>
   <text x="762" y="1702.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="640" y="1718" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^middlewarePort : ApplicationMiddlewarePort</tspan></text>
+  <text x="640" y="1718" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^middlewarePort : ApplicationAdapterPort</tspan></text>
   <text x="926.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="776" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">──────────────────────────────────────────</tspan></text>
   <text x="776" y="136" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Candidate realizations — application-middleware adapter layer</tspan></text>
@@ -916,7 +916,7 @@
   <text x="2618" y="1708" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Status: candidate realization. S-CORE maintainers have</tspan></text>
   <text x="2618" y="1720" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">not been engaged on SysML v2 model integration.</tspan></text>
   <text x="2751" y="1738.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="2618" y="1754" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^applicationPort : ApplicationMiddlewarePort</tspan></text>
+  <text x="2618" y="1754" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^applicationPort : MiddlewareAdapterPort</tspan></text>
   <text x="2618" y="1766" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^osPort : MiddlewareOSPort</tspan></text>
   <text x="2684" y="1805" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="2684" y="1821" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">AndroidSDVMiddleware :&gt; MiddlewareLayer</tspan></text>
@@ -937,7 +937,7 @@
   <text x="2484" y="2011" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Status: candidate realization. Upstream AAOS SDV maintainers have</tspan></text>
   <text x="2484" y="2023" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">not been engaged on DE4SDV model integration (GAP-MW-005).</tspan></text>
   <text x="2684" y="2041.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="2484" y="2057" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^applicationPort : ApplicationMiddlewarePort</tspan></text>
+  <text x="2484" y="2057" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^applicationPort : MiddlewareAdapterPort</tspan></text>
   <text x="2484" y="2069" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^osPort : MiddlewareOSPort</tspan></text>
   <text x="2760" y="2108" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="2760" y="2124" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">AUTOSARAdaptive :&gt; MiddlewareLayer</tspan></text>
@@ -950,7 +950,7 @@
   <text x="2637" y="2218" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">License: varies by implementation.</tspan></text>
   <text x="2637" y="2230" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Status: candidate realization — interface contract only.</tspan></text>
   <text x="2760" y="2248.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
-  <text x="2637" y="2264" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^applicationPort : ApplicationMiddlewarePort</tspan></text>
+  <text x="2637" y="2264" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^applicationPort : MiddlewareAdapterPort</tspan></text>
   <text x="2637" y="2276" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^osPort : MiddlewareOSPort</tspan></text>
   <text x="633" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="526" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">──────────────────────────────────────────</tspan></text>

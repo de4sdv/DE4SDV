@@ -20,6 +20,10 @@ on:
       - "tools/configure_variant.py"
       - "scripts/render_grid_csv.py"
       - "scripts/check_svg_view_materialization.py"
+      - "scripts/check_committed_view_artifacts.py"
+      - "scripts/generate_view_index.py"
+      - "textual-notation-of-model/packages/features/middleware/VIEWS.md"
+      - "textual-notation-of-model/packages/features/middleware/diagrams/**"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -35,6 +39,10 @@ on:
       - "tools/configure_variant.py"
       - "scripts/render_grid_csv.py"
       - "scripts/check_svg_view_materialization.py"
+      - "scripts/check_committed_view_artifacts.py"
+      - "scripts/generate_view_index.py"
+      - "textual-notation-of-model/packages/features/middleware/VIEWS.md"
+      - "textual-notation-of-model/packages/features/middleware/diagrams/**"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -217,6 +225,17 @@ jobs:
             view="${view#table-}"
             rm -f "diagrams/diagram-${view}.svg"
           done
+
+      - name: Check committed view index and diagrams
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          python scripts/generate_view_index.py \
+            textual-notation-of-model/packages/features/middleware
+          git diff --exit-code -- \
+            textual-notation-of-model/packages/features/middleware/VIEWS.md
+          python scripts/check_committed_view_artifacts.py \
+            textual-notation-of-model/packages/features/middleware \
+            diagrams
 
       - name: Upload generated diagrams
         if: always()

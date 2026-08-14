@@ -25,6 +25,7 @@ from pathlib import Path
 @dataclass
 class ViewSpec:
     name: str
+    view_type: str = ""
     viewpoint: str = ""
     viewpoint_type: str = ""
     concern: str = ""
@@ -33,12 +34,15 @@ class ViewSpec:
     render: str = ""
 
 
-VIEW_RE = re.compile(r"\bview\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[A-Za-z_][A-Za-z0-9_]*)?\s*\{")
+QUALIFIED_NAME = r"[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*"
+VIEW_RE = re.compile(
+    rf"\bview\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*({QUALIFIED_NAME}))?\s*\{{"
+)
 VIEWPOINT_RE = re.compile(
     r"viewpoint\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*\{"
 )
 FRAME_RE = re.compile(r"frame\s+([A-Za-z_][A-Za-z0-9_.]*)")
-EXPOSE_RE = re.compile(r"expose\s+([A-Za-z_][A-Za-z0-9_.:*]*)")
+EXPOSE_RE = re.compile(r"\bexpose\s+([^;\n]+?)\s*;")
 DEPTH_RE = re.compile(r"attribute\s+depth\s*=\s*(-?\d+)")
 RENDER_RE = re.compile(r"render\s+([A-Za-z_][A-Za-z0-9_]*)")
 
@@ -69,7 +73,11 @@ def parse_view_spec(model_text: str, name: str) -> ViewSpec | None:
     block = _find_block(_strip_comments(model_text), "view", name)
     if not block:
         return None
-    spec = ViewSpec(name=name)
+    header = re.search(
+        rf"\bview\s+{re.escape(name)}\s*(?::\s*({QUALIFIED_NAME}))?\s*\{{",
+        block,
+    )
+    spec = ViewSpec(name=name, view_type=header.group(1) if header and header.group(1) else "")
     vp = VIEWPOINT_RE.search(block)
     if vp:
         spec.viewpoint, spec.viewpoint_type = vp.group(1), vp.group(2)
@@ -84,6 +92,15 @@ def parse_view_spec(model_text: str, name: str) -> ViewSpec | None:
     if render:
         spec.render = render.group(1)
     return spec
+
+
+def artifact_filename(view_name: str, view_type: str) -> str:
+    short_type = view_type.rsplit("::", 1)[-1]
+    if short_type == "MatrixView":
+        return f"diagram-matrix-{view_name}.svg"
+    if short_type == "TableView":
+        return f"diagram-table-{view_name}.svg"
+    return f"diagram-{view_name}.svg"
 
 
 def collect_views(folder: Path) -> list[tuple[Path, list[ViewSpec]]]:
@@ -129,6 +146,8 @@ def render_markdown(folder: Path) -> str:
                 lines.append(
                     f"- **Viewpoint:** `{spec.viewpoint}` (`{spec.viewpoint_type}`)"
                 )
+            if spec.view_type:
+                lines.append(f"- **View type:** `{spec.view_type}`")
             if spec.concern:
                 lines.append(f"- **Concern:** `{spec.concern}`")
             if spec.exposes:
@@ -140,11 +159,12 @@ def render_markdown(folder: Path) -> str:
             if spec.render:
                 lines.append(f"- **Render:** `{spec.render}`")
             lines.append("")
-            svg = diagrams_dir / f"diagram-{spec.name}.svg"
+            filename = artifact_filename(spec.name, spec.view_type)
+            svg = diagrams_dir / filename
             if svg.exists():
-                lines.append(f"![{spec.name}](diagrams/diagram-{spec.name}.svg)")
+                lines.append(f"![{spec.name}](diagrams/{filename})")
             else:
-                lines.append(f"_Diagram not present: `diagrams/diagram-{spec.name}.svg` "
+                lines.append(f"_Diagram not present: `diagrams/{filename}` "
                              f"(regenerate via the Privileged Syside Validation workflow)._")
             lines.append("")
     return "\n".join(lines)
