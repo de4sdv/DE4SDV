@@ -162,7 +162,8 @@ jobs:
           read -r -a model_paths <<< "${MODEL_PATHS}"
           SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
           test -f "${SYSIDE_VIEWS_SOURCE}"
-          syside viz view "${SYSIDE_VIEWS_SOURCE}" "${model_paths[@]}" \
+          syside viz view "${model_paths[@]}" \
+            --include "${SYSIDE_VIEWS_SOURCE}" \
             --format svg \
             --output-dir diagrams \
             --exclude "textual-notation-of-model/snapshots/**"
@@ -175,7 +176,9 @@ jobs:
           read -r -a model_paths <<< "${MODEL_PATHS}"
           SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
           test -f "${SYSIDE_VIEWS_SOURCE}"
-          syside table export "${SYSIDE_VIEWS_SOURCE}" "${model_paths[@]}" --output-dir grid-csv
+          syside table export "${model_paths[@]}" \
+            --include "${SYSIDE_VIEWS_SOURCE}" \
+            --output-dir grid-csv
           python scripts/render_grid_csv.py grid-csv diagrams
 
       - name: Upload generated diagrams
