@@ -387,7 +387,7 @@ package SAF_Viewpoints {
 
   // ─── Logical Domain ───
 
-  concern def LogicalStructureConcern {
+  concern def SystemStructureConcern {
     require constraint {
       doc /*
        * Reviewers need the logical system decomposition, logical element
@@ -411,7 +411,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def LogicalInternalExchangeConcern {
+  concern def SystemInternalExchangeConcern {
     require constraint {
       doc /*
        * Reviewers need the typed logical interfaces, exchanges, directions,
@@ -459,7 +459,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def LogicalFunctionalMappingConcern {
+  concern def SystemFunctionMappingConcern {
     require constraint {
       doc /*
        * Reviewers need every system function allocated to one or more logical

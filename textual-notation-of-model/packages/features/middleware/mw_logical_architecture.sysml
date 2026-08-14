@@ -201,43 +201,43 @@ package DE4SDV_MWLogicalArchitecture {
     from DE4SDV_AEBSLogicalArchitecture::logicalSystem::subsystemHealthIn
     to logicalSystem::healthProxy;
 
-  concern logicalStructureConcern : LogicalStructureConcern {
+  concern systemStructureConcern : SystemStructureConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern logicalExchangeConcern : LogicalInternalExchangeConcern {
+  concern systemInternalExchangeConcern : SystemInternalExchangeConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern logicalMappingConcern : LogicalFunctionalMappingConcern {
+  concern systemFunctionMappingConcern : SystemFunctionMappingConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view mwLogicalStructureView {
-    viewpoint selectedLogicalStructureViewpoint : SystemStructureDefinitionViewpoint {
-      frame logicalStructureConcern;
+  view mwSystemStructureView {
+    viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
+      frame systemStructureConcern;
     }
     expose DE4SDV_MWLogicalArchitecture::*;
     render asTreeDiagram;
   }
 
-  view mwLogicalExchangeView {
-    viewpoint selectedLogicalExchangeViewpoint : SystemInternalExchangeViewpoint {
-      frame logicalExchangeConcern;
+  view mwSystemInternalExchangeView {
+    viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
+      frame systemInternalExchangeConcern;
     }
     expose DE4SDV_MWLogicalArchitecture::*;
     render asTreeDiagram;
   }
 
-  view mwLogicalMappingView {
-    viewpoint selectedLogicalMappingViewpoint : SystemFunctionMappingViewpoint {
-      frame logicalMappingConcern;
+  view mwSystemFunctionMappingView {
+    viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
+      frame systemFunctionMappingConcern;
     }
     expose DE4SDV_MWLogicalArchitecture::*;
     render asTreeDiagram;

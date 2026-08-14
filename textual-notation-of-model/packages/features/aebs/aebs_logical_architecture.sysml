@@ -483,7 +483,7 @@ package DE4SDV_AEBSLogicalArchitecture {
    * Concerns and human-reviewable views
    * ────────────────────────────────────────── */
 
-  concern logicalStructureConcern : LogicalStructureConcern {
+  concern systemStructureConcern : SystemStructureConcern {
     doc /*
      * Reviewers need the logical AEBS boundary, decomposition, responsibility
      * ownership, and logical/physical separation to be explicit.
@@ -493,7 +493,7 @@ package DE4SDV_AEBSLogicalArchitecture {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern logicalInternalExchangeConcern : LogicalInternalExchangeConcern {
+  concern systemInternalExchangeConcern : SystemInternalExchangeConcern {
     doc /*
      * Reviewers need typed boundary and internal exchanges, direction, and
      * delegation to logical owners without middleware leakage.
@@ -503,7 +503,7 @@ package DE4SDV_AEBSLogicalArchitecture {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern logicalFunctionalMappingConcern : LogicalFunctionalMappingConcern {
+  concern systemFunctionMappingConcern : SystemFunctionMappingConcern {
     doc /*
      * Reviewers need every AEBS functional action allocated to one or more
      * logical elements without implying physical realization.
@@ -513,9 +513,9 @@ package DE4SDV_AEBSLogicalArchitecture {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebsLogicalStructureView {
-    viewpoint selectedLogicalStructureViewpoint : SystemStructureDefinitionViewpoint {
-      frame logicalStructureConcern;
+  view aebsSystemStructureView {
+    viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
+      frame systemStructureConcern;
     }
 
     expose logicalSystem;
@@ -532,14 +532,14 @@ package DE4SDV_AEBSLogicalArchitecture {
      * This is a decomposition view. The tree renderer may list ports owned by
      * the exposed parts, but it does not render the bind and flow edges below.
      * Port connectivity is defined in VehicleTargetAEBSLogicalSystem and
-     * selected by aebsLogicalInternalExchangeView.
+     * selected by aebsSystemInternalExchangeView.
      */
     render asTreeDiagram;
   }
 
-  view aebsLogicalInternalExchangeView {
+  view aebsSystemInternalExchangeView {
     viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
-      frame logicalInternalExchangeConcern;
+      frame systemInternalExchangeConcern;
     }
 
     /*
@@ -553,9 +553,9 @@ package DE4SDV_AEBSLogicalArchitecture {
     render asTreeDiagram;
   }
 
-  view aebsLogicalFunctionalMappingView {
+  view aebsSystemFunctionMappingView {
     viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
-      frame logicalFunctionalMappingConcern;
+      frame systemFunctionMappingConcern;
     }
 
     expose acquireStateAllocation;
