@@ -101,3 +101,16 @@ def test_privileged_workflow_gates_aebs_context_exchange_artifact() -> None:
     assert "simulationEvidenceSystem2 : AEBSystem2SimulationAssets" in workflow
     assert "--min-flow-count 21" in workflow
     assert "--max-flow-count 21" in workflow
+    assert "diagram-mwFunctionalInterfaceView.svg" in workflow
+    assert "VehicleSignalAccessInbound" in workflow
+    assert "diagram-mwPhysicalInterfaceView.svg" in workflow
+    assert "DE4SDVReferenceVehicleSpeedAccessPort" in workflow
+
+
+def test_privileged_workflow_removes_native_grid_placeholders() -> None:
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+
+    assert 'for csv in grid-csv/*.csv; do' in workflow
+    assert 'view="${view#matrix-}"' in workflow
+    assert 'view="${view#table-}"' in workflow
+    assert 'rm -f "diagrams/diagram-${view}.svg"' in workflow

@@ -716,9 +716,16 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     viewpoint selectedPhysicalInterfaceViewpoint : PhysicalInterfaceDefinitionViewpoint {
       frame physicalInterfaceConcern;
     }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*[
-      istype SysML::PortDefinition or istype SysML::ItemDefinition
-    ];
+    expose DE4SDV_MWPhysicalSoftwareRealization::DE4SDVReferenceVehicleSpeedPayload;
+    expose DE4SDV_MWPhysicalSoftwareRealization::DE4SDVReferenceVehicleSpeedAccessPort;
+    expose DE4SDV_MWPhysicalSoftwareRealization::VelocityReportPublication;
+    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedProviderMessage;
+    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedProviderPublication;
+    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedProviderSubscription;
+    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedCampaignWireEnvelope;
+    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedCampaignWirePublication;
+    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedCampaignWireSubscription;
+    attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
 

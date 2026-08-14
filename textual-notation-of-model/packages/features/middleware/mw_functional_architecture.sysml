@@ -336,9 +336,32 @@ package DE4SDV_MWFunctionalArchitecture {
           viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
             frame functionalInterfaceConcern;
           }
-          expose FunctionalArchitecture::*[
-            istype SysML::PortDefinition or istype SysML::ItemDefinition
-          ];
+          expose FunctionalArchitecture::VehicleSignalAccessRequest;
+          expose FunctionalArchitecture::VehicleSignalAccessResponse;
+          expose FunctionalArchitecture::DiagnosticAccessRequest;
+          expose FunctionalArchitecture::DiagnosticAccessResponse;
+          expose FunctionalArchitecture::LifecycleCoordinationRequest;
+          expose FunctionalArchitecture::LifecycleCoordinationStatus;
+          expose FunctionalArchitecture::HealthForwardingStatus;
+          expose FunctionalArchitecture::UpdateCoordinationRequest;
+          expose FunctionalArchitecture::UpdateCoordinationStatus;
+          expose FunctionalArchitecture::ServiceBindingRequest;
+          expose FunctionalArchitecture::ServiceBindingStatus;
+          expose FunctionalArchitecture::SafetyPathProtectionStatus;
+          expose FunctionalArchitecture::VehicleSignalAccessInbound;
+          expose FunctionalArchitecture::VehicleSignalAccessOutbound;
+          expose FunctionalArchitecture::DiagnosticAccessInbound;
+          expose FunctionalArchitecture::DiagnosticAccessOutbound;
+          expose FunctionalArchitecture::LifecycleCoordinationInbound;
+          expose FunctionalArchitecture::LifecycleCoordinationOutbound;
+          expose FunctionalArchitecture::HealthStatusInbound;
+          expose FunctionalArchitecture::HealthStatusOutbound;
+          expose FunctionalArchitecture::UpdateCoordinationInbound;
+          expose FunctionalArchitecture::UpdateCoordinationOutbound;
+          expose FunctionalArchitecture::ServiceBindingInbound;
+          expose FunctionalArchitecture::ServiceBindingOutbound;
+          expose FunctionalArchitecture::SafetyPathStatusOutbound;
+          attribute showAnnotationRows = false;
           render asTreeDiagram;
         }
         view mwFunctionalProcessView : ActionFlowView {

@@ -180,6 +180,16 @@ jobs:
             --require-label "simulationEvidenceSystem2 : AEBSystem2SimulationAssets" \
             --min-flow-count 21 \
             --max-flow-count 21
+          python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-mwFunctionalInterfaceView.svg \
+            --view-name mwFunctionalInterfaceView \
+            --require-label VehicleSignalAccessInbound \
+            --require-label VehicleSignalAccessRequest
+          python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-mwPhysicalInterfaceView.svg \
+            --view-name mwPhysicalInterfaceView \
+            --require-label DE4SDVReferenceVehicleSpeedAccessPort \
+            --require-label DE4SDVReferenceVehicleSpeedPayload
 
       - name: Export grid views and render review SVGs (Labs)
         if: steps.syside-secret.outputs.available == 'true'
@@ -195,6 +205,13 @@ jobs:
             --include "${SYSIDE_VIEWS_SOURCE}" \
             --output-dir grid-csv
           python scripts/render_grid_csv.py grid-csv diagrams
+          for csv in grid-csv/*.csv; do
+            view="${csv##*/}"
+            view="${view%.csv}"
+            view="${view#matrix-}"
+            view="${view#table-}"
+            rm -f "diagrams/diagram-${view}.svg"
+          done
 
       - name: Upload generated diagrams
         if: always()
