@@ -47,7 +47,7 @@ package DE4SDV_AEBSAutowareReferenceProduct {
   private import DE4SDV_SDVPlatformStack::*;
   private import DE4SDV_VehicleSensingBoundary::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
-  private import SDV_AEBSConceptualArchitecture::*;
+  private import DE4SDV_AEBSConceptualArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
