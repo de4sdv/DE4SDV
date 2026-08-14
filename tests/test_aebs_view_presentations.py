@@ -50,31 +50,11 @@ def test_physical_internal_exchange_is_inside_system1_only() -> None:
 
     assert "subject candidateSystem : AEBSystem1CandidateDeployment;" in concern
     assert "AEBTwoSystemSimulationDeployment" not in concern
-    assert "expose AEBSystem1CandidateDeployment;" in view
-    for participant in (
-        "aeb",
-        "aggregator",
-        "commandModeToOperationModeAvailabilityConverter",
-        "mrmHandler",
-        "emergencyStopOperator",
-        "legacyVehicleCommandGate",
-    ):
-        assert f"expose AEBSystem1CandidateDeployment::{participant};" in view
-        assert (
-            f"expose AEBSystem1CandidateDeployment::{participant}::*"
-            "[istype SysML::PortUsage];"
-        ) in view
-    assert (
-        "expose AEBSystem1CandidateDeployment::*"
-        "[istype SysML::FlowUsage];"
-    ) in view
-    assert (
-        "deployment::candidateVehicleSystem1::*[istype SysML::FlowUsage]"
-        not in view
-    )
-    assert "deployment::candidateVehicleSystem1" not in view
+    assert "expose deployment::candidateVehicleSystem1;" in view
+    assert "expose deployment::candidateVehicleSystem1::**;" in view
+    assert "expose AEBSystem1CandidateDeployment" not in view
     assert "deployment::simulationEvidenceSystem2" not in view
-    assert "attribute depth = -1;" in view
+    assert "attribute depth = 1;" in view
     assert "render asInterconnectionDiagram;" in view
 
 

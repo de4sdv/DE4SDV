@@ -696,21 +696,9 @@ package DE4SDV_AEBSSimulationDeployment {
   }
   view aebsSimulationPhysicalInternalExchangeView {
     viewpoint selected : PhysicalInternalExchangeViewpoint { frame physicalInternalExchangeConcern; }
-    expose AEBSystem1CandidateDeployment;
-    expose AEBSystem1CandidateDeployment::aeb;
-    expose AEBSystem1CandidateDeployment::aeb::*[istype SysML::PortUsage];
-    expose AEBSystem1CandidateDeployment::aggregator;
-    expose AEBSystem1CandidateDeployment::aggregator::*[istype SysML::PortUsage];
-    expose AEBSystem1CandidateDeployment::commandModeToOperationModeAvailabilityConverter;
-    expose AEBSystem1CandidateDeployment::commandModeToOperationModeAvailabilityConverter::*[istype SysML::PortUsage];
-    expose AEBSystem1CandidateDeployment::mrmHandler;
-    expose AEBSystem1CandidateDeployment::mrmHandler::*[istype SysML::PortUsage];
-    expose AEBSystem1CandidateDeployment::emergencyStopOperator;
-    expose AEBSystem1CandidateDeployment::emergencyStopOperator::*[istype SysML::PortUsage];
-    expose AEBSystem1CandidateDeployment::legacyVehicleCommandGate;
-    expose AEBSystem1CandidateDeployment::legacyVehicleCommandGate::*[istype SysML::PortUsage];
-    expose AEBSystem1CandidateDeployment::*[istype SysML::FlowUsage];
-    attribute depth = -1;
+    expose deployment::candidateVehicleSystem1;
+    expose deployment::candidateVehicleSystem1::**;
+    attribute depth = 1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;

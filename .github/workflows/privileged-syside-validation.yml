@@ -19,6 +19,7 @@ on:
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
       - "scripts/render_grid_csv.py"
+      - "scripts/check_svg_view_materialization.py"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -33,6 +34,7 @@ on:
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
       - "scripts/render_grid_csv.py"
+      - "scripts/check_svg_view_materialization.py"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -167,6 +169,21 @@ jobs:
             --format svg \
             --output-dir diagrams \
             --exclude "textual-notation-of-model/snapshots/**"
+
+      - name: Check critical view materialization
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-aebsSimulationPhysicalInternalExchangeView.svg \
+            --view-name aebsSimulationPhysicalInternalExchangeView \
+            --require-label "aeb : DeployedAEBNode" \
+            --require-label "aggregator : DiagnosticGraphAggregatorNode" \
+            --require-label "commandModeToOperationModeAvailabilityConverter : CommandModeToOperationModeAvailabilityConverterNode" \
+            --require-label "mrmHandler : MrmHandlerNode" \
+            --require-label "emergencyStopOperator : EmergencyStopOperatorNode" \
+            --require-label "legacyVehicleCommandGate : LegacyVehicleCommandGateNode" \
+            --forbid-label simulationEvidenceSystem2 \
+            --min-flow-count 10
 
       - name: Export grid views and render review SVGs (Labs)
         if: steps.syside-secret.outputs.available == 'true'
