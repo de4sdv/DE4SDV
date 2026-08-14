@@ -28,7 +28,7 @@ package DE4SDV_AEBS009AExecutionEnvironment {
      */
 
     part executionEnvironment : INCAEBS009AJetsonExecutionEnvironment;
-    bind system1.host = executionEnvironment;
+    bind candidateVehicleSystem1.host = executionEnvironment;
 
     part runtimeLockEvidence : TestedExecutionEnvironmentEvidence {
       doc /*
@@ -60,7 +60,7 @@ package DE4SDV_AEBS009AExecutionEnvironment {
       from runtimeLockEvidence,
            containerIdentityEvidence,
            readinessEvidence
-      to system1;
+      to candidateVehicleSystem1;
 
     dependency maintainedHostIdentity
       from environmentIdentityEvidence

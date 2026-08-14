@@ -65,7 +65,7 @@ def test_syside_views_dependency_is_exactly_pinned() -> None:
 def test_saf_mapping_views_are_native_allocation_matrices() -> None:
     for relative_path, view_names in MATRIX_VIEWS.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")
-        assert "private import SysideViews::*;" in text
+        assert "private import SysideViews::**;" in text
         for view_name in view_names:
             block = _block(text, f"view {view_name}")
             assert f"view {view_name} : MVD::MatrixView" in block
@@ -79,7 +79,7 @@ def test_saf_mapping_views_are_native_allocation_matrices() -> None:
 def test_saf_requirement_definition_views_are_native_tables() -> None:
     for relative_path, view_names in TABLE_VIEWS.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")
-        assert "private import SysideViews::*;" in text
+        assert "private import SysideViews::**;" in text
         for view_name in view_names:
             block = _block(text, f"view {view_name}")
             assert f"view {view_name} : TVD::TableView" in block

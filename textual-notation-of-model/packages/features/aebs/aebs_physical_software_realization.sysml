@@ -30,7 +30,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ROS2Types::*;
-  private import SysideViews::*;
+  private import SysideViews::**;
   private import Views::*;
 
   /* ──────────────────────────────────────────

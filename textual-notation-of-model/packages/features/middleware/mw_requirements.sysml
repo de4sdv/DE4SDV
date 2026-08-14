@@ -18,7 +18,7 @@ package DE4SDV_MWRequirements {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
-        private import SysideViews::*;
+        private import SysideViews::**;
         private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
         private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
 

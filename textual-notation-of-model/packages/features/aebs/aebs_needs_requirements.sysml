@@ -15,7 +15,7 @@ package DE4SDV_AEBSNeedsRequirements {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
-        private import SysideViews::*;
+        private import SysideViews::**;
         private import Views::*;
 
         part def AEBSCapability :> CommonProductLineCapability;

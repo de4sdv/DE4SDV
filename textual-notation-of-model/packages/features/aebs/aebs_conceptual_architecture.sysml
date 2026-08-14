@@ -22,7 +22,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
-  private import SysideViews::*;
+  private import SysideViews::**;
   private import Views::*;
 
   /* ──────────────────────────────────────────

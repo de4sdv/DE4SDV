@@ -23,7 +23,7 @@ package DE4SDV_AEBSSimulationDeployment {
   private import DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
-  private import SysideViews::*;
+  private import SysideViews::**;
   private import Views::*;
 
   /* Physical exchange types. Adjacent stages are deliberately distinct. */

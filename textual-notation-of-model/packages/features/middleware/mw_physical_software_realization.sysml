@@ -29,7 +29,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_ROS2Types::*;
   private import COVESA_VSS::**;
   private import SAF_Viewpoints::*;
-  private import SysideViews::*;
+  private import SysideViews::**;
   private import Views::*;
 
   part incMW008 : FeatureIncrement {

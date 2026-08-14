@@ -62,3 +62,12 @@ def test_exchange_views_suppress_non_topology_compartment_noise() -> None:
         view = _block(text, f"view {name}")
         assert "attribute showAnnotationRows = false;" in view
         assert "attribute maxCompartmentEntries = 0;" in view
+
+
+def test_dependent_execution_environment_uses_descriptive_system1_role() -> None:
+    execution_model = Path(
+        "textual-notation-of-model/packages/features/aebs/"
+        "aebs_execution_environment.sysml"
+    ).read_text(encoding="utf-8")
+    assert "system1" not in execution_model
+    assert "candidateVehicleSystem1" in execution_model

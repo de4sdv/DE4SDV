@@ -18,7 +18,7 @@ package DE4SDV_MWConceptualArchitecture {
   private import DE4SDV_AEBSConceptualArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
-  private import SysideViews::*;
+  private import SysideViews::**;
   private import Views::*;
 
   part incMW007 : FeatureIncrement {

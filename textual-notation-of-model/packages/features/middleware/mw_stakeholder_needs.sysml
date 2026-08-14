@@ -20,7 +20,7 @@ package DE4SDV_MWStakeholderNeeds {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
-        private import SysideViews::*;
+        private import SysideViews::**;
 
         requirement def MiddlewareIntegrationNeed :> StakeholderNeedCandidate;
         requirement def PlatformDecouplingNeed :> StakeholderNeedCandidate;
