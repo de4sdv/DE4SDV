@@ -35,8 +35,12 @@ def test_physical_context_exchange_frames_system1_against_system2() -> None:
     assert "AEBTwoSystemSimulationDeployment" not in concern
     assert "expose deployment::candidateVehicleSystem1;" in view
     assert "expose deployment::simulationEvidenceSystem2;" in view
+    assert "candidateVehicleSystem1::*[istype SysML::PortUsage]" in view
+    assert "simulationEvidenceSystem2::*[istype SysML::PortUsage]" in view
+    assert "deployment::*[istype SysML::FlowUsage]" in view
+    assert "hastype SysML::FlowUsage" not in view
     assert "render asInterconnectionDiagram;" in view
-    assert "attribute depth = 1;" in view
+    assert "attribute depth = -1;" in view
 
 
 def test_physical_internal_exchange_is_inside_system1_only() -> None:
@@ -47,7 +51,9 @@ def test_physical_internal_exchange_is_inside_system1_only() -> None:
     assert "subject candidateSystem : AEBSystem1CandidateDeployment;" in concern
     assert "AEBTwoSystemSimulationDeployment" not in concern
     assert "expose deployment::candidateVehicleSystem1;" in view
+    assert "expose deployment::candidateVehicleSystem1::**;" in view
     assert "deployment::simulationEvidenceSystem2" not in view
+    assert "attribute depth = -1;" in view
     assert "render asInterconnectionDiagram;" in view
 
 

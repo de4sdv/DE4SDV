@@ -549,8 +549,8 @@ package DE4SDV_AEBSConceptualArchitecture {
      * interconnection renderer draws bind and flow edges between ports.
      */
     expose system;
-    expose system::*;
-    attribute depth = 1;
+    expose system::**;
+    attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;

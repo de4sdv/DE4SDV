@@ -674,8 +674,10 @@ package DE4SDV_AEBSSimulationDeployment {
     viewpoint selected : PhysicalContextExchangeViewpoint { frame physicalContextExchangeConcern; }
     expose deployment::candidateVehicleSystem1;
     expose deployment::simulationEvidenceSystem2;
-    expose deployment::*[hastype SysML::FlowUsage];
-    attribute depth = 1;
+    expose deployment::candidateVehicleSystem1::*[istype SysML::PortUsage];
+    expose deployment::simulationEvidenceSystem2::*[istype SysML::PortUsage];
+    expose deployment::*[istype SysML::FlowUsage];
+    attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;
@@ -695,8 +697,8 @@ package DE4SDV_AEBSSimulationDeployment {
   view aebsSimulationPhysicalInternalExchangeView {
     viewpoint selected : PhysicalInternalExchangeViewpoint { frame physicalInternalExchangeConcern; }
     expose deployment::candidateVehicleSystem1;
-    expose deployment::candidateVehicleSystem1::*;
-    attribute depth = 1;
+    expose deployment::candidateVehicleSystem1::**;
+    attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;

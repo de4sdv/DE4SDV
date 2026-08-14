@@ -209,6 +209,8 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     assert "expose DE4SDV_MWConceptualArchitecture::*;" not in structure
     internal = _block(conceptual, "view mwSystemInternalExchangeView")
     assert "expose system;" in internal
+    assert "expose system::**;" in internal
+    assert "attribute depth = -1;" in internal
     assert "attribute showAnnotationRows = false;" in internal
 
     physical = (
