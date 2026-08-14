@@ -698,7 +698,7 @@ package DE4SDV_AEBSSimulationDeployment {
     viewpoint selected : PhysicalInternalExchangeViewpoint { frame physicalInternalExchangeConcern; }
     expose deployment::candidateVehicleSystem1;
     expose deployment::candidateVehicleSystem1::**;
-    attribute depth = 1;
+    attribute depth = 2;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;

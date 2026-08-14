@@ -54,7 +54,7 @@ def test_physical_internal_exchange_is_inside_system1_only() -> None:
     assert "expose deployment::candidateVehicleSystem1::**;" in view
     assert "expose AEBSystem1CandidateDeployment" not in view
     assert "deployment::simulationEvidenceSystem2" not in view
-    assert "attribute depth = 1;" in view
+    assert "attribute depth = 2;" in view
     assert "render asInterconnectionDiagram;" in view
 
 
