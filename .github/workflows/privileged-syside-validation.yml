@@ -177,6 +177,7 @@ jobs:
           SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
           test -f "${SYSIDE_VIEWS_SOURCE}"
           export PYTHONHOME="${pythonLocation}"
+          export PYTHONPATH="${pythonLocation}/lib/python3.12:${pythonLocation}/lib/python3.12/lib-dynload"
           syside table export "${model_paths[@]}" \
             --include "${SYSIDE_VIEWS_SOURCE}" \
             --output-dir grid-csv
