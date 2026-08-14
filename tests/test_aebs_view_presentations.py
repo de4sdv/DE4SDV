@@ -65,9 +65,13 @@ def test_physical_internal_exchange_is_inside_system1_only() -> None:
             "[istype SysML::PortUsage];"
         ) in view
     assert (
-        "expose deployment::candidateVehicleSystem1::*"
+        "expose AEBSystem1CandidateDeployment::*"
         "[istype SysML::FlowUsage];"
     ) in view
+    assert (
+        "deployment::candidateVehicleSystem1::*[istype SysML::FlowUsage]"
+        not in view
+    )
     assert "candidateVehicleSystem1::**" not in view
     assert "deployment::simulationEvidenceSystem2" not in view
     assert "attribute depth = -1;" in view

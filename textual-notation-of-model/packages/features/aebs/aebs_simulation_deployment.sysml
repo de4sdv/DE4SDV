@@ -709,7 +709,7 @@ package DE4SDV_AEBSSimulationDeployment {
     expose deployment::candidateVehicleSystem1::emergencyStopOperator::*[istype SysML::PortUsage];
     expose deployment::candidateVehicleSystem1::legacyVehicleCommandGate;
     expose deployment::candidateVehicleSystem1::legacyVehicleCommandGate::*[istype SysML::PortUsage];
-    expose deployment::candidateVehicleSystem1::*[istype SysML::FlowUsage];
+    expose AEBSystem1CandidateDeployment::*[istype SysML::FlowUsage];
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
