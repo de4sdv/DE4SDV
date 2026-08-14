@@ -25,7 +25,7 @@ package DE4SDV_MWConceptualArchitecture {
   }
 
   part systemSignalDefinitionGap : DeferredProductLineScope {
-    doc /* GAP-MW-016: Logical signal contracts remain nominal until signal identity, units, freshness, and conversion rules are baselined. */
+    doc /* GAP-MW-016: Conceptual signal contracts remain nominal until signal identity, units, freshness, and conversion rules are baselined. */
   }
 
   part systemServiceContractGap : DeferredProductLineScope {
@@ -70,22 +70,22 @@ package DE4SDV_MWConceptualArchitecture {
   }
 
   part def SignalTranslator {
-    doc /* Logical responsibility for translating and exposing vehicle-signal access without selecting a signal schema or transport. */
+    doc /* Conceptual responsibility for translating and exposing vehicle-signal access without selecting a signal schema or transport. */
     port application : SignalAccessApplicationPort;
   }
 
   part def DiagnosticProxy {
-    doc /* Logical responsibility for proxying diagnostic requests and responses across the middleware boundary. */
+    doc /* Conceptual responsibility for proxying diagnostic requests and responses across the middleware boundary. */
     port application : DiagnosticApplicationPort;
   }
 
   part def LifecycleBridge {
-    doc /* Logical responsibility for coordinating application-visible lifecycle state with middleware lifecycle state. */
+    doc /* Conceptual responsibility for coordinating application-visible lifecycle state with middleware lifecycle state. */
     port application : LifecycleApplicationPort;
   }
 
   part def HealthProxy {
-    doc /* Logical responsibility for forwarding service health and availability status. */
+    doc /* Conceptual responsibility for forwarding service health and availability status. */
     port application : HealthApplicationPort;
     port safetyObservation : SafetyPathObservationPort;
     exhibit state healthStates {
@@ -96,12 +96,12 @@ package DE4SDV_MWConceptualArchitecture {
   }
 
   part def UpdateCoordinator {
-    doc /* Logical responsibility for coordinating integration updates without selecting an update mechanism. */
+    doc /* Conceptual responsibility for coordinating integration updates without selecting an update mechanism. */
     port application : UpdateApplicationPort;
   }
 
   part def ServiceBindingManager {
-    doc /* Logical responsibility for service discovery, authentication boundary handling, and service binding. */
+    doc /* Conceptual responsibility for service discovery, authentication boundary handling, and service binding. */
     port application : ServiceBindingApplicationPort;
   }
 

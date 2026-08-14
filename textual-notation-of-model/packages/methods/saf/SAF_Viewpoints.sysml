@@ -477,7 +477,7 @@ package SAF_Viewpoints {
     require constraint {
       doc /*
        * A logical functional mapping view shall show the allocation of system
-       * functions and partial functions to logical system elements.
+       * functions and partial functions to conceptual system elements.
        */
     }
   }

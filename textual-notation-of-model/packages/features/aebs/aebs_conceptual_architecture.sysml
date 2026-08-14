@@ -25,7 +25,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   private import Views::*;
 
   /* ──────────────────────────────────────────
-   * Logical information definitions
+   * Conceptual information definitions
    * ────────────────────────────────────────── */
 
   enum def AEBSAvailabilityKind {
@@ -43,7 +43,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   item def AEBSOperatingContext {
     doc /*
      * Technology-neutral intervention-eligibility and inhibition context
-     * supplied to the logical decision boundary. Concrete providers and
+     * supplied to the conceptual decision boundary. Concrete providers and
      * middleware are deferred to physical realization. System lifecycle and
      * AEBS availability are intentionally excluded; they have separate owners.
      *
@@ -64,14 +64,14 @@ package DE4SDV_AEBSConceptualArchitecture {
      * This is intentionally a nominal, opaque contract in INC-AEBS-006.
      * Horizon, coordinate frame, validity, timing, uncertainty, and path
      * representation remain requirements/interface gaps. The item name
-     * establishes the logical producer-consumer boundary without inventing
+     * establishes the conceptual producer-consumer boundary without inventing
      * a physical or software schema.
      */
   }
 
   item def InterventionDecision {
     doc /*
-     * Logical emergency-intervention intent after considering collision risk,
+     * Conceptual emergency-intervention intent after considering collision risk,
      * intervention eligibility/inhibition context, driver override, degradation,
      * and other inhibiting conditions.
      */
@@ -93,7 +93,7 @@ package DE4SDV_AEBSConceptualArchitecture {
 
   item def AEBSDegradationState {
     doc /*
-     * Logical valid/degraded/unavailable result from health supervision.
+     * Conceptual valid/degraded/unavailable result from health supervision.
      * Concrete diagnostic codes and middleware health services are deferred.
      */
     attribute availability : AEBSAvailabilityKind;
@@ -101,7 +101,7 @@ package DE4SDV_AEBSConceptualArchitecture {
 
   item def ObservationHealthStatus {
     doc /*
-     * Logical freshness, consistency, and validity status produced while
+     * Conceptual freshness, consistency, and validity status produced while
      * acquiring vehicle-motion and target observations.
      *
      * This is intentionally a nominal, opaque contract in INC-AEBS-006.
@@ -113,7 +113,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   }
 
   /* ──────────────────────────────────────────
-   * Logical port definitions
+   * Conceptual port definitions
    * ────────────────────────────────────────── */
 
   port def VehicleMotionInput {
@@ -213,7 +213,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   }
 
   /* ──────────────────────────────────────────
-   * Logical component definitions
+   * Conceptual component definitions
    * ────────────────────────────────────────── */
 
   part def StateAcquisitionAndNormalization {
@@ -271,7 +271,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   }
 
   part def DriverWarningManagement {
-    doc /* Produces a logical driver-warning request without prescribing HMI technology. */
+    doc /* Produces a conceptual driver-warning request without prescribing HMI technology. */
     port collisionRiskIn : CollisionRiskInput;
     port driverWarningRequestOut : DriverWarningRequestOutput;
 
@@ -284,7 +284,7 @@ package DE4SDV_AEBSConceptualArchitecture {
 
   part def EmergencyInterventionCoordination {
     doc /*
-     * Issues and retains a logical emergency-intervention request only from an
+     * Issues and retains a conceptual emergency-intervention request only from an
      * affirmative arbitrated decision. Physical emergency supervision, command
      * gating, vehicle interfacing, and brake actuation are outside INC-AEBS-006.
      */
@@ -304,7 +304,7 @@ package DE4SDV_AEBSConceptualArchitecture {
 
   part def HealthAndDegradationSupervision {
     doc /*
-     * Sole logical owner of valid, degraded, and unavailable AEBS operation;
+     * Sole conceptual owner of valid, degraded, and unavailable AEBS operation;
      * reconciles input and subsystem health and requests failure indication.
      */
     port failureStatusIn : AEBSFailureStatusInput;
@@ -322,7 +322,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   part def EvidenceRecording {
     doc /*
      * Observes risk, decision, degradation, warning, intervention, and failure
-     * events and emits a logical evidence event. Storage technology, retention,
+     * events and emits a conceptual evidence event. Storage technology, retention,
      * and evidence acceptance criteria remain open.
      */
     port collisionRiskIn : CollisionRiskInput;
@@ -335,13 +335,13 @@ package DE4SDV_AEBSConceptualArchitecture {
   }
 
   /* ──────────────────────────────────────────
-   * Logical system composition and exchanges
+   * Conceptual system composition and exchanges
    * ────────────────────────────────────────── */
 
   part def VehicleTargetAEBSSystem {
     doc /*
-     * Technology-neutral logical realization of the vehicle-target AEBS
-     * functional baseline. Logical elements own responsibilities and exchange
+     * Technology-neutral conceptual realization of the vehicle-target AEBS
+     * functional baseline. Conceptual elements own responsibilities and exchange
      * typed information; no physical software or hardware realization is
      * implied.
      */
@@ -376,7 +376,7 @@ package DE4SDV_AEBSConceptualArchitecture {
       state monitoring;
     }
 
-    // Boundary delegation binds external ports to their logical owners.
+    // Boundary delegation binds external ports to their conceptual owners.
     bind vehicleMotionObservationIn = stateAcquisition.vehicleMotionIn;
     bind targetObservationIn = stateAcquisition.targetObservationIn;
     bind driverOverrideObservationIn = interventionDecision.driverOverrideIn;
@@ -436,7 +436,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   part system : VehicleTargetAEBSSystem;
 
   /*
-   * Functional-to-logical responsibility allocation. One functional action may
+   * Functional-to-conceptual responsibility allocation. One functional action may
    * allocate to multiple conceptual elements when the conceptual decomposition makes
    * previously combined responsibilities explicit.
    */
@@ -485,8 +485,8 @@ package DE4SDV_AEBSConceptualArchitecture {
 
   concern conceptualStructureConcern : ConceptualStructureConcern {
     doc /*
-     * Reviewers need the logical AEBS boundary, decomposition, responsibility
-     * ownership, and logical/physical separation to be explicit.
+     * Reviewers need the conceptual AEBS boundary, decomposition, responsibility
+     * ownership, and conceptual/physical separation to be explicit.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -496,7 +496,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   concern conceptualInternalExchangeConcern : ConceptualInternalExchangeConcern {
     doc /*
      * Reviewers need typed boundary and internal exchanges, direction, and
-     * delegation to logical owners without middleware leakage.
+     * delegation to conceptual owners without middleware leakage.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -543,7 +543,7 @@ package DE4SDV_AEBSConceptualArchitecture {
     }
 
     /*
-     * Exposing direct logical-system members selects the boundary ports,
+     * Exposing direct conceptual-system members selects the boundary ports,
      * bindings, flows, and component usages that define connectivity. The
      * current tree renderer is not relationship-complete: it may list ports
      * without drawing bind or flow edges. Review the textual bind/flow usages

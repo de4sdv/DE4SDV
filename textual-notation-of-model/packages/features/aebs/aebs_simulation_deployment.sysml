@@ -13,9 +13,9 @@
  * autoware_raw_vehicle_cmd_converter, and HardwareLayer realization are absent.
  */
 package DE4SDV_AEBSSimulationDeployment {
-  // The logical baseline supplies VehicleTargetAEBSSystem and the logical
+  // The conceptual baseline supplies VehicleTargetAEBSSystem and the conceptual
   // responsibility/item usages used as allocation sources below. Functional
-  // semantics are reached through that accepted logical baseline; no direct
+  // semantics are reached through that accepted conceptual baseline; no direct
   // functional-package import is needed in this deployment model.
   private import DE4SDV_AEBSConceptualArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
@@ -546,7 +546,7 @@ package DE4SDV_AEBSSimulationDeployment {
   dependency deploymentTracesUniverse from deployment::system1 to universeSource;
   dependency deploymentTracesLaunch from deployment to launchSource;
 
-  /* P8_PLOM: logical responsibility to physical role only. */
+  /* P8_PLOM: conceptual responsibility to physical role only. */
   allocation def SimulationLogicalToPhysicalRealization;
   allocation stateAcquisitionToAEB : SimulationLogicalToPhysicalRealization
     allocate DE4SDV_AEBSConceptualArchitecture::system.stateAcquisition to deployment.system1.aeb;

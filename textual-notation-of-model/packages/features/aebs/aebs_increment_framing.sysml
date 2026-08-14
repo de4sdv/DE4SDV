@@ -49,7 +49,7 @@ package DE4SDV_AEBSIncrementFraming {
         concern incrementBoundaryConcern : IncrementBoundaryConcern {
           doc /*
            * Reviewers need a small increment boundary that separates framing,
-           * operational context, functional modeling, logical realization,
+           * operational context, functional modeling, conceptual realization,
            * physical/software realization, and evidence work.
            */
           subject;
@@ -105,7 +105,7 @@ package DE4SDV_AEBSIncrementFraming {
         part pedestrianTargetOutOfScope : OutOfScopeItem;
         part bicycleTargetOutOfScope : OutOfScopeItem;
         part complianceClaimOutOfScope : OutOfScopeItem;
-        part logicalRealizationOutOfScope : OutOfScopeItem;
+        part conceptualRealizationOutOfScope : OutOfScopeItem;
         part physicalSoftwareRealizationOutOfScope : OutOfScopeItem;
 
         view aebsIncrementFramingView {

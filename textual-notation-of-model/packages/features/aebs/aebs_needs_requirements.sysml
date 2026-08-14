@@ -239,7 +239,7 @@ package DE4SDV_AEBSNeedsRequirements {
           doc /* GAP-AEBS-REQ-009: VSS signal candidates are intentionally deferred until the functional-interface increment. */
         }
         part satisfactionGap : DeferredProductLineScope {
-          doc /* GAP-AEBS-REQ-010: Requirement satisfaction assertions are deferred until functional/logical realization exists. */
+          doc /* GAP-AEBS-REQ-010: Requirement satisfaction assertions are deferred until functional/conceptual realization exists. */
         }
         part regulatoryApplicabilityGap : DeferredProductLineScope {
           doc /* GAP-AEBS-REQ-013: Source identity is controlled, but amendment-selection rationale, vehicle-category applicability, and authority interpretation remain unresolved. */

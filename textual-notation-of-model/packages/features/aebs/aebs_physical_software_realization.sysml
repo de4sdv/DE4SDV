@@ -171,7 +171,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      * Source-backed behavior includes input polling/transformation, IMU and
      * control-trajectory path branches, target extraction from point clouds or
      * predicted objects, RSS-distance collision checking, and an ERROR-level
-     * diagnostic when collision state is active. Branch acceptance and logical
+     * diagnostic when collision state is active. Branch acceptance and conceptual
      * coverage are represented separately below.
      */
 
@@ -280,7 +280,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
     doc /*
      * Required owner of explicit AEBS valid/degraded/unavailable state and
      * failure indication. Input waiting/logging in the pinned node is not a
-     * complete realization of that logical responsibility.
+     * complete realization of that conceptual responsibility.
      */
   }
 
@@ -362,7 +362,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   allocation def AvailableLogicalToPhysicalSoftwareRealization {
     doc /*
      * At the pinned source and selected configuration, inspected source behavior
-     * exists for the mapped logical responsibility. Typing an allocation with
+     * exists for the mapped conceptual responsibility. Typing an allocation with
      * this definition lets the SAF physical-logical mapping view distinguish a
      * source-available candidate from a partial or missing realization. It does
      * not imply complete requirement satisfaction, scenario evidence, runtime
@@ -442,8 +442,8 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   part emergencyDiagnosticContribution : PhysicalSourceContributionRecord {
     doc /*
      * The AEB node contributes an ERROR diagnostic only. It does not realize
-     * the logical EmergencyInterventionCoordination contract or emit the
-     * logical EmergencyInterventionRequest.
+     * the conceptual EmergencyInterventionCoordination contract or emit the
+     * conceptual EmergencyInterventionRequest.
      */
     ref part conceptualConcern = DE4SDV_AEBSConceptualArchitecture::system::emergencyCoordination;
     ref part physicalSource = physicalSoftware.aebNode;
