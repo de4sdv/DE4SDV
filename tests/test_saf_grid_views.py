@@ -78,6 +78,16 @@ def test_saf_mapping_views_are_native_allocation_matrices() -> None:
             ) in block
             assert "render asTreeDiagram;" not in block
 
+    simulation = (
+        ROOT
+        / "textual-notation-of-model/packages/features/aebs/"
+        "aebs_simulation_deployment.sysml"
+    ).read_text(encoding="utf-8")
+    item_mapping = _block(
+        simulation, "view aebsSimulationPhysicalLogicalItemMappingView"
+    )
+    assert item_mapping.count("attribute :>> includeReferenceElements = true;") == 2
+
 
 def test_saf_requirement_definition_views_are_native_tables() -> None:
     for relative_path, view_names in TABLE_VIEWS.items():

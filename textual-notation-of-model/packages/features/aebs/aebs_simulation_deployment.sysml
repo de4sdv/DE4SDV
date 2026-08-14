@@ -765,6 +765,7 @@ package DE4SDV_AEBSSimulationDeployment {
     view :>> rowView {
       expose system::emergencyInterventionRequestOut::emergencyInterventionRequest;
       expose system::vehicleMotionObservationIn::vehicleMotionState;
+      attribute :>> includeReferenceElements = true;
       attribute :>> representation = Rep::name;
     }
     view :>> columnView {
@@ -772,6 +773,7 @@ package DE4SDV_AEBSSimulationDeployment {
       expose deployment::candidateVehicleSystem1::legacyVehicleCommandGate::emergencyControlCommandIn::command;
       expose deployment::candidateVehicleSystem1::velocityFeedbackIn::velocity;
       expose deployment::candidateVehicleSystem1::kinematicStateIn::odometry;
+      attribute :>> includeReferenceElements = true;
       attribute :>> representation = Rep::name;
     }
     view :>> cellView {
