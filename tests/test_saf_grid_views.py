@@ -126,8 +126,18 @@ def test_contained_campaign_is_not_published_as_context_exchange() -> None:
         / "textual-notation-of-model/packages/features/middleware/"
         "mw_physical_software_realization.sysml"
     ).read_text(encoding="utf-8")
-    assert "view mwVehicleSpeedCampaignContextExchangeView" not in model
+    assert "mwVehicleSpeedCampaignContextExchangeView" not in model
     assert "No Physical Context Exchange view is published" in model
+
+
+def test_platform_stack_adapter_connections_use_conforming_port_types() -> None:
+    text = (
+        ROOT / "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml"
+    ).read_text(encoding="utf-8")
+    vehicle_application = _block(text, "part def VehicleApplicationLayer")
+    middleware = _block(text, "part def MiddlewareLayer")
+    assert "port middlewarePort : ApplicationAdapterPort;" in vehicle_application
+    assert "port applicationPort : MiddlewareAdapterPort;" in middleware
 
 
 def test_operational_story_and_capability_are_focused_presentations() -> None:
