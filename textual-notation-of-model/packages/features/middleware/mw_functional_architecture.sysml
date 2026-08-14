@@ -329,21 +329,23 @@ package DE4SDV_MWFunctionalArchitecture {
           viewpoint selectedFunctionalBehaviorViewpoint : SystemFunctionalBreakdownStructureViewpoint {
             frame functionalBehaviorConcern;
           }
-          expose FunctionalArchitecture::*;
+          expose MiddlewareIntegrationFunctionalFlow;
           render asTreeDiagram;
         }
         view mwFunctionalInterfaceView {
           viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
             frame functionalInterfaceConcern;
           }
-          expose FunctionalArchitecture::*;
+          expose FunctionalArchitecture::*[
+            istype SysML::PortDefinition or istype SysML::ItemDefinition
+          ];
           render asTreeDiagram;
         }
         view mwFunctionalProcessView : ActionFlowView {
           viewpoint selectedFunctionalProcessViewpoint : SystemProcessViewpoint {
             frame functionalProcessConcern;
           }
-          expose FunctionalArchitecture::*;
+          expose middlewareIntegrationFunctionalFlow;
         }
       }
     }

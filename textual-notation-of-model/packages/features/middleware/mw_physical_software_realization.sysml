@@ -663,12 +663,6 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern vehicleSpeedCampaignContextExchangeConcern : PhysicalContextExchangeConcern {
-    subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
-    stakeholder systemsEngineer : SystemsEngineer;
-    stakeholder reviewer : OpenSourceReviewer;
-  }
-
   concern vehicleSpeedCampaignInternalExchangeConcern : PhysicalInternalExchangeConcern {
     doc /*
      * Review the typed handoffs among the concrete campaign deployment roles.
@@ -711,7 +705,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
       frame physicalStructureConcern;
     }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
+    expose physicalSoftware;
+    expose physicalSoftware::*;
+    attribute depth = 1;
+    attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
 
@@ -719,29 +716,18 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     viewpoint selectedPhysicalInterfaceViewpoint : PhysicalInterfaceDefinitionViewpoint {
       frame physicalInterfaceConcern;
     }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
+    expose DE4SDV_MWPhysicalSoftwareRealization::*[
+      istype SysML::PortDefinition or istype SysML::ItemDefinition
+    ];
     render asTreeDiagram;
   }
 
-  view mwVehicleSpeedCampaignContextExchangeView {
-    viewpoint selectedVehicleSpeedCampaignContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
-      frame vehicleSpeedCampaignContextExchangeConcern;
-    }
-    doc /*
-     * Focused bounded campaign transfer view. It exposes only the two
-     * top-level System 2 host/VM domains: AAOS/Cuttlefish VM-A and the
-     * independent ROS 2 VM-B. The nested guest, forwarder, private TCP
-     * boundary, ingress, and observer remain available in the supporting
-     * internal-exchange and structure views.
-     *
-     * The deployment still owns the complete typed flow chain. This view is
-     * intentionally a two-domain context slice, not a rendering of every
-     * implementation member.
-     */
-    expose vehicleSpeedCampaignDeployment::vmA;
-    expose vehicleSpeedCampaignDeployment::vmB;
-    render asTreeDiagram;
-  }
+  /*
+   * No Physical Context Exchange view is published for this campaign. Both
+   * hosts and the complete one-directional transfer chain are contained by the
+   * deployment subject, so presenting them as an external-boundary exchange
+   * would be false. The internal-exchange view is authoritative for this scope.
+   */
 
   view mwVehicleSpeedCampaignInternalExchangeView {
     viewpoint selectedVehicleSpeedCampaignInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
@@ -760,6 +746,8 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     expose vehicleSpeedCampaignDeployment;
     expose vehicleSpeedCampaignDeployment::**;
     attribute depth = -1;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;
   }
 

@@ -13,6 +13,7 @@ package DE4SDV_MWOperationalContext {
       package OperationalContext {
         private import DE4SDV_Stakeholders::*;
         private import SAF_Viewpoints::*;
+        private import StandardViewDefinitions::*;
         private import Views::*;
 
         item def LifecycleCommand {
@@ -268,7 +269,8 @@ package DE4SDV_MWOperationalContext {
             frame operationalContextConcern;
           }
 
-          expose OperationalContext::*;
+          expose OperationalContext::'integrate ADAS with vehicle platform';
+          attribute depth = 1;
           render asTreeDiagram;
         }
 
@@ -283,13 +285,12 @@ package DE4SDV_MWOperationalContext {
           stakeholder reviewer : OpenSourceReviewer;
         }
 
-        view mwOperationalStoryView {
+        view mwOperationalStoryView : ActionFlowView {
           viewpoint selectedOperationalStoryViewpoint : OperationalStoryViewpoint {
             frame operationalStoryConcern;
           }
 
-          expose OperationalContext::*;
-          render asTreeDiagram;
+          expose OperationalContext::'integrate ADAS with vehicle platform';
         }
 
         concern operationalCapabilityConcern : OperationalCapabilityConcern {
@@ -311,7 +312,8 @@ package DE4SDV_MWOperationalContext {
             frame operationalCapabilityConcern;
           }
 
-          expose OperationalContext::*;
+          expose OperationalContext::'integrate ADAS with vehicle platform';
+          attribute depth = 1;
           render asTreeDiagram;
         }
       }

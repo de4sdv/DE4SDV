@@ -109,3 +109,88 @@ def test_unsubstantiated_physical_function_mapping_is_not_published() -> None:
     ).read_text(encoding="utf-8")
     assert "view mwPhysicalFunctionalMappingView" not in model
     assert "No physical-function allocation is modeled" in model
+
+
+def test_contained_campaign_is_not_published_as_context_exchange() -> None:
+    model = (
+        ROOT
+        / "textual-notation-of-model/packages/features/middleware/"
+        "mw_physical_software_realization.sysml"
+    ).read_text(encoding="utf-8")
+    assert "view mwVehicleSpeedCampaignContextExchangeView" not in model
+    assert "No Physical Context Exchange view is published" in model
+
+
+def test_operational_story_and_capability_are_focused_presentations() -> None:
+    model = (
+        ROOT
+        / "textual-notation-of-model/packages/features/middleware/"
+        "mw_operational_context.sysml"
+    ).read_text(encoding="utf-8")
+    story = _block(model, "view mwOperationalStoryView")
+    assert "view mwOperationalStoryView : ActionFlowView" in story
+    assert "expose OperationalContext::'integrate ADAS with vehicle platform';" in story
+    assert "render asTreeDiagram;" not in story
+
+    for view_name in ("mwOperationalContextView", "mwOperationalCapabilityView"):
+        block = _block(model, f"view {view_name}")
+        assert "expose OperationalContext::'integrate ADAS with vehicle platform';" in block
+        assert "expose OperationalContext::*;" not in block
+
+
+def test_function_and_interface_views_do_not_dump_packages() -> None:
+    cases = {
+        "textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml": (
+            "aebsFunctionalBehaviorView",
+            "VehicleTargetAEBSFunctionalFlow",
+            "aebsFunctionalInterfaceView",
+        ),
+        "textual-notation-of-model/packages/features/middleware/mw_functional_architecture.sysml": (
+            "mwFunctionalBehaviorView",
+            "MiddlewareIntegrationFunctionalFlow",
+            "mwFunctionalInterfaceView",
+        ),
+    }
+    for relative_path, (behavior_name, flow_name, interface_name) in cases.items():
+        model = (ROOT / relative_path).read_text(encoding="utf-8")
+        behavior = _block(model, f"view {behavior_name}")
+        assert f"expose {flow_name};" in behavior
+        assert "::*;" not in behavior
+        interface = _block(model, f"view {interface_name}")
+        assert "istype SysML::PortDefinition" in interface
+        assert "istype SysML::ItemDefinition" in interface
+
+    middleware = (ROOT / next(path for path in cases if "middleware" in path)).read_text(
+        encoding="utf-8"
+    )
+    process = _block(middleware, "view mwFunctionalProcessView")
+    assert "expose middlewareIntegrationFunctionalFlow;" in process
+    assert "expose FunctionalArchitecture::*;" not in process
+
+
+def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
+    conceptual = (
+        ROOT
+        / "textual-notation-of-model/packages/features/middleware/"
+        "mw_conceptual_architecture.sysml"
+    ).read_text(encoding="utf-8")
+    structure = _block(conceptual, "view mwSystemStructureView")
+    assert "expose system;" in structure
+    assert "expose system::*;" in structure
+    assert "expose DE4SDV_MWConceptualArchitecture::*;" not in structure
+    internal = _block(conceptual, "view mwSystemInternalExchangeView")
+    assert "expose system;" in internal
+    assert "attribute showAnnotationRows = false;" in internal
+
+    physical = (
+        ROOT
+        / "textual-notation-of-model/packages/features/middleware/"
+        "mw_physical_software_realization.sysml"
+    ).read_text(encoding="utf-8")
+    physical_structure = _block(physical, "view mwPhysicalStructureView")
+    assert "expose physicalSoftware;" in physical_structure
+    assert "expose physicalSoftware::*;" in physical_structure
+    assert "expose DE4SDV_MWPhysicalSoftwareRealization::*;" not in physical_structure
+    interface = _block(physical, "view mwPhysicalInterfaceView")
+    assert "istype SysML::PortDefinition" in interface
+    assert "istype SysML::ItemDefinition" in interface

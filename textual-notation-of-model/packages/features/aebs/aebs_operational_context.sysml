@@ -174,7 +174,8 @@ package DE4SDV_AEBSOperationalContext {
             frame operationalContextConcern;
           }
 
-          expose OperationalContext::*;
+          expose OperationalContext::vehicleTargetForwardCollisionStory;
+          attribute depth = 1;
           render asTreeDiagram;
         }
       }

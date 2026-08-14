@@ -224,7 +224,10 @@ package DE4SDV_MWConceptualArchitecture {
     viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
       frame conceptualStructureConcern;
     }
-    expose DE4SDV_MWConceptualArchitecture::*;
+    expose system;
+    expose system::*;
+    attribute depth = 1;
+    attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
 
@@ -237,7 +240,11 @@ package DE4SDV_MWConceptualArchitecture {
      * renderer draws part usages with their ports and flow edges; a
      * package-level expose resolves to definitions, which are skipped.
      */
+    expose system;
     expose system::*;
+    attribute depth = 1;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;
   }
 
