@@ -63,7 +63,7 @@ deferred_viewpoint_subsets:
     service definitions are modeled.
 - id: logical_realization
   label: Logical realization subset
-  reason: The adapter's logical decomposition (message translation, lifecycle delegation, health forwarding) is deferred until
+  reason: The adapter's conceptual decomposition (message translation, lifecycle delegation, health forwarding) is deferred until
     the physical boundary is reviewed and the integration contract is stable.
 - id: full_safety_security
   label: Full safety/security subset

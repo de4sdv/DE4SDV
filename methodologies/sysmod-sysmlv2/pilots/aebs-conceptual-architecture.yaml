@@ -1,4 +1,4 @@
-schema: de4sdv.system-architecture.v0
+schema: de4sdv.conceptual-architecture.v0
 id: INC-AEBS-006
 name: AEBS system architecture
 status: draft
@@ -285,7 +285,7 @@ logical_states:
 
 review_views:
   logical_structure:
-    exposes: logical system and nine component usages
+    exposes: conceptual system and nine component usages
     limitation: the tree renderer may list component ports but does not render their bind and flow edges; this view is decomposition-only
   logical_internal_exchange:
     exposes: direct logical-system members, including ports, boundary bindings, and internal flows

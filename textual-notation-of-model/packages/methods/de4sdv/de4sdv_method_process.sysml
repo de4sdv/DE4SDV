@@ -147,7 +147,7 @@ package DE4SDV_MethodProcess {
     }
   }
 
-  /* ─── Recurring logical-to-software signal mapping control ─── */
+  /* ─── Recurring system-to-software signal mapping control ─── */
 
   enum def SignalMappingDisposition {
     mapped {

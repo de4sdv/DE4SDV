@@ -144,7 +144,7 @@ package DE4SDV_MethodContext {
   }
 
   part def MissingRealizationRecord {
-    doc /* Record of a missing realization allocation for a logical element. */
+    doc /* Record of a missing realization allocation for a conceptual element. */
   }
 
   part def BlockedRealizationBranchRecord {

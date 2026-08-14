@@ -9,13 +9,13 @@
  * status is represented here.
  */
 
-package DE4SDV_MWSystemArchitecture {
+package DE4SDV_MWConceptualArchitecture {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
   private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
   private import DE4SDV_MWRequirements::Features::Middleware::Requirements::*;
-  private import DE4SDV_AEBSSystemArchitecture::*;
+  private import DE4SDV_AEBSConceptualArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
@@ -186,34 +186,34 @@ package DE4SDV_MWSystemArchitecture {
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideServiceDiscovery;
 
   dependency aebsVehicleMotionDependsOnSignalTranslator
-    from DE4SDV_AEBSSystemArchitecture::system::vehicleMotionObservationIn
+    from DE4SDV_AEBSConceptualArchitecture::system::vehicleMotionObservationIn
     to system::signalTranslator;
   dependency aebsTargetObservationDependsOnSignalTranslator
-    from DE4SDV_AEBSSystemArchitecture::system::targetObservationIn
+    from DE4SDV_AEBSConceptualArchitecture::system::targetObservationIn
     to system::signalTranslator;
   dependency aebsDriverOverrideDependsOnSignalTranslator
-    from DE4SDV_AEBSSystemArchitecture::system::driverOverrideObservationIn
+    from DE4SDV_AEBSConceptualArchitecture::system::driverOverrideObservationIn
     to system::signalTranslator;
   dependency aebsOperatingContextDependsOnLifecycleBridge
-    from DE4SDV_AEBSSystemArchitecture::system::operatingContextIn
+    from DE4SDV_AEBSConceptualArchitecture::system::operatingContextIn
     to system::lifecycleBridge;
   dependency aebsHealthStatusDependsOnHealthProxy
-    from DE4SDV_AEBSSystemArchitecture::system::subsystemHealthIn
+    from DE4SDV_AEBSConceptualArchitecture::system::subsystemHealthIn
     to system::healthProxy;
 
-  concern systemStructureConcern : SystemStructureConcern {
+  concern conceptualStructureConcern : ConceptualStructureConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern systemInternalExchangeConcern : SystemInternalExchangeConcern {
+  concern conceptualInternalExchangeConcern : ConceptualInternalExchangeConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern systemFunctionMappingConcern : SystemFunctionMappingConcern {
+  concern conceptualFunctionMappingConcern : ConceptualFunctionMappingConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
@@ -221,25 +221,25 @@ package DE4SDV_MWSystemArchitecture {
 
   view mwSystemStructureView {
     viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
-      frame systemStructureConcern;
+      frame conceptualStructureConcern;
     }
-    expose DE4SDV_MWSystemArchitecture::*;
+    expose DE4SDV_MWConceptualArchitecture::*;
     render asTreeDiagram;
   }
 
   view mwSystemInternalExchangeView {
     viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
-      frame systemInternalExchangeConcern;
+      frame conceptualInternalExchangeConcern;
     }
-    expose DE4SDV_MWSystemArchitecture::*;
+    expose DE4SDV_MWConceptualArchitecture::*;
     render asTreeDiagram;
   }
 
   view mwSystemFunctionMappingView {
     viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
-      frame systemFunctionMappingConcern;
+      frame conceptualFunctionMappingConcern;
     }
-    expose DE4SDV_MWSystemArchitecture::*;
+    expose DE4SDV_MWConceptualArchitecture::*;
     render asTreeDiagram;
   }
 }

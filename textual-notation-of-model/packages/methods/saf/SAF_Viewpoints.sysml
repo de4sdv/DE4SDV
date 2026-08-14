@@ -387,10 +387,10 @@ package SAF_Viewpoints {
 
   // ─── Conceptual Domain ───
 
-  concern def SystemStructureConcern {
+  concern def ConceptualStructureConcern {
     require constraint {
       doc /*
-       * Reviewers need the logical system decomposition, logical element
+       * Reviewers need the conceptual system decomposition, conceptual element
        * responsibilities, and ownership boundaries to be visible.
        */
     }
@@ -404,18 +404,18 @@ package SAF_Viewpoints {
      */
     require constraint {
       doc /*
-       * A logical structure view shall show the logical system boundary and
-       * its hierarchical decomposition into logical elements responsible for
+       * A logical structure view shall show the conceptual system boundary and
+       * its hierarchical decomposition into conceptual elements responsible for
        * realizing system functions.
        */
     }
   }
 
-  concern def SystemInternalExchangeConcern {
+  concern def ConceptualInternalExchangeConcern {
     require constraint {
       doc /*
-       * Reviewers need the typed logical interfaces, exchanges, directions,
-       * and delegation from the logical system boundary to internal elements.
+       * Reviewers need the typed conceptual interfaces, exchanges, directions,
+       * and delegation from the conceptual system boundary to internal elements.
        */
     }
   }
@@ -428,17 +428,17 @@ package SAF_Viewpoints {
      */
     require constraint {
       doc /*
-       * A logical internal exchange view shall show the logical system
-       * boundary, internal logical elements, connected interfaces, delegated
+       * A logical internal exchange view shall show the conceptual system
+       * boundary, internal conceptual elements, connected interfaces, delegated
        * boundary interfaces, and exchanged logical items.
        */
     }
   }
 
-  concern def LogicalInternalInteractionConcern {
+  concern def ConceptualInternalInteractionConcern {
     require constraint {
       doc /*
-       * Reviewers need logical interactions (sequences, message ordering)
+       * Reviewers need conceptual interactions (sequences, message ordering)
        * described for the increment.
        */
     }
@@ -453,13 +453,13 @@ package SAF_Viewpoints {
     require constraint {
       doc /*
        * A logical internal interaction view shall show interactions
-       * between logical elements, including message sequencing and
+       * between conceptual elements, including message sequencing and
        * temporal relationships.
        */
     }
   }
 
-  concern def SystemFunctionMappingConcern {
+  concern def ConceptualFunctionMappingConcern {
     require constraint {
       doc /*
        * Reviewers need every system function allocated to one or more logical
@@ -646,7 +646,7 @@ package SAF_Viewpoints {
   concern def PhysicalLogicalMappingConcern {
     require constraint {
       doc /*
-       * Reviewer question: Which logical element roles are realized by which
+       * Reviewer question: Which conceptual element roles are realized by which
        * physical element roles?
        */
     }
@@ -662,7 +662,7 @@ package SAF_Viewpoints {
       doc /*
        * A physical logical mapping view shall show logical and physical
        * element breakdowns and the realization relationships that identify
-       * which physical element roles implement each logical element role.
+       * which physical element roles implement each conceptual element role.
        */
     }
   }

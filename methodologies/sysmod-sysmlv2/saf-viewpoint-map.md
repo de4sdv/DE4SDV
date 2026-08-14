@@ -86,10 +86,10 @@ Use when the increment introduces or changes logical services/components.
 
 | SAF viewpoint | DE4SDV purpose | Output |
 |---|---|---|
-| System Structure Definition Viewpoint | define logical elements and composition | system architecture model |
+| System Structure Definition Viewpoint | define conceptual elements and composition | system architecture model |
 | System Internal Exchange Viewpoint | define internal exchanges | exchange/interface model |
 | System Internal Interaction Viewpoint | describe interactions | sequence/process model |
-| System Function Mapping Viewpoint | allocate functions to logical elements | allocation map |
+| System Function Mapping Viewpoint | allocate functions to conceptual elements | allocation map |
 
 ### 6. Physical/software realization subset
 

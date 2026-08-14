@@ -20,7 +20,7 @@ engineering_question: >-
   are possible?
 lifecycle_decision_supported: >-
   Decide whether the candidate physical/software boundary, applicable
-  logical-to-software signal mappings, and its enabling system are sufficiently
+  system-to-software signal mappings, and its enabling system are sufficiently
   explicit to begin variability/configuration and V&V planning.
 scope:
   in_scope:
@@ -28,7 +28,7 @@ scope:
   - AAOS SDV boundary reference model
   - candidate physical/software clients for signal, diagnostic, lifecycle, health, update, and discovery responsibilities
   - logical-to-physical candidate mappings
-  - logical-to-software signal mapping for the reference vehicle-speed slice
+  - system-to-software signal mapping for the reference vehicle-speed slice
   - pinned AOSP source-artifact traceability for AAOS SDV middleware projects
   - engineering enabling-system resource envelope and realization-readiness probe
   - physical structure, interface, functional-mapping, and logical-mapping views
@@ -47,7 +47,7 @@ scope:
 source_alignment:
 - source_id: INC-MW-007
   use: logical-architecture-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-system-architecture.yaml
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-conceptual-architecture.yaml
 - source_id: SDV-PLATFORM-STACK
   use: candidate-adapter-definition
   artifact: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
@@ -175,7 +175,7 @@ signal_mappings:
     downstream_mapping_id: VSS-SIM-AEBS-001
     runtime_status: deferred
   logical_realization:
-    model_element: DE4SDV_MWSystemArchitecture::system::signalTranslator
+    model_element: DE4SDV_MWConceptualArchitecture::system::signalTranslator
     mapping_allocation: vehicleSpeedSystemToSoftwareSignalCandidate
   evidence:
     contract_tests:

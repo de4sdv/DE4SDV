@@ -1,4 +1,4 @@
-schema: de4sdv.system-architecture.v0
+schema: de4sdv.conceptual-architecture.v0
 id: INC-MW-007
 name: Middleware integration system architecture
 status: draft
@@ -41,7 +41,7 @@ source_alignment:
   artifact: methodologies/sysmod-sysmlv2/pilots/mw-functional-architecture.yaml
 selected_viewpoints:
 - viewpoint: SystemStructureDefinitionViewpoint
-  rationale: Review logical decomposition and responsibility boundaries.
+  rationale: Review conceptual decomposition and responsibility boundaries.
 - viewpoint: SystemInternalExchangeViewpoint
   rationale: Review typed boundary interfaces, delegation, and exchanges.
 - viewpoint: SystemFunctionMappingViewpoint

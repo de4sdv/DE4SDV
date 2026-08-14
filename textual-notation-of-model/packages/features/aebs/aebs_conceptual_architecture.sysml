@@ -2,7 +2,7 @@
  * DE4SDV AEBS system architecture model slice.
  *
  * This package mirrors INC-AEBS-006 from
- * methodologies/sysmod-sysmlv2/pilots/aebs-system-architecture.yaml.
+ * methodologies/sysmod-sysmlv2/pilots/aebs-conceptual-architecture.yaml.
  *
  * Domain boundary: system architecture only. Autoware, ROS 2/DDS,
  * Eclipse S-CORE, Android SDV/AAOS, middleware adapters, processes, ECUs,
@@ -18,7 +18,7 @@
  *   Behavior/5-State-based Behavior-1.sysml.
  */
 
-package DE4SDV_AEBSSystemArchitecture {
+package DE4SDV_AEBSConceptualArchitecture {
   private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -437,7 +437,7 @@ package DE4SDV_AEBSSystemArchitecture {
 
   /*
    * Functional-to-logical responsibility allocation. One functional action may
-   * allocate to multiple logical elements when the logical decomposition makes
+   * allocate to multiple conceptual elements when the conceptual decomposition makes
    * previously combined responsibilities explicit.
    */
   allocation def FunctionalToSystemResponsibility;
@@ -483,7 +483,7 @@ package DE4SDV_AEBSSystemArchitecture {
    * Concerns and human-reviewable views
    * ────────────────────────────────────────── */
 
-  concern systemStructureConcern : SystemStructureConcern {
+  concern conceptualStructureConcern : ConceptualStructureConcern {
     doc /*
      * Reviewers need the logical AEBS boundary, decomposition, responsibility
      * ownership, and logical/physical separation to be explicit.
@@ -493,7 +493,7 @@ package DE4SDV_AEBSSystemArchitecture {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern systemInternalExchangeConcern : SystemInternalExchangeConcern {
+  concern conceptualInternalExchangeConcern : ConceptualInternalExchangeConcern {
     doc /*
      * Reviewers need typed boundary and internal exchanges, direction, and
      * delegation to logical owners without middleware leakage.
@@ -503,10 +503,10 @@ package DE4SDV_AEBSSystemArchitecture {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern systemFunctionMappingConcern : SystemFunctionMappingConcern {
+  concern conceptualFunctionMappingConcern : ConceptualFunctionMappingConcern {
     doc /*
      * Reviewers need every AEBS functional action allocated to one or more
-     * logical elements without implying physical realization.
+     * conceptual elements without implying physical realization.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -515,7 +515,7 @@ package DE4SDV_AEBSSystemArchitecture {
 
   view aebsSystemStructureView {
     viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
-      frame systemStructureConcern;
+      frame conceptualStructureConcern;
     }
 
     expose system;
@@ -539,7 +539,7 @@ package DE4SDV_AEBSSystemArchitecture {
 
   view aebsSystemInternalExchangeView {
     viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
-      frame systemInternalExchangeConcern;
+      frame conceptualInternalExchangeConcern;
     }
 
     /*
@@ -555,7 +555,7 @@ package DE4SDV_AEBSSystemArchitecture {
 
   view aebsSystemFunctionMappingView {
     viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
-      frame systemFunctionMappingConcern;
+      frame conceptualFunctionMappingConcern;
     }
 
     expose acquireStateAllocation;

@@ -71,7 +71,7 @@ graph TD
     P4[Phase 4: Needs]
     P5[Phase 5: Requirements]
     P6[Phase 6: Functional architecture]
-    P7[Phase 7: System architecture]
+    P7[Phase 7: Conceptual architecture]
     P8[Phase 8: Physical/software realization]
     P9[Phase 9: Variability and configuration]
     P10[Phase 10: V&V and evidence]
@@ -170,10 +170,10 @@ Activities become SysML v2 action/flow definitions in textual notation.
 State machines for system processes become SysML v2 state definition
 constructs.
 
-### Phase 7 — System architecture
+### Phase 7 — Conceptual architecture
 
 Logical structure, exchanges, and allocation/mapping from functions to
-logical elements. Expressed as SysML v2 part/connection/flow
+conceptual elements. Expressed as SysML v2 part/connection/flow
 definitions. Allocation becomes explicit metadata, not a diagram
 annotation.
 
@@ -184,7 +184,7 @@ adapter layer between application and middleware. Concrete part
 definitions carry vendor/size/interface properties as SysML v2
 attributes. For every logical or semantic information item that crosses into
 the concrete software boundary, create or update the recurring
-logical-to-software signal mapping: qualified source item, software contract
+system-to-software signal mapping: qualified source item, software contract
 message/field, physical adapter endpoints and direction, unit/type/timing and
 quality semantics, transformation rule, realization status, and evidence or
 gap. A candidate or deferred mapping is acceptable for a draft increment when

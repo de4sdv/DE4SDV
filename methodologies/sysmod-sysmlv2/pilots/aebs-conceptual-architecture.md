@@ -7,7 +7,7 @@
 
 ## Decision requested
 
-Review whether this logical decomposition and its contracts are stable enough to become the target for the first physical software realization with Autoware.
+Review whether this conceptual decomposition and its contracts are stable enough to become the target for the first physical software realization with Autoware.
 
 This increment does **not** model Autoware, ROS 2, Eclipse S-CORE, Android SDV/AAOS, ECUs, sensors, networks, or brake actuators. Those begin in INC-AEBS-007 and INC-AEBS-008.
 
@@ -99,7 +99,7 @@ Driver override, health supervision, emergency-state retention, degradation, and
 | `MonitorAEBSFailureStatus` | Health and Degradation Supervision | Reconciles input and subsystem health and solely owns valid/degraded/unavailable availability state |
 | `RecordAEBSEvidenceEvent` | Evidence Recording | Creates a cross-cutting observation boundary over risk, decision, degradation, warning, intervention and failure exchanges |
 
-Similar names are retained where they improve traceability; similarity is not the architectural argument. SysML v2 allocations express responsibility assignment. They do not, by themselves, prove decomposition or claim that the logical element is a software node, process, ECU, or physical component. The added responsibility, state and exchange topology above carry the architectural content.
+Similar names are retained where they improve traceability; similarity is not the architectural argument. SysML v2 allocations express responsibility assignment. They do not, by themselves, prove decomposition or claim that the conceptual element is a software node, process, ECU, or physical component. The added responsibility, state and exchange topology above carry the architectural content.
 
 ## Logical exchanges
 
@@ -248,7 +248,7 @@ Autoware, ROS 2/DDS, S-CORE and Android SDV/AAOS are physical software/platform 
 | Lifecycle transition triggers, guards and source contract | Vehicle-Target AEBS Logical System | Open |
 | Concrete service providers and middleware adapters | INC-AEBS-007/008 | Deferred |
 
-These are not reasons to block logical decomposition. They are requirements and realization gaps that now have explicit owners.
+These are not reasons to block conceptual decomposition. They are requirements and realization gaps that now have explicit owners.
 
 ## Remaining increment plan
 
@@ -279,7 +279,7 @@ Run the complete observation-to-braking chain in repeatable scenarios. Record so
 
 The three SAF-aligned views have distinct membership:
 
-- the structure view exposes the logical system and nine component usages; the tree renderer may list their ports, but this decomposition view does not render bind or flow edges;
+- the structure view exposes the conceptual system and nine component usages; the tree renderer may list their ports, but this decomposition view does not render bind or flow edges;
 - the internal-exchange view selects direct members of the logical-system context, including ports, boundary bindings, and internal flows;
 - the functional-mapping view exposes ten named allocation usages.
 
