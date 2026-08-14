@@ -91,12 +91,13 @@ def test_rejects_more_than_the_allowed_flow_count(tmp_path: Path) -> None:
     assert "above allowed 1" in result.stderr
 
 
-def test_privileged_workflow_gates_aebs_internal_exchange_artifact() -> None:
+def test_privileged_workflow_gates_aebs_context_exchange_artifact() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
 
     assert "Check critical view materialization" in workflow
     assert "scripts/check_svg_view_materialization.py" in workflow
-    assert "diagram-aebsSimulationPhysicalInternalExchangeView.svg" in workflow
-    assert "--forbid-label simulationEvidenceSystem2" in workflow
-    assert "--min-flow-count 10" in workflow
-    assert "--max-flow-count 10" in workflow
+    assert "diagram-aebsSimulationPhysicalContextExchangeView.svg" in workflow
+    assert "candidateVehicleSystem1 : AEBSystem1CandidateDeployment" in workflow
+    assert "simulationEvidenceSystem2 : AEBSystem2SimulationAssets" in workflow
+    assert "--min-flow-count 21" in workflow
+    assert "--max-flow-count 21" in workflow

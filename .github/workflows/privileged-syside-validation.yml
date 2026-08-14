@@ -174,17 +174,12 @@ jobs:
         if: steps.syside-secret.outputs.available == 'true'
         run: |
           python scripts/check_svg_view_materialization.py \
-            diagrams/diagram-aebsSimulationPhysicalInternalExchangeView.svg \
-            --view-name aebsSimulationPhysicalInternalExchangeView \
-            --require-label "aeb : DeployedAEBNode" \
-            --require-label "aggregator : DiagnosticGraphAggregatorNode" \
-            --require-label "commandModeToOperationModeAvailabilityConverter : CommandModeToOperationModeAvailabilityConverterNode" \
-            --require-label "mrmHandler : MrmHandlerNode" \
-            --require-label "emergencyStopOperator : EmergencyStopOperatorNode" \
-            --require-label "legacyVehicleCommandGate : LegacyVehicleCommandGateNode" \
-            --forbid-label simulationEvidenceSystem2 \
-            --min-flow-count 10 \
-            --max-flow-count 10
+            diagrams/diagram-aebsSimulationPhysicalContextExchangeView.svg \
+            --view-name aebsSimulationPhysicalContextExchangeView \
+            --require-label "candidateVehicleSystem1 : AEBSystem1CandidateDeployment" \
+            --require-label "simulationEvidenceSystem2 : AEBSystem2SimulationAssets" \
+            --min-flow-count 21 \
+            --max-flow-count 21
 
       - name: Export grid views and render review SVGs (Labs)
         if: steps.syside-secret.outputs.available == 'true'

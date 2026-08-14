@@ -43,45 +43,22 @@ def test_physical_context_exchange_frames_system1_against_system2() -> None:
     assert "attribute depth = -1;" in view
 
 
-def test_physical_internal_exchange_is_inside_system1_only() -> None:
+def test_system1_internal_exchange_remains_authoritative_without_misleading_view() -> None:
     text = MODEL.read_text(encoding="utf-8")
+    system1 = _block(text, "part def AEBSystem1CandidateDeployment")
     concern = _block(text, "concern physicalInternalExchangeConcern")
-    view = _block(text, "view aebsSimulationPhysicalInternalExchangeView")
 
     assert "subject candidateSystem : AEBSystem1CandidateDeployment;" in concern
     assert "AEBTwoSystemSimulationDeployment" not in concern
-    for participant in (
-        "aeb",
-        "aggregator",
-        "commandModeToOperationModeAvailabilityConverter",
-        "mrmHandler",
-        "emergencyStopOperator",
-        "legacyVehicleCommandGate",
-    ):
-        assert f"expose AEBSystem1CandidateDeployment::{participant};" in view
-        assert f"expose AEBSystem1CandidateDeployment::{participant}::**;" in view
-    assert (
-        "expose AEBSystem1CandidateDeployment::*"
-        "[istype SysML::FlowUsage];"
-    ) in view
-    assert 'attribute exposeMode = "promoted";' in view
-    assert "deployment::candidateVehicleSystem1" not in view
-    assert "deployment::simulationEvidenceSystem2" not in view
-    assert "attribute depth = 1;" in view
-    assert "render asInterconnectionDiagram;" in view
+    assert system1.count("flow from ") == 10
+    assert "view aebsSimulationPhysicalInternalExchangeView" not in text
 
 
 def test_exchange_views_suppress_non_topology_compartment_noise() -> None:
     text = MODEL.read_text(encoding="utf-8")
-    exchange_views = (
-        "aebsSimulationPhysicalContextExchangeView",
-        "aebsSimulationPhysicalInternalExchangeView",
-    )
-
-    for name in exchange_views:
-        view = _block(text, f"view {name}")
-        assert "attribute showAnnotationRows = false;" in view
-        assert "attribute maxCompartmentEntries = 0;" in view
+    view = _block(text, "view aebsSimulationPhysicalContextExchangeView")
+    assert "attribute showAnnotationRows = false;" in view
+    assert "attribute maxCompartmentEntries = 0;" in view
 
 
 def test_dependent_execution_environment_uses_descriptive_system1_role() -> None:

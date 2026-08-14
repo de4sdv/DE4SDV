@@ -158,7 +158,7 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 | `SAF_Viewpoints` | `PhysicalContextExchangeViewpoint` | SAF Physical Domain (`P1_PCXE`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalContextExchangeView` |
 | `SAF_Viewpoints` | `PhysicalExchangeTypeDefinitionViewpoint` | SAF Physical Domain (`P2_PETD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalExchangeTypeView` |
 | `SAF_Viewpoints` | `PhysicalStructureDefinitionViewpoint` | SAF Physical Domain (`P2_PSTD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalStructureView` |
-| `SAF_Viewpoints` | `PhysicalInternalExchangeViewpoint` | SAF Physical Domain (`P4_PIEX`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalInternalExchangeView` |
+| `SAF_Viewpoints` | `PhysicalInternalExchangeViewpoint` | SAF Physical Domain (`P4_PIEX`) | `aebs_simulation_deployment.sysml` models the System 1 internal flows; no generated view is published until the native renderer can isolate those flows without adding context exchanges or dropping the topology |
 | `SAF_Viewpoints` | `PhysicalInterfaceDefinitionViewpoint` | SAF Physical Domain (`P5_PIFD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalInterfaceView` |
 | `SAF_Viewpoints` | `PhysicalLogicalMappingViewpoint` | SAF Physical Domain (`P8_PLOM`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalLogicalMappingView` |
 | `SAF_Viewpoints` | `PhysicalLogicalItemMappingViewpoint` | Proposed; no current SAF short code | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalLogicalItemMappingView` |
