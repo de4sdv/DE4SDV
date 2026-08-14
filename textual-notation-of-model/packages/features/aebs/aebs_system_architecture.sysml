@@ -1,10 +1,10 @@
 /*
- * DE4SDV AEBS logical architecture model slice.
+ * DE4SDV AEBS system architecture model slice.
  *
  * This package mirrors INC-AEBS-006 from
- * methodologies/sysmod-sysmlv2/pilots/aebs-logical-architecture.yaml.
+ * methodologies/sysmod-sysmlv2/pilots/aebs-system-architecture.yaml.
  *
- * Domain boundary: logical architecture only. Autoware, ROS 2/DDS,
+ * Domain boundary: system architecture only. Autoware, ROS 2/DDS,
  * Eclipse S-CORE, Android SDV/AAOS, middleware adapters, processes, ECUs,
  * sensors, networks, actuators, calibrated thresholds, and compliance claims
  * are intentionally excluded.
@@ -18,7 +18,7 @@
  *   Behavior/5-State-based Behavior-1.sysml.
  */
 
-package DE4SDV_AEBSLogicalArchitecture {
+package DE4SDV_AEBSSystemArchitecture {
   private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -338,7 +338,7 @@ package DE4SDV_AEBSLogicalArchitecture {
    * Logical system composition and exchanges
    * ────────────────────────────────────────── */
 
-  part def VehicleTargetAEBSLogicalSystem {
+  part def VehicleTargetAEBSSystem {
     doc /*
      * Technology-neutral logical realization of the vehicle-target AEBS
      * functional baseline. Logical elements own responsibilities and exchange
@@ -433,51 +433,51 @@ package DE4SDV_AEBSLogicalArchitecture {
   }
 
   action functionalFlow : VehicleTargetAEBSFunctionalFlow;
-  part logicalSystem : VehicleTargetAEBSLogicalSystem;
+  part system : VehicleTargetAEBSSystem;
 
   /*
    * Functional-to-logical responsibility allocation. One functional action may
    * allocate to multiple logical elements when the logical decomposition makes
    * previously combined responsibilities explicit.
    */
-  allocation def FunctionalToLogicalResponsibility;
+  allocation def FunctionalToSystemResponsibility;
 
-  allocation acquireStateAllocation : FunctionalToLogicalResponsibility
+  allocation acquireStateAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.acquireState
-    to logicalSystem.stateAcquisition;
+    to system.stateAcquisition;
 
-  allocation assessRiskPathAllocation : FunctionalToLogicalResponsibility
+  allocation assessRiskPathAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.assessRisk
-    to logicalSystem.egoPathPrediction;
-  allocation assessRiskTargetAllocation : FunctionalToLogicalResponsibility
+    to system.egoPathPrediction;
+  allocation assessRiskTargetAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.assessRisk
-    to logicalSystem.targetProcessing;
-  allocation assessRiskEvaluationAllocation : FunctionalToLogicalResponsibility
+    to system.targetProcessing;
+  allocation assessRiskEvaluationAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.assessRisk
-    to logicalSystem.collisionRiskEvaluation;
+    to system.collisionRiskEvaluation;
 
-  allocation requestWarningAllocation : FunctionalToLogicalResponsibility
+  allocation requestWarningAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.requestWarning
-    to logicalSystem.warningManagement;
+    to system.warningManagement;
 
-  allocation evaluateOverrideAllocation : FunctionalToLogicalResponsibility
+  allocation evaluateOverrideAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.evaluateOverride
-    to logicalSystem.interventionDecision;
+    to system.interventionDecision;
 
-  allocation requestBrakingDecisionAllocation : FunctionalToLogicalResponsibility
+  allocation requestBrakingDecisionAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.requestBraking
-    to logicalSystem.interventionDecision;
-  allocation requestBrakingCoordinationAllocation : FunctionalToLogicalResponsibility
+    to system.interventionDecision;
+  allocation requestBrakingCoordinationAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.requestBraking
-    to logicalSystem.emergencyCoordination;
+    to system.emergencyCoordination;
 
-  allocation monitorFailureAllocation : FunctionalToLogicalResponsibility
+  allocation monitorFailureAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.monitorFailure
-    to logicalSystem.healthSupervision;
+    to system.healthSupervision;
 
-  allocation recordEvidenceAllocation : FunctionalToLogicalResponsibility
+  allocation recordEvidenceAllocation : FunctionalToSystemResponsibility
     allocate functionalFlow.recordEvidence
-    to logicalSystem.evidenceRecording;
+    to system.evidenceRecording;
 
   /* ──────────────────────────────────────────
    * Concerns and human-reviewable views
@@ -518,20 +518,20 @@ package DE4SDV_AEBSLogicalArchitecture {
       frame systemStructureConcern;
     }
 
-    expose logicalSystem;
-    expose logicalSystem::stateAcquisition;
-    expose logicalSystem::egoPathPrediction;
-    expose logicalSystem::targetProcessing;
-    expose logicalSystem::collisionRiskEvaluation;
-    expose logicalSystem::interventionDecision;
-    expose logicalSystem::warningManagement;
-    expose logicalSystem::emergencyCoordination;
-    expose logicalSystem::healthSupervision;
-    expose logicalSystem::evidenceRecording;
+    expose system;
+    expose system::stateAcquisition;
+    expose system::egoPathPrediction;
+    expose system::targetProcessing;
+    expose system::collisionRiskEvaluation;
+    expose system::interventionDecision;
+    expose system::warningManagement;
+    expose system::emergencyCoordination;
+    expose system::healthSupervision;
+    expose system::evidenceRecording;
     /*
      * This is a decomposition view. The tree renderer may list ports owned by
      * the exposed parts, but it does not render the bind and flow edges below.
-     * Port connectivity is defined in VehicleTargetAEBSLogicalSystem and
+     * Port connectivity is defined in VehicleTargetAEBSSystem and
      * selected by aebsSystemInternalExchangeView.
      */
     render asTreeDiagram;
@@ -549,7 +549,7 @@ package DE4SDV_AEBSLogicalArchitecture {
      * without drawing bind or flow edges. Review the textual bind/flow usages
      * as the authoritative exchange topology.
      */
-    expose logicalSystem::*;
+    expose system::*;
     render asTreeDiagram;
   }
 

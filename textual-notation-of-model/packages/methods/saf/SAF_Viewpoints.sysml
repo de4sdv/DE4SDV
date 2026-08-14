@@ -385,7 +385,7 @@ package SAF_Viewpoints {
     }
   }
 
-  // ─── Logical Domain ───
+  // ─── Conceptual Domain ───
 
   concern def SystemStructureConcern {
     require constraint {

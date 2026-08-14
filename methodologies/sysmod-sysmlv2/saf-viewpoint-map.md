@@ -23,7 +23,7 @@ Do not require all viewpoints for every increment.
 | Common Domain | shared terms, standards, argumentation, traceability | glossary, standards register, evidence register, traceability reports |
 | Operational Domain | stakeholder needs, operational context, capabilities, scenarios/processes | increment charter, operational context, needs, use cases/scenarios |
 | Functional Domain | system context, functional behavior, requirements, interfaces, safety/security concerns | requirements, functional model, interface model, risk/security notes |
-| Logical Domain | logical structure and logical exchanges; function-to-logical mapping | logical architecture, service/component model, allocation map |
+| Conceptual Domain | logical structure and logical exchanges; function-to-logical mapping | system architecture, service/component model, allocation map |
 | Physical Domain | physical/software realization and mappings | deployment/software/hardware model, interface contracts, realization map |
 
 ## Recommended viewpoint subsets
@@ -86,10 +86,10 @@ Use when the increment introduces or changes logical services/components.
 
 | SAF viewpoint | DE4SDV purpose | Output |
 |---|---|---|
-| Logical Structure Definition Viewpoint | define logical elements and composition | logical architecture model |
-| Logical Internal Exchange Viewpoint | define internal exchanges | exchange/interface model |
-| Logical Internal Interaction Viewpoint | describe interactions | sequence/process model |
-| Logical Functional Mapping Viewpoint | allocate functions to logical elements | allocation map |
+| System Structure Definition Viewpoint | define logical elements and composition | system architecture model |
+| System Internal Exchange Viewpoint | define internal exchanges | exchange/interface model |
+| System Internal Interaction Viewpoint | describe interactions | sequence/process model |
+| System Function Mapping Viewpoint | allocate functions to logical elements | allocation map |
 
 ### 6. Physical/software realization subset
 

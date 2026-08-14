@@ -85,7 +85,7 @@ first_slice_scope:
   - AAOS SDV internal architecture (Orchestrator, VSIDL, service bundle details)
   - Adapter implementation (code, ROS 2 bridge node, VSIDL service definitions)
   - Functional behavior of the adapter (message translation logic)
-  - Logical architecture of the adapter (internal decomposition)
+  - System architecture of the adapter (internal decomposition)
   - Safety case for the adapter (ASIL allocation, fault analysis)
   - SOME/IP integration details
   - AAOS SDV deployment configuration (VM images, APEX signing, bootloader)
@@ -153,7 +153,7 @@ next_increments:
   name: Autoware-to-AAOS-SDV adapter functional and logical model
   expected_outputs:
   - functional behavior of the adapter (message translation, lifecycle delegation)
-  - logical architecture of the adapter
+  - system architecture of the adapter
   - allocation from AEBS required boundaries to AAOS SDV services
 - id: INC-MW-004
   name: PLE configuration for AAOS SDV member product

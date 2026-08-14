@@ -61,7 +61,7 @@ out_of_scope:
 - Stakeholder needs (INC-MW-004)
 - Requirements (INC-MW-005)
 - Functional architecture (INC-MW-006)
-- Logical architecture (INC-MW-007)
+- System architecture (INC-MW-007)
 - Physical/software realization (INC-MW-008)
 - PLE feature model configuration (INC-MW-009)
 - V&V evidence (INC-MW-010)

@@ -1,9 +1,9 @@
-# INC-AEBS-006 — AEBS logical architecture
+# INC-AEBS-006 — AEBS system architecture
 
 - **Status:** Draft
 - **Domain:** Logical
 - **Parent:** INC-AEBS-005
-- **Selected baseline:** Decomposed, rule-based logical architecture
+- **Selected baseline:** Decomposed, rule-based system architecture
 
 ## Decision requested
 
@@ -283,7 +283,7 @@ The three SAF-aligned views have distinct membership:
 - the internal-exchange view selects direct members of the logical-system context, including ports, boundary bindings, and internal flows;
 - the functional-mapping view exposes ten named allocation usages.
 
-The current tree renderer is not relationship-complete: it may display ports without drawing the selected bind or flow edges. The textual `bind` and `flow` usages in `VehicleTargetAEBSLogicalSystem` are therefore the authoritative exchange topology. The internal-exchange view remains a bounded selection of that topology, not proof that the generated tree diagram visualizes every connection.
+The current tree renderer is not relationship-complete: it may display ports without drawing the selected bind or flow edges. The textual `bind` and `flow` usages in `VehicleTargetAEBSSystem` are therefore the authoritative exchange topology. The internal-exchange view remains a bounded selection of that topology, not proof that the generated tree diagram visualizes every connection.
 
 ## Acceptance criteria
 

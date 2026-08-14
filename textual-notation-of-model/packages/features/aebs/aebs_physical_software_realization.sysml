@@ -2,7 +2,7 @@
  * DE4SDV AEBS physical software realization model slice.
  *
  * This package implements INC-AEBS-007: a source-backed mapping from the
- * accepted technology-neutral AEBS logical architecture to Autoware software.
+ * accepted technology-neutral AEBS system architecture to Autoware software.
  * Runtime deployment, vehicle-platform integration, brake actuation, and
  * executable evidence remain INC-AEBS-008/009 responsibilities.
  *
@@ -25,7 +25,7 @@
  */
 
 package DE4SDV_AEBSPhysicalSoftwareRealization {
-  private import DE4SDV_AEBSLogicalArchitecture::*;
+  private import DE4SDV_AEBSSystemArchitecture::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
@@ -381,31 +381,31 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   }
 
   allocation stateAcquisitionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::stateAcquisition
+    allocate DE4SDV_AEBSSystemArchitecture::system::stateAcquisition
     to physicalSoftware.aebNode;
 
   allocation egoPathPredictionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::egoPathPrediction
+    allocate DE4SDV_AEBSSystemArchitecture::system::egoPathPrediction
     to physicalSoftware.aebNode;
 
   allocation targetProcessingAvailable : AvailableLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::targetProcessing
+    allocate DE4SDV_AEBSSystemArchitecture::system::targetProcessing
     to physicalSoftware.aebNode;
 
   allocation collisionRiskEvaluationAvailable : AvailableLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::collisionRiskEvaluation
+    allocate DE4SDV_AEBSSystemArchitecture::system::collisionRiskEvaluation
     to physicalSoftware.aebNode;
 
   allocation interventionDecisionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::interventionDecision
+    allocate DE4SDV_AEBSSystemArchitecture::system::interventionDecision
     to physicalSoftware.aebNode;
 
   allocation healthSupervisionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::healthSupervision
+    allocate DE4SDV_AEBSSystemArchitecture::system::healthSupervision
     to physicalSoftware.aebNode;
 
   allocation evidenceRecordingPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSLogicalArchitecture::logicalSystem::evidenceRecording
+    allocate DE4SDV_AEBSSystemArchitecture::system::evidenceRecording
     to physicalSoftware.aebNode;
 
   /*
@@ -419,7 +419,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
 
   part driverWarningRealizationGap : MissingPhysicalRealizationRecord {
     doc /* DriverWarningManagement has no selected physical owner in INC-AEBS-007. */
-    ref part logicalRole = DE4SDV_AEBSLogicalArchitecture::logicalSystem::warningManagement;
+    ref part systemRole = DE4SDV_AEBSSystemArchitecture::system::warningManagement;
     ref part requiredPhysicalRole = requiredWarningProvider;
   }
 
@@ -434,7 +434,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      * keeps use_predicted_trajectory false; disabling the branch is containment,
      * not resolution.
      */
-    ref part logicalRole = DE4SDV_AEBSLogicalArchitecture::logicalSystem::egoPathPrediction;
+    ref part systemRole = DE4SDV_AEBSSystemArchitecture::system::egoPathPrediction;
     ref part physicalCandidate = physicalSoftware.aebNode;
     ref part pinnedSource = physicalSoftware.sourceArtifact;
   }
@@ -445,20 +445,20 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      * the logical EmergencyInterventionCoordination contract or emit the
      * logical EmergencyInterventionRequest.
      */
-    ref part logicalConcern = DE4SDV_AEBSLogicalArchitecture::logicalSystem::emergencyCoordination;
+    ref part logicalConcern = DE4SDV_AEBSSystemArchitecture::system::emergencyCoordination;
     ref part physicalSource = physicalSoftware.aebNode;
     ref part requiredPhysicalRole = requiredDiagnosticBridge;
   }
 
   part healthCoverageGap : MissingPhysicalRealizationRecord {
     doc /* Complete valid/degraded/unavailable state ownership remains missing. */
-    ref part logicalRole = DE4SDV_AEBSLogicalArchitecture::logicalSystem::healthSupervision;
+    ref part systemRole = DE4SDV_AEBSSystemArchitecture::system::healthSupervision;
     ref part requiredPhysicalRole = requiredHealthSupervisor;
   }
 
   part evidenceCoverageGap : MissingPhysicalRealizationRecord {
     doc /* Evidence persistence, provenance, retention, and acceptance remain missing. */
-    ref part logicalRole = DE4SDV_AEBSLogicalArchitecture::logicalSystem::evidenceRecording;
+    ref part systemRole = DE4SDV_AEBSSystemArchitecture::system::evidenceRecording;
     ref part requiredPhysicalRole = requiredEvidenceService;
   }
 
@@ -594,16 +594,16 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      */
     expose physicalSoftware;
     expose physicalSoftware::aebNode;
-    expose logicalSystem;
-    expose logicalSystem::stateAcquisition;
-    expose logicalSystem::egoPathPrediction;
-    expose logicalSystem::targetProcessing;
-    expose logicalSystem::collisionRiskEvaluation;
-    expose logicalSystem::interventionDecision;
-    expose logicalSystem::warningManagement;
-    expose logicalSystem::emergencyCoordination;
-    expose logicalSystem::healthSupervision;
-    expose logicalSystem::evidenceRecording;
+    expose system;
+    expose system::stateAcquisition;
+    expose system::egoPathPrediction;
+    expose system::targetProcessing;
+    expose system::collisionRiskEvaluation;
+    expose system::interventionDecision;
+    expose system::warningManagement;
+    expose system::emergencyCoordination;
+    expose system::healthSupervision;
+    expose system::evidenceRecording;
     expose stateAcquisitionPartial;
     expose egoPathPredictionPartial;
     expose targetProcessingAvailable;

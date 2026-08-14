@@ -45,7 +45,7 @@ package DE4SDV_MethodProcess {
       doc /* What functions, flows, states, interfaces? Functional domain. */
     }
     phase7_logicalArchitecture {
-      doc /* What logical elements realize functions? Logical domain. */
+      doc /* What system elements realize functions? Logical domain. */
     }
     phase8_physicalRealization {
       doc /* What software/hardware realizes the logical design, and which applicable logical or semantic signals cross into typed software contracts? Physical domain. */
@@ -188,7 +188,7 @@ package DE4SDV_MethodProcess {
     attribute evidenceOrGap : ScalarValues::String;
   }
 
-  allocation def LogicalToSoftwareSignalMappingCandidate {
+  allocation def SystemToSoftwareSignalMappingCandidate {
     doc /*
      * Reusable non-claiming allocation relationship from a logical/function
      * signal responsibility to a concrete software/adapter signal endpoint.

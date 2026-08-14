@@ -56,14 +56,14 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SysML file: textual-notation-of-model/packages/features/middleware/mw_functional_behavior.sysml
 - YAML: methodologies/sysmod-sysmlv2/pilots/mw-functional-behavior.yaml
 
-### INC-MW-007: Logical architecture
-- Phase: 7 (Logical architecture)
-- Question: What logical elements realize the middleware integration functions?
+### INC-MW-007: System architecture
+- Phase: 7 (System architecture)
+- Question: What system elements realize the middleware integration functions?
 - SAF viewpoints: SystemStructureDefinitionViewpoint, SystemInternalExchangeViewpoint, SystemFunctionMappingViewpoint
-- Outputs: logical structure, exchanges, allocation/mapping
-- Content: SignalTranslator, LifecycleBridge, HealthProxy, DiagnosticProxy, UpdateCoordinator. Mapping from AEBS logical architecture external service dependencies to middleware logical components
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_logical_architecture.sysml
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-logical-architecture.yaml
+- Outputs: system structure, exchanges, allocation/mapping
+- Content: SignalTranslator, LifecycleBridge, HealthProxy, DiagnosticProxy, UpdateCoordinator. Mapping from AEBS system architecture external service dependencies to middleware logical components
+- SysML file: textual-notation-of-model/packages/features/middleware/mw_system_architecture.sysml
+- YAML: methodologies/sysmod-sysmlv2/pilots/mw-system-architecture.yaml
 
 ### INC-MW-008: Physical/software realization
 - Phase: 8 (Physical/software realization)
@@ -120,7 +120,7 @@ Per PR #74 process-mapping.md, each phase has typical viewpoints. The middleware
 | 4 — Needs | StakeholderRequirementDefinitionViewpoint | SAF |
 | 5 — Requirements | SystemRequirementDefinition, SystemRequirementTraceability | SAF |
 | 6 — Functional architecture | SystemFunctionalBreakdownStructure, SystemProcess, SystemInterfaceDefinition | SAF |
-| 7 — Logical architecture | LogicalStructureDefinition, LogicalInternalExchange, LogicalFunctionalMapping | SAF |
+| 7 — System architecture | LogicalStructureDefinition, LogicalInternalExchange, LogicalFunctionalMapping | SAF |
 | 8 — Physical realization | PhysicalStructureDefinition, PhysicalInterfaceDefinition, PhysicalFunctionalMapping, PhysicalLogicalMapping | SAF |
 | 9 — Variability and configuration | ProductLineConfigurationViewpoint, ProductModelAssemblyViewpoint | DE4SDV method |
 | 10 — V&V and evidence | ArgumentationAssurance | SAF |

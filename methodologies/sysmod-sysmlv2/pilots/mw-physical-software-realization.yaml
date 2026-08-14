@@ -47,7 +47,7 @@ scope:
 source_alignment:
 - source_id: INC-MW-007
   use: logical-architecture-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-logical-architecture.yaml
+  artifact: methodologies/sysmod-sysmlv2/pilots/mw-system-architecture.yaml
 - source_id: SDV-PLATFORM-STACK
   use: candidate-adapter-definition
   artifact: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
@@ -175,8 +175,8 @@ signal_mappings:
     downstream_mapping_id: VSS-SIM-AEBS-001
     runtime_status: deferred
   logical_realization:
-    model_element: DE4SDV_MWLogicalArchitecture::logicalSystem::signalTranslator
-    mapping_allocation: vehicleSpeedLogicalToSoftwareSignalCandidate
+    model_element: DE4SDV_MWSystemArchitecture::system::signalTranslator
+    mapping_allocation: vehicleSpeedSystemToSoftwareSignalCandidate
   evidence:
     contract_tests:
     - implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
