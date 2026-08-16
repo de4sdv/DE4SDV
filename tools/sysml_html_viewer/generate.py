@@ -49,8 +49,11 @@ from .render import (
     render_ref_picker,
 )
 
+# Same scope as scripts/validate_sysml.py MODEL_PATHS: the whole textual
+# notation root (packages, imported libraries like COVESA VSS, snapshots)
+# plus the PLE product models.
 DEFAULT_ROOTS = [
-    "textual-notation-of-model/packages",
+    "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
 ]
 

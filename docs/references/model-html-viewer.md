@@ -55,8 +55,9 @@ between the working tree and the PR in the header.
 
 - Reviewing a feature or increment (middleware, AEBS): start at the
   feature's increment-framing file and click through its views.
-- Orienting new contributors: the tree shows the whole
-  `textual-notation-of-model/packages` structure.
+- Orienting new contributors: the tree shows the whole validated model —
+  `textual-notation-of-model` (packages, imported libraries such as
+  `libraries/covesa-vss-sysmlv2`, snapshots) and the PLE product models.
 - Linking to a specific element or view: every page and section has a
   stable URL (`.../mw_conceptual_architecture.sysml.html#view-mwSystemStructureView`).
 

@@ -19,7 +19,9 @@ python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer
 ```
 
 The generator parses the authoritative `.sysml` textual notation under
-`textual-notation-of-model/packages` and
+the same roots `scripts/validate_sysml.py` validates — the whole
+`textual-notation-of-model` tree (packages, imported libraries such as
+`libraries/covesa-vss-sysmlv2`, snapshots) plus
 `model-based-product-line-engineering/product-models` (stdlib only,
 deterministic output). The generated site is self-contained except that it
 *references* the committed diagram SVGs in the model tree — no SVG copies,
