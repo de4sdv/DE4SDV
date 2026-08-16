@@ -23,6 +23,7 @@ package DE4SDV_AEBSSimulationDeployment {
   private import DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
+  private import SysideViews::**;
   private import Views::*;
 
   /* Physical exchange types. Adjacent stages are deliberately distinct. */
@@ -506,62 +507,81 @@ package DE4SDV_AEBSSimulationDeployment {
   }
 
   part def AEBTwoSystemSimulationDeployment {
-    part system1 : AEBSystem1CandidateDeployment;
-    part system2 : AEBSystem2SimulationAssets;
+    part candidateVehicleSystem1 : AEBSystem1CandidateDeployment;
+    part simulationEvidenceSystem2 : AEBSystem2SimulationAssets;
 
     // Selected AEB inputs only: point cloud, velocity, IMU, /autoware/state, and TF/vehicle info.
-    flow from system2.pointCloudOut.pointCloud to system1.pointCloudIn.pointCloud;
-    flow from system2.autowareStateDrivingOut.autowareState to system1.autowareStateIn.autowareState;
-    flow from system2.velocityOut.velocity to system1.velocityFeedbackIn.velocity;
-    flow from system2.imuOut.imu to system1.imuFeedbackIn.imu;
-    flow from system2.tfAndVehicleInfoOut.configuration to system1.tfAndVehicleInfoIn.configuration;
+    flow from simulationEvidenceSystem2.pointCloudOut.pointCloud
+      to candidateVehicleSystem1.pointCloudIn.pointCloud;
+    flow from simulationEvidenceSystem2.autowareStateDrivingOut.autowareState
+      to candidateVehicleSystem1.autowareStateIn.autowareState;
+    flow from simulationEvidenceSystem2.velocityOut.velocity
+      to candidateVehicleSystem1.velocityFeedbackIn.velocity;
+    flow from simulationEvidenceSystem2.imuOut.imu
+      to candidateVehicleSystem1.imuFeedbackIn.imu;
+    flow from simulationEvidenceSystem2.tfAndVehicleInfoOut.configuration
+      to candidateVehicleSystem1.tfAndVehicleInfoIn.configuration;
     // MRM preconditions are independent of the availability conversion.
-    flow from system2.apiOperationModeAutonomousOut.operationMode to system1.operationModeStateIn.operationMode;
-    flow from system2.systemOperationModeAutonomousOut.operationMode to system1.gateOperationModeStateIn.operationMode;
-    flow from system2.controlModeAutonomousOut.mode to system1.controlModeIn.mode;
-    flow from system2.kinematicStateOut.odometry to system1.kinematicStateIn.odometry;
+    flow from simulationEvidenceSystem2.apiOperationModeAutonomousOut.operationMode
+      to candidateVehicleSystem1.operationModeStateIn.operationMode;
+    flow from simulationEvidenceSystem2.systemOperationModeAutonomousOut.operationMode
+      to candidateVehicleSystem1.gateOperationModeStateIn.operationMode;
+    flow from simulationEvidenceSystem2.controlModeAutonomousOut.mode
+      to candidateVehicleSystem1.controlModeIn.mode;
+    flow from simulationEvidenceSystem2.kinematicStateOut.odometry
+      to candidateVehicleSystem1.kinematicStateIn.odometry;
     // The selected legacy gate's source-backed filter and state dependencies.
-    flow from system2.kinematicStateOut.odometry to system1.gateKinematicStateIn.odometry;
-    flow from system2.accelerationOut.acceleration to system1.gateAccelerationIn.acceleration;
-    flow from system2.steeringOut.steering to system1.gateSteeringIn.steering;
-    flow from system2.engageOut.engage to system1.gateEngageIn.engage;
+    flow from simulationEvidenceSystem2.kinematicStateOut.odometry
+      to candidateVehicleSystem1.gateKinematicStateIn.odometry;
+    flow from simulationEvidenceSystem2.accelerationOut.acceleration
+      to candidateVehicleSystem1.gateAccelerationIn.acceleration;
+    flow from simulationEvidenceSystem2.steeringOut.steering
+      to candidateVehicleSystem1.gateSteeringIn.steering;
+    flow from simulationEvidenceSystem2.engageOut.engage
+      to candidateVehicleSystem1.gateEngageIn.engage;
     // Exact legacy-gate/simulator command endpoints.
-    flow from system1.controlCommandOut.command to system2.controlCommandIn.command;
-    flow from system1.controlCommandOut.command to system2.controlCommandObservationIn.command;
-    flow from system1.gearCommandOut.gear to system2.gearCommandIn.gear;
+    flow from candidateVehicleSystem1.controlCommandOut.command
+      to simulationEvidenceSystem2.controlCommandIn.command;
+    flow from candidateVehicleSystem1.controlCommandOut.command
+      to simulationEvidenceSystem2.controlCommandObservationIn.command;
+    flow from candidateVehicleSystem1.gearCommandOut.gear
+      to simulationEvidenceSystem2.gearCommandIn.gear;
     // Observation taps do not feed the emergency-control decision.
-    flow from system1.diagnosticsObservedOut.diagnostics to system2.diagnosticsIn.diagnostics;
-    flow from system1.commandAvailabilityObservedOut.availability
-      to system2.commandAvailabilityIn.availability;
-    flow from system1.operationAvailabilityObservedOut.availability
-      to system2.operationAvailabilityIn.availability;
-    flow from system1.mrmRequestObservedOut.request to system2.mrmRequestIn.request;
-    flow from system1.mrmStateObservedOut.mrmState to system2.mrmStateIn.mrmState;
+    flow from candidateVehicleSystem1.diagnosticsObservedOut.diagnostics
+      to simulationEvidenceSystem2.diagnosticsIn.diagnostics;
+    flow from candidateVehicleSystem1.commandAvailabilityObservedOut.availability
+      to simulationEvidenceSystem2.commandAvailabilityIn.availability;
+    flow from candidateVehicleSystem1.operationAvailabilityObservedOut.availability
+      to simulationEvidenceSystem2.operationAvailabilityIn.availability;
+    flow from candidateVehicleSystem1.mrmRequestObservedOut.request
+      to simulationEvidenceSystem2.mrmRequestIn.request;
+    flow from candidateVehicleSystem1.mrmStateObservedOut.mrmState
+      to simulationEvidenceSystem2.mrmStateIn.mrmState;
   }
 
   part universeSource : PinnedAutowareUniverseSource;
   part launchSource : PinnedAutowareLaunchSource;
   part deployment : AEBTwoSystemSimulationDeployment;
 
-  dependency deploymentTracesUniverse from deployment::system1 to universeSource;
+  dependency deploymentTracesUniverse from deployment::candidateVehicleSystem1 to universeSource;
   dependency deploymentTracesLaunch from deployment to launchSource;
 
   /* P8_PLOM: conceptual responsibility to physical role only. */
   allocation def SimulationLogicalToPhysicalRealization;
   allocation stateAcquisitionToAEB : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.stateAcquisition to deployment.system1.aeb;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.stateAcquisition to deployment.candidateVehicleSystem1.aeb;
   allocation interventionDecisionToAEB : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.interventionDecision to deployment.system1.aeb;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.interventionDecision to deployment.candidateVehicleSystem1.aeb;
   allocation emergencyCoordinationToAggregator : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.aggregator;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.aggregator;
   allocation emergencyCoordinationToAvailabilityConverter : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.commandModeToOperationModeAvailabilityConverter;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.commandModeToOperationModeAvailabilityConverter;
   allocation emergencyCoordinationToMrmHandler : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.mrmHandler;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.mrmHandler;
   allocation emergencyCoordinationToOperator : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.emergencyStopOperator;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.emergencyStopOperator;
   allocation emergencyCoordinationToLegacyVehicleGate : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.system1.legacyVehicleCommandGate;
+    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.legacyVehicleCommandGate;
   /* Proposed Physical Logical Item Mapping: logical to physical only. */
   allocation def LogicalToPhysicalItemRealization {
     doc /*
@@ -575,17 +595,17 @@ package DE4SDV_AEBSSimulationDeployment {
   }
   allocation emergencyRequestToOperateMrm : LogicalToPhysicalItemRealization
     allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyInterventionRequestOut.emergencyInterventionRequest
-      to deployment.system1.mrmHandler.operateMrmOut.request;
+      to deployment.candidateVehicleSystem1.mrmHandler.operateMrmOut.request;
   allocation emergencyRequestToLegacyGateControl : LogicalToPhysicalItemRealization
     allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyInterventionRequestOut.emergencyInterventionRequest
-      to deployment.system1.legacyVehicleCommandGate.emergencyControlCommandIn.command;
+      to deployment.candidateVehicleSystem1.legacyVehicleCommandGate.emergencyControlCommandIn.command;
 
   allocation vehicleMotionToVelocityFeedback : LogicalToPhysicalItemRealization
     allocate DE4SDV_AEBSConceptualArchitecture::system.vehicleMotionObservationIn.vehicleMotionState
-      to deployment.system1.velocityFeedbackIn.velocity;
+      to deployment.candidateVehicleSystem1.velocityFeedbackIn.velocity;
   allocation vehicleMotionToKinematicFeedback : LogicalToPhysicalItemRealization
     allocate DE4SDV_AEBSConceptualArchitecture::system.vehicleMotionObservationIn.vehicleMotionState
-      to deployment.system1.kinematicStateIn.odometry;
+      to deployment.candidateVehicleSystem1.kinematicStateIn.odometry;
 
 
   part def ItemNonEquivalenceRecord;
@@ -617,10 +637,34 @@ package DE4SDV_AEBSSimulationDeployment {
 
   /* SAF concerns and direction-neutral review views. */
   concern physicalContextConcern : PhysicalContextConcern { subject candidateSystem : AEBSystem1CandidateDeployment; stakeholder systemsEngineer : SystemsEngineer; stakeholder reviewer : OpenSourceReviewer; }
-  concern physicalContextExchangeConcern : PhysicalContextExchangeConcern { subject twoSystemDeployment : AEBTwoSystemSimulationDeployment; stakeholder systemsEngineer : SystemsEngineer; stakeholder reviewer : OpenSourceReviewer; }
+  concern physicalContextExchangeConcern : PhysicalContextExchangeConcern {
+    doc /*
+     * The candidate vehicle deployment is System 1. The simulation and
+     * evidence assets are external System 2 context elements across the
+     * System 1 physical boundary.
+     */
+    subject candidateSystem : AEBSystem1CandidateDeployment;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
   concern physicalExchangeTypeConcern : PhysicalExchangeTypeConcern { subject twoSystemDeployment : AEBTwoSystemSimulationDeployment; stakeholder systemsEngineer : SystemsEngineer; stakeholder reviewer : OpenSourceReviewer; }
   concern physicalStructureConcern : PhysicalStructureConcern { subject twoSystemDeployment : AEBTwoSystemSimulationDeployment; stakeholder systemsEngineer : SystemsEngineer; stakeholder reviewer : OpenSourceReviewer; }
-  concern physicalInternalExchangeConcern : PhysicalInternalExchangeConcern { subject twoSystemDeployment : AEBTwoSystemSimulationDeployment; stakeholder systemsEngineer : SystemsEngineer; stakeholder reviewer : OpenSourceReviewer; }
+  concern physicalInternalExchangeConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * This view is confined to ports, delegations, and exchanges inside the
+     * candidate System 1 deployment. System 2 belongs in the physical context
+     * exchange view, not inside the System 1 boundary.
+     *
+     * Known issue: no view is published for this concern yet. Tested native
+     * projections either mixed in the 21 context exchanges, rendered empty,
+     * or showed parts without the ten System 1 internal flows. The ten
+     * authoritative internal flows remain in the model; the misleading
+     * visual is withheld until the renderer can isolate them honestly.
+     */
+    subject candidateSystem : AEBSystem1CandidateDeployment;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
   concern physicalInterfaceConcern : PhysicalInterfaceConcern { subject twoSystemDeployment : AEBTwoSystemSimulationDeployment; stakeholder systemsEngineer : SystemsEngineer; stakeholder reviewer : OpenSourceReviewer; }
   concern physicalLogicalMappingConcern : PhysicalLogicalMappingConcern { subject candidateSystem : AEBSystem1CandidateDeployment; stakeholder systemsEngineer : SystemsEngineer; stakeholder reviewer : OpenSourceReviewer; }
   concern physicalLogicalItemMappingConcern : PhysicalLogicalItemMappingConcern { subject candidateSystem : AEBSystem1CandidateDeployment; stakeholder systemsEngineer : SystemsEngineer; stakeholder reviewer : OpenSourceReviewer; }
@@ -628,13 +672,21 @@ package DE4SDV_AEBSSimulationDeployment {
   view aebsSimulationPhysicalContextView {
     viewpoint selected : PhysicalContextDefinitionViewpoint { frame physicalContextConcern; }
     doc /* System 1 is the candidate subject; sibling System 2 is external test infrastructure. */
-    expose deployment::system1; expose deployment::system2;
+    expose deployment::candidateVehicleSystem1;
+    expose deployment::simulationEvidenceSystem2;
     render asTreeDiagram;
   }
   view aebsSimulationPhysicalContextExchangeView {
     viewpoint selected : PhysicalContextExchangeViewpoint { frame physicalContextExchangeConcern; }
-    expose deployment::*;
-    render asTreeDiagram;
+    expose deployment::candidateVehicleSystem1;
+    expose deployment::simulationEvidenceSystem2;
+    expose deployment::candidateVehicleSystem1::*[istype SysML::PortUsage];
+    expose deployment::simulationEvidenceSystem2::*[istype SysML::PortUsage];
+    expose deployment::*[istype SysML::FlowUsage];
+    attribute depth = -1;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
+    render asInterconnectionDiagram;
   }
   view aebsSimulationPhysicalExchangeTypeView {
     viewpoint selected : PhysicalInterfaceDefinitionViewpoint { frame physicalExchangeTypeConcern; }
@@ -643,14 +695,12 @@ package DE4SDV_AEBSSimulationDeployment {
   }
   view aebsSimulationPhysicalStructureView {
     viewpoint selected : PhysicalStructureDefinitionViewpoint { frame physicalStructureConcern; }
-    expose deployment; expose deployment::system1::*; expose deployment::system2::*;
+    expose deployment;
+    expose deployment::candidateVehicleSystem1::*;
+    expose deployment::simulationEvidenceSystem2::*;
     render asTreeDiagram;
   }
-  view aebsSimulationPhysicalInternalExchangeView {
-    viewpoint selected : PhysicalInternalExchangeViewpoint { frame physicalInternalExchangeConcern; }
-    expose deployment::system1::*; expose deployment::system2::*;
-    render asTreeDiagram;
-  }
+
   view aebsSimulationPhysicalInterfaceView {
     viewpoint selected : PhysicalInterfaceDefinitionViewpoint { frame physicalInterfaceConcern; }
     /*
@@ -688,25 +738,47 @@ package DE4SDV_AEBSSimulationDeployment {
     expose EvidenceObservationOut;
     render asTreeDiagram;
   }
-  view aebsSimulationPhysicalLogicalMappingView {
+  view aebsSimulationPhysicalLogicalMappingView : MVD::MatrixView {
     viewpoint selected : PhysicalLogicalMappingViewpoint { frame physicalLogicalMappingConcern; }
-    /* System 2 is external and intentionally excluded from the System 1 realization mapping. */
-    expose system::*; expose deployment::system1::*;
-    expose stateAcquisitionToAEB; expose interventionDecisionToAEB;
-    expose emergencyCoordinationToAggregator; expose emergencyCoordinationToAvailabilityConverter;
-    expose emergencyCoordinationToMrmHandler; expose emergencyCoordinationToOperator;
-    expose emergencyCoordinationToLegacyVehicleGate;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose system::stateAcquisition;
+      expose system::interventionDecision;
+      expose system::emergencyCoordination;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose deployment::candidateVehicleSystem1::aeb;
+      expose deployment::candidateVehicleSystem1::aggregator;
+      expose deployment::candidateVehicleSystem1::commandModeToOperationModeAvailabilityConverter;
+      expose deployment::candidateVehicleSystem1::mrmHandler;
+      expose deployment::candidateVehicleSystem1::emergencyStopOperator;
+      expose deployment::candidateVehicleSystem1::legacyVehicleCommandGate;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_AEBSSimulationDeployment::*;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
+    }
   }
-  view aebsSimulationPhysicalLogicalItemMappingView {
+  view aebsSimulationPhysicalLogicalItemMappingView : MVD::MatrixView {
     viewpoint selected : PhysicalLogicalMappingViewpoint { frame physicalLogicalItemMappingConcern; }
-    expose emergencyRequestToOperateMrm; expose emergencyRequestToLegacyGateControl;
-
-    expose vehicleMotionToVelocityFeedback; expose vehicleMotionToKinematicFeedback;
-
-    expose diagnosticIsNotEmergencyRequestOrBrakeCommand;
-    expose availabilityStagesAreNotMrmRequest; expose mrmRequestAndStateAreDistinct;
-    expose simulatorFeedbackIsObservation;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose system::emergencyInterventionRequestOut::emergencyInterventionRequest;
+      expose system::vehicleMotionObservationIn::vehicleMotionState;
+      attribute :>> includeReferenceElements = true;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose deployment::candidateVehicleSystem1::mrmHandler::operateMrmOut::request;
+      expose deployment::candidateVehicleSystem1::legacyVehicleCommandGate::emergencyControlCommandIn::command;
+      expose deployment::candidateVehicleSystem1::velocityFeedbackIn::velocity;
+      expose deployment::candidateVehicleSystem1::kinematicStateIn::odometry;
+      attribute :>> includeReferenceElements = true;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_AEBSSimulationDeployment::*;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
+    }
   }
 }

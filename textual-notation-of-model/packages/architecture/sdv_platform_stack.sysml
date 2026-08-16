@@ -135,7 +135,7 @@ package DE4SDV_SDVPlatformStack {
      * vehicle signal access, diagnostics, and lifecycle coordination.
      */
 
-    port middlewarePort : ApplicationMiddlewarePort;
+    port middlewarePort : ApplicationAdapterPort;
   }
 
   part def ApplicationMiddlewareAdapterLayer {
@@ -165,7 +165,7 @@ package DE4SDV_SDVPlatformStack {
      * not a middleware layer. It is modeled at the OS platform layer.
      */
 
-    port applicationPort : ApplicationMiddlewarePort;
+    port applicationPort : MiddlewareAdapterPort;
     port osPort : MiddlewareOSPort;
   }
 

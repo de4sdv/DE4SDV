@@ -294,7 +294,7 @@ package DE4SDV_AEBSFunctionalBehavior {
             frame functionalBehaviorConcern;
           }
 
-          expose FunctionalBehavior::*;
+          expose VehicleTargetAEBSFunctionalFlow;
           render asTreeDiagram;
         }
 
@@ -303,7 +303,10 @@ package DE4SDV_AEBSFunctionalBehavior {
             frame functionalInterfaceConcern;
           }
 
-          expose FunctionalBehavior::*;
+          expose VehicleTargetAEBSFunctionalChain;
+          expose FunctionalBehavior::*[
+            istype SysML::PortDefinition or istype SysML::ItemDefinition
+          ];
           render asTreeDiagram;
         }
       }

@@ -467,7 +467,7 @@ package DE4SDV_MW010VerificationEvidence {
     to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::adapter::aaosSignal::vehicleSpeed;
   dependency verificationContractTrace
     from signalTranslationVerification010
-    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::referenceInteropBenchSource;
+    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftwareSources::referenceInteropBenchSource;
   dependency verificationExecutionEnvironmentTrace
     from verificationSystem010
     to DE4SDV_MWPhysicalSoftwareRealization::aaosBuildRuntimeEnvironmentCandidate;
@@ -645,9 +645,51 @@ package DE4SDV_MW010VerificationEvidence {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }
-    expose DE4SDV_MW010VerificationEvidence::*;
-    expose DE4SDV_MWVariabilityConfiguration::*;
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
+    doc /*
+     * Positive evidence slice: the claim branches that currently have retained
+     * evidence. Open counterclaims and gaps are published separately.
+     */
+    expose mw010ReferenceContractClaim;
+    expose signalTranslationArgument010;
+    expose vehicleStartupArgument010;
+    expose contractAndRehearsalEvidence010;
+    expose boundedAAOSBootBaseline010;
+    expose claimSupportedBySignalArgument;
+    expose claimSupportedByStartupArgument;
+    expose contractEvidenceReinforcesArgument;
+    expose bootBaselineReinforcesArgument;
+    attribute maxCompartmentEntries = 0;
+    attribute showAnnotationRows = false;
+    render asTreeDiagram;
+  }
+
+  view mw010OpenCounterclaimAssuranceView {
+    viewpoint selectedOpenCounterclaimAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
+    }
+    doc /*
+     * Challenge slice: unresolved counterclaims against the reference claim and
+     * the explicit evidence gaps that prevent target-runtime assurance.
+     */
+    expose mw010ReferenceContractClaim;
+    expose counterClaim010ProviderBinding;
+    expose counterClaim010CrossDomainTransport;
+    expose counterClaim010IndependentObservation;
+    expose counterClaim010LifecycleUpdateFault;
+    expose providerBindingEvidenceGap010;
+    expose crossDomainTransportEvidenceGap010;
+    expose independentAutowareObservationGap010;
+    expose lifecycleUpdateFaultEvidenceGap010;
+    expose counterClaimProviderBindingCountersClaim;
+    expose counterClaimTransportCountersClaim;
+    expose counterClaimObservationCountersClaim;
+    expose counterClaimLifecycleCountersClaim;
+    expose counterClaimProviderBindingGapTrace;
+    expose counterClaimTransportGapTrace;
+    expose counterClaimObservationGapTrace;
+    expose counterClaimLifecycleGapTrace;
+    attribute maxCompartmentEntries = 0;
+    attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
 }

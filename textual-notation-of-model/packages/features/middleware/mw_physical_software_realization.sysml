@@ -29,6 +29,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_ROS2Types::*;
   private import COVESA_VSS::**;
   private import SAF_Viewpoints::*;
+  private import SysideViews::**;
   private import Views::*;
 
   part incMW008 : FeatureIncrement {
@@ -290,6 +291,20 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      */
     part adapter : AutowareToAAOSSDVAdapterPhysical;
     part aaosSdvBoundary : SDVCoreBoundary;
+    part signalAccessClient : SignalAccessClient;
+    part diagnosticAccessClient : DiagnosticAccessClient;
+    part lifecycleClient : LifecycleClient;
+    part healthClient : HealthClient;
+    part updateClient : UpdateClient;
+    part serviceDiscoveryClient : ServiceDiscoveryClient;
+  }
+
+  part def MiddlewarePhysicalSoftwareSourceSet {
+    doc /*
+     * System 2 source and evidence references used to justify the candidate
+     * realization. These records are not physical/software components of the
+     * System 1 boundary and therefore remain outside its decomposition.
+     */
     ref part aaosSourceArtifact : AAOSSDVSourceArtifact;
     ref part vssVehicleSpeedSource : COVESAVehicleSpeedSemanticSource;
     ref part de4sdvVehicleSpeedAdapterSource : DE4SDVVSSVehicleSpeedAdapterSource;
@@ -303,16 +318,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     ref part lifecycleServiceSource : AAOSLifecycleServiceSource;
     ref part healthMonitorSource : AAOSHealthMonitorSource;
     ref part diagnosticsSource : AAOSDiagnosticsSource;
-
-    part signalAccessClient : SignalAccessClient;
-    part diagnosticAccessClient : DiagnosticAccessClient;
-    part lifecycleClient : LifecycleClient;
-    part healthClient : HealthClient;
-    part updateClient : UpdateClient;
-    part serviceDiscoveryClient : ServiceDiscoveryClient;
   }
 
   part physicalSoftware : MiddlewarePhysicalSoftwareBoundary;
+  part physicalSoftwareSources : MiddlewarePhysicalSoftwareSourceSet;
 
   part aaosBuildRuntimeEnvironmentCandidate : AOSPAAOSBuildRuntimeEnvironment {
     doc /*
@@ -407,7 +416,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part observer : AAOSVehicleSpeedObserver;
     port structuredLogcatOut : VehicleSpeedCampaignWirePublication;
 
-    flow from provider.vehicleSpeedOut.vehicleSpeed
+    connection providerToObserver
+      connect provider.vehicleSpeedOut to observer.vehicleSpeedIn;
+    flow providerToObserverPayload from provider.vehicleSpeedOut.vehicleSpeed
       to observer.vehicleSpeedIn.vehicleSpeed;
     bind structuredLogcatOut = observer.structuredLogcatOut;
   }
@@ -485,13 +496,28 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part vmB : ROS2VehicleSpeedCampaignHostVm;
     part privateTcpBoundary : VehicleSpeedPrivateTcpTransport;
 
-    flow from vmA.cuttlefishGuest.structuredLogcatOut.envelope
+    connection guestToHostForwarder
+      connect vmA.cuttlefishGuest.structuredLogcatOut
+      to vmA.hostForwarder.structuredLogcatIn;
+    connection hostForwarderToPrivateTcp
+      connect vmA.hostForwarder.privateTcpOut to privateTcpBoundary.vmAIn;
+    connection privateTcpToRos2Ingress
+      connect privateTcpBoundary.vmBOut to vmB.ros2Ingress.privateTcpIn;
+    connection ros2IngressToObserver
+      connect vmB.ros2Ingress.velocityReportOut
+      to vmB.independentObserver.velocityReportIn;
+
+    flow guestToHostForwarderPayload
+      from vmA.cuttlefishGuest.structuredLogcatOut.envelope
       to vmA.hostForwarder.structuredLogcatIn.envelope;
-    flow from vmA.hostForwarder.privateTcpOut.envelope
+    flow hostForwarderToPrivateTcpPayload
+      from vmA.hostForwarder.privateTcpOut.envelope
       to privateTcpBoundary.vmAIn.envelope;
-    flow from privateTcpBoundary.vmBOut.envelope
+    flow privateTcpToRos2IngressPayload
+      from privateTcpBoundary.vmBOut.envelope
       to vmB.ros2Ingress.privateTcpIn.envelope;
-    flow from vmB.ros2Ingress.velocityReportOut.velocityReport
+    flow ros2IngressToObserverPayload
+      from vmB.ros2Ingress.velocityReportOut.velocityReport
       to vmB.independentObserver.velocityReportIn.velocityReport;
   }
 
@@ -499,7 +525,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   dependency vehicleSpeedCampaignImplementationTrace
     from vehicleSpeedCampaignDeployment
-    to physicalSoftware::referenceInteropBenchSource;
+    to physicalSoftwareSources::referenceInteropBenchSource;
 
   allocation def LogicalToPhysicalSoftwareCandidate {
     doc /* Candidate logical-to-physical mapping. This does not imply complete realization, satisfaction, runtime execution, or acceptance. */
@@ -555,7 +581,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     to physicalSoftware::adapter::aaosSignal;
   dependency referenceVehicleSpeedContractTrace
     from physicalSoftware::adapter::aaosSignal::vehicleSpeed
-    to physicalSoftware::referenceInteropBenchSource;
+    to physicalSoftwareSources::referenceInteropBenchSource;
   dependency referenceVehicleSpeedVSIDLCandidate
     from physicalSoftware::adapter::aaosSignal::vehicleSpeed
     to physicalSoftware::aaosSdvBoundary::vsidlMiddleware;
@@ -606,73 +632,85 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   dependency vehicleSpeedSemanticTrace
     from physicalSoftware::adapter::aaosSignal::vehicleSpeed
-    to physicalSoftware::vssVehicleSpeedSource;
+    to physicalSoftwareSources::vssVehicleSpeedSource;
   dependency de4sdvAdapterImplementationTrace
     from physicalSoftware::adapter
-    to physicalSoftware::de4sdvVehicleSpeedAdapterSource;
+    to physicalSoftwareSources::de4sdvVehicleSpeedAdapterSource;
   dependency referenceInteropBenchTrace
     from physicalSoftware::adapter
-    to physicalSoftware::referenceInteropBenchSource;
+    to physicalSoftwareSources::referenceInteropBenchSource;
   dependency aaosVSIDLSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::vsidlProviderSource;
+    to physicalSoftwareSources::vsidlProviderSource;
   dependency aaosMiddlewareSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::middlewareSource;
+    to physicalSoftwareSources::middlewareSource;
   dependency aaosHardwareInterfacesSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::hardwareInterfacesSource;
+    to physicalSoftwareSources::hardwareInterfacesSource;
   dependency aaosGatewaySessionSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::gatewaySessionSource;
+    to physicalSoftwareSources::gatewaySessionSource;
   dependency aaosDataTunnelSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::dataTunnelPublicationSource;
+    to physicalSoftwareSources::dataTunnelPublicationSource;
   dependency aaosRpcAgentSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::rpcAgentSource;
+    to physicalSoftwareSources::rpcAgentSource;
   dependency aaosLifecycleSourceTrace
     from physicalSoftware::aaosSdvBoundary::lifecycleManager
-    to physicalSoftware::lifecycleServiceSource;
+    to physicalSoftwareSources::lifecycleServiceSource;
   dependency aaosHealthSourceTrace
     from physicalSoftware::aaosSdvBoundary::healthMonitor
-    to physicalSoftware::healthMonitorSource;
+    to physicalSoftwareSources::healthMonitorSource;
   dependency aaosDiagnosticsSourceTrace
     from physicalSoftware::aaosSdvBoundary::diagnostics
-    to physicalSoftware::diagnosticsSource;
+    to physicalSoftwareSources::diagnosticsSource;
   dependency aaosAdapterSourceManifestTrace
     from physicalSoftware::adapter
-    to physicalSoftware::aaosSourceArtifact;
+    to physicalSoftwareSources::aaosSourceArtifact;
   dependency aaosSourceBuildEnvironmentCandidate
-    from physicalSoftware::aaosSourceArtifact
+    from physicalSoftwareSources::aaosSourceArtifact
     to aaosBuildRuntimeEnvironmentCandidate;
   dependency aaosCuttlefishEnvironmentCandidate
     from physicalSoftware::aaosSdvBoundary
     to aaosBuildRuntimeEnvironmentCandidate;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
+    doc /*
+     * Review the System 1 candidate software boundary: adapter, AAOS SDV
+     * boundary, and application-side clients. Source records and the bounded
+     * System 2 campaign are excluded from this breakdown.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
   concern physicalInterfaceConcern : PhysicalInterfaceConcern {
+    doc /*
+     * Known issue: no System 1 Physical Interface view is published yet.
+     * Physical interfaces can include software protocol endpoints, but this
+     * increment has only a candidate vehicle-speed access port and no reviewed
+     * pin, bus, deployed service, or production transport contract. The source
+     * definitions remain authoritative; publishing their current native
+     * projection would duplicate the functional interface catalog and leak an
+     * unrelated candidate allocation.
+     */
     subject;
-    stakeholder systemsEngineer : SystemsEngineer;
-    stakeholder reviewer : OpenSourceReviewer;
-  }
-
-  concern vehicleSpeedCampaignContextExchangeConcern : PhysicalContextExchangeConcern {
-    subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
   concern vehicleSpeedCampaignInternalExchangeConcern : PhysicalInternalExchangeConcern {
     doc /*
-     * Review the typed handoffs among the concrete campaign deployment roles.
-     * The current campaign source and observer are both inside the subject, so
-     * there is no external boundary exchange or boundary delegation to claim.
+     * Known issue: no Physical Internal Exchange view is published for the
+     * campaign. Five explicit connections and five named item flows remain
+     * authoritative in the model, but the tested native projection renders
+     * only nested part boxes and does not materialize the connector path, flow
+     * direction, or exchanged item types. A box-only artifact would misstate
+     * the concern. The campaign source and observer are both inside the subject,
+     * so there is also no external boundary exchange to substitute.
      */
     subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -682,13 +720,29 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     stakeholder verificationEngineer : VerificationEngineer;
   }
 
+  concern vehicleSpeedServiceBundleInternalExchangeConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * Which provider sends VehicleSpeedProviderMessage to which observer,
+     * through which owned ports and connector, and in which direction? Keep
+     * this bounded review slice inside the AAOS service bundle; transport and
+     * deployment topology belong to the wider campaign concern.
+     */
+    subject serviceBundle : AAOSVehicleSpeedServiceBundle;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+    stakeholder softwareDeveloper : SoftwareDeveloper;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
   concern vehicleSpeedCampaignStructureConcern : PhysicalStructureConcern {
+    doc /* Supporting System 2 campaign-host breakdown, distinct from the System 1 product boundary. */
     subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
   concern vehicleSpeedCampaignInterfaceConcern : PhysicalInterfaceConcern {
+    doc /* Supporting System 2 campaign transport contracts, distinct from the System 1 candidate interfaces. */
     subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
@@ -710,55 +764,34 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
       frame physicalStructureConcern;
     }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
+    expose MiddlewarePhysicalSoftwareBoundary;
+    attribute depth = 1;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 8;
     render asTreeDiagram;
   }
 
-  view mwPhysicalInterfaceView {
-    viewpoint selectedPhysicalInterfaceViewpoint : PhysicalInterfaceDefinitionViewpoint {
-      frame physicalInterfaceConcern;
-    }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
-    render asTreeDiagram;
-  }
+  /*
+   * No Physical Context Exchange view is published for this campaign. Both
+   * hosts and the complete one-directional transfer chain are contained by the
+   * deployment subject, so presenting them as an external-boundary exchange
+   * would be false. The typed connections and flows in the source are
+   * authoritative for this scope while native rendering remains inadequate.
+   */
 
-  view mwVehicleSpeedCampaignContextExchangeView {
-    viewpoint selectedVehicleSpeedCampaignContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
-      frame vehicleSpeedCampaignContextExchangeConcern;
-    }
-    doc /*
-     * Focused bounded campaign transfer view. It exposes only the two
-     * top-level System 2 host/VM domains: AAOS/Cuttlefish VM-A and the
-     * independent ROS 2 VM-B. The nested guest, forwarder, private TCP
-     * boundary, ingress, and observer remain available in the supporting
-     * internal-exchange and structure views.
-     *
-     * The deployment still owns the complete typed flow chain. This view is
-     * intentionally a two-domain context slice, not a rendering of every
-     * implementation member.
-     */
-    expose vehicleSpeedCampaignDeployment::vmA;
-    expose vehicleSpeedCampaignDeployment::vmB;
-    render asTreeDiagram;
-  }
-
-  view mwVehicleSpeedCampaignInternalExchangeView {
-    viewpoint selectedVehicleSpeedCampaignInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
-      frame vehicleSpeedCampaignInternalExchangeConcern;
+  view mwAAOSVehicleSpeedServiceBundleInternalExchangeView {
+    viewpoint selectedAAOSVehicleSpeedServiceBundleInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
+      frame vehicleSpeedServiceBundleInternalExchangeConcern;
     }
     doc /*
-     * The concrete campaign deployment is the system of interest for this
-     * internal-exchange slice. It shows the typed handoffs among guest logcat,
-     * host forwarding, private TCP, ROS 2 ingress, VelocityReport publication,
-     * and independent observation.
-     *
-     * The campaign source and independent observer are both contained by the
-     * deployment. There is no external boundary exchange in the current scope,
-     * so no boundary delegation is modeled or claimed.
+     * Bounded native projection of the authoritative provider-to-observer
+     * connection and VehicleSpeedProviderMessage flow. The wider campaign
+     * exchange remains withheld because it does not pass the same visual gate.
      */
-    expose vehicleSpeedCampaignDeployment;
-    expose vehicleSpeedCampaignDeployment::**;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::**;
     attribute depth = -1;
+    attribute showAnnotationRows = false;
     render asInterconnectionDiagram;
   }
 
@@ -770,10 +803,16 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Supporting structure view for the two independent System 2 hosts, the
      * nested AAOS guest, host-side forwarder, ROS 2 ingress, and observer.
      */
-    expose vehicleSpeedCampaignDeployment;
-    expose vehicleSpeedCampaignDeployment::vmA::*;
-    expose vehicleSpeedCampaignDeployment::vmB::*;
-    expose vehicleSpeedCampaignDeployment::privateTcpBoundary;
+    expose VehicleSpeedCampaignCommunicationDeployment;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmA;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmA::cuttlefishGuest;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmA::hostForwarder;
+    expose VehicleSpeedCampaignCommunicationDeployment::privateTcpBoundary;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmB;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmB::ros2Ingress;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmB::independentObserver;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
   }
 
@@ -786,33 +825,49 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * VelocityReport publication/subscription boundary. Exact serialization
      * and transport parameters remain owned by the executable contracts.
      */
-    expose VehicleSpeedProviderMessage;
     expose VehicleSpeedProviderPublication;
     expose VehicleSpeedProviderSubscription;
-    expose VehicleSpeedCampaignQuality;
-    expose DE4SDVReferenceVehicleSpeedPayload;
-    expose VehicleSpeedCampaignWireEnvelope;
     expose VehicleSpeedCampaignWirePublication;
     expose VehicleSpeedCampaignWireSubscription;
-    expose VelocityReportMessage;
     expose VelocityReportPublication;
     expose VelocityReportSubscription;
+    attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
 
-  view mwPhysicalFunctionalMappingView {
-    viewpoint selectedPhysicalFunctionalMappingViewpoint : PhysicalFunctionalMappingViewpoint {
-      frame physicalFunctionalMappingConcern;
-    }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
-    render asTreeDiagram;
-  }
+  /*
+   * No physical-function allocation is modeled in this increment. Publishing a
+   * Physical Functional Mapping view would therefore present package contents
+   * as a false mapping. Add the view only when physical actions and their
+   * allocations exist in the model.
+   */
 
-  view mwPhysicalLogicalMappingView {
+  view mwPhysicalLogicalMappingView : MVD::MatrixView {
     viewpoint selectedPhysicalLogicalMappingViewpoint : PhysicalLogicalMappingViewpoint {
       frame physicalLogicalMappingConcern;
     }
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose system::signalTranslator;
+      expose system::diagnosticProxy;
+      expose system::lifecycleBridge;
+      expose system::healthProxy;
+      expose system::updateCoordinator;
+      expose system::serviceBindingManager;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose physicalSoftware::signalAccessClient;
+      expose physicalSoftware::diagnosticAccessClient;
+      expose physicalSoftware::lifecycleClient;
+      expose physicalSoftware::healthClient;
+      expose physicalSoftware::updateClient;
+      expose physicalSoftware::serviceDiscoveryClient;
+      expose physicalSoftware::adapter::aaosSignal::vehicleSpeed;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_MWPhysicalSoftwareRealization::*;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
+    }
   }
 }

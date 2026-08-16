@@ -12,6 +12,7 @@ package DE4SDV_MWFunctionalArchitecture {
     package Middleware {
       package FunctionalArchitecture {
         private import Views::*;
+        private import StandardViewDefinitions::*;
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
@@ -319,6 +320,13 @@ package DE4SDV_MWFunctionalArchitecture {
           stakeholder reviewer : OpenSourceReviewer;
         }
         concern functionalProcessConcern : SystemProcessConcern {
+          doc /*
+           * Known issue: no context-partitioned system process is modeled in
+           * this increment. MiddlewareIntegrationFunctionalFlow owns functions
+           * and two internal successions, but it has no SOI/context swimlanes or
+           * boundary-crossing context actions. That internal behavior is not a
+           * substitute for a SAF System Process, so no process view is published.
+           */
           subject;
           stakeholder systemsEngineer : SystemsEngineer;
           stakeholder reviewer : OpenSourceReviewer;
@@ -328,21 +336,36 @@ package DE4SDV_MWFunctionalArchitecture {
           viewpoint selectedFunctionalBehaviorViewpoint : SystemFunctionalBreakdownStructureViewpoint {
             frame functionalBehaviorConcern;
           }
-          expose FunctionalArchitecture::*;
+          expose MiddlewareIntegrationFunctionalFlow;
+          expose MiddlewareIntegrationFunctionalFlow::translateSignal;
+          expose MiddlewareIntegrationFunctionalFlow::proxyDiagnostics;
+          expose MiddlewareIntegrationFunctionalFlow::coordinateLifecycle;
+          expose MiddlewareIntegrationFunctionalFlow::forwardHealth;
+          expose MiddlewareIntegrationFunctionalFlow::coordinateUpdate;
+          expose MiddlewareIntegrationFunctionalFlow::bindService;
+          expose MiddlewareIntegrationFunctionalFlow::protectSafetyPath;
+          attribute showAnnotationRows = false;
+          attribute maxCompartmentEntries = 0;
           render asTreeDiagram;
         }
         view mwFunctionalInterfaceView {
           viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
             frame functionalInterfaceConcern;
           }
-          expose FunctionalArchitecture::*;
-          render asTreeDiagram;
-        }
-        view mwFunctionalProcessView {
-          viewpoint selectedFunctionalProcessViewpoint : SystemProcessViewpoint {
-            frame functionalProcessConcern;
-          }
-          expose FunctionalArchitecture::*;
+          expose FunctionalArchitecture::VehicleSignalAccessInbound;
+          expose FunctionalArchitecture::VehicleSignalAccessOutbound;
+          expose FunctionalArchitecture::DiagnosticAccessInbound;
+          expose FunctionalArchitecture::DiagnosticAccessOutbound;
+          expose FunctionalArchitecture::LifecycleCoordinationInbound;
+          expose FunctionalArchitecture::LifecycleCoordinationOutbound;
+          expose FunctionalArchitecture::HealthStatusInbound;
+          expose FunctionalArchitecture::HealthStatusOutbound;
+          expose FunctionalArchitecture::UpdateCoordinationInbound;
+          expose FunctionalArchitecture::UpdateCoordinationOutbound;
+          expose FunctionalArchitecture::ServiceBindingInbound;
+          expose FunctionalArchitecture::ServiceBindingOutbound;
+          expose FunctionalArchitecture::SafetyPathStatusOutbound;
+          attribute showAnnotationRows = false;
           render asTreeDiagram;
         }
       }

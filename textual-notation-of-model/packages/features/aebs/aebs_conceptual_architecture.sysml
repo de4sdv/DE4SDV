@@ -22,6 +22,7 @@ package DE4SDV_AEBSConceptualArchitecture {
   private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
+  private import SysideViews::**;
   private import Views::*;
 
   /* ──────────────────────────────────────────
@@ -545,29 +546,45 @@ package DE4SDV_AEBSConceptualArchitecture {
     /*
      * Exposing direct conceptual-system members selects the boundary ports,
      * bindings, flows, and component usages that define connectivity. The
-     * current tree renderer is not relationship-complete: it may list ports
-     * without drawing bind or flow edges. Review the textual bind/flow usages
-     * as the authoritative exchange topology.
+     * interconnection renderer draws bind and flow edges between ports.
      */
-    expose system::*;
-    render asTreeDiagram;
+    expose system;
+    expose system::**;
+    attribute depth = -1;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
+    render asInterconnectionDiagram;
   }
 
-  view aebsSystemFunctionMappingView {
+  view aebsSystemFunctionMappingView : MVD::MatrixView {
     viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
       frame conceptualFunctionMappingConcern;
     }
-
-    expose acquireStateAllocation;
-    expose assessRiskPathAllocation;
-    expose assessRiskTargetAllocation;
-    expose assessRiskEvaluationAllocation;
-    expose requestWarningAllocation;
-    expose evaluateOverrideAllocation;
-    expose requestBrakingDecisionAllocation;
-    expose requestBrakingCoordinationAllocation;
-    expose monitorFailureAllocation;
-    expose recordEvidenceAllocation;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose functionalFlow::acquireState;
+      expose functionalFlow::assessRisk;
+      expose functionalFlow::requestWarning;
+      expose functionalFlow::evaluateOverride;
+      expose functionalFlow::requestBraking;
+      expose functionalFlow::monitorFailure;
+      expose functionalFlow::recordEvidence;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose system::stateAcquisition;
+      expose system::egoPathPrediction;
+      expose system::targetProcessing;
+      expose system::collisionRiskEvaluation;
+      expose system::interventionDecision;
+      expose system::warningManagement;
+      expose system::emergencyCoordination;
+      expose system::healthSupervision;
+      expose system::evidenceRecording;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_AEBSConceptualArchitecture::*;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
+    }
   }
 }

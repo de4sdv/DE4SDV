@@ -15,6 +15,7 @@ package DE4SDV_AEBSNeedsRequirements {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
+        private import SysideViews::**;
         private import Views::*;
 
         part def AEBSCapability :> CommonProductLineCapability;
@@ -264,11 +265,23 @@ package DE4SDV_AEBSNeedsRequirements {
           stakeholder verificationEngineer : VerificationEngineer;
           stakeholder reviewer : OpenSourceReviewer;
         }
-        view aebsStakeholderNeedsView {
+        view aebsStakeholderNeedsView : TVD::TableView {
           viewpoint selectedStakeholderNeedsViewpoint : StakeholderRequirementDefinitionViewpoint { frame stakeholderNeedsConcern; }
           expose System1Product::*;
           expose System2EngineeringAssurance::*;
-          render asTreeDiagram;
+          filter @ SysML::RequirementUsage;
+          attribute :>> includeReferenceElements = true;
+          attribute :>> maxRowHeight = 300;
+          view ID :> columnViews {
+            attribute :>> featureToRender = CT::declaredName;
+          }
+          view Name :> columnViews {
+            attribute :>> featureToRender = CT::heritage;
+          }
+          view Statement :> columnViews {
+            attribute :>> featureToRender = CT::documentation;
+            attribute :>> columnWidth = 360;
+          }
         }
         view aebsRequirementTraceView {
           viewpoint selectedRequirementTraceViewpoint : SystemRequirementTraceabilityViewpoint { frame requirementTraceConcern; }

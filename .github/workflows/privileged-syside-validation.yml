@@ -18,6 +18,14 @@ on:
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
+      - "scripts/render_grid_csv.py"
+      - "scripts/check_svg_view_materialization.py"
+      - "scripts/check_committed_view_artifacts.py"
+      - "scripts/generate_view_index.py"
+      - "textual-notation-of-model/packages/features/middleware/VIEWS.md"
+      - "textual-notation-of-model/packages/features/middleware/diagrams/**"
+      - ".project.json"
+      - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
       - "textual-notation-of-model/**/.meta.json"
       - ".github/workflows/privileged-syside-validation.yml"
@@ -29,6 +37,14 @@ on:
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
+      - "scripts/render_grid_csv.py"
+      - "scripts/check_svg_view_materialization.py"
+      - "scripts/check_committed_view_artifacts.py"
+      - "scripts/generate_view_index.py"
+      - "textual-notation-of-model/packages/features/middleware/VIEWS.md"
+      - "textual-notation-of-model/packages/features/middleware/diagrams/**"
+      - ".project.json"
+      - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
       - "textual-notation-of-model/**/.meta.json"
       - ".github/workflows/privileged-syside-validation.yml"
@@ -98,6 +114,12 @@ jobs:
           echo "~/.local/bin" >> "${GITHUB_PATH}"
           syside --version
 
+      - name: Resolve pinned SysML library dependencies
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          python -m pip install sysand==0.1.0
+          sysand sync
+
       - name: Validate model path input
         if: steps.syside-secret.outputs.available == 'true'
         run: |
@@ -148,15 +170,88 @@ jobs:
         run: |
           echo "Generating diagrams for views under: ${MODEL_PATHS}"
           read -r -a model_paths <<< "${MODEL_PATHS}"
+          SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
+          test -f "${SYSIDE_VIEWS_SOURCE}"
           syside viz view "${model_paths[@]}" \
+            --include "${SYSIDE_VIEWS_SOURCE}" \
             --format svg \
             --output-dir diagrams \
             --exclude "textual-notation-of-model/snapshots/**"
+
+      - name: Check critical view materialization
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-aebsSimulationPhysicalContextExchangeView.svg \
+            --view-name aebsSimulationPhysicalContextExchangeView \
+            --require-label "candidateVehicleSystem1 : AEBSystem1CandidateDeployment" \
+            --require-label "simulationEvidenceSystem2 : AEBSystem2SimulationAssets" \
+            --min-flow-count 21 \
+            --max-flow-count 21
+          python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-mwAAOSVehicleSpeedServiceBundleInternalExchangeView.svg \
+            --view-name mwAAOSVehicleSpeedServiceBundleInternalExchangeView \
+            --require-label "provider : AAOSVehicleSpeedProvider" \
+            --require-label "observer : AAOSVehicleSpeedObserver" \
+            --require-exact-label vehicleSpeedOut \
+            --require-exact-label vehicleSpeedIn \
+            --require-exact-label providerToObserver \
+            --require-exact-label "providerToObserverPayload of VehicleSpeedProviderMessage" \
+            --forbid-label "hostForwarder : AAOSHostLogcatForwarder" \
+            --forbid-label "privateTcpBoundary : VehicleSpeedPrivateTcpTransport" \
+            --forbid-label "ros2Ingress : ROS2VehicleSpeedTcpIngress" \
+            --min-flow-count 1 \
+            --max-flow-count 1
+          python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-mwFunctionalInterfaceView.svg \
+            --view-name mwFunctionalInterfaceView \
+            --require-label VehicleSignalAccessInbound \
+            --require-label VehicleSignalAccessRequest
+          python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-mwPhysicalStructureView.svg \
+            --view-name mwPhysicalStructureView \
+            --require-label "adapter : AutowareToAAOSSDVAdapterPhysical" \
+            --require-label "aaosSdvBoundary : SDVCoreBoundary"
+
+      - name: Export grid views and render review SVGs (Labs)
+        if: steps.syside-secret.outputs.available == 'true'
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          read -r -a model_paths <<< "${MODEL_PATHS}"
+          SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
+          test -f "${SYSIDE_VIEWS_SOURCE}"
+          export PYTHONHOME="${pythonLocation}"
+          export PYTHONPATH="${pythonLocation}/lib/python3.12:${pythonLocation}/lib/python3.12/lib-dynload"
+          syside table export "${model_paths[@]}" \
+            --include "${SYSIDE_VIEWS_SOURCE}" \
+            --output-dir grid-csv
+          python scripts/render_grid_csv.py grid-csv diagrams
+          for csv in grid-csv/*.csv; do
+            view="${csv##*/}"
+            view="${view%.csv}"
+            view="${view#matrix-}"
+            view="${view#table-}"
+            rm -f "diagrams/diagram-${view}.svg"
+          done
+
+      - name: Check committed view index and diagrams
+        if: steps.syside-secret.outputs.available == 'true'
+        run: |
+          python scripts/generate_view_index.py \
+            textual-notation-of-model/packages/features/middleware
+          git diff --exit-code -- \
+            textual-notation-of-model/packages/features/middleware/VIEWS.md
+          python scripts/check_committed_view_artifacts.py \
+            textual-notation-of-model/packages/features/middleware \
+            diagrams
 
       - name: Upload generated diagrams
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: syside-diagrams
-          path: diagrams/
+          path: |
+            diagrams/
+            grid-csv/
           if-no-files-found: warn

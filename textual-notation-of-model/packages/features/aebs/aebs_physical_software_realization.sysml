@@ -30,6 +30,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ROS2Types::*;
+  private import SysideViews::**;
   private import Views::*;
 
   /* ──────────────────────────────────────────
@@ -582,47 +583,37 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
     render asTreeDiagram;
   }
 
-  view aebsPhysicalLogicalMappingView {
+  view aebsPhysicalLogicalMappingView : MVD::MatrixView {
     viewpoint selectedPhysicalLogicalMappingViewpoint : PhysicalLogicalMappingViewpoint {
       frame physicalLogicalMappingConcern;
     }
-
-    /*
-     * P8_PLOM requires both endpoint breakdowns and logical-to-physical
-     * realization relationships. The allocations below are the authoritative
-     * mapping; the tree renderer may list them without drawing allocation edges.
-     */
-    expose physicalSoftware;
-    expose physicalSoftware::aebNode;
-    expose system;
-    expose system::stateAcquisition;
-    expose system::egoPathPrediction;
-    expose system::targetProcessing;
-    expose system::collisionRiskEvaluation;
-    expose system::interventionDecision;
-    expose system::warningManagement;
-    expose system::emergencyCoordination;
-    expose system::healthSupervision;
-    expose system::evidenceRecording;
-    expose stateAcquisitionPartial;
-    expose egoPathPredictionPartial;
-    expose targetProcessingAvailable;
-    expose collisionRiskEvaluationAvailable;
-    expose interventionDecisionPartial;
-    expose healthSupervisionPartial;
-    expose evidenceRecordingPartial;
-    expose driverWarningRealizationGap;
-    expose predictedTrajectoryBranchBlocked;
-    expose emergencyDiagnosticContribution;
-    expose healthCoverageGap;
-    expose evidenceCoverageGap;
-    expose aebNodeTracesToPinnedSource;
-    expose aebDiagnosticNeedsFailureBridge;
-    expose failureBridgeNeedsEmergencyHandler;
-    expose emergencyHandlerNeedsCommandGate;
-    expose commandGateNeedsVehicleInterface;
-    expose vehicleInterfaceNeedsBrakeActuation;
-    expose nodeNeedsRuntime;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose system::stateAcquisition;
+      expose system::egoPathPrediction;
+      expose system::targetProcessing;
+      expose system::collisionRiskEvaluation;
+      expose system::interventionDecision;
+      expose system::warningManagement;
+      expose system::emergencyCoordination;
+      expose system::healthSupervision;
+      expose system::evidenceRecording;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose physicalSoftware::aebNode;
+      expose requiredWarningProvider;
+      expose requiredDiagnosticBridge;
+      expose requiredEmergencyHandler;
+      expose requiredCommandGate;
+      expose requiredVehicleInterface;
+      expose requiredBrakeActuation;
+      expose requiredHealthSupervisor;
+      expose requiredEvidenceService;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_AEBSPhysicalSoftwareRealization::*;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
+    }
   }
 }

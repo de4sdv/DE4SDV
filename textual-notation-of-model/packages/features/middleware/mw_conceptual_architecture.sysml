@@ -18,6 +18,7 @@ package DE4SDV_MWConceptualArchitecture {
   private import DE4SDV_AEBSConceptualArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
+  private import SysideViews::**;
   private import Views::*;
 
   part incMW007 : FeatureIncrement {
@@ -208,6 +209,15 @@ package DE4SDV_MWConceptualArchitecture {
   }
 
   concern conceptualInternalExchangeConcern : ConceptualInternalExchangeConcern {
+    doc /*
+     * Known issue: no view is published for this concern yet. The current
+     * conceptual architecture models boundary delegations from MiddlewareSystem
+     * ports to owned responsibility ports, but no cross-component connections or
+     * item flows. Native rendering of those bindings produces assignment/end
+     * notation rather than a reviewable internal-exchange diagram. The boundary
+     * delegations remain in the model; publish this view only after authoritative
+     * cross-component interfaces, connections, and exchanged items are modeled.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
@@ -223,23 +233,39 @@ package DE4SDV_MWConceptualArchitecture {
     viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
       frame conceptualStructureConcern;
     }
-    expose DE4SDV_MWConceptualArchitecture::*;
+    expose MiddlewareSystem;
+    attribute depth = 1;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 6;
     render asTreeDiagram;
   }
 
-  view mwSystemInternalExchangeView {
-    viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
-      frame conceptualInternalExchangeConcern;
-    }
-    expose DE4SDV_MWConceptualArchitecture::*;
-    render asTreeDiagram;
-  }
-
-  view mwSystemFunctionMappingView {
+  view mwSystemFunctionMappingView : MVD::MatrixView {
     viewpoint selectedSystemFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
       frame conceptualFunctionMappingConcern;
     }
-    expose DE4SDV_MWConceptualArchitecture::*;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose functionalFlow::translateSignal;
+      expose functionalFlow::proxyDiagnostics;
+      expose functionalFlow::coordinateLifecycle;
+      expose functionalFlow::forwardHealth;
+      expose functionalFlow::coordinateUpdate;
+      expose functionalFlow::bindService;
+      expose functionalFlow::protectSafetyPath;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose system::signalTranslator;
+      expose system::diagnosticProxy;
+      expose system::lifecycleBridge;
+      expose system::healthProxy;
+      expose system::updateCoordinator;
+      expose system::serviceBindingManager;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_MWConceptualArchitecture::*;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
+    }
   }
 }

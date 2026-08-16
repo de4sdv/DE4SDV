@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1144" height="364" viewBox="0 0 1144 364" role="img" aria-labelledby="title description">
+  <title id="title">Middleware conceptual-to-physical mapping</title>
+  <desc id="description">Maps conceptual system elements to physical/software elements.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1144" height="84" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">Middleware conceptual-to-physical mapping</text>
+  <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: conceptual system elements (part usages)   |   Columns →: physical/software elements (part usages)</text>
+  <rect x="0" y="84" width="192" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0"></tspan>
+  </text>
+  <rect x="192" y="84" width="168" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0">signalAccessClient</tspan>
+  </text>
+  <rect x="360" y="84" width="200" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0">diagnosticAccessClient</tspan>
+  </text>
+  <rect x="560" y="84" width="144" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="572" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="572" dy="0">lifecycleClient</tspan>
+  </text>
+  <rect x="704" y="84" width="120" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="716" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="716" dy="0">healthClient</tspan>
+  </text>
+  <rect x="824" y="84" width="120" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="836" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="836" dy="0">updateClient</tspan>
+  </text>
+  <rect x="944" y="84" width="200" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="956" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="956" dy="0">serviceDiscoveryClient</tspan>
+  </text>
+  <rect x="0" y="124" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">signalTranslator</tspan>
+  </text>
+  <rect x="192" y="124" width="168" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="195" y="127" width="162" height="34" rx="5" fill="#dff4e5"/>
+  <text x="276.0" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="276.0" dy="0">↗</tspan>
+  </text>
+  <rect x="360" y="124" width="200" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="560" y="124" width="144" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="572" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="572" dy="0"></tspan>
+  </text>
+  <rect x="704" y="124" width="120" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="716" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="716" dy="0"></tspan>
+  </text>
+  <rect x="824" y="124" width="120" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="836" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="836" dy="0"></tspan>
+  </text>
+  <rect x="944" y="124" width="200" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="956" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="956" dy="0"></tspan>
+  </text>
+  <rect x="0" y="164" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">diagnosticProxy</tspan>
+  </text>
+  <rect x="192" y="164" width="168" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0"></tspan>
+  </text>
+  <rect x="360" y="164" width="200" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="363" y="167" width="194" height="34" rx="5" fill="#dff4e5"/>
+  <text x="460.0" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="460.0" dy="0">↗</tspan>
+  </text>
+  <rect x="560" y="164" width="144" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="572" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="572" dy="0"></tspan>
+  </text>
+  <rect x="704" y="164" width="120" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="716" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="716" dy="0"></tspan>
+  </text>
+  <rect x="824" y="164" width="120" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="836" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="836" dy="0"></tspan>
+  </text>
+  <rect x="944" y="164" width="200" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="956" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="956" dy="0"></tspan>
+  </text>
+  <rect x="0" y="204" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">lifecycleBridge</tspan>
+  </text>
+  <rect x="192" y="204" width="168" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0"></tspan>
+  </text>
+  <rect x="360" y="204" width="200" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="560" y="204" width="144" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="563" y="207" width="138" height="34" rx="5" fill="#dff4e5"/>
+  <text x="632.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="632.0" dy="0">↗</tspan>
+  </text>
+  <rect x="704" y="204" width="120" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="716" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="716" dy="0"></tspan>
+  </text>
+  <rect x="824" y="204" width="120" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="836" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="836" dy="0"></tspan>
+  </text>
+  <rect x="944" y="204" width="200" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="956" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="956" dy="0"></tspan>
+  </text>
+  <rect x="0" y="244" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">healthProxy</tspan>
+  </text>
+  <rect x="192" y="244" width="168" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0"></tspan>
+  </text>
+  <rect x="360" y="244" width="200" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="560" y="244" width="144" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="572" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="572" dy="0"></tspan>
+  </text>
+  <rect x="704" y="244" width="120" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="707" y="247" width="114" height="34" rx="5" fill="#dff4e5"/>
+  <text x="764.0" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="764.0" dy="0">↗</tspan>
+  </text>
+  <rect x="824" y="244" width="120" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="836" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="836" dy="0"></tspan>
+  </text>
+  <rect x="944" y="244" width="200" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="956" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="956" dy="0"></tspan>
+  </text>
+  <rect x="0" y="284" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">updateCoordinator</tspan>
+  </text>
+  <rect x="192" y="284" width="168" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0"></tspan>
+  </text>
+  <rect x="360" y="284" width="200" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="560" y="284" width="144" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="572" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="572" dy="0"></tspan>
+  </text>
+  <rect x="704" y="284" width="120" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="716" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="716" dy="0"></tspan>
+  </text>
+  <rect x="824" y="284" width="120" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="827" y="287" width="114" height="34" rx="5" fill="#dff4e5"/>
+  <text x="884.0" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="884.0" dy="0">↗</tspan>
+  </text>
+  <rect x="944" y="284" width="200" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="956" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="956" dy="0"></tspan>
+  </text>
+  <rect x="0" y="324" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">serviceBindingManager</tspan>
+  </text>
+  <rect x="192" y="324" width="168" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0"></tspan>
+  </text>
+  <rect x="360" y="324" width="200" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="560" y="324" width="144" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="572" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="572" dy="0"></tspan>
+  </text>
+  <rect x="704" y="324" width="120" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="716" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="716" dy="0"></tspan>
+  </text>
+  <rect x="824" y="324" width="120" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="836" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="836" dy="0"></tspan>
+  </text>
+  <rect x="944" y="324" width="200" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="947" y="327" width="194" height="34" rx="5" fill="#dff4e5"/>
+  <text x="1044.0" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="1044.0" dy="0">↗</tspan>
+  </text>
+</svg>

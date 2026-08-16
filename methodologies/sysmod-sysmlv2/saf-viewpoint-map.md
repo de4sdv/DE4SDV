@@ -158,7 +158,7 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 | `SAF_Viewpoints` | `PhysicalContextExchangeViewpoint` | SAF Physical Domain (`P1_PCXE`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalContextExchangeView` |
 | `SAF_Viewpoints` | `PhysicalExchangeTypeDefinitionViewpoint` | SAF Physical Domain (`P2_PETD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalExchangeTypeView` |
 | `SAF_Viewpoints` | `PhysicalStructureDefinitionViewpoint` | SAF Physical Domain (`P2_PSTD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalStructureView` |
-| `SAF_Viewpoints` | `PhysicalInternalExchangeViewpoint` | SAF Physical Domain (`P4_PIEX`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalInternalExchangeView` |
+| `SAF_Viewpoints` | `PhysicalInternalExchangeViewpoint` | SAF Physical Domain (`P4_PIEX`) | `aebs_simulation_deployment.sysml` models the System 1 internal flows; no generated view is published until the native renderer can isolate those flows without adding context exchanges or dropping the topology |
 | `SAF_Viewpoints` | `PhysicalInterfaceDefinitionViewpoint` | SAF Physical Domain (`P5_PIFD`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalInterfaceView` |
 | `SAF_Viewpoints` | `PhysicalLogicalMappingViewpoint` | SAF Physical Domain (`P8_PLOM`) | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalLogicalMappingView` |
 | `SAF_Viewpoints` | `PhysicalLogicalItemMappingViewpoint` | Proposed; no current SAF short code | `aebs_simulation_deployment.sysml` → `aebsSimulationPhysicalLogicalItemMappingView` |
@@ -171,15 +171,42 @@ DE4SDV method-governance viewpoints are in `textual-notation-of-model/packages/m
 New SAF viewpoints are added to `SAF_Viewpoints` incrementally as DE4SDV increments need them.
 
 Each concrete `view` uses a `viewpoint` selection with `frame` bindings to
-concerns, and `expose Package::*` to render the package content. SysML v2
-`expose` only accepts a membership pattern (e.g. `Package::*`), not a
-comma-separated element list — verified against the Pilot Implementation
-corpus. The filtering value comes from the viewpoint selection and frame
-binding, not from the expose syntax.
+concerns. Exposures are scoped to the elements and relationships needed to
+answer that concern rather than dumping whole packages.
 
-Rendering uses `render asTreeDiagram` — the only renderer validated in SysIDE.
-Views serve as filtered model queries for human navigation; rendered SVGs
-currently show ownership hierarchy, not relationship diagrams.
+Presentation follows the concern: ownership/decomposition uses trees,
+processes use action-flow diagrams, exchanges use interconnection diagrams,
+requirement definitions use tables, and allocation mappings use matrices.
+Grid views are modeled with a pinned library and exported by the privileged
+workflow as both CSV and review SVG. SysML remains authoritative when a
+renderer omits or simplifies a valid relationship.
+
+## Current middleware publication exceptions
+
+The middleware increment intentionally withholds four expected views rather
+than publish diagrams that do not answer their framed concerns:
+
+- **System Internal Exchange:** the conceptual source currently has boundary
+  delegations but no cross-component connections or item flows.
+- **System Process:** the source has an internal functional flow, not a
+  context-partitioned process with ordered actions and exchanges.
+- **System 1 Physical Interface:** the current candidate software endpoint is
+  not yet a reviewed pin, bus, deployed service, or production transport
+  contract; its native projection also leaks an unrelated allocation.
+- **System 2 Physical Internal Exchange:** five connections and five item flows
+  are authoritative in the source, but the native projection renders nested
+  parts without the connector path, direction, or exchanged item types.
+
+The middleware package does publish one smaller Physical Internal Exchange
+slice: `mwAAOSVehicleSpeedServiceBundleInternalExchangeView` selects the
+provider and independent observer inside the AAOS service bundle, their owned
+ports, the authoritative connection, and the directed
+`VehicleSpeedProviderMessage` flow. It is deliberately not a substitute for
+the withheld four-hop campaign view.
+
+Each exception and its rationale is also recorded with the framed concern in
+the architecture description. A view can return only after its source
+semantics exist and exact-head rendering visibly materializes them.
 
 ## Guardrails
 

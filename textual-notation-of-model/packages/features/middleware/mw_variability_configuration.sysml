@@ -32,7 +32,7 @@ package DE4SDV_MWVariabilityConfiguration {
      * generated platform-stack projection. The local parts compose accepted
      * shared assets; they do not independently choose platform variants.
      */
-    part platformStack : SDVPlatformStack;
+    part platformStack : MWAutowareAAOSSDVReference;
     part middlewareBoundary : MiddlewarePhysicalSoftwareBoundary;
   }
 
@@ -136,10 +136,10 @@ package DE4SDV_MWVariabilityConfiguration {
     to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::adapter;
   dependency exactReferenceContractTrace
     from directVSIDLToROS2Realization
-    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::referenceInteropBenchSource;
+    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftwareSources::referenceInteropBenchSource;
   dependency vssVehicleSpeedSemanticTrace
     from vehicleSpeedPropertyClassification
-    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::vssVehicleSpeedSource;
+    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftwareSources::vssVehicleSpeedSource;
   dependency ifexPropertyClassificationTrace
     from vehicleSpeedPropertyClassification
     to ifexInterfaceDesignSource;
@@ -170,6 +170,10 @@ package DE4SDV_MWVariabilityConfiguration {
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::System1Product::reqAuthenticateServiceBinding;
 
   concern productLineConfigurationConcern : ProductLineConfigurationConcern {
+    doc /*
+     * Review the selected feature variants in the deterministic generated
+     * platform-stack projection. This concern is about choices, not assembly.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -177,18 +181,40 @@ package DE4SDV_MWVariabilityConfiguration {
   }
 
   concern productModelAssemblyConcern : ProductModelAssemblyConcern {
+    doc /*
+     * Review the resulting member-product composition: configured platform
+     * stack plus the middleware physical/software boundary. This concern is
+     * about assembled assets, not the full variation space.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder productLineEngineer : ProductLineEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
+  alias selectedVehicleApplication
+    for MWAutowareAAOSSDVReference::vehicleApplication;
+  alias selectedMiddleware
+    for MWAutowareAAOSSDVReference::middleware;
+  alias selectedOperatingSystem
+    for MWAutowareAAOSSDVReference::osPlatform;
+  alias selectedHypervisor
+    for MWAutowareAAOSSDVReference::hypervisor;
+  alias selectedApplicationMiddlewareAdapter
+    for MWAutowareAAOSSDVReference::applicationMiddlewareAdapter;
+
   view mwProductLineConfigurationView {
     viewpoint selectedProductLineConfigurationViewpoint : ProductLineConfigurationViewpoint {
       frame productLineConfigurationConcern;
     }
-    expose DE4SDV_MWVariabilityConfiguration::*;
-    expose DE4SDV_SDVPlatformStack::*;
+    expose MWAutowareAAOSSDVReference;
+    expose selectedVehicleApplication;
+    expose selectedMiddleware;
+    expose selectedOperatingSystem;
+    expose selectedHypervisor;
+    expose selectedApplicationMiddlewareAdapter;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
   }
 
@@ -196,7 +222,11 @@ package DE4SDV_MWVariabilityConfiguration {
     viewpoint selectedProductModelAssemblyViewpoint : ProductModelAssemblyViewpoint {
       frame productModelAssemblyConcern;
     }
-    expose DE4SDV_MWVariabilityConfiguration::*;
+    expose MWAutowareAAOSSDVConfiguredMember;
+    expose MWAutowareAAOSSDVConfiguredMember::platformStack;
+    expose MWAutowareAAOSSDVConfiguredMember::middlewareBoundary;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
   }
 }
