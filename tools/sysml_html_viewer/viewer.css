@@ -262,7 +262,10 @@ code {
   position: fixed;
   z-index: 1000;
   pointer-events: none;
+  min-width: 200px;
   max-width: 430px;
+  overflow-wrap: break-word;
+  word-break: break-word;
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -301,6 +304,7 @@ code {
   color: var(--muted);
   font-family: var(--mono);
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 .tip-hint {
   margin-top: 5px;
