@@ -52,6 +52,8 @@ def test_system1_internal_exchange_remains_authoritative_without_misleading_view
     assert "AEBTwoSystemSimulationDeployment" not in concern
     assert system1.count("flow from ") == 10
     assert "view aebsSimulationPhysicalInternalExchangeView" not in text
+    assert "Known issue: no view is published for this concern yet." in concern
+    assert "withheld until the renderer can isolate them honestly" in concern
 
 
 def test_exchange_views_suppress_non_topology_compartment_noise() -> None:

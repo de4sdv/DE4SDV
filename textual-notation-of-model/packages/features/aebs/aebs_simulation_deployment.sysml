@@ -654,6 +654,12 @@ package DE4SDV_AEBSSimulationDeployment {
      * This view is confined to ports, delegations, and exchanges inside the
      * candidate System 1 deployment. System 2 belongs in the physical context
      * exchange view, not inside the System 1 boundary.
+     *
+     * Known issue: no view is published for this concern yet. Tested native
+     * projections either mixed in the 21 context exchanges, rendered empty,
+     * or showed parts without the ten System 1 internal flows. The ten
+     * authoritative internal flows remain in the model; the misleading
+     * visual is withheld until the renderer can isolate them honestly.
      */
     subject candidateSystem : AEBSystem1CandidateDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
