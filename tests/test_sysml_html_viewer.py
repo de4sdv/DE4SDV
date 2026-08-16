@@ -144,6 +144,8 @@ def test_extract_text_labels():
         "<text><tspan>fixtureSystem</tspan> : <tspan>FixtureSystem</tspan></text>"
         "<text>parts</text>"
         "<text>«part def»</text>"
+        "<text>FixtureSystem :&gt; FixtureSuperType</text>"
+        "<text>expose FixtureSystem::signalIn</text>"
         "</svg>"
     )
     labels = svg_info.extract_text_labels(svg)
@@ -152,12 +154,24 @@ def test_extract_text_labels():
         "fixtureSystem : FixtureSystem",
         "parts",
         "«part def»",
+        "FixtureSystem :> FixtureSuperType",
+        "expose FixtureSystem::signalIn",
     ]
 
 
 def test_resolve_labels(model_files, fixture_sysml):
     index = build_member_index(model_files)
-    labels = ["FixtureSystem", "fixtureSystem : FixtureSystem", "parts", "«part def»"]
+    labels = [
+        "FixtureSystem",
+        "fixtureSystem : FixtureSystem",
+        "parts",
+        "«part def»",
+        # specializer suffix (extract_text_labels unescapes the &gt; form)
+        "FixtureSystem :> FixtureSuperType",
+        # qualified path resolves by root name
+        "expose FixtureSystem::signalIn",
+        "expose FixtureSystem::'quoted part'",
+    ]
     resolved = svg_info.resolve_labels(
         labels,
         index,
@@ -169,6 +183,11 @@ def test_resolve_labels(model_files, fixture_sysml):
     assert by_label["FixtureSystem"].doc.startswith("A synthetic system part")
     assert by_label["fixtureSystem : FixtureSystem"].kind == "part"
     assert by_label["fixtureSystem : FixtureSystem"].name == "fixtureSystem"
+    # specializer resolves to the part def
+    assert by_label["FixtureSystem :> FixtureSuperType"].name == "FixtureSystem"
+    # qualified expose resolves by root name
+    assert by_label["expose FixtureSystem::signalIn"].name == "FixtureSystem"
+    assert by_label["expose FixtureSystem::'quoted part'"].name == "FixtureSystem"
     # layout text without a model match resolves to nothing
     assert "parts" not in by_label
     assert "«part def»" not in by_label

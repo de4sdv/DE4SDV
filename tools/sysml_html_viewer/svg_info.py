@@ -24,11 +24,24 @@ _STEREOTYPE_RE = re.compile(r"^«[^»]*»\s*")
 _EXPOSE_RE = re.compile(r"^expose\s+")
 
 
+def _unescape(s: str) -> str:
+    """SysIDE SVG text may carry HTML entities (&gt; for the :> specializer)."""
+    s = s.replace("&lt;", "<")
+    s = s.replace("&gt;", ">")
+    s = s.replace("&quot;", '"')
+    s = s.replace("&#39;", "'")
+    s = s.replace("&apos;", "'")
+    s = s.replace("&amp;", "&")  # last, so &amp;gt; resolves to >
+    return s
+
+
 def extract_text_labels(svg_text: str) -> list[str]:
-    """All text-element contents, normalized (whitespace collapsed)."""
+    """All text-element contents, normalized (whitespace collapsed, entities
+    unescaped)."""
     labels = []
     for m in _TEXT_RE.finditer(svg_text):
         plain = _TAG_RE.sub("", m.group(1))
+        plain = _unescape(plain)
         plain = re.sub(r"\s+", " ", plain).strip()
         if plain:
             labels.append(plain)
@@ -43,8 +56,15 @@ def _normalize(label: str) -> list[str]:
     if not s:
         return []
     candidates.append(s)
-    if " : " in s:
-        candidates.append(s.split(" : ", 1)[0].strip())
+    # strip a specializer/typing suffix: ` :> Super`, ` :>> Super`, ` : Type`
+    for sep in (" :>> ", " :> ", " : "):
+        if sep in s:
+            candidates.append(s.split(sep, 1)[0].strip())
+            break
+    # qualified paths (`Root::member`) resolve by their root name
+    for c in list(candidates):
+        if "::" in c:
+            candidates.append(c.split("::", 1)[0].strip())
     # quoted-name form ('exchange vehicle signals' vs exchange vehicle signals)
     for c in list(candidates):
         if c.startswith("'") and c.endswith("'"):
