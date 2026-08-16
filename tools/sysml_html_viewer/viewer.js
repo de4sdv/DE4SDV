@@ -116,24 +116,6 @@
     });
 
     initTreeResizer();
-    initFileTabs();
-  }
-
-  /* ---- file content tabs: hash links switch the visible tab ---- */
-  function initFileTabs() {
-    var members = document.getElementById('tab-members');
-    var source = document.getElementById('tab-source');
-    if (!members || !source) return;
-    function sync() {
-      var h = window.location.hash || '';
-      if (h.indexOf('#member-') === 0) {
-        members.checked = true;
-      } else if (h.indexOf('#src-') === 0) {
-        source.checked = true;
-      }
-    }
-    window.addEventListener('hashchange', sync);
-    sync();
   }
 
   /* ---- resizable navigation tree ---- */

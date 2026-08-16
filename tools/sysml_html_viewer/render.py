@@ -75,11 +75,6 @@ def _icon(kind: str) -> str:
     return _ICONS["other"]
 
 
-def _kind_label(kind: str) -> str:
-    label = kind.replace("def", "def")
-    return label
-
-
 # ---------------------------------------------------------------------------
 # Navigation tree
 # ---------------------------------------------------------------------------
@@ -194,7 +189,7 @@ def render_index(tree: TreeNode, stats: dict[str, int], file_count_with_diagrams
   <ul>
     {''.join(start_links)}
     <li>Open any <span class="kind-badge view-badge">view</span> in a file page to see its diagram and definition.</li>
-    <li>Element pages live inside the file page of the model file that declares them.</li>
+    <li>Elements in the tree jump to their declaration line in the highlighted source below the diagrams.</li>
   </ul>
 </div>
 """
@@ -474,31 +469,6 @@ def _render_view_block(
 """
 
 
-def _render_member_tree(members: list, anchor_counter: dict[str, int], depth: int = 0) -> str:
-    out = []
-    for m in members:
-        anchor = make_anchor(anchor_counter, m.name)
-        kids = _render_member_tree(m.children, anchor_counter, depth + 1) if m.children else ""
-        doc = f'<p class="member-doc">{esc(m.doc)}</p>' if m.doc else ""
-        body = (
-            f'<div class="member-head">'
-            f'<span class="tree-icon">{_icon(m.kind)}</span>'
-            f'<span class="kind-badge">{esc(_kind_label(m.kind))}</span>'
-            f'<span class="member-name"><code>{esc(m.name)}</code></span>'
-            f"<span class='tree-meta'>line {m.line}</span></div>{doc}"
-        )
-        if kids:
-            out.append(
-                f'<details class="member-node" id="member-{anchor}"><summary>{body}</summary>'
-                f'<div class="member-children">{kids}</div></details>'
-            )
-        else:
-            out.append(
-                f'<div class="member-node" id="member-{anchor}">{body}</div>'
-            )
-    return "".join(out)
-
-
 def render_file_page(
     mf: ModelFile,
     tree_html: str,
@@ -513,7 +483,6 @@ def render_file_page(
         _render_view_block(v, mf, repo_prefix, prefix, member_index, anchor_counter)
         for v in mf.views
     )
-    members_html = _render_member_tree(mf.members, anchor_counter)
     doc_html = f'<div class="doc-block"><p>{esc(mf.file_doc)}</p></div>' if mf.file_doc else ""
     view_count = len(mf.views)
     source_link = (
@@ -534,18 +503,8 @@ def render_file_page(
 </div>
 {views_html}
 <div class="card">
-  <h2>File content</h2>
-  <input type="radio" name="filetabs" id="tab-source" class="tab-radio" checked>
-  <input type="radio" name="filetabs" id="tab-members" class="tab-radio">
-  <div class="file-tabs">
-    <label for="tab-source">Source</label>
-    <label for="tab-members">Members</label>
-  </div>
-  <div class="tab-pane pane-source"><pre class="source-view">{source_html}</pre></div>
-  <div class="tab-pane pane-members">
-    <p class="muted">Declared in this file; nested members expand inline.</p>
-    <div class="member-list">{members_html}</div>
-  </div>
+  <h2>Source</h2>
+  <pre class="source-view">{source_html}</pre>
 </div>
 """
     return _page_shell(

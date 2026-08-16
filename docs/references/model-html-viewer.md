@@ -11,11 +11,13 @@ SysIDE-rendered diagram with its viewpoint, concern, expose targets, and
 source location — no tool installation, no model checkout required.
 Diagram element labels are hover-enriched: resting the pointer on an
 element in the diagram shows its kind, its `doc` comment, and its exact
-source location; clicking jumps to the member's section. The navigation
+source location; clicking jumps to the element's declaration line in the
+source view. The navigation
 tree on the left is resizable (drag the divider; the width is remembered).
-Below the diagrams, each file page has a **Source / Members** tab switch —
-Source (default) shows the highlighted `.sysml` with numbered lines, so
-reviewers can check the ground truth directly next to the rendered views.
+Below the diagrams, each file page shows the highlighted `.sysml` source
+with numbered lines — reviewers check the ground truth directly next to
+the rendered views, and tree entries for elements jump to their
+declaration lines.
 
 ## When to use
 

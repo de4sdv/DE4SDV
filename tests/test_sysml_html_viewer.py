@@ -217,7 +217,7 @@ def test_inline_svg_and_hover_json_in_page(tmp_path):
     payload = json.loads(m.group(1))
     info = payload["FixtureSystem"]
     assert info["kind"] == "part def"
-    assert info["href"].endswith("fixture_feature.sysml.html#member-FixtureSystem")
+    assert re.search(r"fixture_feature\.sysml\.html#src-\d+$", info["href"])
     # the matrix view has no committed diagram -> no hover JSON for it
     assert 'data-for="fixtureMatrixView"' not in html
     # viewer.js is shipped with the site
@@ -255,9 +255,9 @@ def test_active_path_chain_stays_open(tmp_path):
     assert m is not None
 
 
-def test_source_view_and_tabs(tmp_path):
-    """File pages carry a Source/Members tab switch; source is the default
-    pane and shows the highlighted .sysml with numbered lines."""
+def test_source_view_only(tmp_path):
+    """File pages show only the highlighted source below the diagrams —
+    no members list, no Source/Members tab switch."""
     out = tmp_path / "site"
     generate(FIXTURE, out, ["textual-notation-of-model/packages"])
     file_page = (
@@ -266,9 +266,12 @@ def test_source_view_and_tabs(tmp_path):
         / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
     )
     html = file_page.read_text(encoding="utf-8")
-    # tab radios exist; source is checked by default
-    assert 'id="tab-source" class="tab-radio" checked' in html
-    assert 'id="tab-members" class="tab-radio"' in html
+    # no tabs, no members pane
+    assert "tab-source" not in html
+    assert "tab-members" not in html
+    assert "pane-members" not in html
+    assert "member-list" not in html
+    assert "member-node" not in html
     # source pane: actual file content, numbered lines, highlighted tokens
     assert 'class="source-view"' in html
     assert "FixtureRoot" in html  # keyword is span-wrapped, name is plain
@@ -291,9 +294,33 @@ def test_source_view_and_tabs(tmp_path):
     # no comment span may contain a newline (would break line wrapping)
     for cmt in re.findall(r'<span class="src-cmt">(.*?)</span>', pre_body, re.S):
         assert "\n" not in cmt
-    # members pane still present for the member tree
-    assert 'class="tab-pane pane-members"' in html
-    assert 'class="member-list"' in html
+
+
+def test_member_links_target_source_lines(tmp_path):
+    """Tree member nodes and hover JSON jump to declaration lines (#src-N)."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    )
+    html = file_page.read_text(encoding="utf-8")
+    # tree member links point at source lines
+    assert re.search(r'href="[^"]*fixture_feature\.sysml\.html#src-\d+"', html)
+    # hover JSON hrefs for members also point at source lines
+    m = re.search(
+        r'<script type="application/json" class="diagram-info" '
+        r'data-for="fixtureStructureView">(.*?)</script>',
+        html,
+        re.S,
+    )
+    assert m is not None
+    payload = json.loads(m.group(1))
+    info = payload["FixtureSystem"]
+    assert re.search(r"fixture_feature\.sysml\.html#src-\d+$", info["href"])
+    # the view itself still links to its section anchor (tree)
+    assert "#view-fixtureStructureView" in html
 
 
 def _collect_links(html: str) -> list[str]:

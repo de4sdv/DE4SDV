@@ -345,11 +345,11 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
                 TreeNode(
                     label=v.name,
                     kind="view",
-                    href=f"pages/{mf.rel_path}.html#view-{v.name}",
+                    href=f"pages/{mf.rel_path}.html#view-{slugify(v.name)}",
                     meta=v.render or v.view_type,
                 )
             )
-        # top-level members: direct children of the file's first package
+        # top-level members jump to their declaration line in the source
         top_level = [m for m in mf.members if not m.children]
         if mf.members:
             min_depth = min(m.depth for m in mf.members)
@@ -359,7 +359,7 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
                 TreeNode(
                     label=mm.name,
                     kind=mm.kind,
-                    href=f"pages/{mf.rel_path}.html#member-{mm.name}",
+                    href=f"pages/{mf.rel_path}.html#src-{mm.line}",
                 )
             )
         node.children.append(file_node)
@@ -414,7 +414,7 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
                 doc=m.doc,
                 rel_path=mf.rel_path,
                 line=m.line,
-                anchor=f"member-{slugify(m.name)}",
+                anchor=f"src-{m.line}",  # jump to the declaration in source
             )
             _index_add(index, ref)
         for v in mf.views:

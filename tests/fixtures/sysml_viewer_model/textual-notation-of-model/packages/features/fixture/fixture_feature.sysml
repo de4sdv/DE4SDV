@@ -4,6 +4,8 @@
  */
 
 package FixtureRoot {
+  part def RootLevelPart;
+
   package Features {
     package FixtureFeature {
       private import Views::*;

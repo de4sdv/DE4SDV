@@ -209,28 +209,7 @@ code {
   font-size: 13.5px;
 }
 
-/* members */
-.member-list { margin-top: 6px; }
-.member-node {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin: 6px 0;
-  background: #fcfdfe;
-}
-.member-node summary { cursor: pointer; }
-.member-node summary::-webkit-details-marker { display: none; }
-.member-node summary::before { content: "▸"; color: var(--muted); margin-right: 6px; }
-.member-node[open] > summary::before { content: "▾"; }
-.member-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.member-name code { font-size: 13.5px; background: none; padding: 0; }
-.member-doc {
-  margin: 6px 0 0 30px;
-  color: #4a5868;
-  font-size: 13px;
-  white-space: pre-wrap;
-}
-.member-children { margin: 8px 0 2px 18px; }
+/* members (removed: file pages show the highlighted source instead) */
 
 /* toc pages */
 .toc-list { list-style: none; margin: 8px 0; padding: 0; }
@@ -312,30 +291,6 @@ code {
   font-size: 11px;
   font-style: italic;
 }
-
-/* file content tabs */
-.tab-radio { position: absolute; opacity: 0; pointer-events: none; }
-.file-tabs { display: flex; gap: 8px; margin: 2px 0 12px; }
-.file-tabs label {
-  cursor: pointer;
-  padding: 4px 16px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #f8fafc;
-  color: var(--muted);
-  font-size: 13px;
-}
-.file-tabs label:hover { border-color: var(--accent); color: var(--accent); }
-.tab-radio#tab-source:checked ~ .file-tabs label[for="tab-source"],
-.tab-radio#tab-members:checked ~ .file-tabs label[for="tab-members"] {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 600;
-}
-.tab-pane { display: none; }
-#tab-source:checked ~ .pane-source,
-#tab-members:checked ~ .pane-members { display: block; }
 
 /* source view */
 .source-view {
