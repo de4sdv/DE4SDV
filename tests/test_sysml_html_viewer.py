@@ -277,6 +277,16 @@ def test_source_view_and_tabs(tmp_path):
     assert re.search(r'id="src-1"', html)
     line_count = len(re.findall(r'class="src-line"', html))
     assert line_count >= 40  # fixture file length
+    # regression: multi-line comments must not nest later lines inside the
+    # first line's block (every src-line is a direct child of the pre)
+    pre_m = re.search(r'<pre class="source-view">(.*?)</pre>', html, re.S)
+    assert pre_m is not None
+    pre_body = pre_m.group(1)
+    assert pre_body.count("<span") == pre_body.count("</span>")
+    assert "src-cmt" in pre_body
+    # no comment span may contain a newline (would break line wrapping)
+    for cmt in re.findall(r'<span class="src-cmt">(.*?)</span>', pre_body, re.S):
+        assert "\n" not in cmt
     # members pane still present for the member tree
     assert 'class="tab-pane pane-members"' in html
     assert 'class="member-list"' in html

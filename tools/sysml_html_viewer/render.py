@@ -259,18 +259,16 @@ _SRC_KEYWORDS = frozenset(
 )
 
 _SRC_TOKEN_RE = re.compile(
-    r"/\*.*?\*/|//[^\n]*|'[^']*'|:>>|:>|::|->|=>|"
+    r"'[^']*'|:>>|:>|::|->|=>|"
     r"\b\d+(?:\.\d+)?\b|"
     r"\b[A-Za-z_][A-Za-z0-9_]*\b|.",
-    flags=re.S,
 )
+
+# per-line scan: quoted names first, then comment openers
+_LINE_SCAN_RE = re.compile(r"'[^']*'|/\*|//")
 
 
 def _token_class(tok: str) -> str:
-    if tok.startswith(("/*", "//")):
-        return "cmt"
-    if tok.startswith("'"):
-        return "str"
     if tok in _SRC_KEYWORDS:
         return "kw"
     if tok in (":>>", ":>", "::", "->", "=>"):
@@ -280,12 +278,12 @@ def _token_class(tok: str) -> str:
     return ""
 
 
-def _highlight_source(text: str) -> str:
-    """Syntax-highlight the .sysml source and wrap it in numbered lines."""
+def _highlight_code(seg: str) -> str:
+    """Highlight keywords/numbers/operators in a comment-free segment."""
     out = []
     pos = 0
-    for m in _SRC_TOKEN_RE.finditer(text):
-        out.append(esc(text[pos : m.start()]))
+    for m in _SRC_TOKEN_RE.finditer(seg):
+        out.append(esc(seg[pos : m.start()]))
         tok = m.group(0)
         cls = _token_class(tok)
         if cls:
@@ -293,13 +291,60 @@ def _highlight_source(text: str) -> str:
         else:
             out.append(esc(tok))
         pos = m.end()
-    out.append(esc(text[pos:]))
-    lines = "".join(out).split("\n")
+    out.append(esc(seg[pos:]))
+    return "".join(out)
+
+
+def _highlight_line(line: str, in_block: bool) -> tuple[str, bool]:
+    """Highlight one source line; returns (html, still_in_block_comment).
+
+    Multi-line /* ... */ comments are split per line so every .src-line
+    block is self-contained — a comment spanning lines must never nest
+    later lines inside the first line's block.
+    """
+    out = []
+    pos = 0
+    if in_block:
+        end = line.find("*/")
+        if end == -1:
+            return f'<span class="src-cmt">{esc(line)}</span>', True
+        out.append(f'<span class="src-cmt">{esc(line[: end + 2])}</span>')
+        pos = end + 2
+        in_block = False
+    while pos < len(line):
+        m = _LINE_SCAN_RE.search(line, pos)
+        if not m:
+            out.append(_highlight_code(line[pos:]))
+            break
+        out.append(_highlight_code(line[pos : m.start()]))
+        tok = m.group(0)
+        if tok.startswith("'"):
+            out.append(f'<span class="src-str">{esc(tok)}</span>')
+            pos = m.end()
+        elif tok == "/*":
+            end = line.find("*/", m.end())
+            if end == -1:
+                out.append(f'<span class="src-cmt">{esc(line[m.start() :])}</span>')
+                pos = len(line)
+                in_block = True
+            else:
+                out.append(f'<span class="src-cmt">{esc(line[m.start() : end + 2])}</span>')
+                pos = end + 2
+        else:  # "//" line comment to end of line
+            out.append(f'<span class="src-cmt">{esc(line[m.start() :])}</span>')
+            pos = len(line)
+    return "".join(out), in_block
+
+
+def _highlight_source(text: str) -> str:
+    """Syntax-highlight the .sysml source and wrap it in numbered lines."""
+    in_block = False
     body = []
-    for i, line in enumerate(lines, 1):
+    for i, raw in enumerate(text.split("\n"), 1):
+        html, in_block = _highlight_line(raw, in_block)
         body.append(
             f'<span class="src-line" id="src-{i}">'
-            f'<span class="src-ln">{i}</span>{line}</span>'
+            f'<span class="src-ln">{i}</span>{html}</span>'
         )
     return "\n".join(body)
 

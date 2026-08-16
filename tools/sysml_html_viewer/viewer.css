@@ -349,7 +349,7 @@ code {
   font-size: 12px;
   line-height: 1.55;
 }
-.src-line { display: block; white-space: pre; }
+.src-line { display: block; white-space: pre; line-height: 1.45; }
 .src-line:hover { background: #f0f4fa; }
 .src-ln {
   display: inline-block;
