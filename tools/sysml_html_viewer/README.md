@@ -44,8 +44,11 @@ Or open `build/model-viewer/index.html` directly in a browser.
   - *view sections*: view name, viewpoint, concern, expose targets,
     depth, render kind, source line — and the SysIDE diagram (or an
     explicit "no committed diagram" note when the artifact is missing);
-  - *members*: every declared member of the file's packages, nested
-    exactly as declared, with attached `doc /* ... */` text;
+  - *file content*: a **Source / Members** tab switch below the diagrams.
+    Source (default) shows the highlighted `.sysml` with numbered lines;
+    Members shows every declared member of the file's packages, nested
+    exactly as declared, with attached `doc /* ... */` text. Tree links to
+    a member automatically switch to the Members tab;
   - *source link*: the exact `.sysml` file on GitHub.
 
 ## Diagram hover enrichment

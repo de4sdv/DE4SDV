@@ -255,6 +255,33 @@ def test_active_path_chain_stays_open(tmp_path):
     assert m is not None
 
 
+def test_source_view_and_tabs(tmp_path):
+    """File pages carry a Source/Members tab switch; source is the default
+    pane and shows the highlighted .sysml with numbered lines."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    )
+    html = file_page.read_text(encoding="utf-8")
+    # tab radios exist; source is checked by default
+    assert 'id="tab-source" class="tab-radio" checked' in html
+    assert 'id="tab-members" class="tab-radio"' in html
+    # source pane: actual file content, numbered lines, highlighted tokens
+    assert 'class="source-view"' in html
+    assert "FixtureRoot" in html  # keyword is span-wrapped, name is plain
+    assert re.search(r'class="src-kw">package</span>', html)
+    assert re.search(r'class="src-cmt">', html)
+    assert re.search(r'id="src-1"', html)
+    line_count = len(re.findall(r'class="src-line"', html))
+    assert line_count >= 40  # fixture file length
+    # members pane still present for the member tree
+    assert 'class="tab-pane pane-members"' in html
+    assert 'class="member-list"' in html
+
+
 def _collect_links(html: str) -> list[str]:
     hrefs = re.findall(r'href="([^"]+)"', html)
     srcs = re.findall(r'src="([^"]+)"', html)

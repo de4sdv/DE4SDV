@@ -246,6 +246,65 @@ def render_dir_page(
 
 
 # ---------------------------------------------------------------------------
+# Source view
+# ---------------------------------------------------------------------------
+
+_SRC_KEYWORDS = frozenset(
+    """
+    package import part def requirement view viewpoint concern expose frame
+    render attribute abstract doc flow port item interface state action usage
+    exhibit in out then first last all only require constraint ref assert and
+    or not true false
+    """.split()
+)
+
+_SRC_TOKEN_RE = re.compile(
+    r"/\*.*?\*/|//[^\n]*|'[^']*'|:>>|:>|::|->|=>|"
+    r"\b\d+(?:\.\d+)?\b|"
+    r"\b[A-Za-z_][A-Za-z0-9_]*\b|.",
+    flags=re.S,
+)
+
+
+def _token_class(tok: str) -> str:
+    if tok.startswith(("/*", "//")):
+        return "cmt"
+    if tok.startswith("'"):
+        return "str"
+    if tok in _SRC_KEYWORDS:
+        return "kw"
+    if tok in (":>>", ":>", "::", "->", "=>"):
+        return "op"
+    if tok.replace(".", "").isdigit():
+        return "num"
+    return ""
+
+
+def _highlight_source(text: str) -> str:
+    """Syntax-highlight the .sysml source and wrap it in numbered lines."""
+    out = []
+    pos = 0
+    for m in _SRC_TOKEN_RE.finditer(text):
+        out.append(esc(text[pos : m.start()]))
+        tok = m.group(0)
+        cls = _token_class(tok)
+        if cls:
+            out.append(f'<span class="src-{cls}">{esc(tok)}</span>')
+        else:
+            out.append(esc(tok))
+        pos = m.end()
+    out.append(esc(text[pos:]))
+    lines = "".join(out).split("\n")
+    body = []
+    for i, line in enumerate(lines, 1):
+        body.append(
+            f'<span class="src-line" id="src-{i}">'
+            f'<span class="src-ln">{i}</span>{line}</span>'
+        )
+    return "\n".join(body)
+
+
+# ---------------------------------------------------------------------------
 # File pages
 # ---------------------------------------------------------------------------
 
@@ -413,6 +472,10 @@ def render_file_page(
         if source_url
         else ""
     )
+    try:
+        source_html = _highlight_source(mf.path.read_text(encoding="utf-8"))
+    except OSError:
+        source_html = "<p class='muted'>Source file not readable.</p>"
     content = f"""
 <div class="card file-header">
   <h1>{esc(mf.rel_path)}</h1>
@@ -421,9 +484,18 @@ def render_file_page(
 </div>
 {views_html}
 <div class="card">
-  <h2>Members</h2>
-  <p class="muted">Declared in this file; nested members expand inline.</p>
-  <div class="member-list">{members_html}</div>
+  <h2>File content</h2>
+  <input type="radio" name="filetabs" id="tab-source" class="tab-radio" checked>
+  <input type="radio" name="filetabs" id="tab-members" class="tab-radio">
+  <div class="file-tabs">
+    <label for="tab-source">Source</label>
+    <label for="tab-members">Members</label>
+  </div>
+  <div class="tab-pane pane-source"><pre class="source-view">{source_html}</pre></div>
+  <div class="tab-pane pane-members">
+    <p class="muted">Declared in this file; nested members expand inline.</p>
+    <div class="member-list">{members_html}</div>
+  </div>
 </div>
 """
     return _page_shell(
