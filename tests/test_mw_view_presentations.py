@@ -259,14 +259,15 @@ def test_configuration_and_assembly_views_answer_different_questions() -> None:
 
     assert "part platformStack : MWAutowareAAOSSDVReference;" in member
     assert "expose MWAutowareAAOSSDVReference;" in configuration
-    for selection in (
-        "vehicleApplication",
-        "middleware",
-        "osPlatform",
-        "hypervisor",
-        "applicationMiddlewareAdapter",
+    for selection_alias in (
+        "selectedVehicleApplication",
+        "selectedMiddleware",
+        "selectedOperatingSystem",
+        "selectedHypervisor",
+        "selectedApplicationMiddlewareAdapter",
     ):
-        assert f"expose MWAutowareAAOSSDVReference::{selection};" in configuration
+        assert f"alias {selection_alias}" in text
+        assert f"expose {selection_alias};" in configuration
     assert "attribute maxCompartmentEntries = 0;" in configuration
     assert "DE4SDV_SDVPlatformStack::*" not in configuration
     assert "DE4SDV_MWVariabilityConfiguration::*" not in configuration

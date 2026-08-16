@@ -192,16 +192,27 @@ package DE4SDV_MWVariabilityConfiguration {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
+  alias selectedVehicleApplication
+    for MWAutowareAAOSSDVReference::vehicleApplication;
+  alias selectedMiddleware
+    for MWAutowareAAOSSDVReference::middleware;
+  alias selectedOperatingSystem
+    for MWAutowareAAOSSDVReference::osPlatform;
+  alias selectedHypervisor
+    for MWAutowareAAOSSDVReference::hypervisor;
+  alias selectedApplicationMiddlewareAdapter
+    for MWAutowareAAOSSDVReference::applicationMiddlewareAdapter;
+
   view mwProductLineConfigurationView {
     viewpoint selectedProductLineConfigurationViewpoint : ProductLineConfigurationViewpoint {
       frame productLineConfigurationConcern;
     }
     expose MWAutowareAAOSSDVReference;
-    expose MWAutowareAAOSSDVReference::vehicleApplication;
-    expose MWAutowareAAOSSDVReference::middleware;
-    expose MWAutowareAAOSSDVReference::osPlatform;
-    expose MWAutowareAAOSSDVReference::hypervisor;
-    expose MWAutowareAAOSSDVReference::applicationMiddlewareAdapter;
+    expose selectedVehicleApplication;
+    expose selectedMiddleware;
+    expose selectedOperatingSystem;
+    expose selectedHypervisor;
+    expose selectedApplicationMiddlewareAdapter;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
