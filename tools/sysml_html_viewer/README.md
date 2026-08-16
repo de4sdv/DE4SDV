@@ -64,7 +64,13 @@ the diagram shows is resolved back to the model:
 
 The label → element mapping is generated from the authoritative `.sysml`
 files, so the tooltip content can never say something the model does not
-declare.
+declare. Labels resolve across both model roots (`textual-notation-of-model/packages`
+and `model-based-product-line-engineering/product-models`), including
+specializer (`:>`, `:>>`), typing (` : `), qualified (`A::b`), dotted
+deployment (`host.role.port.item`), redefines (`^name`) and package-expose
+shapes. Pure layout text and stereotype markers stay inert. Run
+`python scripts/audit_diagram_labels.py` to audit every diagram's
+unresolved labels.
 
 The navigation tree is **resizable**: drag the divider between tree and
 content pane; the width is remembered per browser (localStorage, guarded

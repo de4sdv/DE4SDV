@@ -35,7 +35,10 @@ from .render import (
     render_tree,
 )
 
-DEFAULT_ROOTS = ["textual-notation-of-model/packages"]
+DEFAULT_ROOTS = [
+    "textual-notation-of-model/packages",
+    "model-based-product-line-engineering/product-models",
+]
 
 
 def _rel_prefix(site_path: str) -> str:

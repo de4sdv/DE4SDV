@@ -58,6 +58,9 @@ package FixtureRoot {
       }
 
       abstract part def FixtureAbstractPart;
+
+      dependency fixtureDependency from fixtureSystem to fixtureRequirement;
+      stakeholder fixtureStakeholder : SystemsEngineer;
     }
   }
 }

@@ -53,6 +53,7 @@ def _normalize(label: str) -> list[str]:
     candidates = []
     s = _STEREOTYPE_RE.sub("", label).strip()
     s = _EXPOSE_RE.sub("", s).strip()
+    s = s.lstrip("^")  # `^name` = redefines marker
     if not s:
         return []
     candidates.append(s)
@@ -65,6 +66,14 @@ def _normalize(label: str) -> list[str]:
     for c in list(candidates):
         if "::" in c:
             candidates.append(c.split("::", 1)[0].strip())
+    # dotted deployment paths (`host.role.port.item`) resolve by their
+    # first and last segments (host part / item name)
+    for c in list(candidates):
+        if "." in c and "::" not in c:
+            segs = [s for s in c.split(".") if s]
+            if len(segs) > 1:
+                candidates.append(segs[0])
+                candidates.append(segs[-1])
     # quoted-name form ('exchange vehicle signals' vs exchange vehicle signals)
     for c in list(candidates):
         if c.startswith("'") and c.endswith("'"):

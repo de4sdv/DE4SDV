@@ -24,22 +24,30 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 # SysML v2 member declaration kinds found in the DE4SDV model (verified by
-# scanning textual-notation-of-model/packages). "abstract" is handled as a
-# separate prefix so `abstract part` and `abstract part def` both parse.
+# scanning textual-notation-of-model/packages). "abstract"/"derived" and the
+# direction/prefix keywords are handled as separate prefixes so
+# `abstract part def`, `in item x`, `ref part x`, `variant part x` all parse.
+_PREFIX = r"(?:(?:abstract|derived|in|out|inout|ref|variant|variation)\s+)?"
 _KIND = (
     r"part def|port def|item def|requirement def|viewpoint def|concern def|"
     r"action def|state def|interface def|flow def|attribute def|metadata def|"
     r"enum def|verification def|calc def|allocation def|constraint def|"
-    r"package|part|port|item|requirement|view|viewpoint|concern|action|state|"
-    r"interface|flow|attribute|metadata|usage|exhibit|enum|verification|calc|"
-    r"allocation|constraint|story|interaction|event|transfer"
+    r"use case def|package|part|port|item|requirement|view|viewpoint|concern|"
+    r"action|state|interface|flow|attribute|metadata|usage|exhibit|enum|"
+    r"verification|calc|allocation|constraint|story|interaction|event|transfer|"
+    r"stakeholder|subject|dependency|trace|satisfy|verify|refine|actor|"
+    r"objective|alias|claim|argument|evidence|counterclaim|use case"
 )
 _NAME = r"[A-Za-z_][A-Za-z0-9_]*|'[^']*'"
 
 DECL_RE = re.compile(
-    rf"^\s*(?:(abstract|derived)\s+)?(?P<kind>{_KIND})\s+"
-    rf"(?P<name>{_NAME})(?=\s|:|;|\{{)"
+    rf"^\s*{_PREFIX}(?P<kind>{_KIND})\s+"
+    rf"(?P<name>{_NAME})(?=\s|:|;|\{{|$)"
 )
+
+# flow statements without a name (`flow from A to B;`) must not be parsed
+# as declarations named 'from'/'to'/'between'.
+_FLOW_NO_NAME = frozenset({"from", "to", "between"})
 
 DOC_RE = re.compile(r"doc\s*/\*(.*?)\*/\s*", flags=re.S)
 
@@ -249,12 +257,15 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
         if m:
             kind = m.group("kind").strip()
             name = m.group("name")
-            if kind == "package":
+            if kind == "flow" and name in _FLOW_NO_NAME:
+                # `flow from A to B;` — no declaration
+                pass
+            elif kind == "package":
                 decl_depth = depth + 1
                 depth += 1
+                mf.members.append(Member(kind=kind, name=name, depth=decl_depth, line=lineno))
             else:
-                decl_depth = depth
-            mf.members.append(Member(kind=kind, name=name, depth=decl_depth, line=lineno))
+                mf.members.append(Member(kind=kind, name=name, depth=depth, line=lineno))
         depth += opens - closes
         if depth < 0:
             depth = 0
@@ -407,6 +418,16 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
     for mf in files:
         for m in mf.members:
             if m.kind == "package":
+                # packages resolve `expose PackageName::*` diagram labels
+                ref = ElementRef(
+                    name=m.name,
+                    kind="package",
+                    doc=m.doc,
+                    rel_path=mf.rel_path,
+                    line=m.line,
+                    anchor=f"src-{m.line}",
+                )
+                _index_add(index, ref)
                 continue
             ref = ElementRef(
                 name=m.name,

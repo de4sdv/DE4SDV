@@ -171,6 +171,13 @@ def test_resolve_labels(model_files, fixture_sysml):
         # qualified path resolves by root name
         "expose FixtureSystem::signalIn",
         "expose FixtureSystem::'quoted part'",
+        # redefines marker, dotted deployment path
+        "^fixtureSystem.signalIn",
+        # relationship / stakeholder usages
+        "fixtureDependency",
+        "fixtureStakeholder",
+        # package name in an expose
+        "expose FixtureRoot::*",
     ]
     resolved = svg_info.resolve_labels(
         labels,
@@ -188,6 +195,15 @@ def test_resolve_labels(model_files, fixture_sysml):
     # qualified expose resolves by root name
     assert by_label["expose FixtureSystem::signalIn"].name == "FixtureSystem"
     assert by_label["expose FixtureSystem::'quoted part'"].name == "FixtureSystem"
+    # redefines marker stripped; dotted path resolves by first segment
+    assert by_label["^fixtureSystem.signalIn"].name == "fixtureSystem"
+    assert by_label["^fixtureSystem.signalIn"].kind == "part"
+    # relationship and stakeholder usages resolve
+    assert by_label["fixtureDependency"].kind == "dependency"
+    assert by_label["fixtureStakeholder"].kind == "stakeholder"
+    # package exposes resolve to the package
+    assert by_label["expose FixtureRoot::*"].kind == "package"
+    assert by_label["expose FixtureRoot::*"].name == "FixtureRoot"
     # layout text without a model match resolves to nothing
     assert "parts" not in by_label
     assert "«part def»" not in by_label
