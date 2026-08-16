@@ -40,3 +40,5 @@ implementation/*/evidence/**/runs/
 implementation/*/evidence/**/profiles/*/runs/
 implementation/*/evidence/**/profiles/*/scenario-evidence.validated-superseded.json
 implementation/*/evidence/**/profiles/*/runs/**/SUPERSEDED.md
+# Generated static model viewer site
+build/

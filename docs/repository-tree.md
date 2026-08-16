@@ -142,4 +142,9 @@ tools/configure_variant.py
 tools/generate_covesa_vss_sysmlv2.py
 tools/syson/README.md
 tools/syson/compose.yaml
+tools/sysml_html_viewer/README.md
+tools/sysml_html_viewer/generate.py
+tools/sysml_html_viewer/model_parse.py
+tools/sysml_html_viewer/render.py
+tools/sysml_html_viewer/viewer.css
 ```
