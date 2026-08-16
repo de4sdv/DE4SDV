@@ -179,6 +179,8 @@ def test_product_line_classification_is_a_review_table_not_comment_nodes() -> No
 def test_physical_structure_view_contains_only_physical_software_parts() -> None:
     text = PHYSICAL_MODEL.read_text(encoding="utf-8")
     view = _block(text, "view mwPhysicalStructureView")
+    boundary = _block(text, "part def MiddlewarePhysicalSoftwareBoundary")
+    sources = _block(text, "part def MiddlewarePhysicalSoftwareSourceSet")
     parts = (
         "adapter",
         "aaosSdvBoundary",
@@ -193,9 +195,11 @@ def test_physical_structure_view_contains_only_physical_software_parts() -> None
     assert "expose MiddlewarePhysicalSoftwareBoundary;" in view
     assert "expose MiddlewarePhysicalSoftwareBoundary::*;" not in view
     for part in parts:
-        assert f"part {part} :" in text
+        assert f"part {part} :" in boundary
         assert f"expose MiddlewarePhysicalSoftwareBoundary::{part};" not in view
-    assert "Source" not in view
+    assert "Source" not in boundary
+    assert "ref part aaosSourceArtifact" in sources
+    assert "part physicalSoftwareSources : MiddlewarePhysicalSoftwareSourceSet;" in text
     assert "attribute maxCompartmentEntries = 8;" in view
 
 
@@ -255,6 +259,7 @@ def test_configuration_and_assembly_views_answer_different_questions() -> None:
 
     assert "part platformStack : MWAutowareAAOSSDVReference;" in member
     assert "expose MWAutowareAAOSSDVReference;" in configuration
+    assert "attribute maxCompartmentEntries = 5;" in configuration
     assert "DE4SDV_SDVPlatformStack::*" not in configuration
     assert "DE4SDV_MWVariabilityConfiguration::*" not in configuration
     assert "expose MWAutowareAAOSSDVConfiguredMember;" in assembly

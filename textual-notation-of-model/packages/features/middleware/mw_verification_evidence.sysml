@@ -467,7 +467,7 @@ package DE4SDV_MW010VerificationEvidence {
     to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::adapter::aaosSignal::vehicleSpeed;
   dependency verificationContractTrace
     from signalTranslationVerification010
-    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::referenceInteropBenchSource;
+    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftwareSources::referenceInteropBenchSource;
   dependency verificationExecutionEnvironmentTrace
     from verificationSystem010
     to DE4SDV_MWPhysicalSoftwareRealization::aaosBuildRuntimeEnvironmentCandidate;

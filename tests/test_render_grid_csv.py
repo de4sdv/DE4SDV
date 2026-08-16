@@ -40,6 +40,18 @@ def test_all_saf_mapping_grids_define_human_readable_axes() -> None:
         assert metadata.column_label == columns
 
 
+def test_middleware_tables_have_human_titles() -> None:
+    assert GRID_METADATA["table-mwProductLineClassificationView"].title == (
+        "Middleware product-line classification"
+    )
+    assert GRID_METADATA["table-mwStakeholderNeedsView"].title == (
+        "Middleware stakeholder needs"
+    )
+    assert GRID_METADATA["table-mwSystemRequirementsView"].title == (
+        "Middleware system requirements"
+    )
+
+
 def test_matrix_svg_labels_row_and_column_element_kinds(tmp_path: Path) -> None:
     source = tmp_path / "matrix-mwSystemFunctionMappingView.csv"
     output = tmp_path / "matrix.svg"

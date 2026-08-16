@@ -136,10 +136,10 @@ package DE4SDV_MWVariabilityConfiguration {
     to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::adapter;
   dependency exactReferenceContractTrace
     from directVSIDLToROS2Realization
-    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::referenceInteropBenchSource;
+    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftwareSources::referenceInteropBenchSource;
   dependency vssVehicleSpeedSemanticTrace
     from vehicleSpeedPropertyClassification
-    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::vssVehicleSpeedSource;
+    to DE4SDV_MWPhysicalSoftwareRealization::physicalSoftwareSources::vssVehicleSpeedSource;
   dependency ifexPropertyClassificationTrace
     from vehicleSpeedPropertyClassification
     to ifexInterfaceDesignSource;
@@ -198,6 +198,7 @@ package DE4SDV_MWVariabilityConfiguration {
     }
     expose MWAutowareAAOSSDVReference;
     attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 5;
     render asTreeDiagram;
   }
 

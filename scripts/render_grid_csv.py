@@ -65,6 +65,22 @@ GRID_METADATA = {
         "conceptual system elements (part usages)",
         "physical/software elements (part usages)",
     ),
+    "table-mwProductLineClassificationView": GridMetadata(
+        "Middleware product-line classification",
+        "Classifies middleware characteristics and attaches each rationale to its element.",
+    ),
+    "table-mwStakeholderNeedsView": GridMetadata(
+        "Middleware stakeholder needs",
+        "Lists stakeholder needs with their authoritative natural-language statements.",
+    ),
+    "table-mwSystemRequirementsView": GridMetadata(
+        "Middleware system requirements",
+        "Lists system requirements with their authoritative natural-language statements.",
+    ),
+    "table-aebsStakeholderNeedsView": GridMetadata(
+        "AEBS stakeholder needs",
+        "Lists stakeholder needs with their authoritative statements.",
+    ),
 }
 
 

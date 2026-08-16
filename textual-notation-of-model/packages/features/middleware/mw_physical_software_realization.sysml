@@ -291,6 +291,20 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      */
     part adapter : AutowareToAAOSSDVAdapterPhysical;
     part aaosSdvBoundary : SDVCoreBoundary;
+    part signalAccessClient : SignalAccessClient;
+    part diagnosticAccessClient : DiagnosticAccessClient;
+    part lifecycleClient : LifecycleClient;
+    part healthClient : HealthClient;
+    part updateClient : UpdateClient;
+    part serviceDiscoveryClient : ServiceDiscoveryClient;
+  }
+
+  part def MiddlewarePhysicalSoftwareSourceSet {
+    doc /*
+     * System 2 source and evidence references used to justify the candidate
+     * realization. These records are not physical/software components of the
+     * System 1 boundary and therefore remain outside its decomposition.
+     */
     ref part aaosSourceArtifact : AAOSSDVSourceArtifact;
     ref part vssVehicleSpeedSource : COVESAVehicleSpeedSemanticSource;
     ref part de4sdvVehicleSpeedAdapterSource : DE4SDVVSSVehicleSpeedAdapterSource;
@@ -304,16 +318,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     ref part lifecycleServiceSource : AAOSLifecycleServiceSource;
     ref part healthMonitorSource : AAOSHealthMonitorSource;
     ref part diagnosticsSource : AAOSDiagnosticsSource;
-
-    part signalAccessClient : SignalAccessClient;
-    part diagnosticAccessClient : DiagnosticAccessClient;
-    part lifecycleClient : LifecycleClient;
-    part healthClient : HealthClient;
-    part updateClient : UpdateClient;
-    part serviceDiscoveryClient : ServiceDiscoveryClient;
   }
 
   part physicalSoftware : MiddlewarePhysicalSoftwareBoundary;
+  part physicalSoftwareSources : MiddlewarePhysicalSoftwareSourceSet;
 
   part aaosBuildRuntimeEnvironmentCandidate : AOSPAAOSBuildRuntimeEnvironment {
     doc /*
@@ -517,7 +525,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   dependency vehicleSpeedCampaignImplementationTrace
     from vehicleSpeedCampaignDeployment
-    to physicalSoftware::referenceInteropBenchSource;
+    to physicalSoftwareSources::referenceInteropBenchSource;
 
   allocation def LogicalToPhysicalSoftwareCandidate {
     doc /* Candidate logical-to-physical mapping. This does not imply complete realization, satisfaction, runtime execution, or acceptance. */
@@ -573,7 +581,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     to physicalSoftware::adapter::aaosSignal;
   dependency referenceVehicleSpeedContractTrace
     from physicalSoftware::adapter::aaosSignal::vehicleSpeed
-    to physicalSoftware::referenceInteropBenchSource;
+    to physicalSoftwareSources::referenceInteropBenchSource;
   dependency referenceVehicleSpeedVSIDLCandidate
     from physicalSoftware::adapter::aaosSignal::vehicleSpeed
     to physicalSoftware::aaosSdvBoundary::vsidlMiddleware;
@@ -624,45 +632,45 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   dependency vehicleSpeedSemanticTrace
     from physicalSoftware::adapter::aaosSignal::vehicleSpeed
-    to physicalSoftware::vssVehicleSpeedSource;
+    to physicalSoftwareSources::vssVehicleSpeedSource;
   dependency de4sdvAdapterImplementationTrace
     from physicalSoftware::adapter
-    to physicalSoftware::de4sdvVehicleSpeedAdapterSource;
+    to physicalSoftwareSources::de4sdvVehicleSpeedAdapterSource;
   dependency referenceInteropBenchTrace
     from physicalSoftware::adapter
-    to physicalSoftware::referenceInteropBenchSource;
+    to physicalSoftwareSources::referenceInteropBenchSource;
   dependency aaosVSIDLSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::vsidlProviderSource;
+    to physicalSoftwareSources::vsidlProviderSource;
   dependency aaosMiddlewareSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::middlewareSource;
+    to physicalSoftwareSources::middlewareSource;
   dependency aaosHardwareInterfacesSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::hardwareInterfacesSource;
+    to physicalSoftwareSources::hardwareInterfacesSource;
   dependency aaosGatewaySessionSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::gatewaySessionSource;
+    to physicalSoftwareSources::gatewaySessionSource;
   dependency aaosDataTunnelSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::dataTunnelPublicationSource;
+    to physicalSoftwareSources::dataTunnelPublicationSource;
   dependency aaosRpcAgentSourceTrace
     from physicalSoftware::adapter::aaosSignal
-    to physicalSoftware::rpcAgentSource;
+    to physicalSoftwareSources::rpcAgentSource;
   dependency aaosLifecycleSourceTrace
     from physicalSoftware::aaosSdvBoundary::lifecycleManager
-    to physicalSoftware::lifecycleServiceSource;
+    to physicalSoftwareSources::lifecycleServiceSource;
   dependency aaosHealthSourceTrace
     from physicalSoftware::aaosSdvBoundary::healthMonitor
-    to physicalSoftware::healthMonitorSource;
+    to physicalSoftwareSources::healthMonitorSource;
   dependency aaosDiagnosticsSourceTrace
     from physicalSoftware::aaosSdvBoundary::diagnostics
-    to physicalSoftware::diagnosticsSource;
+    to physicalSoftwareSources::diagnosticsSource;
   dependency aaosAdapterSourceManifestTrace
     from physicalSoftware::adapter
-    to physicalSoftware::aaosSourceArtifact;
+    to physicalSoftwareSources::aaosSourceArtifact;
   dependency aaosSourceBuildEnvironmentCandidate
-    from physicalSoftware::aaosSourceArtifact
+    from physicalSoftwareSources::aaosSourceArtifact
     to aaosBuildRuntimeEnvironmentCandidate;
   dependency aaosCuttlefishEnvironmentCandidate
     from physicalSoftware::aaosSdvBoundary
