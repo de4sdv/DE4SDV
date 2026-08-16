@@ -193,9 +193,10 @@ jobs:
             --view-name mwAAOSVehicleSpeedServiceBundleInternalExchangeView \
             --require-label "provider : AAOSVehicleSpeedProvider" \
             --require-label "observer : AAOSVehicleSpeedObserver" \
-            --require-label "vehicleSpeedOut : VehicleSpeedProviderPublication" \
-            --require-label "vehicleSpeedIn : VehicleSpeedProviderSubscription" \
-            --require-label VehicleSpeedProviderMessage \
+            --require-exact-label vehicleSpeedOut \
+            --require-exact-label vehicleSpeedIn \
+            --require-exact-label providerToObserver \
+            --require-exact-label "providerToObserverPayload of VehicleSpeedProviderMessage" \
             --forbid-label "hostForwarder : AAOSHostLogcatForwarder" \
             --forbid-label "privateTcpBoundary : VehicleSpeedPrivateTcpTransport" \
             --forbid-label "ros2Ingress : ROS2VehicleSpeedTcpIngress" \

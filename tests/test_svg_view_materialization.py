@@ -37,12 +37,36 @@ def test_accepts_required_graph_labels_and_flow_count(tmp_path: Path) -> None:
         "participant : ExamplePart",
         "--require-label",
         "portOut : ExamplePort",
+        "--require-exact-label",
+        "portOut : ExamplePort",
         "--min-flow-count",
         "1",
     )
 
     assert result.returncode == 0, result.stderr
     assert "materialization check passed" in result.stdout
+
+
+def test_rejects_exact_label_when_only_a_substring_materializes(tmp_path: Path) -> None:
+    svg = tmp_path / "ambiguous.svg"
+    svg.write_text(
+        """<svg xmlns="http://www.w3.org/2000/svg">
+        <text>«view» exampleView</text>
+        <text>providerToObserverPayload of ExampleMessage</text>
+        </svg>""",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        svg,
+        "--view-name",
+        "exampleView",
+        "--require-exact-label",
+        "providerToObserver",
+    )
+
+    assert result.returncode == 1
+    assert "required exact graph label not materialized" in result.stderr
 
 
 def test_rejects_forbidden_graph_label(tmp_path: Path) -> None:
@@ -110,8 +134,13 @@ def test_privileged_workflow_gates_aebs_context_exchange_artifact() -> None:
     assert "diagram-mwAAOSVehicleSpeedServiceBundleInternalExchangeView.svg" in workflow
     assert "provider : AAOSVehicleSpeedProvider" in workflow
     assert "observer : AAOSVehicleSpeedObserver" in workflow
-    assert "vehicleSpeedOut : VehicleSpeedProviderPublication" in workflow
-    assert "vehicleSpeedIn : VehicleSpeedProviderSubscription" in workflow
+    assert "--require-exact-label vehicleSpeedOut" in workflow
+    assert "--require-exact-label vehicleSpeedIn" in workflow
+    assert "--require-exact-label providerToObserver" in workflow
+    assert (
+        '--require-exact-label "providerToObserverPayload of VehicleSpeedProviderMessage"'
+        in workflow
+    )
     assert "VehicleSpeedProviderMessage" in workflow
     assert "--forbid-label \"hostForwarder : AAOSHostLogcatForwarder\"" in workflow
     assert "--min-flow-count 1" in workflow

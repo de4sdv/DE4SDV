@@ -30,6 +30,7 @@ def check_materialization(
     *,
     view_name: str,
     required_labels: list[str],
+    required_exact_labels: list[str],
     forbidden_labels: list[str],
     min_flow_count: int,
     max_flow_count: int | None,
@@ -45,6 +46,12 @@ def check_materialization(
     for required in required_labels:
         if not any(required in label for label in graph_labels):
             errors.append(f"required graph label not materialized: {required}")
+
+    for required in required_exact_labels:
+        if required not in graph_labels:
+            errors.append(
+                f"required exact graph label not materialized: {required}"
+            )
 
     for forbidden in forbidden_labels:
         if any(forbidden in label for label in graph_labels):
@@ -68,6 +75,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("svg", type=Path)
     parser.add_argument("--view-name", required=True)
     parser.add_argument("--require-label", action="append", default=[])
+    parser.add_argument("--require-exact-label", action="append", default=[])
     parser.add_argument("--forbid-label", action="append", default=[])
     parser.add_argument("--min-flow-count", type=int, default=0)
     parser.add_argument("--max-flow-count", type=int)
@@ -81,6 +89,7 @@ def main() -> int:
             args.svg,
             view_name=args.view_name,
             required_labels=args.require_label,
+            required_exact_labels=args.require_exact_label,
             forbidden_labels=args.forbid_label,
             min_flow_count=args.min_flow_count,
             max_flow_count=args.max_flow_count,
