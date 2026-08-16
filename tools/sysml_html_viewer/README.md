@@ -64,6 +64,10 @@ The label → element mapping is generated from the authoritative `.sysml`
 files, so the tooltip content can never say something the model does not
 declare.
 
+The navigation tree is **resizable**: drag the divider between tree and
+content pane; the width is remembered per browser (localStorage, guarded
+for `file://`).
+
 ## Design rules
 
 1. Semantics come only from `.sysml` — the viewer never invents elements,

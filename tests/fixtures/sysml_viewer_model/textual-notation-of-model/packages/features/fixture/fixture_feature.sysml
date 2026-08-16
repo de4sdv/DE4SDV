@@ -26,6 +26,17 @@ package FixtureRoot {
 
       concern fixtureStructureConcern;
 
+      concern fixtureAdjacentConcern {
+        require constraint {
+          doc /* Constraint doc: must NOT leak onto the next concern. */
+        }
+      }
+
+      concern fixtureTargetConcern {
+        doc /* The real doc of the target concern, with a
+             * second line. */
+      }
+
       view fixtureStructureView {
         doc /* Synthetic structure view for render tests. */
         viewpoint selectedFixtureViewpoint : FixtureViewpoint {

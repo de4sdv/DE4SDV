@@ -11,7 +11,8 @@ SysIDE-rendered diagram with its viewpoint, concern, expose targets, and
 source location — no tool installation, no model checkout required.
 Diagram element labels are hover-enriched: resting the pointer on an
 element in the diagram shows its kind, its `doc` comment, and its exact
-source location; clicking jumps to the member's section.
+source location; clicking jumps to the member's section. The navigation
+tree on the left is resizable (drag the divider; the width is remembered).
 
 ## When to use
 

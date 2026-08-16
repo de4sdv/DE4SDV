@@ -140,6 +140,7 @@ def _page_shell(
     <div class="tree-title">Project</div>
     {tree_html}
   </nav>
+  <div class="tree-resizer" id="treeResizer" title="Drag to resize the model tree" aria-hidden="true"></div>
   <main class="content-pane">
     <div class="breadcrumb">{crumbs}</div>
     {content}

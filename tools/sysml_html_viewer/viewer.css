@@ -38,12 +38,27 @@ html, body {
 /* ---- layout ---- */
 .layout {
   display: grid;
-  grid-template-columns: 330px 1fr;
+  grid-template-columns: 330px 6px 1fr;
   align-items: start;
   gap: 18px;
   max-width: 1500px;
   margin: 18px auto;
   padding: 0 18px;
+}
+
+/* ---- tree resizer ---- */
+.tree-resizer {
+  cursor: col-resize;
+  align-self: stretch;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 0.15s ease;
+  min-height: 60vh;
+}
+.tree-resizer:hover,
+.tree-resizer.dragging {
+  background: var(--accent);
+  opacity: 0.35;
 }
 
 /* ---- tree pane ---- */
@@ -298,4 +313,5 @@ code {
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .tree-pane { position: static; max-height: 320px; }
+  .tree-resizer { display: none; }
 }

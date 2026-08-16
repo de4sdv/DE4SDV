@@ -114,6 +114,54 @@
         });
       });
     });
+
+    initTreeResizer();
+  }
+
+  /* ---- resizable navigation tree ---- */
+  function initTreeResizer() {
+    var resizer = document.getElementById('treeResizer');
+    var layout = document.querySelector('.layout');
+    if (!resizer || !layout) return;
+
+    var STORAGE_KEY = 'de4sdvViewerTreeWidth';
+    var MIN = 200;
+    var MAX = 640;
+
+    function apply(width) {
+      if (!width) return;
+      width = Math.max(MIN, Math.min(MAX, width));
+      layout.style.gridTemplateColumns = width + 'px 6px 1fr';
+    }
+
+    try {
+      apply(parseInt(window.localStorage.getItem(STORAGE_KEY), 10));
+    } catch (e) { /* file:// or private mode: no persistence */ }
+
+    function onMove(ev) {
+      var rect = layout.getBoundingClientRect();
+      apply(ev.clientX - rect.left);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, String(ev.clientX - rect.left));
+      } catch (e) { /* ignore */ }
+    }
+
+    function onUp() {
+      resizer.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    resizer.addEventListener('mousedown', function (ev) {
+      ev.preventDefault();
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
   }
 
   if (document.readyState === 'loading') {

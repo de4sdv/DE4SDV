@@ -179,18 +179,31 @@ def _block_open_brace(text: str, decl_start: int, next_decl_start: int) -> int:
     return decl_start + brace
 
 
+def _clean_doc(doc_text: str) -> str:
+    """Normalize block-comment doc text: strip the leading ` * ` comment
+    markers and collapse stray blank lines."""
+    lines = []
+    for raw in doc_text.splitlines():
+        line = re.sub(r"^\s*\*\s?", "", raw).rstrip()
+        lines.append(line)
+    cleaned = "\n".join(lines).strip()
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned
+
+
 def _attach_docs(text: str, members: list[Member]) -> None:
     """Attach `doc /* ... */` blocks to the declaration they document.
 
     A doc block attaches when it sits immediately before the declaration
     (only whitespace between) or immediately after the declaration's opening
-    brace.
+    brace. A doc nested deeper (e.g. inside a ``require constraint``) is not
+    the declaration's doc and attaches to nothing.
     """
     if not members:
         return
     decl_lines = sorted(m.line for m in members)
     for doc in DOC_RE.finditer(text):
-        doc_text = doc.group(1).strip()
+        doc_text = _clean_doc(doc.group(1))
         if not doc_text:
             continue
         doc_line = text.count("\n", 0, doc.start()) + 1
@@ -211,6 +224,11 @@ def _attach_docs(text: str, members: list[Member]) -> None:
             next_line = decl_lines[i + 1] if i + 1 < len(decl_lines) else m.line + 1
             brace = _block_open_brace(text, _line_start(text, m.line), _line_start(text, next_line))
             if brace == -1:
+                continue
+            # the doc must sit INSIDE this member's block: right after its
+            # opening brace. A doc before the brace (or in a sibling block)
+            # is never this member's doc — an empty slice must not count.
+            if doc.start() <= brace + 1:
                 continue
             gap = text[brace + 1 : doc.start()]
             if not gap.strip():

@@ -68,6 +68,19 @@ def test_member_doc_attachment(fixture_sysml):
     assert view_member.doc.startswith("Synthetic structure view")
 
 
+def test_doc_attachment_no_leak_and_star_stripping(fixture_sysml):
+    """Regression: a doc nested inside `require constraint` must not leak
+    onto the next member, and block-comment ` * ` markers are stripped."""
+    mf = parse_file(fixture_sysml, FIXTURE)
+    by_name = {m.name: m for m in mf.members}
+    # the constraint doc belongs to the constraint, not the concern
+    assert by_name["fixtureAdjacentConcern"].doc == ""
+    # the next concern keeps its own real doc, clean of comment markers
+    assert by_name["fixtureTargetConcern"].doc == (
+        "The real doc of the target concern, with a\nsecond line."
+    )
+
+
 def test_view_parsing(fixture_sysml):
     mf = parse_file(fixture_sysml, FIXTURE)
     views = {v.name: v for v in mf.views}
