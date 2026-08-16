@@ -19,10 +19,39 @@ python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer
 ```
 
 The generator parses the authoritative `.sysml` textual notation under
-`textual-notation-of-model/packages` (stdlib only, deterministic output).
-The generated site is self-contained except that it *references* the
-committed diagram SVGs in the model tree — no SVG copies, so it can never
-drift from the rendered artifacts.
+`textual-notation-of-model/packages` and
+`model-based-product-line-engineering/product-models` (stdlib only,
+deterministic output). The generated site is self-contained except that it
+*references* the committed diagram SVGs in the model tree — no SVG copies,
+so it can never drift from the rendered artifacts.
+
+### Multiple revisions (branch / PR selector)
+
+By default the working tree is built, plus `main` (or `origin/main`) when
+the repository has it. Build extra revisions with `--refs`:
+
+```bash
+# a few refs (branches, tags, refs/pull/N/head)
+python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer \
+    --refs main,feat/model-html-viewer
+
+# every local branch
+python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer \
+    --refs auto
+```
+
+Each ref is materialized from git (`git archive`, nothing is checked out or
+modified) and becomes a complete site under `refs/<name>/`. Every page's
+header then carries a **Revision** picker to switch between the working
+tree and the built refs — pure relative links, so it works from `file://`.
+Refs that exist only on the remote (`origin/<name>`) resolve automatically,
+which covers PR branches that were never checked out. When the `gh` CLI can
+map a branch to an open pull request, the picker labels it
+(`PR #99: feat(...)`); use `--no-prs` to disable.
+
+`gh pr checkout <number>` is the easiest way to add a PR to the picker: the
+branch becomes a local branch, and the next generation labels it with its
+PR number and title.
 
 ## View
 
@@ -43,12 +72,19 @@ Or open `build/model-viewer/index.html` directly in a browser.
 - **File pages** (`pages/<model-file>.html`) — one per `.sysml` file:
   - *view sections*: view name, viewpoint, concern, expose targets,
     depth, render kind, source line — and the SysIDE diagram (or an
-    explicit "no committed diagram" note when the artifact is missing);
+    explicit "no committed diagram" note when the artifact is missing).
+    Each diagram has a **fullscreen button** (`⛶`) in its toolbar:
+    the diagram fills the screen, Esc or `✕ Close` returns;
   - *source*: the full `.sysml` file below the diagrams, syntax
-    highlighted with numbered lines. Tree entries for elements and
-    tooltip "open in viewer" links jump to the element's declaration
-    line (`#src-N`);
-  - *source link*: the exact `.sysml` file on GitHub.
+    highlighted with numbered lines. Identifiers that resolve to model
+    elements are **source references** (dotted underline): hover shows
+    the element's kind, doc, and declaration location; click jumps to
+    the definition — same file (`#src-N`) or the defining file
+    (`pages/<file>.html#src-N`) for members imported from other
+    packages. Tree entries for elements jump to the element's
+    declaration line (`#src-N`);
+  - *source link*: the exact `.sysml` file on GitHub (at the current
+    branch, or at the ref for ref builds).
 
 ## Diagram hover enrichment
 
@@ -57,7 +93,8 @@ the diagram shows is resolved back to the model:
 
 - **Hover** an element label — a tooltip shows its kind, its `doc`
   comment, and its exact source location (file:line).
-- **Click** a label — the viewer jumps to that member's section.
+- **Click** a label — the viewer jumps to the element's declaration
+  line (`#src-N`) in its defining file.
 - Labels that are pure layout text (headers, "parts", stereotype labels)
   stay inert; a diagram element with no committed model match simply
   shows nothing.

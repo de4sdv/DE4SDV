@@ -20,6 +20,8 @@ package FixtureRoot {
 
       part 'quoted part' : FixtureSystem;
 
+      part importedPart : FixtureSharedType;
+
       requirement fixtureRequirement {
         doc /* Synthetic requirement: the fixture must render. */
         id "FIX-001";

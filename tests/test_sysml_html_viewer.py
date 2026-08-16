@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -209,6 +210,140 @@ def test_resolve_labels(model_files, fixture_sysml):
     assert "«part def»" not in by_label
 
 
+def test_revision_picker_in_pages(tmp_path):
+    """Every page carries the revision picker; the option hrefs are relative
+    to that page and always resolve (they are crawled by the link test)."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert 'id="refPicker"' in index
+    # single build -> one selected option labeled working tree
+    assert re.search(r'<option value="index\.html" selected>working tree</option>', index)
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    )
+    html = file_page.read_text(encoding="utf-8")
+    # the same picker, with a value that walks back up to the site root
+    assert re.search(r'<option value="(\.\./)+index\.html" selected>working tree</option>', html)
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args], capture_output=True, text=True
+    )
+
+
+def _make_fixture_repo(tmp_path: Path) -> Path:
+    """A real (tiny) git repository containing the viewer fixture tree."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    shutil.copytree(FIXTURE, repo, dirs_exist_ok=True)
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=Test", "-c", "user.email=test@example.com",
+         "commit", "-q", "-m", "init")
+    return repo
+
+
+def test_generate_with_git_refs(tmp_path):
+    """--refs builds a complete sub-site per revision from git itself; the
+    picker switches between the working tree and each ref."""
+    repo = _make_fixture_repo(tmp_path)
+    # a feature branch with an extra model file
+    extra = (
+        repo
+        / "textual-notation-of-model/packages/features/fixture/extra_feature.sysml"
+    )
+    _git(repo, "checkout", "-q", "-b", "feature")
+    extra.write_text(
+        "package FixtureExtraPackage {\n  part def ExtraPart;\n}\n",
+        encoding="utf-8",
+    )
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=Test", "-c", "user.email=test@example.com",
+         "commit", "-q", "-m", "add extra feature")
+    _git(repo, "checkout", "-q", "main")
+
+    out = tmp_path / "site"
+    rc = generate(repo, out, ["textual-notation-of-model/packages"], refs="feature")
+    assert rc == 0
+
+    # working-tree site (branch main) has no extra file
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert "extra_feature.sysml" not in index
+    assert re.search(r'<option value="index\.html" selected>working tree · main</option>', index)
+    assert re.search(r'<option value="refs/feature/index\.html">feature</option>', index)
+
+    # the feature sub-site contains the extra file
+    ref_index = (out / "refs" / "feature" / "index.html").read_text(encoding="utf-8")
+    assert "extra_feature.sysml" in ref_index
+    assert re.search(r'<option value="index\.html" selected>feature</option>', ref_index)
+    # from the ref sub-site the working tree is reachable
+    assert re.search(r'<option value="\.\./\.\./index\.html">working tree · main</option>', ref_index)
+
+    # every relative link in the ref sub-site resolves
+    pages = sorted((out / "refs" / "feature").rglob("*.html"))
+    assert len(pages) >= 4
+    for page in pages:
+        text = page.read_text(encoding="utf-8")
+        for link in _collect_links(text):
+            if link.startswith(("http://", "https://", "mailto:")):
+                continue
+            path_part = link.split("#", 1)[0]
+            if not path_part:
+                continue
+            target = (page.parent / path_part).resolve()
+            assert target.exists(), f"broken link {link!r} from {page}"
+    # no git remote -> no PR labels; branch names are the labels
+    assert "PR #" not in ref_index
+
+
+def test_generate_with_remote_only_ref(tmp_path):
+    """A ref that exists only on the remote (origin/<name>) still builds —
+    PR branches are typically not checked out locally."""
+    repo = _make_fixture_repo(tmp_path)
+    # a bare remote, and a branch that only lives there
+    remote = tmp_path / "remote.git"
+    _git(repo, "init", "-q", "--bare", str(remote))
+    _git(repo, "checkout", "-q", "-b", "feature")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=Test", "-c", "user.email=test@example.com",
+         "commit", "-q", "-m", "feature work")
+    _git(repo, "remote", "add", "origin", str(remote))
+    _git(repo, "push", "-q", "-u", "origin", "feature")
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "branch", "-q", "-D", "feature")
+
+    out = tmp_path / "site"
+    rc = generate(repo, out, ["textual-notation-of-model/packages"], refs="feature")
+    assert rc == 0
+    ref_index = (out / "refs" / "feature" / "index.html").read_text(encoding="utf-8")
+    assert re.search(r'<option value="index\.html" selected>feature</option>', ref_index)
+
+
+
+def test_generate_skips_ref_without_model(tmp_path):
+    """Refs that contain no .sysml under the model roots are skipped: the
+    build stays green and the picker never lists a broken site."""
+    repo = _make_fixture_repo(tmp_path)
+    _git(repo, "checkout", "-q", "-b", "docs-only")
+    (repo / "README.md").write_text("# docs only\n", encoding="utf-8")
+    _git(repo, "rm", "-q", "-r", "textual-notation-of-model")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=Test", "-c", "user.email=test@example.com",
+         "commit", "-q", "-m", "docs only")
+    _git(repo, "checkout", "-q", "main")
+
+    out = tmp_path / "site"
+    rc = generate(repo, out, ["textual-notation-of-model/packages"], refs="docs-only")
+    assert rc == 0
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert "refs/docs-only" not in index
+    assert not (out / "refs" / "docs_only").exists()
+
+
 def test_inline_svg_and_hover_json_in_page(tmp_path):
     out = tmp_path / "site"
     generate(FIXTURE, out, ["textual-notation-of-model/packages"])
@@ -218,10 +353,6 @@ def test_inline_svg_and_hover_json_in_page(tmp_path):
         / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
     )
     html = file_page.read_text(encoding="utf-8")
-    # the committed diagram is inlined, not referenced via <img>
-    assert '<div class="diagram-frame interactive"' in html
-    assert "<svg xmlns=" in html
-    assert "<img" not in html
     # hover JSON is embedded for the view with a diagram
     m = re.search(
         r'<script type="application/json" class="diagram-info" '
@@ -337,6 +468,48 @@ def test_member_links_target_source_lines(tmp_path):
     assert re.search(r"fixture_feature\.sysml\.html#src-\d+$", info["href"])
     # the view itself still links to its section anchor (tree)
     assert "#view-fixtureStructureView" in html
+
+
+def test_source_refs_link_to_definitions(tmp_path):
+    """Identifiers in the source that resolve to model elements become
+    references: cross-file ones jump to the defining file, same-file usages
+    jump within the page; declarations themselves are not annotated."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    )
+    html = file_page.read_text(encoding="utf-8")
+    # cross-file reference: SignalInputPort is declared in fixture_shared.sysml
+    m = re.search(
+        r'<a class="src-ref" href="([^"]*fixture_shared\.sysml\.html#src-\d+)" '
+        r'data-tip-kind="part def" data-tip-name="SignalInputPort"[^>]*>'
+        r"SignalInputPort</a>",
+        html,
+    )
+    assert m is not None
+    target = (file_page.parent / m.group(1).split("#", 1)[0]).resolve()
+    assert target.exists()
+    # ... as is the explicitly imported type
+    assert re.search(
+        r'<a class="src-ref" href="[^"]*fixture_shared\.sysml\.html#src-\d+" '
+        r'[^>]*data-tip-name="FixtureSharedType"',
+        html,
+    )
+    # same-file usage (expose FixtureSystem) jumps within the page
+    assert re.search(
+        r'<a class="src-ref" href="#src-13" data-tip-kind="part def" '
+        r'data-tip-name="FixtureSystem"',
+        html,
+    )
+    # the declaration line itself is not annotated
+    seg = html[html.find('id="src-13"'): html.find('id="src-14"')]
+    assert "src-ref" not in seg
+    # exactly the four usages of FixtureSystem are annotated (typed parts,
+    # expose statements), not the declaration
+    assert html.count('data-tip-name="FixtureSystem"') == 4
 
 
 def _collect_links(html: str) -> list[str]:

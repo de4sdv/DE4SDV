@@ -17,7 +17,6 @@
     document.body.appendChild(tip);
 
     var active = null;
-
     function clearActive() {
       if (active) {
         active.classList.remove('tip-hit');
@@ -73,11 +72,35 @@
       if (info.href) {
         var hint = document.createElement('div');
         hint.className = 'tip-hint';
-        hint.textContent = 'click to open in viewer';
+        hint.textContent = info.hint || 'click to open in viewer';
         tip.appendChild(hint);
       }
       tip.style.display = 'block';
       move(ev);
+    }
+
+    /* ---- source references (hover tooltip, click to jump) ---- */
+    function initSourceRefs() {
+      document.addEventListener('mouseover', function (ev) {
+        var a = ev.target && ev.target.closest ? ev.target.closest('a.src-ref') : null;
+        if (!a) return;
+        show(a, {
+          kind: a.getAttribute('data-tip-kind') || 'element',
+          name: a.getAttribute('data-tip-name') || norm(a.textContent),
+          doc: a.getAttribute('data-tip-doc') || '',
+          file: a.getAttribute('data-tip-file') || '',
+          line: a.getAttribute('data-tip-line') || '',
+          href: a.getAttribute('href') || '',
+          hint: a.getAttribute('data-tip-hint') || ''
+        }, ev);
+      });
+      document.addEventListener('mouseout', function (ev) {
+        var a = ev.target && ev.target.closest ? ev.target.closest('a.src-ref') : null;
+        if (!a) return;
+        var rt = ev.relatedTarget;
+        if (rt && rt.closest && rt.closest('a.src-ref') === a) return; // still inside
+        hide();
+      });
     }
 
     var scripts = document.querySelectorAll('script.diagram-info');
@@ -116,6 +139,47 @@
     });
 
     initTreeResizer();
+    initRefPicker();
+    initDiagramFullscreen();
+    initSourceRefs();
+  }
+
+  /* ---- revision picker ---- */
+  function initRefPicker() {
+    var picker = document.getElementById('refPicker');
+    if (!picker) return;
+    picker.addEventListener('change', function () {
+      if (picker.value) window.location.href = picker.value;
+    });
+  }
+
+  /* ---- fullscreen diagrams ---- */
+  function setFullscreen(frame, btn, on) {
+    frame.classList.toggle('fullscreen', on);
+    if (btn) btn.textContent = on ? '\u2715 Close' : '\u26F6 Fullscreen';
+    if (on) {
+      var scroll = frame.querySelector('.diagram-scroll');
+      if (scroll) scroll.scrollTop = 0;
+    } else if (frame.getBoundingClientRect().top < 0) {
+      frame.scrollIntoView({ block: 'start' });
+    }
+  }
+
+  function initDiagramFullscreen() {
+    var frames = document.querySelectorAll('.diagram-frame');
+    Array.prototype.forEach.call(frames, function (frame) {
+      var btn = frame.querySelector('.diagram-fs-btn');
+      if (!btn) return;
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        setFullscreen(frame, btn, !frame.classList.contains('fullscreen'));
+      });
+    });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape') return;
+      var open = document.querySelector('.diagram-frame.fullscreen');
+      if (open) setFullscreen(open, open.querySelector('.diagram-fs-btn'), false);
+    });
   }
 
   /* ---- resizable navigation tree ---- */

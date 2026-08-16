@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import html
 import json
+import posixpath
 import re
 from pathlib import Path
 
@@ -101,6 +102,32 @@ def render_tree(node: TreeNode, active_href: str = "", depth: int = 0) -> str:
     return f'<li class="{cls}">{inner} {label} {meta}</li>'
 
 
+def render_ref_picker(
+    refs: list[tuple[str, str]], current: str, site: str
+) -> str:
+    """Header revision picker: one <option> per built revision, with relative
+    hrefs computed from this page's site path so the site keeps working from
+    file:// (no fetch, no absolute paths)."""
+    if not refs:
+        return ""
+    opts = []
+    for target, label in refs:
+        # browsers resolve relative URLs from the page's directory, not the
+        # page file itself
+        base = posixpath.dirname(site)
+        rel = posixpath.relpath(target, base)
+        sel = " selected" if target == current else ""
+        opts.append(f'<option value="{esc(rel)}"{sel}>{esc(label)}</option>')
+    return (
+        '<span class="ref-picker-wrap" title="Show the viewer for another '
+        'branch or pull request">'
+        '<span class="ref-picker-label">Revision</span>'
+        '<select class="ref-picker" id="refPicker">'
+        f'{"".join(opts)}'
+        "</select></span>"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Page shell
 # ---------------------------------------------------------------------------
@@ -113,6 +140,7 @@ def _page_shell(
     content: str,
     css_rel: str,
     js_rel: str,
+    picker: str = "",
 ) -> str:
     crumbs = " / ".join(
         f'<a href="{esc(href)}">{esc(label)}</a>' for label, href in breadcrumbs
@@ -129,6 +157,7 @@ def _page_shell(
 <header class="site-header">
   <span class="site-title">DE4SDV <em>Model Viewer</em></span>
   <span class="site-sub">read-only browser over the SysML v2 textual model</span>
+  {picker}
 </header>
 <div class="layout">
   <nav class="tree-pane" aria-label="Model navigation">
@@ -152,7 +181,12 @@ def _page_shell(
 # ---------------------------------------------------------------------------
 
 
-def render_index(tree: TreeNode, stats: dict[str, int], file_count_with_diagrams: int) -> str:
+def render_index(
+    tree: TreeNode,
+    stats: dict[str, int],
+    file_count_with_diagrams: int,
+    picker: str = "",
+) -> str:
     tree_html = render_tree(tree, "")
     stats_html = "".join(
         f"<div class='stat'><span class='stat-n'>{v}</span><span class='stat-k'>{k}</span></div>"
@@ -196,6 +230,7 @@ def render_index(tree: TreeNode, stats: dict[str, int], file_count_with_diagrams
     return _page_shell(
         "Model", tree_html, [("Model", "index.html")], content,
         css_rel="assets/viewer.css", js_rel="assets/viewer.js",
+        picker=picker,
     )
 
 
@@ -214,6 +249,7 @@ def render_dir_page(
     tree_html: str,
     children: list[TreeNode],
     prefix: str,
+    picker: str = "",
 ) -> str:
     items = []
     for c in children:
@@ -237,6 +273,7 @@ def render_dir_page(
     return _page_shell(
         dir_label, tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
+        picker=picker,
     )
 
 
@@ -262,6 +299,27 @@ _SRC_TOKEN_RE = re.compile(
 # per-line scan: quoted names first, then comment openers
 _LINE_SCAN_RE = re.compile(r"'[^']*'|/\*|//")
 
+_IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _resolve_source_ref(
+    token: str, line_no: int, mf: ModelFile, member_index: dict
+):
+    """Resolve an identifier in the source to its declaration, or None.
+
+    The declaration itself is never annotated; usages in the same file
+    resolve to the same file, everything else to the defining file.
+    """
+    refs = member_index.get(token)
+    if not refs:
+        return None
+    if any(r.rel_path == mf.rel_path and r.line == line_no for r in refs):
+        return None
+    from .svg_info import _prefer
+
+    folder = str(Path(mf.rel_path).parent)
+    return _prefer(refs, mf.rel_path, folder)
+
 
 def _token_class(tok: str) -> str:
     if tok in _SRC_KEYWORDS:
@@ -273,8 +331,15 @@ def _token_class(tok: str) -> str:
     return ""
 
 
-def _highlight_code(seg: str) -> str:
-    """Highlight keywords/numbers/operators in a comment-free segment."""
+def _highlight_code(
+    seg: str,
+    line_no: int,
+    mf: ModelFile | None,
+    member_index: dict | None,
+    prefix: str,
+) -> str:
+    """Highlight keywords/numbers/operators in a comment-free segment and
+    wrap identifiers that resolve to model elements as source references."""
     out = []
     pos = 0
     for m in _SRC_TOKEN_RE.finditer(seg):
@@ -284,13 +349,46 @@ def _highlight_code(seg: str) -> str:
         if cls:
             out.append(f'<span class="src-{cls}">{esc(tok)}</span>')
         else:
-            out.append(esc(tok))
+            ref = None
+            if mf is not None and member_index is not None and _IDENT_RE.fullmatch(tok):
+                ref = _resolve_source_ref(tok, line_no, mf, member_index)
+            if ref is not None:
+                same = ref.rel_path == mf.rel_path
+                href = (
+                    f"#src-{ref.line}"
+                    if same
+                    else prefix + f"pages/{ref.rel_path}.html#src-{ref.line}"
+                )
+                tip = (
+                    f' data-tip-kind="{esc(ref.kind)}"'
+                    f' data-tip-name="{esc(ref.name)}"'
+                )
+                if ref.doc:
+                    tip += f' data-tip-doc="{esc(ref.doc)}"'
+                tip += f' data-tip-file="{esc(ref.rel_path)}" data-tip-line="{ref.line}"'
+                tip += (
+                    ' data-tip-hint="click to jump to declaration"'
+                    if same
+                    else ' data-tip-hint="click to jump to definition"'
+                )
+                out.append(
+                    f'<a class="src-ref" href="{esc(href)}"{tip}>{esc(tok)}</a>'
+                )
+            else:
+                out.append(esc(tok))
         pos = m.end()
     out.append(esc(seg[pos:]))
     return "".join(out)
 
 
-def _highlight_line(line: str, in_block: bool) -> tuple[str, bool]:
+def _highlight_line(
+    line: str,
+    in_block: bool,
+    line_no: int,
+    mf: ModelFile | None,
+    member_index: dict | None,
+    prefix: str,
+) -> tuple[str, bool]:
     """Highlight one source line; returns (html, still_in_block_comment).
 
     Multi-line /* ... */ comments are split per line so every .src-line
@@ -309,9 +407,9 @@ def _highlight_line(line: str, in_block: bool) -> tuple[str, bool]:
     while pos < len(line):
         m = _LINE_SCAN_RE.search(line, pos)
         if not m:
-            out.append(_highlight_code(line[pos:]))
+            out.append(_highlight_code(line[pos:], line_no, mf, member_index, prefix))
             break
-        out.append(_highlight_code(line[pos : m.start()]))
+        out.append(_highlight_code(line[pos : m.start()], line_no, mf, member_index, prefix))
         tok = m.group(0)
         if tok.startswith("'"):
             out.append(f'<span class="src-str">{esc(tok)}</span>')
@@ -331,8 +429,14 @@ def _highlight_line(line: str, in_block: bool) -> tuple[str, bool]:
     return "".join(out), in_block
 
 
-def _highlight_source(text: str) -> str:
-    """Syntax-highlight the .sysml source and wrap it in numbered lines.
+def _highlight_source(
+    text: str,
+    mf: ModelFile | None = None,
+    member_index: dict | None = None,
+    prefix: str = "",
+) -> str:
+    """Syntax-highlight the .sysml source and wrap resolvable identifiers
+    as source references (hover tooltip + jump to the definition).
 
     Line blocks are joined WITHOUT newlines: inside a <pre> with
     white-space: pre, a newline between two block elements renders as an
@@ -341,7 +445,7 @@ def _highlight_source(text: str) -> str:
     in_block = False
     body = []
     for i, raw in enumerate(text.split("\n"), 1):
-        html, in_block = _highlight_line(raw, in_block)
+        html, in_block = _highlight_line(raw, in_block, i, mf, member_index, prefix)
         body.append(
             f'<span class="src-line" id="src-{i}">'
             f'<span class="src-ln">{i}</span>{html}</span>'
@@ -411,20 +515,41 @@ def _render_view_block(
     prefix: str,
     member_index: dict,
     anchor_counter: dict[str, int],
+    blob_base: str = "",
+    external_ref: bool = False,
 ) -> str:
     anchor = make_anchor(anchor_counter, v.name)
     artifact = artifact_filename(v.name, v.view_type)
     svg_abs = mf.path.parent / "diagrams" / artifact
     if svg_abs.exists():
-        svg_rel = repo_prefix + (Path(mf.rel_path).parent / "diagrams" / artifact).as_posix()
+        if blob_base:
+            # ref builds materialize from git; point the raw artifact at GitHub
+            svg_rel = blob_base + "/" + (
+                Path(mf.rel_path).parent / "diagrams" / artifact
+            ).as_posix()
+        elif external_ref:
+            # ref build without a GitHub remote: no raw-artifact link at all
+            svg_rel = ""
+        else:
+            svg_rel = repo_prefix + (Path(mf.rel_path).parent / "diagrams" / artifact).as_posix()
         svg_markup = _inline_svg(svg_abs)
         if svg_markup:
             svg_info_json = _svg_hover_json(svg_markup, v, mf, member_index, prefix)
+            raw_link = (
+                f' <a href="{esc(svg_rel)}" target="_blank" rel="noopener">open raw SVG</a>.'
+                if svg_rel
+                else "."
+            )
             diagram_html = (
                 f'<div class="diagram-frame interactive" data-view="{esc(anchor)}">'
-                f"{svg_markup}</div>"
-                f'<p class="muted">Hover a model element for details; '
-                f'<a href="{esc(svg_rel)}" target="_blank" rel="noopener">open raw SVG</a>.</p>'
+                f'<div class="diagram-toolbar">'
+                f'<span class="diagram-toolbar-file">{esc(artifact)}</span>'
+                f'<button type="button" class="diagram-fs-btn" '
+                f'title="Fullscreen (Esc to close)">&#x26F6; Fullscreen</button>'
+                f"</div>"
+                f'<div class="diagram-scroll">{svg_markup}</div>'
+                f"</div>"
+                f'<p class="muted">Hover a model element for details{raw_link}</p>'
                 f'<script type="application/json" class="diagram-info" '
                 f'data-for="{esc(anchor)}">{svg_info_json}</script>'
             )
@@ -477,10 +602,16 @@ def render_file_page(
     breadcrumbs: list[tuple[str, str]],
     source_url: str,
     member_index: dict,
+    picker: str = "",
+    blob_base: str = "",
+    external_ref: bool = False,
 ) -> str:
     anchor_counter: dict[str, int] = {}
     views_html = "".join(
-        _render_view_block(v, mf, repo_prefix, prefix, member_index, anchor_counter)
+        _render_view_block(
+            v, mf, repo_prefix, prefix, member_index, anchor_counter,
+            blob_base, external_ref,
+        )
         for v in mf.views
     )
     doc_html = f'<div class="doc-block"><p>{esc(mf.file_doc)}</p></div>' if mf.file_doc else ""
@@ -492,7 +623,9 @@ def render_file_page(
         else ""
     )
     try:
-        source_html = _highlight_source(mf.path.read_text(encoding="utf-8"))
+        source_html = _highlight_source(
+            mf.path.read_text(encoding="utf-8"), mf, member_index, prefix
+        )
     except OSError:
         source_html = "<p class='muted'>Source file not readable.</p>"
     content = f"""
@@ -510,4 +643,5 @@ def render_file_page(
     return _page_shell(
         f"{mf.rel_path}", tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
+        picker=picker,
     )

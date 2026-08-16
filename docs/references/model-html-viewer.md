@@ -17,7 +17,36 @@ tree on the left is resizable (drag the divider; the width is remembered).
 Below the diagrams, each file page shows the highlighted `.sysml` source
 with numbered lines — reviewers check the ground truth directly next to
 the rendered views, and tree entries for elements jump to their
-declaration lines.
+declaration lines. Identifiers in the source that resolve to model
+elements are references themselves: hovering an imported type shows its
+kind, doc, and defining file, and clicking jumps to the definition — in
+the same file or in the package that declares it. Diagrams can be expanded
+full screen with the button in their toolbar (Esc returns).
+
+## Comparing branches and pull requests
+
+The viewer is not tied to one checkout. The generator can build several
+revisions of the repository at once, and every page then carries a
+**Revision** picker in the header to switch between them:
+
+```bash
+# working tree + main + the branches behind two open PRs
+python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer \
+    --refs main,feat/sysml-api-challenge-harness,spike/syside-modeler-view-automation
+
+# or simply: every local branch
+python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer \
+    --refs auto
+```
+
+Each revision becomes a complete site under `refs/<name>/` (materialized
+from git — nothing is checked out or modified), so the tree, diagrams,
+tooltips, and source references all reflect that branch or PR. PR branches
+that only exist on the remote resolve via `origin/<name>`, and when `gh`
+can map a branch to an open pull request the picker labels it
+(`PR #99: feat(...)`). Reviewing a PR therefore needs no local checkout:
+`gh pr checkout <number>` once, regenerate with `--refs`, and switch
+between the working tree and the PR in the header.
 
 ## When to use
 
@@ -39,8 +68,9 @@ python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer
 
 The generator is deterministic: regenerating at the same model head
 produces byte-identical output. Output lives in `build/model-viewer`
-(gitignored) and references the committed SVGs in place — it can never
-drift from what the privileged validation workflow rendered.
+(gitignored). Diagram SVGs are inlined from the model tree (working-tree
+builds) or from the ref's git contents (ref builds) — it can never drift
+from what the privileged validation workflow rendered.
 
 ## Serve
 
