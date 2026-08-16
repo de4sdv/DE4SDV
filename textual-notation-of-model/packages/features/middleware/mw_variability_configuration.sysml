@@ -197,8 +197,13 @@ package DE4SDV_MWVariabilityConfiguration {
       frame productLineConfigurationConcern;
     }
     expose MWAutowareAAOSSDVReference;
+    expose MWAutowareAAOSSDVReference::vehicleApplication;
+    expose MWAutowareAAOSSDVReference::middleware;
+    expose MWAutowareAAOSSDVReference::osPlatform;
+    expose MWAutowareAAOSSDVReference::hypervisor;
+    expose MWAutowareAAOSSDVReference::applicationMiddlewareAdapter;
     attribute showAnnotationRows = false;
-    attribute maxCompartmentEntries = 5;
+    attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
   }
 
