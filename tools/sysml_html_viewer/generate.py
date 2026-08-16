@@ -82,27 +82,38 @@ def _breadcrumbs(site_path: str) -> list[tuple[str, str]]:
 
 
 def _tree_with_prefix(tree: TreeNode, prefix: str, active_site: str) -> str:
-    def walk(node: TreeNode) -> str:
+    def walk(node: TreeNode) -> tuple[str, bool]:
+        """Returns (html, contains_active) — the second value lets parents
+        keep the whole ancestor chain of the active page open."""
+        contains = node.site_href == active_site
+        kids = []
+        for c in node.children:
+            child_html, child_contains = walk(c)
+            contains = contains or child_contains
+            kids.append(child_html)
+        kids_html = "".join(kids)
         href = prefix + node.site_href if node.site_href else ""
         cls = f"tree-node tree-{node.kind}"
         if node.site_href and node.site_href == active_site:
             cls += " active"
-        kids = "".join(walk(c) for c in node.children)
         inner = f'<span class="tree-icon">{_icon(node.kind)}</span>'
         if href:
             label = f'<a href="{href}">{_esc(node.label)}</a>'
         else:
             label = f"<span class='tree-label'>{_esc(node.label)}</span>"
         meta = f"<span class='tree-meta'>{_esc(node.meta)}</span>" if node.meta else ""
-        if kids:
-            open_attr = " open" if node.depth <= 1 or node.site_href == active_site else ""
-            return (
+        if kids_html:
+            open_attr = " open" if node.depth <= 1 or contains else ""
+            html = (
                 f'<details class="{cls}"{open_attr}><summary>{inner} {label} {meta}</summary>'
-                f"<ul>{kids}</ul></details>"
+                f"<ul>{kids_html}</ul></details>"
             )
-        return f'<li class="{cls}">{inner} {label} {meta}</li>'
+        else:
+            html = f'<li class="{cls}">{inner} {label} {meta}</li>'
+        return html, contains
 
-    return f"<ul>{walk(tree)}</ul>"
+    html, _ = walk(tree)
+    return f"<ul>{html}</ul>"
 
 
 def _icon(kind: str) -> str:

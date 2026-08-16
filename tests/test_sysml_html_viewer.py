@@ -206,6 +206,36 @@ def test_inline_svg_and_hover_json_in_page(tmp_path):
     assert 'src="../../../../../assets/viewer.js"' in html
 
 
+def test_active_path_chain_stays_open(tmp_path):
+    """Regression: the tree on a file page must keep the whole ancestor
+    chain of the active file open (root > dirs > file), not just the root."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    )
+    html = file_page.read_text(encoding="utf-8")
+    # every dir on the path to the active file is open
+    for label in ("textual-notation-of-model", "packages", "features", "fixture"):
+        m = re.search(
+            r'<details class="tree-node tree-dir" open>.*?'
+            rf'<a href="[^"]*">{re.escape(label)}</a>',
+            html,
+            re.S,
+        )
+        assert m is not None, f"dir {label} not open on the file page"
+    # the active file node itself is open and marked active
+    m = re.search(
+        r'<details class="tree-node tree-file active" open>.*?'
+        r"fixture_feature\.sysml</a>",
+        html,
+        re.S,
+    )
+    assert m is not None
+
+
 def _collect_links(html: str) -> list[str]:
     hrefs = re.findall(r'href="([^"]+)"', html)
     srcs = re.findall(r'src="([^"]+)"', html)
