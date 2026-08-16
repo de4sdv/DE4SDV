@@ -229,10 +229,11 @@ def test_unsubstantiated_system1_physical_interface_view_is_withheld() -> None:
         assert f"expose {item};" not in campaign
 
 
-def test_campaign_exchange_source_is_authoritative_while_view_is_withheld() -> None:
+def test_campaign_exchange_publishes_bounded_slice_while_wider_view_is_withheld() -> None:
     text = PHYSICAL_MODEL.read_text(encoding="utf-8")
     deployment = _block(text, "part def VehicleSpeedCampaignCommunicationDeployment")
     concern = _block(text, "concern vehicleSpeedCampaignInternalExchangeConcern")
+    bounded = _block(text, "view mwAAOSVehicleSpeedServiceBundleInternalExchangeView")
     names = (
         "guestToHostForwarder",
         "hostForwarderToPrivateTcp",
@@ -245,6 +246,10 @@ def test_campaign_exchange_source_is_authoritative_while_view_is_withheld() -> N
         assert f"flow {name}Payload" in deployment
     assert "connection providerToObserver" in text
     assert "flow providerToObserverPayload" in text
+    assert "frame vehicleSpeedServiceBundleInternalExchangeConcern;" in bounded
+    assert "expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest;" in bounded
+    assert "expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::**;" in bounded
+    assert "render asInterconnectionDiagram;" in bounded
     assert "view mwVehicleSpeedCampaignInternalExchangeView" not in text
     assert "Known issue" in concern
     assert "Five explicit connections and five named item flows" in concern

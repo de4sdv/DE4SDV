@@ -197,6 +197,13 @@ than publish diagrams that do not answer their framed concerns:
   are authoritative in the source, but the native projection renders nested
   parts without the connector path, direction, or exchanged item types.
 
+The middleware package does publish one smaller Physical Internal Exchange
+slice: `mwAAOSVehicleSpeedServiceBundleInternalExchangeView` selects the
+provider and independent observer inside the AAOS service bundle, their owned
+ports, the authoritative connection, and the directed
+`VehicleSpeedProviderMessage` flow. It is deliberately not a substitute for
+the withheld four-hop campaign view.
+
 Each exception and its rationale is also recorded with the framed concern in
 the architecture description. A view can return only after its source
 semantics exist and exact-head rendering visibly materializes them.

@@ -720,6 +720,20 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     stakeholder verificationEngineer : VerificationEngineer;
   }
 
+  concern vehicleSpeedServiceBundleInternalExchangeConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * Which provider sends VehicleSpeedProviderMessage to which observer,
+     * through which owned ports and connector, and in which direction? Keep
+     * this bounded review slice inside the AAOS service bundle; transport and
+     * deployment topology belong to the wider campaign concern.
+     */
+    subject serviceBundle : AAOSVehicleSpeedServiceBundle;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+    stakeholder softwareDeveloper : SoftwareDeveloper;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
   concern vehicleSpeedCampaignStructureConcern : PhysicalStructureConcern {
     doc /* Supporting System 2 campaign-host breakdown, distinct from the System 1 product boundary. */
     subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
@@ -764,6 +778,22 @@ package DE4SDV_MWPhysicalSoftwareRealization {
    * would be false. The typed connections and flows in the source are
    * authoritative for this scope while native rendering remains inadequate.
    */
+
+  view mwAAOSVehicleSpeedServiceBundleInternalExchangeView {
+    viewpoint selectedAAOSVehicleSpeedServiceBundleInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
+      frame vehicleSpeedServiceBundleInternalExchangeConcern;
+    }
+    doc /*
+     * Bounded native projection of the authoritative provider-to-observer
+     * connection and VehicleSpeedProviderMessage flow. The wider campaign
+     * exchange remains withheld because it does not pass the same visual gate.
+     */
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::**;
+    attribute depth = -1;
+    attribute showAnnotationRows = false;
+    render asInterconnectionDiagram;
+  }
 
   view mwVehicleSpeedCampaignStructureView {
     viewpoint selectedVehicleSpeedCampaignStructureViewpoint : PhysicalStructureDefinitionViewpoint {

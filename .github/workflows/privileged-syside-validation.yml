@@ -189,6 +189,19 @@ jobs:
             --min-flow-count 21 \
             --max-flow-count 21
           python scripts/check_svg_view_materialization.py \
+            diagrams/diagram-mwAAOSVehicleSpeedServiceBundleInternalExchangeView.svg \
+            --view-name mwAAOSVehicleSpeedServiceBundleInternalExchangeView \
+            --require-label "provider : AAOSVehicleSpeedProvider" \
+            --require-label "observer : AAOSVehicleSpeedObserver" \
+            --require-label "vehicleSpeedOut : VehicleSpeedProviderPublication" \
+            --require-label "vehicleSpeedIn : VehicleSpeedProviderSubscription" \
+            --require-label VehicleSpeedProviderMessage \
+            --forbid-label "hostForwarder : AAOSHostLogcatForwarder" \
+            --forbid-label "privateTcpBoundary : VehicleSpeedPrivateTcpTransport" \
+            --forbid-label "ros2Ingress : ROS2VehicleSpeedTcpIngress" \
+            --min-flow-count 1 \
+            --max-flow-count 1
+          python scripts/check_svg_view_materialization.py \
             diagrams/diagram-mwFunctionalInterfaceView.svg \
             --view-name mwFunctionalInterfaceView \
             --require-label VehicleSignalAccessInbound \
