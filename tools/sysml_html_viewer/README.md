@@ -73,6 +73,23 @@ python -m http.server 8000   # then open http://localhost:8000/build/model-viewe
 
 Or open `build/model-viewer/index.html` directly in a browser.
 
+### Server mode: every branch and PR clickable
+
+```bash
+python -m tools.sysml_html_viewer.serve --repo . --port 8787
+# then open http://127.0.0.1:8787/
+```
+
+The server serves the generated site and upgrades the Revision picker to
+the **full** list of revisions — every local branch and every open PR
+(labeled `PR #N: title`). Clicking a ref that was not built at generation
+time materializes it from git and generates its site **on demand** (a few
+seconds on the first click), then caches it in the same `refs/<name>/`
+layout. Refs without `.sysml` under the validated model roots stay disabled
+with a hint. Static builds (`file://` or a plain static host) keep the
+static picker — the dynamic upgrade only activates when the page is served
+by this server.
+
 ## What is on a page
 
 - **Index** — model stats and the full navigation tree.

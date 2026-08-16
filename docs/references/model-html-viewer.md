@@ -85,6 +85,19 @@ python -m http.server 8000
 
 The site also works directly from `file://` (open `build/model-viewer/index.html`).
 
+For review sessions where any branch or PR must be selectable, run the
+viewer server instead:
+
+```bash
+python -m tools.sysml_html_viewer.serve --repo . --port 8787
+# open http://127.0.0.1:8787/
+```
+
+The server upgrades the Revision picker to every branch and open PR of the
+repository; picking one that is not built yet generates it on demand
+(a few seconds, then cached) — no static regeneration needed between
+reviews.
+
 ## Implementation
 
 - Generator: `tools/sysml_html_viewer/` (stdlib only)

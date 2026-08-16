@@ -145,12 +145,46 @@
   }
 
   /* ---- revision picker ---- */
+  function currentRefFromPath() {
+    var m = location.pathname.match(/^\/refs\/([^\/]+)\//);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  /* Server mode: the page is served by tools/sysml_html_viewer/serve.py,
+   * which lists every branch and PR of the repository in /_refs and builds
+   * unbuilt refs on demand. Upgrade the static picker (which only lists
+   * refs built at generation time) to the full dynamic list. On file:// or
+   * plain static hosts the fetch fails and the static picker stays. */
+  function upgradeRefPicker(picker) {
+    if (typeof fetch !== 'function') return;
+    fetch('/_refs', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (data) {
+        if (!data || !data.refs) return;
+        var current = currentRefFromPath();
+        picker.innerHTML = '';
+        data.refs.forEach(function (ref) {
+          var o = document.createElement('option');
+          o.value = ref.url;
+          o.textContent = ref.label;
+          if (ref.id === current) o.selected = true;
+          if (!ref.buildable) {
+            o.disabled = true;
+            o.title = ref.hint || 'no model content under the validated roots';
+          }
+          picker.appendChild(o);
+        });
+      });
+  }
+
   function initRefPicker() {
     var picker = document.getElementById('refPicker');
     if (!picker) return;
     picker.addEventListener('change', function () {
       if (picker.value) window.location.href = picker.value;
     });
+    upgradeRefPicker(picker);
   }
 
   /* ---- fullscreen diagrams ---- */

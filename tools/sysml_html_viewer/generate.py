@@ -145,33 +145,40 @@ def _local_branches(repo_root: Path) -> list[str]:
         return []
 
 
-def _pr_labels(repo_root: Path) -> dict[str, str]:
-    """Branch name -> 'PR #N: title' for open PRs of this repository.
+def _gh_pr_list(repo_root: Path) -> list[dict]:
+    """Open pull requests of this repository (gh CLI, best effort).
 
-    Best effort: requires a GitHub origin and a working `gh` CLI; any
-    failure returns an empty map.
-    """
+    Returns [] on any failure (no GitHub origin, gh missing, not authed,
+    offline)."""
     try:
         url = subprocess.run(
             ["git", "-C", str(repo_root), "remote", "get-url", "origin"],
             capture_output=True, text=True, timeout=10,
         ).stdout
         if "github.com" not in url:
-            return {}
+            return []
         out = subprocess.run(
             ["gh", "pr", "list", "--state", "open",
              "--json", "number,headRefName,title", "--limit", "100"],
             capture_output=True, text=True, timeout=20, cwd=str(repo_root),
         )
         if out.returncode != 0:
-            return {}
-        data = json.loads(out.stdout)
-        return {
-            pr["headRefName"]: f"PR #{pr['number']}: {pr['title']}"
-            for pr in data
-        }
+            return []
+        return json.loads(out.stdout)
     except Exception:
-        return {}
+        return []
+
+
+def _pr_labels(repo_root: Path) -> dict[str, str]:
+    """Branch name -> 'PR #N: title' for open PRs of this repository.
+
+    Best effort: requires a GitHub origin and a working `gh` CLI; any
+    failure returns an empty map.
+    """
+    return {
+        pr["headRefName"]: f"PR #{pr['number']}: {pr['title']}"
+        for pr in _gh_pr_list(repo_root)
+    }
 
 
 def _expand_refs(

@@ -11,6 +11,10 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -356,6 +360,61 @@ def test_generate_skips_ref_without_model(tmp_path):
         r"docs-only \(not built\)</option>",
         index,
     )
+
+
+def test_serve_on_demand(tmp_path):
+    """Server mode: /_refs lists every revision; unbuilt refs generate on
+    the first request and are cached afterwards."""
+    repo = _make_fixture_repo(tmp_path)
+    extra = (
+        repo
+        / "textual-notation-of-model/packages/features/fixture/extra_feature.sysml"
+    )
+    _git(repo, "checkout", "-q", "-b", "feature")
+    extra.write_text(
+        "package FixtureExtraPackage {\n  part def ExtraPart;\n}\n",
+        encoding="utf-8",
+    )
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=Test", "-c", "user.email=test@example.com",
+         "commit", "-q", "-m", "extra")
+    _git(repo, "checkout", "-q", "main")
+
+    from tools.sysml_html_viewer import serve
+
+    out = tmp_path / "site"
+    server = serve.make_server(repo, out, port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = server.server_address[1]
+    base = f"http://127.0.0.1:{port}"
+    try:
+        # manifest: working tree + every branch
+        with urllib.request.urlopen(base + "/_refs") as r:
+            data = json.loads(r.read())
+        assert any(x["id"] == "" for x in data["refs"])  # working tree
+        labels = {x["label"] for x in data["refs"]}
+        assert "feature" in labels
+        # working tree site is served (generated on first start)
+        with urllib.request.urlopen(base + "/index.html") as r:
+            assert "DE4SDV" in r.read().decode()
+        # unbuilt ref generates on demand
+        with urllib.request.urlopen(base + "/refs/feature/index.html", timeout=120) as r:
+            body = r.read().decode()
+        assert "extra_feature.sysml" in body
+        # ... and is cached: the second request is fast
+        t0 = time.monotonic()
+        with urllib.request.urlopen(base + "/refs/feature/index.html") as r:
+            r.read()
+        assert time.monotonic() - t0 < 2
+        # unknown ref -> 404
+        with pytest.raises(urllib.error.HTTPError) as exc_info:
+            urllib.request.urlopen(base + "/refs/nope/index.html")
+        assert exc_info.value.code == 404
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_inline_svg_and_hover_json_in_page(tmp_path):
