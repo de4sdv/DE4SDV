@@ -48,6 +48,22 @@ Or open `build/model-viewer/index.html` directly in a browser.
     exactly as declared, with attached `doc /* ... */` text;
   - *source link*: the exact `.sysml` file on GitHub.
 
+## Diagram hover enrichment
+
+Diagrams are inlined into the page (not `<img>`), and every element label
+the diagram shows is resolved back to the model:
+
+- **Hover** an element label — a tooltip shows its kind, its `doc`
+  comment, and its exact source location (file:line).
+- **Click** a label — the viewer jumps to that member's section.
+- Labels that are pure layout text (headers, "parts", stereotype labels)
+  stay inert; a diagram element with no committed model match simply
+  shows nothing.
+
+The label → element mapping is generated from the authoritative `.sysml`
+files, so the tooltip content can never say something the model does not
+declare.
+
 ## Design rules
 
 1. Semantics come only from `.sysml` — the viewer never invents elements,

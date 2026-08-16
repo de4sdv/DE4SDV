@@ -12,10 +12,17 @@ instead of re-rendering or re-laying-out anything.
 from __future__ import annotations
 
 import html
+import json
 import re
 from pathlib import Path
 
-from .model_parse import ModelFile, TreeNode, ViewInfo, artifact_filename
+from .model_parse import (
+    ModelFile,
+    TreeNode,
+    ViewInfo,
+    artifact_filename,
+    slugify,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -24,11 +31,6 @@ from .model_parse import ModelFile, TreeNode, ViewInfo, artifact_filename
 
 def esc(text: str) -> str:
     return html.escape(text, quote=True)
-
-
-def slugify(name: str) -> str:
-    slug = re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-")
-    return slug or "item"
 
 
 def make_anchor(counter: dict[str, int], name: str) -> str:
@@ -115,6 +117,7 @@ def _page_shell(
     breadcrumbs: list[tuple[str, str]],
     content: str,
     css_rel: str,
+    js_rel: str,
 ) -> str:
     crumbs = " / ".join(
         f'<a href="{esc(href)}">{esc(label)}</a>' for label, href in breadcrumbs
@@ -142,6 +145,7 @@ def _page_shell(
     {content}
   </main>
 </div>
+<script src="{esc(js_rel)}"></script>
 </body>
 </html>
 """
@@ -194,7 +198,8 @@ def render_index(tree: TreeNode, stats: dict[str, int], file_count_with_diagrams
 </div>
 """
     return _page_shell(
-        "Model", tree_html, [("Model", "index.html")], content, css_rel="assets/viewer.css"
+        "Model", tree_html, [("Model", "index.html")], content,
+        css_rel="assets/viewer.css", js_rel="assets/viewer.js",
     )
 
 
@@ -234,7 +239,8 @@ def render_dir_page(
         f"<ul class='toc-list'>{''.join(items)}</ul></div>"
     )
     return _page_shell(
-        dir_label, tree_html, breadcrumbs, content, css_rel=prefix + "assets/viewer.css"
+        dir_label, tree_html, breadcrumbs, content,
+        css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
     )
 
 
@@ -243,18 +249,84 @@ def render_dir_page(
 # ---------------------------------------------------------------------------
 
 
+def _inline_svg(svg_abs: Path) -> str:
+    """Read a committed diagram SVG and strip XML/DOCTYPE prologues so it can
+    be inlined into the page (hover enrichment needs the DOM, not <img>)."""
+    try:
+        text = svg_abs.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    text = re.sub(r"^<\?xml[^>]*\?>", "", text).lstrip()
+    text = re.sub(r"^<!DOCTYPE[^>]*>", "", text).lstrip()
+    if not text.startswith("<svg"):
+        return ""
+    return text
+
+
+def _svg_hover_json(
+    svg_markup: str,
+    v: ViewInfo,
+    mf: ModelFile,
+    member_index: dict,
+    prefix: str,
+) -> str:
+    """Build the label -> element-info JSON embedded next to the diagram."""
+    from . import svg_info
+
+    labels = svg_info.extract_text_labels(svg_markup)
+    folder = str(Path(mf.rel_path).parent)
+    resolved = svg_info.resolve_labels(labels, member_index, mf.rel_path, folder)
+    payload: dict[str, dict] = {}
+    for li in resolved:
+        entry = li.to_dict()
+        if li.anchor:
+            entry["href"] = prefix + f"pages/{li.rel_path}.html#{li.anchor}"
+        payload[li.label] = entry
+    raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    return raw.replace("</", "<\\/")
+
+
+def _diagram_missing(artifact: str, svg_rel: str) -> str:
+    if svg_rel:
+        return (
+            '<div class="diagram-missing"><strong>Diagram not inlined.</strong> '
+            f'<a href="{esc(svg_rel)}" target="_blank" rel="noopener">open raw SVG</a>.</div>'
+        )
+    return (
+        '<div class="diagram-missing"><strong>No committed diagram.</strong> '
+        "Regenerate via the Privileged Syside Validation workflow "
+        f"(expected artifact <code>diagrams/{esc(artifact)}</code>).</div>"
+    )
+
+
 def _render_view_block(
     v: ViewInfo,
     mf: ModelFile,
     repo_prefix: str,
+    prefix: str,
+    member_index: dict,
     anchor_counter: dict[str, int],
 ) -> str:
     anchor = make_anchor(anchor_counter, v.name)
     artifact = artifact_filename(v.name, v.view_type)
     svg_abs = mf.path.parent / "diagrams" / artifact
-    svg_rel = ""
     if svg_abs.exists():
         svg_rel = repo_prefix + (Path(mf.rel_path).parent / "diagrams" / artifact).as_posix()
+        svg_markup = _inline_svg(svg_abs)
+        if svg_markup:
+            svg_info_json = _svg_hover_json(svg_markup, v, mf, member_index, prefix)
+            diagram_html = (
+                f'<div class="diagram-frame interactive" data-view="{esc(anchor)}">'
+                f"{svg_markup}</div>"
+                f'<p class="muted">Hover a model element for details; '
+                f'<a href="{esc(svg_rel)}" target="_blank" rel="noopener">open raw SVG</a>.</p>'
+                f'<script type="application/json" class="diagram-info" '
+                f'data-for="{esc(anchor)}">{svg_info_json}</script>'
+            )
+        else:
+            diagram_html = _diagram_missing(artifact, svg_rel)
+    else:
+        diagram_html = _diagram_missing(artifact, "")
     rows = []
     if v.viewpoint:
         rows.append(
@@ -282,19 +354,6 @@ def _render_view_block(
         if v.doc
         else ""
     )
-    if svg_rel:
-        diagram_html = (
-            f'<div class="diagram-frame">'
-            f'<a href="{esc(svg_rel)}" target="_blank" rel="noopener">'
-            f'<img class="diagram-image" src="{esc(svg_rel)}" alt="Diagram of view {esc(v.name)}">'
-            f"</a></div>"
-        )
-    else:
-        diagram_html = (
-            '<div class="diagram-missing"><strong>No committed diagram.</strong> '
-            "Regenerate via the Privileged Syside Validation workflow "
-            f"(expected artifact <code>diagrams/{esc(artifact)}</code>).</div>"
-        )
     return f"""
 <section class="view-section" id="view-{anchor}">
   <h2><span class="kind-badge view-badge">view</span> {esc(v.name)}</h2>
@@ -337,10 +396,12 @@ def render_file_page(
     repo_prefix: str,
     breadcrumbs: list[tuple[str, str]],
     source_url: str,
+    member_index: dict,
 ) -> str:
     anchor_counter: dict[str, int] = {}
     views_html = "".join(
-        _render_view_block(v, mf, repo_prefix, anchor_counter) for v in mf.views
+        _render_view_block(v, mf, repo_prefix, prefix, member_index, anchor_counter)
+        for v in mf.views
     )
     members_html = _render_member_tree(mf.members, anchor_counter)
     doc_html = f'<div class="doc-block"><p>{esc(mf.file_doc)}</p></div>' if mf.file_doc else ""
@@ -365,5 +426,6 @@ def render_file_page(
 </div>
 """
     return _page_shell(
-        f"{mf.rel_path}", tree_html, breadcrumbs, content, css_rel=prefix + "assets/viewer.css"
+        f"{mf.rel_path}", tree_html, breadcrumbs, content,
+        css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
     )

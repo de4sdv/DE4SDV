@@ -21,7 +21,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .model_parse import TreeNode, build_tree, count_stats, load_model
+from .model_parse import (
+    TreeNode,
+    build_member_index,
+    build_tree,
+    count_stats,
+    load_model,
+)
 from .render import (
     render_dir_page,
     render_file_page,
@@ -157,6 +163,8 @@ def generate(repo_root: Path, out_dir: Path, roots: list[str]) -> int:
     assets_dir.mkdir(parents=True, exist_ok=True)
     css_src = Path(__file__).parent / "viewer.css"
     shutil.copyfile(css_src, assets_dir / "viewer.css")
+    js_src = Path(__file__).parent / "viewer.js"
+    shutil.copyfile(js_src, assets_dir / "viewer.js")
 
     pages_root = out_dir / "pages"
 
@@ -193,6 +201,7 @@ def generate(repo_root: Path, out_dir: Path, roots: list[str]) -> int:
         )
 
     # file pages
+    member_index = build_member_index(files)
     for mf in files:
         site = f"pages/{mf.rel_path}.html"
         prefix = _rel_prefix(site)
@@ -207,6 +216,7 @@ def generate(repo_root: Path, out_dir: Path, roots: list[str]) -> int:
                 repo_prefix,
                 _breadcrumbs(site),
                 _source_url(repo_root, mf.rel_path),
+                member_index,
             ),
             encoding="utf-8",
         )

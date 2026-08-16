@@ -6,6 +6,7 @@ real model file.
 """
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import sys
@@ -20,10 +21,12 @@ sys.path.insert(0, str(REPO_ROOT))
 from tools.sysml_html_viewer.generate import generate  # noqa: E402
 from tools.sysml_html_viewer.model_parse import (  # noqa: E402
     artifact_filename,
+    build_member_index,
     build_tree,
     load_model,
     parse_file,
 )
+from tools.sysml_html_viewer import svg_info  # noqa: E402
 
 # scripts/generate_view_index.py must stay in agreement with the viewer's
 # view parsing; the parity test imports it directly.
@@ -116,6 +119,78 @@ def test_build_tree(model_files):
     assert "view" in child_kinds
     view_labels = {c.label for c in file_node.children if c.kind == "view"}
     assert view_labels == {"fixtureStructureView", "fixtureMatrixView"}
+
+
+# --- hover enrichment -------------------------------------------------------
+
+
+def test_extract_text_labels():
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg">'
+        "<text x='1'>FixtureSystem</text>"
+        "<text><tspan>fixtureSystem</tspan> : <tspan>FixtureSystem</tspan></text>"
+        "<text>parts</text>"
+        "<text>«part def»</text>"
+        "</svg>"
+    )
+    labels = svg_info.extract_text_labels(svg)
+    assert labels == [
+        "FixtureSystem",
+        "fixtureSystem : FixtureSystem",
+        "parts",
+        "«part def»",
+    ]
+
+
+def test_resolve_labels(model_files, fixture_sysml):
+    index = build_member_index(model_files)
+    labels = ["FixtureSystem", "fixtureSystem : FixtureSystem", "parts", "«part def»"]
+    resolved = svg_info.resolve_labels(
+        labels,
+        index,
+        view_file=fixture_sysml.relative_to(FIXTURE).as_posix(),
+        view_folder="textual-notation-of-model/packages/features/fixture",
+    )
+    by_label = {r.label: r for r in resolved}
+    assert by_label["FixtureSystem"].kind == "part def"
+    assert by_label["FixtureSystem"].doc.startswith("A synthetic system part")
+    assert by_label["fixtureSystem : FixtureSystem"].kind == "part"
+    assert by_label["fixtureSystem : FixtureSystem"].name == "fixtureSystem"
+    # layout text without a model match resolves to nothing
+    assert "parts" not in by_label
+    assert "«part def»" not in by_label
+
+
+def test_inline_svg_and_hover_json_in_page(tmp_path):
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    )
+    html = file_page.read_text(encoding="utf-8")
+    # the committed diagram is inlined, not referenced via <img>
+    assert '<div class="diagram-frame interactive"' in html
+    assert "<svg xmlns=" in html
+    assert "<img" not in html
+    # hover JSON is embedded for the view with a diagram
+    m = re.search(
+        r'<script type="application/json" class="diagram-info" '
+        r'data-for="fixtureStructureView">(.*?)</script>',
+        html,
+        re.S,
+    )
+    assert m is not None
+    payload = json.loads(m.group(1))
+    info = payload["FixtureSystem"]
+    assert info["kind"] == "part def"
+    assert info["href"].endswith("fixture_feature.sysml.html#member-FixtureSystem")
+    # the matrix view has no committed diagram -> no hover JSON for it
+    assert 'data-for="fixtureMatrixView"' not in html
+    # viewer.js is shipped with the site
+    assert (out / "assets" / "viewer.js").exists()
+    assert 'src="../../../../../assets/viewer.js"' in html
 
 
 def _collect_links(html: str) -> list[str]:

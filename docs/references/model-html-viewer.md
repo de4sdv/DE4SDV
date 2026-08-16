@@ -9,6 +9,9 @@ Purpose: make the model understandable to humans and reviewers. A reviewer
 opens the viewer, expands the feature tree, clicks a view, and sees the
 SysIDE-rendered diagram with its viewpoint, concern, expose targets, and
 source location — no tool installation, no model checkout required.
+Diagram element labels are hover-enriched: resting the pointer on an
+element in the diagram shows its kind, its `doc` comment, and its exact
+source location; clicking jumps to the member's section.
 
 ## When to use
 

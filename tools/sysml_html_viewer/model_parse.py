@@ -355,3 +355,64 @@ def count_stats(files: list[ModelFile]) -> dict[str, int]:
         stats["members"] += sum(1 for m in mf.members if m.kind != "package")
         stats["packages"] += sum(1 for m in mf.members if m.kind == "package")
     return stats
+
+
+# ---------------------------------------------------------------------------
+# Model-wide lookup index (for diagram hover enrichment)
+# ---------------------------------------------------------------------------
+
+
+def slugify(name: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-")
+    return slug or "item"
+
+
+@dataclass
+class ElementRef:
+    """One model element as seen by the hover lookup."""
+
+    name: str
+    kind: str
+    doc: str = ""
+    rel_path: str = ""
+    line: int = 0
+    anchor: str = ""        # page anchor, e.g. "member-MiddlewareSystem"
+
+
+def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
+    """Index every declared member and view by name.
+
+    Names are stored under both the raw and quote-stripped forms so SVG
+    labels can match quoted names ('exchange vehicle signals').
+    """
+    index: dict[str, list[ElementRef]] = {}
+    for mf in files:
+        for m in mf.members:
+            if m.kind == "package":
+                continue
+            ref = ElementRef(
+                name=m.name,
+                kind=m.kind,
+                doc=m.doc,
+                rel_path=mf.rel_path,
+                line=m.line,
+                anchor=f"member-{slugify(m.name)}",
+            )
+            _index_add(index, ref)
+        for v in mf.views:
+            ref = ElementRef(
+                name=v.name,
+                kind="view",
+                doc=v.doc,
+                rel_path=mf.rel_path,
+                line=v.line,
+                anchor=f"view-{slugify(v.name)}",
+            )
+            _index_add(index, ref)
+    return index
+
+
+def _index_add(index: dict[str, list[ElementRef]], ref: ElementRef) -> None:
+    index.setdefault(ref.name, []).append(ref)
+    if ref.name.startswith("'") and ref.name.endswith("'"):
+        index.setdefault(ref.name[1:-1], []).append(ref)
