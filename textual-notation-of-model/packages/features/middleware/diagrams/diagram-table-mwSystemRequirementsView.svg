@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1072" height="814" viewBox="0 0 1072 814" role="img" aria-labelledby="title description">
-  <title id="title">table-mwSystemRequirementsView</title>
-  <desc id="description">table-mwSystemRequirementsView. Generated from SysIDE grid CSV.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1072" height="1334" viewBox="0 0 1072 1334" role="img" aria-labelledby="title description">
+  <title id="title">Middleware system requirements</title>
+  <desc id="description">Lists system requirements with their authoritative natural-language statements.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
   <rect width="100%" height="100%" fill="#ffffff"/>
   <rect x="0" y="0" width="1072" height="54" fill="#172033"/>
-  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-mwSystemRequirementsView</text>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">Middleware system requirements</text>
   <rect x="0" y="54" width="352" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">ID</tspan>
@@ -18,135 +18,174 @@
   <text x="724" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="724" dy="0">Statement</tspan>
   </text>
-  <rect x="0" y="94" width="352" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="94" width="352" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqProvideMiddlewareSignalAccess</tspan>
   </text>
-  <rect x="352" y="94" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="352" y="94" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="364" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareSignalAccessRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="94" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="712" y="94" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-001 draft design-input requirement.</tspan>
+    <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="724" dy="20">provide the ADAS application access to the</tspan>
+    <tspan x="724" dy="20">vehicle signals required by its selected</tspan>
+    <tspan x="724" dy="20">operational use cases through the selected</tspan>
+    <tspan x="724" dy="20">middleware integration boundary.</tspan>
   </text>
-  <rect x="0" y="174" width="352" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="214" width="352" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqProvideMiddlewareDiagnosticAccess</tspan>
   </text>
-  <rect x="352" y="174" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="364" y="198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="352" y="214" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="364" y="238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareDiagnosticAccessRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="174" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="724" y="198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-002 draft design-input requirement.</tspan>
+  <rect x="712" y="214" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="724" y="238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="724" dy="20">provide the ADAS application access to</tspan>
+    <tspan x="724" dy="20">middleware and vehicle diagnostic status</tspan>
+    <tspan x="724" dy="20">needed to determine the health of the</tspan>
+    <tspan x="724" dy="20">selected integration boundary.</tspan>
   </text>
-  <rect x="0" y="254" width="352" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="334" width="352" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqCoordinateMiddlewareLifecycle</tspan>
   </text>
-  <rect x="352" y="254" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="364" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="352" y="334" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="364" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareLifecycleCoordinationRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="254" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="724" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-003 draft design-input requirement.</tspan>
+  <rect x="712" y="334" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="724" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="724" dy="20">coordinate middleware integration</tspan>
+    <tspan x="724" dy="20">lifecycle state with the ADAS application</tspan>
+    <tspan x="724" dy="20">so that startup, readiness, degraded</tspan>
+    <tspan x="724" dy="20">operation, and shutdown transitions are</tspan>
+    <tspan x="724" dy="20">observable at the integration boundary.</tspan>
   </text>
-  <rect x="0" y="334" width="352" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="474" width="352" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqMonitorMiddlewareHealth</tspan>
   </text>
-  <rect x="352" y="334" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="364" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="352" y="474" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="364" y="498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareHealthMonitoringRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="334" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="724" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-004 draft design-input requirement.</tspan>
+  <rect x="712" y="474" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="724" y="498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="724" dy="20">monitor the health of the selected</tspan>
+    <tspan x="724" dy="20">middleware integration boundary and</tspan>
+    <tspan x="724" dy="20">provide an observable indication when a</tspan>
+    <tspan x="724" dy="20">required integration service is stale,</tspan>
+    <tspan x="724" dy="20">missing, inconsistent, or unavailable.</tspan>
   </text>
-  <rect x="0" y="414" width="352" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="614" width="352" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqCoordinateMiddlewareUpdates</tspan>
   </text>
-  <rect x="352" y="414" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="364" y="438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="352" y="614" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="364" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareUpdateCoordinationRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="414" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="724" y="438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-005 draft design-input requirement.</tspan>
+  <rect x="712" y="614" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="724" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="724" dy="20">coordinate middleware integration updates</tspan>
+    <tspan x="724" dy="20">with the ADAS application lifecycle so</tspan>
+    <tspan x="724" dy="20">that an update does not silently</tspan>
+    <tspan x="724" dy="20">invalidate required signal, diagnostic,</tspan>
+    <tspan x="724" dy="20">lifecycle, or health interfaces.</tspan>
   </text>
-  <rect x="0" y="494" width="352" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="754" width="352" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqIsolateSafetyPath</tspan>
   </text>
-  <rect x="352" y="494" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="364" y="518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="352" y="754" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="364" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareSafetyPathIsolationRequirement,</tspan>
     <tspan x="364" dy="20">SafetyConstraintRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="494" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="724" y="518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-006 draft safety-constraint</tspan>
-    <tspan x="724" dy="20">requirement; architecture choice remains</tspan>
-    <tspan x="724" dy="20">open.</tspan>
+  <rect x="712" y="754" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="724" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="724" dy="20">prevent a failure of the non-safety</tspan>
+    <tspan x="724" dy="20">middleware integration path from causing</tspan>
+    <tspan x="724" dy="20">an uncontrolled emergency intervention</tspan>
+    <tspan x="724" dy="20">command, whether the selected realization</tspan>
+    <tspan x="724" dy="20">uses a safety-certified middleware</tspan>
+    <tspan x="724" dy="20">partition or a direct vehicle-command</tspan>
+    <tspan x="724" dy="20">path.</tspan>
   </text>
-  <rect x="0" y="574" width="352" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="598" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="934" width="352" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqProvideServiceDiscovery</tspan>
   </text>
-  <rect x="352" y="574" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="364" y="598" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="352" y="934" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="364" y="958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareServiceDiscoveryRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="574" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="724" y="598" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-007 draft design-input requirement.</tspan>
+  <rect x="712" y="934" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="724" y="958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="724" dy="20">discover and bind the middleware services</tspan>
+    <tspan x="724" dy="20">required by the selected ADAS application</tspan>
+    <tspan x="724" dy="20">integration configuration before those</tspan>
+    <tspan x="724" dy="20">services are used.</tspan>
   </text>
-  <rect x="0" y="654" width="352" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1054" width="352" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqAuthenticateServiceBinding</tspan>
   </text>
-  <rect x="352" y="654" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="364" y="678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="352" y="1054" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="364" y="1078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareServiceAuthenticationRequirement,</tspan>
     <tspan x="364" dy="20">SafetyConstraintRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="654" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="724" y="678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-008 draft safety/security</tspan>
-    <tspan x="724" dy="20">constraint; trust-boundary details remain</tspan>
-    <tspan x="724" dy="20">deferred.</tspan>
+  <rect x="712" y="1054" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="724" y="1078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="724" dy="20">authenticate a middleware service binding</tspan>
+    <tspan x="724" dy="20">before accepting service data or commands</tspan>
+    <tspan x="724" dy="20">across a trust boundary defined for the</tspan>
+    <tspan x="724" dy="20">selected integration configuration.</tspan>
   </text>
-  <rect x="0" y="734" width="352" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1174" width="352" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqMaintainMiddlewareBoundaryTraceability</tspan>
   </text>
-  <rect x="352" y="734" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="364" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="352" y="1174" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="364" y="1198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareBoundaryTraceabilityRequirement,</tspan>
     <tspan x="364" dy="20">TraceabilityConstraintRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate</tspan>
   </text>
-  <rect x="712" y="734" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="724" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="724" dy="0">REQ-MW-009 System 2 traceability</tspan>
-    <tspan x="724" dy="20">requirement.</tspan>
+  <rect x="712" y="1174" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="724" y="1198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="724" dy="0">The DE4SDV middleware increment shall</tspan>
+    <tspan x="724" dy="20">maintain trace links from each middleware</tspan>
+    <tspan x="724" dy="20">requirement to its stakeholder need,</tspan>
+    <tspan x="724" dy="20">operational-context source,</tspan>
+    <tspan x="724" dy="20">feature/common-capability classification,</tspan>
+    <tspan x="724" dy="20">unresolved gap, and planned verification</tspan>
+    <tspan x="724" dy="20">record.</tspan>
   </text>
 </svg>
