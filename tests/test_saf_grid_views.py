@@ -31,6 +31,9 @@ TABLE_VIEWS = {
     "textual-notation-of-model/packages/features/middleware/mw_requirements.sysml": (
         "mwSystemRequirementsView",
     ),
+    "textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml": (
+        "mwProductLineClassificationView",
+    ),
 }
 
 
@@ -96,10 +99,16 @@ def test_saf_requirement_definition_views_are_native_tables() -> None:
         for view_name in view_names:
             block = _block(text, f"view {view_name}")
             assert f"view {view_name} : TVD::TableView" in block
-            assert "filter @ SysML::RequirementUsage;" in block
+            expected_filter = (
+                "filter @ SysML::PartUsage;"
+                if view_name == "mwProductLineClassificationView"
+                else "filter @ SysML::RequirementUsage;"
+            )
+            assert expected_filter in block
             assert "view ID :> columnViews" in block
-            assert "view Name :> columnViews" in block
-            assert "view Statement :> columnViews" in block
+            if view_name != "mwProductLineClassificationView":
+                assert "view Name :> columnViews" in block
+                assert "view Statement :> columnViews" in block
             assert "render asTreeDiagram;" not in block
 
 
@@ -157,14 +166,16 @@ def test_operational_story_and_capability_are_focused_presentations() -> None:
         "mw_operational_context.sysml"
     ).read_text(encoding="utf-8")
     story = _block(model, "view mwOperationalStoryView")
-    assert "view mwOperationalStoryView : ActionFlowView" in story
     assert "expose OperationalContext::'integrate ADAS with vehicle platform';" in story
-    assert "render asTreeDiagram;" not in story
+    assert "view mwOperationalStoryView : ActionFlowView" not in story
+    assert "render asTreeDiagram;" in story
 
-    for view_name in ("mwOperationalContextView", "mwOperationalCapabilityView"):
-        block = _block(model, f"view {view_name}")
-        assert "expose OperationalContext::'integrate ADAS with vehicle platform';" in block
-        assert "expose OperationalContext::*;" not in block
+    context = _block(model, "view mwOperationalContextView")
+    capability = _block(model, "view mwOperationalCapabilityView")
+    assert "expose middlewareOperationalContext;" in context
+    assert "expose middlewareIntegrationCapability;" in capability
+    assert "'integrate ADAS with vehicle platform'" not in context
+    assert "'integrate ADAS with vehicle platform'" not in capability
 
 
 def test_function_and_interface_views_do_not_dump_packages() -> None:
@@ -184,11 +195,10 @@ def test_function_and_interface_views_do_not_dump_packages() -> None:
         model = (ROOT / relative_path).read_text(encoding="utf-8")
         behavior = _block(model, f"view {behavior_name}")
         assert f"expose {flow_name};" in behavior
-        assert "::*;" not in behavior
         interface = _block(model, f"view {interface_name}")
         if interface_name == "mwFunctionalInterfaceView":
             assert "expose FunctionalArchitecture::VehicleSignalAccessInbound;" in interface
-            assert "expose FunctionalArchitecture::VehicleSignalAccessRequest;" in interface
+            assert "expose FunctionalArchitecture::VehicleSignalAccessRequest;" not in interface
             assert "FunctionalArchitecture::*[" not in interface
         else:
             assert "istype SysML::PortDefinition" in interface
@@ -197,9 +207,8 @@ def test_function_and_interface_views_do_not_dump_packages() -> None:
     middleware = (ROOT / next(path for path in cases if "middleware" in path)).read_text(
         encoding="utf-8"
     )
-    process = _block(middleware, "view mwFunctionalProcessView")
-    assert "expose middlewareIntegrationFunctionalFlow;" in process
-    assert "expose FunctionalArchitecture::*;" not in process
+    assert "view mwFunctionalProcessView" not in middleware
+    assert "no context-partitioned system process" in middleware
 
 
 def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
@@ -210,13 +219,13 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     ).read_text(encoding="utf-8")
     structure = _block(conceptual, "view mwSystemStructureView")
     assert "expose system;" in structure
-    assert "expose system::*;" in structure
+    assert "expose system::signalTranslator;" in structure
+    assert "expose system::*;" not in structure
     assert "expose DE4SDV_MWConceptualArchitecture::*;" not in structure
-    internal = _block(conceptual, "view mwSystemInternalExchangeView")
-    assert "expose system;" in internal
-    assert "expose system::**;" in internal
-    assert "attribute depth = -1;" in internal
-    assert "attribute showAnnotationRows = false;" in internal
+    assert "view mwSystemInternalExchangeView" not in conceptual
+    normalized = " ".join(conceptual.split())
+    assert "cross-component connections or" in normalized
+    assert "item flows" in normalized
 
     physical = (
         ROOT
@@ -225,7 +234,8 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     ).read_text(encoding="utf-8")
     physical_structure = _block(physical, "view mwPhysicalStructureView")
     assert "expose physicalSoftware;" in physical_structure
-    assert "expose physicalSoftware::*;" in physical_structure
+    assert "expose physicalSoftware::adapter;" in physical_structure
+    assert "expose physicalSoftware::*;" not in physical_structure
     assert "expose DE4SDV_MWPhysicalSoftwareRealization::*;" not in physical_structure
     interface = _block(physical, "view mwPhysicalInterfaceView")
     assert (

@@ -36,35 +36,35 @@ package DE4SDV_MWStakeholderNeeds {
             doc /* N-MW-001 draft System 1 need. */
             subject productLine : SDVProductLine;
             stakeholder platformEngineer : SystemsEngineer;
-            require constraint { doc /* Platform engineers need the SDV product line to provide middleware integration that enables signal access, diagnostic access, lifecycle coordination, health monitoring, and update coordination between an ADAS application and a vehicle-level platform middleware. */ }
+            require constraint statement { language "English" /* Platform engineers need the SDV product line to provide middleware integration that enables signal access, diagnostic access, lifecycle coordination, health monitoring, and update coordination between an ADAS application and a vehicle-level platform middleware. */ }
           }
 
           requirement needPlatformDecoupling : PlatformDecouplingNeed {
             doc /* N-MW-002 draft System 1 need. */
             subject productLine : SDVProductLine;
             stakeholder platformEngineer : SystemsEngineer;
-            require constraint { doc /* Platform engineers need the SDV product line to ensure the ADAS application is not coupled to a specific middleware implementation so that middleware selection remains a product-line feature choice. */ }
+            require constraint statement { language "English" /* Platform engineers need the SDV product line to ensure the ADAS application is not coupled to a specific middleware implementation so that middleware selection remains a product-line feature choice. */ }
           }
 
           requirement needMiddlewareAsFeature : ProductLineClassificationNeed {
             doc /* N-MW-003 draft System 1 need. */
             subject productLine : SDVProductLine;
             stakeholder productLineEngineer : ProductLineEngineer;
-            require constraint { doc /* Product-line engineers need the SDV product line to treat middleware platform selection as a feature that distinguishes member products, with the adapter layer as a common capability derived from the application-middleware feature pair. */ }
+            require constraint statement { language "English" /* Product-line engineers need the SDV product line to treat middleware platform selection as a feature that distinguishes member products, with the adapter layer as a common capability derived from the application-middleware feature pair. */ }
           }
 
           requirement needSafetyPathIsolation : SafetyPathIsolationNeed {
             doc /* N-MW-004 draft System 1 need. */
             subject memberProduct : ProductLineMemberProduct;
             stakeholder safetyExpert : SafetyExpert;
-            require constraint { doc /* Safety experts need each SDV product-line member product to ensure that the emergency intervention path is isolated from middleware failures, whether routed through a safety-certified middleware partition or via a direct vehicle-command path. */ }
+            require constraint statement { language "English" /* Safety experts need each SDV product-line member product to ensure that the emergency intervention path is isolated from middleware failures, whether routed through a safety-certified middleware partition or via a direct vehicle-command path. */ }
           }
 
           requirement needUpstreamEngagement : UpstreamEngagementNeed {
             doc /* N-MW-005 draft System 1 need. */
             subject productLine : SDVProductLine;
             stakeholder maintainer : Maintainer;
-            require constraint { doc /* Maintainers need the SDV product line to engage upstream middleware maintainers before deeper integration, vendoring, or presenting borrowed methods as settled DE4SDV practice. */ }
+            require constraint statement { language "English" /* Maintainers need the SDV product line to engage upstream middleware maintainers before deeper integration, vendoring, or presenting borrowed methods as settled DE4SDV practice. */ }
           }
         }
 
@@ -73,21 +73,21 @@ package DE4SDV_MWStakeholderNeeds {
             doc /* N-MW-006 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder systemsEngineer : SystemsEngineer;
-            require constraint { doc /* Systems engineers need the DE4SDV middleware increment to maintain trace links from stakeholder needs to the operational context scenarios defined in INC-MW-002 and the feature classifications defined in INC-MW-003. */ }
+            require constraint statement { language "English" /* Systems engineers need the DE4SDV middleware increment to maintain trace links from stakeholder needs to the operational context scenarios defined in INC-MW-002 and the feature classifications defined in INC-MW-003. */ }
           }
 
           requirement needExplicitEngineeringBoundary : EngineeringTraceabilityNeed {
             doc /* N-MW-007 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder systemsEngineer : SystemsEngineer;
-            require constraint { doc /* Systems engineers need the DE4SDV middleware increment to keep its engineering boundary, assumptions, source constraints, and out-of-scope cases explicit while needs are derived. */ }
+            require constraint statement { language "English" /* Systems engineers need the DE4SDV middleware increment to keep its engineering boundary, assumptions, source constraints, and out-of-scope cases explicit while needs are derived. */ }
           }
 
           requirement needVVPlanningAttachment : VerificationPlanningNeed {
             doc /* N-MW-008 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder reviewer : OpenSourceReviewer;
-            require constraint { doc /* Reviewers need the DE4SDV middleware increment to maintain a separate controlled V&V planning attachment for each stakeholder need without changing the product obligation. */ }
+            require constraint statement { language "English" /* Reviewers need the DE4SDV middleware increment to maintain a separate controlled V&V planning attachment for each stakeholder need without changing the product obligation. */ }
           }
         }
 
@@ -161,7 +161,11 @@ package DE4SDV_MWStakeholderNeeds {
             attribute :>> featureToRender = CT::heritage;
           }
           view Statement :> columnViews {
-            attribute :>> featureToRender = CT::documentation;
+            attribute :>> featureToRender = CT::constraintLanguage {
+              attribute constraintName = "statement";
+              attribute constraintType = CL::ConT::required;
+              attribute constraintLanguage = "English";
+            }
             attribute :>> columnWidth = 360;
           }
         }

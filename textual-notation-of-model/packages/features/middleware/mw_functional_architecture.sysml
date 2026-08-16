@@ -320,6 +320,13 @@ package DE4SDV_MWFunctionalArchitecture {
           stakeholder reviewer : OpenSourceReviewer;
         }
         concern functionalProcessConcern : SystemProcessConcern {
+          doc /*
+           * Known issue: no context-partitioned system process is modeled in
+           * this increment. MiddlewareIntegrationFunctionalFlow owns functions
+           * and two internal successions, but it has no SOI/context swimlanes or
+           * boundary-crossing context actions. That internal behavior is not a
+           * substitute for a SAF System Process, so no process view is published.
+           */
           subject;
           stakeholder systemsEngineer : SystemsEngineer;
           stakeholder reviewer : OpenSourceReviewer;
@@ -330,24 +337,21 @@ package DE4SDV_MWFunctionalArchitecture {
             frame functionalBehaviorConcern;
           }
           expose MiddlewareIntegrationFunctionalFlow;
+          expose MiddlewareIntegrationFunctionalFlow::translateSignal;
+          expose MiddlewareIntegrationFunctionalFlow::proxyDiagnostics;
+          expose MiddlewareIntegrationFunctionalFlow::coordinateLifecycle;
+          expose MiddlewareIntegrationFunctionalFlow::forwardHealth;
+          expose MiddlewareIntegrationFunctionalFlow::coordinateUpdate;
+          expose MiddlewareIntegrationFunctionalFlow::bindService;
+          expose MiddlewareIntegrationFunctionalFlow::protectSafetyPath;
+          attribute showAnnotationRows = false;
+          attribute maxCompartmentEntries = 0;
           render asTreeDiagram;
         }
         view mwFunctionalInterfaceView {
           viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
             frame functionalInterfaceConcern;
           }
-          expose FunctionalArchitecture::VehicleSignalAccessRequest;
-          expose FunctionalArchitecture::VehicleSignalAccessResponse;
-          expose FunctionalArchitecture::DiagnosticAccessRequest;
-          expose FunctionalArchitecture::DiagnosticAccessResponse;
-          expose FunctionalArchitecture::LifecycleCoordinationRequest;
-          expose FunctionalArchitecture::LifecycleCoordinationStatus;
-          expose FunctionalArchitecture::HealthForwardingStatus;
-          expose FunctionalArchitecture::UpdateCoordinationRequest;
-          expose FunctionalArchitecture::UpdateCoordinationStatus;
-          expose FunctionalArchitecture::ServiceBindingRequest;
-          expose FunctionalArchitecture::ServiceBindingStatus;
-          expose FunctionalArchitecture::SafetyPathProtectionStatus;
           expose FunctionalArchitecture::VehicleSignalAccessInbound;
           expose FunctionalArchitecture::VehicleSignalAccessOutbound;
           expose FunctionalArchitecture::DiagnosticAccessInbound;
@@ -363,12 +367,6 @@ package DE4SDV_MWFunctionalArchitecture {
           expose FunctionalArchitecture::SafetyPathStatusOutbound;
           attribute showAnnotationRows = false;
           render asTreeDiagram;
-        }
-        view mwFunctionalProcessView : ActionFlowView {
-          viewpoint selectedFunctionalProcessViewpoint : SystemProcessViewpoint {
-            frame functionalProcessConcern;
-          }
-          expose middlewareIntegrationFunctionalFlow;
         }
       }
     }

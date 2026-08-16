@@ -26,6 +26,7 @@ package DE4SDV_MWFeatureClassification {
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
         private import DE4SDV_SDVPlatformStack::*;
+        private import SysideViews::**;
 
         /*
          * Classification concern: reviewers need to see common capabilities
@@ -128,13 +129,32 @@ package DE4SDV_MWFeatureClassification {
         /*
          * View
          */
-        view mwProductLineClassificationView {
+        view mwProductLineClassificationView : TVD::TableView {
           viewpoint selectedProductLineClassificationViewpoint : ProductLineClassificationViewpoint {
             frame productLineCapabilityClassificationConcern;
           }
 
-          expose FeatureClassification::*;
-          render asTreeDiagram;
+          expose FeatureClassification::adapterLayer;
+          expose FeatureClassification::signalAccessCapability;
+          expose FeatureClassification::lifecycleCoordinationCapability;
+          expose FeatureClassification::healthMonitoringCapability;
+          expose FeatureClassification::diagnosticAccessCapability;
+          expose FeatureClassification::updateCoordinationCapability;
+          expose FeatureClassification::safetyPathDecision;
+          expose FeatureClassification::securityTrustBoundary;
+          filter @ SysML::PartUsage;
+          attribute :>> includeReferenceElements = true;
+          attribute :>> maxRowHeight = 300;
+          view ID :> columnViews {
+            attribute :>> featureToRender = CT::declaredName;
+          }
+          view Classification :> columnViews {
+            attribute :>> featureToRender = CT::heritage;
+          }
+          view Rationale :> columnViews {
+            attribute :>> featureToRender = CT::documentation;
+            attribute :>> columnWidth = 360;
+          }
         }
       }
     }

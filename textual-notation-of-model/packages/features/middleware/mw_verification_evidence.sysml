@@ -645,9 +645,40 @@ package DE4SDV_MW010VerificationEvidence {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }
-    expose DE4SDV_MW010VerificationEvidence::*;
-    expose DE4SDV_MWVariabilityConfiguration::*;
-    expose DE4SDV_MWPhysicalSoftwareRealization::*;
+    expose mw010ReferenceContractClaim;
+    expose signalTranslationArgument010;
+    expose lifecycleCoordinationArgument010;
+    expose healthForwardingArgument010;
+    expose vehicleStartupArgument010;
+    expose updateCoordinationArgument010;
+    expose faultDetectionArgument010;
+    expose contractAndRehearsalEvidence010;
+    expose boundedAAOSBootBaseline010;
+    expose counterClaim010ProviderBinding;
+    expose counterClaim010CrossDomainTransport;
+    expose counterClaim010IndependentObservation;
+    expose counterClaim010LifecycleUpdateFault;
+    expose providerBindingEvidenceGap010;
+    expose crossDomainTransportEvidenceGap010;
+    expose independentAutowareObservationGap010;
+    expose lifecycleUpdateFaultEvidenceGap010;
+    expose claimSupportedBySignalArgument;
+    expose claimSupportedByLifecycleArgument;
+    expose claimSupportedByHealthArgument;
+    expose claimSupportedByStartupArgument;
+    expose claimSupportedByUpdateArgument;
+    expose claimSupportedByFaultArgument;
+    expose contractEvidenceReinforcesArgument;
+    expose bootBaselineReinforcesArgument;
+    expose counterClaimProviderBindingCountersClaim;
+    expose counterClaimTransportCountersClaim;
+    expose counterClaimObservationCountersClaim;
+    expose counterClaimLifecycleCountersClaim;
+    expose counterClaimProviderBindingGapTrace;
+    expose counterClaimTransportGapTrace;
+    expose counterClaimObservationGapTrace;
+    expose counterClaimLifecycleGapTrace;
+    attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
 }

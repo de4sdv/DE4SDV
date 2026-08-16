@@ -32,7 +32,7 @@ package DE4SDV_MWVariabilityConfiguration {
      * generated platform-stack projection. The local parts compose accepted
      * shared assets; they do not independently choose platform variants.
      */
-    part platformStack : SDVPlatformStack;
+    part platformStack : MWAutowareAAOSSDVReference;
     part middlewareBoundary : MiddlewarePhysicalSoftwareBoundary;
   }
 
@@ -170,6 +170,10 @@ package DE4SDV_MWVariabilityConfiguration {
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::System1Product::reqAuthenticateServiceBinding;
 
   concern productLineConfigurationConcern : ProductLineConfigurationConcern {
+    doc /*
+     * Review the selected feature variants in the deterministic generated
+     * platform-stack projection. This concern is about choices, not assembly.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -177,6 +181,11 @@ package DE4SDV_MWVariabilityConfiguration {
   }
 
   concern productModelAssemblyConcern : ProductModelAssemblyConcern {
+    doc /*
+     * Review the resulting member-product composition: configured platform
+     * stack plus the middleware physical/software boundary. This concern is
+     * about assembled assets, not the full variation space.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -187,8 +196,8 @@ package DE4SDV_MWVariabilityConfiguration {
     viewpoint selectedProductLineConfigurationViewpoint : ProductLineConfigurationViewpoint {
       frame productLineConfigurationConcern;
     }
-    expose DE4SDV_MWVariabilityConfiguration::*;
-    expose DE4SDV_SDVPlatformStack::*;
+    expose MWAutowareAAOSSDVReference;
+    attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
 
@@ -196,7 +205,11 @@ package DE4SDV_MWVariabilityConfiguration {
     viewpoint selectedProductModelAssemblyViewpoint : ProductModelAssemblyViewpoint {
       frame productModelAssemblyConcern;
     }
-    expose DE4SDV_MWVariabilityConfiguration::*;
+    expose configuredMember;
+    expose configuredMember::platformStack;
+    expose configuredMember::middlewareBoundary;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
   }
 }

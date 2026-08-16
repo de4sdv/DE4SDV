@@ -38,8 +38,44 @@ package DE4SDV_MWOperationalContext {
         part def AEBNode :> Stakeholder;
         part def VehicleCommandGate :> Stakeholder;
 
+        part def MiddlewareOperationalContext {
+          doc /*
+           * Operational environment for middleware integration. The owned roles
+           * are the performers and resources involved; this context is not an
+           * implementation decomposition of the intended solution.
+           */
+          part adasApplication : ADASApplicationStack;
+          part vehicleMiddleware : VehiclePlatformMiddleware;
+          part adapter : ApplicationMiddlewareAdapter;
+          part diagnosticTechnician : DiagnosticTechnician;
+          part otaCoordinator : OTAUpdateCoordinator;
+          part aebNode : AEBNode;
+          part vehicleCommandGate : VehicleCommandGate;
+        }
+
+        part middlewareOperationalContext : MiddlewareOperationalContext;
+
+        part def VehicleSignalExchangeCapability;
+        part def DiagnosticAccessCapability;
+        part def LifecycleCoordinationCapability;
+        part def ServiceHealthMonitoringCapability;
+        part def SoftwareUpdateCoordinationCapability;
+        part def SafetyPathProtectionCapability;
+
+        part def MiddlewareIntegrationOperationalCapability {
+          doc /* Stakeholder-visible capability taxonomy for middleware integration. */
+          part vehicleSignalExchange : VehicleSignalExchangeCapability;
+          part diagnosticAccess : DiagnosticAccessCapability;
+          part lifecycleCoordination : LifecycleCoordinationCapability;
+          part serviceHealthMonitoring : ServiceHealthMonitoringCapability;
+          part softwareUpdateCoordination : SoftwareUpdateCoordinationCapability;
+          part safetyPathProtection : SafetyPathProtectionCapability;
+        }
+
+        part middlewareIntegrationCapability : MiddlewareIntegrationOperationalCapability;
+
         use case 'integrate ADAS with vehicle platform' {
-          subject middlewareIntegratedVehicleSystem : MiddlewareIntegratedVehicleSystem;
+          subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor adasApplication : ADASApplicationStack;
           actor vehicleMiddleware : VehiclePlatformMiddleware;
           actor adapter : ApplicationMiddlewareAdapter;
@@ -107,7 +143,7 @@ package DE4SDV_MWOperationalContext {
         }
 
         use case 'exchange vehicle signals' {
-          subject middlewareIntegratedVehicleSystem : MiddlewareIntegratedVehicleSystem;
+          subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor adasApplication : ADASApplicationStack;
           actor vehicleMiddleware : VehiclePlatformMiddleware;
           actor adapter : ApplicationMiddlewareAdapter;
@@ -130,7 +166,7 @@ package DE4SDV_MWOperationalContext {
         }
 
         use case 'coordinate lifecycle' {
-          subject middlewareIntegratedVehicleSystem : MiddlewareIntegratedVehicleSystem;
+          subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor adasApplication : ADASApplicationStack;
           actor vehicleMiddleware : VehiclePlatformMiddleware;
           actor adapter : ApplicationMiddlewareAdapter;
@@ -152,7 +188,7 @@ package DE4SDV_MWOperationalContext {
         }
 
         use case 'monitor service health' {
-          subject middlewareIntegratedVehicleSystem : MiddlewareIntegratedVehicleSystem;
+          subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor adasApplication : ADASApplicationStack;
           actor vehicleMiddleware : VehiclePlatformMiddleware;
           actor adapter : ApplicationMiddlewareAdapter;
@@ -173,7 +209,7 @@ package DE4SDV_MWOperationalContext {
         }
 
         use case 'access diagnostics' {
-          subject middlewareIntegratedVehicleSystem : MiddlewareIntegratedVehicleSystem;
+          subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor diagnosticTechnician : DiagnosticTechnician;
           actor vehicleMiddleware : VehiclePlatformMiddleware;
           actor adapter : ApplicationMiddlewareAdapter;
@@ -194,7 +230,7 @@ package DE4SDV_MWOperationalContext {
         }
 
         use case 'coordinate software update' {
-          subject middlewareIntegratedVehicleSystem : MiddlewareIntegratedVehicleSystem;
+          subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor otaCoordinator : OTAUpdateCoordinator;
           actor vehicleMiddleware : VehiclePlatformMiddleware;
           actor adapter : ApplicationMiddlewareAdapter;
@@ -212,7 +248,7 @@ package DE4SDV_MWOperationalContext {
         }
 
         use case 'emergency intervention via safety path' {
-          subject middlewareIntegratedVehicleSystem : MiddlewareIntegratedVehicleSystem;
+          subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor aebNode : AEBNode;
           actor vehicleMiddleware : SafetyCertifiedMiddlewarePartition;
           actor vehicleCommandGate : VehicleCommandGate;
@@ -234,7 +270,7 @@ package DE4SDV_MWOperationalContext {
         }
 
         use case 'emergency intervention direct path' {
-          subject middlewareIntegratedVehicleSystem : MiddlewareIntegratedVehicleSystem;
+          subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor aebNode : AEBNode;
           actor vehicleCommandGate : VehicleCommandGate;
 
@@ -269,8 +305,17 @@ package DE4SDV_MWOperationalContext {
             frame operationalContextConcern;
           }
 
-          expose OperationalContext::'integrate ADAS with vehicle platform';
+          expose middlewareOperationalContext;
+          expose middlewareOperationalContext::adasApplication;
+          expose middlewareOperationalContext::vehicleMiddleware;
+          expose middlewareOperationalContext::adapter;
+          expose middlewareOperationalContext::diagnosticTechnician;
+          expose middlewareOperationalContext::otaCoordinator;
+          expose middlewareOperationalContext::aebNode;
+          expose middlewareOperationalContext::vehicleCommandGate;
           attribute depth = 1;
+          attribute showAnnotationRows = false;
+          attribute maxCompartmentEntries = 0;
           render asTreeDiagram;
         }
 
@@ -285,12 +330,17 @@ package DE4SDV_MWOperationalContext {
           stakeholder reviewer : OpenSourceReviewer;
         }
 
-        view mwOperationalStoryView : ActionFlowView {
+        view mwOperationalStoryView {
           viewpoint selectedOperationalStoryViewpoint : OperationalStoryViewpoint {
             frame operationalStoryConcern;
           }
 
           expose OperationalContext::'integrate ADAS with vehicle platform';
+          expose OperationalContext::'integrate ADAS with vehicle platform'::*;
+          attribute depth = 1;
+          attribute showAnnotationRows = false;
+          attribute maxCompartmentEntries = 0;
+          render asTreeDiagram;
         }
 
         concern operationalCapabilityConcern : OperationalCapabilityConcern {
@@ -312,8 +362,16 @@ package DE4SDV_MWOperationalContext {
             frame operationalCapabilityConcern;
           }
 
-          expose OperationalContext::'integrate ADAS with vehicle platform';
+          expose middlewareIntegrationCapability;
+          expose middlewareIntegrationCapability::vehicleSignalExchange;
+          expose middlewareIntegrationCapability::diagnosticAccess;
+          expose middlewareIntegrationCapability::lifecycleCoordination;
+          expose middlewareIntegrationCapability::serviceHealthMonitoring;
+          expose middlewareIntegrationCapability::softwareUpdateCoordination;
+          expose middlewareIntegrationCapability::safetyPathProtection;
           attribute depth = 1;
+          attribute showAnnotationRows = false;
+          attribute maxCompartmentEntries = 0;
           render asTreeDiagram;
         }
       }

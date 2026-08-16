@@ -408,7 +408,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part observer : AAOSVehicleSpeedObserver;
     port structuredLogcatOut : VehicleSpeedCampaignWirePublication;
 
-    flow from provider.vehicleSpeedOut.vehicleSpeed
+    connection providerToObserver
+      connect provider.vehicleSpeedOut to observer.vehicleSpeedIn;
+    flow providerToObserverPayload from provider.vehicleSpeedOut.vehicleSpeed
       to observer.vehicleSpeedIn.vehicleSpeed;
     bind structuredLogcatOut = observer.structuredLogcatOut;
   }
@@ -486,13 +488,28 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     part vmB : ROS2VehicleSpeedCampaignHostVm;
     part privateTcpBoundary : VehicleSpeedPrivateTcpTransport;
 
-    flow from vmA.cuttlefishGuest.structuredLogcatOut.envelope
+    connection guestToHostForwarder
+      connect vmA.cuttlefishGuest.structuredLogcatOut
+      to vmA.hostForwarder.structuredLogcatIn;
+    connection hostForwarderToPrivateTcp
+      connect vmA.hostForwarder.privateTcpOut to privateTcpBoundary.vmAIn;
+    connection privateTcpToRos2Ingress
+      connect privateTcpBoundary.vmBOut to vmB.ros2Ingress.privateTcpIn;
+    connection ros2IngressToObserver
+      connect vmB.ros2Ingress.velocityReportOut
+      to vmB.independentObserver.velocityReportIn;
+
+    flow guestToHostForwarderPayload
+      from vmA.cuttlefishGuest.structuredLogcatOut.envelope
       to vmA.hostForwarder.structuredLogcatIn.envelope;
-    flow from vmA.hostForwarder.privateTcpOut.envelope
+    flow hostForwarderToPrivateTcpPayload
+      from vmA.hostForwarder.privateTcpOut.envelope
       to privateTcpBoundary.vmAIn.envelope;
-    flow from privateTcpBoundary.vmBOut.envelope
+    flow privateTcpToRos2IngressPayload
+      from privateTcpBoundary.vmBOut.envelope
       to vmB.ros2Ingress.privateTcpIn.envelope;
-    flow from vmB.ros2Ingress.velocityReportOut.velocityReport
+    flow ros2IngressToObserverPayload
+      from vmB.ros2Ingress.velocityReportOut.velocityReport
       to vmB.independentObserver.velocityReportIn.velocityReport;
   }
 
@@ -652,12 +669,22 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     to aaosBuildRuntimeEnvironmentCandidate;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
+    doc /*
+     * Review the System 1 candidate software boundary: adapter, AAOS SDV
+     * boundary, and application-side clients. Source records and the bounded
+     * System 2 campaign are excluded from this breakdown.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
   concern physicalInterfaceConcern : PhysicalInterfaceConcern {
+    doc /*
+     * Review the System 1 candidate software protocol endpoints for the first
+     * vehicle-speed slice. Physical interfaces include software protocols; the
+     * separate campaign view owns the System 2 transport contracts.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
@@ -678,12 +705,14 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   concern vehicleSpeedCampaignStructureConcern : PhysicalStructureConcern {
+    doc /* Supporting System 2 campaign-host breakdown, distinct from the System 1 product boundary. */
     subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
   concern vehicleSpeedCampaignInterfaceConcern : PhysicalInterfaceConcern {
+    doc /* Supporting System 2 campaign transport contracts, distinct from the System 1 candidate interfaces. */
     subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
@@ -706,9 +735,17 @@ package DE4SDV_MWPhysicalSoftwareRealization {
       frame physicalStructureConcern;
     }
     expose physicalSoftware;
-    expose physicalSoftware::*;
-    attribute depth = 2;
+    expose physicalSoftware::adapter;
+    expose physicalSoftware::aaosSdvBoundary;
+    expose physicalSoftware::signalAccessClient;
+    expose physicalSoftware::diagnosticAccessClient;
+    expose physicalSoftware::lifecycleClient;
+    expose physicalSoftware::healthClient;
+    expose physicalSoftware::updateClient;
+    expose physicalSoftware::serviceDiscoveryClient;
+    attribute depth = 1;
     attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
   }
 
@@ -719,12 +756,6 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     expose DE4SDV_MWPhysicalSoftwareRealization::DE4SDVReferenceVehicleSpeedPayload;
     expose DE4SDV_MWPhysicalSoftwareRealization::DE4SDVReferenceVehicleSpeedAccessPort;
     expose DE4SDV_MWPhysicalSoftwareRealization::VelocityReportPublication;
-    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedProviderMessage;
-    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedProviderPublication;
-    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedProviderSubscription;
-    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedCampaignWireEnvelope;
-    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedCampaignWirePublication;
-    expose DE4SDV_MWPhysicalSoftwareRealization::VehicleSpeedCampaignWireSubscription;
     attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
@@ -751,7 +782,25 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * so no boundary delegation is modeled or claimed.
      */
     expose vehicleSpeedCampaignDeployment;
-    expose vehicleSpeedCampaignDeployment::**;
+    expose vehicleSpeedCampaignDeployment::vmA;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::provider;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::observer;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::providerToObserver;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::providerToObserverPayload;
+    expose vehicleSpeedCampaignDeployment::vmA::hostForwarder;
+    expose vehicleSpeedCampaignDeployment::privateTcpBoundary;
+    expose vehicleSpeedCampaignDeployment::vmB;
+    expose vehicleSpeedCampaignDeployment::vmB::ros2Ingress;
+    expose vehicleSpeedCampaignDeployment::vmB::independentObserver;
+    expose vehicleSpeedCampaignDeployment::guestToHostForwarder;
+    expose vehicleSpeedCampaignDeployment::guestToHostForwarderPayload;
+    expose vehicleSpeedCampaignDeployment::hostForwarderToPrivateTcp;
+    expose vehicleSpeedCampaignDeployment::hostForwarderToPrivateTcpPayload;
+    expose vehicleSpeedCampaignDeployment::privateTcpToRos2Ingress;
+    expose vehicleSpeedCampaignDeployment::privateTcpToRos2IngressPayload;
+    expose vehicleSpeedCampaignDeployment::ros2IngressToObserver;
+    expose vehicleSpeedCampaignDeployment::ros2IngressToObserverPayload;
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
@@ -767,9 +816,15 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * nested AAOS guest, host-side forwarder, ROS 2 ingress, and observer.
      */
     expose vehicleSpeedCampaignDeployment;
-    expose vehicleSpeedCampaignDeployment::vmA::*;
-    expose vehicleSpeedCampaignDeployment::vmB::*;
+    expose vehicleSpeedCampaignDeployment::vmA;
+    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest;
+    expose vehicleSpeedCampaignDeployment::vmA::hostForwarder;
     expose vehicleSpeedCampaignDeployment::privateTcpBoundary;
+    expose vehicleSpeedCampaignDeployment::vmB;
+    expose vehicleSpeedCampaignDeployment::vmB::ros2Ingress;
+    expose vehicleSpeedCampaignDeployment::vmB::independentObserver;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
   }
 
@@ -782,17 +837,13 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * VelocityReport publication/subscription boundary. Exact serialization
      * and transport parameters remain owned by the executable contracts.
      */
-    expose VehicleSpeedProviderMessage;
     expose VehicleSpeedProviderPublication;
     expose VehicleSpeedProviderSubscription;
-    expose VehicleSpeedCampaignQuality;
-    expose DE4SDVReferenceVehicleSpeedPayload;
-    expose VehicleSpeedCampaignWireEnvelope;
     expose VehicleSpeedCampaignWirePublication;
     expose VehicleSpeedCampaignWireSubscription;
-    expose VelocityReportMessage;
     expose VelocityReportPublication;
     expose VelocityReportSubscription;
+    attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
 

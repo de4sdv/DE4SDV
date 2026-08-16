@@ -209,6 +209,15 @@ package DE4SDV_MWConceptualArchitecture {
   }
 
   concern conceptualInternalExchangeConcern : ConceptualInternalExchangeConcern {
+    doc /*
+     * Known issue: no view is published for this concern yet. The current
+     * conceptual architecture models boundary delegations from MiddlewareSystem
+     * ports to owned responsibility ports, but no cross-component connections or
+     * item flows. Native rendering of those bindings produces assignment/end
+     * notation rather than a reviewable internal-exchange diagram. The boundary
+     * delegations remain in the model; publish this view only after authoritative
+     * cross-component interfaces, connections, and exchanged items are modeled.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder reviewer : OpenSourceReviewer;
@@ -225,27 +234,16 @@ package DE4SDV_MWConceptualArchitecture {
       frame conceptualStructureConcern;
     }
     expose system;
-    expose system::*;
+    expose system::signalTranslator;
+    expose system::diagnosticProxy;
+    expose system::lifecycleBridge;
+    expose system::healthProxy;
+    expose system::updateCoordinator;
+    expose system::serviceBindingManager;
     attribute depth = 1;
     attribute showAnnotationRows = false;
-    render asTreeDiagram;
-  }
-
-  view mwSystemInternalExchangeView {
-    viewpoint selectedSystemInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
-      frame conceptualInternalExchangeConcern;
-    }
-    /*
-     * Expose the part-usage subtree, not the package: the interconnection
-     * renderer draws part usages with their ports and flow edges; a
-     * package-level expose resolves to definitions, which are skipped.
-     */
-    expose system;
-    expose system::**;
-    attribute depth = -1;
-    attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
-    render asInterconnectionDiagram;
+    render asTreeDiagram;
   }
 
   view mwSystemFunctionMappingView : MVD::MatrixView {

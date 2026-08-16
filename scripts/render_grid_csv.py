@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import textwrap
+from dataclasses import dataclass
 from pathlib import Path
 from xml.sax.saxutils import escape
 
@@ -16,6 +17,55 @@ CELL_PAD_Y = 10
 MIN_COLUMN_WIDTH = 110
 MAX_COLUMN_WIDTH = 360
 TITLE_HEIGHT = 54
+AXIS_TITLE_HEIGHT = 84
+
+
+@dataclass(frozen=True)
+class GridMetadata:
+    title: str
+    description: str
+    row_label: str | None = None
+    column_label: str | None = None
+
+
+GRID_METADATA = {
+    "matrix-aebsSystemFunctionMappingView": GridMetadata(
+        "AEBS system-function mapping",
+        "Maps system functions to conceptual system elements.",
+        "system functions (action usages)",
+        "conceptual system elements (part usages)",
+    ),
+    "matrix-aebsPhysicalLogicalMappingView": GridMetadata(
+        "AEBS conceptual-to-physical mapping",
+        "Maps conceptual system elements to physical/software elements.",
+        "conceptual system elements (part usages)",
+        "physical/software elements (part usages)",
+    ),
+    "matrix-aebsSimulationPhysicalLogicalMappingView": GridMetadata(
+        "AEBS conceptual-to-simulation mapping",
+        "Maps conceptual system elements to simulation/deployment elements.",
+        "conceptual system elements (part usages)",
+        "simulation/deployment elements (part usages)",
+    ),
+    "matrix-aebsSimulationPhysicalLogicalItemMappingView": GridMetadata(
+        "AEBS conceptual-to-simulation item mapping",
+        "Maps conceptual exchange items to simulation/deployment exchange items.",
+        "conceptual exchange items",
+        "simulation/deployment exchange items",
+    ),
+    "matrix-mwSystemFunctionMappingView": GridMetadata(
+        "Middleware system-function mapping",
+        "Maps system functions to conceptual system elements.",
+        "system functions (action usages)",
+        "conceptual system elements (part usages)",
+    ),
+    "matrix-mwPhysicalLogicalMappingView": GridMetadata(
+        "Middleware conceptual-to-physical mapping",
+        "Maps conceptual system elements to physical/software elements.",
+        "conceptual system elements (part usages)",
+        "physical/software elements (part usages)",
+    ),
+}
 
 
 def _read_rows(path: Path) -> list[list[str]]:
@@ -51,9 +101,16 @@ def render_csv(source: Path, output: Path) -> None:
     ]
     table_width = sum(widths)
     table_height = sum(row_heights)
-    total_height = TITLE_HEIGHT + table_height
-    title = source.stem
-    description = f"{title}. Generated from SysIDE grid CSV."
+    metadata = GRID_METADATA.get(source.stem)
+    title = metadata.title if metadata else source.stem
+    description = (
+        metadata.description
+        if metadata
+        else f"{title}. Generated from SysIDE grid CSV."
+    )
+    has_axes = bool(metadata and metadata.row_label and metadata.column_label)
+    title_height = AXIS_TITLE_HEIGHT if has_axes else TITLE_HEIGHT
+    total_height = title_height + table_height
 
     parts = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -66,14 +123,24 @@ def render_csv(source: Path, output: Path) -> None:
         f"  <desc id=\"description\">{escape(description)}</desc>",
         "  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->",
         "  <rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/>",
-        f'  <rect x="0" y="0" width="{table_width}" height="{TITLE_HEIGHT}" fill="#172033"/>',
+        f'  <rect x="0" y="0" width="{table_width}" height="{title_height}" fill="#172033"/>',
         (
             f'  <text x="{CELL_PAD_X}" y="34" font-family="Inter, Arial, sans-serif" '
             f'font-size="20" font-weight="700" fill="#ffffff">{escape(title)}</text>'
         ),
     ]
 
-    y = TITLE_HEIGHT
+    if has_axes and metadata:
+        axis_summary = (
+            f"Rows ↓: {metadata.row_label}   |   "
+            f"Columns →: {metadata.column_label}"
+        )
+        parts.append(
+            f'  <text x="{CELL_PAD_X}" y="62" font-family="Inter, Arial, sans-serif" '
+            f'font-size="13" fill="#d9e2f2">{escape(axis_summary)}</text>'
+        )
+
+    y = title_height
     for row_index, row in enumerate(wrapped):
         height = row_heights[row_index]
         background = "#e8eef8" if row_index == 0 else ("#ffffff" if row_index % 2 else "#f6f8fb")
