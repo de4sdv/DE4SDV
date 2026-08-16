@@ -337,7 +337,12 @@ def _highlight_line(line: str, in_block: bool) -> tuple[str, bool]:
 
 
 def _highlight_source(text: str) -> str:
-    """Syntax-highlight the .sysml source and wrap it in numbered lines."""
+    """Syntax-highlight the .sysml source and wrap it in numbered lines.
+
+    Line blocks are joined WITHOUT newlines: inside a <pre> with
+    white-space: pre, a newline between two block elements renders as an
+    extra line box, doubling the perceived line spacing.
+    """
     in_block = False
     body = []
     for i, raw in enumerate(text.split("\n"), 1):
@@ -346,7 +351,7 @@ def _highlight_source(text: str) -> str:
             f'<span class="src-line" id="src-{i}">'
             f'<span class="src-ln">{i}</span>{html}</span>'
         )
-    return "\n".join(body)
+    return "".join(body)
 
 
 # ---------------------------------------------------------------------------

@@ -284,6 +284,10 @@ def test_source_view_and_tabs(tmp_path):
     pre_body = pre_m.group(1)
     assert pre_body.count("<span") == pre_body.count("</span>")
     assert "src-cmt" in pre_body
+    # regression: no newline between line blocks — inside a white-space:pre
+    # <pre> a newline between blocks renders as an extra line box (doubled
+    # perceived line spacing)
+    assert "\n" not in pre_body
     # no comment span may contain a newline (would break line wrapping)
     for cmt in re.findall(r'<span class="src-cmt">(.*?)</span>', pre_body, re.S):
         assert "\n" not in cmt
