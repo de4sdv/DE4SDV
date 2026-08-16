@@ -49,6 +49,13 @@ which covers PR branches that were never checked out. When the `gh` CLI can
 map a branch to an open pull request, the picker labels it
 (`PR #99: feat(...)`); use `--no-prs` to disable.
 
+Revisions that are **not built** are still listed in the picker, disabled,
+with a hint in their tooltip: `regenerate with: --refs <name> (or --refs
+auto)` — the picker never silently hides a branch or PR. Refs without any
+`.sysml` under the model roots are skipped at generation with a warning
+(e.g. PRs that only touch docs or tooling), and the same disabled-entry
+mechanism makes that visible in the UI.
+
 `gh pr checkout <number>` is the easiest way to add a PR to the picker: the
 branch becomes a local branch, and the next generation labels it with its
 PR number and title.
@@ -69,6 +76,10 @@ Or open `build/model-viewer/index.html` directly in a browser.
 - **Index** — model stats and the full navigation tree.
 - **Directory pages** (`pages/<model-dir>/index.html`) — contents of each
   model folder.
+- **Tree nodes for files** — expanding a `.sysml` file lists its views and
+  **every declared member** (ports and attributes nested in part
+  definitions included), each jumping to its declaration line. Packages
+  are structural containers and are not listed as members.
 - **File pages** (`pages/<model-file>.html`) — one per `.sysml` file:
   - *view sections*: view name, viewpoint, concern, expose targets,
     depth, render kind, source line — and the SysIDE diagram (or an

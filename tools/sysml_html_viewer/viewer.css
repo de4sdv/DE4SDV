@@ -323,7 +323,7 @@ code {
 }
 .viewer-tooltip {
   position: fixed;
-  z-index: 1000;
+  z-index: 3000;  /* above the fullscreen diagram overlay (2000) */
   pointer-events: none;
   min-width: 200px;
   max-width: 430px;

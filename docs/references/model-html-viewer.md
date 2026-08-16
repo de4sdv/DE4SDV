@@ -44,7 +44,10 @@ from git — nothing is checked out or modified), so the tree, diagrams,
 tooltips, and source references all reflect that branch or PR. PR branches
 that only exist on the remote resolve via `origin/<name>`, and when `gh`
 can map a branch to an open pull request the picker labels it
-(`PR #99: feat(...)`). Reviewing a PR therefore needs no local checkout:
+(`PR #99: feat(...)`). Branches and PRs that were **not** built appear in
+the picker as disabled entries whose tooltip shows the exact regenerate
+command (`--refs <name>`), so the picker never silently hides a revision.
+Reviewing a PR therefore needs no local checkout:
 `gh pr checkout <number>` once, regenerate with `--refs`, and switch
 between the working tree and the PR in the header.
 

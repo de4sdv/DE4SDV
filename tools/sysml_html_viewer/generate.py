@@ -60,6 +60,7 @@ class RefSpec:
     """One extra repository revision to build alongside the working tree."""
 
     ref: str    # git ref name (branch, tag, refs/pull/N/head, ...)
+    short: str  # short name GitHub accepts (blob URLs, PR lookups)
     san: str    # sanitized subdirectory name under refs/
     label: str  # picker label (branch name, or PR label when mapped)
 
@@ -229,8 +230,27 @@ def _expand_refs(
             san = f"{base}_{n}"
             n += 1
         seen_dirs.add(san)
-        specs.append(RefSpec(ref=resolved, san=san, label=label))
+        specs.append(RefSpec(ref=resolved, short=short, san=san, label=label))
     return specs, branch, pr_map
+
+
+def _known_unbuilt_refs(
+    repo_root: Path,
+    branch: str,
+    built_shorts: set[str],
+    pr_map: dict[str, str],
+) -> list[tuple[str, str]]:
+    """(short name, label) for revisions that exist in the repository (local
+    branches + open PR heads) but were not built — the picker shows them as
+    disabled options with a hint instead of hiding them."""
+    known = set(_local_branches(repo_root))
+    known |= set(pr_map.keys())
+    out = []
+    for name in sorted(known):
+        if name == branch or name in built_shorts:
+            continue
+        out.append((name, pr_map.get(name) or name))
+    return out
 
 
 def _ref_has_model(repo_root: Path, ref: str, roots: list[str]) -> bool:
@@ -379,7 +399,7 @@ def _build_site(
     out_dir: Path,
     roots: list[str],
     blob_base: str = "",
-    options: list[tuple[str, str]] | None = None,
+    options: list[tuple[str, str, bool, str]] | None = None,
     current: str = "index.html",
     external_ref: bool = False,
 ) -> int:
@@ -415,7 +435,8 @@ def _build_site(
     js_src = Path(__file__).parent / "viewer.js"
     shutil.copyfile(js_src, assets_dir / "viewer.js")
 
-    options = options or [("index.html", "working tree")]
+    if options is None:
+        options = [("index.html", "working tree", True, "")]
     pages_root = out_dir / "pages"
 
     def picker(site: str) -> str:
@@ -512,8 +533,20 @@ def generate(
                 file=sys.stderr,
             )
     work_label = f"working tree · {branch}" if branch else "working tree"
-    options = [("index.html", work_label)]
-    options += [(f"refs/{s.san}/index.html", s.label) for s in eligible]
+    options: list[tuple[str, str, bool, str]] = [("index.html", work_label, True, "")]
+    for s in eligible:
+        options.append((f"refs/{s.san}/index.html", s.label, True, ""))
+    if _is_git_root(repo_root):
+        built_shorts = {s.short for s in eligible}
+        for name, label in _known_unbuilt_refs(repo_root, branch, built_shorts, pr_map):
+            options.append(
+                (
+                    "",
+                    f"{label} (not built)",
+                    False,
+                    f"regenerate with: --refs {name} (or --refs auto)",
+                )
+            )
 
     ok = True
     blob_base = _github_blob_base(repo_root, branch)

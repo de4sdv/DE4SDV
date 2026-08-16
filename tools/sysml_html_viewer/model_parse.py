@@ -360,12 +360,11 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
                     meta=v.render or v.view_type,
                 )
             )
-        # top-level members jump to their declaration line in the source
-        top_level = [m for m in mf.members if not m.children]
-        if mf.members:
-            min_depth = min(m.depth for m in mf.members)
-            top_level = [m for m in mf.members if m.depth == min_depth + 1]
-        for mm in top_level:
+        # every declared member links to its declaration line in the source
+        for mm in mf.members:
+            if mm.kind == "package":
+                # packages are structural containers, not leaf members
+                continue
             file_node.children.append(
                 TreeNode(
                     label=mm.name,

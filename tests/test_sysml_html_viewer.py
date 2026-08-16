@@ -133,6 +133,14 @@ def test_build_tree(model_files):
     assert "view" in child_kinds
     view_labels = {c.label for c in file_node.children if c.kind == "view"}
     assert view_labels == {"fixtureStructureView", "fixtureMatrixView"}
+    # every declared member is listed (any nesting depth), packages are not
+    member_labels = {c.label for c in file_node.children if c.kind != "view"}
+    assert "fixtureSystem" in member_labels
+    assert "signalIn" in member_labels  # port nested inside a part def
+    assert "signalOut" in member_labels
+    assert "RootLevelPart" in member_labels
+    assert "FixtureRoot" not in member_labels  # packages are containers
+    assert "Features" not in member_labels
 
 
 # --- hover enrichment -------------------------------------------------------
@@ -342,6 +350,12 @@ def test_generate_skips_ref_without_model(tmp_path):
     index = (out / "index.html").read_text(encoding="utf-8")
     assert "refs/docs-only" not in index
     assert not (out / "refs" / "docs_only").exists()
+    # the branch is still known: a disabled picker entry explains how to build it
+    assert re.search(
+        r'<option value="" disabled title="[^"]*--refs docs-only[^"]*">'
+        r"docs-only \(not built\)</option>",
+        index,
+    )
 
 
 def test_inline_svg_and_hover_json_in_page(tmp_path):

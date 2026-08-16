@@ -103,21 +103,28 @@ def render_tree(node: TreeNode, active_href: str = "", depth: int = 0) -> str:
 
 
 def render_ref_picker(
-    refs: list[tuple[str, str]], current: str, site: str
+    refs: list[tuple[str, str, bool, str]], current: str, site: str
 ) -> str:
-    """Header revision picker: one <option> per built revision, with relative
+    """Header revision picker: one <option> per known revision, with relative
     hrefs computed from this page's site path so the site keeps working from
-    file:// (no fetch, no absolute paths)."""
+    file:// (no fetch, no absolute paths).
+
+    Each entry is (site-root target, label, enabled, title). Revisions that
+    exist in the repository but were not built at generation time appear as
+    disabled options whose title explains how to build them.
+    """
     if not refs:
         return ""
     opts = []
-    for target, label in refs:
+    for target, label, enabled, title in refs:
         # browsers resolve relative URLs from the page's directory, not the
         # page file itself
         base = posixpath.dirname(site)
-        rel = posixpath.relpath(target, base)
-        sel = " selected" if target == current else ""
-        opts.append(f'<option value="{esc(rel)}"{sel}>{esc(label)}</option>')
+        rel = posixpath.relpath(target, base) if target else ""
+        sel = " selected" if target and target == current else ""
+        dis = "" if enabled else " disabled"
+        tip = f' title="{esc(title)}"' if title else ""
+        opts.append(f'<option value="{esc(rel)}"{sel}{dis}{tip}>{esc(label)}</option>')
     return (
         '<span class="ref-picker-wrap" title="Show the viewer for another '
         'branch or pull request">'
