@@ -734,15 +734,15 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
       frame physicalStructureConcern;
     }
-    expose physicalSoftware;
-    expose physicalSoftware::adapter;
-    expose physicalSoftware::aaosSdvBoundary;
-    expose physicalSoftware::signalAccessClient;
-    expose physicalSoftware::diagnosticAccessClient;
-    expose physicalSoftware::lifecycleClient;
-    expose physicalSoftware::healthClient;
-    expose physicalSoftware::updateClient;
-    expose physicalSoftware::serviceDiscoveryClient;
+    expose MiddlewarePhysicalSoftwareBoundary;
+    expose MiddlewarePhysicalSoftwareBoundary::adapter;
+    expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
+    expose MiddlewarePhysicalSoftwareBoundary::signalAccessClient;
+    expose MiddlewarePhysicalSoftwareBoundary::diagnosticAccessClient;
+    expose MiddlewarePhysicalSoftwareBoundary::lifecycleClient;
+    expose MiddlewarePhysicalSoftwareBoundary::healthClient;
+    expose MiddlewarePhysicalSoftwareBoundary::updateClient;
+    expose MiddlewarePhysicalSoftwareBoundary::serviceDiscoveryClient;
     attribute depth = 1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
@@ -815,14 +815,14 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Supporting structure view for the two independent System 2 hosts, the
      * nested AAOS guest, host-side forwarder, ROS 2 ingress, and observer.
      */
-    expose vehicleSpeedCampaignDeployment;
-    expose vehicleSpeedCampaignDeployment::vmA;
-    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest;
-    expose vehicleSpeedCampaignDeployment::vmA::hostForwarder;
-    expose vehicleSpeedCampaignDeployment::privateTcpBoundary;
-    expose vehicleSpeedCampaignDeployment::vmB;
-    expose vehicleSpeedCampaignDeployment::vmB::ros2Ingress;
-    expose vehicleSpeedCampaignDeployment::vmB::independentObserver;
+    expose VehicleSpeedCampaignCommunicationDeployment;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmA;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmA::cuttlefishGuest;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmA::hostForwarder;
+    expose VehicleSpeedCampaignCommunicationDeployment::privateTcpBoundary;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmB;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmB::ros2Ingress;
+    expose VehicleSpeedCampaignCommunicationDeployment::vmB::independentObserver;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asTreeDiagram;

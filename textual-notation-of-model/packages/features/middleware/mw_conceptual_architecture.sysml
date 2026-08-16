@@ -233,13 +233,13 @@ package DE4SDV_MWConceptualArchitecture {
     viewpoint selectedSystemStructureViewpoint : SystemStructureDefinitionViewpoint {
       frame conceptualStructureConcern;
     }
-    expose system;
-    expose system::signalTranslator;
-    expose system::diagnosticProxy;
-    expose system::lifecycleBridge;
-    expose system::healthProxy;
-    expose system::updateCoordinator;
-    expose system::serviceBindingManager;
+    expose MiddlewareSystem;
+    expose MiddlewareSystem::signalTranslator;
+    expose MiddlewareSystem::diagnosticProxy;
+    expose MiddlewareSystem::lifecycleBridge;
+    expose MiddlewareSystem::healthProxy;
+    expose MiddlewareSystem::updateCoordinator;
+    expose MiddlewareSystem::serviceBindingManager;
     attribute depth = 1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;

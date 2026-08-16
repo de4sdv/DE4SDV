@@ -172,8 +172,8 @@ def test_operational_story_and_capability_are_focused_presentations() -> None:
 
     context = _block(model, "view mwOperationalContextView")
     capability = _block(model, "view mwOperationalCapabilityView")
-    assert "expose middlewareOperationalContext;" in context
-    assert "expose middlewareIntegrationCapability;" in capability
+    assert "expose MiddlewareOperationalContext;" in context
+    assert "expose MiddlewareIntegrationOperationalCapability;" in capability
     assert "'integrate ADAS with vehicle platform'" not in context
     assert "'integrate ADAS with vehicle platform'" not in capability
 
@@ -218,9 +218,9 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
         "mw_conceptual_architecture.sysml"
     ).read_text(encoding="utf-8")
     structure = _block(conceptual, "view mwSystemStructureView")
-    assert "expose system;" in structure
-    assert "expose system::signalTranslator;" in structure
-    assert "expose system::*;" not in structure
+    assert "expose MiddlewareSystem;" in structure
+    assert "expose MiddlewareSystem::signalTranslator;" in structure
+    assert "expose MiddlewareSystem::*;" not in structure
     assert "expose DE4SDV_MWConceptualArchitecture::*;" not in structure
     assert "view mwSystemInternalExchangeView" not in conceptual
     normalized = " ".join(conceptual.split())
@@ -233,9 +233,9 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
         "mw_physical_software_realization.sysml"
     ).read_text(encoding="utf-8")
     physical_structure = _block(physical, "view mwPhysicalStructureView")
-    assert "expose physicalSoftware;" in physical_structure
-    assert "expose physicalSoftware::adapter;" in physical_structure
-    assert "expose physicalSoftware::*;" not in physical_structure
+    assert "expose MiddlewarePhysicalSoftwareBoundary;" in physical_structure
+    assert "expose MiddlewarePhysicalSoftwareBoundary::adapter;" in physical_structure
+    assert "expose MiddlewarePhysicalSoftwareBoundary::*;" not in physical_structure
     assert "expose DE4SDV_MWPhysicalSoftwareRealization::*;" not in physical_structure
     interface = _block(physical, "view mwPhysicalInterfaceView")
     assert (

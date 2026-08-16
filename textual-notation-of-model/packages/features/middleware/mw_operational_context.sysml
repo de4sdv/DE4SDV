@@ -305,14 +305,14 @@ package DE4SDV_MWOperationalContext {
             frame operationalContextConcern;
           }
 
-          expose middlewareOperationalContext;
-          expose middlewareOperationalContext::adasApplication;
-          expose middlewareOperationalContext::vehicleMiddleware;
-          expose middlewareOperationalContext::adapter;
-          expose middlewareOperationalContext::diagnosticTechnician;
-          expose middlewareOperationalContext::otaCoordinator;
-          expose middlewareOperationalContext::aebNode;
-          expose middlewareOperationalContext::vehicleCommandGate;
+          expose MiddlewareOperationalContext;
+          expose MiddlewareOperationalContext::adasApplication;
+          expose MiddlewareOperationalContext::vehicleMiddleware;
+          expose MiddlewareOperationalContext::adapter;
+          expose MiddlewareOperationalContext::diagnosticTechnician;
+          expose MiddlewareOperationalContext::otaCoordinator;
+          expose MiddlewareOperationalContext::aebNode;
+          expose MiddlewareOperationalContext::vehicleCommandGate;
           attribute depth = 1;
           attribute showAnnotationRows = false;
           attribute maxCompartmentEntries = 0;
@@ -339,7 +339,6 @@ package DE4SDV_MWOperationalContext {
           expose OperationalContext::'integrate ADAS with vehicle platform'::*;
           attribute depth = 1;
           attribute showAnnotationRows = false;
-          attribute maxCompartmentEntries = 0;
           render asTreeDiagram;
         }
 
@@ -362,13 +361,13 @@ package DE4SDV_MWOperationalContext {
             frame operationalCapabilityConcern;
           }
 
-          expose middlewareIntegrationCapability;
-          expose middlewareIntegrationCapability::vehicleSignalExchange;
-          expose middlewareIntegrationCapability::diagnosticAccess;
-          expose middlewareIntegrationCapability::lifecycleCoordination;
-          expose middlewareIntegrationCapability::serviceHealthMonitoring;
-          expose middlewareIntegrationCapability::softwareUpdateCoordination;
-          expose middlewareIntegrationCapability::safetyPathProtection;
+          expose MiddlewareIntegrationOperationalCapability;
+          expose MiddlewareIntegrationOperationalCapability::vehicleSignalExchange;
+          expose MiddlewareIntegrationOperationalCapability::diagnosticAccess;
+          expose MiddlewareIntegrationOperationalCapability::lifecycleCoordination;
+          expose MiddlewareIntegrationOperationalCapability::serviceHealthMonitoring;
+          expose MiddlewareIntegrationOperationalCapability::softwareUpdateCoordination;
+          expose MiddlewareIntegrationOperationalCapability::safetyPathProtection;
           attribute depth = 1;
           attribute showAnnotationRows = false;
           attribute maxCompartmentEntries = 0;

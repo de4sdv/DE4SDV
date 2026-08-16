@@ -678,6 +678,7 @@ package DE4SDV_MW010VerificationEvidence {
     expose counterClaimTransportGapTrace;
     expose counterClaimObservationGapTrace;
     expose counterClaimLifecycleGapTrace;
+    attribute maxCompartmentEntries = 0;
     attribute showAnnotationRows = false;
     render asTreeDiagram;
   }

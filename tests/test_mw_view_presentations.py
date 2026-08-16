@@ -39,10 +39,10 @@ def test_system_structure_view_presents_explicit_decomposition_roles() -> None:
         "serviceBindingManager",
     )
 
-    assert "expose system;" in view
-    assert "expose system::*;" not in view
+    assert "expose MiddlewareSystem;" in view
+    assert "expose MiddlewareSystem::*;" not in view
     for role in roles:
-        assert f"expose system::{role};" in view
+        assert f"expose MiddlewareSystem::{role};" in view
     assert "attribute maxCompartmentEntries = 0;" in view
 
 
@@ -140,14 +140,14 @@ def test_operational_views_have_distinct_subject_matter() -> None:
     assert "part def MiddlewareOperationalContext" in text
     assert "part middlewareOperationalContext : MiddlewareOperationalContext;" in text
     assert "subject middlewareOperationalContext : MiddlewareOperationalContext;" in text
-    assert "expose middlewareOperationalContext;" in context
+    assert "expose MiddlewareOperationalContext;" in context
     assert "'integrate ADAS with vehicle platform'" not in context
     assert "expose OperationalContext::'integrate ADAS with vehicle platform';" in story
     assert "view mwOperationalStoryView : ActionFlowView" not in story
     assert "render asTreeDiagram;" in story
     assert "part def MiddlewareIntegrationOperationalCapability" in text
     assert "part middlewareIntegrationCapability : MiddlewareIntegrationOperationalCapability;" in text
-    assert "expose middlewareIntegrationCapability;" in capability
+    assert "expose MiddlewareIntegrationOperationalCapability;" in capability
     assert "'integrate ADAS with vehicle platform'" not in capability
 
 
@@ -187,10 +187,10 @@ def test_physical_structure_view_contains_only_physical_software_parts() -> None
         "serviceDiscoveryClient",
     )
 
-    assert "expose physicalSoftware;" in view
-    assert "expose physicalSoftware::*;" not in view
+    assert "expose MiddlewarePhysicalSoftwareBoundary;" in view
+    assert "expose MiddlewarePhysicalSoftwareBoundary::*;" not in view
     for part in parts:
-        assert f"expose physicalSoftware::{part};" in view
+        assert f"expose MiddlewarePhysicalSoftwareBoundary::{part};" in view
     assert "Source" not in view
     assert "attribute maxCompartmentEntries = 0;" in view
 
@@ -250,9 +250,9 @@ def test_configuration_and_assembly_views_answer_different_questions() -> None:
     assert "expose MWAutowareAAOSSDVReference;" in configuration
     assert "DE4SDV_SDVPlatformStack::*" not in configuration
     assert "DE4SDV_MWVariabilityConfiguration::*" not in configuration
-    assert "expose configuredMember;" in assembly
-    assert "expose configuredMember::platformStack;" in assembly
-    assert "expose configuredMember::middlewareBoundary;" in assembly
+    assert "expose MWAutowareAAOSSDVConfiguredMember;" in assembly
+    assert "expose MWAutowareAAOSSDVConfiguredMember::platformStack;" in assembly
+    assert "expose MWAutowareAAOSSDVConfiguredMember::middlewareBoundary;" in assembly
     assert "DE4SDV_MWVariabilityConfiguration::*" not in assembly
 
 

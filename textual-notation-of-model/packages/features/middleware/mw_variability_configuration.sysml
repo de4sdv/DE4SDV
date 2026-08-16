@@ -205,9 +205,9 @@ package DE4SDV_MWVariabilityConfiguration {
     viewpoint selectedProductModelAssemblyViewpoint : ProductModelAssemblyViewpoint {
       frame productModelAssemblyConcern;
     }
-    expose configuredMember;
-    expose configuredMember::platformStack;
-    expose configuredMember::middlewareBoundary;
+    expose MWAutowareAAOSSDVConfiguredMember;
+    expose MWAutowareAAOSSDVConfiguredMember::platformStack;
+    expose MWAutowareAAOSSDVConfiguredMember::middlewareBoundary;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
