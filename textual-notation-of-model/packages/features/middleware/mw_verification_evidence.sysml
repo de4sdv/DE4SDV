@@ -645,15 +645,33 @@ package DE4SDV_MW010VerificationEvidence {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }
+    doc /*
+     * Positive evidence slice: the claim branches that currently have retained
+     * evidence. Open counterclaims and gaps are published separately.
+     */
     expose mw010ReferenceContractClaim;
     expose signalTranslationArgument010;
-    expose lifecycleCoordinationArgument010;
-    expose healthForwardingArgument010;
     expose vehicleStartupArgument010;
-    expose updateCoordinationArgument010;
-    expose faultDetectionArgument010;
     expose contractAndRehearsalEvidence010;
     expose boundedAAOSBootBaseline010;
+    expose claimSupportedBySignalArgument;
+    expose claimSupportedByStartupArgument;
+    expose contractEvidenceReinforcesArgument;
+    expose bootBaselineReinforcesArgument;
+    attribute maxCompartmentEntries = 0;
+    attribute showAnnotationRows = false;
+    render asTreeDiagram;
+  }
+
+  view mw010OpenCounterclaimAssuranceView {
+    viewpoint selectedOpenCounterclaimAssuranceViewpoint : ArgumentationAssuranceViewpoint {
+      frame argumentationAssuranceConcern;
+    }
+    doc /*
+     * Challenge slice: unresolved counterclaims against the reference claim and
+     * the explicit evidence gaps that prevent target-runtime assurance.
+     */
+    expose mw010ReferenceContractClaim;
     expose counterClaim010ProviderBinding;
     expose counterClaim010CrossDomainTransport;
     expose counterClaim010IndependentObservation;
@@ -662,14 +680,6 @@ package DE4SDV_MW010VerificationEvidence {
     expose crossDomainTransportEvidenceGap010;
     expose independentAutowareObservationGap010;
     expose lifecycleUpdateFaultEvidenceGap010;
-    expose claimSupportedBySignalArgument;
-    expose claimSupportedByLifecycleArgument;
-    expose claimSupportedByHealthArgument;
-    expose claimSupportedByStartupArgument;
-    expose claimSupportedByUpdateArgument;
-    expose claimSupportedByFaultArgument;
-    expose contractEvidenceReinforcesArgument;
-    expose bootBaselineReinforcesArgument;
     expose counterClaimProviderBindingCountersClaim;
     expose counterClaimTransportCountersClaim;
     expose counterClaimObservationCountersClaim;

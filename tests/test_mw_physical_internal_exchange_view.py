@@ -36,24 +36,23 @@ def _normalized(text: str) -> str:
     return " ".join(text.split())
 
 
-def test_campaign_has_one_concrete_soi_internal_exchange_view() -> None:
+def test_campaign_withholds_native_internal_exchange_projection() -> None:
     model = MODEL.read_text(encoding="utf-8")
 
     assert "view mwVehicleSpeedCampaignPortInterconnectionView" not in model
-    assert model.count(": PhysicalInternalExchangeViewpoint") == 1
+    assert "view mwVehicleSpeedCampaignInternalExchangeView" not in model
+    assert ": PhysicalInternalExchangeViewpoint" not in model
 
-    view = _named_block(model, "view", "mwVehicleSpeedCampaignInternalExchangeView")
-    assert "frame vehicleSpeedCampaignInternalExchangeConcern;" in view
-    assert "expose vehicleSpeedCampaignDeployment;" in view
-    assert "expose vehicleSpeedCampaignDeployment::**;" in view
-    assert "expose VehicleSpeedCampaignCommunicationDeployment" not in view
-    assert "attribute depth = -1;" in view
-    assert "render asInterconnectionDiagram;" in view
-
-    normalized = _normalized(view)
-    assert "concrete campaign deployment is the system of interest" in normalized
+    concern = _named_block(
+        model,
+        "concern",
+        "vehicleSpeedCampaignInternalExchangeConcern",
+    )
+    normalized = _normalized(concern)
+    assert "Known issue" in concern
+    assert "only nested part boxes" in normalized
+    assert "does not materialize the connector path" in normalized
     assert "no external boundary exchange" in normalized
-    assert "no boundary delegation is modeled or claimed" in normalized
 
 
 def test_campaign_internal_exchange_concern_frames_relevant_reviewers() -> None:
@@ -75,7 +74,7 @@ def test_campaign_internal_exchange_concern_frames_relevant_reviewers() -> None:
         assert stakeholder in concern
 
 
-def test_campaign_keeps_four_typed_internal_handoffs_without_fake_connections() -> None:
+def test_campaign_keeps_four_deployment_connections_and_typed_flows() -> None:
     model = MODEL.read_text(encoding="utf-8")
     deployment = _named_block(
         model,
@@ -84,14 +83,25 @@ def test_campaign_keeps_four_typed_internal_handoffs_without_fake_connections() 
     )
     normalized = _normalized(deployment)
 
-    expected_flows = (
-        "flow from vmA.cuttlefishGuest.structuredLogcatOut.envelope to vmA.hostForwarder.structuredLogcatIn.envelope;",
-        "flow from vmA.hostForwarder.privateTcpOut.envelope to privateTcpBoundary.vmAIn.envelope;",
-        "flow from privateTcpBoundary.vmBOut.envelope to vmB.ros2Ingress.privateTcpIn.envelope;",
-        "flow from vmB.ros2Ingress.velocityReportOut.velocityReport to vmB.independentObserver.velocityReportIn.velocityReport;",
+    expected_connections = (
+        "connection guestToHostForwarder connect vmA.cuttlefishGuest.structuredLogcatOut to vmA.hostForwarder.structuredLogcatIn;",
+        "connection hostForwarderToPrivateTcp connect vmA.hostForwarder.privateTcpOut to privateTcpBoundary.vmAIn;",
+        "connection privateTcpToRos2Ingress connect privateTcpBoundary.vmBOut to vmB.ros2Ingress.privateTcpIn;",
+        "connection ros2IngressToObserver connect vmB.ros2Ingress.velocityReportOut to vmB.independentObserver.velocityReportIn;",
     )
+    expected_flows = (
+        "flow guestToHostForwarderPayload from vmA.cuttlefishGuest.structuredLogcatOut.envelope to vmA.hostForwarder.structuredLogcatIn.envelope;",
+        "flow hostForwarderToPrivateTcpPayload from vmA.hostForwarder.privateTcpOut.envelope to privateTcpBoundary.vmAIn.envelope;",
+        "flow privateTcpToRos2IngressPayload from privateTcpBoundary.vmBOut.envelope to vmB.ros2Ingress.privateTcpIn.envelope;",
+        "flow ros2IngressToObserverPayload from vmB.ros2Ingress.velocityReportOut.velocityReport to vmB.independentObserver.velocityReportIn.velocityReport;",
+    )
+    for connection in expected_connections:
+        assert connection in normalized
     for flow in expected_flows:
         assert flow in normalized
 
-    assert normalized.count("flow from ") == 4
-    assert " connect " not in f" {normalized} "
+    assert normalized.count("connection ") == 4
+    assert normalized.count("flow ") == 4
+
+    assert "connection providerToObserver" in model
+    assert "flow providerToObserverPayload" in model

@@ -103,8 +103,7 @@ def test_privileged_workflow_gates_aebs_context_exchange_artifact() -> None:
     assert "--max-flow-count 21" in workflow
     assert "diagram-mwFunctionalInterfaceView.svg" in workflow
     assert "VehicleSignalAccessInbound" in workflow
-    assert "diagram-mwPhysicalInterfaceView.svg" in workflow
-    assert "DE4SDVReferenceVehicleSpeedAccessPort" in workflow
+    assert "diagram-mwPhysicalInterfaceView.svg" not in workflow
     assert "diagram-mwPhysicalStructureView.svg" in workflow
     assert "adapter : AutowareToAAOSSDVAdapterPhysical" in workflow
     assert "aaosSdvBoundary : SDVCoreBoundary" in workflow

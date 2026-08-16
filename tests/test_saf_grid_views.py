@@ -219,7 +219,7 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     ).read_text(encoding="utf-8")
     structure = _block(conceptual, "view mwSystemStructureView")
     assert "expose MiddlewareSystem;" in structure
-    assert "expose MiddlewareSystem::signalTranslator;" in structure
+    assert "attribute maxCompartmentEntries = 6;" in structure
     assert "expose MiddlewareSystem::*;" not in structure
     assert "expose DE4SDV_MWConceptualArchitecture::*;" not in structure
     assert "view mwSystemInternalExchangeView" not in conceptual
@@ -234,16 +234,8 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     ).read_text(encoding="utf-8")
     physical_structure = _block(physical, "view mwPhysicalStructureView")
     assert "expose MiddlewarePhysicalSoftwareBoundary;" in physical_structure
-    assert "expose MiddlewarePhysicalSoftwareBoundary::adapter;" in physical_structure
+    assert "attribute maxCompartmentEntries = 8;" in physical_structure
     assert "expose MiddlewarePhysicalSoftwareBoundary::*;" not in physical_structure
     assert "expose DE4SDV_MWPhysicalSoftwareRealization::*;" not in physical_structure
-    interface = _block(physical, "view mwPhysicalInterfaceView")
-    assert (
-        "expose DE4SDV_MWPhysicalSoftwareRealization::"
-        "DE4SDVReferenceVehicleSpeedAccessPort;"
-    ) in interface
-    assert (
-        "expose DE4SDV_MWPhysicalSoftwareRealization::"
-        "DE4SDVReferenceVehicleSpeedPayload;"
-    ) in interface
-    assert "DE4SDV_MWPhysicalSoftwareRealization::*[" not in interface
+    assert "view mwPhysicalInterfaceView" not in physical
+    assert "view mwVehicleSpeedCampaignInternalExchangeView" not in physical

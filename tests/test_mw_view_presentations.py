@@ -42,8 +42,9 @@ def test_system_structure_view_presents_explicit_decomposition_roles() -> None:
     assert "expose MiddlewareSystem;" in view
     assert "expose MiddlewareSystem::*;" not in view
     for role in roles:
-        assert f"expose MiddlewareSystem::{role};" in view
-    assert "attribute maxCompartmentEntries = 0;" in view
+        assert f"part {role} :" in text
+        assert f"expose MiddlewareSystem::{role};" not in view
+    assert "attribute maxCompartmentEntries = 6;" in view
 
 
 def test_unsubstantiated_system_internal_exchange_view_is_withheld() -> None:
@@ -141,6 +142,7 @@ def test_operational_views_have_distinct_subject_matter() -> None:
     assert "part middlewareOperationalContext : MiddlewareOperationalContext;" in text
     assert "subject middlewareOperationalContext : MiddlewareOperationalContext;" in text
     assert "expose MiddlewareOperationalContext;" in context
+    assert "attribute maxCompartmentEntries = 7;" in context
     assert "'integrate ADAS with vehicle platform'" not in context
     assert "expose OperationalContext::'integrate ADAS with vehicle platform';" in story
     assert "view mwOperationalStoryView : ActionFlowView" not in story
@@ -148,6 +150,7 @@ def test_operational_views_have_distinct_subject_matter() -> None:
     assert "part def MiddlewareIntegrationOperationalCapability" in text
     assert "part middlewareIntegrationCapability : MiddlewareIntegrationOperationalCapability;" in text
     assert "expose MiddlewareIntegrationOperationalCapability;" in capability
+    assert "attribute maxCompartmentEntries = 6;" in capability
     assert "'integrate ADAS with vehicle platform'" not in capability
 
 
@@ -190,20 +193,21 @@ def test_physical_structure_view_contains_only_physical_software_parts() -> None
     assert "expose MiddlewarePhysicalSoftwareBoundary;" in view
     assert "expose MiddlewarePhysicalSoftwareBoundary::*;" not in view
     for part in parts:
-        assert f"expose MiddlewarePhysicalSoftwareBoundary::{part};" in view
+        assert f"part {part} :" in text
+        assert f"expose MiddlewarePhysicalSoftwareBoundary::{part};" not in view
     assert "Source" not in view
-    assert "attribute maxCompartmentEntries = 0;" in view
+    assert "attribute maxCompartmentEntries = 8;" in view
 
 
-def test_physical_interface_views_separate_system1_and_campaign_contracts() -> None:
+def test_unsubstantiated_system1_physical_interface_view_is_withheld() -> None:
     text = PHYSICAL_MODEL.read_text(encoding="utf-8")
-    system1 = _block(text, "view mwPhysicalInterfaceView")
+    concern = _block(text, "concern physicalInterfaceConcern")
     campaign = _block(text, "view mwVehicleSpeedCampaignInterfaceView")
 
-    assert "DE4SDVReferenceVehicleSpeedAccessPort" in system1
-    assert "VelocityReportPublication" in system1
-    assert "VehicleSpeedCampaignWire" not in system1
-    assert "VehicleSpeedProvider" not in system1
+    assert "view mwPhysicalInterfaceView" not in text
+    assert "Known issue" in concern
+    assert "no reviewed" in concern
+    assert "candidate allocation" in concern
     for port in (
         "VehicleSpeedProviderPublication",
         "VehicleSpeedProviderSubscription",
@@ -221,10 +225,10 @@ def test_physical_interface_views_separate_system1_and_campaign_contracts() -> N
         assert f"expose {item};" not in campaign
 
 
-def test_campaign_exchange_has_connections_flows_and_a_focused_view() -> None:
+def test_campaign_exchange_source_is_authoritative_while_view_is_withheld() -> None:
     text = PHYSICAL_MODEL.read_text(encoding="utf-8")
     deployment = _block(text, "part def VehicleSpeedCampaignCommunicationDeployment")
-    view = _block(text, "view mwVehicleSpeedCampaignInternalExchangeView")
+    concern = _block(text, "concern vehicleSpeedCampaignInternalExchangeConcern")
     names = (
         "guestToHostForwarder",
         "hostForwarderToPrivateTcp",
@@ -235,9 +239,12 @@ def test_campaign_exchange_has_connections_flows_and_a_focused_view() -> None:
     for name in names:
         assert f"connection {name}" in deployment
         assert f"flow {name}Payload" in deployment
-        assert f"expose vehicleSpeedCampaignDeployment::{name};" in view
-        assert f"expose vehicleSpeedCampaignDeployment::{name}Payload;" in view
-    assert "expose vehicleSpeedCampaignDeployment::**;" not in view
+    assert "connection providerToObserver" in text
+    assert "flow providerToObserverPayload" in text
+    assert "view mwVehicleSpeedCampaignInternalExchangeView" not in text
+    assert "Known issue" in concern
+    assert "Five explicit connections and five named item flows" in concern
+    assert "does not materialize the connector path" in concern
 
 
 def test_configuration_and_assembly_views_answer_different_questions() -> None:
@@ -272,15 +279,23 @@ def test_requirement_tables_render_named_english_constraint_statements() -> None
         assert 'attribute constraintLanguage = "English";' in view
 
 
-def test_assurance_view_is_a_bounded_claim_argument_evidence_slice() -> None:
+def test_assurance_views_split_positive_evidence_from_open_challenges() -> None:
     text = ASSURANCE_MODEL.read_text(encoding="utf-8")
-    view = _block(text, "view mw010VerificationAssuranceView")
+    positive = _block(text, "view mw010VerificationAssuranceView")
+    challenges = _block(text, "view mw010OpenCounterclaimAssuranceView")
 
-    assert "expose mw010ReferenceContractClaim;" in view
-    assert "expose signalTranslationArgument010;" in view
-    assert "expose contractAndRehearsalEvidence010;" in view
-    assert "expose counterClaim010ProviderBinding;" in view
-    assert "expose providerBindingEvidenceGap010;" in view
-    assert "DE4SDV_MW010VerificationEvidence::*" not in view
-    assert "DE4SDV_MWVariabilityConfiguration::*" not in view
-    assert "DE4SDV_MWPhysicalSoftwareRealization::*" not in view
+    assert "expose mw010ReferenceContractClaim;" in positive
+    assert "expose signalTranslationArgument010;" in positive
+    assert "expose vehicleStartupArgument010;" in positive
+    assert "expose contractAndRehearsalEvidence010;" in positive
+    assert "expose boundedAAOSBootBaseline010;" in positive
+    assert "counterClaim" not in positive
+
+    assert "expose mw010ReferenceContractClaim;" in challenges
+    assert "expose counterClaim010ProviderBinding;" in challenges
+    assert "expose providerBindingEvidenceGap010;" in challenges
+    assert "signalTranslationArgument010" not in challenges
+    for view in (positive, challenges):
+        assert "DE4SDV_MW010VerificationEvidence::*" not in view
+        assert "DE4SDV_MWVariabilityConfiguration::*" not in view
+        assert "DE4SDV_MWPhysicalSoftwareRealization::*" not in view

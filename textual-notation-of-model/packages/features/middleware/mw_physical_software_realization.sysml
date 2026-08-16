@@ -681,9 +681,13 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   concern physicalInterfaceConcern : PhysicalInterfaceConcern {
     doc /*
-     * Review the System 1 candidate software protocol endpoints for the first
-     * vehicle-speed slice. Physical interfaces include software protocols; the
-     * separate campaign view owns the System 2 transport contracts.
+     * Known issue: no System 1 Physical Interface view is published yet.
+     * Physical interfaces can include software protocol endpoints, but this
+     * increment has only a candidate vehicle-speed access port and no reviewed
+     * pin, bus, deployed service, or production transport contract. The source
+     * definitions remain authoritative; publishing their current native
+     * projection would duplicate the functional interface catalog and leak an
+     * unrelated candidate allocation.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -692,9 +696,13 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   concern vehicleSpeedCampaignInternalExchangeConcern : PhysicalInternalExchangeConcern {
     doc /*
-     * Review the typed handoffs among the concrete campaign deployment roles.
-     * The current campaign source and observer are both inside the subject, so
-     * there is no external boundary exchange or boundary delegation to claim.
+     * Known issue: no Physical Internal Exchange view is published for the
+     * campaign. Five explicit connections and five named item flows remain
+     * authoritative in the model, but the tested native projection renders
+     * only nested part boxes and does not materialize the connector path, flow
+     * direction, or exchanged item types. A box-only artifact would misstate
+     * the concern. The campaign source and observer are both inside the subject,
+     * so there is also no external boundary exchange to substitute.
      */
     subject campaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -735,28 +743,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
       frame physicalStructureConcern;
     }
     expose MiddlewarePhysicalSoftwareBoundary;
-    expose MiddlewarePhysicalSoftwareBoundary::adapter;
-    expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
-    expose MiddlewarePhysicalSoftwareBoundary::signalAccessClient;
-    expose MiddlewarePhysicalSoftwareBoundary::diagnosticAccessClient;
-    expose MiddlewarePhysicalSoftwareBoundary::lifecycleClient;
-    expose MiddlewarePhysicalSoftwareBoundary::healthClient;
-    expose MiddlewarePhysicalSoftwareBoundary::updateClient;
-    expose MiddlewarePhysicalSoftwareBoundary::serviceDiscoveryClient;
     attribute depth = 1;
     attribute showAnnotationRows = false;
-    attribute maxCompartmentEntries = 0;
-    render asTreeDiagram;
-  }
-
-  view mwPhysicalInterfaceView {
-    viewpoint selectedPhysicalInterfaceViewpoint : PhysicalInterfaceDefinitionViewpoint {
-      frame physicalInterfaceConcern;
-    }
-    expose DE4SDV_MWPhysicalSoftwareRealization::DE4SDVReferenceVehicleSpeedPayload;
-    expose DE4SDV_MWPhysicalSoftwareRealization::DE4SDVReferenceVehicleSpeedAccessPort;
-    expose DE4SDV_MWPhysicalSoftwareRealization::VelocityReportPublication;
-    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 8;
     render asTreeDiagram;
   }
 
@@ -764,48 +753,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
    * No Physical Context Exchange view is published for this campaign. Both
    * hosts and the complete one-directional transfer chain are contained by the
    * deployment subject, so presenting them as an external-boundary exchange
-   * would be false. The internal-exchange view is authoritative for this scope.
+   * would be false. The typed connections and flows in the source are
+   * authoritative for this scope while native rendering remains inadequate.
    */
-
-  view mwVehicleSpeedCampaignInternalExchangeView {
-    viewpoint selectedVehicleSpeedCampaignInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
-      frame vehicleSpeedCampaignInternalExchangeConcern;
-    }
-    doc /*
-     * The concrete campaign deployment is the system of interest for this
-     * internal-exchange slice. It shows the typed handoffs among guest logcat,
-     * host forwarding, private TCP, ROS 2 ingress, VelocityReport publication,
-     * and independent observation.
-     *
-     * The campaign source and independent observer are both contained by the
-     * deployment. There is no external boundary exchange in the current scope,
-     * so no boundary delegation is modeled or claimed.
-     */
-    expose vehicleSpeedCampaignDeployment;
-    expose vehicleSpeedCampaignDeployment::vmA;
-    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest;
-    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::provider;
-    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::observer;
-    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::providerToObserver;
-    expose vehicleSpeedCampaignDeployment::vmA::cuttlefishGuest::providerToObserverPayload;
-    expose vehicleSpeedCampaignDeployment::vmA::hostForwarder;
-    expose vehicleSpeedCampaignDeployment::privateTcpBoundary;
-    expose vehicleSpeedCampaignDeployment::vmB;
-    expose vehicleSpeedCampaignDeployment::vmB::ros2Ingress;
-    expose vehicleSpeedCampaignDeployment::vmB::independentObserver;
-    expose vehicleSpeedCampaignDeployment::guestToHostForwarder;
-    expose vehicleSpeedCampaignDeployment::guestToHostForwarderPayload;
-    expose vehicleSpeedCampaignDeployment::hostForwarderToPrivateTcp;
-    expose vehicleSpeedCampaignDeployment::hostForwarderToPrivateTcpPayload;
-    expose vehicleSpeedCampaignDeployment::privateTcpToRos2Ingress;
-    expose vehicleSpeedCampaignDeployment::privateTcpToRos2IngressPayload;
-    expose vehicleSpeedCampaignDeployment::ros2IngressToObserver;
-    expose vehicleSpeedCampaignDeployment::ros2IngressToObserverPayload;
-    attribute depth = -1;
-    attribute showAnnotationRows = false;
-    attribute maxCompartmentEntries = 0;
-    render asInterconnectionDiagram;
-  }
 
   view mwVehicleSpeedCampaignStructureView {
     viewpoint selectedVehicleSpeedCampaignStructureViewpoint : PhysicalStructureDefinitionViewpoint {

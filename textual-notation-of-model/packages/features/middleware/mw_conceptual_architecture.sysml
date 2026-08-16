@@ -234,15 +234,9 @@ package DE4SDV_MWConceptualArchitecture {
       frame conceptualStructureConcern;
     }
     expose MiddlewareSystem;
-    expose MiddlewareSystem::signalTranslator;
-    expose MiddlewareSystem::diagnosticProxy;
-    expose MiddlewareSystem::lifecycleBridge;
-    expose MiddlewareSystem::healthProxy;
-    expose MiddlewareSystem::updateCoordinator;
-    expose MiddlewareSystem::serviceBindingManager;
     attribute depth = 1;
     attribute showAnnotationRows = false;
-    attribute maxCompartmentEntries = 0;
+    attribute maxCompartmentEntries = 6;
     render asTreeDiagram;
   }
 

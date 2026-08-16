@@ -181,6 +181,26 @@ Grid views are modeled with a pinned library and exported by the privileged
 workflow as both CSV and review SVG. SysML remains authoritative when a
 renderer omits or simplifies a valid relationship.
 
+## Current middleware publication exceptions
+
+The middleware increment intentionally withholds four expected views rather
+than publish diagrams that do not answer their framed concerns:
+
+- **System Internal Exchange:** the conceptual source currently has boundary
+  delegations but no cross-component connections or item flows.
+- **System Process:** the source has an internal functional flow, not a
+  context-partitioned process with ordered actions and exchanges.
+- **System 1 Physical Interface:** the current candidate software endpoint is
+  not yet a reviewed pin, bus, deployed service, or production transport
+  contract; its native projection also leaks an unrelated allocation.
+- **System 2 Physical Internal Exchange:** five connections and five item flows
+  are authoritative in the source, but the native projection renders nested
+  parts without the connector path, direction, or exchanged item types.
+
+Each exception and its rationale is also recorded with the framed concern in
+the architecture description. A view can return only after its source
+semantics exist and exact-head rendering visibly materializes them.
+
 ## Guardrails
 
 - SAF selects views; it does not replace SYSMOD method flow.

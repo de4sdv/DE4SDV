@@ -194,11 +194,6 @@ jobs:
             --require-label VehicleSignalAccessInbound \
             --require-label VehicleSignalAccessRequest
           python scripts/check_svg_view_materialization.py \
-            diagrams/diagram-mwPhysicalInterfaceView.svg \
-            --view-name mwPhysicalInterfaceView \
-            --require-label DE4SDVReferenceVehicleSpeedAccessPort \
-            --require-label DE4SDVReferenceVehicleSpeedPayload
-          python scripts/check_svg_view_materialization.py \
             diagrams/diagram-mwPhysicalStructureView.svg \
             --view-name mwPhysicalStructureView \
             --require-label "adapter : AutowareToAAOSSDVAdapterPhysical" \

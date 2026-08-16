@@ -306,16 +306,9 @@ package DE4SDV_MWOperationalContext {
           }
 
           expose MiddlewareOperationalContext;
-          expose MiddlewareOperationalContext::adasApplication;
-          expose MiddlewareOperationalContext::vehicleMiddleware;
-          expose MiddlewareOperationalContext::adapter;
-          expose MiddlewareOperationalContext::diagnosticTechnician;
-          expose MiddlewareOperationalContext::otaCoordinator;
-          expose MiddlewareOperationalContext::aebNode;
-          expose MiddlewareOperationalContext::vehicleCommandGate;
           attribute depth = 1;
           attribute showAnnotationRows = false;
-          attribute maxCompartmentEntries = 0;
+          attribute maxCompartmentEntries = 7;
           render asTreeDiagram;
         }
 
@@ -362,15 +355,9 @@ package DE4SDV_MWOperationalContext {
           }
 
           expose MiddlewareIntegrationOperationalCapability;
-          expose MiddlewareIntegrationOperationalCapability::vehicleSignalExchange;
-          expose MiddlewareIntegrationOperationalCapability::diagnosticAccess;
-          expose MiddlewareIntegrationOperationalCapability::lifecycleCoordination;
-          expose MiddlewareIntegrationOperationalCapability::serviceHealthMonitoring;
-          expose MiddlewareIntegrationOperationalCapability::softwareUpdateCoordination;
-          expose MiddlewareIntegrationOperationalCapability::safetyPathProtection;
           attribute depth = 1;
           attribute showAnnotationRows = false;
-          attribute maxCompartmentEntries = 0;
+          attribute maxCompartmentEntries = 6;
           render asTreeDiagram;
         }
       }
