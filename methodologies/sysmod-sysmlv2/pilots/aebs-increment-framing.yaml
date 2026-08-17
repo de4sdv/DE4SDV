@@ -1,13 +1,13 @@
 schema: de4sdv.increment-framing.v0
 id: INC-AEBS-001
-name: AEBS operational-to-functional pilot framing
+name: AEBS operational-to-conceptual pilot framing
 status: draft
 type: FeatureIncrement
 owner: DE4SDV maintainers
 
 purpose: >-
   Establish the first reviewable framing baseline for incrementally developing
-  the AEBS pilot from operational context toward the functional domain. This
+  the AEBS pilot from operational context toward the conceptual domain. This
   file is intentionally machine-readable so later checks can validate viewpoint
   selection, scope boundaries, feature/common-capability classification, V&V
   planning fields, and evidence status.
@@ -19,7 +19,7 @@ engineering_question: >-
   without making premature compliance or implementation claims?
 
 lifecycle_decision_supported:
-  decision: approve_increment_scope_for_operational_to_functional_modeling
+  decision: approve_increment_scope_for_operational_to_conceptual_modeling
   description: >-
     Decide whether the AEBS pilot is framed tightly enough to start the next
     operational-domain increment without dragging in logical realization,

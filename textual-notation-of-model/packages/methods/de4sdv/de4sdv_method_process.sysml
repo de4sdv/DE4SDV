@@ -39,13 +39,13 @@ package DE4SDV_MethodProcess {
       doc /* What stakeholder needs exist? Operational domain. */
     }
     phase5_requirements {
-      doc /* What shall the system do? Functional domain. */
+      doc /* What shall the system do? Conceptual domain. */
     }
     phase6_functionalArchitecture {
-      doc /* What functions, flows, states, interfaces? Functional domain. */
+      doc /* What functions, flows, states, interfaces? Conceptual domain. */
     }
     phase7_logicalArchitecture {
-      doc /* What system elements realize functions? Logical domain. */
+      doc /* What system elements realize functions? Conceptual domain. */
     }
     phase8_physicalRealization {
       doc /* What software/hardware realizes the logical design, and which applicable logical or semantic signals cross into typed software contracts? Physical domain. */
@@ -54,7 +54,7 @@ package DE4SDV_MethodProcess {
       doc /* How does this vary across member products? DE4SDV product-line layer. */
     }
     phase10_vvEvidence {
-      doc /* How will satisfaction be checked? Common/Functional domain. */
+      doc /* How will satisfaction be checked? Common/Conceptual domain. */
     }
     phase11_publication {
       doc /* What is reviewable now? DE4SDV workflow. */
@@ -73,12 +73,12 @@ package DE4SDV_MethodProcess {
     attribute phase2Domain : ScalarValues::String = "Operational";
     attribute phase3Domain : ScalarValues::String = "DE4SDV ontology";
     attribute phase4Domain : ScalarValues::String = "Operational";
-    attribute phase5Domain : ScalarValues::String = "Functional";
-    attribute phase6Domain : ScalarValues::String = "Functional";
-    attribute phase7Domain : ScalarValues::String = "Logical";
+    attribute phase5Domain : ScalarValues::String = "Conceptual";
+    attribute phase6Domain : ScalarValues::String = "Conceptual";
+    attribute phase7Domain : ScalarValues::String = "Conceptual";
     attribute phase8Domain : ScalarValues::String = "Physical";
     attribute phase9Domain : ScalarValues::String = "DE4SDV product-line";
-    attribute phase10Domain : ScalarValues::String = "Common/Functional";
+    attribute phase10Domain : ScalarValues::String = "Common/Conceptual";
     attribute phase11Domain : ScalarValues::String = "DE4SDV workflow";
     attribute phase12Domain : ScalarValues::String = "Common";
   }

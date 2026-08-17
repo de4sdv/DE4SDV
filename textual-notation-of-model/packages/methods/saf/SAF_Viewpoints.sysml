@@ -215,7 +215,10 @@ package SAF_Viewpoints {
     }
   }
 
-  // ─── Functional Domain ───
+  // ─── Conceptual Domain ───
+  // (Functional and Logical domains merged into Conceptual; former
+  // Functional-domain viewpoints live here together with the former
+  // Conceptual ones.)
 
   concern def SystemContextConcern {
     require constraint {
@@ -237,7 +240,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemUseCaseViewpoint {
     doc /*
-     * SAF Functional Domain: System Use Case Viewpoint.
+     * SAF Conceptual Domain: System Use Case Viewpoint.
      * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -259,7 +262,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemCapabilityDefinitionViewpoint {
     doc /*
-     * SAF Functional Domain: System Capability Definition Viewpoint.
+     * SAF Conceptual Domain: System Capability Definition Viewpoint.
      * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -283,7 +286,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemFunctionalBreakdownStructureViewpoint {
     doc /*
-     * SAF Functional Domain: System Functional Breakdown Structure Viewpoint.
+     * SAF Conceptual Domain: System Functional Breakdown Structure Viewpoint.
      * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -307,7 +310,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemProcessViewpoint {
     doc /*
-     * SAF Functional Domain: System Process Viewpoint.
+     * SAF Conceptual Domain: System Process Viewpoint.
      * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -332,7 +335,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemInterfaceDefinitionViewpoint {
     doc /*
-     * SAF Functional Domain: System Interface Definition Viewpoint.
+     * SAF Conceptual Domain: System Interface Definition Viewpoint.
      * Aspect: Interaction & Collaboration
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -357,7 +360,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemRequirementDefinitionViewpoint {
     doc /*
-     * SAF Functional Domain: System Requirement Definition Viewpoint.
+     * SAF Conceptual Domain: System Requirement Definition Viewpoint.
      * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -372,7 +375,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemRequirementTraceabilityViewpoint {
     doc /*
-     * SAF Functional Domain: System Requirement Traceability Viewpoint.
+     * SAF Conceptual Domain: System Requirement Traceability Viewpoint.
      * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -385,7 +388,7 @@ package SAF_Viewpoints {
     }
   }
 
-  // ─── Conceptual Domain ───
+  // ─── Conceptual Domain (continued) ───
 
   concern def ConceptualStructureConcern {
     require constraint {
@@ -847,7 +850,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemContextInteractionViewpoint {
     doc /*
-     * SAF Functional Domain: SystemContextInteraction Viewpoint
+     * SAF Conceptual Domain: SystemContextInteraction Viewpoint
      * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: SystemUtilization, ResponseTimeRequirements, ConceptualInteractionSequence.
@@ -889,7 +892,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemDomainItemKindViewpoint {
     doc /*
-     * SAF Functional Domain: SystemDomainItemKind Viewpoint
+     * SAF Conceptual Domain: SystemDomainItemKind Viewpoint
      * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: LogicalArchitectureItems.
@@ -910,7 +913,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemFunctionalRefinementViewpoint {
     doc /*
-     * SAF Functional Domain: SystemFunctionalRefinement Viewpoint
+     * SAF Conceptual Domain: SystemFunctionalRefinement Viewpoint
      * Aspect: Process & Behavior
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: SubfunctionInteractions, SystemFunctionBreakdown, SystemFunctionDecomposition.
@@ -931,7 +934,7 @@ package SAF_Viewpoints {
 
   viewpoint def SystemStateViewpoint {
     doc /*
-     * SAF Functional Domain: SystemState Viewpoint
+     * SAF Conceptual Domain: SystemState Viewpoint
      * Aspect: Taxonomy & Structure
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: SystemModes, SystemFunctionsDependentOnModes.
@@ -973,7 +976,7 @@ package SAF_Viewpoints {
 
   viewpoint def GridDefinitionViewpoint {
     doc /*
-     * SAF Functional Domain: GridDefinition Viewpoint
+     * SAF Conceptual Domain: GridDefinition Viewpoint
      * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ViewpointsUsedInSystemModel, FrameworkViewpoints.
