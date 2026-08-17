@@ -744,6 +744,9 @@ def test_tree_search(tmp_path):
     assert "no-tree" not in file_page
     # the header title links back to the site index (prefix-aware)
     assert '<a class="site-title" href="../../../../../index.html">' in file_page
+    # design package: BIZ UDMincho is loaded for the header
+    assert "BIZ+UDMincho" in index
+    assert "BIZ+UDMincho" in file_page
 
 
 def test_source_symbol_tooltips(tmp_path):

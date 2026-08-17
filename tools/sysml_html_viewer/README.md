@@ -204,6 +204,27 @@ for `file://`).
    (`tests/test_sysml_html_viewer.py`) keeps the two inventories in
    agreement, including typed views (`view X : MVD::MatrixView`).
 
+## Design package
+
+A deliberately minimal visual design; everything lives in `viewer.css`
+as tokens under `:root`.
+
+- **Layout** — the project browser (model tree) is a full-height sidebar
+  pinned to the outermost left edge of every screen, below a sticky
+  header; content is centered at a comfortable reading width
+  (max 1080 px). Below 900 px the tree collapses above the content.
+- **Color** — four neutrals plus one accent, all in `:root`:
+  `--bg #f4f6f9`, `--panel #ffffff`, `--ink #1f2933`,
+  `--muted #6b7a8a`, `--line #e2e8f0`, `--accent #1a56db`
+  (with `--accent-soft #eaf1fe` for hovers/focus).
+- **Type** — the header brand ("DE4SDV Model Viewer") is set in
+  **BIZ UDMincho** (loaded from Google Fonts, SIL OFL; falls back to a
+  serif stack offline or when the CDN is unreachable). Body, tree, and
+  source stay in the system sans stack and `--mono` — no decorative
+  fonts where information density matters.
+- **Shape** — flat surfaces, hairline borders (`--line`), small radii
+  (8 px cards), no shadows.
+
 ## Tests
 
 ```bash
