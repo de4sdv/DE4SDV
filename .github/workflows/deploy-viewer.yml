@@ -1,0 +1,63 @@
+name: deploy-viewer
+
+# Publishes the static HTML model viewer to GitHub Pages:
+#   - on every push to main
+#   - weekly (new branches and open PRs appear in the Revision picker)
+#   - manually via workflow_dispatch
+#
+# The published site shows committed content only (no local working tree):
+# the generator runs with --public --refs auto, building the root site from
+# the pushed branch plus one sub-site per branch/PR head. Collaborators
+# pick any revision from the header picker; everything is prebuilt, so no
+# on-demand server is needed.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1" # every Monday 03:17 UTC
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches and PR heads
+        run: |
+          git fetch origin "+refs/heads/*:refs/remotes/origin/*"
+          git fetch origin "+refs/pull/*/head:refs/pull/*/head"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate the viewer (committed content only)
+        run: python -m tools.sysml_html_viewer.generate \
+          --repo . --out site --refs auto --public
+
+      - name: Repository gates
+        run: |
+          python scripts/check_repo.py
+          python scripts/smoke_test.py
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

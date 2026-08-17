@@ -296,6 +296,10 @@ def test_generate_with_git_refs(tmp_path):
     assert "extra_feature.sysml" not in index
     assert re.search(r'<option value="index\.html" selected>working tree · main</option>', index)
     assert re.search(r'<option value="refs/feature/index\.html">feature</option>', index)
+    # main is current, so the picker lists no disabled entries and no
+    # static-serving note (no buildable revision is missing)
+    assert "not built" not in index
+    assert "served statically" not in index
 
     # the feature sub-site contains the extra file
     ref_index = (out / "refs" / "feature" / "index.html").read_text(encoding="utf-8")
@@ -322,8 +326,8 @@ def test_generate_with_git_refs(tmp_path):
 
 
 def test_generate_with_remote_only_ref(tmp_path):
-    """A ref that exists only on the remote (origin/<name>) still builds —
-    PR branches are typically not checked out locally."""
+    """auto (default refs) includes branches that exist only on the remote
+    (origin/<name>) — PR branches are typically not checked out locally."""
     repo = _make_fixture_repo(tmp_path)
     # a bare remote, and a branch that only lives there
     remote = tmp_path / "remote.git"
@@ -338,10 +342,53 @@ def test_generate_with_remote_only_ref(tmp_path):
     _git(repo, "branch", "-q", "-D", "feature")
 
     out = tmp_path / "site"
-    rc = generate(repo, out, ["textual-notation-of-model/packages"], refs="feature")
+    rc = generate(repo, out, ["textual-notation-of-model/packages"], refs="auto")
     assert rc == 0
     ref_index = (out / "refs" / "feature" / "index.html").read_text(encoding="utf-8")
     assert re.search(r'<option value="index\.html" selected>feature</option>', ref_index)
+
+
+def test_generate_public_mode(tmp_path):
+    """--public labels the root build with the plain branch name — a
+    published snapshot must not expose the local 'working tree' concept."""
+    repo = _make_fixture_repo(tmp_path)
+    _git(repo, "checkout", "-q", "-b", "feature")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=Test", "-c", "user.email=test@example.com",
+         "commit", "-q", "-m", "feature work")
+    _git(repo, "checkout", "-q", "main")
+    out = tmp_path / "site"
+    rc = generate(
+        repo, out, ["textual-notation-of-model/packages"],
+        refs="feature", public=True,
+    )
+    assert rc == 0
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert re.search(r'<option value="index\.html" selected>main</option>', index)
+    assert "working tree" not in index
+    assert re.search(r'<option value="refs/feature/index\.html">feature</option>', index)
+
+
+def test_unbuilt_buildable_ref_shows_hint(tmp_path):
+    """A buildable branch that was not built appears disabled with the
+    regenerate command, and the page shows the static-serving note."""
+    repo = _make_fixture_repo(tmp_path)
+    _git(repo, "checkout", "-q", "-b", "other")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=Test", "-c", "user.email=test@example.com",
+         "commit", "-q", "-m", "other branch")
+    _git(repo, "checkout", "-q", "main")
+
+    out = tmp_path / "site"
+    rc = generate(repo, out, ["textual-notation-of-model/packages"], refs=None)
+    assert rc == 0
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert re.search(
+        r'<option value="" disabled title="[^"]*--refs other[^"]*">'
+        r"other \(not built\)</option>",
+        index,
+    )
+    assert "served statically" in index
 
 
 
@@ -363,15 +410,15 @@ def test_generate_skips_ref_without_model(tmp_path):
     index = (out / "index.html").read_text(encoding="utf-8")
     assert "refs/docs-only" not in index
     assert not (out / "refs" / "docs_only").exists()
-    # the branch is still known: a disabled picker entry explains how to build it
+    # the branch is still known: a disabled picker entry explains why it
+    # cannot be shown (no model content), and no static-serving note appears
+    # because nothing buildable is missing
     assert re.search(
-        r'<option value="" disabled title="[^"]*--refs docs-only[^"]*">'
-        r"docs-only \(not built\)</option>",
+        r'<option value="" disabled title="[^"]*no \.sysml under the validated[^"]*">'
+        r"docs-only \(no model content\)</option>",
         index,
     )
-    # ... and the page itself says the picker is static and how to upgrade
-    assert "served statically" in index
-    assert "tools.sysml_html_viewer.serve" in index
+    assert "served statically" not in index
 
 
 def test_serve_on_demand(tmp_path):

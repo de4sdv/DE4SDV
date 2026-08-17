@@ -263,7 +263,7 @@ class ViewerServer(ThreadingHTTPServer):
             try:
                 if _build_site(
                     self.repo_root, self.out_dir, self.roots,
-                    options=[("index.html", work_label, True, "")],
+                    options=[("index.html", work_label, True, "", True)],
                     current="index.html",
                 ) != 0:
                     return False
@@ -305,8 +305,8 @@ class ViewerServer(ThreadingHTTPServer):
                     blob_base = _github_blob_base(self.repo_root, ref)
                     work = reg[""].label
                     options = [
-                        ("index.html", work, True, ""),
-                        (f"refs/{san}/index.html", target.label, True, ""),
+                        ("index.html", work, True, "", True),
+                        (f"refs/{san}/index.html", target.label, True, "", True),
                     ]
                     if _build_site(
                         tmp, ref_dir, self.roots,
@@ -418,7 +418,7 @@ def make_server(
         work_label = f"working tree · {branch}" if branch else "working tree"
         _build_site(
             repo_root, out_dir, roots,
-            options=[("index.html", work_label, True, "")],
+            options=[("index.html", work_label, True, "", True)],
             current="index.html",
         )
     return ViewerServer((host, port), repo_root, out_dir, roots, prs)

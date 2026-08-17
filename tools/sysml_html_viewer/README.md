@@ -99,6 +99,31 @@ Switching to a revision that is not built yet shows a progress overlay
 ("Building revision …") while the server generates it; already-built
 revisions switch instantly.
 
+## Publishing for collaborators
+
+The published site shows **committed content only** — no local working
+tree. The recommended setup is GitHub Pages + a deploy workflow, behind a
+custom domain:
+
+1. **Deploy workflow** (`.github/workflows/deploy-viewer.yml`, included):
+   on every push to `main`, weekly, and manually (`workflow_dispatch`), it
+   checks out all branches and PR heads, runs the generator with
+   `--public --refs auto` (root site labeled with the plain branch name,
+   one sub-site per branch/PR head, PR labels from `gh`), runs the
+   repository gates, and deploys to Pages.
+2. **Domain** (optional but recommended): add a `CNAME` in the DNS zone
+   (e.g. `viewer` → `de4sdv.github.io`), then set the custom domain in the
+   repository's Pages settings. Cloudflare DNS works fine (DNS-only, or
+   proxy with SSL mode Full).
+3. **What collaborators get**: the full viewer — tree, diagrams, hover
+   tooltips, source go-to-definition — plus a Revision picker listing
+   every branch and every open PR, all prebuilt and instantly clickable.
+   No server, no clone needed.
+
+Local use is unchanged: `python -m tools.sysml_html_viewer.serve` keeps
+the on-demand experience including your uncommitted working tree — the
+one thing a published snapshot intentionally never shows.
+
 ## What is on a page
 
 - **Index** — model stats and the full navigation tree.

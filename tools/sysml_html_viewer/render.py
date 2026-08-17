@@ -103,32 +103,36 @@ def render_tree(node: TreeNode, active_href: str = "", depth: int = 0) -> str:
 
 
 def render_ref_picker(
-    refs: list[tuple[str, str, bool, str]], current: str, site: str
+    refs: list[tuple[str, str, bool, str, bool]], current: str, site: str
 ) -> str:
     """Header revision picker: one <option> per known revision, with relative
     hrefs computed from this page's site path so the site keeps working from
     file:// (no fetch, no absolute paths).
 
-    Each entry is (site-root target, label, enabled, title). Revisions that
-    exist in the repository but were not built at generation time appear as
-    disabled options whose title explains how to build them.
+    Each entry is (site-root target, label, enabled, title, buildable).
+    Revisions that exist in the repository but were not built at generation
+    time appear as disabled options whose title explains why. The
+    "served statically" hint is shown only when a *buildable* revision is
+    missing — on published snapshots (all buildable refs built) disabled
+    entries are genuinely unbuildable and the hint would be noise.
     """
     if not refs:
         return ""
     opts = []
-    has_disabled = False
-    for target, label, enabled, title in refs:
+    has_disabled_buildable = False
+    for target, label, enabled, title, buildable in refs:
         # browsers resolve relative URLs from the page's directory, not the
         # page file itself
         base = posixpath.dirname(site)
         rel = posixpath.relpath(target, base) if target else ""
         sel = " selected" if target and target == current else ""
         dis = "" if enabled else " disabled"
-        has_disabled = has_disabled or not enabled
+        if not enabled and buildable:
+            has_disabled_buildable = True
         tip = f' title="{esc(title)}"' if title else ""
         opts.append(f'<option value="{esc(rel)}"{sel}{dis}{tip}>{esc(label)}</option>')
     note = ""
-    if has_disabled:
+    if has_disabled_buildable:
         note = (
             '<span class="ref-picker-note">served statically — run '
             "<code>python -m tools.sysml_html_viewer.serve</code> "

@@ -145,6 +145,21 @@ def _local_branches(repo_root: Path) -> list[str]:
         return []
 
 
+def _remote_branches(repo_root: Path) -> list[str]:
+    """origin/* branch short names (without the origin/ prefix)."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo_root), "for-each-ref",
+             "--sort=refname", "--format=%(refname:short)", "refs/remotes/origin"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if out.returncode != 0:
+            return []
+        return [n for n in out.stdout.splitlines() if n != "origin/HEAD"]
+    except Exception:
+        return []
+
+
 def _gh_pr_list(repo_root: Path) -> list[dict]:
     """Open pull requests of this repository (gh CLI, best effort).
 
@@ -170,15 +185,18 @@ def _gh_pr_list(repo_root: Path) -> list[dict]:
 
 
 def _pr_labels(repo_root: Path) -> dict[str, str]:
-    """Branch name -> 'PR #N: title' for open PRs of this repository.
+    """Ref name -> 'PR #N: title' for open PRs of this repository.
 
-    Best effort: requires a GitHub origin and a working `gh` CLI; any
-    failure returns an empty map.
+    Keyed by both the head branch name and the refs/pull/N/head form, so
+    labels survive either resolution path. Best effort: requires a GitHub
+    origin and a working `gh` CLI; any failure returns an empty map.
     """
-    return {
-        pr["headRefName"]: f"PR #{pr['number']}: {pr['title']}"
-        for pr in _gh_pr_list(repo_root)
-    }
+    out: dict[str, str] = {}
+    for pr in _gh_pr_list(repo_root):
+        label = f"PR #{pr['number']}: {pr['title']}"
+        out[pr["headRefName"]] = label
+        out[f"refs/pull/{pr['number']}/head"] = label
+    return out
 
 
 def _expand_refs(
@@ -213,7 +231,16 @@ def _expand_refs(
                 names.append(cand)
                 break
     elif refs_arg == "auto":
+        # local + origin branches, plus open PR heads (refs/pull/N/head)
         names = _local_branches(repo_root)
+        names += [n.removeprefix("origin/") for n in _remote_branches(repo_root)]
+        seen: set[str] = set()
+        names = [n for n in names if not (n in seen or seen.add(n))]
+        for pr in _gh_pr_list(repo_root) if prs else []:
+            head = _blob_ref(pr["headRefName"])
+            if head == branch or head in seen:
+                continue
+            names.append(f"refs/pull/{pr['number']}/head")
     else:
         names = [r.strip() for r in refs_arg.split(",") if r.strip()]
 
@@ -409,7 +436,7 @@ def _build_site(
     out_dir: Path,
     roots: list[str],
     blob_base: str = "",
-    options: list[tuple[str, str, bool, str]] | None = None,
+    options: list[tuple[str, str, bool, str, bool]] | None = None,
     current: str = "index.html",
     external_ref: bool = False,
 ) -> int:
@@ -446,7 +473,7 @@ def _build_site(
     shutil.copyfile(js_src, assets_dir / "viewer.js")
 
     if options is None:
-        options = [("index.html", "working tree", True, "")]
+        options = [("index.html", "working tree", True, "", True)]
     pages_root = out_dir / "pages"
 
     def picker(site: str) -> str:
@@ -527,36 +554,61 @@ def generate(
     roots: list[str],
     refs: str | None = None,
     prs: bool = True,
+    public: bool = False,
 ) -> int:
-    """Build the working tree at the site root plus one sub-site per ref."""
+    """Build the working tree at the site root plus one sub-site per ref.
+
+    With public=True the root build is labeled with the plain branch name
+    (no "working tree" concept) — for published snapshots that must only
+    show committed content.
+    """
     repo_root = Path(repo_root).resolve()
     out_dir = Path(out_dir).resolve()
 
     specs, branch, pr_map = _expand_refs(repo_root, refs, prs)
     eligible: list[RefSpec] = []
+    no_model: set[str] = set()
     for spec in specs:
         if _ref_has_model(repo_root, spec.ref, roots):
             eligible.append(spec)
         else:
+            no_model.add(spec.short)
             print(
                 f"  ref {spec.ref!r} has no .sysml under the model roots; skipped",
                 file=sys.stderr,
             )
-    work_label = f"working tree · {branch}" if branch else "working tree"
-    options: list[tuple[str, str, bool, str]] = [("index.html", work_label, True, "")]
+    if public:
+        work_label = branch or "main"
+    else:
+        work_label = f"working tree · {branch}" if branch else "working tree"
+    options: list[tuple[str, str, bool, str, bool]] = [
+        ("index.html", work_label, True, "", True)
+    ]
     for s in eligible:
-        options.append((f"refs/{s.san}/index.html", s.label, True, ""))
+        options.append((f"refs/{s.san}/index.html", s.label, True, "", True))
     if _is_git_root(repo_root):
         built_shorts = {s.short for s in eligible}
         for name, label in _known_unbuilt_refs(repo_root, branch, built_shorts, pr_map):
-            options.append(
-                (
-                    "",
-                    f"{label} (not built)",
-                    False,
-                    f"regenerate with: --refs {name} (or --refs auto)",
+            if name in no_model:
+                options.append(
+                    (
+                        "",
+                        f"{label} (no model content)",
+                        False,
+                        "no .sysml under the validated model roots",
+                        False,
+                    )
                 )
-            )
+            else:
+                options.append(
+                    (
+                        "",
+                        f"{label} (not built)",
+                        False,
+                        f"regenerate with: --refs {name} (or --refs auto)",
+                        True,
+                    )
+                )
 
     ok = True
     blob_base = _github_blob_base(repo_root, branch)
@@ -627,6 +679,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="skip GitHub PR labels for refs (default: label refs via gh when possible)",
     )
+    parser.add_argument(
+        "--public",
+        action="store_true",
+        help="published-snapshot mode: label the root build with the plain "
+        "branch name (no 'working tree' concept); only committed content",
+    )
     args = parser.parse_args(argv)
     return generate(
         Path(args.repo).resolve(),
@@ -634,6 +692,7 @@ def main(argv: list[str] | None = None) -> int:
         args.roots,
         refs=args.refs or None,
         prs=not args.no_prs,
+        public=args.public,
     )
 
 
