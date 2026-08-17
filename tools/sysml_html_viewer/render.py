@@ -161,10 +161,22 @@ def _page_shell(
     css_rel: str,
     js_rel: str,
     picker: str = "",
+    body_class: str = "",
+    search_rel: str = "",
+    asset_stamp: str = "",
 ) -> str:
     crumbs = " / ".join(
         f'<a href="{esc(href)}">{esc(label)}</a>' for label, href in breadcrumbs
     )
+    search_link = (
+        f'<a class="site-search-link" href="{esc(search_rel)}">Search</a>'
+        if search_rel
+        else ""
+    )
+    body_attr = f' class="{esc(body_class)}"' if body_class else ""
+    if asset_stamp:
+        css_rel += f"?v={asset_stamp}"
+        js_rel += f"?v={asset_stamp}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -173,10 +185,11 @@ def _page_shell(
 <title>{esc(title)} — DE4SDV Model Viewer</title>
 <link rel="stylesheet" href="{esc(css_rel)}">
 </head>
-<body>
+<body{body_attr}>
 <header class="site-header">
   <span class="site-title">DE4SDV <em>Model Viewer</em></span>
   <span class="site-sub">read-only browser over the SysML v2 textual model</span>
+  {search_link}
   {picker}
 </header>
 <div class="layout">
@@ -206,6 +219,8 @@ def render_index(
     stats: dict[str, int],
     file_count_with_diagrams: int,
     picker: str = "",
+    search_rel: str = "",
+    asset_stamp: str = "",
 ) -> str:
     tree_html = render_tree(tree, "")
     stats_html = "".join(
@@ -250,7 +265,7 @@ def render_index(
     return _page_shell(
         "Model", tree_html, [("Model", "index.html")], content,
         css_rel="assets/viewer.css", js_rel="assets/viewer.js",
-        picker=picker,
+        picker=picker, search_rel=search_rel, asset_stamp=asset_stamp,
     )
 
 
@@ -270,6 +285,8 @@ def render_dir_page(
     children: list[TreeNode],
     prefix: str,
     picker: str = "",
+    search_rel: str = "",
+    asset_stamp: str = "",
 ) -> str:
     items = []
     for c in children:
@@ -293,7 +310,7 @@ def render_dir_page(
     return _page_shell(
         dir_label, tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
-        picker=picker,
+        picker=picker, search_rel=search_rel, asset_stamp=asset_stamp,
     )
 
 
@@ -474,6 +491,39 @@ def _highlight_source(
 
 
 # ---------------------------------------------------------------------------
+# Search page
+# ---------------------------------------------------------------------------
+
+
+def render_search_page(
+    picker: str,
+    index_json: str,
+    stats: dict[str, int],
+    asset_stamp: str = "",
+) -> str:
+    """Dedicated search page with the whole model index inline — works from
+    file://, any static host, and the published site (no fetch needed)."""
+    content = f"""
+<div class="card">
+  <h1>Search the model</h1>
+  <p class="muted">Search names, kinds, docs, and files across the whole
+  validated model — {stats["files"]} files, {stats["members"]} members,
+  {stats["views"]} views.</p>
+  <input type="search" id="searchInput" class="search-input"
+         placeholder="e.g. lifecycle, AEBS, R152, vehicle speed" autofocus>
+  <div id="searchMeta" class="search-meta"></div>
+  <ul id="searchResults" class="search-results"></ul>
+</div>
+<script type="application/json" id="searchIndex">{index_json}</script>
+"""
+    return _page_shell(
+        "Search", "", [("Model", "index.html"), ("Search", "")], content,
+        css_rel="assets/viewer.css", js_rel="assets/viewer.js",
+        picker=picker, body_class="no-tree", asset_stamp=asset_stamp,
+    )
+
+
+# ---------------------------------------------------------------------------
 # File pages
 # ---------------------------------------------------------------------------
 
@@ -625,6 +675,8 @@ def render_file_page(
     picker: str = "",
     blob_base: str = "",
     external_ref: bool = False,
+    search_rel: str = "",
+    asset_stamp: str = "",
 ) -> str:
     anchor_counter: dict[str, int] = {}
     views_html = "".join(
@@ -663,5 +715,5 @@ def render_file_page(
     return _page_shell(
         f"{mf.rel_path}", tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
-        picker=picker,
+        picker=picker, search_rel=search_rel, asset_stamp=asset_stamp,
     )

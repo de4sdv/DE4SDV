@@ -127,6 +127,10 @@ one thing a published snapshot intentionally never shows.
 ## What is on a page
 
 - **Index** — model stats and the full navigation tree.
+- **Search** (`search.html`) — search names, kinds, docs, and files across
+  the whole model; results jump to the element or file. The index is
+  inline, so search works from `file://`, static hosts, and the published
+  site. Reachable via the header **Search** link on every page.
 - **Directory pages** (`pages/<model-dir>/index.html`) — contents of each
   model folder.
 - **Tree nodes for files** — expanding a `.sysml` file lists its views and

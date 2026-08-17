@@ -47,6 +47,7 @@ from .render import (
     render_file_page,
     render_index,
     render_ref_picker,
+    render_search_page,
 )
 
 # Same scope as scripts/validate_sysml.py MODEL_PATHS: the whole textual
@@ -431,6 +432,45 @@ def _annotate_tree(root: TreeNode) -> None:
     walk(root, "", 0)
 
 
+def _search_index(files: list) -> str:
+    """Compact JSON index for the search page: one entry per file, view,
+    and declared member (name, kind, file, line, href, truncated doc)."""
+    import json as _json
+
+    entries = []
+    for mf in files:
+        page = f"pages/{mf.rel_path}.html"
+        entries.append(
+            {"n": mf.rel_path, "k": "file", "f": mf.rel_path, "l": 1, "h": page}
+        )
+        for v in mf.views:
+            from .model_parse import slugify
+
+            entries.append(
+                {
+                    "n": v.name,
+                    "k": "view",
+                    "f": mf.rel_path,
+                    "l": v.line,
+                    "h": f"{page}#view-{slugify(v.name)}",
+                    **({"d": v.doc[:160]} if v.doc else {}),
+                }
+            )
+        for m in mf.members:
+            entries.append(
+                {
+                    "n": m.name,
+                    "k": m.kind,
+                    "f": mf.rel_path,
+                    "l": m.line,
+                    "h": f"{page}#src-{m.line}",
+                    **({"d": m.doc[:160]} if m.doc else {}),
+                }
+            )
+    raw = _json.dumps(entries, ensure_ascii=False, separators=(",", ":"))
+    return raw.replace("</", "<\\/")
+
+
 def _build_site(
     repo_root: Path,
     out_dir: Path,
@@ -472,6 +512,13 @@ def _build_site(
     js_src = Path(__file__).parent / "viewer.js"
     shutil.copyfile(js_src, assets_dir / "viewer.js")
 
+    # content stamp so browsers never serve stale assets (file:// caching)
+    import hashlib
+
+    stamp = hashlib.sha1(
+        (css_src.read_bytes() + js_src.read_bytes())
+    ).hexdigest()[:10]
+
     if options is None:
         options = [("index.html", "working tree", True, "", True)]
     pages_root = out_dir / "pages"
@@ -482,7 +529,15 @@ def _build_site(
     # index page — its site path is the site root itself (current)
     index_tree = _tree_with_prefix(tree, "", "")
     (out_dir / "index.html").write_text(
-        render_index(tree, stats, diagrams, picker(current)),
+        render_index(
+            tree, stats, diagrams, picker(current), "search.html", stamp
+        ),
+        encoding="utf-8",
+    )
+
+    # search page — whole-model index inline, no fetch needed
+    (out_dir / "search.html").write_text(
+        render_search_page(picker("search.html"), _search_index(files), stats, stamp),
         encoding="utf-8",
     )
 
@@ -509,6 +564,8 @@ def _build_site(
                 children,
                 prefix,
                 picker(site),
+                prefix + "search.html",
+                stamp,
             ),
             encoding="utf-8",
         )
@@ -534,6 +591,8 @@ def _build_site(
                 picker(site),
                 blob_base,
                 external_ref,
+                prefix + "search.html",
+                stamp,
             ),
             encoding="utf-8",
         )
