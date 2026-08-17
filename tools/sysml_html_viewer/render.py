@@ -204,6 +204,7 @@ def _page_shell(
   <a class="site-title" href="{esc(search_prefix + 'index.html')}">DE4SDV <em>Model Viewer</em></a>
   <span class="site-sub">read-only browser over the SysML v2 textual model</span>
   {picker}
+  <a class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener">Chat</a>
 </header>
 <div class="layout">
   <nav class="tree-pane" aria-label="Model navigation">

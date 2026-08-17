@@ -30,6 +30,7 @@ html, body {
   top: 0;
   z-index: 20;
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 14px;
   padding: 12px 22px;
@@ -48,6 +49,15 @@ html, body {
 .site-title:hover em { text-decoration: underline; }
 .site-title em { color: var(--accent); font-style: normal; }
 .site-sub { color: var(--muted); font-size: 13px; }
+
+/* community chat link in the header */
+.site-chat {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-chat:hover { text-decoration: underline; }
 
 /* ---- revision picker ---- */
 .ref-picker-wrap {

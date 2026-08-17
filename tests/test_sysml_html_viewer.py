@@ -747,6 +747,9 @@ def test_tree_search(tmp_path):
     # design package: BIZ UDMincho is loaded for the header
     assert "BIZ+UDMincho" in index
     assert "BIZ+UDMincho" in file_page
+    # header links to the community chat
+    assert 'class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener"' in index
+    assert 'class="site-chat" href="https://chat.de4sdv.org"' in file_page
 
 
 def test_source_symbol_tooltips(tmp_path):
