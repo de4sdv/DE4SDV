@@ -1,16 +1,16 @@
 # Upstream SYSMOD SysML v2 Library
 
-## Upstream source
+## Historical source review
 
 - Repository: <https://github.com/MBSE4U/sysmod-sysmlv2>
-- Inspected branch: `main`
-- Inspected commit: `644065e`
-- Inspected commit date: `2026-05-25T14:04:34-04:00`
+- Historically inspected branch: `main`
+- Historically inspected commit: `644065e`
+- Historically inspected commit date: `2026-05-25T14:04:34-04:00`
 - License: Apache-2.0
 - Primary artifact: `SYSMOD.sysml`
 - Upstream description: SYSMOD language extension and examples for SysML v2
 
-## Observed upstream state
+## State at the historical inspection
 
 At the inspected commit, the upstream repository contains:
 
@@ -21,20 +21,42 @@ At the inspected commit, the upstream repository contains:
 - a SysAND folder and release workflow, but no published GitHub releases, tags,
   or official SysAND package-manager release.
 
-The upstream README identifies the project as alpha-stage work with limited
-documentation. DE4SDV therefore treats the repository as an upstream reference
-and candidate library dependency, not as a stable standard dependency.
+This state explains the reference-only decision in
+[ADR 0002](../../docs/architecture-decisions/0002-adopt-sysmod-sysmlv2-library.md).
+It is retained as provenance and is not a description of the current package.
+
+## Current Sysand dependency
+
+- Registry project: <https://sysand.com/projects/mbse4u/sysmod>
+- Resource: `pkg:sysand/mbse4u/sysmod`
+- Exact version constraint: `=5.1.1`
+- Package license: Apache-2.0
+- Registry validation: [validated without warnings](https://sysand.com/projects/mbse4u/sysmod/5.1.1/validation)
+- Registry source view: <https://sysand.com/projects/mbse4u/sysmod/5.1.1/source>
+- Local declaration: [`.project.json`](../../.project.json)
+- Locked resolution: [`sysand-lock.toml`](../../sysand-lock.toml)
+- DE4SDV boundary:
+  [`DE4SDV_SYSMODAdapter`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml)
+
+`sysand sync` installs the package under `.sysand/lib`. That directory is a
+generated dependency environment and remains untracked. DE4SDV does not copy or
+vendor the package source.
+
+The static repository viewer renders the local adapter source and seam
+documentation, but does not publish the generated `.sysand` dependency tree.
+Review upstream declarations through the registry source view linked above.
 
 ## Relevant upstream concepts
 
-The upstream `SYSMOD.sysml` library includes concepts that are directly relevant
-to DE4SDV:
+The package includes concepts that are directly relevant to DE4SDV:
 
 - `Project`,
 - `SystemContext`,
 - `ActorSystemInterface`,
 - `ActorPort`,
 - `SystemPort`,
+- `SystemUseCase`,
+- `ConstrainedOccurrence`,
 - `ExtendedStakeholder`,
 - `ExtendedConcern`,
 - `ExtendedRequirement`,
@@ -43,29 +65,32 @@ to DE4SDV:
 - `ObligationKind`,
 - `StabilityKind`.
 
-The upstream `Project` concept links brownfield context, project owner,
-stakeholders, problem statement, stakeholder needs, system idea context,
-specification context, requirements, solution context, functional context,
-logical context, and product context. That structure is a strong fit for
-incremental DE4SDV modeling.
+The first DE4SDV adapter exposes only local seams for `ExtendedStakeholder`,
+`ExtendedRequirement`, `SystemUseCase`, and `ConstrainedOccurrence`. Exposure
+does not migrate existing DE4SDV model definitions automatically.
+
+The upstream `Project` concept links a fixed context and architecture artifact
+chain. DE4SDV does not adopt it as a project, program, increment, or product-line
+root because that would compete with SAF viewpoint organization, DE4SDV
+increments, product-line configuration, and evidence ownership.
 
 ## DE4SDV adoption policy
 
-DE4SDV should:
+DE4SDV will:
 
 1. reference and attribute the upstream library,
-2. pin an upstream commit before vendoring or building against the library,
-3. specialize upstream concepts in a DE4SDV tailoring package rather than
-   modifying upstream semantics directly,
+2. pin an exact package version and commit the generated lock resolution,
+3. specialize selected upstream concepts only through the DE4SDV adapter,
 4. validate SysML v2 syntax and packaging with the chosen toolchain before
    treating local models as executable,
-5. record any copied upstream files with license and modification notices.
+5. review package upgrades against every exposed seam,
+6. keep the historical Git commit as provenance for the original tailoring
+   review, not as the executable dependency identity.
 
-## Not adopted in this step
+## Deliberately not adopted
 
-This first step does not vendor upstream files, add a submodule, copy quick
-sheets, or add toolchain packaging. Until an official SysAND package-manager
-release exists, DE4SDV references and adopts the upstream repository through
-documented source, commit, license, maturity, and tailoring notes. Vendoring or
-package-manager consumption should be decided in a follow-up after dependency
-and validation policy are agreed.
+DE4SDV does not vendor upstream files, add a submodule, copy quick sheets,
+specialize `Project` or `AIProject`, or consume the requirement-boilerplate
+constraints. Candidate compatibility questions are recorded in the
+[draft upstream report](upstream-compatibility-report.md). They need upstream
+maintainer review before DE4SDV depends on the affected definitions.

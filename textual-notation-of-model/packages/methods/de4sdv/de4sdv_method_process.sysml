@@ -44,7 +44,7 @@ package DE4SDV_MethodProcess {
     phase6_functionalArchitecture {
       doc /* What functions, flows, states, interfaces? Conceptual domain. */
     }
-    phase7_logicalArchitecture {
+    phase7_systemArchitecture {
       doc /* What system elements realize functions? Conceptual domain. */
     }
     phase8_physicalRealization {

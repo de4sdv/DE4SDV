@@ -216,9 +216,8 @@ package SAF_Viewpoints {
   }
 
   // ─── Conceptual Domain ───
-  // (Functional and Logical domains merged into Conceptual; former
-  // Functional-domain viewpoints live here together with the former
-  // Conceptual ones.)
+  // System requirements, functional architecture, and technology-independent
+  // system architecture are distinct artifact kinds in this domain.
 
   concern def SystemContextConcern {
     require constraint {

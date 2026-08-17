@@ -57,7 +57,11 @@ def test_syside_views_dependency_is_exactly_pinned() -> None:
         {
             "resource": "pkg:sysand/sensmetry/syside-views",
             "versionConstraint": "=0.10.3",
-        }
+        },
+        {
+            "resource": "pkg:sysand/mbse4u/sysmod",
+            "versionConstraint": "=5.1.1",
+        },
     ]
     lock = (ROOT / "sysand-lock.toml").read_text(encoding="utf-8")
     assert 'name = "Syside Views"' in lock

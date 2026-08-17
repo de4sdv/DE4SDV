@@ -39,12 +39,12 @@ If these cannot be stated, the increment is not ready.
 | 2. Operational context | What happens in the world? | Operational | context, actors, scenarios, operational processes |
 | 3. Capability / feature semantics | Is this a feature, common capability, constraint, or evidence capability? | DE4SDV ontology | feature/common-capability classification, variation points |
 | 4. Needs | What stakeholder needs exist and how will the needs be validated? | Operational | needs, sources, rationale, validation intent |
-| 5. Requirements | What shall the system or product line do and how will those requirements be verified? | Functional | design input requirements, constraints, verification methods, trace links |
-| 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Functional | functional breakdown, interfaces, behavior slices |
-| 7. Conceptual architecture | What system elements realize the functions? | Logical | system structure, exchanges, allocation/mapping |
+| 5. Requirements | What shall the system or product line do and how will those requirements be verified? | Conceptual | design input requirements, constraints, verification methods, trace links |
+| 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Conceptual | functional breakdown, interfaces, behavior slices |
+| 7. System architecture | What technology-independent system elements realize the functions? | Conceptual | system structure, exchanges, allocation/mapping |
 | 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the system design? | Physical | physical/software structure, interfaces, mappings, readiness probes when required |
 | 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, applicability |
-| 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Functional | verification cases, validation scenarios, acceptance criteria, evidence records, open gaps |
+| 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Conceptual | verification cases, validation scenarios, acceptance criteria, evidence records, open gaps |
 | 11. Publication | What is reviewable now? | DE4SDV workflow | SysML v2, Markdown, YAML, generated views, reports, PR |
 | 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision, open issues, next increment |
 

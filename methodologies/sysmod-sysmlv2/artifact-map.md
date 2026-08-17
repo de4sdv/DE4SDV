@@ -4,37 +4,22 @@ This map shows how the upstream SYSMOD SysML v2 concepts can connect to existing
 
 ## Method concept to repository artifact
 
-- `Project`
-  - DE4SDV project-level modeling context.
-  - Candidate artifacts: `README.md`, `docs/project-goals/project-charter.md`, future `textual-notation-of-model/packages/de4sdv_project.sysml`.
+| Upstream concept or artifact | DE4SDV boundary | SAF/domain treatment | Adoption state |
+|---|---|---|---|
+| `Project` | No DE4SDV specialization. Increment, product-line, and evidence roots remain separate. | Not a SAF domain or viewpoint. | Deliberately excluded pending an ownership decision. |
+| `SystemContext` | Existing DE4SDV method and feature context packages remain authoritative. | Operational context provides mission/use input; system context participates in Conceptual views. | Pattern reused locally; no upstream specialization yet. |
+| `ExtendedStakeholder` | `DE4SDV_SYSMODAdapter::SYSMODStakeholderBase` is the package seam. Existing `DE4SDV_Stakeholders` roles are unchanged. | Stakeholder concerns select views across domains. | Seam available; migration deferred to a separate pilot. |
+| `ExtendedConcern` | Existing DE4SDV and SAF concern definitions remain authoritative. | Concerns frame viewpoints; they are not architecture levels. | Not exposed by the first adapter. |
+| `ExtendedRequirement` | `DE4SDV_SYSMODAdapter::SYSMODRequirementBase` is the package seam. Existing requirement-candidate lifecycle remains unchanged. | Needs are Operational inputs; design-input requirements are handled through Conceptual viewpoints. | Seam available; migration deferred to a separate pilot. |
+| `SystemUseCase` | `DE4SDV_SYSMODAdapter::SYSMODSystemUseCaseBase` is the package seam. | Operational scenarios motivate system use cases; use-case artifacts participate in Conceptual views. | Seam available; no existing model migrated. |
+| `ConstrainedOccurrence` | `DE4SDV_SYSMODAdapter::SYSMODConstrainedOccurrenceBase` is the package seam. | Used only when pre/postcondition lifecycle semantics fit the modeled occurrence. | Seam available; no existing model migrated. |
+| Functional architecture | Existing feature functional behavior and interface packages. | Distinct artifact kind in the Conceptual Domain, traced to Operational needs/scenarios. | Preserved. |
+| Logical architecture | Existing technology-independent system structures, exchanges, and function allocations. | Presented through current SAF `System*` viewpoints in the Conceptual Domain. | Preserved as system-architecture semantics. |
+| Product architecture | Existing concrete hardware/software/deployment realization packages. | Presented through Physical-domain viewpoints and traces from system architecture. | Preserved; not a member-product synonym. |
 
-- `SystemContext`
-  - System of Interest boundary, actors, interfaces, and use cases.
-  - Candidate artifacts: `textual-notation-of-model/packages/de4sdv_context.sysml`, `approach/framework/viewpoint/`.
-
-- `ExtendedStakeholder`
-  - Stakeholder types, roles, risk/effort prioritization, and concerns.
-  - Candidate artifacts: `docs/project-goals/project-charter.md`, `approach/framework/viewpoint/`, future stakeholder model package.
-
-- `ExtendedConcern`
-  - Problem statement, stakeholder needs, architecture concerns, and review concerns.
-  - Candidate artifacts: `approach/framework/viewpoint/`, `methodologies/sysmod-sysmlv2/review-checklist.md`.
-
-- `ExtendedRequirement`
-  - Requirements enriched with obligation, stability, and motivation attributes.
-  - Candidate artifacts: future `textual-notation-of-model/packages/de4sdv_requirements.sysml`, `continuous-homologation/evidence-register.md`.
-
-- `functionalContext`
-  - Functional capabilities and behavior.
-  - Candidate artifacts: `approach/process-set/`, future functional model package.
-
-- `logicalContext`
-  - System architecture and allocation decisions.
-  - Candidate artifacts: future system architecture model package, `sysmlv2-api/`, `digital-continuity/`.
-
-- `productContext`
-  - Product-line variants, configured product models, and shared assets.
-  - Candidate artifacts: `model-based-product-line-engineering/`, future variability model package.
+The adapter is the only package allowed to import `SYSMOD`. Feature and
+architecture packages consume DE4SDV-owned definitions so dependency upgrades
+remain reviewable.
 
 ## Integration with evidence and baselines
 
@@ -55,14 +40,16 @@ Relevant existing artifacts:
 - `digital-continuity/traceability-matrix-template.md`,
 - `model-based-product-line-engineering/`.
 
-## Suggested contribution sequence
+## Adoption and migration sequence
 
-1. Adopt upstream reference and tailoring policy.
-2. Define the generic increment workflow and SAF viewpoint selection map.
-3. Maintain a minimal ontology kernel for increment traceability and product-line semantics.
-4. Use a small pilot, such as AEBS, to test the workflow before expanding model scope.
-5. Add a small DE4SDV tailoring package after dependency/tooling policy is agreed.
-6. Add a System of Interest context model.
-7. Add stakeholder and requirement slices.
-8. Add product-line variability and configured-product slices.
-9. Add verification/evidence traceability slices.
+1. Resolve and lock the exact package without vendoring source.
+2. Validate the unchanged DE4SDV model with the dependency present.
+3. Keep selected upstream definitions behind `DE4SDV_SYSMODAdapter`.
+4. Review one low-risk specialization pilot separately.
+5. Re-run SysML, viewer, product-line, and evidence regression gates.
+6. Expand the adapter only when a DE4SDV artifact needs the concept and the
+   upstream extension semantics have been reviewed.
+
+Do not introduce a second architecture root, equate SAF domain names with
+SYSMOD artifact names, or treat package availability as evidence that an
+existing DE4SDV artifact has migrated.

@@ -12,7 +12,7 @@ implement any external methodology wholesale.
 ## Process correspondence
 
 DE4SDV organizes work across three ASELCM system layers plus a
-12-phase increment workflow:
+13-phase increment workflow numbered 0 through 12:
 
 | Process area | DE4SDV system layer | DE4SDV phases |
 |---|---|---|
@@ -71,7 +71,7 @@ graph TD
     P4[Phase 4: Needs]
     P5[Phase 5: Requirements]
     P6[Phase 6: Functional architecture]
-    P7[Phase 7: Conceptual architecture]
+    P7[Phase 7: System architecture]
     P8[Phase 8: Physical/software realization]
     P9[Phase 9: Variability and configuration]
     P10[Phase 10: V&V and evidence]
@@ -170,7 +170,7 @@ Activities become SysML v2 action/flow definitions in textual notation.
 State machines for system processes become SysML v2 state definition
 constructs.
 
-### Phase 7 — Conceptual architecture
+### Phase 7 — System architecture
 
 Logical structure, exchanges, and allocation/mapping from functions to
 conceptual elements. Expressed as SysML v2 part/connection/flow

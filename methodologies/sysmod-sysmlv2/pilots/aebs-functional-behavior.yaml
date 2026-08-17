@@ -7,7 +7,8 @@ parent_increment: INC-AEBS-003
 owner: DE4SDV maintainers
 
 purpose: >-
-  Define the first functional-domain slice for the AEBS pilot after the
+  Define the first functional-architecture slice in the SAF Conceptual Domain
+  for the AEBS pilot after the
   operational context and needs/requirements baselines. This increment identifies
   abstract AEBS functions, functional information items, draft requirement trace,
   and reused/extended COVESA VSS signal definitions without claiming logical realization,

@@ -54,7 +54,7 @@ source_alignment:
     notes:
       - Allocation syntax follows validation/12-Dependency Relationships/12b-Allocation-1.sysml.
       - State decomposition syntax follows validation/05-State-based Behavior/5-State-based Behavior-1.sysml.
-  - source_id: SAF-LOGICAL-DOMAIN
+  - source_id: SAF-CONCEPTUAL-DOMAIN
     use: viewpoint_selection
     notes:
       - System Structure Definition Viewpoint
