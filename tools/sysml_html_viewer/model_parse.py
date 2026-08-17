@@ -49,6 +49,17 @@ DECL_RE = re.compile(
 # as declarations named 'from'/'to'/'between'.
 _FLOW_NO_NAME = frozenset({"from", "to", "between"})
 
+# `exhibit state lifecycleStates { ... }` declares an inline usage inside
+# an exhibit block; the exhibited element carries the real name.
+_EXHIBIT_USAGE_RE = re.compile(
+    r"^exhibit\s+([A-Za-z_][A-Za-z0-9_]*)\s+"
+    r"([A-Za-z_][A-Za-z0-9_]*|'[^']*')"
+)
+_USAGE_KINDS = frozenset({
+    "state", "action", "part", "port", "item", "flow", "interface",
+    "attribute", "metadata", "event", "interaction", "transfer", "story",
+})
+
 DOC_RE = re.compile(r"doc\s*/\*(.*?)\*/\s*", flags=re.S)
 
 
@@ -257,6 +268,15 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
         if m:
             kind = m.group("kind").strip()
             name = m.group("name")
+            if kind == "exhibit":
+                # `exhibit state lifecycleStates {` — index the exhibited
+                # usage (state, action, ...) under its real name so diagram
+                # labels like "lifecycleStates" resolve; a plain
+                # `exhibit partName;` stays an exhibit of that part.
+                sub = _EXHIBIT_USAGE_RE.match(raw.strip())
+                if sub and sub.group(1) in _USAGE_KINDS:
+                    kind = sub.group(1)
+                    name = sub.group(2)
             if kind == "flow" and name in _FLOW_NO_NAME:
                 # `flow from A to B;` — no declaration
                 pass

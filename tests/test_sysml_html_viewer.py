@@ -59,6 +59,10 @@ def test_parse_members(fixture_sysml):
     assert "fixtureSystem" in names
     assert "'quoted part'" in names
     assert "FixtureAbstractPart" in names
+    # `exhibit state X {` indexes the exhibited usage under its real name
+    assert "fixtureLifecycle" in names
+    assert {m.kind for m in mf.members if m.name == "fixtureLifecycle"} == {"state"}
+    assert "fixtureIdle" in names
 
 
 def test_member_doc_attachment(fixture_sysml):
@@ -200,6 +204,11 @@ def test_resolve_labels(model_files, fixture_sysml):
         "fixtureStakeholder",
         # package name in an expose
         "expose FixtureRoot::*",
+        # exhibited usage: plain label and plural-usage label
+        "fixtureLifecycle",
+        "states fixtureLifecycle",
+        # stereotype/layout headers stay inert
+        "exhibit states",
     ]
     resolved = svg_info.resolve_labels(
         labels,
@@ -226,6 +235,11 @@ def test_resolve_labels(model_files, fixture_sysml):
     # package exposes resolve to the package
     assert by_label["expose FixtureRoot::*"].kind == "package"
     assert by_label["expose FixtureRoot::*"].name == "FixtureRoot"
+    # exhibited usage resolves under its real name (kind state)
+    assert by_label["fixtureLifecycle"].kind == "state"
+    assert by_label["states fixtureLifecycle"].name == "fixtureLifecycle"
+    # the 'exhibit states' header label stays inert
+    assert "exhibit states" not in by_label
     # layout text without a model match resolves to nothing
     assert "parts" not in by_label
     assert "«part def»" not in by_label
