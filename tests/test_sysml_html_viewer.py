@@ -7,6 +7,7 @@ real model file.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -455,6 +456,26 @@ def test_serve_on_demand(tmp_path):
         with urllib.request.urlopen(page_url, timeout=120) as r:
             body = r.read().decode()
         assert "WorktreeAddedPart" in body
+        # viewer code updates make stale sites rebuild: touching the tool's
+        # viewer.js marks every built site stale until regenerated
+        tool_js = REPO_ROOT / "tools/sysml_html_viewer/viewer.js"
+        old_mtime = tool_js.stat().st_mtime
+        os.utime(tool_js, (time.time() + 10, time.time() + 10))
+        try:
+            with urllib.request.urlopen(base + "/_refs") as r:
+                data = json.loads(r.read())
+            feature_entry = next(x for x in data["refs"] if x["id"] == "feature")
+            assert feature_entry["built"] is False  # stale -> unbuilt
+            # requesting the ref page still serves it (rebuilding first)
+            with urllib.request.urlopen(base + "/refs/feature/index.html", timeout=120) as r:
+                assert "extra_feature.sysml" in r.read().decode()
+        finally:
+            os.utime(tool_js, (old_mtime, old_mtime))
+        # once the tool code is back to normal, the ref is current again
+        with urllib.request.urlopen(base + "/_refs") as r:
+            data = json.loads(r.read())
+        feature_entry = next(x for x in data["refs"] if x["id"] == "feature")
+        assert feature_entry["built"] is True
     finally:
         server.shutdown()
         server.server_close()

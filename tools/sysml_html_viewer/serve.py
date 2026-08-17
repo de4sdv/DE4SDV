@@ -178,8 +178,9 @@ class ViewerServer(ThreadingHTTPServer):
         for san, t in reg.items():
             url = "/index.html" if t.work else f"/refs/{san}/index.html"
             built = True if t.work else (
-                self.out_dir / "refs" / san / "index.html"
-            ).exists()
+                (self.out_dir / "refs" / san / "index.html").exists()
+                and not self._ref_stale(self.out_dir / "refs" / san)
+            )
             entry: dict = {
                 "id": san,
                 "label": t.label,
@@ -196,15 +197,35 @@ class ViewerServer(ThreadingHTTPServer):
         return {"refs": refs}
 
     # -- working tree staleness ---------------------------------------------
-    def _worktree_stale(self) -> bool:
-        """True when any .sysml under the model roots is newer than the
-        generated working-tree site (or the site is missing)."""
-        marker = self.out_dir / "index.html"
+    @staticmethod
+    def _tool_code_time() -> float:
+        """Newest mtime of the viewer's own code (tools/sysml_html_viewer).
+
+        When the tool code is newer than a generated site, the site was
+        built by an older version and must be regenerated — this is what
+        makes a fresh `git pull` visible after one page refresh.
+        """
+        tools_dir = Path(__file__).resolve().parent
+        newest = 0.0
+        for pattern in ("*.py", "viewer.js", "viewer.css"):
+            for p in tools_dir.glob(pattern):
+                try:
+                    newest = max(newest, p.stat().st_mtime)
+                except OSError:
+                    continue
+        return newest
+
+    def _site_stale(self, site_marker: Path, newest_model: float) -> bool:
+        """True when the model or the viewer's own code is newer than the
+        generated site at site_marker."""
         try:
-            site_time = marker.stat().st_mtime
+            site_time = site_marker.stat().st_mtime
         except OSError:
             return True
-        newest = site_time
+        return max(newest_model, self._tool_code_time()) > site_time
+
+    def _newest_model_time(self) -> float:
+        newest = 0.0
         for root in self.roots:
             base = self.repo_root / root
             if not base.is_dir():
@@ -214,7 +235,13 @@ class ViewerServer(ThreadingHTTPServer):
                     newest = max(newest, p.stat().st_mtime)
             except OSError:
                 continue
-        return newest > site_time
+        return newest
+
+    def _worktree_stale(self) -> bool:
+        return self._site_stale(self.out_dir / "index.html", self._newest_model_time())
+
+    def _ref_stale(self, ref_dir: Path) -> bool:
+        return self._site_stale(ref_dir / "index.html", 0.0)
 
     def ensure_worktree_current(self) -> bool:
         """Regenerate the working-tree site when the model changed on disk.
@@ -246,18 +273,19 @@ class ViewerServer(ThreadingHTTPServer):
 
     # -- on-demand builds --------------------------------------------------
     def ensure_built(self, san: str) -> bool:
-        """Generate refs/<san>/ on first request; True when served."""
+        """Generate (or refresh) refs/<san>/ on first request; True when
+        served. A ref site built by older viewer code is rebuilt."""
         reg = self.registry_refresh()
         target = reg.get(san)
         if target is None or target.work:
             return False
         ref_dir = self.out_dir / "refs" / san
-        if (ref_dir / "index.html").exists():
+        if (ref_dir / "index.html").exists() and not self._ref_stale(ref_dir):
             return True
         with self.build_lock_guard:
             lock = self.build_locks.setdefault(san, threading.Lock())
         with lock:
-            if (ref_dir / "index.html").exists():
+            if (ref_dir / "index.html").exists() and not self._ref_stale(ref_dir):
                 return True
             ref = target.ref
             if target.fetch:
@@ -313,12 +341,33 @@ class _Handler(SimpleHTTPRequestHandler):
             if san and not server.ensure_built(san):
                 self.send_error(404, f"ref {san!r} cannot be built")
                 return
+        if path.endswith((".js", ".css")):
+            # never let browsers cache viewer assets across updates
+            fs_path = self.translate_path(path)
+            if fs_path and Path(fs_path).is_file():
+                self._serve_file_no_cache(Path(fs_path))
+                return
         if path.endswith(".html"):
             fs_path = self.translate_path(path)
             if fs_path and Path(fs_path).is_file():
                 self._serve_marked_html(Path(fs_path))
                 return
         super().do_GET()
+
+    def _serve_file_no_cache(self, fs_path: Path) -> None:
+        try:
+            body = fs_path.read_bytes()
+        except OSError:
+            self.send_error(404, "File not found")
+            return
+        ctype = "text/javascript; charset=utf-8" if fs_path.suffix == ".js" \
+            else "text/css; charset=utf-8"
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
 
     def _serve_marked_html(self, fs_path: Path) -> None:
         """Serve an HTML page stamped with the server marker so the picker
