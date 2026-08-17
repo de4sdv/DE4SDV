@@ -746,6 +746,34 @@ def test_tree_search(tmp_path):
     assert '<a class="site-title" href="../../../../../index.html">' in file_page
 
 
+def test_source_symbol_tooltips(tmp_path):
+    """Operator symbols in the highlighted source carry hover tooltips
+    explaining the SysML v2 textual-notation construct."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    ).read_text(encoding="utf-8")
+    # typing colon and qualified-name separator get operator symbol tips
+    assert re.search(
+        r'<span class="src-op src-sym" data-tip-kind="operator" '
+        r'data-tip-name=":" data-tip-doc="[^"]+"',
+        file_page,
+    )
+    assert re.search(r'data-tip-name="::" data-tip-doc="[^"]+"', file_page)
+    # every emitted symbol tip carries a non-empty explanation
+    for m in re.finditer(
+        r'data-tip-name="([^"]+)" data-tip-doc="([^"]+)"', file_page
+    ):
+        assert m.group(2), f"empty tooltip for {m.group(1)!r}"
+    # the dictionary covers the textual-notation operators the tokenizer marks
+    from tools.sysml_html_viewer.render import _SYM_TIPS
+
+    assert set(_SYM_TIPS) == {":", ":>", ":>>", "::"}
+
+
 def test_tree_filters(tmp_path):
     """The tree pane carries kind/SAF-domain/SAF-aspect/viewpoint filters
     derived from the model, and every tree node carries the data-*

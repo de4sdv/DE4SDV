@@ -351,7 +351,7 @@ _SRC_KEYWORDS = frozenset(
 )
 
 _SRC_TOKEN_RE = re.compile(
-    r"'[^']*'|:>>|:>|::|->|=>|"
+    r"'[^']*'|:>>|:>|::|->|=>|:"
     r"\b\d+(?:\.\d+)?\b|"
     r"\b[A-Za-z_][A-Za-z0-9_]*\b|.",
 )
@@ -384,11 +384,25 @@ def _resolve_source_ref(
 def _token_class(tok: str) -> str:
     if tok in _SRC_KEYWORDS:
         return "kw"
-    if tok in (":>>", ":>", "::", "->", "=>"):
+    if tok in (":>>", ":>", "::", "->", "=>", ":"):
         return "op"
     if tok.replace(".", "").isdigit():
         return "num"
     return ""
+
+
+# SysML v2 textual-notation symbols with spec-grounded explanations,
+# shown in hover tooltips over the highlighted source
+_SYM_TIPS = {
+    ":": "Typing: the element is typed by the type after the colon "
+    "(e.g. part p : PartType).",
+    ":>": "Specialization: the definition or usage specializes the "
+    "referenced type (subtype relationship).",
+    ":>>": "Feature specialization: the feature specializes (redefines) "
+    "the referenced feature inherited from its parent.",
+    "::": "Qualified-name separator: resolves the name in the referenced "
+    "namespace (e.g. MVD::MatrixView).",
+}
 
 
 def _highlight_code(
@@ -407,7 +421,14 @@ def _highlight_code(
         tok = m.group(0)
         cls = _token_class(tok)
         if cls:
-            out.append(f'<span class="src-{cls}">{esc(tok)}</span>')
+            if cls == "op" and tok in _SYM_TIPS:
+                out.append(
+                    f'<span class="src-op src-sym" data-tip-kind="operator" '
+                    f'data-tip-name="{esc(tok)}" '
+                    f'data-tip-doc="{esc(_SYM_TIPS[tok])}">{esc(tok)}</span>'
+                )
+            else:
+                out.append(f'<span class="src-{cls}">{esc(tok)}</span>')
         else:
             ref = None
             if mf is not None and member_index is not None and _IDENT_RE.fullmatch(tok):
