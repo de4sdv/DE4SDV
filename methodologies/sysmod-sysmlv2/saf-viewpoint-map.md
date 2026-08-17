@@ -22,8 +22,7 @@ Do not require all viewpoints for every increment.
 |---|---|---|
 | Common Domain | shared terms, standards, argumentation, traceability | glossary, standards register, evidence register, traceability reports |
 | Operational Domain | stakeholder needs, operational context, capabilities, scenarios/processes | increment charter, operational context, needs, use cases/scenarios |
-| Functional Domain | system context, functional behavior, requirements, interfaces, safety/security concerns | requirements, functional model, interface model, risk/security notes |
-| Conceptual Domain | logical structure and logical exchanges; function-to-logical mapping | system architecture, service/component model, allocation map |
+| Conceptual Domain | system context, functional behavior, requirements, interfaces, safety/security concerns, logical structure and exchanges, function-to-logical mapping (Functional and Logical merged into Conceptual) | requirements, functional model, interface model, risk/security notes, system architecture, service/component model, allocation map |
 | Physical Domain | physical/software realization and mappings | deployment/software/hardware model, interface contracts, realization map |
 
 ## Recommended viewpoint subsets
@@ -51,7 +50,7 @@ Use when the increment changes an SDV product-line capability or feature.
 | Operational Process Viewpoint | describe operational flow or lifecycle process | process/behavior sketch |
 | Stakeholder Requirement Definition Viewpoint | capture stakeholder-level needs and validation intent | needs, validation scenarios, stakeholder requirements where appropriate |
 
-### 3. Functional system subset
+### 3. System behavior and requirements subset
 
 Use when deriving system behavior, requirements, or interfaces.
 
@@ -124,7 +123,7 @@ For the first AEBS pilot, keep the set intentionally small:
 |---|---|
 | Framing | Common Terms Definition, Common Standards Definition, EA Traceability |
 | Operational | Stakeholder Identification, Operational Context Definition, Operational Story, Operational Capability Definition |
-| Functional | System Context Definition, System Requirement Definition, System Interface Definition, System Requirement Traceability |
+| Conceptual | System Context Definition, System Requirement Definition, System Interface Definition, System Requirement Traceability |
 | Product-line | feature/common-capability classification using DE4SDV ontology |
 | Evidence | Argumentation Assurance as a stub only |
 
@@ -147,10 +146,10 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 |---|---|---|---|
 | `SAF_Viewpoints` | `OperationalContextDefinitionViewpoint` | SAF Operational Domain | `aebs_operational_context.sysml` → `aebsOperationalContextView` |
 | `SAF_Viewpoints` | `StakeholderRequirementDefinitionViewpoint` | SAF Operational Domain | `aebs_needs_requirements.sysml` → `aebsStakeholderNeedsView` |
-| `SAF_Viewpoints` | `SystemRequirementDefinitionViewpoint` | SAF Functional Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
-| `SAF_Viewpoints` | `SystemRequirementTraceabilityViewpoint` | SAF Functional Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
-| `SAF_Viewpoints` | `SystemFunctionalBreakdownStructureViewpoint` | SAF Functional Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
-| `SAF_Viewpoints` | `SystemInterfaceDefinitionViewpoint` | SAF Functional Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
+| `SAF_Viewpoints` | `SystemRequirementDefinitionViewpoint` | SAF Conceptual Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
+| `SAF_Viewpoints` | `SystemRequirementTraceabilityViewpoint` | SAF Conceptual Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
+| `SAF_Viewpoints` | `SystemFunctionalBreakdownStructureViewpoint` | SAF Conceptual Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
+| `SAF_Viewpoints` | `SystemInterfaceDefinitionViewpoint` | SAF Conceptual Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
 | `SAF_Viewpoints` | `PhysicalStructureDefinitionViewpoint` | SAF Physical Domain (`P2_PSTD`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalSoftwareStructureView` |
 | `SAF_Viewpoints` | `PhysicalInterfaceDefinitionViewpoint` | SAF Physical Domain (`P5_PIFD`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalSoftwareInterfaceView` |
 | `SAF_Viewpoints` | `PhysicalLogicalMappingViewpoint` | SAF Physical Domain (`P8_PLOM`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalLogicalMappingView` |
