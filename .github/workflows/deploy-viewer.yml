@@ -45,8 +45,9 @@ jobs:
           python-version: "3.11"
 
       - name: Generate the viewer (committed content only)
-        run: python -m tools.sysml_html_viewer.generate \
-          --repo . --out site --refs auto --public
+        run: |
+          python -m tools.sysml_html_viewer.generate \
+            --repo . --out site --refs auto --public
 
       - name: Repository gates
         run: |
