@@ -145,6 +145,14 @@ def test_build_tree(model_files):
     assert "RootLevelPart" in member_labels
     assert "FixtureRoot" not in member_labels  # packages are containers
     assert "Features" not in member_labels
+    # the kind of every element is written out next to its name
+    member_meta = {c.label: c.meta for c in file_node.children if c.kind != "view"}
+    assert member_meta["fixtureSystem"] == "part"
+    assert member_meta["signalIn"] == "port"
+    assert member_meta["RootLevelPart"] == "part def"
+    assert member_meta["fixtureRequirement"] == "requirement"
+    view_meta = {c.label: c.meta for c in file_node.children if c.kind == "view"}
+    assert view_meta["fixtureStructureView"].startswith("view · asTreeDiagram")
 
 
 # --- hover enrichment -------------------------------------------------------
@@ -398,6 +406,11 @@ def test_serve_on_demand(tmp_path):
         assert any(x["id"] == "" for x in data["refs"])  # working tree
         labels = {x["label"] for x in data["refs"]}
         assert "feature" in labels
+        # built flags: working tree built, feature not yet
+        feature_entry = next(x for x in data["refs"] if x["id"] == "feature")
+        assert feature_entry["built"] is False
+        work_entry = next(x for x in data["refs"] if x["id"] == "")
+        assert work_entry["built"] is True
         # working tree site is served (generated on first start), stamped
         # with the server marker so the picker JS enables dynamic mode
         with urllib.request.urlopen(base + "/index.html") as r:
@@ -409,6 +422,11 @@ def test_serve_on_demand(tmp_path):
             body = r.read().decode()
         assert "extra_feature.sysml" in body
         assert "__DE4SDV_VIEWER_SERVER__" in body  # marker on ref pages too
+        # ... and the manifest now reports it as built
+        with urllib.request.urlopen(base + "/_refs") as r:
+            data = json.loads(r.read())
+        feature_entry = next(x for x in data["refs"] if x["id"] == "feature")
+        assert feature_entry["built"] is True
         # ... and is cached: the second request is fast
         t0 = time.monotonic()
         with urllib.request.urlopen(base + "/refs/feature/index.html") as r:

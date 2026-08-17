@@ -150,6 +150,35 @@
     return m ? decodeURIComponent(m[1]) : '';
   }
 
+  /* Switching to a ref that is not built yet takes a few seconds (the
+   * server generates it on first request). Show a progress overlay and
+   * pre-fetch the target page so the user sees the generation happen
+   * instead of a blank tab; navigate when the server answers. */
+  function buildThenGo(url, label) {
+    var overlay = document.createElement('div');
+    overlay.className = 'viewer-busy';
+    var box = document.createElement('div');
+    box.className = 'viewer-busy-box';
+    var spin = document.createElement('span');
+    spin.className = 'viewer-busy-spin';
+    var text = document.createElement('span');
+    text.className = 'viewer-busy-text';
+    text.textContent = 'Building revision ' + label + ' …';
+    box.appendChild(spin);
+    box.appendChild(text);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    fetch(url, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('build failed');
+        window.location.href = url;
+      })
+      .catch(function () {
+        overlay.remove();
+        window.location.href = url; // let the browser try anyway
+      });
+  }
+
   function serverNote(picker, text) {
     var wrap = picker.closest ? picker.closest('.ref-picker-wrap') : null;
     if (!wrap) return;
@@ -181,6 +210,7 @@
             var o = document.createElement('option');
             o.value = ref.url;
             o.textContent = ref.label;
+            o.setAttribute('data-built', ref.built ? 'true' : 'false');
             if (ref.id === current) o.selected = true;
             if (!ref.buildable) {
               o.disabled = true;
@@ -198,7 +228,17 @@
     var picker = document.getElementById('refPicker');
     if (!picker) return;
     picker.addEventListener('change', function () {
-      if (picker.value) window.location.href = picker.value;
+      var url = picker.value;
+      if (!url) return;
+      if (window.__DE4SDV_VIEWER_SERVER__ && url.indexOf('/refs/') === 0) {
+        var opt = picker.selectedOptions.length ? picker.selectedOptions[0] : null;
+        var unbuilt = opt ? opt.getAttribute('data-built') !== 'true' : true;
+        if (unbuilt) {
+          buildThenGo(url, opt ? opt.textContent.trim() : url);
+          return;
+        }
+      }
+      window.location.href = url;
     });
     if (window.__DE4SDV_VIEWER_SERVER__) upgradeRefPicker(picker);
   }

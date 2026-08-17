@@ -352,16 +352,32 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
             href=f"pages/{mf.rel_path}.html",
         )
         for v in mf.views:
+            meta = "view"
+            if v.render:
+                meta += f" · {v.render}"
+            elif v.view_type:
+                meta += f" · {v.view_type}"
             file_node.children.append(
                 TreeNode(
                     label=v.name,
                     kind="view",
                     href=f"pages/{mf.rel_path}.html#view-{slugify(v.name)}",
-                    meta=v.render or v.view_type,
+                    meta=meta,
                 )
             )
-        # every declared member links to its declaration line in the source
+        # every declared member links to its declaration line in the source;
+        # the kind is shown in written form next to the name. View
+        # declarations and everything nested inside them (viewpoints,
+        # concerns) are framing — the views loop above already lists them.
+        skip: set[int] = set()
+        stack = [m for m in mf.members if m.kind == "view"]
+        while stack:
+            m = stack.pop()
+            skip.add(id(m))
+            stack.extend(m.children)
         for mm in mf.members:
+            if id(mm) in skip:
+                continue
             if mm.kind == "package":
                 # packages are structural containers, not leaf members
                 continue
@@ -370,6 +386,7 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
                     label=mm.name,
                     kind=mm.kind,
                     href=f"pages/{mf.rel_path}.html#src-{mm.line}",
+                    meta=mm.kind,
                 )
             )
         node.children.append(file_node)

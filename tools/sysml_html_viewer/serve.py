@@ -177,11 +177,15 @@ class ViewerServer(ThreadingHTTPServer):
         refs = []
         for san, t in reg.items():
             url = "/index.html" if t.work else f"/refs/{san}/index.html"
+            built = True if t.work else (
+                self.out_dir / "refs" / san / "index.html"
+            ).exists()
             entry: dict = {
                 "id": san,
                 "label": t.label,
                 "url": url,
                 "buildable": t.buildable,
+                "built": built,
             }
             if not t.buildable:
                 entry["hint"] = (

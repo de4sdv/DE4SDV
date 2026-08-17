@@ -95,6 +95,10 @@ roots is newer than the generated working-tree site, the next page request
 regenerates it first. Editing the model and refreshing the browser is the
 whole loop — no manual regeneration needed.
 
+Switching to a revision that is not built yet shows a progress overlay
+("Building revision …") while the server generates it; already-built
+revisions switch instantly.
+
 ## What is on a page
 
 - **Index** — model stats and the full navigation tree.
