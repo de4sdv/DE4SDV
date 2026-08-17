@@ -48,6 +48,9 @@ jobs:
         run: python -m tools.sysml_html_viewer.generate \
           --repo . --out site --refs auto --public
 
+      - name: Install gate dependencies
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
+
       - name: Repository gates
         run: |
           python scripts/check_repo.py
