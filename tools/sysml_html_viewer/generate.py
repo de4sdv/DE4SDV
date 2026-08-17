@@ -32,6 +32,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,6 +44,7 @@ from .model_parse import (
     load_model,
 )
 from .render import (
+    node_data_attrs,
     render_dir_page,
     render_file_page,
     render_index,
@@ -382,6 +384,7 @@ def _tree_with_prefix(tree: TreeNode, prefix: str, active_site: str) -> str:
         cls = f"tree-node tree-{node.kind}"
         if node.site_href and node.site_href == active_site:
             cls += " active"
+        attrs = node_data_attrs(node)
         inner = f'<span class="tree-icon">{_icon(node.kind)}</span>'
         if href:
             label = f'<a href="{href}">{_esc(node.label)}</a>'
@@ -391,11 +394,11 @@ def _tree_with_prefix(tree: TreeNode, prefix: str, active_site: str) -> str:
         if kids_html:
             open_attr = " open" if node.depth <= 1 or contains else ""
             html = (
-                f'<details class="{cls}"{open_attr}><summary>{inner} {label} {meta}</summary>'
+                f'<details class="{cls}"{open_attr} {attrs}><summary>{inner} {label} {meta}</summary>'
                 f"<ul>{kids_html}</ul></details>"
             )
         else:
-            html = f'<li class="{cls}">{inner} {label} {meta}</li>'
+            html = f'<li class="{cls}" {attrs}>{inner} {label} {meta}</li>'
         return html, contains
 
     html, _ = walk(tree)
@@ -431,6 +434,48 @@ def _annotate_tree(root: TreeNode) -> None:
     walk(root, "", 0)
 
 
+def _walk_tree(node: TreeNode) -> Iterator[TreeNode]:
+    yield node
+    for c in node.children:
+        yield from _walk_tree(c)
+
+
+def _filter_html(tree: TreeNode, files: list) -> str:
+    """Filter row for the tree pane: element kind (the SysML v2 keywords
+    actually used in the model), SAF domain, SAF aspect, and SAF viewpoint
+    — every option derived from the model itself."""
+    from .model_parse import saf_viewpoint_catalog
+
+    catalog = saf_viewpoint_catalog(files)
+    kinds = sorted({n.kind for n in _walk_tree(tree) if n.kind != "root"})
+    domains = sorted({d for d, _ in catalog.values() if d})
+    aspects = sorted({a for _, a in catalog.values() if a})
+    viewpoints = sorted(
+        {v.viewpoint_type for mf in files for v in mf.views if v.viewpoint_type}
+    )
+
+    def _select(sid: str, label: str, options: list[str]) -> str:
+        opts = "".join(
+            f'<option value="{_esc(o)}">{_esc(o)}</option>' for o in options
+        )
+        return (
+            f'<select id="{sid}" class="tree-filter" aria-label="{_esc(label)}" '
+            f'title="{_esc(label)}"><option value="">All {_esc(label)}s</option>'
+            f"{opts}</select>"
+        )
+
+    return (
+        '<div class="tree-filters">'
+        + _select("kindFilter", "element kind", kinds)
+        + _select("domainFilter", "SAF domain", domains)
+        + _select("aspectFilter", "SAF aspect", aspects)
+        + _select("viewpointFilter", "viewpoint", viewpoints)
+        + '<button type="button" id="clearFilters" class="tree-filter-clear" '
+        'title="Clear search and filters" hidden>✕</button>'
+        + "</div>"
+    )
+
+
 def _build_site(
     repo_root: Path,
     out_dir: Path,
@@ -449,6 +494,7 @@ def _build_site(
     tree = build_tree(files)
     _annotate_tree(tree)
     stats = count_stats(files)
+    filters_html = _filter_html(tree, files)
 
     diagrams = sum(
         1
@@ -489,7 +535,9 @@ def _build_site(
     # index page — its site path is the site root itself (current)
     index_tree = _tree_with_prefix(tree, "", "")
     (out_dir / "index.html").write_text(
-        render_index(tree, stats, diagrams, picker(current), "", stamp),
+        render_index(
+            tree, stats, diagrams, picker(current), "", filters_html, stamp
+        ),
         encoding="utf-8",
     )
 
@@ -517,6 +565,7 @@ def _build_site(
                 prefix,
                 picker(site),
                 prefix,
+                filters_html,
                 stamp,
             ),
             encoding="utf-8",
@@ -544,6 +593,7 @@ def _build_site(
                 blob_base,
                 external_ref,
                 prefix,
+                filters_html,
                 stamp,
             ),
             encoding="utf-8",

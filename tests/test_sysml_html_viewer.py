@@ -585,7 +585,7 @@ def test_active_path_chain_stays_open(tmp_path):
     # every dir on the path to the active file is open
     for label in ("textual-notation-of-model", "packages", "features", "fixture"):
         m = re.search(
-            r'<details class="tree-node tree-dir" open>.*?'
+            r'<details class="tree-node tree-dir" open[^>]*>.*?'
             rf'<a href="[^"]*">{re.escape(label)}</a>',
             html,
             re.S,
@@ -593,7 +593,7 @@ def test_active_path_chain_stays_open(tmp_path):
         assert m is not None, f"dir {label} not open on the file page"
     # the active file node itself is open and marked active
     m = re.search(
-        r'<details class="tree-node tree-file active" open>.*?'
+        r'<details class="tree-node tree-file active" open[^>]*>.*?'
         r"fixture_feature\.sysml</a>",
         html,
         re.S,
@@ -746,6 +746,40 @@ def test_tree_search(tmp_path):
     assert '<a class="site-title" href="../../../../../index.html">' in file_page
 
 
+def test_tree_filters(tmp_path):
+    """The tree pane carries kind/SAF-domain/SAF-aspect/viewpoint filters
+    derived from the model, and every tree node carries the data-*
+    attributes the filters operate on."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    index = (out / "index.html").read_text(encoding="utf-8")
+
+    # four filter selects in the tree pane
+    for sid in ("kindFilter", "domainFilter", "aspectFilter", "viewpointFilter"):
+        assert f'id="{sid}"' in index, f"missing {sid}"
+    # kind options come from the tree (members, views, files, dirs)
+    for opt in ("part def", "view", "viewpoint def", "file", "dir"):
+        assert f'<option value="{opt}">{opt}</option>' in index, f"missing kind {opt}"
+    # SAF options come from the viewpoint def's doc comment
+    assert '<option value="Fixture">Fixture</option>' in index
+    assert '<option value="Test &amp; Sample">Test &amp; Sample</option>' in index
+    assert '<option value="FixtureViewpoint">FixtureViewpoint</option>' in index
+    assert 'id="clearFilters"' in index
+
+    # view node carries kind + viewpoint + SAF domain/aspect attrs
+    assert re.search(
+        r'<details class="tree-node tree-file"[^>]*>.*?'
+        r'data-kind="view" data-vp="FixtureViewpoint" '
+        r'data-domain="Fixture" data-aspect="Test &amp; Sample"',
+        index,
+        re.S,
+    ), "view node lacks SAF data attributes"
+    # member and dir/file nodes carry their kind
+    assert re.search(r'data-kind="part def"', index)
+    assert re.search(r'data-kind="file"', index)
+    assert re.search(r'data-kind="dir"', index)
+
+
 def _collect_links(html: str) -> list[str]:
     hrefs = re.findall(r'href="([^"]+)"', html)
     srcs = re.findall(r'src="([^"]+)"', html)
@@ -800,4 +834,5 @@ def test_generate_deterministic(tmp_path):
         a = (out1 / rel).read_bytes()
         b = (out2 / rel).read_bytes()
         assert a == b, f"non-deterministic output for {rel}"
+
 

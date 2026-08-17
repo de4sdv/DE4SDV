@@ -348,11 +348,45 @@ class TreeNode:
     meta: str = ""
     site_href: str = ""  # site-root-relative href (set during generation)
     depth: int = 0       # tree depth (set during generation)
+    viewpoint_type: str = ""  # views only: referenced viewpoint type
+    saf_domain: str = ""      # views only: SAF domain from viewpoint def doc
+    saf_aspect: str = ""      # views only: SAF aspect from viewpoint def doc
+
+
+_SAF_DOMAIN_RE = re.compile(r"SAF\s+([A-Za-z &]+?)\s+Domain")
+_SAF_ASPECT_RE = re.compile(r"Aspect:\s*([A-Za-z &]+)")
+
+
+def saf_viewpoint_catalog(files: list[ModelFile]) -> dict[str, tuple[str, str]]:
+    """Viewpoint type -> (SAF domain, SAF aspect), parsed from the doc
+    comments of `viewpoint def` declarations in the model itself (the
+    source-backed taxonomy: "SAF <Domain> Domain" / "Aspect: <Aspect>").
+    Types without a SAF doc comment are absent from the catalog."""
+    catalog: dict[str, tuple[str, str]] = {}
+    vp_re = re.compile(r"viewpoint\s+def\s+([A-Za-z_][A-Za-z0-9_]*)")
+    for mf in files:
+        try:
+            text = mf.path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in vp_re.finditer(text):
+            name = m.group(1)
+            if name in catalog:
+                continue
+            window = text[m.end() : m.end() + 600]
+            dom = _SAF_DOMAIN_RE.search(window)
+            asp = _SAF_ASPECT_RE.search(window)
+            catalog[name] = (
+                dom.group(1).strip() if dom else "",
+                asp.group(1).strip() if asp else "",
+            )
+    return catalog
 
 
 def build_tree(files: list[ModelFile]) -> TreeNode:
     """Build the navigation tree: root -> area dirs -> package dirs -> files."""
     root = TreeNode(label="Model", kind="root")
+    catalog = saf_viewpoint_catalog(files)
     for mf in files:
         parts = Path(mf.rel_path).parts
         node = root
@@ -377,12 +411,16 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
                 meta += f" · {v.render}"
             elif v.view_type:
                 meta += f" · {v.view_type}"
+            domain, aspect = catalog.get(v.viewpoint_type, ("", ""))
             file_node.children.append(
                 TreeNode(
                     label=v.name,
                     kind="view",
                     href=f"pages/{mf.rel_path}.html#view-{slugify(v.name)}",
                     meta=meta,
+                    viewpoint_type=v.viewpoint_type,
+                    saf_domain=domain,
+                    saf_aspect=aspect,
                 )
             )
         # every declared member links to its declaration line in the source;
