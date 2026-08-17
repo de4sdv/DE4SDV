@@ -128,12 +128,12 @@ one thing a published snapshot intentionally never shows.
 
 - **Index** — model stats and the full navigation tree.
 - **Search (in the tree)** — a search box at the top of the model tree on
-  every page. Results appear live as you type (no Enter): names, kinds,
-  docs, and files across the whole model, ranked, with kind badges; click
-  a result (or press Enter / arrows) to jump to the element or file. The
-  index is a plain script (`assets/search-index.js`), so search works
-  from `file://`, static hosts, and the published site. Esc clears and
-  restores the tree.
+  every page. Results appear live as you type (no Enter): the tree
+  itself filters in place — matching elements stay in their place with
+  the matched text highlighted, their ancestors remain visible, and
+  everything else collapses away. Click a match (or press Enter to jump
+  to the first one) to open it; Esc restores the exact tree from before
+  typing. No view switch, no separate results page.
 - **Directory pages** (`pages/<model-dir>/index.html`) — contents of each
   model folder.
 - **Tree nodes for files** — expanding a `.sysml` file lists its views and
