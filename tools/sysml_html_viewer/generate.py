@@ -47,7 +47,6 @@ from .render import (
     render_file_page,
     render_index,
     render_ref_picker,
-    render_search_page,
 )
 
 # Same scope as scripts/validate_sysml.py MODEL_PATHS: the whole textual
@@ -512,11 +511,21 @@ def _build_site(
     js_src = Path(__file__).parent / "viewer.js"
     shutil.copyfile(js_src, assets_dir / "viewer.js")
 
-    # content stamp so browsers never serve stale assets (file:// caching)
+    # model search index as a plain script (no fetch -> works from file://);
+    # loaded by every page, hrefs are site-root-relative and each page
+    # supplies its own prefix via data-search-prefix.
+    index_json = _search_index(files)
+    (assets_dir / "search-index.js").write_text(
+        "window.SEARCH_INDEX = " + index_json + ";\n",
+        encoding="utf-8",
+    )
+
+    # content stamp so browsers never serve stale assets (file:// caching);
+    # includes the index so model changes invalidate the index too
     import hashlib
 
     stamp = hashlib.sha1(
-        (css_src.read_bytes() + js_src.read_bytes())
+        css_src.read_bytes() + js_src.read_bytes() + index_json.encode("utf-8")
     ).hexdigest()[:10]
 
     if options is None:
@@ -529,15 +538,7 @@ def _build_site(
     # index page — its site path is the site root itself (current)
     index_tree = _tree_with_prefix(tree, "", "")
     (out_dir / "index.html").write_text(
-        render_index(
-            tree, stats, diagrams, picker(current), "search.html", stamp
-        ),
-        encoding="utf-8",
-    )
-
-    # search page — whole-model index inline, no fetch needed
-    (out_dir / "search.html").write_text(
-        render_search_page(picker("search.html"), _search_index(files), stats, stamp),
+        render_index(tree, stats, diagrams, picker(current), "", stamp),
         encoding="utf-8",
     )
 
@@ -564,7 +565,7 @@ def _build_site(
                 children,
                 prefix,
                 picker(site),
-                prefix + "search.html",
+                prefix,
                 stamp,
             ),
             encoding="utf-8",
@@ -591,7 +592,7 @@ def _build_site(
                 picker(site),
                 blob_base,
                 external_ref,
-                prefix + "search.html",
+                prefix,
                 stamp,
             ),
             encoding="utf-8",

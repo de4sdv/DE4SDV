@@ -162,21 +162,20 @@ def _page_shell(
     js_rel: str,
     picker: str = "",
     body_class: str = "",
-    search_rel: str = "",
+    search_prefix: str = "",
     asset_stamp: str = "",
 ) -> str:
     crumbs = " / ".join(
         f'<a href="{esc(href)}">{esc(label)}</a>' for label, href in breadcrumbs
     )
-    search_link = (
-        f'<a class="site-search-link" href="{esc(search_rel)}">Search</a>'
-        if search_rel
-        else ""
-    )
     body_attr = f' class="{esc(body_class)}"' if body_class else ""
+    body_attr += f' data-search-prefix="{esc(search_prefix)}"'
     if asset_stamp:
         css_rel += f"?v={asset_stamp}"
         js_rel += f"?v={asset_stamp}"
+    search_index_rel = search_prefix + "assets/search-index.js"
+    if asset_stamp:
+        search_index_rel += f"?v={asset_stamp}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -187,15 +186,22 @@ def _page_shell(
 </head>
 <body{body_attr}>
 <header class="site-header">
-  <span class="site-title">DE4SDV <em>Model Viewer</em></span>
+  <a class="site-title" href="{esc(search_prefix + 'index.html')}">DE4SDV <em>Model Viewer</em></a>
   <span class="site-sub">read-only browser over the SysML v2 textual model</span>
-  {search_link}
   {picker}
 </header>
 <div class="layout">
   <nav class="tree-pane" aria-label="Model navigation">
     <div class="tree-title">Project</div>
-    {tree_html}
+    <div class="tree-search-wrap">
+      <input type="search" id="treeSearch" class="tree-search"
+             placeholder="Search model (names, kinds, docs)…"
+             autocomplete="off" aria-label="Search the model">
+    </div>
+    <div id="treeSearchResults" class="tree-search-results" hidden></div>
+    <div id="treeNav">
+      {tree_html}
+    </div>
   </nav>
   <div class="tree-resizer" id="treeResizer" title="Drag to resize the model tree" aria-hidden="true"></div>
   <main class="content-pane">
@@ -203,6 +209,7 @@ def _page_shell(
     {content}
   </main>
 </div>
+<script src="{esc(search_index_rel)}"></script>
 <script src="{esc(js_rel)}"></script>
 </body>
 </html>
@@ -219,7 +226,7 @@ def render_index(
     stats: dict[str, int],
     file_count_with_diagrams: int,
     picker: str = "",
-    search_rel: str = "",
+    search_prefix: str = "",
     asset_stamp: str = "",
 ) -> str:
     tree_html = render_tree(tree, "")
@@ -265,7 +272,7 @@ def render_index(
     return _page_shell(
         "Model", tree_html, [("Model", "index.html")], content,
         css_rel="assets/viewer.css", js_rel="assets/viewer.js",
-        picker=picker, search_rel=search_rel, asset_stamp=asset_stamp,
+        picker=picker, search_prefix=search_prefix, asset_stamp=asset_stamp,
     )
 
 
@@ -285,7 +292,7 @@ def render_dir_page(
     children: list[TreeNode],
     prefix: str,
     picker: str = "",
-    search_rel: str = "",
+    search_prefix: str = "",
     asset_stamp: str = "",
 ) -> str:
     items = []
@@ -310,7 +317,7 @@ def render_dir_page(
     return _page_shell(
         dir_label, tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
-        picker=picker, search_rel=search_rel, asset_stamp=asset_stamp,
+        picker=picker, search_prefix=search_prefix, asset_stamp=asset_stamp,
     )
 
 
@@ -491,39 +498,6 @@ def _highlight_source(
 
 
 # ---------------------------------------------------------------------------
-# Search page
-# ---------------------------------------------------------------------------
-
-
-def render_search_page(
-    picker: str,
-    index_json: str,
-    stats: dict[str, int],
-    asset_stamp: str = "",
-) -> str:
-    """Dedicated search page with the whole model index inline — works from
-    file://, any static host, and the published site (no fetch needed)."""
-    content = f"""
-<div class="card">
-  <h1>Search the model</h1>
-  <p class="muted">Search names, kinds, docs, and files across the whole
-  validated model — {stats["files"]} files, {stats["members"]} members,
-  {stats["views"]} views.</p>
-  <input type="search" id="searchInput" class="search-input"
-         placeholder="e.g. lifecycle, AEBS, R152, vehicle speed" autofocus>
-  <div id="searchMeta" class="search-meta"></div>
-  <ul id="searchResults" class="search-results"></ul>
-</div>
-<script type="application/json" id="searchIndex">{index_json}</script>
-"""
-    return _page_shell(
-        "Search", "", [("Model", "index.html"), ("Search", "")], content,
-        css_rel="assets/viewer.css", js_rel="assets/viewer.js",
-        picker=picker, body_class="no-tree", asset_stamp=asset_stamp,
-    )
-
-
-# ---------------------------------------------------------------------------
 # File pages
 # ---------------------------------------------------------------------------
 
@@ -675,7 +649,7 @@ def render_file_page(
     picker: str = "",
     blob_base: str = "",
     external_ref: bool = False,
-    search_rel: str = "",
+    search_prefix: str = "",
     asset_stamp: str = "",
 ) -> str:
     anchor_counter: dict[str, int] = {}
@@ -715,5 +689,5 @@ def render_file_page(
     return _page_shell(
         f"{mf.rel_path}", tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
-        picker=picker, search_rel=search_rel, asset_stamp=asset_stamp,
+        picker=picker, search_prefix=search_prefix, asset_stamp=asset_stamp,
     )
