@@ -86,7 +86,7 @@ state the realization question
   -> proceed, re-scope, or defer
 ```
 
-The loop may return to requirements, system architecture, physical/software
+The loop may return to requirements, logical architecture, physical/software
 realization, or V&V planning. Do not promote enabling-system readiness into
 product interoperability, safety, certification, or production-readiness
 evidence without the corresponding target-runtime observation.

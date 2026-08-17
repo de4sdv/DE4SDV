@@ -47,7 +47,7 @@ classifications:
 
 - Operational-domain needs, scenarios, and capabilities provide input and
   rationale for functional architecture;
-- functional architecture and technology-independent system architecture are
+- functional architecture and logical architecture are
   distinct artifact kinds in the Conceptual Domain; and
 - product/implementation architecture is exposed through Physical-domain
   viewpoints when it represents concrete realization.

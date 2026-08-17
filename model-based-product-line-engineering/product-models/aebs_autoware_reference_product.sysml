@@ -25,7 +25,7 @@
  *   - Composition of platform stack, sensing boundary, and AEBS software
  *   - Product-level traceability dependencies (sensors to AEB node, AEBS
  *     required boundaries to platform elements)
- *   - Allocation links from AEBS system architecture to physical software
+ *   - Allocation links from AEBS logical architecture to physical software
  *
  * Out of scope:
  *   - Vehicle-level middleware integration (S-CORE, Android SDV) — this
@@ -77,7 +77,7 @@ package DE4SDV_AEBSAutowareReferenceProduct {
     /* AEBS physical software — the Autoware AEB node and its required boundaries. */
     part aebsSoftware : VehicleTargetAEBSPhysicalSoftwareBoundary;
 
-    /* AEBS logical system — the technology-neutral system architecture. */
+    /* AEBS logical system — the technology-neutral logical architecture. */
     part aebsLogicalSystem : VehicleTargetAEBSSystem;
 
     /*
@@ -110,7 +110,7 @@ package DE4SDV_AEBSAutowareReferenceProduct {
    *
    * Uses SAF PhysicalLogicalMappingViewpoint (P8_PLOM) for the
    * product-level traceability view — not an invented viewpoint. The
-   * composite product maps system architecture to physical software
+   * composite product maps logical architecture to physical software
    * realization, which is exactly what P8_PLOM addresses.
    *
    * Uses SAF PhysicalStructureDefinitionViewpoint (P2_PSTD) for the

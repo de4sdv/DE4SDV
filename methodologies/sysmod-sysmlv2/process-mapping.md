@@ -58,7 +58,7 @@ Phase 5 logically needs phase 4 to exist first — but that does not mean
 you must fully finish phase 4, lock it, and never return. In practice you
 do a rough pass through early phases, start later phases, learn
 something new, and loop back to refine. For example, you might be
-working on phase 7 (system architecture) and discover a missing or
+working on phase 7 (logical architecture) and discover a missing or
 wrong requirement in phase 5. You go back, fix the requirement, then
 continue. This is expected and normal.
 
@@ -71,7 +71,7 @@ graph TD
     P4[Phase 4: Needs]
     P5[Phase 5: Requirements]
     P6[Phase 6: Functional architecture]
-    P7[Phase 7: System architecture]
+    P7[Phase 7: Logical architecture]
     P8[Phase 8: Physical/software realization]
     P9[Phase 9: Variability and configuration]
     P10[Phase 10: V&V and evidence]
@@ -119,7 +119,7 @@ runtime evidence collection. The probe should:
 6. update YAML planning/index metadata; and
 7. record a disposition: proceed, re-scope, or defer.
 
-A probe can return to requirements, system architecture, physical/software
+A probe can return to requirements, logical architecture, physical/software
 realization, or V&V planning. A passing host probe only establishes enabling
 system readiness for the stated scope; it does not prove target-runtime
 interoperability, product acceptance, safety, certification, or production
@@ -170,7 +170,7 @@ Activities become SysML v2 action/flow definitions in textual notation.
 State machines for system processes become SysML v2 state definition
 constructs.
 
-### Phase 7 — System architecture
+### Phase 7 — Logical architecture
 
 Logical structure, exchanges, and allocation/mapping from functions to
 conceptual elements. Expressed as SysML v2 part/connection/flow
@@ -235,7 +235,7 @@ domain mapping, and selection guidance.
 | 4 — Needs | Stakeholder Requirement Definition Viewpoint | Needs may be variant-specific |
 | 5 — Requirements | System Context Definition, System Use Case, System Capability Definition, System Process, System Requirement Definition, System Interface Definition, System Requirement Traceability | Requirements can carry variant-specific constraints and applicability |
 | 6 — Functional architecture | System Functional Breakdown Structure | Functional structure may contain variation points |
-| 7 — System architecture | System Structure Definition, System Internal Exchange, System Function Mapping | Logical elements may vary by configuration (sensor suites, compute platform) |
+| 7 — Logical architecture | System Structure Definition, System Internal Exchange, System Function Mapping | Logical elements may vary by configuration (sensor suites, compute platform) |
 | 8 — Physical/software realization | Physical Context Definition, Physical Structure Definition, Physical Interface Definition, Physical Functional Mapping, Physical Logical Mapping | Physical/software realization contains explicit variation points (platform stack, middleware, sensing) |
 | 9 — Variability and configuration | ProductLineConfigurationViewpoint, ProductModelAssemblyViewpoint (DE4SDV method viewpoints) | Explicit configuration and product-model assembly — consolidates variability decisions from earlier phases |
 | 10 — V&V and evidence | Argumentation Assurance, Asset Identification, Security Risk Analysis (when safety/security-relevant) | Verification must cover configured variants |

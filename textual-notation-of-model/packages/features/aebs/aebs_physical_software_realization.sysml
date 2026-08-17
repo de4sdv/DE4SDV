@@ -2,7 +2,7 @@
  * DE4SDV AEBS physical software realization model slice.
  *
  * This package implements INC-AEBS-007: a source-backed mapping from the
- * accepted technology-neutral AEBS system architecture to Autoware software.
+ * accepted technology-neutral AEBS logical architecture to Autoware software.
  * Runtime deployment, vehicle-platform integration, brake actuation, and
  * executable evidence remain INC-AEBS-008/009 responsibilities.
  *

@@ -1,9 +1,9 @@
-# INC-AEBS-006 — AEBS system architecture
+# INC-AEBS-006 — AEBS logical architecture
 
 - **Status:** Draft
-- **Domain:** Logical
+- **SAF domain:** Conceptual
 - **Parent:** INC-AEBS-005
-- **Selected baseline:** Decomposed, rule-based system architecture
+- **Selected baseline:** Decomposed, rule-based logical architecture
 
 ## Decision requested
 

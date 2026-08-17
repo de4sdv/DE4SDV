@@ -89,7 +89,7 @@ SAF domains and SYSMOD architecture artifacts are independent dimensions:
 
 - Operational-domain scenarios, needs, and capabilities provide rationale for
   functional architecture; they are not aliases for functional architecture.
-- Functional architecture and technology-independent system architecture are
+- Functional architecture and logical architecture are
   distinct artifact kinds in the Conceptual Domain.
 - Concrete product/implementation architecture is exposed through Physical-
   domain viewpoints.

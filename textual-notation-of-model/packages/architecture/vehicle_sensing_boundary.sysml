@@ -30,7 +30,7 @@
  *   The AEBS physical software realization consumes ROS 2 topics published by
  *   sensors and the perception pipeline. This slice establishes the traceability
  *   from physical sensor types through observation items to those message types.
- *   It does not import AEBS system architecture — the connection is through
+ *   It does not import AEBS logical architecture — the connection is through
  *   typed dependencies, not functional or logical flows.
  *
  * Semantic basis:
@@ -107,7 +107,7 @@ package DE4SDV_VehicleSensingBoundary {
   /*
    * Traceability from sensing observations to functional-behavior item types.
    * These links keep the platform sensing boundary aligned with the AEBS
-   * functional-behavior vocabulary without importing system architecture.
+   * functional-behavior vocabulary without importing logical architecture.
    */
   dependency pointCloudObservationSupportsVehicleMotionState from PointCloudObservation to VehicleMotionState;
   dependency imuObservationSupportsVehicleMotionState from IMUObservation to VehicleMotionState;

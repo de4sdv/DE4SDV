@@ -141,22 +141,24 @@ def test_method_uses_saf_domains_independently_from_architecture_artifact_kinds(
     expected_rows = (
         "| 5. Requirements | What shall the system or product line do and how will those requirements be verified? | Conceptual |",
         "| 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Conceptual |",
-        "| 7. System architecture | What technology-independent system elements realize the functions? | Conceptual |",
+        "| 7. Logical architecture | What technology-independent logical elements realize the functions? | Conceptual |",
         "| 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the system design? | Physical |",
     )
     for expected in expected_rows:
         assert expected in workflow
     assert "Common / Functional" not in workflow
+    assert "it is not the name of Phase 7" in workflow
+    assert "not a replacement name for the logical-architecture artifact" in workflow
 
     mapping = PROCESS_MAPPING.read_text(encoding="utf-8")
-    assert "Phase 7: System architecture" in mapping
-    assert "### Phase 7 — System architecture" in mapping
+    assert "Phase 7: Logical architecture" in mapping
+    assert "### Phase 7 — Logical architecture" in mapping
     assert "Phase 7: Conceptual architecture" not in mapping
     assert "### Phase 7 — Conceptual architecture" not in mapping
 
     method = METHOD_PROCESS.read_text(encoding="utf-8")
-    assert "phase7_systemArchitecture" in method
-    assert "phase7_logicalArchitecture" not in method
+    assert "phase7_logicalArchitecture" in method
+    assert "phase7_systemArchitecture" not in method
     for phase in ("phase5Domain", "phase6Domain", "phase7Domain"):
         assert f'attribute {phase} : ScalarValues::String = "Conceptual";' in method
 
@@ -213,4 +215,5 @@ def test_active_method_artifacts_do_not_use_retired_saf_domain_labels() -> None:
     assert "// ─── Conceptual Domain ───" in saf
     assert "System requirements, functional architecture," in saf
     assert "technology-independent" in saf
-    assert "system architecture are distinct artifact kinds in this domain." in saf
+    assert "functional architecture, and logical architecture" in saf
+    assert "they do not rename the logical" in saf

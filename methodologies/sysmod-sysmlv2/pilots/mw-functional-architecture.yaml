@@ -14,7 +14,7 @@ engineering_question: >-
   between the ADAS application and the vehicle platform?
 lifecycle_decision_supported: >-
   Decide whether the functional boundary is sufficiently explicit to begin
-  system architecture and functional allocation in INC-MW-007.
+  logical architecture and functional allocation in INC-MW-007.
 scope:
   in_scope:
   - vehicle-signal translation and access
@@ -100,4 +100,4 @@ gaps:
 - id: GAP-MW-015
   model_element: safetyPathFunctionalOwnershipGap
 next_increments:
-- INC-MW-007: System architecture for the middleware integration functions and exchanges.
+- INC-MW-007: Logical architecture for the middleware integration functions and exchanges.

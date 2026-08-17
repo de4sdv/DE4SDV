@@ -41,12 +41,18 @@ If these cannot be stated, the increment is not ready.
 | 4. Needs | What stakeholder needs exist and how will the needs be validated? | Operational | needs, sources, rationale, validation intent |
 | 5. Requirements | What shall the system or product line do and how will those requirements be verified? | Conceptual | design input requirements, constraints, verification methods, trace links |
 | 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Conceptual | functional breakdown, interfaces, behavior slices |
-| 7. System architecture | What technology-independent system elements realize the functions? | Conceptual | system structure, exchanges, allocation/mapping |
+| 7. Logical architecture | What technology-independent logical elements realize the functions? | Conceptual | logical structure, exchanges, allocation/mapping |
 | 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the system design? | Physical | physical/software structure, interfaces, mappings, readiness probes when required |
 | 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, applicability |
 | 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Conceptual | verification cases, validation scenarios, acceptance criteria, evidence records, open gaps |
 | 11. Publication | What is reviewable now? | DE4SDV workflow | SysML v2, Markdown, YAML, generated views, reports, PR |
 | 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision, open issues, next increment |
+
+`System architecture` is the umbrella for the architecture of the system and
+its coordinated views; it is not the name of Phase 7. Phases 6 through 8
+elaborate functional architecture, logical architecture, and physical/software
+realization artifacts. SAF's current `System*` names are viewpoint names in the
+Conceptual Domain, not a replacement name for the logical-architecture artifact.
 
 ## Cross-phase system-to-software signal mapping control
 

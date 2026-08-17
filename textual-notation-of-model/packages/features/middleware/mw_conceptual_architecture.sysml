@@ -1,11 +1,11 @@
 /*
- * DE4SDV middleware system architecture model slice.
+ * DE4SDV middleware logical architecture model slice in the SAF Conceptual Domain.
  *
  * INC-MW-007 allocates the technology-neutral middleware functions to logical
  * responsibilities and defines their internal exchanges. It does not select
  * ROS 2, DDS, AAOS SDV, S-CORE, AUTOSAR, processes, ECUs, networks, or a
  * physical deployment. The emergency intervention command path remains
- * outside this middleware system architecture; only its health/protection
+ * outside this middleware logical architecture; only its health/protection
  * status is represented here.
  */
 
@@ -22,7 +22,7 @@ package DE4SDV_MWConceptualArchitecture {
   private import Views::*;
 
   part incMW007 : FeatureIncrement {
-    doc /* INC-MW-007: middleware integration system architecture. */
+    doc /* INC-MW-007: middleware integration logical architecture. */
   }
 
   part systemSignalDefinitionGap : DeferredProductLineScope {

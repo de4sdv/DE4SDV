@@ -1,10 +1,10 @@
 /*
- * DE4SDV AEBS system architecture model slice.
+ * DE4SDV AEBS logical architecture model slice in the SAF Conceptual Domain.
  *
  * This package mirrors INC-AEBS-006 from
  * methodologies/sysmod-sysmlv2/pilots/aebs-conceptual-architecture.yaml.
  *
- * Domain boundary: system architecture only. Autoware, ROS 2/DDS,
+ * Domain boundary: logical architecture only. Autoware, ROS 2/DDS,
  * Eclipse S-CORE, Android SDV/AAOS, middleware adapters, processes, ECUs,
  * sensors, networks, actuators, calibrated thresholds, and compliance claims
  * are intentionally excluded.

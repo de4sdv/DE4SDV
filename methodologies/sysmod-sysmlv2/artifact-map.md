@@ -14,8 +14,8 @@ This map shows how the upstream SYSMOD SysML v2 concepts can connect to existing
 | `SystemUseCase` | `DE4SDV_SYSMODAdapter::SYSMODSystemUseCaseBase` is the package seam. | Operational scenarios motivate system use cases; use-case artifacts participate in Conceptual views. | Seam available; no existing model migrated. |
 | `ConstrainedOccurrence` | `DE4SDV_SYSMODAdapter::SYSMODConstrainedOccurrenceBase` is the package seam. | Used only when pre/postcondition lifecycle semantics fit the modeled occurrence. | Seam available; no existing model migrated. |
 | Functional architecture | Existing feature functional behavior and interface packages. | Distinct artifact kind in the Conceptual Domain, traced to Operational needs/scenarios. | Preserved. |
-| Logical architecture | Existing technology-independent system structures, exchanges, and function allocations. | Presented through current SAF `System*` viewpoints in the Conceptual Domain. | Preserved as system-architecture semantics. |
-| Product architecture | Existing concrete hardware/software/deployment realization packages. | Presented through Physical-domain viewpoints and traces from system architecture. | Preserved; not a member-product synonym. |
+| Logical architecture | Existing technology-independent system structures, exchanges, and function allocations. | Presented through current SAF `System*` viewpoints in the Conceptual Domain. | Preserved as logical-architecture semantics. |
+| Product architecture | Existing concrete hardware/software/deployment realization packages. | Presented through Physical-domain viewpoints and traces from logical architecture. | Preserved; not a member-product synonym. |
 
 The adapter is the only package allowed to import `SYSMOD`. Feature and
 architecture packages consume DE4SDV-owned definitions so dependency upgrades
