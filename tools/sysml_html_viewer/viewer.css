@@ -438,6 +438,41 @@ code {
   padding: 6px 4px 0;
 }
 #treeSearchStatus[hidden] { display: none; }
+.tree-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 8px 0 0;
+}
+.tree-filter {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--sans);
+  font-size: 11.5px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  max-width: 100%;
+}
+.tree-filter:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.tree-filter-clear {
+  grid-column: 1 / -1;
+  justify-self: end;
+  font-size: 11px;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.tree-filter-clear:hover { background: var(--accent-soft); }
+#clearFilters[hidden] { display: none; }
 .tree-node.tree-filtered-out { display: none; }
 mark.tree-hl {
   background: var(--accent-soft);

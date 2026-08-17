@@ -145,11 +145,16 @@
     initTreeSearch();
   }
 
-  /* ---- model search (filters the tree in place, same layout) ---- */
+  /* ---- model search & filters (filter the tree in place, same layout) ---- */
   function initTreeSearch() {
     var input = document.getElementById('treeSearch');
     var status = document.getElementById('treeSearchStatus');
     var nav = document.getElementById('treeNav');
+    var kindFilter = document.getElementById('kindFilter');
+    var domainFilter = document.getElementById('domainFilter');
+    var aspectFilter = document.getElementById('aspectFilter');
+    var vpFilter = document.getElementById('viewpointFilter');
+    var clearBtn = document.getElementById('clearFilters');
     if (!input || !status || !nav) return;
     var timer = null;
     var firstMatchEl = null;
@@ -200,14 +205,32 @@
       }
     }
 
+    function passesFilters(node) {
+      if (kindFilter && kindFilter.value &&
+          node.dataset.kind !== kindFilter.value) return false;
+      if (domainFilter && domainFilter.value &&
+          node.dataset.domain !== domainFilter.value) return false;
+      if (aspectFilter && aspectFilter.value &&
+          node.dataset.aspect !== aspectFilter.value) return false;
+      if (vpFilter && vpFilter.value &&
+          node.dataset.vp !== vpFilter.value) return false;
+      return true;
+    }
+
+    function anyFilterActive() {
+      return (kindFilter && kindFilter.value) || (domainFilter && domainFilter.value) ||
+        (aspectFilter && aspectFilter.value) || (vpFilter && vpFilter.value);
+    }
+
     // returns true when the node (or any descendant) matches
     function filterNode(node) {
       // containers (the tree may be wrapped in <ul>s depending on the
       // page) are not tree nodes: recurse through them without marking
       var isNode = node.classList.contains('tree-node');
       var labelEl = isNode ? labelElement(node) : null;
-      var own = labelEl &&
-        labelEl.textContent.toLowerCase().indexOf(query) !== -1;
+      var nameOk = !query || (labelEl &&
+        labelEl.textContent.toLowerCase().indexOf(query) !== -1);
+      var own = isNode && nameOk && passesFilters(node);
       var anyChild = false;
       var kids = node.children;
       for (var i = 0; i < kids.length; i++) {
@@ -220,7 +243,7 @@
       if (own) {
         matchCount++;
         if (!firstMatchEl) firstMatchEl = node;
-        highlightLabel(labelEl, query);
+        if (query) highlightLabel(labelEl, query);
       }
       if (shown && node.tagName === 'DETAILS') node.open = true;
       return shown;
@@ -240,24 +263,48 @@
     }
 
     function render() {
-      var q = input.value.trim().toLowerCase();
-      if (!q) {
+      query = input.value.trim().toLowerCase();
+      if (!query && !anyFilterActive()) {
         restoreTree();
+        updateClearBtn();
         return;
       }
       clearHighlights();
       snapshotOpenState();
-      query = q;
       matchCount = 0;
       firstMatchEl = null;
       var tops = nav.children;
       for (var i = 0; i < tops.length; i++) {
         filterNode(tops[i]);
       }
-      status.textContent = matchCount === 0
-        ? 'No matches'
-        : matchCount + (matchCount === 1 ? ' match' : ' matches');
+      if (query) {
+        status.textContent = matchCount === 0
+          ? 'No matches'
+          : matchCount + (matchCount === 1 ? ' match' : ' matches');
+      } else {
+        status.textContent = matchCount === 0
+          ? 'No elements'
+          : matchCount + (matchCount === 1 ? ' element' : ' elements');
+      }
       status.hidden = false;
+      updateClearBtn();
+    }
+
+    function updateClearBtn() {
+      if (!clearBtn) return;
+      var active = !!(input.value.trim() || anyFilterActive());
+      clearBtn.hidden = !active;
+    }
+
+    function resetAll() {
+      input.value = '';
+      if (kindFilter) kindFilter.value = '';
+      if (domainFilter) domainFilter.value = '';
+      if (aspectFilter) aspectFilter.value = '';
+      if (vpFilter) vpFilter.value = '';
+      restoreTree();
+      updateClearBtn();
+      input.focus();
     }
 
     input.addEventListener('input', function () {
@@ -278,10 +325,15 @@
       } else if (ev.key === 'Escape') {
         if (input.value) {
           input.value = '';
-          restoreTree();
+          render();
         }
       }
     });
+    if (kindFilter) kindFilter.addEventListener('change', render);
+    if (domainFilter) domainFilter.addEventListener('change', render);
+    if (aspectFilter) aspectFilter.addEventListener('change', render);
+    if (vpFilter) vpFilter.addEventListener('change', render);
+    if (clearBtn) clearBtn.addEventListener('click', resetAll);
   }
 
   /* ---- revision picker ---- */

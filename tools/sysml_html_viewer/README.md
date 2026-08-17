@@ -127,13 +127,19 @@ one thing a published snapshot intentionally never shows.
 ## What is on a page
 
 - **Index** — model stats and the full navigation tree.
-- **Search (in the tree)** — a search box at the top of the model tree on
-  every page. Results appear live as you type (no Enter): the tree
-  itself filters in place — matching elements stay in their place with
-  the matched text highlighted, their ancestors remain visible, and
-  everything else collapses away. Click a match (or press Enter to jump
-  to the first one) to open it; Esc restores the exact tree from before
-  typing. No view switch, no separate results page.
+- **Search & filters (in the tree)** — a search box at the top of the
+  model tree on every page. Results appear live as you type (no Enter):
+  the tree itself filters in place — matching elements stay in their
+  place with the matched text highlighted, their ancestors remain
+  visible, and everything else collapses away. Below the box, four
+  dropdowns filter the tree by **element kind** (every SysML v2 keyword
+  used in the model: view, viewpoint, part def, requirement,
+  verification, use case, …), **SAF domain** and **SAF aspect** (parsed
+  from the viewpoint definitions' doc comments in the model), and
+  **viewpoint**. Filters combine with the name search and with each
+  other. Click a match (or press Enter to jump to the first one) to open
+  it; **Esc** clears the name search, the **✕** button clears
+  everything. No view switch, no separate results page.
 - **Directory pages** (`pages/<model-dir>/index.html`) — contents of each
   model folder.
 - **Tree nodes for files** — expanding a `.sysml` file lists its views and

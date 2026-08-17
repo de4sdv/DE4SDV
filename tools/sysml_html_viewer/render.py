@@ -81,6 +81,20 @@ def _icon(kind: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def node_data_attrs(node: TreeNode) -> str:
+    """data-* attributes for in-tree filtering: every node carries its
+    kind; views additionally carry their viewpoint type and the SAF
+    domain/aspect parsed from the viewpoint definition's doc comment."""
+    parts = [f'data-kind="{esc(node.kind)}"']
+    if node.viewpoint_type:
+        parts.append(f'data-vp="{esc(node.viewpoint_type)}"')
+    if node.saf_domain:
+        parts.append(f'data-domain="{esc(node.saf_domain)}"')
+    if node.saf_aspect:
+        parts.append(f'data-aspect="{esc(node.saf_aspect)}"')
+    return " ".join(parts)
+
+
 def render_tree(node: TreeNode, active_href: str = "", depth: int = 0) -> str:
     """Recursive nav tree. Expandable nodes use <details> (no JS required)."""
     cls = f"tree-node tree-{node.kind}"
@@ -93,13 +107,14 @@ def render_tree(node: TreeNode, active_href: str = "", depth: int = 0) -> str:
     else:
         label = f"<span class='tree-label'>{esc(node.label)}</span>"
     meta = f"<span class='tree-meta'>{esc(node.meta)}</span>" if node.meta else ""
+    attrs = node_data_attrs(node)
     if kids:
         open_attr = " open" if depth <= 1 or node.href == active_href else ""
         return (
-            f'<details class="{cls}"{open_attr}><summary>{inner} {label} {meta}</summary>'
+            f'<details class="{cls}"{open_attr} {attrs}><summary>{inner} {label} {meta}</summary>'
             f"<ul>{kids}</ul></details>"
         )
-    return f'<li class="{cls}">{inner} {label} {meta}</li>'
+    return f'<li class="{cls}" {attrs}>{inner} {label} {meta}</li>'
 
 
 def render_ref_picker(
@@ -163,6 +178,7 @@ def _page_shell(
     picker: str = "",
     body_class: str = "",
     search_prefix: str = "",
+    filters: str = "",
     asset_stamp: str = "",
 ) -> str:
     crumbs = " / ".join(
@@ -193,6 +209,7 @@ def _page_shell(
       <input type="search" id="treeSearch" class="tree-search"
              placeholder="Search model (names, kinds, docs)…"
              autocomplete="off" aria-label="Search the model">
+      {filters}
       <div id="treeSearchStatus" class="tree-search-status" hidden></div>
     </div>
     <div id="treeNav">
@@ -222,6 +239,7 @@ def render_index(
     file_count_with_diagrams: int,
     picker: str = "",
     search_prefix: str = "",
+    filters: str = "",
     asset_stamp: str = "",
 ) -> str:
     tree_html = render_tree(tree, "")
@@ -267,7 +285,8 @@ def render_index(
     return _page_shell(
         "Model", tree_html, [("Model", "index.html")], content,
         css_rel="assets/viewer.css", js_rel="assets/viewer.js",
-        picker=picker, search_prefix=search_prefix, asset_stamp=asset_stamp,
+        picker=picker, search_prefix=search_prefix, filters=filters,
+        asset_stamp=asset_stamp,
     )
 
 
@@ -288,6 +307,7 @@ def render_dir_page(
     prefix: str,
     picker: str = "",
     search_prefix: str = "",
+    filters: str = "",
     asset_stamp: str = "",
 ) -> str:
     items = []
@@ -312,7 +332,8 @@ def render_dir_page(
     return _page_shell(
         dir_label, tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
-        picker=picker, search_prefix=search_prefix, asset_stamp=asset_stamp,
+        picker=picker, search_prefix=search_prefix, filters=filters,
+        asset_stamp=asset_stamp,
     )
 
 
@@ -645,6 +666,7 @@ def render_file_page(
     blob_base: str = "",
     external_ref: bool = False,
     search_prefix: str = "",
+    filters: str = "",
     asset_stamp: str = "",
 ) -> str:
     anchor_counter: dict[str, int] = {}
@@ -684,5 +706,6 @@ def render_file_page(
     return _page_shell(
         f"{mf.rel_path}", tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
-        picker=picker, search_prefix=search_prefix, asset_stamp=asset_stamp,
+        picker=picker, search_prefix=search_prefix, filters=filters,
+        asset_stamp=asset_stamp,
     )

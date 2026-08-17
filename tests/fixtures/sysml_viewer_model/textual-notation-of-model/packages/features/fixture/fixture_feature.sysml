@@ -45,6 +45,10 @@ package FixtureRoot {
              * second line. */
       }
 
+      viewpoint def FixtureViewpoint {
+        doc /* SAF Fixture Domain: Fixture Viewpoint. Aspect: Test & Sample */
+      }
+
       view fixtureStructureView {
         doc /* Synthetic structure view for render tests. */
         viewpoint selectedFixtureViewpoint : FixtureViewpoint {
