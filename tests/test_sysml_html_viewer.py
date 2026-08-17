@@ -711,27 +711,23 @@ def test_source_refs_link_to_definitions(tmp_path):
     assert html.count('data-tip-name="FixtureSystem"') == 4
 
 
-def test_search_page(tmp_path):
-    """The dedicated search page carries the whole model index inline and
-    every entry href resolves; normal pages link to it from the header."""
+def test_tree_search(tmp_path):
+    """The search box lives in the tree pane on every page with the model
+    index loaded as a plain script (works from file://); index hrefs are
+    site-root-relative and each page carries its own data-search-prefix."""
     out = tmp_path / "site"
     generate(FIXTURE, out, ["textual-notation-of-model/packages"])
-    search = (out / "search.html").read_text(encoding="utf-8")
-    assert 'id="searchInput"' in search
-    assert 'class="no-tree"' in search
-    m = re.search(
-        r'<script type="application/json" id="searchIndex">(.*?)</script>',
-        search,
-        re.S,
-    )
-    assert m is not None
-    entries = json.loads(m.group(1))
+    assert not (out / "search.html").exists()
+
+    index_js = (out / "assets" / "search-index.js").read_text(encoding="utf-8")
+    assert index_js.startswith("window.SEARCH_INDEX = ")
+    payload = index_js[len("window.SEARCH_INDEX = "):-len(";\n")]
+    entries = json.loads(payload)
     by_name = {e["n"]: e for e in entries}
     fs = by_name["FixtureSystem"]
     assert fs["k"] == "part def"
-    assert re.search(r"fixture_feature\.sysml\.html#src-\d+$", fs["h"])
-    assert by_name["fixtureStructureView"]["k"] == "view" or any(
-        e["k"] == "view" and e["n"] == "fixtureStructureView" for e in entries
+    assert re.search(
+        r"pages/[^\"]*fixture_feature\.sysml\.html#src-\d+$", fs["h"]
     )
     view_entries = [
         e for e in entries
@@ -743,17 +739,36 @@ def test_search_page(tmp_path):
         e["k"] == "file" and e["n"].endswith("fixture_feature.sysml")
         for e in entries
     )
-    # every href in the index resolves
+    # every index href is site-root-relative and resolves
     for e in entries:
         target = (out / e["h"].split("#", 1)[0]).resolve()
         assert target.exists(), f"broken search href {e['h']}"
-    # the header search link is present on a normal page
+
+    # root page: input + results container + index script with empty prefix
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert 'id="treeSearch"' in index
+    assert 'id="treeSearchResults"' in index
+    assert 'id="treeNav"' in index
+    assert 'data-search-prefix=""' in index
+    assert re.search(r'src="assets/search-index\.js\?v=[0-9a-f]{10}"', index)
+
+    # nested file page: same input, prefix matches its depth, script resolves
     file_page = (
         out
         / "pages"
         / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
     ).read_text(encoding="utf-8")
-    assert re.search(r'class="site-search-link" href="[^"]*search\.html"', file_page)
+    assert 'id="treeSearch"' in file_page
+    assert 'data-search-prefix="../../../../../"' in file_page
+    assert re.search(
+        r'src="\.\./\.\./\.\./\.\./\.\./assets/search-index\.js\?v=[0-9a-f]{10}"',
+        file_page,
+    )
+    # no header search link / no-tree remnants
+    assert "site-search-link" not in file_page
+    assert "no-tree" not in file_page
+    # the header title links back to the site index (prefix-aware)
+    assert '<a class="site-title" href="../../../../../index.html">' in file_page
 
 
 def _collect_links(html: str) -> list[str]:
@@ -810,3 +825,4 @@ def test_generate_deterministic(tmp_path):
         a = (out1 / rel).read_bytes()
         b = (out2 / rel).read_bytes()
         assert a == b, f"non-deterministic output for {rel}"
+
