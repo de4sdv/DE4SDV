@@ -169,13 +169,9 @@ def _page_shell(
         f'<a href="{esc(href)}">{esc(label)}</a>' for label, href in breadcrumbs
     )
     body_attr = f' class="{esc(body_class)}"' if body_class else ""
-    body_attr += f' data-search-prefix="{esc(search_prefix)}"'
     if asset_stamp:
         css_rel += f"?v={asset_stamp}"
         js_rel += f"?v={asset_stamp}"
-    search_index_rel = search_prefix + "assets/search-index.js"
-    if asset_stamp:
-        search_index_rel += f"?v={asset_stamp}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -197,8 +193,8 @@ def _page_shell(
       <input type="search" id="treeSearch" class="tree-search"
              placeholder="Search model (names, kinds, docs)…"
              autocomplete="off" aria-label="Search the model">
+      <div id="treeSearchStatus" class="tree-search-status" hidden></div>
     </div>
-    <div id="treeSearchResults" class="tree-search-results" hidden></div>
     <div id="treeNav">
       {tree_html}
     </div>
@@ -209,7 +205,6 @@ def _page_shell(
     {content}
   </main>
 </div>
-<script src="{esc(search_index_rel)}"></script>
 <script src="{esc(js_rel)}"></script>
 </body>
 </html>

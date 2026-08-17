@@ -145,58 +145,98 @@
     initTreeSearch();
   }
 
-  /* ---- model search (in the tree pane, live results, no Enter) ---- */
+  /* ---- model search (filters the tree in place, same layout) ---- */
   function initTreeSearch() {
     var input = document.getElementById('treeSearch');
-    var results = document.getElementById('treeSearchResults');
+    var status = document.getElementById('treeSearchStatus');
     var nav = document.getElementById('treeNav');
-    var INDEX = window.SEARCH_INDEX;
-    if (!input || !results || !nav) return;
-    // relative prefix from this page up to the site root (generator bakes it
-    // into data-search-prefix); index hrefs are site-root-relative
-    var prefix = document.body.getAttribute('data-search-prefix') || '';
-    var MAX_SHOWN = 150;
+    if (!input || !status || !nav) return;
     var timer = null;
-    var shown = [];
-    var sel = -1;
+    var firstMatchEl = null;
+    var matchCount = 0;
+    var query = '';
 
-    function esc(s) {
-      var d = document.createElement('div');
-      d.textContent = s;
-      return d.innerHTML;
+    function snapshotOpenState() {
+      // capture the current tree shape so clearing the query restores
+      // exactly what the user had before typing
+      var details = nav.querySelectorAll('details.tree-node');
+      for (var i = 0; i < details.length; i++) {
+        details[i]._openOrig = details[i].open;
+      }
     }
 
-    function rank(q, e) {
-      var n = e.n.toLowerCase();
-      var d = (e.d || '').toLowerCase();
-      var f = e.f.toLowerCase();
-      if (n === q) return 0;
-      if (n.indexOf(q) === 0) return 1;
-      if (n.indexOf(q) !== -1) return 2;
-      if (d.indexOf(q) !== -1) return 3;
-      if (f.indexOf(q) !== -1) return 4;
-      return 5;
+    function labelElement(node) {
+      if (node.tagName === 'DETAILS') {
+        return node.querySelector('summary > a, summary > .tree-label');
+      }
+      return node.querySelector(':scope > a, :scope > .tree-label');
+    }
+
+    function highlightLabel(labelEl, q) {
+      // rebuild the label from its concatenated text: a previous highlight
+      // may have split the text into several nodes, so per-node matching
+      // would miss queries spanning the split
+      var t = labelEl.textContent;
+      var idx = t.toLowerCase().indexOf(q);
+      if (idx === -1) return;
+      var frag = document.createDocumentFragment();
+      if (idx > 0) frag.appendChild(document.createTextNode(t.slice(0, idx)));
+      var mark = document.createElement('mark');
+      mark.className = 'tree-hl';
+      mark.textContent = t.slice(idx, idx + q.length);
+      frag.appendChild(mark);
+      if (idx + q.length < t.length) {
+        frag.appendChild(document.createTextNode(t.slice(idx + q.length)));
+      }
+      labelEl.textContent = '';
+      labelEl.appendChild(frag);
+    }
+
+    function clearHighlights() {
+      var marks = nav.querySelectorAll('mark.tree-hl');
+      for (var i = marks.length - 1; i >= 0; i--) {
+        var m = marks[i];
+        m.parentNode.replaceChild(document.createTextNode(m.textContent), m);
+      }
+    }
+
+    // returns true when the node (or any descendant) matches
+    function filterNode(node) {
+      // containers (the tree may be wrapped in <ul>s depending on the
+      // page) are not tree nodes: recurse through them without marking
+      var isNode = node.classList.contains('tree-node');
+      var labelEl = isNode ? labelElement(node) : null;
+      var own = labelEl &&
+        labelEl.textContent.toLowerCase().indexOf(query) !== -1;
+      var anyChild = false;
+      var kids = node.children;
+      for (var i = 0; i < kids.length; i++) {
+        if (kids[i].tagName === 'SUMMARY') continue; // label row, not a branch
+        if (filterNode(kids[i])) anyChild = true;
+      }
+      if (!isNode) return anyChild;
+      var shown = own || anyChild;
+      node.classList.toggle('tree-filtered-out', !shown);
+      if (own) {
+        matchCount++;
+        if (!firstMatchEl) firstMatchEl = node;
+        highlightLabel(labelEl, query);
+      }
+      if (shown && node.tagName === 'DETAILS') node.open = true;
+      return shown;
     }
 
     function restoreTree() {
-      results.hidden = true;
-      results.innerHTML = '';
-      nav.hidden = false;
-    }
-
-    function move(step) {
-      if (!shown.length) return;
-      sel = Math.max(0, Math.min(shown.length - 1, sel + step));
-      var lis = results.querySelectorAll('.search-hit');
-      for (var i = 0; i < lis.length; i++) {
-        lis[i].classList.toggle('sel', i === sel);
+      clearHighlights();
+      var nodes = nav.querySelectorAll('.tree-node');
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].classList.remove('tree-filtered-out');
       }
-      if (lis[sel]) lis[sel].scrollIntoView({ block: 'nearest' });
-    }
-
-    function openSelected() {
-      var e = (sel >= 0 && shown[sel]) ? shown[sel].e : (shown.length ? shown[0].e : null);
-      if (e) window.location.href = prefix + e.h;
+      var details = nav.querySelectorAll('details.tree-node');
+      for (var j = 0; j < details.length; j++) {
+        details[j].open = !!details[j]._openOrig;
+      }
+      status.hidden = true;
     }
 
     function render() {
@@ -205,46 +245,19 @@
         restoreTree();
         return;
       }
-      var hits = [];
-      if (INDEX) {
-        for (var i = 0; i < INDEX.length; i++) {
-          var e = INDEX[i];
-          if (e.n.toLowerCase().indexOf(q) !== -1 ||
-              (e.d || '').toLowerCase().indexOf(q) !== -1 ||
-              e.f.toLowerCase().indexOf(q) !== -1) {
-            hits.push({ e: e, r: rank(q, e) });
-          }
-        }
-        hits.sort(function (a, b) {
-          return a.r - b.r || (a.e.n < b.e.n ? -1 : 1);
-        });
+      clearHighlights();
+      snapshotOpenState();
+      query = q;
+      matchCount = 0;
+      firstMatchEl = null;
+      var tops = nav.children;
+      for (var i = 0; i < tops.length; i++) {
+        filterNode(tops[i]);
       }
-      shown = hits.slice(0, MAX_SHOWN);
-      sel = -1;
-      var html = '<div class="tree-search-meta">' +
-        (INDEX ? (hits.length + ' match' + (hits.length === 1 ? '' : 'es') +
-          (hits.length > MAX_SHOWN ? ' (showing first ' + MAX_SHOWN + ')' : ''))
-         : 'search index not loaded') + '</div><ul>';
-      shown.forEach(function (h) {
-        var e = h.e;
-        html += '<li class="search-hit"><a href="' + esc(prefix + e.h) + '">' +
-          '<span class="kind-badge">' + esc(e.k) + '</span>' +
-          '<span class="search-name">' + esc(e.n) + '</span>' +
-          '<span class="search-src">' + esc(e.f) + ':' + e.l + '</span>' +
-          '</a>';
-        if (e.d) html += '<div class="search-doc">' + esc(e.d) + '</div>';
-        html += '</li>';
-      });
-      if (!INDEX) {
-        html += '<li class="search-none muted">Search index missing — ' +
-          'reload the page or regenerate the site.</li>';
-      } else if (!shown.length) {
-        html += '<li class="search-none muted">No matches.</li>';
-      }
-      html += '</ul>';
-      results.innerHTML = html;
-      results.hidden = false;
-      nav.hidden = true;
+      status.textContent = matchCount === 0
+        ? 'No matches'
+        : matchCount + (matchCount === 1 ? ' match' : ' matches');
+      status.hidden = false;
     }
 
     input.addEventListener('input', function () {
@@ -256,15 +269,12 @@
         ev.preventDefault();
         clearTimeout(timer);
         render();
-        openSelected();
-      } else if (ev.key === 'ArrowDown') {
-        ev.preventDefault();
-        if (results.hidden) { clearTimeout(timer); render(); }
-        move(1);
-      } else if (ev.key === 'ArrowUp') {
-        ev.preventDefault();
-        if (results.hidden) { clearTimeout(timer); render(); }
-        move(-1);
+        if (firstMatchEl) {
+          var a = firstMatchEl.tagName === 'DETAILS'
+            ? firstMatchEl.querySelector('summary > a')
+            : firstMatchEl.querySelector(':scope > a');
+          if (a) a.scrollIntoView({ block: 'nearest' });
+        }
       } else if (ev.key === 'Escape') {
         if (input.value) {
           input.value = '';

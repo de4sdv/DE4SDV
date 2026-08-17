@@ -431,45 +431,6 @@ def _annotate_tree(root: TreeNode) -> None:
     walk(root, "", 0)
 
 
-def _search_index(files: list) -> str:
-    """Compact JSON index for the search page: one entry per file, view,
-    and declared member (name, kind, file, line, href, truncated doc)."""
-    import json as _json
-
-    entries = []
-    for mf in files:
-        page = f"pages/{mf.rel_path}.html"
-        entries.append(
-            {"n": mf.rel_path, "k": "file", "f": mf.rel_path, "l": 1, "h": page}
-        )
-        for v in mf.views:
-            from .model_parse import slugify
-
-            entries.append(
-                {
-                    "n": v.name,
-                    "k": "view",
-                    "f": mf.rel_path,
-                    "l": v.line,
-                    "h": f"{page}#view-{slugify(v.name)}",
-                    **({"d": v.doc[:160]} if v.doc else {}),
-                }
-            )
-        for m in mf.members:
-            entries.append(
-                {
-                    "n": m.name,
-                    "k": m.kind,
-                    "f": mf.rel_path,
-                    "l": m.line,
-                    "h": f"{page}#src-{m.line}",
-                    **({"d": m.doc[:160]} if m.doc else {}),
-                }
-            )
-    raw = _json.dumps(entries, ensure_ascii=False, separators=(",", ":"))
-    return raw.replace("</", "<\\/")
-
-
 def _build_site(
     repo_root: Path,
     out_dir: Path,
@@ -511,21 +472,11 @@ def _build_site(
     js_src = Path(__file__).parent / "viewer.js"
     shutil.copyfile(js_src, assets_dir / "viewer.js")
 
-    # model search index as a plain script (no fetch -> works from file://);
-    # loaded by every page, hrefs are site-root-relative and each page
-    # supplies its own prefix via data-search-prefix.
-    index_json = _search_index(files)
-    (assets_dir / "search-index.js").write_text(
-        "window.SEARCH_INDEX = " + index_json + ";\n",
-        encoding="utf-8",
-    )
-
-    # content stamp so browsers never serve stale assets (file:// caching);
-    # includes the index so model changes invalidate the index too
+    # content stamp so browsers never serve stale assets (file:// caching)
     import hashlib
 
     stamp = hashlib.sha1(
-        css_src.read_bytes() + js_src.read_bytes() + index_json.encode("utf-8")
+        css_src.read_bytes() + js_src.read_bytes()
     ).hexdigest()[:10]
 
     if options is None:
