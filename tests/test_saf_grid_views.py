@@ -123,8 +123,10 @@ def test_privileged_workflow_exports_and_renders_grid_views() -> None:
     assert "python -m pip install sysand==0.1.0" in workflow
     assert "sysand sync" in workflow
     assert 'SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"' in workflow
+    assert 'SYSMOD_SOURCE=".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml"' in workflow
     assert 'syside viz view "${model_paths[@]}" \\' in workflow
-    assert '--include "${SYSIDE_VIEWS_SOURCE}"' in workflow
+    assert workflow.count('--include "${SYSIDE_VIEWS_SOURCE}"') == 2
+    assert workflow.count('--include "${SYSMOD_SOURCE}"') == 2
     assert 'syside table export "${model_paths[@]}" \\' in workflow
     assert 'export PYTHONHOME="${pythonLocation}"' in workflow
     assert 'export PYTHONPATH="${pythonLocation}/lib/python3.12:${pythonLocation}/lib/python3.12/lib-dynload"' in workflow
