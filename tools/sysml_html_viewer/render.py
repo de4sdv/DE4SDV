@@ -116,6 +116,7 @@ def render_ref_picker(
     if not refs:
         return ""
     opts = []
+    has_disabled = False
     for target, label, enabled, title in refs:
         # browsers resolve relative URLs from the page's directory, not the
         # page file itself
@@ -123,15 +124,23 @@ def render_ref_picker(
         rel = posixpath.relpath(target, base) if target else ""
         sel = " selected" if target and target == current else ""
         dis = "" if enabled else " disabled"
+        has_disabled = has_disabled or not enabled
         tip = f' title="{esc(title)}"' if title else ""
         opts.append(f'<option value="{esc(rel)}"{sel}{dis}{tip}>{esc(label)}</option>')
+    note = ""
+    if has_disabled:
+        note = (
+            '<span class="ref-picker-note">served statically — run '
+            "<code>python -m tools.sysml_html_viewer.serve</code> "
+            "to make every branch selectable</span>"
+        )
     return (
         '<span class="ref-picker-wrap" title="Show the viewer for another '
         'branch or pull request">'
         '<span class="ref-picker-label">Revision</span>'
-        '<select class="ref-picker" id="refPicker">'
+        f'<select class="ref-picker" id="refPicker">'
         f'{"".join(opts)}'
-        "</select></span>"
+        f"</select>{note}</span>"
     )
 
 

@@ -240,6 +240,9 @@ class ViewerServer(ThreadingHTTPServer):
             return True
 
 
+_MARKER = b"<script>window.__DE4SDV_VIEWER_SERVER__=true;</script>"
+
+
 class _Handler(SimpleHTTPRequestHandler):
     """Static file serving + the /_refs manifest + on-demand ref builds."""
 
@@ -254,7 +257,30 @@ class _Handler(SimpleHTTPRequestHandler):
             if san and not server.ensure_built(san):
                 self.send_error(404, f"ref {san!r} cannot be built")
                 return
+        if path.endswith(".html"):
+            fs_path = self.translate_path(path)
+            if fs_path and Path(fs_path).is_file():
+                self._serve_marked_html(Path(fs_path))
+                return
         super().do_GET()
+
+    def _serve_marked_html(self, fs_path: Path) -> None:
+        """Serve an HTML page stamped with the server marker so the picker
+        JS knows the dynamic revision list is available."""
+        try:
+            body = fs_path.read_bytes()
+        except OSError:
+            self.send_error(404, "File not found")
+            return
+        head = body.find(b"</head>")
+        if head != -1:
+            body = body[:head] + _MARKER + body[head:]
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
 
     def _send_json(self, data: dict) -> None:
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")

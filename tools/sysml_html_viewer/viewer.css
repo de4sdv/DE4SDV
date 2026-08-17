@@ -59,6 +59,18 @@ html, body {
   color: var(--ink);
   max-width: 340px;
 }
+.ref-picker-note {
+  font-size: 11px;
+  color: var(--muted);
+}
+.ref-picker-note code {
+  font-size: 10.5px;
+  padding: 0 3px;
+}
+@media (max-width: 900px) {
+  .ref-picker-wrap { flex-wrap: wrap; }
+  .ref-picker-note { flex-basis: 100%; text-align: right; }
+}
 
 /* ---- layout ---- */
 .layout {

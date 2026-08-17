@@ -150,31 +150,47 @@
     return m ? decodeURIComponent(m[1]) : '';
   }
 
-  /* Server mode: the page is served by tools/sysml_html_viewer/serve.py,
-   * which lists every branch and PR of the repository in /_refs and builds
-   * unbuilt refs on demand. Upgrade the static picker (which only lists
-   * refs built at generation time) to the full dynamic list. On file:// or
-   * plain static hosts the fetch fails and the static picker stays. */
+  function serverNote(picker, text) {
+    var wrap = picker.closest ? picker.closest('.ref-picker-wrap') : null;
+    if (!wrap) return;
+    var note = document.createElement('span');
+    note.className = 'ref-picker-note';
+    note.textContent = text;
+    wrap.appendChild(note);
+  }
+
+  /* Server mode: the page is served by tools/sysml_html_viewer/serve.py
+   * (it stamps every HTML page with __DE4SDV_VIEWER_SERVER__), which lists
+   * every branch and PR of the repository in /_refs and builds unbuilt refs
+   * on demand. Upgrade the static picker (which only lists refs built at
+   * generation time) to the full dynamic list. Pages without the marker
+   * (file:// or a plain static host) keep the static picker. */
   function upgradeRefPicker(picker) {
-    if (typeof fetch !== 'function') return;
+    if (typeof fetch !== 'function') {
+      serverNote(picker, 'revision list unavailable (fetch unsupported)');
+      return;
+    }
     fetch('/_refs', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; })
       .then(function (data) {
-        if (!data || !data.refs) return;
-        var current = currentRefFromPath();
-        picker.innerHTML = '';
-        data.refs.forEach(function (ref) {
-          var o = document.createElement('option');
-          o.value = ref.url;
-          o.textContent = ref.label;
-          if (ref.id === current) o.selected = true;
-          if (!ref.buildable) {
-            o.disabled = true;
-            o.title = ref.hint || 'no model content under the validated roots';
-          }
-          picker.appendChild(o);
-        });
+        if (data && data.refs) {
+          var current = currentRefFromPath();
+          picker.innerHTML = '';
+          data.refs.forEach(function (ref) {
+            var o = document.createElement('option');
+            o.value = ref.url;
+            o.textContent = ref.label;
+            if (ref.id === current) o.selected = true;
+            if (!ref.buildable) {
+              o.disabled = true;
+              o.title = ref.hint || 'no model content under the validated roots';
+            }
+            picker.appendChild(o);
+          });
+          return;
+        }
+        serverNote(picker, 'revision list unavailable — is --repo correct?');
       });
   }
 
@@ -184,7 +200,7 @@
     picker.addEventListener('change', function () {
       if (picker.value) window.location.href = picker.value;
     });
-    upgradeRefPicker(picker);
+    if (window.__DE4SDV_VIEWER_SERVER__) upgradeRefPicker(picker);
   }
 
   /* ---- fullscreen diagrams ---- */

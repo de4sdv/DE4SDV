@@ -360,6 +360,9 @@ def test_generate_skips_ref_without_model(tmp_path):
         r"docs-only \(not built\)</option>",
         index,
     )
+    # ... and the page itself says the picker is static and how to upgrade
+    assert "served statically" in index
+    assert "tools.sysml_html_viewer.serve" in index
 
 
 def test_serve_on_demand(tmp_path):
@@ -395,13 +398,17 @@ def test_serve_on_demand(tmp_path):
         assert any(x["id"] == "" for x in data["refs"])  # working tree
         labels = {x["label"] for x in data["refs"]}
         assert "feature" in labels
-        # working tree site is served (generated on first start)
+        # working tree site is served (generated on first start), stamped
+        # with the server marker so the picker JS enables dynamic mode
         with urllib.request.urlopen(base + "/index.html") as r:
-            assert "DE4SDV" in r.read().decode()
+            body = r.read().decode()
+        assert "DE4SDV" in body
+        assert "__DE4SDV_VIEWER_SERVER__" in body
         # unbuilt ref generates on demand
         with urllib.request.urlopen(base + "/refs/feature/index.html", timeout=120) as r:
             body = r.read().decode()
         assert "extra_feature.sysml" in body
+        assert "__DE4SDV_VIEWER_SERVER__" in body  # marker on ref pages too
         # ... and is cached: the second request is fast
         t0 = time.monotonic()
         with urllib.request.urlopen(base + "/refs/feature/index.html") as r:
