@@ -132,8 +132,8 @@ one thing a published snapshot intentionally never shows.
   the tree itself filters in place — matching elements stay in their
   place with the matched text highlighted, their ancestors remain
   visible, and everything else collapses away. Below the box, four
-  dropdowns filter the tree by **element kind** (every SysML v2 keyword
-  used in the model: view, viewpoint, part def, requirement,
+  dropdowns filter the tree by **SysML v2 keyword** (every declaration
+  keyword used in the model: view, viewpoint, part def, requirement,
   verification, use case, …), **SAF domain** and **SAF aspect** (parsed
   from the viewpoint definitions' doc comments in the model), and
   **viewpoint**. Filters combine with the name search and with each
@@ -158,7 +158,10 @@ one thing a published snapshot intentionally never shows.
     the element's kind, doc, and declaration location; click jumps to
     the definition — same file (`#src-N`) or the defining file
     (`pages/<file>.html#src-N`) for members imported from other
-    packages. Tree entries for elements jump to the element's
+    packages. Textual-notation **symbols** (`:`, `:>`, `:>>`, `::`)
+    also carry hover tooltips explaining the construct (typing,
+    specialization, feature specialization, qualified names). Tree
+    entries for elements jump to the element's
     declaration line (`#src-N`);
   - *source link*: the exact `.sysml` file on GitHub (at the current
     branch, or at the ref for ref builds).

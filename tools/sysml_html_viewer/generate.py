@@ -441,9 +441,9 @@ def _walk_tree(node: TreeNode) -> Iterator[TreeNode]:
 
 
 def _filter_html(tree: TreeNode, files: list) -> str:
-    """Filter row for the tree pane: element kind (the SysML v2 keywords
-    actually used in the model), SAF domain, SAF aspect, and SAF viewpoint
-    — every option derived from the model itself."""
+    """Filter row for the tree pane: SysML v2 keyword (the declaration
+    keywords actually used in the model), SAF domain, SAF aspect, and SAF
+    viewpoint — every option derived from the model itself."""
     from .model_parse import saf_viewpoint_catalog
 
     catalog = saf_viewpoint_catalog(files)
@@ -466,7 +466,7 @@ def _filter_html(tree: TreeNode, files: list) -> str:
 
     return (
         '<div class="tree-filters">'
-        + _select("kindFilter", "element kind", kinds)
+        + _select("kindFilter", "SysML v2 keyword", kinds)
         + _select("domainFilter", "SAF domain", domains)
         + _select("aspectFilter", "SAF aspect", aspects)
         + _select("viewpointFilter", "viewpoint", viewpoints)

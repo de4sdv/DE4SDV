@@ -81,8 +81,9 @@
 
     /* ---- source references (hover tooltip, click to jump) ---- */
     function initSourceRefs() {
+      var sel = 'a.src-ref, span.src-sym';
       document.addEventListener('mouseover', function (ev) {
-        var a = ev.target && ev.target.closest ? ev.target.closest('a.src-ref') : null;
+        var a = ev.target && ev.target.closest ? ev.target.closest(sel) : null;
         if (!a) return;
         show(a, {
           kind: a.getAttribute('data-tip-kind') || 'element',
@@ -95,10 +96,10 @@
         }, ev);
       });
       document.addEventListener('mouseout', function (ev) {
-        var a = ev.target && ev.target.closest ? ev.target.closest('a.src-ref') : null;
+        var a = ev.target && ev.target.closest ? ev.target.closest(sel) : null;
         if (!a) return;
         var rt = ev.relatedTarget;
-        if (rt && rt.closest && rt.closest('a.src-ref') === a) return; // still inside
+        if (rt && rt.closest && rt.closest(sel) === a) return; // still inside
         hide();
       });
     }
