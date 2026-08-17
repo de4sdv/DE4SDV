@@ -96,7 +96,9 @@ python -m tools.sysml_html_viewer.serve --repo . --port 8787
 The server upgrades the Revision picker to every branch and open PR of the
 repository; picking one that is not built yet generates it on demand
 (a few seconds, then cached) — no static regeneration needed between
-reviews.
+reviews. It also regenerates the working-tree site automatically whenever
+a `.sysml` file under the model roots changes, so editing the model and
+refreshing the browser is the complete workflow.
 
 ## Implementation
 

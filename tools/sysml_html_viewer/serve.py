@@ -191,6 +191,55 @@ class ViewerServer(ThreadingHTTPServer):
         refs.sort(key=lambda r: (r["id"] != "", r["label"]))
         return {"refs": refs}
 
+    # -- working tree staleness ---------------------------------------------
+    def _worktree_stale(self) -> bool:
+        """True when any .sysml under the model roots is newer than the
+        generated working-tree site (or the site is missing)."""
+        marker = self.out_dir / "index.html"
+        try:
+            site_time = marker.stat().st_mtime
+        except OSError:
+            return True
+        newest = site_time
+        for root in self.roots:
+            base = self.repo_root / root
+            if not base.is_dir():
+                continue
+            try:
+                for p in base.rglob("*.sysml"):
+                    newest = max(newest, p.stat().st_mtime)
+            except OSError:
+                continue
+        return newest > site_time
+
+    def ensure_worktree_current(self) -> bool:
+        """Regenerate the working-tree site when the model changed on disk.
+
+        Returns True when the served site is current (after any rebuild).
+        This is what makes `python -m tools.sysml_html_viewer.serve` the
+        only command needed: editing a .sysml file is picked up on the
+        next page request.
+        """
+        if not self._worktree_stale():
+            return True
+        with self.build_lock_guard:
+            lock = self.build_locks.setdefault("", threading.Lock())
+        with lock:
+            if not self._worktree_stale():
+                return True
+            branch = _current_branch(self.repo_root)
+            work_label = f"working tree · {branch}" if branch else "working tree"
+            try:
+                if _build_site(
+                    self.repo_root, self.out_dir, self.roots,
+                    options=[("index.html", work_label, True, "")],
+                    current="index.html",
+                ) != 0:
+                    return False
+            except Exception:
+                return False
+            return True
+
     # -- on-demand builds --------------------------------------------------
     def ensure_built(self, san: str) -> bool:
         """Generate refs/<san>/ on first request; True when served."""
@@ -252,6 +301,9 @@ class _Handler(SimpleHTTPRequestHandler):
         if path == "/_refs":
             self._send_json(server.manifest())
             return
+        if path.endswith(".html"):
+            # pick up working-tree model changes before serving pages
+            server.ensure_worktree_current()
         if path.startswith("/refs/"):
             san = path.split("/")[2]
             if san and not server.ensure_built(san):

@@ -418,6 +418,25 @@ def test_serve_on_demand(tmp_path):
         with pytest.raises(urllib.error.HTTPError) as exc_info:
             urllib.request.urlopen(base + "/refs/nope/index.html")
         assert exc_info.value.code == 404
+        # working-tree model changes are picked up automatically: editing a
+        # .sysml file makes the next request regenerate the served site
+        feature_file = (
+            repo
+            / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml"
+        )
+        feature_file.write_text(
+            feature_file.read_text(encoding="utf-8")
+            + "\npart def WorktreeAddedPart;\n",
+            encoding="utf-8",
+        )
+        page_url = (
+            base
+            + "/pages/textual-notation-of-model/packages/features/fixture/"
+            + "fixture_feature.sysml.html"
+        )
+        with urllib.request.urlopen(page_url, timeout=120) as r:
+            body = r.read().decode()
+        assert "WorktreeAddedPart" in body
     finally:
         server.shutdown()
         server.server_close()

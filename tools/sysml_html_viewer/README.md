@@ -90,6 +90,11 @@ with a hint. Static builds (`file://` or a plain static host) keep the
 static picker — the dynamic upgrade only activates when the page is served
 by this server.
 
+The server also watches the model: if any `.sysml` under the validated
+roots is newer than the generated working-tree site, the next page request
+regenerates it first. Editing the model and refreshing the browser is the
+whole loop — no manual regeneration needed.
+
 ## What is on a page
 
 - **Index** — model stats and the full navigation tree.
