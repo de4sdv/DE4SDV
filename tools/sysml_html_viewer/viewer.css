@@ -120,15 +120,6 @@ html, body {
 .tree-pane ul { list-style: none; margin: 0; padding: 0 0 0 14px; }
 .tree-pane > ul { padding-left: 0; }
 .tree-pane details > summary { cursor: pointer; }
-.tree-pane details > summary::-webkit-details-marker { display: none; }
-.tree-pane details > summary::before {
-  content: "▸";
-  display: inline-block;
-  width: 14px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.tree-pane details[open] > summary::before { content: "▾"; }
 .tree-node { padding: 2px 0; font-size: 13.5px; white-space: nowrap; }
 .tree-node a { color: var(--ink); text-decoration: none; }
 .tree-node a:hover { color: var(--accent); text-decoration: underline; }
