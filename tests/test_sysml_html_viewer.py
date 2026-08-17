@@ -330,7 +330,7 @@ def test_generate_with_git_refs(tmp_path):
         for link in _collect_links(text):
             if link.startswith(("http://", "https://", "mailto:")):
                 continue
-            path_part = link.split("#", 1)[0]
+            path_part = link.split("#", 1)[0].split("?", 1)[0]
             if not path_part:
                 continue
             target = (page.parent / path_part).resolve()
@@ -566,9 +566,9 @@ def test_inline_svg_and_hover_json_in_page(tmp_path):
     assert re.search(r"fixture_feature\.sysml\.html#src-\d+$", info["href"])
     # the matrix view has no committed diagram -> no hover JSON for it
     assert 'data-for="fixtureMatrixView"' not in html
-    # viewer.js is shipped with the site
+    # viewer.js is shipped with the site, stamped against stale caches
     assert (out / "assets" / "viewer.js").exists()
-    assert 'src="../../../../../assets/viewer.js"' in html
+    assert re.search(r'src="\.\./\.\./\.\./\.\./\.\./assets/viewer\.js\?v=[0-9a-f]{10}"', html)
 
 
 def test_active_path_chain_stays_open(tmp_path):
@@ -711,6 +711,51 @@ def test_source_refs_link_to_definitions(tmp_path):
     assert html.count('data-tip-name="FixtureSystem"') == 4
 
 
+def test_search_page(tmp_path):
+    """The dedicated search page carries the whole model index inline and
+    every entry href resolves; normal pages link to it from the header."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    search = (out / "search.html").read_text(encoding="utf-8")
+    assert 'id="searchInput"' in search
+    assert 'class="no-tree"' in search
+    m = re.search(
+        r'<script type="application/json" id="searchIndex">(.*?)</script>',
+        search,
+        re.S,
+    )
+    assert m is not None
+    entries = json.loads(m.group(1))
+    by_name = {e["n"]: e for e in entries}
+    fs = by_name["FixtureSystem"]
+    assert fs["k"] == "part def"
+    assert re.search(r"fixture_feature\.sysml\.html#src-\d+$", fs["h"])
+    assert by_name["fixtureStructureView"]["k"] == "view" or any(
+        e["k"] == "view" and e["n"] == "fixtureStructureView" for e in entries
+    )
+    view_entries = [
+        e for e in entries
+        if e["k"] == "view" and e["n"] == "fixtureStructureView"
+    ]
+    assert view_entries
+    assert "view-fixtureStructureView" in view_entries[0]["h"]
+    assert any(
+        e["k"] == "file" and e["n"].endswith("fixture_feature.sysml")
+        for e in entries
+    )
+    # every href in the index resolves
+    for e in entries:
+        target = (out / e["h"].split("#", 1)[0]).resolve()
+        assert target.exists(), f"broken search href {e['h']}"
+    # the header search link is present on a normal page
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    ).read_text(encoding="utf-8")
+    assert re.search(r'class="site-search-link" href="[^"]*search\.html"', file_page)
+
+
 def _collect_links(html: str) -> list[str]:
     hrefs = re.findall(r'href="([^"]+)"', html)
     srcs = re.findall(r'src="([^"]+)"', html)
@@ -746,7 +791,7 @@ def test_generate_site_and_links(tmp_path):
         for link in _collect_links(text):
             if link.startswith(("http://", "https://", "mailto:")):
                 continue
-            path_part = link.split("#", 1)[0]
+            path_part = link.split("#", 1)[0].split("?", 1)[0]
             if not path_part:
                 continue
             target = (page.parent / path_part).resolve()

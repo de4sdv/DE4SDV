@@ -142,6 +142,90 @@
     initRefPicker();
     initDiagramFullscreen();
     initSourceRefs();
+    initSearch();
+  }
+
+  /* ---- model search (dedicated search page, inline index) ---- */
+  function initSearch() {
+    var input = document.getElementById('searchInput');
+    var results = document.getElementById('searchResults');
+    var meta = document.getElementById('searchMeta');
+    var script = document.getElementById('searchIndex');
+    if (!input || !results || !meta || !script) return;
+    var INDEX = null;
+    try {
+      INDEX = JSON.parse(script.textContent);
+    } catch (e) {
+      return;
+    }
+    var MAX_SHOWN = 150;
+
+    function esc(s) {
+      var d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function rank(q, e) {
+      var n = e.n.toLowerCase();
+      var d = (e.d || '').toLowerCase();
+      var f = e.f.toLowerCase();
+      if (n === q) return 0;
+      if (n.indexOf(q) === 0) return 1;
+      if (n.indexOf(q) !== -1) return 2;
+      if (d.indexOf(q) !== -1) return 3;
+      if (f.indexOf(q) !== -1) return 4;
+      return 5;
+    }
+
+    function run() {
+      var q = input.value.trim().toLowerCase();
+      if (!q) {
+        results.innerHTML = '';
+        meta.textContent = '';
+        return;
+      }
+      var hits = [];
+      for (var i = 0; i < INDEX.length; i++) {
+        var e = INDEX[i];
+        if (e.n.toLowerCase().indexOf(q) !== -1 ||
+            (e.d || '').toLowerCase().indexOf(q) !== -1 ||
+            e.f.toLowerCase().indexOf(q) !== -1) {
+          hits.push({ e: e, r: rank(q, e) });
+        }
+      }
+      hits.sort(function (a, b) {
+        return a.r - b.r || (a.e.n < b.e.n ? -1 : 1);
+      });
+      var shown = hits.slice(0, MAX_SHOWN);
+      meta.textContent = hits.length + ' match' + (hits.length === 1 ? '' : 'es')
+        + (hits.length > MAX_SHOWN ? ' (showing first ' + MAX_SHOWN + ')' : '');
+      var html = '';
+      shown.forEach(function (h) {
+        var e = h.e;
+        html += '<li class="search-hit"><a href="' + esc(e.h) + '">' +
+          '<span class="kind-badge">' + esc(e.k) + '</span>' +
+          '<span class="search-name">' + esc(e.n) + '</span>' +
+          '<span class="search-src">' + esc(e.f) + ':' + e.l + '</span>' +
+          '</a>';
+        if (e.d) html += '<div class="search-doc">' + esc(e.d) + '</div>';
+        html += '</li>';
+      });
+      if (!shown.length) html = '<li class="search-none muted">No matches.</li>';
+      results.innerHTML = html;
+    }
+
+    var timer = null;
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(run, 120);
+    });
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') {
+        clearTimeout(timer);
+        run();
+      }
+    });
   }
 
   /* ---- revision picker ---- */
