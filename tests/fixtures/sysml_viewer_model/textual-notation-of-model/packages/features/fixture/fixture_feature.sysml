@@ -22,6 +22,10 @@ package FixtureRoot {
 
       part importedPart : FixtureSharedType;
 
+      exhibit state fixtureLifecycle {
+        state fixtureIdle;
+      }
+
       requirement fixtureRequirement {
         doc /* Synthetic requirement: the fixture must render. */
         id "FIX-001";

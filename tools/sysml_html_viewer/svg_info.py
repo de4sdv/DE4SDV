@@ -22,6 +22,11 @@ _TAG_RE = re.compile(r"<[^>]+>")
 # `name : Type`, plain name. Anything else is layout text (headers, notes).
 _STEREOTYPE_RE = re.compile(r"^«[^»]*»\s*")
 _EXPOSE_RE = re.compile(r"^expose\s+")
+_EXHIBIT_RE = re.compile(r"^exhibit\s+")
+# `states lifecycleStates` renders the exhibited usage; resolve by its name
+_PLURAL_USAGE_RE = re.compile(
+    r"^(?:states|parts|ports|actions|items|flows|interfaces|attributes)\s+"
+)
 
 
 def _unescape(s: str) -> str:
@@ -53,10 +58,15 @@ def _normalize(label: str) -> list[str]:
     candidates = []
     s = _STEREOTYPE_RE.sub("", label).strip()
     s = _EXPOSE_RE.sub("", s).strip()
+    s = _EXHIBIT_RE.sub("", s).strip()
     s = s.lstrip("^")  # `^name` = redefines marker
     if not s:
         return []
     candidates.append(s)
+    # plural usage labels (`states lifecycleStates`) resolve by their name
+    s2 = _PLURAL_USAGE_RE.sub("", s)
+    if s2 and s2 != s:
+        candidates.append(s2)
     # strip a specializer/typing suffix: ` :> Super`, ` :>> Super`, ` : Type`
     for sep in (" :>> ", " :> ", " : "):
         if sep in s:
