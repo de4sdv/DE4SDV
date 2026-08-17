@@ -712,58 +712,33 @@ def test_source_refs_link_to_definitions(tmp_path):
 
 
 def test_tree_search(tmp_path):
-    """The search box lives in the tree pane on every page with the model
-    index loaded as a plain script (works from file://); index hrefs are
-    site-root-relative and each page carries its own data-search-prefix."""
+    """The search box lives in the tree pane on every page and filters the
+    tree in place (same layout); the whole-model index is not shipped as a
+    separate asset anymore — the tree itself is the search space."""
     out = tmp_path / "site"
     generate(FIXTURE, out, ["textual-notation-of-model/packages"])
     assert not (out / "search.html").exists()
+    assert not (out / "assets" / "search-index.js").exists()
 
-    index_js = (out / "assets" / "search-index.js").read_text(encoding="utf-8")
-    assert index_js.startswith("window.SEARCH_INDEX = ")
-    payload = index_js[len("window.SEARCH_INDEX = "):-len(";\n")]
-    entries = json.loads(payload)
-    by_name = {e["n"]: e for e in entries}
-    fs = by_name["FixtureSystem"]
-    assert fs["k"] == "part def"
-    assert re.search(
-        r"pages/[^\"]*fixture_feature\.sysml\.html#src-\d+$", fs["h"]
-    )
-    view_entries = [
-        e for e in entries
-        if e["k"] == "view" and e["n"] == "fixtureStructureView"
-    ]
-    assert view_entries
-    assert "view-fixtureStructureView" in view_entries[0]["h"]
-    assert any(
-        e["k"] == "file" and e["n"].endswith("fixture_feature.sysml")
-        for e in entries
-    )
-    # every index href is site-root-relative and resolves
-    for e in entries:
-        target = (out / e["h"].split("#", 1)[0]).resolve()
-        assert target.exists(), f"broken search href {e['h']}"
-
-    # root page: input + results container + index script with empty prefix
+    # root page: search box + status line in the tree pane, tree container
     index = (out / "index.html").read_text(encoding="utf-8")
     assert 'id="treeSearch"' in index
-    assert 'id="treeSearchResults"' in index
+    assert 'id="treeSearchStatus"' in index
     assert 'id="treeNav"' in index
-    assert 'data-search-prefix=""' in index
-    assert re.search(r'src="assets/search-index\.js\?v=[0-9a-f]{10}"', index)
+    assert 'id="treeSearchResults"' not in index
+    # no separate index script tag on the page
+    assert "search-index.js" not in index
 
-    # nested file page: same input, prefix matches its depth, script resolves
+    # nested file page: same input/status/tree, prefix-aware title link
     file_page = (
         out
         / "pages"
         / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
     ).read_text(encoding="utf-8")
     assert 'id="treeSearch"' in file_page
-    assert 'data-search-prefix="../../../../../"' in file_page
-    assert re.search(
-        r'src="\.\./\.\./\.\./\.\./\.\./assets/search-index\.js\?v=[0-9a-f]{10}"',
-        file_page,
-    )
+    assert 'id="treeSearchStatus"' in file_page
+    assert 'id="treeNav"' in file_page
+    assert "search-index.js" not in file_page
     # no header search link / no-tree remnants
     assert "site-search-link" not in file_page
     assert "no-tree" not in file_page
