@@ -62,6 +62,13 @@ html, body {
 .site-chat:hover { text-decoration: underline; }
 .site-chat-icon { display: block; }
 
+/* viewpoint names in view metadata: hover shows the SAF description */
+.vp-tip {
+  cursor: help;
+  text-decoration: underline dotted var(--line);
+  text-underline-offset: 2px;
+}
+
 /* ---- revision picker ---- */
 .ref-picker-wrap {
   margin-left: auto;

@@ -24,6 +24,7 @@ from .model_parse import (
     artifact_filename,
     slugify,
 )
+from .saf_viewpoint_info import SAF_VIEWPOINT_INFO
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -646,9 +647,17 @@ def _render_view_block(
         diagram_html = _diagram_missing(artifact, "")
     rows = []
     if v.viewpoint:
+        vp_info = SAF_VIEWPOINT_INFO.get(v.viewpoint_type, "")
+        vp_tip = ""
+        if vp_info:
+            vp_tip = (
+                f' data-tip-kind="SAF viewpoint"'
+                f' data-tip-name="{esc(v.viewpoint_type)}"'
+                f' data-tip-doc="{esc(vp_info)}"'
+            )
         rows.append(
             ("Viewpoint", f"<code>{esc(v.viewpoint)}</code>"
-             f"<span class='muted'> ({esc(v.viewpoint_type)})</span>")
+             f"<span class='muted vp-tip'{vp_tip}> ({esc(v.viewpoint_type)})</span>")
         )
     if v.view_type:
         rows.append(("View type", f"<code>{esc(v.view_type)}</code>"))
