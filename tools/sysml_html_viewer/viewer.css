@@ -50,9 +50,9 @@ html, body {
 
 /* community chat link beside the brand */
 .site-chat {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
+  display: inline;          /* inline flow: text baseline aligns with the
+                               brand's baseline natively (flex centered the
+                               icon+text box and lifted the text) */
   font-size: 21px;
   font-weight: 700;
   color: var(--accent);
@@ -67,7 +67,7 @@ html, body {
   opacity: 0.6;
 }
 .site-chat:hover { text-decoration: underline; }
-.site-chat-icon { align-self: center; }
+.site-chat-icon { vertical-align: -4px; }
 
 /* ---- revision picker ---- */
 .ref-picker-wrap {
