@@ -194,6 +194,9 @@ def _page_shell(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(title)} — DE4SDV Model Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="{esc(css_rel)}">
 </head>
 <body{body_attr}>
@@ -201,6 +204,7 @@ def _page_shell(
   <a class="site-title" href="{esc(search_prefix + 'index.html')}">DE4SDV <em>Model Viewer</em></a>
   <span class="site-sub">read-only browser over the SysML v2 textual model</span>
   {picker}
+  <a class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener">Chat</a>
 </header>
 <div class="layout">
   <nav class="tree-pane" aria-label="Model navigation">

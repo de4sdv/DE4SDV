@@ -11,6 +11,15 @@
   }
 
   function init() {
+    // the header height drives the sidebar geometry (--header-h); measure
+    // it after fonts settle instead of hardcoding (BIZ UDMincho has tall
+    // vertical metrics, so a fixed value would leave a gap or overflow)
+    var header = document.querySelector('.site-header');
+    if (header) {
+      var h = Math.ceil(header.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--header-h', h + 'px');
+    }
+
     var tip = document.createElement('div');
     tip.className = 'viewer-tooltip';
     tip.style.display = 'none';

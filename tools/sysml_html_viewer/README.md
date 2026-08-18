@@ -204,6 +204,28 @@ for `file://`).
    (`tests/test_sysml_html_viewer.py`) keeps the two inventories in
    agreement, including typed views (`view X : MVD::MatrixView`).
 
+## Design package
+
+A deliberately minimal visual design; everything lives in `viewer.css`
+as tokens under `:root`.
+
+- **Layout** — the project browser (model tree) is a full-height sidebar
+  pinned to the outermost left edge of every screen, below a sticky
+  header; content is centered at a comfortable reading width
+  (max 1080 px). Below 900 px the tree collapses above the content.
+- **Color** — four neutrals plus one accent, all in `:root`:
+  `--bg #f4f6f9`, `--panel #ffffff`, `--ink #1f2933`,
+  `--muted #6b7a8a`, `--line #e2e8f0`, `--accent #1a56db`
+  (with `--accent-soft #eaf1fe` for hovers/focus).
+- **Type** — **IBM Plex Sans** for documentation and UI (header brand,
+  body, tree, filters, tables), **IBM Plex Mono** for code, identifiers,
+  commands, and SysML snippets (the source view, inline `code`, kind
+  badges). Both load from Google Fonts (OFL) with system-stack
+  fallbacks; the header height is measured at runtime, so the sidebar
+  geometry stays exact.
+- **Shape** — flat surfaces, hairline borders (`--line`), small radii
+  (8 px cards), no shadows.
+
 ## Tests
 
 ```bash

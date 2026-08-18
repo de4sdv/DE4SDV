@@ -6,8 +6,9 @@
   --line: #e2e8f0;
   --accent: #1a56db;
   --accent-soft: #eaf1fe;
-  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  --sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: "IBM Plex Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --header-h: 52px;
 }
 
 * { box-sizing: border-box; }
@@ -24,17 +25,38 @@ html, body {
 
 /* ---- header ---- */
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 14px;
   padding: 12px 22px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
-.site-title { font-size: 19px; font-weight: 700; letter-spacing: 0.2px; color: var(--ink); text-decoration: none; }
+.site-title {
+  font-family: var(--sans);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
 .site-title:hover em { text-decoration: underline; }
 .site-title em { color: var(--accent); font-style: normal; }
 .site-sub { color: var(--muted); font-size: 13px; }
+
+/* community chat link in the header */
+.site-chat {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-chat:hover { text-decoration: underline; }
 
 /* ---- revision picker ---- */
 .ref-picker-wrap {
@@ -73,15 +95,15 @@ html, body {
   .ref-picker-note { flex-basis: 100%; text-align: right; }
 }
 
-/* ---- layout ---- */
+/* ---- layout: project browser pinned to the left edge, content centered ---- */
 .layout {
   display: grid;
-  grid-template-columns: 330px 6px 1fr;
-  align-items: start;
-  gap: 18px;
-  max-width: 1500px;
-  margin: 18px auto;
-  padding: 0 18px;
+  grid-template-columns: 320px 6px minmax(0, 1fr);
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  min-height: calc(100vh - var(--header-h));
 }
 
 /* ---- tree resizer ---- */
@@ -99,16 +121,18 @@ html, body {
   opacity: 0.35;
 }
 
-/* ---- tree pane ---- */
+/* ---- tree pane: full-height sidebar flush with the left edge ---- */
 .tree-pane {
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 14px;
-  max-height: calc(100vh - 120px);
-  overflow: auto;
+  border: none;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  padding: 14px 14px 28px;
+  height: calc(100vh - var(--header-h));
+  max-height: none;
+  overflow-y: auto;
   position: sticky;
-  top: 18px;
+  top: var(--header-h);
 }
 .tree-title {
   font-size: 13px;
@@ -131,13 +155,19 @@ html, body {
 .tree-label { color: var(--muted); }
 
 /* ---- content pane ---- */
-.content-pane { min-width: 0; }
+.content-pane {
+  min-width: 0;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 22px 28px 64px;
+}
 .breadcrumb {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 9px 14px;
-  margin-bottom: 14px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 12px 2px 8px;
+  margin-bottom: 6px;
   font-size: 13px;
   color: var(--muted);
 }
@@ -147,7 +177,7 @@ html, body {
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 18px 22px;
   margin-bottom: 16px;
 }
@@ -521,7 +551,15 @@ mark.tree-hl {
 
 /* responsive */
 @media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
-  .tree-pane { position: static; max-height: 320px; }
+  .layout { grid-template-columns: 1fr; padding: 0 14px; }
+  .tree-pane {
+    position: static;
+    height: auto;
+    max-height: 320px;
+    top: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
   .tree-resizer { display: none; }
+  .content-pane { padding: 18px 4px 48px; }
 }
