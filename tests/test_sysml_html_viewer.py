@@ -784,6 +784,36 @@ def test_source_symbol_tooltips(tmp_path):
     assert set(_SYM_TIPS) == {":", ":>", ":>>", "::"}
 
 
+def test_viewpoint_tooltips(tmp_path, monkeypatch):
+    """Viewpoint names in the view metadata carry a hover tooltip with the
+    SAF GfSE description when one is known."""
+    import tools.sysml_html_viewer.render as render_mod
+
+    monkeypatch.setattr(
+        render_mod,
+        "SAF_VIEWPOINT_INFO",
+        {**render_mod.SAF_VIEWPOINT_INFO, "FixtureViewpoint": "Synthetic SAF description."},
+    )
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    ).read_text(encoding="utf-8")
+    assert re.search(
+        r"<span class='muted vp-tip' data-tip-kind=\"SAF viewpoint\" "
+        r'data-tip-name="FixtureViewpoint" '
+        r'data-tip-doc="Synthetic SAF description\."> \(FixtureViewpoint\)</span>',
+        file_page,
+    )
+    # the SAF info map is populated and every entry is a non-empty description
+    assert render_mod.SAF_VIEWPOINT_INFO
+    for name, doc in render_mod.SAF_VIEWPOINT_INFO.items():
+        assert doc.strip(), f"empty SAF description for {name}"
+        assert name.endswith("Viewpoint")
+
+
 def test_tree_filters(tmp_path):
     """The tree pane carries kind/SAF-domain/SAF-aspect/viewpoint filters
     derived from the model, and every tree node carries the data-*
