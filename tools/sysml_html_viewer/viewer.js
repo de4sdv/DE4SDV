@@ -11,13 +11,18 @@
   }
 
   function init() {
-    // the header height drives the sidebar geometry (--header-h); measure
-    // it after fonts settle instead of hardcoding (BIZ UDMincho has tall
-    // vertical metrics, so a fixed value would leave a gap or overflow)
-    var header = document.querySelector('.site-header');
-    if (header) {
-      var h = Math.ceil(header.getBoundingClientRect().height);
-      document.documentElement.style.setProperty('--header-h', h + 'px');
+    measureHeader();
+    // webfonts (IBM Plex) load late and change the header height; when they
+    // settle, re-measure and re-scroll any hash target so it stays clear of
+    // the sticky header
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () {
+        measureHeader();
+        if (location.hash) {
+          var el = document.getElementById(location.hash.slice(1));
+          if (el) el.scrollIntoView({ block: 'start' });
+        }
+      });
     }
 
     var tip = document.createElement('div');
@@ -153,6 +158,34 @@
     initDiagramFullscreen();
     initSourceRefs();
     initTreeSearch();
+    flashTarget();
+    window.addEventListener('hashchange', flashTarget);
+  }
+
+  /* brief fade on the element the page was just jumped to (diagram click,
+   * tree member link, source reference); keeps the sticky header from
+   * hiding the target via scroll-margin-top, and makes it obvious */
+  function flashTarget() {
+    var id = location.hash ? location.hash.slice(1) : '';
+    if (!id) return;
+    var el = document.getElementById(id);
+    if (!el) return;
+    var target = el.classList.contains('src-line') ? el
+      : (el.classList.contains('view-section') ? el.querySelector(':scope > h2') : null);
+    if (!target) return;
+    target.classList.remove('flash');
+    void target.offsetWidth; // restart the animation on repeated jumps
+    target.classList.add('flash');
+    setTimeout(function () { target.classList.remove('flash'); }, 2000);
+  }
+
+  // the header height drives the sidebar geometry and scroll offsets
+  // (--header-h); measured, never hardcoded
+  function measureHeader() {
+    var header = document.querySelector('.site-header');
+    if (!header) return;
+    var h = Math.ceil(header.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--header-h', h + 'px');
   }
 
   /* ---- model search & filters (filter the tree in place, same layout) ---- */

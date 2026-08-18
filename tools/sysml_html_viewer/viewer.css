@@ -50,17 +50,24 @@ html, body {
 
 /* community chat link beside the brand */
 .site-chat {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline;          /* inline flow: text baseline aligns with the
+                               brand's baseline natively (flex centered the
+                               icon+text box and lifted the text) */
   font-size: 21px;
   font-weight: 700;
   color: var(--accent);
   text-decoration: none;
   white-space: nowrap;
 }
+.site-chat::before {
+  content: "|";
+  margin-right: 8px;
+  font-weight: 400;
+  color: var(--muted);
+  opacity: 0.6;
+}
 .site-chat:hover { text-decoration: underline; }
-.site-chat-icon { display: block; }
+.site-chat-icon { vertical-align: -4px; }
 
 /* viewpoint names in view metadata: hover shows the SAF description */
 .vp-tip {
@@ -559,6 +566,18 @@ mark.tree-hl {
 }
 .src-ref:hover { color: var(--accent); background: var(--accent-soft); }
 .src-ref.tip-hit { background: var(--accent-soft); }
+
+/* hash targets keep clear of the sticky header when jumped to (diagram
+ * clicks, tree member links, source references, search Enter) */
+.src-line[id], .view-section[id] { scroll-margin-top: calc(var(--header-h) + 10px); }
+
+/* brief fade of the jumped-to element so the click target is obvious */
+.src-line.flash { animation: line-flash 1.8s ease-out; }
+.view-section.flash > h2 { animation: line-flash 1.8s ease-out; }
+@keyframes line-flash {
+  0% { background: var(--accent-soft); }
+  100% { background: transparent; }
+}
 
 /* responsive */
 @media (max-width: 900px) {
