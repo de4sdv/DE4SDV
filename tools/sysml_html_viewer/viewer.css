@@ -50,17 +50,24 @@ html, body {
 
 /* community chat link beside the brand */
 .site-chat {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline;          /* inline flow: text baseline aligns with the
+                               brand's baseline natively (flex centered the
+                               icon+text box and lifted the text) */
   font-size: 21px;
   font-weight: 700;
   color: var(--accent);
   text-decoration: none;
   white-space: nowrap;
 }
+.site-chat::before {
+  content: "|";
+  margin-right: 8px;
+  font-weight: 400;
+  color: var(--muted);
+  opacity: 0.6;
+}
 .site-chat:hover { text-decoration: underline; }
-.site-chat-icon { display: block; }
+.site-chat-icon { vertical-align: -4px; }
 
 /* viewpoint names in view metadata: hover shows the SAF description */
 .vp-tip {
