@@ -1,4 +1,4 @@
-schema: de4sdv.conceptual-architecture.v0
+schema: de4sdv.logical-architecture.v0
 id: INC-MW-007
 name: Middleware integration logical architecture
 status: draft

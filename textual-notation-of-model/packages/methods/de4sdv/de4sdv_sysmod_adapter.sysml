@@ -22,11 +22,11 @@ package DE4SDV_SYSMODAdapter {
   }
 
   requirement def SYSMODRequirementBase :> ExtendedRequirement {
-    doc /* Selected upstream requirement-metadata seam. DE4SDV requirement-candidate lifecycle semantics remain local. */
+    doc /* Selected upstream requirement-metadata seam. Specialized by DE4SDV_MethodContext::RequirementCandidate; DE4SDV candidate lifecycle semantics remain local. */
   }
 
   use case def SYSMODSystemUseCaseBase :> SystemUseCase {
-    doc /* Selected upstream system-use-case seam. Existing DE4SDV use cases are not migrated by this definition. */
+    doc /* Selected upstream system-use-case seam. Specialized by the AEBS and middleware integration use cases. */
   }
 
   occurrence def SYSMODConstrainedOccurrenceBase :> ConstrainedOccurrence {

@@ -62,8 +62,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SAF viewpoints: SystemStructureDefinitionViewpoint, SystemInternalExchangeViewpoint, SystemFunctionMappingViewpoint
 - Outputs: system structure, exchanges, allocation/mapping
 - Content: SignalTranslator, LifecycleBridge, HealthProxy, DiagnosticProxy, UpdateCoordinator. Mapping from AEBS logical-architecture external service dependencies to middleware logical components
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_conceptual_architecture.sysml
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-conceptual-architecture.yaml
+- SysML file: textual-notation-of-model/packages/features/middleware/mw_logical_architecture.sysml
+- YAML: methodologies/sysmod-sysmlv2/pilots/mw-logical-architecture.yaml
 
 ### INC-MW-008: Physical/software realization
 - Phase: 8 (Physical/software realization)

@@ -65,9 +65,12 @@ The package includes concepts that are directly relevant to DE4SDV:
 - `ObligationKind`,
 - `StabilityKind`.
 
-The first DE4SDV adapter exposes only local seams for `ExtendedStakeholder`,
-`ExtendedRequirement`, `SystemUseCase`, and `ConstrainedOccurrence`. Exposure
-does not migrate existing DE4SDV model definitions automatically.
+The DE4SDV adapter exposes local seams for `ExtendedStakeholder`,
+`ExtendedRequirement`, `SystemUseCase`, and `ConstrainedOccurrence`. The
+requirement seam is specialized by `DE4SDV_MethodContext::RequirementCandidate`;
+the use-case seam is specialized by the AEBS and middleware integration use
+cases. The stakeholder and constrained-occurrence seams remain available but
+are not yet specialized by existing DE4SDV definitions.
 
 The upstream `Project` concept links a fixed context and architecture artifact
 chain. DE4SDV does not adopt it as a project, program, increment, or product-line

@@ -25,9 +25,21 @@ METHOD_PROCESS = (
 SAF_VIEWPOINTS = (
     ROOT / "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml"
 )
-AEBS_CONCEPTUAL = (
+AEBS_LOGICAL = (
     ROOT
-    / "methodologies/sysmod-sysmlv2/pilots/aebs-conceptual-architecture.yaml"
+    / "methodologies/sysmod-sysmlv2/pilots/aebs-logical-architecture.yaml"
+)
+METHOD_CONTEXT = (
+    ROOT
+    / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+)
+AEBS_OPERATIONAL = (
+    ROOT
+    / "textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml"
+)
+MW_OPERATIONAL = (
+    ROOT
+    / "textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml"
 )
 METHOD_README = ROOT / "methodologies/sysmod-sysmlv2/README.md"
 PROCESS_SET_README = ROOT / "approach/process-set/README.md"
@@ -207,9 +219,9 @@ def test_active_method_artifacts_do_not_use_retired_saf_domain_labels() -> None:
                     stale.append(f"{path.relative_to(ROOT)}:{line_number}:{line.strip()}")
     assert stale == []
 
-    conceptual = AEBS_CONCEPTUAL.read_text(encoding="utf-8")
-    assert "source_id: SAF-CONCEPTUAL-DOMAIN" in conceptual
-    assert "source_id: SAF-LOGICAL-DOMAIN" not in conceptual
+    logical = AEBS_LOGICAL.read_text(encoding="utf-8")
+    assert "source_id: SAF-CONCEPTUAL-DOMAIN" in logical
+    assert "source_id: SAF-LOGICAL-DOMAIN" not in logical
 
     saf = SAF_VIEWPOINTS.read_text(encoding="utf-8")
     assert "// ─── Conceptual Domain ───" in saf
@@ -217,3 +229,35 @@ def test_active_method_artifacts_do_not_use_retired_saf_domain_labels() -> None:
     assert "technology-independent" in saf
     assert "functional architecture, and logical architecture" in saf
     assert "they do not rename the logical" in saf
+
+
+def test_requirement_candidate_specializes_sysmod_requirement_base() -> None:
+    text = METHOD_CONTEXT.read_text(encoding="utf-8")
+    assert "private import DE4SDV_SYSMODAdapter::*;" in text
+    assert "requirement def RequirementCandidate :> SYSMODRequirementBase" in text
+
+
+def test_aebs_use_case_specializes_sysmod_use_case_base_with_semantics() -> None:
+    text = AEBS_OPERATIONAL.read_text(encoding="utf-8")
+    assert "private import DE4SDV_SYSMODAdapter::*;" in text
+    normalized = " ".join(text.split())
+    assert (
+        "use case def MitigateVehicleTargetForwardCollisionRisk "
+        ":> SYSMODSystemUseCaseBase" in normalized
+    )
+    assert "attribute ucMotivation : ScalarValues::String =" in text
+    assert "attribute ucTrigger : ScalarValues::String =" in text
+    assert "attribute ucResult : ScalarValues::String =" in text
+
+
+def test_middleware_use_case_def_specializes_sysmod_use_case_base() -> None:
+    text = MW_OPERATIONAL.read_text(encoding="utf-8")
+    assert "private import DE4SDV_SYSMODAdapter::*;" in text
+    assert (
+        "use case def IntegrateADASWithVehiclePlatform :> SYSMODSystemUseCaseBase"
+        in text
+    )
+    assert (
+        "use case 'integrate ADAS with vehicle platform' "
+        ": IntegrateADASWithVehiclePlatform" in text
+    )

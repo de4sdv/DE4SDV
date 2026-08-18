@@ -12,6 +12,7 @@ package DE4SDV_MWOperationalContext {
     package Middleware {
       package OperationalContext {
         private import DE4SDV_Stakeholders::*;
+        private import DE4SDV_SYSMODAdapter::*;
         private import SAF_Viewpoints::*;
         private import StandardViewDefinitions::*;
         private import Views::*;
@@ -74,7 +75,28 @@ package DE4SDV_MWOperationalContext {
 
         part middlewareIntegrationCapability : MiddlewareIntegrationOperationalCapability;
 
-        use case 'integrate ADAS with vehicle platform' {
+        use case def IntegrateADASWithVehiclePlatform :> SYSMODSystemUseCaseBase {
+          doc /* Canonical middleware integration use case on the SYSMOD seam. */
+          attribute ucMotivation : ScalarValues::String =
+            "The ADAS application needs managed exchange of signals, "
+            "diagnostics, lifecycle, health, and updates with the vehicle "
+            "platform middleware.";
+          attribute ucTrigger : ScalarValues::String =
+            "The ADAS application starts and requests vehicle-platform "
+            "services through the application-middleware adapter.";
+          attribute ucResult : ScalarValues::String =
+            "Vehicle signals, diagnostics, lifecycle, health, and update "
+            "coordination are exchanged safely and observably between the "
+            "ADAS application and the vehicle platform.";
+
+          objective {
+            doc /* Enable safe and managed middleware integration without
+                 * selecting the emergency-intervention path; that selection
+                 * is deferred to requirements and logical architecture. */
+          }
+        }
+
+        use case 'integrate ADAS with vehicle platform' : IntegrateADASWithVehiclePlatform {
           subject middlewareOperationalContext : MiddlewareOperationalContext;
           actor adasApplication : ADASApplicationStack;
           actor vehicleMiddleware : VehiclePlatformMiddleware;

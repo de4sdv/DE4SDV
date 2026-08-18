@@ -17,7 +17,7 @@ package DE4SDV_AEBSSimulationDeployment {
   // responsibility/item usages used as allocation sources below. Functional
   // semantics are reached through that accepted conceptual baseline; no direct
   // functional-package import is needed in this deployment model.
-  private import DE4SDV_AEBSConceptualArchitecture::*;
+  private import DE4SDV_AEBSLogicalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
   private import DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment;
@@ -569,19 +569,19 @@ package DE4SDV_AEBSSimulationDeployment {
   /* P8_PLOM: conceptual responsibility to physical role only. */
   allocation def SimulationLogicalToPhysicalRealization;
   allocation stateAcquisitionToAEB : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.stateAcquisition to deployment.candidateVehicleSystem1.aeb;
+    allocate DE4SDV_AEBSLogicalArchitecture::system.stateAcquisition to deployment.candidateVehicleSystem1.aeb;
   allocation interventionDecisionToAEB : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.interventionDecision to deployment.candidateVehicleSystem1.aeb;
+    allocate DE4SDV_AEBSLogicalArchitecture::system.interventionDecision to deployment.candidateVehicleSystem1.aeb;
   allocation emergencyCoordinationToAggregator : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.aggregator;
+    allocate DE4SDV_AEBSLogicalArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.aggregator;
   allocation emergencyCoordinationToAvailabilityConverter : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.commandModeToOperationModeAvailabilityConverter;
+    allocate DE4SDV_AEBSLogicalArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.commandModeToOperationModeAvailabilityConverter;
   allocation emergencyCoordinationToMrmHandler : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.mrmHandler;
+    allocate DE4SDV_AEBSLogicalArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.mrmHandler;
   allocation emergencyCoordinationToOperator : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.emergencyStopOperator;
+    allocate DE4SDV_AEBSLogicalArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.emergencyStopOperator;
   allocation emergencyCoordinationToLegacyVehicleGate : SimulationLogicalToPhysicalRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.legacyVehicleCommandGate;
+    allocate DE4SDV_AEBSLogicalArchitecture::system.emergencyCoordination to deployment.candidateVehicleSystem1.legacyVehicleCommandGate;
   /* Proposed Physical Logical Item Mapping: logical to physical only. */
   allocation def LogicalToPhysicalItemRealization {
     doc /*
@@ -594,17 +594,17 @@ package DE4SDV_AEBSSimulationDeployment {
      */
   }
   allocation emergencyRequestToOperateMrm : LogicalToPhysicalItemRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyInterventionRequestOut.emergencyInterventionRequest
+    allocate DE4SDV_AEBSLogicalArchitecture::system.emergencyInterventionRequestOut.emergencyInterventionRequest
       to deployment.candidateVehicleSystem1.mrmHandler.operateMrmOut.request;
   allocation emergencyRequestToLegacyGateControl : LogicalToPhysicalItemRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.emergencyInterventionRequestOut.emergencyInterventionRequest
+    allocate DE4SDV_AEBSLogicalArchitecture::system.emergencyInterventionRequestOut.emergencyInterventionRequest
       to deployment.candidateVehicleSystem1.legacyVehicleCommandGate.emergencyControlCommandIn.command;
 
   allocation vehicleMotionToVelocityFeedback : LogicalToPhysicalItemRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.vehicleMotionObservationIn.vehicleMotionState
+    allocate DE4SDV_AEBSLogicalArchitecture::system.vehicleMotionObservationIn.vehicleMotionState
       to deployment.candidateVehicleSystem1.velocityFeedbackIn.velocity;
   allocation vehicleMotionToKinematicFeedback : LogicalToPhysicalItemRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system.vehicleMotionObservationIn.vehicleMotionState
+    allocate DE4SDV_AEBSLogicalArchitecture::system.vehicleMotionObservationIn.vehicleMotionState
       to deployment.candidateVehicleSystem1.kinematicStateIn.odometry;
 
 
