@@ -567,6 +567,18 @@ mark.tree-hl {
 .src-ref:hover { color: var(--accent); background: var(--accent-soft); }
 .src-ref.tip-hit { background: var(--accent-soft); }
 
+/* hash targets keep clear of the sticky header when jumped to (diagram
+ * clicks, tree member links, source references, search Enter) */
+.src-line[id], .view-section[id] { scroll-margin-top: calc(var(--header-h) + 10px); }
+
+/* brief fade of the jumped-to element so the click target is obvious */
+.src-line.flash { animation: line-flash 1.8s ease-out; }
+.view-section.flash > h2 { animation: line-flash 1.8s ease-out; }
+@keyframes line-flash {
+  0% { background: var(--accent-soft); }
+  100% { background: transparent; }
+}
+
 /* responsive */
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; padding: 0 14px; }
