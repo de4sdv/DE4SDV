@@ -28,6 +28,13 @@ _PLURAL_USAGE_RE = re.compile(
     r"^(?:states|parts|ports|actions|items|flows|interfaces|attributes)\s+"
 )
 
+# SysIDE compartment headings (exact) and doc rows (prefix) that carry no
+# declaration of their own; they resolve to the element whose compartment
+# they render.
+_HEADING_RE = re.compile(
+    r"^(?:subject|actors|include use cases|attributes)\s*$|^doc\b"
+)
+
 
 def _unescape(s: str) -> str:
     """SysIDE SVG text may carry HTML entities (&gt; for the :> specializer)."""
@@ -72,10 +79,15 @@ def _normalize(label: str) -> list[str]:
         if sep in s:
             candidates.append(s.split(sep, 1)[0].strip())
             break
-    # qualified paths (`Root::member`) resolve by their root name
+    # qualified paths (`Root::member`) resolve by their member first (most
+    # specific), then by their root name; `A::B::*` skips the wildcard
     for c in list(candidates):
         if "::" in c:
-            candidates.append(c.split("::", 1)[0].strip())
+            parts = [p.strip() for p in c.split("::") if p.strip()]
+            if len(parts) > 1:
+                for p in reversed(parts[1:]):
+                    candidates.append(p)
+                candidates.append(parts[0])
     # dotted deployment paths (`host.role.port.item`) resolve by their
     # first and last segments (host part / item name)
     for c in list(candidates):
@@ -133,28 +145,54 @@ def resolve_labels(
     view_file: str,
     view_folder: str,
 ) -> list[LabelInfo]:
-    """Resolve diagram labels against the model index, most specific first."""
+    """Resolve diagram labels against the model index, most specific first.
+
+    Compartment labels (``objective``, ``subject``, ``actors``, ``include
+    use cases``, ``attributes``, ``doc ...``) have no declaration of their
+    own or repeat a keyword; they resolve to the element whose compartment
+    they render (the last resolved label that owns children), so hovering
+    them shows that element's tooltip. Anonymous usages (``objective {``)
+    are indexed under their keyword; when several exist, the one nested in
+    the current context element wins.
+    """
     out: list[LabelInfo] = []
+    context: ElementRef | None = None
     for label in labels:
-        for key in _normalize(label):
-            refs = index.get(key)
-            if not refs:
-                continue
-            ref = _prefer(refs, view_file, view_folder)
-            if ref is None:
-                continue
-            out.append(
-                LabelInfo(
-                    label=label,
-                    name=ref.name,
-                    kind=ref.kind,
-                    doc=ref.doc,
-                    rel_path=ref.rel_path,
-                    line=ref.line,
-                    anchor=ref.anchor,
-                )
+        ref = None
+        if context is not None and _HEADING_RE.match(label):
+            # compartment headings/doc rows show their containing element
+            ref = context
+        else:
+            for key in _normalize(label):
+                refs = index.get(key)
+                if not refs:
+                    continue
+                ref = _prefer(refs, view_file, view_folder)
+                if context is not None:
+                    inside = [
+                        r
+                        for r in refs
+                        if r.parent_name == context.name
+                        and r.parent_line == context.line
+                    ]
+                    if inside:
+                        ref = inside[0]
+                break  # first resolvable key wins (exact > stripped > name part)
+        if ref is None:
+            continue
+        out.append(
+            LabelInfo(
+                label=label,
+                name=ref.name,
+                kind=ref.kind,
+                doc=ref.doc,
+                rel_path=ref.rel_path,
+                line=ref.line,
+                anchor=ref.anchor,
             )
-            break  # first resolvable key wins (exact > stripped > name part)
+        )
+        if ref.has_children and ref.kind != "package":
+            context = ref
     return out
 
 

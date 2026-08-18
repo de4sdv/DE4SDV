@@ -223,9 +223,9 @@ def test_resolve_labels(model_files, fixture_sysml):
     assert by_label["fixtureSystem : FixtureSystem"].name == "fixtureSystem"
     # specializer resolves to the part def
     assert by_label["FixtureSystem :> FixtureSuperType"].name == "FixtureSystem"
-    # qualified expose resolves by root name
-    assert by_label["expose FixtureSystem::signalIn"].name == "FixtureSystem"
-    assert by_label["expose FixtureSystem::'quoted part'"].name == "FixtureSystem"
+    # qualified expose resolves by its member (most specific), not the root
+    assert by_label["expose FixtureSystem::signalIn"].name == "signalIn"
+    assert by_label["expose FixtureSystem::'quoted part'"].name == "'quoted part'"
     # redefines marker stripped; dotted path resolves by first segment
     assert by_label["^fixtureSystem.signalIn"].name == "fixtureSystem"
     assert by_label["^fixtureSystem.signalIn"].kind == "part"
@@ -812,6 +812,89 @@ def test_viewpoint_tooltips(tmp_path, monkeypatch):
     for name, doc in render_mod.SAF_VIEWPOINT_INFO.items():
         assert doc.strip(), f"empty SAF description for {name}"
         assert name.endswith("Viewpoint")
+
+
+def test_anonymous_usage_indexed(tmp_path):
+    """Anonymous usages (objective/subject) are parsed, nested, and get
+    their doc — so diagram compartment labels can resolve to them."""
+    from tools.sysml_html_viewer.model_parse import (
+        build_member_index,
+        parse_file,
+    )
+
+    f = tmp_path / "anon.sysml"
+    f.write_text(
+        "package P {\n"
+        "  use case UC {\n"
+        "    objective {\n"
+        "      doc /* The real objective text. */\n"
+        "    }\n"
+        "    subject;\n"
+        "  }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    uc = next(m for m in mf.members if m.name == "UC")
+    obj = next(m for m in uc.children if m.name == "objective")
+    assert obj.kind == "objective"
+    assert obj.doc == "The real objective text."
+    subj = next(m for m in uc.children if m.name == "subject")
+    assert subj.kind == "subject"
+
+    index = build_member_index([mf])
+    refs = index["objective"]
+    assert len(refs) == 1
+    assert refs[0].doc == "The real objective text."
+    assert refs[0].parent_name == "UC"
+    assert refs[0].parent_line == uc.line
+
+
+def test_svg_label_context_resolution():
+    """Compartment labels resolve via the current context element, and
+    qualified expose labels resolve to their member, not the package."""
+    from tools.sysml_html_viewer.svg_info import resolve_labels
+    from tools.sysml_html_viewer.model_parse import ElementRef
+
+    uc = ElementRef(
+        name="'integrate ADAS'",
+        kind="use case",
+        doc="The use case doc.",
+        rel_path="p/f.sysml",
+        line=10,
+        anchor="src-10",
+        has_children=True,
+    )
+    obj_other = ElementRef(
+        name="objective", kind="objective", rel_path="p/f.sysml", line=5,
+        anchor="src-5", parent_name="OTHER", parent_line=3,
+    )
+    obj_inside = ElementRef(
+        name="objective", kind="objective", doc="Inside objective doc.",
+        rel_path="p/f.sysml", line=12, anchor="src-12",
+        parent_name="'integrate ADAS'", parent_line=10,
+    )
+    index = {
+        "'integrate ADAS'": [uc],
+        "integrate ADAS": [uc],
+        "objective": [obj_other, obj_inside],
+    }
+    labels = [
+        "integrate ADAS : IntegrateADASWithVehiclePlatform",
+        "objective",
+        "doc The objective body text.",
+        "actors",
+        "expose OperationalContext::'integrate ADAS'",
+    ]
+    resolved = {li.label: li for li in resolve_labels(labels, index, "p/f.sysml", "p")}
+    # qualified expose label resolves to the use case member, not a package
+    assert resolved["expose OperationalContext::'integrate ADAS'"].name == "'integrate ADAS'"
+    # objective picks the usage nested in the context element (with its doc)
+    assert resolved["objective"].doc == "Inside objective doc."
+    # heading and doc rows fall back to the context element
+    assert resolved["actors"].name == "'integrate ADAS'"
+    assert resolved["doc The objective body text."].name == "'integrate ADAS'"
+    assert resolved["doc The objective body text."].doc == "The use case doc."
 
 
 def test_tree_filters(tmp_path):

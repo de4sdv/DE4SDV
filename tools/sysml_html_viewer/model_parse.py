@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Iterable
 
 # ---------------------------------------------------------------------------
 # Declaration scanning
@@ -26,8 +27,9 @@ from pathlib import Path
 # SysML v2 member declaration kinds found in the DE4SDV model (verified by
 # scanning textual-notation-of-model/packages). "abstract"/"derived" and the
 # direction/prefix keywords are handled as separate prefixes so
-# `abstract part def`, `in item x`, `ref part x`, `variant part x` all parse.
-_PREFIX = r"(?:(?:abstract|derived|in|out|inout|ref|variant|variation)\s+)?"
+# `abstract part def`, `in item x`, `ref part x`, `variant part x` all parse;
+# `then` prefixes use-case include actions (`then include 'x' { ... }`)
+_PREFIX = r"(?:(?:abstract|derived|in|out|inout|ref|variant|variation|then)\s+)?"
 _KIND = (
     r"part def|port def|item def|requirement def|viewpoint def|concern def|"
     r"action def|state def|interface def|flow def|attribute def|metadata def|"
@@ -36,7 +38,7 @@ _KIND = (
     r"action|state|interface|flow|attribute|metadata|usage|exhibit|enum|"
     r"verification|calc|allocation|constraint|story|interaction|event|transfer|"
     r"stakeholder|subject|dependency|trace|satisfy|verify|refine|actor|"
-    r"objective|alias|claim|argument|evidence|counterclaim|use case"
+    r"objective|alias|claim|argument|evidence|counterclaim|use case|include"
 )
 _NAME = r"[A-Za-z_][A-Za-z0-9_]*|'[^']*'"
 
@@ -48,6 +50,13 @@ DECL_RE = re.compile(
 # flow statements without a name (`flow from A to B;`) must not be parsed
 # as declarations named 'from'/'to'/'between'.
 _FLOW_NO_NAME = frozenset({"from", "to", "between"})
+
+# anonymous usages: `objective { doc ... }` or `subject;` — the keyword is
+# the usage's only name; diagrams render it as a compartment heading, so
+# the declaration must be indexable under that keyword.
+_ANON_USAGE_RE = re.compile(
+    rf"^\s*{_PREFIX}(?P<kind>objective|subject)\s*(?={{|;|$)"
+)
 
 # `exhibit state lifecycleStates { ... }` declares an inline usage inside
 # an exhibit block; the exhibited element carries the real name.
@@ -286,6 +295,14 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
                 mf.members.append(Member(kind=kind, name=name, depth=decl_depth, line=lineno))
             else:
                 mf.members.append(Member(kind=kind, name=name, depth=depth, line=lineno))
+        else:
+            anon = _ANON_USAGE_RE.match(raw)
+            if anon:
+                # `objective { doc ... }` / `subject;` — anonymous usage;
+                # index it under its keyword so diagram compartment labels
+                # resolve to the declaration (with its doc)
+                akind = anon.group("kind").strip()
+                mf.members.append(Member(kind=akind, name=akind, depth=depth, line=lineno))
         depth += opens - closes
         if depth < 0:
             depth = 0
@@ -480,6 +497,18 @@ class ElementRef:
     rel_path: str = ""
     line: int = 0
     anchor: str = ""        # page anchor, e.g. "member-MiddlewareSystem"
+    parent_name: str = ""   # enclosing declaration (for anonymous usages)
+    parent_line: int = 0
+    has_children: bool = False
+
+
+def _walk_with_parent(
+    members: list[Member], parent: Member | None
+) -> Iterable[tuple[Member, Member | None]]:
+    """Yield every member with its enclosing declaration (or None)."""
+    for m in members:
+        yield m, parent
+        yield from _walk_with_parent(m.children, m)
 
 
 def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
@@ -490,7 +519,11 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
     """
     index: dict[str, list[ElementRef]] = {}
     for mf in files:
-        for m in mf.members:
+        # mf.members is flat (children are also listed); walk only the
+        # top-level entries and descend via the tree so nothing is doubled
+        for m, parent in _walk_with_parent(
+            [m for m in mf.members if m.depth == 1], None
+        ):
             if m.kind == "package":
                 # packages resolve `expose PackageName::*` diagram labels
                 ref = ElementRef(
@@ -500,6 +533,9 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
                     rel_path=mf.rel_path,
                     line=m.line,
                     anchor=f"src-{m.line}",
+                    parent_name=parent.name if parent else "",
+                    parent_line=parent.line if parent else 0,
+                    has_children=bool(m.children),
                 )
                 _index_add(index, ref)
                 continue
@@ -510,6 +546,9 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
                 rel_path=mf.rel_path,
                 line=m.line,
                 anchor=f"src-{m.line}",  # jump to the declaration in source
+                parent_name=parent.name if parent else "",
+                parent_line=parent.line if parent else 0,
+                has_children=bool(m.children),
             )
             _index_add(index, ref)
         for v in mf.views:
