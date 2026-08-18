@@ -88,9 +88,9 @@
       move(ev);
     }
 
-    /* ---- source references (hover tooltip, click to jump) ---- */
+    /* ---- source references & viewpoint tips (hover tooltip) ---- */
     function initSourceRefs() {
-      var sel = 'a.src-ref, span.src-sym';
+      var sel = 'a.src-ref, span.src-sym, span.vp-tip';
       document.addEventListener('mouseover', function (ev) {
         var a = ev.target && ev.target.closest ? ev.target.closest(sel) : null;
         if (!a) return;
