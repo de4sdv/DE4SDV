@@ -744,9 +744,9 @@ def test_tree_search(tmp_path):
     assert "no-tree" not in file_page
     # the header title links back to the site index (prefix-aware)
     assert '<a class="site-title" href="../../../../../index.html">' in file_page
-    # design package: BIZ UDMincho is loaded for the header
-    assert "BIZ+UDMincho" in index
-    assert "BIZ+UDMincho" in file_page
+    # design package: IBM Plex Sans/Mono are loaded (docs vs code type)
+    assert "IBM+Plex+Sans" in index
+    assert "IBM+Plex+Mono" in file_page
     # header links to the community chat
     assert 'class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener"' in index
     assert 'class="site-chat" href="https://chat.de4sdv.org"' in file_page

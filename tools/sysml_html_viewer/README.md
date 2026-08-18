@@ -217,14 +217,12 @@ as tokens under `:root`.
   `--bg #f4f6f9`, `--panel #ffffff`, `--ink #1f2933`,
   `--muted #6b7a8a`, `--line #e2e8f0`, `--accent #1a56db`
   (with `--accent-soft #eaf1fe` for hovers/focus).
-- **Type** — **BIZ UDMincho** (loaded from Google Fonts, SIL OFL;
-  falls back to a serif stack offline or when the CDN is unreachable)
-  is the single interface typeface: header, body, tree, filters, and
-  tables. Only the **code presentation** stays monospace (`--mono`):
-  the source view, inline code, and kind badges. BIZ UDMincho's Latin
-  glyphs are deliberately neutral — the visible effect is uniform
-  letterforms and taller vertical metrics (the header height is
-  measured at runtime, so the sidebar geometry stays exact).
+- **Type** — **IBM Plex Sans** for documentation and UI (header brand,
+  body, tree, filters, tables), **IBM Plex Mono** for code, identifiers,
+  commands, and SysML snippets (the source view, inline `code`, kind
+  badges). Both load from Google Fonts (OFL) with system-stack
+  fallbacks; the header height is measured at runtime, so the sidebar
+  geometry stays exact.
 - **Shape** — flat surfaces, hairline borders (`--line`), small radii
   (8 px cards), no shadows.
 
