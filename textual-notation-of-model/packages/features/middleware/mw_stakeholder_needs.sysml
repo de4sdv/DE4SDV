@@ -7,7 +7,7 @@
  * assurance needs from the DE4SDV engineering team.
  *
  * This increment does NOT define requirements, functional architecture,
- * system architecture, or physical/software realization.
+ * logical architecture, or physical/software realization.
  */
 
 package DE4SDV_MWStakeholderNeeds {

@@ -1,6 +1,6 @@
-schema: de4sdv.conceptual-architecture.v0
+schema: de4sdv.logical-architecture.v0
 id: INC-AEBS-006
-name: AEBS system architecture
+name: AEBS logical architecture
 status: draft
 type: EngineeringIncrement
 parent_increment: INC-AEBS-005
@@ -10,7 +10,7 @@ domain: system
 selected_baseline: decomposed_rule_based
 
 purpose: >-
-  Define a technology-neutral system architecture that allocates every
+  Define a technology-neutral logical architecture that allocates every
   vehicle-target AEBS functional responsibility from INC-AEBS-004/005 to a
   bounded logical owner, exposes typed logical exchanges while marking nominal
   opaque contracts explicitly, separates the
@@ -54,7 +54,7 @@ source_alignment:
     notes:
       - Allocation syntax follows validation/12-Dependency Relationships/12b-Allocation-1.sysml.
       - State decomposition syntax follows validation/05-State-based Behavior/5-State-based Behavior-1.sysml.
-  - source_id: SAF-LOGICAL-DOMAIN
+  - source_id: SAF-CONCEPTUAL-DOMAIN
     use: viewpoint_selection
     notes:
       - System Structure Definition Viewpoint
@@ -304,7 +304,7 @@ architecture_decisions:
     decision: Separate logical emergency-intervention request from physical actuator command.
     rationale: EmergencyInterventionRequest is a distinct logical item traced to, but not specialized from, the functional EmergencyBrakingCommand; downstream supervision, arbitration, vehicle interface, and brake actuation are physical-domain responsibilities.
   - id: DEC-AEBS-LOG-004
-    decision: Keep middleware products outside the system architecture.
+    decision: Keep middleware products outside the logical architecture.
     rationale: ROS 2/DDS, S-CORE, Android SDV, AAOS, and their adapters are physical software/platform realizations of logical service contracts.
 
 open_architecture_options:

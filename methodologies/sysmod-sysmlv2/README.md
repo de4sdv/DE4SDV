@@ -17,7 +17,9 @@ The method provides a shared modeling sequence for contributors:
 
 ## Adoption model
 
-DE4SDV does not redefine SYSMOD from scratch. It references the upstream MBSE4U SysML v2 library and adds DE4SDV-specific guidance for:
+DE4SDV does not redefine SYSMOD from scratch. It resolves the exact-pinned
+upstream package through Sysand, confines reuse to a DE4SDV adapter, and adds
+DE4SDV-specific guidance for:
 
 - software-defined vehicle product-line engineering,
 - model-based product-line engineering,
@@ -28,17 +30,17 @@ DE4SDV does not redefine SYSMOD from scratch. It references the upstream MBSE4U 
 
 ## Current maturity
 
-This repository is in an incremental modeling phase. The AEBS pilot now carries
-reviewed framing, operational context, needs/requirements, and functional
-behavior slices in YAML/Markdown plus matching SysML v2 model artifacts. Later
-increments should continue from these small reviewable slices rather than
-jumping directly to logical/physical realization or compliance claims.
+This repository develops the method through small, reviewable increments.
+Package reuse does not replace existing operational, requirements, functional,
+system, physical/software, product-line, or evidence artifacts and does not
+create compliance claims.
 
 ## Files
 
-- [`upstream`](upstream.md) records the upstream repository, inspected commit, license, and adoption caveats.
+- [`upstream`](upstream.md) separates the historical source review from the current exact-pinned package dependency.
+- [`upstream-compatibility-report`](upstream-compatibility-report.md) records draft questions for upstream review; it has not been sent.
 - [`de4sdv-tailoring`](de4sdv-tailoring.md) explains how DE4SDV specializes the upstream library concepts.
-- [`process-mapping`](process-mapping.md) defines the DE4SDV method process sequence across the three-system layers and 12-phase increment workflow.
+- [`process-mapping`](process-mapping.md) defines the DE4SDV method process sequence across the three-system layers and 13-phase increment workflow.
 - [`increment-workflow`](increment-workflow.md) defines the generic repeatable increment workflow for features, architecture, toolchain, and evidence work.
 - [`saf-viewpoint-map`](saf-viewpoint-map.md) maps GfSE SAF viewpoint families to DE4SDV increment outputs.
 - [`artifact-map`](artifact-map.md) maps method concepts to DE4SDV repository artifacts.

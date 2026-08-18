@@ -6,7 +6,7 @@ Parent: `INC-AEBS-003`
 
 ## Purpose
 
-This increment converts the reviewed AEBS operational story and needs/requirements slice into the first functional-domain model slice.
+This increment converts the reviewed AEBS operational story and needs/requirements slice into the first functional-architecture model slice in the SAF Conceptual Domain.
 
 It does **not** define logical components, ECUs, services, sensors, networks, deployment topology, or regulatory compliance evidence.
 

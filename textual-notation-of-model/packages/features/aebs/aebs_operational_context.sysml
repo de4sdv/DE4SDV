@@ -20,6 +20,7 @@ package DE4SDV_AEBSOperationalContext {
         private import DE4SDV_OperationalContext::*;
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodViewpoints::*;
+        private import DE4SDV_SYSMODAdapter::*;
         private import SAF_Viewpoints::*;
         private import Views::*;
 
@@ -120,13 +121,18 @@ package DE4SDV_AEBSOperationalContext {
           first commandEmergencyBraking then recordEvidenceExpectation;
         }
 
-        use case def MitigateVehicleTargetForwardCollisionRisk {
+        use case def MitigateVehicleTargetForwardCollisionRisk
+          :> SYSMODSystemUseCaseBase {
           subject subjectVehicle : SubjectVehicle;
           actor driver : Driver;
           actor vehicleTarget : VehicleTarget;
           actor roadEnvironment : RoadEnvironment;
           actor evidenceBaseline : DE4SDVEvidenceBaseline;
           actor reviewer : OpenSourceReviewer;
+
+          attribute redefines ucMotivation = "Driver needs emergency braking assistance to avoid or mitigate a rear-end collision with a forward vehicle target.";
+          attribute redefines ucTrigger = "The subject vehicle approaches a forward vehicle target with a collision risk that exceeds the intervention threshold.";
+          attribute redefines ucResult = "The driver is warned and, absent a decisive override, emergency braking is commanded to mitigate the collision risk.";
 
           objective {
             doc /*

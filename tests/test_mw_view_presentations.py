@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 MIDDLEWARE = Path("textual-notation-of-model/packages/features/middleware")
-CONCEPTUAL_MODEL = MIDDLEWARE / "mw_conceptual_architecture.sysml"
+CONCEPTUAL_MODEL = MIDDLEWARE / "mw_logical_architecture.sysml"
 OPERATIONAL_MODEL = MIDDLEWARE / "mw_operational_context.sysml"
 FUNCTIONAL_MODEL = MIDDLEWARE / "mw_functional_architecture.sysml"
 CLASSIFICATION_MODEL = MIDDLEWARE / "mw_feature_classification.sysml"

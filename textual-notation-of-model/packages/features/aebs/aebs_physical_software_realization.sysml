@@ -2,7 +2,7 @@
  * DE4SDV AEBS physical software realization model slice.
  *
  * This package implements INC-AEBS-007: a source-backed mapping from the
- * accepted technology-neutral AEBS system architecture to Autoware software.
+ * accepted technology-neutral AEBS logical architecture to Autoware software.
  * Runtime deployment, vehicle-platform integration, brake actuation, and
  * executable evidence remain INC-AEBS-008/009 responsibilities.
  *
@@ -25,7 +25,7 @@
  */
 
 package DE4SDV_AEBSPhysicalSoftwareRealization {
-  private import DE4SDV_AEBSConceptualArchitecture::*;
+  private import DE4SDV_AEBSLogicalArchitecture::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
@@ -382,31 +382,31 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
   }
 
   allocation stateAcquisitionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system::stateAcquisition
+    allocate DE4SDV_AEBSLogicalArchitecture::system::stateAcquisition
     to physicalSoftware.aebNode;
 
   allocation egoPathPredictionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system::egoPathPrediction
+    allocate DE4SDV_AEBSLogicalArchitecture::system::egoPathPrediction
     to physicalSoftware.aebNode;
 
   allocation targetProcessingAvailable : AvailableLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system::targetProcessing
+    allocate DE4SDV_AEBSLogicalArchitecture::system::targetProcessing
     to physicalSoftware.aebNode;
 
   allocation collisionRiskEvaluationAvailable : AvailableLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system::collisionRiskEvaluation
+    allocate DE4SDV_AEBSLogicalArchitecture::system::collisionRiskEvaluation
     to physicalSoftware.aebNode;
 
   allocation interventionDecisionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system::interventionDecision
+    allocate DE4SDV_AEBSLogicalArchitecture::system::interventionDecision
     to physicalSoftware.aebNode;
 
   allocation healthSupervisionPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system::healthSupervision
+    allocate DE4SDV_AEBSLogicalArchitecture::system::healthSupervision
     to physicalSoftware.aebNode;
 
   allocation evidenceRecordingPartial : PartialLogicalToPhysicalSoftwareRealization
-    allocate DE4SDV_AEBSConceptualArchitecture::system::evidenceRecording
+    allocate DE4SDV_AEBSLogicalArchitecture::system::evidenceRecording
     to physicalSoftware.aebNode;
 
   /*
@@ -420,7 +420,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
 
   part driverWarningRealizationGap : MissingPhysicalRealizationRecord {
     doc /* DriverWarningManagement has no selected physical owner in INC-AEBS-007. */
-    ref part systemRole = DE4SDV_AEBSConceptualArchitecture::system::warningManagement;
+    ref part systemRole = DE4SDV_AEBSLogicalArchitecture::system::warningManagement;
     ref part requiredPhysicalRole = requiredWarningProvider;
   }
 
@@ -435,7 +435,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      * keeps use_predicted_trajectory false; disabling the branch is containment,
      * not resolution.
      */
-    ref part systemRole = DE4SDV_AEBSConceptualArchitecture::system::egoPathPrediction;
+    ref part systemRole = DE4SDV_AEBSLogicalArchitecture::system::egoPathPrediction;
     ref part physicalCandidate = physicalSoftware.aebNode;
     ref part pinnedSource = physicalSoftware.sourceArtifact;
   }
@@ -446,20 +446,20 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      * the conceptual EmergencyInterventionCoordination contract or emit the
      * conceptual EmergencyInterventionRequest.
      */
-    ref part conceptualConcern = DE4SDV_AEBSConceptualArchitecture::system::emergencyCoordination;
+    ref part conceptualConcern = DE4SDV_AEBSLogicalArchitecture::system::emergencyCoordination;
     ref part physicalSource = physicalSoftware.aebNode;
     ref part requiredPhysicalRole = requiredDiagnosticBridge;
   }
 
   part healthCoverageGap : MissingPhysicalRealizationRecord {
     doc /* Complete valid/degraded/unavailable state ownership remains missing. */
-    ref part systemRole = DE4SDV_AEBSConceptualArchitecture::system::healthSupervision;
+    ref part systemRole = DE4SDV_AEBSLogicalArchitecture::system::healthSupervision;
     ref part requiredPhysicalRole = requiredHealthSupervisor;
   }
 
   part evidenceCoverageGap : MissingPhysicalRealizationRecord {
     doc /* Evidence persistence, provenance, retention, and acceptance remain missing. */
-    ref part systemRole = DE4SDV_AEBSConceptualArchitecture::system::evidenceRecording;
+    ref part systemRole = DE4SDV_AEBSLogicalArchitecture::system::evidenceRecording;
     ref part requiredPhysicalRole = requiredEvidenceService;
   }
 
