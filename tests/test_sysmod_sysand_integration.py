@@ -245,9 +245,9 @@ def test_aebs_use_case_specializes_sysmod_use_case_base_with_semantics() -> None
         "use case def MitigateVehicleTargetForwardCollisionRisk "
         ":> SYSMODSystemUseCaseBase" in normalized
     )
-    assert "attribute ucMotivation : ScalarValues::String =" in text
-    assert "attribute ucTrigger : ScalarValues::String =" in text
-    assert "attribute ucResult : ScalarValues::String =" in text
+    assert "attribute redefines ucMotivation =" in text
+    assert "attribute redefines ucTrigger =" in text
+    assert "attribute redefines ucResult =" in text
 
 
 def test_middleware_use_case_def_specializes_sysmod_use_case_base() -> None:

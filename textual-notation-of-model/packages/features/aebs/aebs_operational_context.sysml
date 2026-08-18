@@ -130,15 +130,9 @@ package DE4SDV_AEBSOperationalContext {
           actor evidenceBaseline : DE4SDVEvidenceBaseline;
           actor reviewer : OpenSourceReviewer;
 
-          attribute ucMotivation : ScalarValues::String =
-            "Driver needs emergency braking assistance to avoid or mitigate a "
-            "rear-end collision with a forward vehicle target.";
-          attribute ucTrigger : ScalarValues::String =
-            "The subject vehicle approaches a forward vehicle target with a "
-            "collision risk that exceeds the intervention threshold.";
-          attribute ucResult : ScalarValues::String =
-            "The driver is warned and, absent a decisive override, emergency "
-            "braking is commanded to mitigate the collision risk.";
+          attribute redefines ucMotivation = "Driver needs emergency braking assistance to avoid or mitigate a rear-end collision with a forward vehicle target.";
+          attribute redefines ucTrigger = "The subject vehicle approaches a forward vehicle target with a collision risk that exceeds the intervention threshold.";
+          attribute redefines ucResult = "The driver is warned and, absent a decisive override, emergency braking is commanded to mitigate the collision risk.";
 
           objective {
             doc /*

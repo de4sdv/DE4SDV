@@ -77,17 +77,9 @@ package DE4SDV_MWOperationalContext {
 
         use case def IntegrateADASWithVehiclePlatform :> SYSMODSystemUseCaseBase {
           doc /* Canonical middleware integration use case on the SYSMOD seam. */
-          attribute ucMotivation : ScalarValues::String =
-            "The ADAS application needs managed exchange of signals, "
-            "diagnostics, lifecycle, health, and updates with the vehicle "
-            "platform middleware.";
-          attribute ucTrigger : ScalarValues::String =
-            "The ADAS application starts and requests vehicle-platform "
-            "services through the application-middleware adapter.";
-          attribute ucResult : ScalarValues::String =
-            "Vehicle signals, diagnostics, lifecycle, health, and update "
-            "coordination are exchanged safely and observably between the "
-            "ADAS application and the vehicle platform.";
+          attribute redefines ucMotivation = "The ADAS application needs managed exchange of signals, diagnostics, lifecycle, health, and updates with the vehicle platform middleware.";
+          attribute redefines ucTrigger = "The ADAS application starts and requests vehicle-platform services through the application-middleware adapter.";
+          attribute redefines ucResult = "Vehicle signals, diagnostics, lifecycle, health, and update coordination are exchanged safely and observably between the ADAS application and the vehicle platform.";
 
           objective {
             doc /* Enable safe and managed middleware integration without
