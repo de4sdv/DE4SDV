@@ -86,12 +86,12 @@ state the realization question
   -> proceed, re-scope, or defer
 ```
 
-The loop may return to requirements, system architecture, physical/software
+The loop may return to requirements, logical architecture, physical/software
 realization, or V&V planning. Do not promote enabling-system readiness into
 product interoperability, safety, certification, or production-readiness
 evidence without the corresponding target-runtime observation.
 
 For the logical sequence of work within System 2 increments, see
 [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md).
-It defines the 12-phase increment workflow, feedback loops, and the
+It defines the 13-phase increment workflow, feedback loops, and the
 viewpoint flow per phase.

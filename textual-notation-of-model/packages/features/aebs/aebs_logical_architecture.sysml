@@ -1,10 +1,10 @@
 /*
- * DE4SDV AEBS system architecture model slice.
+ * DE4SDV AEBS logical architecture model slice in the SAF Conceptual Domain.
  *
  * This package mirrors INC-AEBS-006 from
- * methodologies/sysmod-sysmlv2/pilots/aebs-conceptual-architecture.yaml.
+ * methodologies/sysmod-sysmlv2/pilots/aebs-logical-architecture.yaml.
  *
- * Domain boundary: system architecture only. Autoware, ROS 2/DDS,
+ * Domain boundary: logical architecture only. Autoware, ROS 2/DDS,
  * Eclipse S-CORE, Android SDV/AAOS, middleware adapters, processes, ECUs,
  * sensors, networks, actuators, calibrated thresholds, and compliance claims
  * are intentionally excluded.
@@ -18,7 +18,7 @@
  *   Behavior/5-State-based Behavior-1.sysml.
  */
 
-package DE4SDV_AEBSConceptualArchitecture {
+package DE4SDV_AEBSLogicalArchitecture {
   private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -583,7 +583,7 @@ package DE4SDV_AEBSConceptualArchitecture {
       attribute :>> representation = Rep::name;
     }
     view :>> cellView {
-      expose DE4SDV_AEBSConceptualArchitecture::*;
+      expose DE4SDV_AEBSLogicalArchitecture::*;
       attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }

@@ -1,28 +1,28 @@
 /*
- * DE4SDV middleware system architecture model slice.
+ * DE4SDV middleware logical architecture model slice in the SAF Conceptual Domain.
  *
  * INC-MW-007 allocates the technology-neutral middleware functions to logical
  * responsibilities and defines their internal exchanges. It does not select
  * ROS 2, DDS, AAOS SDV, S-CORE, AUTOSAR, processes, ECUs, networks, or a
  * physical deployment. The emergency intervention command path remains
- * outside this middleware system architecture; only its health/protection
+ * outside this middleware logical architecture; only its health/protection
  * status is represented here.
  */
 
-package DE4SDV_MWConceptualArchitecture {
+package DE4SDV_MWLogicalArchitecture {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
   private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
   private import DE4SDV_MWRequirements::Features::Middleware::Requirements::*;
-  private import DE4SDV_AEBSConceptualArchitecture::*;
+  private import DE4SDV_AEBSLogicalArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;
 
   part incMW007 : FeatureIncrement {
-    doc /* INC-MW-007: middleware integration system architecture. */
+    doc /* INC-MW-007: middleware integration logical architecture. */
   }
 
   part systemSignalDefinitionGap : DeferredProductLineScope {
@@ -187,19 +187,19 @@ package DE4SDV_MWConceptualArchitecture {
     to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideServiceDiscovery;
 
   dependency aebsVehicleMotionDependsOnSignalTranslator
-    from DE4SDV_AEBSConceptualArchitecture::system::vehicleMotionObservationIn
+    from DE4SDV_AEBSLogicalArchitecture::system::vehicleMotionObservationIn
     to system::signalTranslator;
   dependency aebsTargetObservationDependsOnSignalTranslator
-    from DE4SDV_AEBSConceptualArchitecture::system::targetObservationIn
+    from DE4SDV_AEBSLogicalArchitecture::system::targetObservationIn
     to system::signalTranslator;
   dependency aebsDriverOverrideDependsOnSignalTranslator
-    from DE4SDV_AEBSConceptualArchitecture::system::driverOverrideObservationIn
+    from DE4SDV_AEBSLogicalArchitecture::system::driverOverrideObservationIn
     to system::signalTranslator;
   dependency aebsOperatingContextDependsOnLifecycleBridge
-    from DE4SDV_AEBSConceptualArchitecture::system::operatingContextIn
+    from DE4SDV_AEBSLogicalArchitecture::system::operatingContextIn
     to system::lifecycleBridge;
   dependency aebsHealthStatusDependsOnHealthProxy
-    from DE4SDV_AEBSConceptualArchitecture::system::subsystemHealthIn
+    from DE4SDV_AEBSLogicalArchitecture::system::subsystemHealthIn
     to system::healthProxy;
 
   concern conceptualStructureConcern : ConceptualStructureConcern {
@@ -264,7 +264,7 @@ package DE4SDV_MWConceptualArchitecture {
       attribute :>> representation = Rep::name;
     }
     view :>> cellView {
-      expose DE4SDV_MWConceptualArchitecture::*;
+      expose DE4SDV_MWLogicalArchitecture::*;
       attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }

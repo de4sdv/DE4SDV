@@ -13,6 +13,8 @@
  */
 
 package DE4SDV_MethodContext {
+  private import DE4SDV_SYSMODAdapter::*;
+
   part def EngineeringIncrement {
     doc /* Bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
   }
@@ -95,8 +97,11 @@ package DE4SDV_MethodContext {
     doc /* Need for bounded degradation and availability indication. */
   }
 
-  requirement def RequirementCandidate {
-    doc /* Generic base for design-input requirement candidates before acceptance. */
+  requirement def RequirementCandidate :> SYSMODRequirementBase {
+    doc /* Generic base for design-input requirement candidates before acceptance.
+         * Specializes the SYSMOD requirement seam, inheriting obligation,
+         * stability, and motivation metadata for requirement candidates.
+         * DE4SDV candidate lifecycle semantics remain local. */
   }
 
   requirement def FunctionalRequirementCandidate :> RequirementCandidate {

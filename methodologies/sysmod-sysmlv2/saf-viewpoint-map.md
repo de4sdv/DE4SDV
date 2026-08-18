@@ -22,7 +22,7 @@ Do not require all viewpoints for every increment.
 |---|---|---|
 | Common Domain | shared terms, standards, argumentation, traceability | glossary, standards register, evidence register, traceability reports |
 | Operational Domain | stakeholder needs, operational context, capabilities, scenarios/processes | increment charter, operational context, needs, use cases/scenarios |
-| Conceptual Domain | system context, functional behavior, requirements, interfaces, safety/security concerns, logical structure and exchanges, function-to-logical mapping (Functional and Logical merged into Conceptual) | requirements, functional model, interface model, risk/security notes, system architecture, service/component model, allocation map |
+| Conceptual Domain | system context, requirements, functional architecture, logical architecture, safety/security concerns, and function-to-logical mapping | requirements, functional model, interface model, risk/security notes, logical architecture, service/component model, allocation map |
 | Physical Domain | physical/software realization and mappings | deployment/software/hardware model, interface contracts, realization map |
 
 ## Recommended viewpoint subsets
@@ -85,7 +85,7 @@ Use when the increment introduces or changes logical services/components.
 
 | SAF viewpoint | DE4SDV purpose | Output |
 |---|---|---|
-| System Structure Definition Viewpoint | define conceptual elements and composition | system architecture model |
+| System Structure Definition Viewpoint | define conceptual elements and composition | logical architecture model |
 | System Internal Exchange Viewpoint | define internal exchanges | exchange/interface model |
 | System Internal Interaction Viewpoint | describe interactions | sequence/process model |
 | System Function Mapping Viewpoint | allocate functions to conceptual elements | allocation map |

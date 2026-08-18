@@ -59,7 +59,7 @@ between the working tree and the PR in the header.
   `textual-notation-of-model` (packages, imported libraries such as
   `libraries/covesa-vss-sysmlv2`, snapshots) and the PLE product models.
 - Linking to a specific element or view: every page and section has a
-  stable URL (`.../mw_conceptual_architecture.sysml.html#view-mwSystemStructureView`).
+  stable URL (`.../mw_logical_architecture.sysml.html#view-mwSystemStructureView`).
 
 ## Regenerate after model changes
 

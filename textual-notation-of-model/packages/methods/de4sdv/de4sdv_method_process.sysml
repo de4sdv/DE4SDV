@@ -45,7 +45,7 @@ package DE4SDV_MethodProcess {
       doc /* What functions, flows, states, interfaces? Conceptual domain. */
     }
     phase7_logicalArchitecture {
-      doc /* What system elements realize functions? Conceptual domain. */
+      doc /* What technology-independent logical elements realize functions? Conceptual domain. */
     }
     phase8_physicalRealization {
       doc /* What software/hardware realizes the logical design, and which applicable logical or semantic signals cross into typed software contracts? Physical domain. */

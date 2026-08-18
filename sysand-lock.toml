@@ -269,8 +269,22 @@ sources = [
 name = "de4sdv-model"
 version = "0.0.0"
 usages = [
+    "pkg:sysand/mbse4u/sysmod",
     "pkg:sysand/sensmetry/syside-views",
 ]
 sources = [
     { editable = "." },
+]
+
+[[project]]
+name = "sysmod"
+version = "5.1.1"
+exports = [
+    "SYSMOD",
+]
+identifiers = [
+    "pkg:sysand/mbse4u/sysmod",
+]
+sources = [
+    { index_kpar = "https://sysand.com/index/mbse4u/sysmod/5.1.1/project.kpar", kpar_size = 19429, kpar_digest = "763226ed5a79bc67e75879c1f2271ba9da6f8f19e2846a4a83e0251e1e74a919" },
 ]

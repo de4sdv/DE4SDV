@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 MATRIX_VIEWS = {
-    "textual-notation-of-model/packages/features/aebs/aebs_conceptual_architecture.sysml": (
+    "textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml": (
         "aebsSystemFunctionMappingView",
     ),
     "textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml": (
@@ -14,7 +14,7 @@ MATRIX_VIEWS = {
         "aebsSimulationPhysicalLogicalMappingView",
         "aebsSimulationPhysicalLogicalItemMappingView",
     ),
-    "textual-notation-of-model/packages/features/middleware/mw_conceptual_architecture.sysml": (
+    "textual-notation-of-model/packages/features/middleware/mw_logical_architecture.sysml": (
         "mwSystemFunctionMappingView",
     ),
     "textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml": (
@@ -57,7 +57,11 @@ def test_syside_views_dependency_is_exactly_pinned() -> None:
         {
             "resource": "pkg:sysand/sensmetry/syside-views",
             "versionConstraint": "=0.10.3",
-        }
+        },
+        {
+            "resource": "pkg:sysand/mbse4u/sysmod",
+            "versionConstraint": "=5.1.1",
+        },
     ]
     lock = (ROOT / "sysand-lock.toml").read_text(encoding="utf-8")
     assert 'name = "Syside Views"' in lock
@@ -119,8 +123,10 @@ def test_privileged_workflow_exports_and_renders_grid_views() -> None:
     assert "python -m pip install sysand==0.1.0" in workflow
     assert "sysand sync" in workflow
     assert 'SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"' in workflow
+    assert 'SYSMOD_SOURCE=".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml"' in workflow
     assert 'syside viz view "${model_paths[@]}" \\' in workflow
-    assert '--include "${SYSIDE_VIEWS_SOURCE}"' in workflow
+    assert workflow.count('--include "${SYSIDE_VIEWS_SOURCE}"') == 2
+    assert workflow.count('--include "${SYSMOD_SOURCE}"') == 2
     assert 'syside table export "${model_paths[@]}" \\' in workflow
     assert 'export PYTHONHOME="${pythonLocation}"' in workflow
     assert 'export PYTHONPATH="${pythonLocation}/lib/python3.12:${pythonLocation}/lib/python3.12/lib-dynload"' in workflow
@@ -215,13 +221,13 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     conceptual = (
         ROOT
         / "textual-notation-of-model/packages/features/middleware/"
-        "mw_conceptual_architecture.sysml"
+        "mw_logical_architecture.sysml"
     ).read_text(encoding="utf-8")
     structure = _block(conceptual, "view mwSystemStructureView")
     assert "expose MiddlewareSystem;" in structure
     assert "attribute maxCompartmentEntries = 6;" in structure
     assert "expose MiddlewareSystem::*;" not in structure
-    assert "expose DE4SDV_MWConceptualArchitecture::*;" not in structure
+    assert "expose DE4SDV_MWLogicalArchitecture::*;" not in structure
     assert "view mwSystemInternalExchangeView" not in conceptual
     normalized = " ".join(conceptual.split())
     assert "cross-component connections or" in normalized
