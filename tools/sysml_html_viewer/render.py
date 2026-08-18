@@ -202,9 +202,11 @@ def _page_shell(
 <body{body_attr}>
 <header class="site-header">
   <a class="site-title" href="{esc(search_prefix + 'index.html')}">DE4SDV <em>Model Viewer</em></a>
-  <span class="site-sub">read-only browser over the SysML v2 textual model</span>
+  <a class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener">
+    <svg class="site-chat-icon" viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2c-3.6 0-6.5 2.5-6.5 5.6 0 1.7.9 3.2 2.3 4.2-.1 1-.4 1.7-.9 2.3 1.3-.2 2.4-.7 3.2-1.3.6.1 1.2.2 1.9.2 3.6 0 6.5-2.5 6.5-5.5S11.6 2.2 8 2.2z"/></svg>
+    <span>Chat</span>
+  </a>
   {picker}
-  <a class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener">Chat</a>
 </header>
 <div class="layout">
   <nav class="tree-pane" aria-label="Model navigation">

@@ -747,9 +747,13 @@ def test_tree_search(tmp_path):
     # design package: IBM Plex Sans/Mono are loaded (docs vs code type)
     assert "IBM+Plex+Sans" in index
     assert "IBM+Plex+Mono" in file_page
-    # header links to the community chat
+    # header links to the community chat (beside the brand, with icon)
     assert 'class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener"' in index
     assert 'class="site-chat" href="https://chat.de4sdv.org"' in file_page
+    assert "site-chat-icon" in index
+    # no subtitle line in the header anymore
+    assert "site-sub" not in index
+    assert "read-only browser over the SysML v2 textual model" not in index
 
 
 def test_source_symbol_tooltips(tmp_path):
