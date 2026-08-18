@@ -47,16 +47,19 @@ html, body {
 }
 .site-title:hover em { text-decoration: underline; }
 .site-title em { color: var(--accent); font-style: normal; }
-.site-sub { color: var(--muted); font-size: 13px; }
 
-/* community chat link in the header */
+/* community chat link beside the brand */
 .site-chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 13px;
   color: var(--accent);
   text-decoration: none;
   white-space: nowrap;
 }
 .site-chat:hover { text-decoration: underline; }
+.site-chat-icon { display: block; }
 
 /* ---- revision picker ---- */
 .ref-picker-wrap {
