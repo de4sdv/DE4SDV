@@ -44,92 +44,13 @@ scope:
   - complete Android framework or Car Service readiness for the minimal SDV core target
   - safety certification or complete requirement satisfaction claim
   - emergency intervention command path through the middleware
-source_alignment:
-- source_id: INC-MW-007
-  use: logical-architecture-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-logical-architecture.yaml
-- source_id: SDV-PLATFORM-STACK
-  use: candidate-adapter-definition
-  artifact: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
-- source_id: AAOS-SDV-BOUNDARY
-  use: candidate-platform-boundary
-  artifact: textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml
-- source_id: DE4SDV-ENGINEERING-EXECUTION-ENVIRONMENTS
-  use: aaos-build-runtime-enabling-system
-  artifact: textual-notation-of-model/packages/architecture/execution_environments.sysml
-- source_id: DE4SDV-ENGINEERING-EXECUTION-ENVIRONMENT-FEATURES
-  use: enabling-system-configuration-options
-  artifact: model-based-product-line-engineering/feature-models/engineering_execution_environments.yaml
-- source_id: COVESA-VSS-VEHICLE-SPEED
-  use: semantic-vehicle-speed-contract
-  repository: https://github.com/COVESA/vehicle_signal_specification
-  commit: 6fb1dac2630a8910ee996863b2af02b310dcd7ce
-  path: spec/VehicleSignalSpecification.vspec
-  signal: Vehicle.Speed
-  quantity: speed
-  unit: km/h
-- source_id: DE4SDV-VSS-VEHICLE-SPEED-ADAPTER
-  use: provider-neutral-reference-implementation
-  repository: https://github.com/de4sdv/DE4SDV
-  branch: feat/mw-008-physical-software-realization
-  commit: 0e60049ac91da4a4e0f71858d68ab9c27a56ea80
-  paths:
-  - implementation/vss-vehicle-speed-adapter/src/de4sdv_vss_vehicle_speed_adapter/adapter.py
-  - implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
-- source_id: DE4SDV-AAOS-SDV-REFERENCE-INTEROP-BENCH
-  use: owned-reference-contract-and-rehearsal
-  repository: https://github.com/de4sdv/DE4SDV
-  branch: feat/mw-008-physical-software-realization
-  commit: d0a00c22d664b3a62c0029a8aaccb71ba8dbb3d9
-  paths:
-  - implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.proto
-  - implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.vsidl
-  - implementation/aaos-sdv-reference-interop-bench/src/de4sdv_aaos_sdv_reference_bench/reference_bench.py
-  - implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
-- source_id: AOSP-AAOS-SDV-MANIFEST
-  use: pinned-source-manifest
-  repository: https://android.googlesource.com/platform/manifest
-  branch: android-latest-release
-  revision: ad156f32caaa06dae91c02d443f6a8fe210eaa54
-- source_id: AOSP-AAOS-SDV-VSIDL
-  use: VSIDL-provider-agent-source
-  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/vsidl
-  branch: android17-release
-  revision: 9d6bfa55d7448844c36af7c5aeadb3e981b6c995
-  paths:
-  - provider/agent/sdv/src/main.rs
-  - provider/agent/sdv/api/protos/messages.proto
-- source_id: AOSP-AAOS-SDV-MIDDLEWARE
-  use: middleware-communication-source
-  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/middleware
-  branch: android17-release
-  revision: 7ab87b58959e638fc9f1e5a5860cfed20ed29cab
-  paths:
-  - rpc_agent/cpp/RpcAgentServer.h
-  - rpc_agent/cpp/RpcAgentServer.cpp
-- source_id: AOSP-AAOS-SDV-INTERFACES
-  use: hardware-and-service-interface-source
-  repository: https://android.googlesource.com/platform/hardware/sdv/interfaces
-  branch: android17-release
-  revision: 3682a3968292032a31d74c450380aa81d5e547ec
-  paths:
-  - sdv_gateway/aidl/google/sdv/gateway/ISdvGatewaySession.aidl
-  - sdv_gateway/aidl/google/sdv/gateway/IDataTunnelPublication.aidl
-- source_id: AOSP-AAOS-SDV-LIFECYCLE
-  use: lifecycle-service-source
-  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/lifecycle_management
-  branch: android17-release
-  revision: 74813463c7293bf12e0791701b2037b1a26f48f8
-- source_id: AOSP-AAOS-SDV-HEALTH
-  use: health-monitor-source
-  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/health_monitor
-  branch: android17-release
-  revision: a3ffbe9caf8b94041c013deac36c4e5f27b69932
-- source_id: AOSP-AAOS-SDV-DIAGNOSTICS
-  use: automotive-diagnostics-source
-  repository: https://android.googlesource.com/platform/system/software_defined_vehicle/automotive_services
-  branch: android17-release
-  revision: 1d4dcb7f908a6df97b036a90a5802de8cedebd63
+trace_ids:
+- adapterCandidateAtApplicationBoundary
+- aaosBoundaryCandidateForSignalAccess
+- aaosBuildRuntimeEnablingSystemTrace
+- vehicleSpeedSemanticTrace
+- de4sdvAdapterImplementationTrace
+- referenceInteropBenchTrace
 signal_mapping_gate:
   applies: true
   control: logical_to_software_signal_mapping

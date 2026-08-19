@@ -14,27 +14,10 @@ lifecycle_decision_supported:
   decision: approve_middleware_feature_classification
   description: Confirm the feature/common-capability classification before deriving stakeholder needs and requirements. The
     classification determines what enters the PLE feature model as variation points and what remains a shared common asset.
-source_alignment:
-- source_id: INC-MW-002
-  use: operational_context_baseline
-  artifact: textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml
-  notes:
-  - The operational context identified the capability CAP-MW-INTEGRATION with classification_hypothesis: common_capability.
-  - This increment confirms or refines that hypothesis.
-- source_id: INC-MW-001
-  use: framing_baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
-- source_id: DE4SDV_SDVPlatformStack
-  use: variation_structure_reference
-  artifact: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
-  notes:
-  - The SDV platform stack defines the variation points for middleware, application, and adapter layers.
-  - This increment references those variation points descriptively; it does not duplicate them.
-- source_id: ISO_IEC_26580
-  use: classification_rule
-  notes:
-  - Feature: a product-line characteristic that distinguishes member products.
-  - Common capability: a capability required across member products; not a feature unless it distinguishes them.
+trace_ids:
+- classificationOperationalContextTrace
+- classificationPlatformStackTrace
+- classificationRuleSourceTrace
 selected_viewpoints:
 - id: product_line_classification
   source: DE4SDV_MethodViewpoints

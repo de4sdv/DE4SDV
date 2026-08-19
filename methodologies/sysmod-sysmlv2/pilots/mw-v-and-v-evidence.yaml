@@ -204,26 +204,10 @@ cloud_readiness:
     - persistent_disk_review
     - no_unbounded_source_sync_or_build
 
-source_alignment:
-  - source_id: INC-MW-009
-    use: configured_member_and_derived_adapter
-    artifact: methodologies/sysmod-sysmlv2/pilots/mw-variability-configuration.yaml
-  - source_id: INC-MW-008
-    use: physical_boundary_and_bounded_boot_baseline
-    artifact: methodologies/sysmod-sysmlv2/pilots/mw-physical-software-realization.yaml
-  - source_id: MAP-MW-008-VEHICLE-SPEED
-    use: semantic_and_contract_mapping
-    artifact: methodologies/sysmod-sysmlv2/pilots/mw-physical-software-realization.yaml
-  - source_id: DE4SDV-AAOS-SDV-REFERENCE-INTEROP-BENCH
-    use: reference_contract_and_rehearsal
-    artifact: implementation/aaos-sdv-reference-interop-bench
-  - source_id: DE4SDV-VSS-VEHICLE-SPEED-ADAPTER
-    use: provider_neutral_conversion_core
-    artifact: implementation/vss-vehicle-speed-adapter
-  - source_id: DE4SDV-ENGINEERING-EXECUTION-ENVIRONMENTS
-    use: System_2_readiness_envelope
-    artifact: textual-notation-of-model/packages/architecture/execution_environments.sysml
-
+trace_ids:
+- verificationConfiguredMemberTrace
+- verificationPhysicalBoundaryTrace
+- verificationSignalMappingTrace
 model_artifacts:
   sysml: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
   configured_member: model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
