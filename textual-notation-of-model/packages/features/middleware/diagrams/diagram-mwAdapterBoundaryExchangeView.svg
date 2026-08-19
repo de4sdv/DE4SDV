@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -40 1320 288" font-family="sans-serif">
+<text x="40" y="28" font-size="16" font-weight="bold">mwAdapterBoundaryExchangeView</text>
+<path d="M 240 60 L 350.0 60 L 350.0 60 L 460 60" fill="none" stroke="#d97706" stroke-width="2" marker-end="url(#arrow)"><title>AAOS SDV VSIDL service access -&gt; adapter vehicle-speed input. The reference rehearsal exercises this edge through the provider stand-in and the provider-neutral VssVehicleSpeedAdapter; the VSIDL schema and generated client contract are not pinned (GAP-MW-019, GAP-MW-022).</title></path>
+<rect x="297.0" y="49" width="106" height="16" rx="3" fill="#0f172a" stroke="#fbbf24" stroke-width="1" />
+<text x="350.0" y="60" font-size="11" fill="#fbbf24" text-anchor="middle">vehicleSignals</text>
+<path d="M 660 60 L 770.0 60 L 770.0 60 L 880 60" fill="none" stroke="#d97706" stroke-width="2" marker-end="url(#arrow)"><title>Adapter VelocityReport publication -&gt; Autoware-facing ROS 2 topic boundary (/vehicle/status/velocity_status). The rehearsal exercises this edge as a VelocityReport-shaped record; live ROS 2 runtime publication is not claimed by this increment.</title></path>
+<rect x="717.0" y="49" width="106" height="16" rx="3" fill="#0f172a" stroke="#fbbf24" stroke-width="1" />
+<text x="770.0" y="60" font-size="11" fill="#fbbf24" text-anchor="middle">velocityReport</text>
+<rect x="40" y="40" width="200" height="120" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"><title>aaosSdvBoundary (SDVCoreBoundary)</title></rect>
+<text x="52" y="64" font-size="13" font-weight="bold" fill="#e2e8f0">aaosSdvBoundary</text>
+<text x="52" y="82" font-size="10" fill="#94a3b8">aaosSdvBoundary</text>
+<rect x="460" y="40" width="200" height="178" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"><title>Physical adapter candidate with explicit application-side logical ports and AAOS SDV-side service ports. The port contracts are integration boundaries; concrete production ROS 2 topic and VSIDL schemas remain controlled by GAP-MW-019 and GAP-MW-022 until reviewed source revisions are pinned. The typed vehicle-speed port below is a DE4SDV reference contract candidate, not that production binding.</title></rect>
+<text x="472" y="64" font-size="13" font-weight="bold" fill="#e2e8f0">adapter</text>
+<text x="472" y="82" font-size="10" fill="#94a3b8">adapter</text>
+<line x1="468" y1="87" x2="652" y2="87" stroke="#475569" stroke-width="1" />
+<text x="472" y="92" font-size="9" fill="#cbd5e1">Physical adapter candidate with</text>
+<text x="472" y="105" font-size="9" fill="#cbd5e1">explicit application-side</text>
+<text x="472" y="118" font-size="9" fill="#cbd5e1">logical ports and AAOS SDV-side</text>
+<text x="472" y="131" font-size="9" fill="#cbd5e1">service ports. The port…</text>
+<rect x="880" y="40" width="200" height="178" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"><title>Autoware-facing ROS 2 topic boundary for the reference middleware integration slice. Only the velocity-report edge is wired in this increment; the remaining Autoware edges (state, diagnostics) stay candidates owned by GAP-MW-019 and GAP-MW-022 until their contracts are pinned.</title></rect>
+<text x="892" y="64" font-size="13" font-weight="bold" fill="#e2e8f0">autowareRos2Boundary</text>
+<text x="892" y="82" font-size="10" fill="#94a3b8">autowareRos2Boundary</text>
+<line x1="888" y1="87" x2="1072" y2="87" stroke="#475569" stroke-width="1" />
+<text x="892" y="92" font-size="9" fill="#cbd5e1">Autoware-facing ROS 2 topic</text>
+<text x="892" y="105" font-size="9" fill="#cbd5e1">boundary for the reference</text>
+<text x="892" y="118" font-size="9" fill="#cbd5e1">middleware integration slice.</text>
+<text x="892" y="131" font-size="9" fill="#cbd5e1">Only the velocity-report edge i…</text>
+<circle cx="240" cy="60" r="8" fill="#38bdf8" stroke="#0ea5e9"><title>vehicleSignalAccessOut: vehicleSignals</title></circle>
+<path d="M 235 56.5 L 235 63.5 L 243 60 Z" fill="#e2e8f0" pointer-events="none" />
+<text x="254" y="46" font-size="10" fill="#cbd5e1" text-anchor="start">vehicleSignalAccessOut</text>
+<circle cx="460" cy="60" r="8" fill="#38bdf8" stroke="#0ea5e9"><title>Candidate typed AAOS-side access port for the reference vehicle-speed slice. The type binds the current signal boundary to the reference payload without selecting a production VSIDL service, generated binding, deployment, or runtime transport.</title></circle>
+<path d="M 457 56.5 L 457 63.5 L 465 60 Z" fill="#e2e8f0" pointer-events="none" />
+<text x="446" y="82" font-size="10" fill="#cbd5e1" text-anchor="end">aaosSignal</text>
+<circle cx="660" cy="60" r="8" fill="#38bdf8" stroke="#0ea5e9"><title>ros2VelocityOut: velocityReport</title></circle>
+<path d="M 655 56.5 L 655 63.5 L 663 60 Z" fill="#e2e8f0" pointer-events="none" />
+<text x="674" y="46" font-size="10" fill="#cbd5e1" text-anchor="start">ros2VelocityOut</text>
+<circle cx="880" cy="60" r="8" fill="#38bdf8" stroke="#0ea5e9"><title>velocityReportIn: velocityReport</title></circle>
+<path d="M 877 56.5 L 877 63.5 L 885 60 Z" fill="#e2e8f0" pointer-events="none" />
+<text x="866" y="82" font-size="10" fill="#cbd5e1" text-anchor="end">velocityReportIn</text>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706" /></marker></defs>
+</svg>

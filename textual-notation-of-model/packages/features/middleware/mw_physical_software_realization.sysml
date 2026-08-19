@@ -283,20 +283,64 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     }
   }
 
+  part def AutowareRos2TopicBoundary {
+    doc /*
+     * Autoware-facing ROS 2 topic boundary for the reference middleware
+     * integration slice. Only the velocity-report edge is wired in this
+     * increment; the remaining Autoware edges (state, diagnostics) stay
+     * candidates owned by GAP-MW-019 and GAP-MW-022 until their contracts
+     * are pinned.
+     */
+    port velocityReportIn : VelocityReportSubscription;
+  }
+
   part def MiddlewarePhysicalSoftwareBoundary {
     doc /*
      * Candidate physical/software integration boundary for an Autoware-to-AAOS
      * SDV configuration. The AAOS model is a boundary reference; no internal
      * implementation, deployment, or runtime claim is made.
+     *
+     * The wired velocity path reflects the exercised reference rehearsal:
+     * AAOS SDV VSIDL service access -> adapter -> Autoware-facing ROS 2
+     * velocity-report boundary. Production VSIDL service, FQIN, payload
+     * contract, and generated binding remain candidates (GAP-MW-019,
+     * GAP-MW-022); the ROS 2 publication boundary is exercised as a
+     * VelocityReport-shaped record, not as live ROS 2 runtime evidence.
      */
     part adapter : AutowareToAAOSSDVAdapterPhysical;
     part aaosSdvBoundary : SDVCoreBoundary;
+    part autowareRos2Boundary : AutowareRos2TopicBoundary;
     part signalAccessClient : SignalAccessClient;
     part diagnosticAccessClient : DiagnosticAccessClient;
     part lifecycleClient : LifecycleClient;
     part healthClient : HealthClient;
     part updateClient : UpdateClient;
     part serviceDiscoveryClient : ServiceDiscoveryClient;
+
+    connection aaosVehicleSpeedToAdapter
+      connect aaosSdvBoundary.vehicleSignalAccessOut to adapter.aaosSignal;
+    connection adapterToAutowareVelocityReport
+      connect adapter.ros2VelocityOut to autowareRos2Boundary.velocityReportIn;
+
+    doc /*
+     * AAOS SDV VSIDL service access -> adapter vehicle-speed input. The
+     * reference rehearsal exercises this edge through the provider stand-in
+     * and the provider-neutral VssVehicleSpeedAdapter; the VSIDL schema and
+     * generated client contract are not pinned (GAP-MW-019, GAP-MW-022).
+     */
+    flow aaosVehicleSpeedToAdapterPayload
+      from aaosSdvBoundary.vehicleSignalAccessOut.vehicleSignals
+      to adapter.aaosSignal.vehicleSpeed;
+
+    doc /*
+     * Adapter VelocityReport publication -> Autoware-facing ROS 2 topic
+     * boundary (/vehicle/status/velocity_status). The rehearsal exercises
+     * this edge as a VelocityReport-shaped record; live ROS 2 runtime
+     * publication is not claimed by this increment.
+     */
+    flow adapterToAutowareVelocityReportPayload
+      from adapter.ros2VelocityOut.velocityReport
+      to autowareRos2Boundary.velocityReportIn.velocityReport;
   }
 
   part def MiddlewarePhysicalSoftwareSourceSet {
@@ -769,6 +813,42 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 8;
     render asTreeDiagram;
+  }
+
+  concern adapterBoundaryExchangeConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * Which AAOS SDV VSIDL service access feeds the adapter, and which
+     * Autoware-facing ROS 2 velocity-report boundary does the adapter
+     * publish through, in which direction? Keep this bounded to the wired
+     * velocity path; state and diagnostics edges remain candidates.
+     */
+    subject boundary : MiddlewarePhysicalSoftwareBoundary;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+    stakeholder softwareDeveloper : SoftwareDeveloper;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
+  view mwAdapterBoundaryExchangeView {
+    viewpoint selectedAdapterBoundaryExchangeViewpoint : PhysicalInternalExchangeViewpoint {
+      frame adapterBoundaryExchangeConcern;
+    }
+    doc /*
+     * Bounded projection of the wired adapter chain: AAOS SDV service
+     * access -> adapter -> Autoware-facing ROS 2 velocity-report boundary.
+     * The remaining client edges and the state/diagnostics adapter edges are
+     * not part of this concern; they stay candidates under GAP-MW-019/022.
+     */
+    expose MiddlewarePhysicalSoftwareBoundary::adapter;
+    expose MiddlewarePhysicalSoftwareBoundary::adapter::**;
+    expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
+    expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary::*;
+    expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary;
+    expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary::*;
+    attribute depth = -1;
+    attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
+    render asInterconnectionDiagram;
   }
 
   /*
