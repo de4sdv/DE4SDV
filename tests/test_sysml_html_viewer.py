@@ -1013,6 +1013,36 @@ def test_diagram_boxes_and_bind_connectors(tmp_path):
     assert bridge and bridge[0]["kind"] == "bind"
 
 
+def test_uses_index_generated(tmp_path):
+    """The site carries a reverse index (declaration -> views whose diagram
+    shows it), every page loads it, and fixture elements used in the
+    fixture view appear in it."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    uses_js = (out / "assets" / "uses-index.js").read_text(encoding="utf-8")
+    assert uses_js.startswith("window.USES_INDEX = ")
+    data = json.loads(uses_js[len("window.USES_INDEX = "):-1])
+    # FixtureSystem appears in the fixtureStructureView diagram
+    hit = [
+        (key, u)
+        for key, us in data.items()
+        for u in us
+        if u["v"] == "fixtureStructureView" and "fixture_feature.sysml:" in key
+    ]
+    assert hit, "fixtureStructureView not indexed"
+    assert any(u["a"].startswith("view-fixture") for _, u in hit)
+    # every page loads the index asset with the content stamp
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert re.search(r'<script src="assets/uses-index\.js\?v=[0-9a-f]{10}"></script>', index)
+    file_page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    ).read_text(encoding="utf-8")
+    assert 'window.VIEWER_PREFIX = "' in file_page
+    assert 'src="../../../../../assets/uses-index.js?v=' in file_page
+
+
 def test_tree_filters(tmp_path):
     """The tree pane carries kind/SAF-domain/SAF-aspect/viewpoint filters
     derived from the model, and every tree node carries the data-*

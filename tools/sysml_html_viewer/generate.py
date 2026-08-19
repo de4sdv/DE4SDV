@@ -44,6 +44,8 @@ from .model_parse import (
     load_model,
 )
 from .render import (
+    _inline_svg,
+    make_anchor,
     node_data_attrs,
     render_dir_page,
     render_file_page,
@@ -476,6 +478,49 @@ def _filter_html(tree: TreeNode, files: list) -> str:
     )
 
 
+def _uses_index(
+    files: list,
+    member_index: dict,
+) -> dict[str, list[dict[str, str]]]:
+    """Site-wide reverse index: declaration (``rel_path:line``) -> views
+    whose diagram shows that element (via resolved labels, connectors, and
+    boxes). Each entry carries the view name, its file, and its page
+    anchor so the viewer can offer \"used in diagram\" navigation."""
+    from . import svg_info
+
+    uses: dict[str, list[dict[str, str]]] = {}
+    for mf in files:
+        counter: dict[str, int] = {}
+        for v in mf.views:
+            anchor = make_anchor(counter, v.name)
+            svg_abs = mf.path.parent / "diagrams" / _artifact(v)
+            if not svg_abs.exists():
+                continue
+            svg_markup = _inline_svg(svg_abs)
+            if not svg_markup:
+                continue
+            labels = svg_info.extract_text_labels(svg_markup)
+            folder = str(Path(mf.rel_path).parent)
+            resolved = svg_info.resolve_labels(labels, member_index, mf.rel_path, folder)
+            by_label = {li.label: li for li in resolved}
+            payloads = [
+                by_label,
+                svg_info.resolve_connectors(
+                    svg_markup, by_label, member_index, mf.rel_path, folder
+                ),
+                svg_info.resolve_boxes(svg_markup, by_label),
+            ]
+            for payload in payloads:
+                for li in payload.values():
+                    if not li.anchor:
+                        continue
+                    key = f"{li.rel_path}:{li.line}"
+                    entry = {"v": v.name, "f": mf.rel_path, "a": f"view-{anchor}"}
+                    if entry not in uses.setdefault(key, []):
+                        uses[key].append(entry)
+    return uses
+
+
 def _build_site(
     repo_root: Path,
     out_dir: Path,
@@ -518,11 +563,20 @@ def _build_site(
     js_src = Path(__file__).parent / "viewer.js"
     shutil.copyfile(js_src, assets_dir / "viewer.js")
 
+    # reverse index: declaration -> views whose diagram shows it
+    uses_index = _uses_index(files, build_member_index(files))
+    uses_js = (
+        "window.USES_INDEX = "
+        + json.dumps(uses_index, sort_keys=True, ensure_ascii=False).replace("</", "<\\/")
+        + ";"
+    )
+    (assets_dir / "uses-index.js").write_text(uses_js, encoding="utf-8")
+
     # content stamp so browsers never serve stale assets (file:// caching)
     import hashlib
 
     stamp = hashlib.sha1(
-        css_src.read_bytes() + js_src.read_bytes()
+        css_src.read_bytes() + js_src.read_bytes() + uses_js.encode("utf-8")
     ).hexdigest()[:10]
 
     if options is None:
