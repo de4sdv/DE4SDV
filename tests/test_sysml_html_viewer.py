@@ -960,6 +960,32 @@ def test_svg_label_context_resolution():
 
 
 
+def test_bind_kind_parsed(tmp_path):
+    """`bind a = b;` and `bind a.b = c;` parse as members (BindingConnector
+    usages are first-class relationships in SysML v2)."""
+    from tools.sysml_html_viewer.model_parse import build_member_index, parse_file
+
+    f = tmp_path / "bind.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part x;\n"
+        "  part y;\n"
+        "  bind x = y;\n"
+        "  bind a.b = c;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    binds = [m for m in mf.members if m.kind == "bind"]
+    assert [m.name for m in binds] == ["x", "a.b"]
+    index = build_member_index([mf])
+    # the part declared earlier still resolves first for plain labels
+    assert index["x"][0].kind == "part"
+    assert any(r.kind == "bind" for r in index["x"])
+    # the dotted bind is indexed under its full path
+    assert index["a.b"][0].kind == "bind"
+
+
 def test_tree_filters(tmp_path):
     """The tree pane carries kind/SAF-domain/SAF-aspect/viewpoint filters
     derived from the model, and every tree node carries the data-*
