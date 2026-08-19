@@ -32,19 +32,10 @@ scope:
   - final safety-path architecture
   - detailed trust-boundary implementation
   - concrete transport, API, or vendor protocol selection
-source_alignment:
-- source_id: INC-MW-002
-  use: operational-context-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-operational-context.yaml
-- source_id: INC-MW-003
-  use: feature-classification-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-feature-classification.yaml
-- source_id: INC-MW-004
-  use: stakeholder-needs-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-stakeholder-needs.yaml
-- source_id: INC-MW-005
-  use: requirements-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-requirements.yaml
+trace_ids:
+- functionalBoundaryRequirementsTrace
+- functionalBoundaryNeedsTrace
+- functionalBoundaryOperationalTrace
 selected_viewpoints:
 - viewpoint: SystemFunctionalBreakdownStructureViewpoint
   rationale: Review the middleware functional actions and their decomposition.

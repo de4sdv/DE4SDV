@@ -95,29 +95,117 @@ def _dist_point_segment(
     return math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
 
 
-_CONNECTION_KINDS = frozenset({"connection", "flow"})
+_CONNECTION_KINDS = frozenset({"connection", "flow", "bind"})
 
-def resolve_connectors(
-    svg_text: str,
-    resolved: dict[str, LabelInfo],
-    radius: float = 140.0,
-) -> dict[str, LabelInfo]:
-    """Pair connector polylines with the nearest resolvable label.
+# kinds that own an element box (the white rounded rects SysIDE draws for
+# part defs, parts, item defs, ...)
+_BOX_OWNER_KINDS = frozenset({
+    "part", "part def", "item", "item def", "port def", "attribute",
+    "attribute def", "requirement", "requirement def", "use case",
+    "use case def", "verification case", "verification case def",
+    "state", "state def", "viewpoint def", "viewpoint",
+})
 
-    The label lying on the connection (a flow/connection usage) wins over
-    nearer endpoint labels (ports) so the tooltip names the connection,
-    not its ends. Keyed by the raw points attribute so the viewer can
-    look up the hovered polyline directly.
-    """
-    out: dict[str, LabelInfo] = {}
-    positions = [
+# SysIDE element boxes: white-filled paths made only of M/H/V(/A) commands —
+# rounded-rect boxes in interconnection views (`A 6,6` corner arcs) and
+# plain rectangles in tree views. Curved paths (C/S/Q/T) are never boxes,
+# and the tiny square port glyphs are filtered out by the label-inside rule.
+_BOX_PATH_RE = re.compile(
+    r'<path\b(?=[^>]*d="([^"]+)")(?=[^>]*fill="#FFFFFF")'
+    r'(?![^>]*\b[CSQT]\s)[^>]*>'
+)
+
+
+def _path_bbox(d: str) -> tuple[float, float, float, float] | None:
+    """Bounding box of a SysIDE element-box path (`M x,y H x2 V y2 A ... Z`)."""
+    pts: list[tuple[float, float]] = []
+    cur = (0.0, 0.0)
+    for cmd, args in re.findall(r"([MHVZ])\s*([\d.,\s-]*)", d, re.I):
+        nums = [float(v) for v in re.findall(r"-?[\d.]+", args)]
+        c = cmd.upper()
+        if c == "M" and len(nums) >= 2:
+            cur = (nums[0], nums[1])
+            pts.append(cur)
+        elif c == "H" and nums:
+            cur = (nums[0], cur[1])
+            pts.append(cur)
+        elif c == "V" and nums:
+            cur = (cur[0], nums[0])
+            pts.append(cur)
+        elif c == "A":
+            # rx ry rotation large-arc sweep x y — endpoint is the last pair
+            for i in range(0, len(nums) - 5, 7):
+                pts.append((nums[i + 5], nums[i + 6]))
+    if not pts:
+        return None
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _text_positions(svg_text: str) -> list[tuple[float, float, str]]:
+    """(x, y, normalized text) for every text element."""
+    return [
         (
             float(m.group(1)),
             float(m.group(2)),
             re.sub(r"\s+", " ", _unescape(_TAG_RE.sub("", m.group(3)))).strip(),
         )
         for m in _TEXT_POS_RE.finditer(svg_text)
+        if re.sub(r"\s+", " ", _unescape(_TAG_RE.sub("", m.group(3)))).strip()
     ]
+
+
+def _connector_label(
+    plain: str,
+    li: LabelInfo,
+    index: dict[str, list[ElementRef]],
+    view_file: str,
+    view_folder: str,
+) -> LabelInfo:
+    """Connector pairing may find a label that resolved to a port while the
+    SAME name also declares the connection (bind/connection/flow usage).
+    Prefer the connection-kind declaration so the tooltip names the
+    connection, not its end point."""
+    if li.kind in _CONNECTION_KINDS:
+        return li
+    for key in _normalize(li.label):
+        refs = index.get(key)
+        if not refs:
+            continue
+        conn_refs = [r for r in refs if r.kind in _CONNECTION_KINDS]
+        if conn_refs:
+            ref = _prefer(conn_refs, view_file, view_folder)
+            if ref is not None:
+                return LabelInfo(
+                label=li.label,
+                name=ref.name,
+                kind=ref.kind,
+                doc=ref.doc,
+                rel_path=ref.rel_path,
+                line=ref.line,
+                anchor=ref.anchor,
+            )
+    return li
+
+
+def resolve_connectors(
+    svg_text: str,
+    resolved: dict[str, LabelInfo],
+    member_index: dict[str, list[ElementRef]],
+    view_file: str,
+    view_folder: str,
+    radius: float = 140.0,
+) -> dict[str, LabelInfo]:
+    """Pair connector polylines with the nearest resolvable label.
+
+    The label lying on the connection (a flow/connection/bind usage) wins
+    over nearer endpoint labels (ports) so the tooltip names the connection,
+    not its ends. Keyed by the raw points attribute so the viewer can
+    look up the hovered polyline directly.
+    """
+    out: dict[str, LabelInfo] = {}
+    positions = _text_positions(svg_text)
     for pts, segs in _connector_polylines(svg_text):
         best_conn: tuple[float, LabelInfo] | None = None
         best_any: tuple[float, LabelInfo] | None = None
@@ -125,6 +213,7 @@ def resolve_connectors(
             li = resolved.get(plain)
             if li is None:
                 continue
+            li = _connector_label(plain, li, member_index, view_file, view_folder)
             d = min(
                 _dist_point_segment(x, y, *a, *b) for a, b in zip(segs[:-1], segs[1:])
             )
@@ -138,6 +227,37 @@ def resolve_connectors(
         winner = best_conn if best_conn is not None else best_any
         if winner is not None:
             out[pts] = winner[1]
+    return out
+
+
+def resolve_boxes(svg_text: str, resolved: dict[str, LabelInfo]) -> dict[str, LabelInfo]:
+    """Pair element-box paths (white rounded rects) with the element label
+    inside them — the box owner — so hovering the box body shows the part's
+    tooltip. Keyed by the raw d attribute; labels with connection-ish kinds
+    (ports, flows) never own a box."""
+    out: dict[str, LabelInfo] = {}
+    boxes = []
+    for m in _BOX_PATH_RE.finditer(svg_text):
+        bbox = _path_bbox(m.group(1))
+        if bbox is not None:
+            boxes.append((m.group(1), bbox))
+    if not boxes:
+        return out
+    positions = _text_positions(svg_text)
+    for d, (x1, y1, x2, y2) in boxes:
+        inside = [
+            (x, y, li)
+            for (x, y, plain) in positions
+            if (li := resolved.get(plain)) is not None
+            and li.kind in _BOX_OWNER_KINDS
+            and x1 < x < x2
+            and y1 < y < y2
+        ]
+        if not inside:
+            continue
+        # the box header label (topmost inside) names the box owner
+        inside.sort(key=lambda t: t[1])
+        out[d] = inside[0][2]
     return out
 
 

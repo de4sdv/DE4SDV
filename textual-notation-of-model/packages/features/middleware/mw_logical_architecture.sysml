@@ -202,6 +202,10 @@ package DE4SDV_MWLogicalArchitecture {
     from DE4SDV_AEBSLogicalArchitecture::system::subsystemHealthIn
     to system::healthProxy;
 
+  dependency systemFunctionalArchitectureBaselineTrace
+    from system
+    to DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::middlewareFunctionalBoundary;
+
   concern conceptualStructureConcern : ConceptualStructureConcern {
     subject;
     stakeholder systemsEngineer : SystemsEngineer;

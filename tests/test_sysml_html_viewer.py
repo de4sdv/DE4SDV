@@ -72,7 +72,7 @@ def test_member_doc_attachment(fixture_sysml):
     assert sys.doc.startswith("A synthetic system part definition")
     assert by_name["fixtureRequirement"].doc.startswith("Synthetic requirement")
     # nested ports are children of the part def
-    assert {c.name for c in sys.children} == {"signalIn", "signalOut"}
+    assert {c.name for c in sys.children} == {"signalIn", "signalOut", "signalBridge"}
     # view doc comes through the member declaration
     view_member = by_name["fixtureStructureView"]
     assert view_member.doc.startswith("Synthetic structure view")
@@ -843,7 +843,7 @@ def test_connector_tooltips():
     }
     labels = extract_text_labels(svg)
     resolved = {li.label: li for li in resolve_labels(labels, index, "p/f.sysml", "p")}
-    conns = resolve_connectors(svg, resolved)
+    conns = resolve_connectors(svg, resolved, index, "p/f.sysml", "p")
     # the #1A1A1A polyline pairs with the flow label (the " of " flow form)
     assert "10,10 90,10" in conns
     assert conns["10,10 90,10"].name == "providerToObserverPayload"
@@ -984,6 +984,31 @@ def test_bind_kind_parsed(tmp_path):
     assert any(r.kind == "bind" for r in index["x"])
     # the dotted bind is indexed under its full path
     assert index["a.b"][0].kind == "bind"
+
+
+def test_diagram_boxes_and_bind_connectors(tmp_path):
+    """Element-box paths carry the box owner's tooltip, and connector
+    pairing prefers a same-name bind over a port (the label resolves to
+    the port first, but the connection the diagram draws is the bind)."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    ).read_text(encoding="utf-8")
+    boxes = {}
+    connectors = {}
+    for m in re.finditer(r'<script[^>]*application/json[^>]*>(.*?)</script>', page, re.S):
+        data = json.loads(m.group(1).replace("<\\/", "</"))
+        boxes.update(data.get("boxes", {}))
+        connectors.update(data.get("connectors", {}))
+    # the white rounded box path pairs with the part label inside it
+    assert boxes, "no element boxes resolved"
+    assert any(v["name"] == "boxPart" and v["kind"] == "part" for v in boxes.values())
+    # the polyline labeled signalBridge pairs with the BIND, not the port
+    bridge = [v for v in connectors.values() if v["name"] == "signalBridge"]
+    assert bridge and bridge[0]["kind"] == "bind"
 
 
 def test_tree_filters(tmp_path):

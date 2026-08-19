@@ -13,6 +13,8 @@ package DE4SDV_MWOperationalContext {
       package OperationalContext {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_SYSMODAdapter::*;
+        private import DE4SDV_MWIncrementFraming::Features::Middleware::IncrementFraming::*;
+        private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
         private import SAF_Viewpoints::*;
         private import StandardViewDefinitions::*;
         private import Views::*;
@@ -303,6 +305,26 @@ package DE4SDV_MWOperationalContext {
           first start;
           then done;
         }
+
+        part def AAOSSDVIntegrationGuideSource {
+          doc /*
+           * External reference: AOSP AAOS SDV integration guide
+           * (https://source.android.com/docs/automotive/sdv/workstreams/core/integration-guide).
+           * This increment models the operational need; the AAOS SDV
+           * implementation itself is not modeled here.
+           */
+        }
+        part aaosSDVIntegrationGuideSource : AAOSSDVIntegrationGuideSource;
+
+        dependency aaosSDVIntegrationGuideTrace
+          from DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform'
+          to aaosSDVIntegrationGuideSource;
+        dependency middlewareOperationalContextFramingTrace
+          from DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform'
+          to DE4SDV_MWIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement;
+        dependency aebsIntegrationBoundaryContextTrace
+          from DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform'
+          to DE4SDV_AEBSPhysicalSoftwareRealization::VehicleTargetAEBSPhysicalSoftwareBoundary;
 
         concern operationalContextConcern : OperationalContextConcern {
           doc /*

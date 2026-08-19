@@ -32,13 +32,14 @@ scope:
   - concrete signal schemas, units, transport, or API contracts
   - physical safety mechanism or safety certification claim
   - emergency intervention command path through middleware
-source_alignment:
-- source_id: INC-MW-005
-  use: requirements-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-requirements.yaml
-- source_id: INC-MW-006
-  use: functional-architecture-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-functional-architecture.yaml
+trace_ids:
+- signalTranslatorDerivedFromRequirement
+- diagnosticProxyDerivedFromRequirement
+- lifecycleBridgeDerivedFromRequirement
+- healthProxyDerivedFromRequirement
+- updateCoordinatorDerivedFromRequirement
+- serviceBindingDerivedFromRequirement
+- systemFunctionalArchitectureBaselineTrace
 selected_viewpoints:
 - viewpoint: SystemStructureDefinitionViewpoint
   rationale: Review conceptual decomposition and responsibility boundaries.
