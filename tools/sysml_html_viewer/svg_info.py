@@ -10,6 +10,7 @@ anchor) so the generated viewer can show a tooltip on hover.
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 
@@ -60,6 +61,206 @@ def extract_text_labels(svg_text: str) -> list[str]:
     return labels
 
 
+# SysIDE draws connections (bindings, flows between ports) as polylines with
+# a #1A1A1A stroke and no fill; element borders and compartment separators
+# use other colors (#336680 etc.).
+_CONNECTOR_POLY_RE = re.compile(
+    r'<polyline\b(?=[^>]*points="([^"]+)")(?=[^>]*#1A1A1A)(?=[^>]*fill="none")[^>]*>'
+)
+
+_TEXT_POS_RE = re.compile(
+    r'<text\b[^>]*x="([\d.]+)"[^>]*y="([\d.]+)"[^>]*>(.*?)</text>', flags=re.S
+)
+
+
+def _connector_polylines(svg_text: str) -> list[tuple[str, list[tuple[float, float]]]]:
+    """(raw points attr, segment points) for every connector polyline."""
+    out = []
+    for m in _CONNECTOR_POLY_RE.finditer(svg_text):
+        pts = m.group(1)
+        coords = [float(v) for v in re.split(r"[,\s]+", pts.strip()) if v]
+        points = list(zip(coords[0::2], coords[1::2]))
+        if len(points) >= 2:
+            out.append((pts, points))
+    return out
+
+
+def _dist_point_segment(
+    px: float, py: float, x1: float, y1: float, x2: float, y2: float
+) -> float:
+    dx, dy = x2 - x1, y2 - y1
+    if dx == dy == 0:
+        return math.hypot(px - x1, py - y1)
+    t = max(0.0, min(1.0, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
+
+
+_CONNECTION_KINDS = frozenset({"connection", "flow", "bind"})
+
+# kinds that own an element box (the white rounded rects SysIDE draws for
+# part defs, parts, item defs, ...)
+_BOX_OWNER_KINDS = frozenset({
+    "part", "part def", "item", "item def", "port def", "attribute",
+    "attribute def", "requirement", "requirement def", "use case",
+    "use case def", "verification case", "verification case def",
+    "state", "state def", "viewpoint def", "viewpoint",
+})
+
+# SysIDE element boxes: white-filled paths made only of M/H/V(/A) commands —
+# rounded-rect boxes in interconnection views (`A 6,6` corner arcs) and
+# plain rectangles in tree views. Curved paths (C/S/Q/T) are never boxes,
+# and the tiny square port glyphs are filtered out by the label-inside rule.
+_BOX_PATH_RE = re.compile(
+    r'<path\b(?=[^>]*d="([^"]+)")(?=[^>]*fill="#FFFFFF")'
+    r'(?![^>]*\b[CSQT]\s)[^>]*>'
+)
+
+
+def _path_bbox(d: str) -> tuple[float, float, float, float] | None:
+    """Bounding box of a SysIDE element-box path (`M x,y H x2 V y2 A ... Z`)."""
+    pts: list[tuple[float, float]] = []
+    cur = (0.0, 0.0)
+    for cmd, args in re.findall(r"([MHVZ])\s*([\d.,\s-]*)", d, re.I):
+        nums = [float(v) for v in re.findall(r"-?[\d.]+", args)]
+        c = cmd.upper()
+        if c == "M" and len(nums) >= 2:
+            cur = (nums[0], nums[1])
+            pts.append(cur)
+        elif c == "H" and nums:
+            cur = (nums[0], cur[1])
+            pts.append(cur)
+        elif c == "V" and nums:
+            cur = (cur[0], nums[0])
+            pts.append(cur)
+        elif c == "A":
+            # rx ry rotation large-arc sweep x y — endpoint is the last pair
+            for i in range(0, len(nums) - 5, 7):
+                pts.append((nums[i + 5], nums[i + 6]))
+    if not pts:
+        return None
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _text_positions(svg_text: str) -> list[tuple[float, float, str]]:
+    """(x, y, normalized text) for every text element."""
+    return [
+        (
+            float(m.group(1)),
+            float(m.group(2)),
+            re.sub(r"\s+", " ", _unescape(_TAG_RE.sub("", m.group(3)))).strip(),
+        )
+        for m in _TEXT_POS_RE.finditer(svg_text)
+        if re.sub(r"\s+", " ", _unescape(_TAG_RE.sub("", m.group(3)))).strip()
+    ]
+
+
+def _connector_label(
+    plain: str,
+    li: LabelInfo,
+    index: dict[str, list[ElementRef]],
+    view_file: str,
+    view_folder: str,
+) -> LabelInfo:
+    """Connector pairing may find a label that resolved to a port while the
+    SAME name also declares the connection (bind/connection/flow usage).
+    Prefer the connection-kind declaration so the tooltip names the
+    connection, not its end point."""
+    if li.kind in _CONNECTION_KINDS:
+        return li
+    for key in _normalize(li.label):
+        refs = index.get(key)
+        if not refs:
+            continue
+        conn_refs = [r for r in refs if r.kind in _CONNECTION_KINDS]
+        if conn_refs:
+            ref = _prefer(conn_refs, view_file, view_folder)
+            if ref is not None:
+                return LabelInfo(
+                label=li.label,
+                name=ref.name,
+                kind=ref.kind,
+                doc=ref.doc,
+                rel_path=ref.rel_path,
+                line=ref.line,
+                anchor=ref.anchor,
+            )
+    return li
+
+
+def resolve_connectors(
+    svg_text: str,
+    resolved: dict[str, LabelInfo],
+    member_index: dict[str, list[ElementRef]],
+    view_file: str,
+    view_folder: str,
+    radius: float = 140.0,
+) -> dict[str, LabelInfo]:
+    """Pair connector polylines with the nearest resolvable label.
+
+    The label lying on the connection (a flow/connection/bind usage) wins
+    over nearer endpoint labels (ports) so the tooltip names the connection,
+    not its ends. Keyed by the raw points attribute so the viewer can
+    look up the hovered polyline directly.
+    """
+    out: dict[str, LabelInfo] = {}
+    positions = _text_positions(svg_text)
+    for pts, segs in _connector_polylines(svg_text):
+        best_conn: tuple[float, LabelInfo] | None = None
+        best_any: tuple[float, LabelInfo] | None = None
+        for x, y, plain in positions:
+            li = resolved.get(plain)
+            if li is None:
+                continue
+            li = _connector_label(plain, li, member_index, view_file, view_folder)
+            d = min(
+                _dist_point_segment(x, y, *a, *b) for a, b in zip(segs[:-1], segs[1:])
+            )
+            if d > radius:
+                continue
+            if li.kind in _CONNECTION_KINDS:
+                if best_conn is None or d < best_conn[0]:
+                    best_conn = (d, li)
+            elif best_any is None or d < best_any[0]:
+                best_any = (d, li)
+        winner = best_conn if best_conn is not None else best_any
+        if winner is not None:
+            out[pts] = winner[1]
+    return out
+
+
+def resolve_boxes(svg_text: str, resolved: dict[str, LabelInfo]) -> dict[str, LabelInfo]:
+    """Pair element-box paths (white rounded rects) with the element label
+    inside them — the box owner — so hovering the box body shows the part's
+    tooltip. Keyed by the raw d attribute; labels with connection-ish kinds
+    (ports, flows) never own a box."""
+    out: dict[str, LabelInfo] = {}
+    boxes = []
+    for m in _BOX_PATH_RE.finditer(svg_text):
+        bbox = _path_bbox(m.group(1))
+        if bbox is not None:
+            boxes.append((m.group(1), bbox))
+    if not boxes:
+        return out
+    positions = _text_positions(svg_text)
+    for d, (x1, y1, x2, y2) in boxes:
+        inside = [
+            (x, y, li)
+            for (x, y, plain) in positions
+            if (li := resolved.get(plain)) is not None
+            and li.kind in _BOX_OWNER_KINDS
+            and x1 < x < x2
+            and y1 < y < y2
+        ]
+        if not inside:
+            continue
+        # the box header label (topmost inside) names the box owner
+        inside.sort(key=lambda t: t[1])
+        out[d] = inside[0][2]
+    return out
+
+
 def _normalize(label: str) -> list[str]:
     """Candidate lookup keys for a raw SVG label, most specific first."""
     candidates = []
@@ -96,6 +297,11 @@ def _normalize(label: str) -> list[str]:
             if len(segs) > 1:
                 candidates.append(segs[0])
                 candidates.append(segs[-1])
+    # flow labels (`providerToObserverPayload of VehicleSpeedProviderMessage`)
+    # resolve by the flow/feature name before " of "
+    for c in list(candidates):
+        if " of " in c:
+            candidates.append(c.split(" of ", 1)[0].strip())
     # quoted-name form ('exchange vehicle signals' vs exchange vehicle signals)
     for c in list(candidates):
         if c.startswith("'") and c.endswith("'"):
@@ -199,9 +405,11 @@ def resolve_labels(
 def labels_to_json(
     resolved: list[LabelInfo],
     page_dir: str,  # repo-relative dir of the generated page (for hrefs)
+    connectors: dict[str, LabelInfo] | None = None,
 ) -> str:
-    """Stable JSON for embedding: label -> {info, href}."""
-    payload: dict[str, dict] = {}
+    """Stable JSON for embedding: label -> {info, href}; plus the
+    connector map (polyline points -> {info, href}) when present."""
+    payload: dict[str, object] = {}
     for li in resolved:
         href = ""
         if li.anchor:
@@ -210,4 +418,15 @@ def labels_to_json(
         if href:
             entry["href"] = href
         payload[li.label] = entry
+    if connectors:
+        conn_payload: dict[str, dict] = {}
+        for pts, li in connectors.items():
+            href = ""
+            if li.anchor:
+                href = f"pages/{li.rel_path}.html#{li.anchor}"
+            entry = li.to_dict()
+            if href:
+                entry["href"] = href
+            conn_payload[pts] = entry
+        payload["connectors"] = conn_payload
     return json.dumps(payload, sort_keys=True, ensure_ascii=False)

@@ -158,6 +158,27 @@ Stakeholder concern
 
 If a link is intentionally missing, record the gap instead of hiding it.
 
+### Trace links live in SysML, not in pilot YAML
+
+The trace chain is expressed as SysML `dependency` usages inside the increment
+model files: each phase traces to the prior phase's accepted elements and to
+source part definitions. Pilot YAML files carry framing metadata only — their
+`trace_ids` list is an index of the SysML dependency usage names, never a
+second trace artifact. Provenance for external sources (repository, revision,
+path) lives in the source part definition's `doc` block in the model.
+
+Consequences:
+
+- A new increment phase adds its `dependency` usages in the corresponding
+  `.sysml` file, not a `source_alignment` block in YAML.
+- Renaming or deleting a dependency requires updating the referencing
+  `trace_ids` index — the YAML must never describe a trace the model does not
+  declare.
+- Cross-increment baselines target the prior phase's accepted elements by
+  qualified name (for example
+  `dependency requirementNeedsTrace from ...reqProvideMiddlewareSignalAccess
+  to ...needMiddlewareIntegration`), not a copy of the prior artifact.
+
 ## Needs, requirements, verification, and validation
 
 Do not collapse these into one list. DE4SDV increments must keep the distinctions explicit:

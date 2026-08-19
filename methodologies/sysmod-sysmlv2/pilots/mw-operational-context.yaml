@@ -17,26 +17,10 @@ lifecycle_decision_supported:
   description: 'Decide whether the operational context for middleware integration is correctly scoped: vehicle signal exchange,
     diagnostic access, lifecycle coordination, health monitoring, software update coordination, and both emergency intervention
     path options as operational scenarios, with the decision about which emergency path to realize deferred to later phases.'
-source_alignment:
-- source_id: SRC-AAOS-SDV-DOCS
-  url: https://source.android.com/docs/automotive/sdv/workstreams/core/integration-guide
-  use: reference_architecture
-  notes:
-  - AAOS SDV integration guide describes distributed vehicle services, communication stack, lifecycle, health, and update
-    management.
-  - This increment models the operational need, not the AAOS SDV implementation.
-  - AAOS SDV is Apache 2.0 (AOSP).
-- source_id: INC-MW-001
-  use: framing_baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
-- source_id: INC-AEBS-007
-  use: integration_target
-  artifact: textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml
-  notes:
-  - AEBS physical realization defines required boundaries (vehicle interface, health supervisor, diagnostic bridge) that the
-    middleware may satisfy.
-  - The operational context presents both safety-path options; the selection is deferred to later requirements and architecture
-    phases.
+trace_ids:
+- aaosSDVIntegrationGuideTrace
+- middlewareOperationalContextFramingTrace
+- aebsIntegrationBoundaryContextTrace
 selected_viewpoints:
 - id: common_terms_definition
   saf_domain: Common

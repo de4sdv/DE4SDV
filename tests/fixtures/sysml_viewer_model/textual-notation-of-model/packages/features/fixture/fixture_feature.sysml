@@ -14,9 +14,15 @@ package FixtureRoot {
         doc /* A synthetic system part definition for viewer tests. */
         port signalIn : SignalInputPort;
         port signalOut : SignalOutputPort;
+        port signalBridge : SignalInputPort;
+        bind signalBridge = signalIn;
       }
 
+      part def FixtureBoxType;
+
       part fixtureSystem : FixtureSystem;
+
+      part boxPart : FixtureBoxType;
 
       part 'quoted part' : FixtureSystem;
 

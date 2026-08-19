@@ -151,6 +151,43 @@
           }
         });
       });
+      // connections: the polyline itself carries the tooltip of the label
+      // that lies on it (flow/connection usage), so hovering the line names
+      // the connection
+      var conns = map.connectors || {};
+      var pls = frame.querySelectorAll('svg polyline');
+      Array.prototype.forEach.call(pls, function (p) {
+        var info = conns[p.getAttribute('points')];
+        if (!info) return;
+        p.classList.add('conn-hit');
+        p.addEventListener('mouseover', function (ev) { show(p, info, ev); });
+        p.addEventListener('mousemove', move);
+        p.addEventListener('mouseout', hide);
+        p.addEventListener('click', function (ev) {
+          if (info.href) {
+            ev.stopPropagation();
+            window.location.href = info.href;
+          }
+        });
+      });
+      // element boxes: the white rounded-rect body of a part carries the
+      // tooltip of the element it belongs to (same pattern as connectors)
+      var boxes = map.boxes || {};
+      var paths = frame.querySelectorAll('svg path');
+      Array.prototype.forEach.call(paths, function (p) {
+        var info = boxes[p.getAttribute('d')];
+        if (!info) return;
+        p.classList.add('box-hit');
+        p.addEventListener('mouseover', function (ev) { show(p, info, ev); });
+        p.addEventListener('mousemove', move);
+        p.addEventListener('mouseout', hide);
+        p.addEventListener('click', function (ev) {
+          if (info.href) {
+            ev.stopPropagation();
+            window.location.href = info.href;
+          }
+        });
+      });
     });
 
     initTreeResizer();

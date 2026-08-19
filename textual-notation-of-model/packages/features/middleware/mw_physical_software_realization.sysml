@@ -376,6 +376,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      */
   }
 
+  dependency aaosBuildRuntimeEnablingSystemTrace
+    from aaosBuildRuntimeEnvironmentCandidate
+    to DE4SDV_ExecutionEnvironments::EngineeringComputeNode;
+
   /*
    * Bounded Vehicle.Speed campaign communication/deployment slice.
    *

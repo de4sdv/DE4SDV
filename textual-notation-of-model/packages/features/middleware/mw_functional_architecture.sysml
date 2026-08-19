@@ -18,6 +18,7 @@ package DE4SDV_MWFunctionalArchitecture {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
         private import DE4SDV_MWRequirements::Features::Middleware::Requirements::*;
+        private import DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::System1Product::*;
         private import SAF_Viewpoints::*;
 
         part incMW006 : FeatureIncrement {
@@ -308,6 +309,16 @@ package DE4SDV_MWFunctionalArchitecture {
         dependency functionalAuthenticationBoundaryDerivedFromRequirement
           from DiscoverAndBindService
           to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqAuthenticateServiceBinding;
+
+        dependency functionalBoundaryRequirementsTrace
+          from middlewareFunctionalBoundary
+          to DE4SDV_MWRequirements::Features::Middleware::Requirements::reqProvideMiddlewareSignalAccess;
+        dependency functionalBoundaryNeedsTrace
+          from middlewareFunctionalBoundary
+          to DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::System1Product::needMiddlewareIntegration;
+        dependency functionalBoundaryOperationalTrace
+          from middlewareFunctionalBoundary
+          to DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform';
 
         concern functionalBehaviorConcern : FunctionalBehaviorConcern {
           subject;

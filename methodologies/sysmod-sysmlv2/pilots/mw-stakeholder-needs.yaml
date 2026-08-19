@@ -23,21 +23,10 @@ lifecycle_decision_supported:
     Confirm the stakeholder needs before deriving design-input requirements
     in INC-MW-005.
 
-source_alignment:
-  - source_id: INC-MW-002
-    use: operational_context_baseline
-    artifact: textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml
-    notes:
-      - Operational scenarios are the source for stakeholder needs.
-  - source_id: INC-MW-003
-    use: classification_baseline
-    artifact: textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml
-    notes:
-      - Feature/common-capability classification determines which needs apply to all products vs feature-specific.
-  - source_id: INC-MW-001
-    use: framing_baseline
-    artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
-
+trace_ids:
+- needOperationalContextTrace
+- needClassificationTrace
+- needFramingTrace
 selected_viewpoints:
   - id: stakeholder_requirement_definition
     source: SAF_Viewpoints

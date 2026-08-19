@@ -72,7 +72,7 @@ def test_member_doc_attachment(fixture_sysml):
     assert sys.doc.startswith("A synthetic system part definition")
     assert by_name["fixtureRequirement"].doc.startswith("Synthetic requirement")
     # nested ports are children of the part def
-    assert {c.name for c in sys.children} == {"signalIn", "signalOut"}
+    assert {c.name for c in sys.children} == {"signalIn", "signalOut", "signalBridge"}
     # view doc comes through the member declaration
     view_member = by_name["fixtureStructureView"]
     assert view_member.doc.startswith("Synthetic structure view")
@@ -814,6 +814,68 @@ def test_viewpoint_tooltips(tmp_path, monkeypatch):
         assert name.endswith("Viewpoint")
 
 
+def test_connector_tooltips():
+    """Connector polylines pair with the label lying on them — the flow or
+    connection usage wins over endpoint port labels."""
+    from tools.sysml_html_viewer.svg_info import (
+        _normalize,
+        extract_text_labels,
+        resolve_connectors,
+        resolve_labels,
+    )
+    from tools.sysml_html_viewer.model_parse import ElementRef
+
+    svg = (
+        '<svg><polyline points="10,10 90,10" fill="none" stroke="#1A1A1A"/></svg>'
+        '<text x="50" y="12">providerToObserverPayload of VehicleSpeedProviderMessage</text>'
+        '<text x="10" y="12">vehicleSpeedOut</text>'
+        '<text x="90" y="12">vehicleSpeedIn</text>'
+        '<polyline points="10,30 90,30" fill="none" stroke="#336680"/>'
+        '<text x="50" y="32">compartment line</text>'
+    )
+    flow = ElementRef(name="providerToObserverPayload", kind="flow", rel_path="p/f.sysml", line=1, anchor="src-1")
+    port_a = ElementRef(name="vehicleSpeedOut", kind="port", rel_path="p/f.sysml", line=2, anchor="src-2")
+    port_b = ElementRef(name="vehicleSpeedIn", kind="port", rel_path="p/f.sysml", line=3, anchor="src-3")
+    index = {
+        "providerToObserverPayload": [flow],
+        "vehicleSpeedOut": [port_a],
+        "vehicleSpeedIn": [port_b],
+    }
+    labels = extract_text_labels(svg)
+    resolved = {li.label: li for li in resolve_labels(labels, index, "p/f.sysml", "p")}
+    conns = resolve_connectors(svg, resolved, index, "p/f.sysml", "p")
+    # the #1A1A1A polyline pairs with the flow label (the " of " flow form)
+    assert "10,10 90,10" in conns
+    assert conns["10,10 90,10"].name == "providerToObserverPayload"
+    # the #336680 separator is not a connector
+    assert "10,30 90,30" not in conns
+    # the " of " label normalizes to the flow name
+    assert "providerToObserverPayload" in {
+        c for c in _normalize("providerToObserverPayload of VehicleSpeedProviderMessage")
+    }
+
+
+def test_connection_kind_parsed(tmp_path):
+    """`connection name connect a to b;` parses as a member so connector
+    labels resolve."""
+    from tools.sysml_html_viewer.model_parse import build_member_index, parse_file
+
+    f = tmp_path / "conn.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part def A { port x; }\n"
+        "  part def B { port y; }\n"
+        "  connection ab connect A.x to B.y;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    conn = next(m for m in mf.members if m.name == "ab")
+    assert conn.kind == "connection"
+    index = build_member_index([mf])
+    assert index["ab"][0].kind == "connection"
+
+
 def test_anonymous_usage_indexed(tmp_path):
     """Anonymous usages (objective/subject) are parsed, nested, and get
     their doc — so diagram compartment labels can resolve to them."""
@@ -895,6 +957,58 @@ def test_svg_label_context_resolution():
     assert resolved["actors"].name == "'integrate ADAS'"
     assert resolved["doc The objective body text."].name == "'integrate ADAS'"
     assert resolved["doc The objective body text."].doc == "The use case doc."
+
+
+
+def test_bind_kind_parsed(tmp_path):
+    """`bind a = b;` and `bind a.b = c;` parse as members (BindingConnector
+    usages are first-class relationships in SysML v2)."""
+    from tools.sysml_html_viewer.model_parse import build_member_index, parse_file
+
+    f = tmp_path / "bind.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part x;\n"
+        "  part y;\n"
+        "  bind x = y;\n"
+        "  bind a.b = c;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    binds = [m for m in mf.members if m.kind == "bind"]
+    assert [m.name for m in binds] == ["x", "a.b"]
+    index = build_member_index([mf])
+    # the part declared earlier still resolves first for plain labels
+    assert index["x"][0].kind == "part"
+    assert any(r.kind == "bind" for r in index["x"])
+    # the dotted bind is indexed under its full path
+    assert index["a.b"][0].kind == "bind"
+
+
+def test_diagram_boxes_and_bind_connectors(tmp_path):
+    """Element-box paths carry the box owner's tooltip, and connector
+    pairing prefers a same-name bind over a port (the label resolves to
+    the port first, but the connection the diagram draws is the bind)."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    ).read_text(encoding="utf-8")
+    boxes = {}
+    connectors = {}
+    for m in re.finditer(r'<script[^>]*application/json[^>]*>(.*?)</script>', page, re.S):
+        data = json.loads(m.group(1).replace("<\\/", "</"))
+        boxes.update(data.get("boxes", {}))
+        connectors.update(data.get("connectors", {}))
+    # the white rounded box path pairs with the part label inside it
+    assert boxes, "no element boxes resolved"
+    assert any(v["name"] == "boxPart" and v["kind"] == "part" for v in boxes.values())
+    # the polyline labeled signalBridge pairs with the BIND, not the port
+    bridge = [v for v in connectors.values() if v["name"] == "signalBridge"]
+    assert bridge and bridge[0]["kind"] == "bind"
 
 
 def test_tree_filters(tmp_path):

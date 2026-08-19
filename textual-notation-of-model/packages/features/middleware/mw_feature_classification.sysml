@@ -26,6 +26,7 @@ package DE4SDV_MWFeatureClassification {
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
         private import DE4SDV_SDVPlatformStack::*;
+        private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
         private import SysideViews::**;
 
         /*
@@ -129,6 +130,25 @@ package DE4SDV_MWFeatureClassification {
         /*
          * View
          */
+        part def ISOIEC26580ClassificationSource {
+          doc /*
+           * External reference: ISO/IEC 26580 product-line engineering
+           * feature-classification rule — a feature distinguishes member
+           * products; a common capability does not.
+           */
+        }
+        part isoIEC26580ClassificationSource : ISOIEC26580ClassificationSource;
+
+        dependency classificationOperationalContextTrace
+          from adapterLayer
+          to DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform';
+        dependency classificationPlatformStackTrace
+          from adapterLayer
+          to DE4SDV_SDVPlatformStack::SDVPlatformStack::middleware;
+        dependency classificationRuleSourceTrace
+          from adapterLayer
+          to isoIEC26580ClassificationSource;
+
         view mwProductLineClassificationView : TVD::TableView {
           viewpoint selectedProductLineClassificationViewpoint : ProductLineClassificationViewpoint {
             frame productLineCapabilityClassificationConcern;

@@ -34,19 +34,10 @@ scope:
   - final safety-path architecture
   - detailed security trust-boundary design
   - numeric timing, performance, or signal thresholds
-source_alignment:
-- source_id: INC-MW-001
-  use: middleware-integration-framing
-  artifact: methodologies/sysmod-sysmlv2/pilots/middleware-adapter-increment-framing.yaml
-- source_id: INC-MW-002
-  use: operational-context-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-operational-context.yaml
-- source_id: INC-MW-003
-  use: feature-classification-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-feature-classification.yaml
-- source_id: INC-MW-004
-  use: stakeholder-needs-baseline
-  artifact: methodologies/sysmod-sysmlv2/pilots/mw-stakeholder-needs.yaml
+trace_ids:
+- requirementNeedsTrace
+- requirementOperationalContextTrace
+- requirementFramingTrace
 selected_viewpoints:
 - viewpoint: SystemRequirementDefinitionViewpoint
   rationale: Review the requirement candidates, subjects, stakeholders, and constraint bodies.
