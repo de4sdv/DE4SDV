@@ -213,7 +213,7 @@
     target.classList.remove('flash');
     void target.offsetWidth; // restart the animation on repeated jumps
     target.classList.add('flash');
-    setTimeout(function () { target.classList.remove('flash'); }, 2000);
+    setTimeout(function () { target.classList.remove('flash'); }, 3200);
   }
 
   // the header height drives the sidebar geometry and scroll offsets

@@ -6,6 +6,7 @@
   --line: #e2e8f0;
   --accent: #1a56db;
   --accent-soft: #eaf1fe;
+  --flash: #ffd6c2;
   --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --sans: "IBM Plex Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
   --header-h: 52px;
@@ -576,11 +577,12 @@ mark.tree-hl {
  * clicks, tree member links, source references, search Enter) */
 .src-line[id], .view-section[id] { scroll-margin-top: calc(var(--header-h) + 10px); }
 
-/* brief fade of the jumped-to element so the click target is obvious */
-.src-line.flash { animation: line-flash 1.8s ease-out; }
-.view-section.flash > h2 { animation: line-flash 1.8s ease-out; }
+/* longer, warm flash of the jumped-to element so the click target is
+ * obvious (orange-red instead of the accent blue) */
+.src-line.flash { animation: line-flash 2.8s ease-out; }
+.view-section.flash > h2 { animation: line-flash 2.8s ease-out; }
 @keyframes line-flash {
-  0% { background: var(--accent-soft); }
+  0% { background: var(--flash); }
   100% { background: transparent; }
 }
 
