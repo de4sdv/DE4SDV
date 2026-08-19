@@ -100,7 +100,7 @@ _CONNECTION_KINDS = frozenset({"connection", "flow"})
 def resolve_connectors(
     svg_text: str,
     resolved: dict[str, LabelInfo],
-    radius: float = 60.0,
+    radius: float = 140.0,
 ) -> dict[str, LabelInfo]:
     """Pair connector polylines with the nearest resolvable label.
 
