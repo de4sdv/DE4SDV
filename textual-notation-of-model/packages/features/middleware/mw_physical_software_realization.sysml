@@ -840,11 +840,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * dependencies, and allocations are excluded from this concern.
      */
     expose MiddlewarePhysicalSoftwareBoundary::adapter;
-    expose MiddlewarePhysicalSoftwareBoundary::adapter::**;
     expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
     expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary;
-    expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary::*;
-    attribute depth = -1;
+    attribute depth = 1;
     attribute showAnnotationRows = false;
     attribute showInheritedRows = false;
     attribute maxCompartmentEntries = 0;
