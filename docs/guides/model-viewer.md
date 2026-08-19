@@ -11,24 +11,30 @@ Diagrams are the committed `syside viz` artifacts (`diagram-*.svg` beside the
 model files), so what you see is exactly what the privileged validation
 workflow rendered — never a re-render.
 
-## Run it
+## The live website
 
-Local server mode (recommended for day-to-day use — includes auto-refresh and
-on-demand branch builds):
+A live viewer is deployed at **<https://viewer.de4sdv.org>**, rebuilt from
+`main` and open pull requests by the deploy workflow. It is the public
+instance — what you see there is committed content only.
+
+## Run it locally (your own work)
+
+Localhost serves **your own working tree and unmerged branches** — use it for
+your own work and direct feedback before anything is published:
 
 ```bash
 python -m tools.sysml_html_viewer.serve --repo . --port 8787
 # open http://127.0.0.1:8787/
 ```
 
+Server mode includes auto-refresh and on-demand builds of any branch or pull
+request you select.
+
 Static build (no server, works from `file://`):
 
 ```bash
 python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer
 ```
-
-Published site: <https://viewer.de4sdv.org> (rebuilt from `main` and open pull
-requests by the deploy workflow).
 
 ## Features
 

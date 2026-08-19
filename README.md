@@ -29,8 +29,8 @@ security, and compliance. Equally important are openness and trust, including
 transparency over how vehicle and user data is handled, and meaningful user
 control over that data.
 
-DE4SDV's systems-modeling work is discussed as a workstream within the INCOSE
-Automotive Working Group.
+DE4SDV is also a workstream within the INCOSE Automotive Working Group and
+regularly discussed.
 
 # System-of-Interest
 
@@ -97,13 +97,15 @@ Vehicle (SDV)** with emphasis on:
 
 # Model viewer
 
-The [DE4SDV model viewer](https://viewer.de4sdv.org) is a read-only HTML
-viewer for the SysML v2 systems model: model tree, member documentation, and
-every declared view with the diagram SysIDE renders from it — including hover
-tooltips on elements and connections, go-to-definition, branch/PR revision
-picking, and diagram fullscreen.
+A live viewer is deployed at **https://viewer.de4sdv.org** — the public,
+read-only HTML viewer for the SysML v2 systems model: model tree, member
+documentation, and every declared view with the diagram SysIDE renders from
+it — including hover tooltips on elements and connections, go-to-definition,
+branch/PR revision picking, and diagram fullscreen.
 
-Run it locally:
+Running it locally on localhost serves **your own working tree and unmerged
+branches** — use it for your own work and direct feedback before anything is
+published:
 
 ```bash
 python -m tools.sysml_html_viewer.serve --repo . --port 8787
