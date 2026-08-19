@@ -578,7 +578,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   allocation signalTranslatorCandidate : LogicalToPhysicalSoftwareCandidate
     allocate DE4SDV_MWLogicalArchitecture::system::signalTranslator
     to physicalSoftware::signalAccessClient;
-  allocation vehicleSpeedSystemToSoftwareSignalCandidate : SystemToSoftwareSignalMappingCandidate
+  #AdapterExchangeExcluded allocation vehicleSpeedSystemToSoftwareSignalCandidate : SystemToSoftwareSignalMappingCandidate
     allocate DE4SDV_MWLogicalArchitecture::system::signalTranslator
     to physicalSoftware::adapter::aaosSignal::vehicleSpeed;
   allocation diagnosticProxyCandidate : LogicalToPhysicalSoftwareCandidate
@@ -620,7 +620,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     from physicalSoftware::adapter
     to DE4SDV_MWLogicalArchitecture::system;
 
-  dependency adapterSignalMapping
+  #AdapterExchangeExcluded dependency adapterSignalMapping
     from physicalSoftware::adapter::applicationSignal
     to physicalSoftware::adapter::aaosSignal;
   dependency referenceVehicleSpeedContractTrace
@@ -629,19 +629,19 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency referenceVehicleSpeedVSIDLCandidate
     from physicalSoftware::adapter::aaosSignal::vehicleSpeed
     to physicalSoftware::aaosSdvBoundary::vsidlMiddleware;
-  dependency adapterDiagnosticMapping
+  #AdapterExchangeExcluded dependency adapterDiagnosticMapping
     from physicalSoftware::adapter::applicationDiagnostics
     to physicalSoftware::adapter::aaosDiagnostics;
-  dependency adapterLifecycleMapping
+  #AdapterExchangeExcluded dependency adapterLifecycleMapping
     from physicalSoftware::adapter::applicationLifecycle
     to physicalSoftware::adapter::aaosLifecycle;
-  dependency adapterHealthMapping
+  #AdapterExchangeExcluded dependency adapterHealthMapping
     from physicalSoftware::adapter::applicationHealth
     to physicalSoftware::adapter::aaosHealth;
-  dependency adapterUpdateMapping
+  #AdapterExchangeExcluded dependency adapterUpdateMapping
     from physicalSoftware::adapter::applicationUpdate
     to physicalSoftware::adapter::aaosUpdate;
-  dependency adapterDiscoveryMapping
+  #AdapterExchangeExcluded dependency adapterDiscoveryMapping
     from physicalSoftware::adapter::applicationDiscovery
     to physicalSoftware::adapter::aaosDiscovery;
 
@@ -667,10 +667,10 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   dependency vsidlSignalToROS2Velocity
     from physicalSoftware::adapter::aaosSignal::vehicleSpeed
     to physicalSoftware::adapter::ros2VelocityOut;
-  dependency ros2AutowareStateToVSIDLLifecycle
+  #AdapterExchangeExcluded dependency ros2AutowareStateToVSIDLLifecycle
     from physicalSoftware::adapter::ros2AutowareStateIn
     to physicalSoftware::adapter::aaosLifecycle;
-  dependency vsidlDiagnosticsToROS2Diagnostics
+  #AdapterExchangeExcluded dependency vsidlDiagnosticsToROS2Diagnostics
     from physicalSoftware::adapter::aaosDiagnostics
     to physicalSoftware::adapter::ros2DiagnosticsOut;
 
@@ -815,6 +815,15 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     render asTreeDiagram;
   }
 
+  metadata def AdapterExchangeExcluded {
+    doc /*
+     * View-scope exclusion tag for the adapter-exchange concern. Relationships
+     * annotated with this metadata describe candidate paths outside the wired
+     * velocity exchange (state, diagnostics, lifecycle, health, update,
+     * discovery mappings) and are filtered out of mwAdapterBoundaryExchangeView.
+     */
+  }
+
   concern adapterBoundaryExchangeConcern : PhysicalInternalExchangeConcern {
     doc /*
      * Which AAOS SDV VSIDL service access feeds the adapter, and which
@@ -844,6 +853,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
     expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary;
     expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary::*;
+    filter not (@ AdapterExchangeExcluded);
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute showInheritedRows = false;
