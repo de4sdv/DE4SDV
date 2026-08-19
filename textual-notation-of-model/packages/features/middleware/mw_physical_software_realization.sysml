@@ -28,7 +28,6 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
   private import COVESA_VSS::**;
-  private import StandardViewDefinitions::*;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;
@@ -830,28 +829,30 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     stakeholder verificationEngineer : VerificationEngineer;
   }
 
-  view mwAdapterBoundaryExchangeView : InterconnectionView {
+  view mwAdapterBoundaryExchangeView {
     viewpoint selectedAdapterBoundaryExchangeViewpoint : PhysicalInternalExchangeViewpoint {
       frame adapterBoundaryExchangeConcern;
     }
     doc /*
      * Bounded projection of the wired adapter chain: AAOS SDV service
      * access -> adapter -> Autoware-facing ROS 2 velocity-report boundary.
-     * Parts are wired through ports per the InterconnectionView pattern;
-     * the state/diagnostics edges and client/mapping relationships stay
-     * candidates under GAP-MW-019/022 and are filtered out of this concern.
+     * Parts are wired through ports; inherited port rows, mapping
+     * dependencies, and allocations are excluded from this concern.
      */
-    expose MiddlewarePhysicalSoftwareBoundary::*::**;
+    expose MiddlewarePhysicalSoftwareBoundary::adapter;
+    expose MiddlewarePhysicalSoftwareBoundary::adapter::**;
+    expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
+    expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary;
+    expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary::*;
     filter (
-      as SysML::PartUsage hastype AutowareToAAOSSDVAdapterPhysical or
-      as SysML::PartUsage hastype AutowareRos2TopicBoundary or
-      as SysML::PartUsage hastype SDVCoreBoundary or
-      as SysML::PortUsage hastype SysML::PortUsage or
-      as SysML::ConnectionUsage hastype SysML::ConnectionUsage or
-      as SysML::FlowUsage hastype SysML::FlowUsage
+      not (as SysML::DependencyUsage hastype SysML::DependencyUsage) and
+      not (as SysML::AllocationUsage hastype SysML::AllocationUsage)
     );
+    attribute depth = -1;
     attribute showAnnotationRows = false;
+    attribute showInheritedRows = false;
     attribute maxCompartmentEntries = 0;
+    render asInterconnectionDiagram;
   }
 
   /*
