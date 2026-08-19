@@ -28,6 +28,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
   private import COVESA_VSS::**;
+  private import StandardViewDefinitions::*;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;
@@ -829,25 +830,28 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     stakeholder verificationEngineer : VerificationEngineer;
   }
 
-  view mwAdapterBoundaryExchangeView {
+  view mwAdapterBoundaryExchangeView : InterconnectionView {
     viewpoint selectedAdapterBoundaryExchangeViewpoint : PhysicalInternalExchangeViewpoint {
       frame adapterBoundaryExchangeConcern;
     }
     doc /*
      * Bounded projection of the wired adapter chain: AAOS SDV service
      * access -> adapter -> Autoware-facing ROS 2 velocity-report boundary.
-     * The remaining client edges and the state/diagnostics adapter edges are
-     * not part of this concern; they stay candidates under GAP-MW-019/022.
+     * Parts are wired through ports per the InterconnectionView pattern;
+     * the state/diagnostics edges and client/mapping relationships stay
+     * candidates under GAP-MW-019/022 and are filtered out of this concern.
      */
-    expose MiddlewarePhysicalSoftwareBoundary::adapter;
-    expose MiddlewarePhysicalSoftwareBoundary::adapter::**;
-    expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
-    expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary;
-    expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary::*;
-    attribute depth = -1;
+    expose MiddlewarePhysicalSoftwareBoundary::*::**;
+    filter (
+      as SysML::PartUsage hastype AutowareToAAOSSDVAdapterPhysical or
+      as SysML::PartUsage hastype AutowareRos2TopicBoundary or
+      as SysML::PartUsage hastype SDVCoreBoundary or
+      as SysML::PortUsage hastype SysML::PortUsage or
+      as SysML::ConnectionUsage hastype SysML::ConnectionUsage or
+      as SysML::FlowUsage hastype SysML::FlowUsage
+    );
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
-    render asInterconnectionDiagram;
   }
 
   /*
