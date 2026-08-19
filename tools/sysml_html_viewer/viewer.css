@@ -626,19 +626,9 @@ mark.tree-hl {
 .src-ref:hover { color: var(--accent); background: var(--accent-soft); }
 .src-ref.tip-hit { background: var(--accent-soft); }
 
-/* source refs that also appear in a diagram: warm dotted underline + a
- * small marker; right-click opens the diagram chooser */
+/* source refs that also appear in a diagram: orange underline marks the
+ * diagram usage; right-click opens the diagram chooser */
 a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-thickness: 1.5px; }
-a.src-ref.has-uses::after {
-  content: '';
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-left: 4px;
-  border-radius: 50%;
-  background: #e8590c;
-  vertical-align: super;
-}
 .tip-uses { font-size: 11px; color: #b34a09; margin-top: 5px; }
 
 /* right-click chooser: diagrams that use the element */
