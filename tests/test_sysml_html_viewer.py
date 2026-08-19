@@ -1006,8 +1006,6 @@ def test_diagram_boxes_and_bind_connectors(tmp_path):
     # the white rounded box path pairs with the part label inside it
     assert boxes, "no element boxes resolved"
     assert any(v["name"] == "boxPart" and v["kind"] == "part" for v in boxes.values())
-    # the small white port glyph pairs with its port label
-    assert any(v["name"] == "signalIn" and v["kind"] == "port" for v in boxes.values())
     # the polyline labeled signalBridge pairs with the BIND, not the port
     bridge = [v for v in connectors.values() if v["name"] == "signalBridge"]
     assert bridge and bridge[0]["kind"] == "bind"

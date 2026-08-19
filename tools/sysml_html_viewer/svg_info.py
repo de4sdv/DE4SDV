@@ -232,10 +232,9 @@ def resolve_connectors(
 
 def resolve_boxes(svg_text: str, resolved: dict[str, LabelInfo]) -> dict[str, LabelInfo]:
     """Pair element-box paths (white rounded rects) with the element label
-    inside them — the box owner — and port glyphs (small white squares on
-    box edges) with their port label — so hovering the box body or the
-    port symbol shows the element's tooltip. Keyed by the raw d attribute;
-    labels with connection-ish kinds (flows, connections) never own a box."""
+    inside them — the box owner — so hovering the box body shows the part's
+    tooltip. Keyed by the raw d attribute; labels with connection-ish kinds
+    (ports, flows) never own a box."""
     out: dict[str, LabelInfo] = {}
     boxes = []
     for m in _BOX_PATH_RE.finditer(svg_text):
@@ -254,48 +253,12 @@ def resolve_boxes(svg_text: str, resolved: dict[str, LabelInfo]) -> dict[str, La
             and x1 < x < x2
             and y1 < y < y2
         ]
-        if inside:
-            # the box header label (topmost inside) names the box owner
-            inside.sort(key=lambda t: t[1])
-            out[d] = inside[0][2]
+        if not inside:
             continue
-        # small white rects are port glyphs: pair with the nearest port
-        # label (falling back to item labels) so the port symbol is
-        # hoverable like the port text
-        if max(x2 - x1, y2 - y1) <= 60:
-            cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-            best_port: tuple[float, LabelInfo] | None = None
-            best_item: tuple[float, LabelInfo] | None = None
-            for x, y, plain in positions:
-                li = resolved.get(plain)
-                if li is None or li.kind not in ("port", "item"):
-                    continue
-                # measure to the label's approximated box (10px font,
-                # ~5.5px per char) — SysIDE left-anchors port labels, so
-                # the start point alone under-measures wide labels
-                lx2 = x + len(plain) * 5.5
-                dist = _dist_point_rect(cx, cy, x, y, lx2, y + 10)
-                if dist > 60:
-                    continue
-                if li.kind == "port":
-                    if best_port is None or dist < best_port[0]:
-                        best_port = (dist, li)
-                elif best_item is None or dist < best_item[0]:
-                    best_item = (dist, li)
-            if best_port is not None:
-                out[d] = best_port[1]
-            elif best_item is not None:
-                out[d] = best_item[1]
+        # the box header label (topmost inside) names the box owner
+        inside.sort(key=lambda t: t[1])
+        out[d] = inside[0][2]
     return out
-
-
-def _dist_point_rect(
-    px: float, py: float, x1: float, y1: float, x2: float, y2: float
-) -> float:
-    """Distance from a point to a rectangle (0 when inside)."""
-    dx = max(x1 - px, 0.0, px - x2)
-    dy = max(y1 - py, 0.0, py - y2)
-    return math.hypot(dx, dy)
 
 
 def _normalize(label: str) -> list[str]:
