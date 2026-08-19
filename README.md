@@ -29,6 +29,9 @@ security, and compliance. Equally important are openness and trust, including
 transparency over how vehicle and user data is handled, and meaningful user
 control over that data.
 
+DE4SDV's systems-modeling work is discussed as a workstream within the INCOSE
+Automotive Working Group.
+
 # System-of-Interest
 
 DE4SDV uses the ASELCM three-system framing to keep product, engineering, and
@@ -91,6 +94,25 @@ Vehicle (SDV)** with emphasis on:
 - FMI / FMU and SSP-based simulation interoperability
 - Safety, security, UNECE-oriented compliance, and continuous homologation
 - DevSecOps practices for regulated cyber-physical systems
+
+# Model viewer
+
+The [DE4SDV model viewer](https://viewer.de4sdv.org) is a read-only HTML
+viewer for the SysML v2 systems model: model tree, member documentation, and
+every declared view with the diagram SysIDE renders from it — including hover
+tooltips on elements and connections, go-to-definition, branch/PR revision
+picking, and diagram fullscreen.
+
+Run it locally:
+
+```bash
+python -m tools.sysml_html_viewer.serve --repo . --port 8787
+# open http://127.0.0.1:8787/
+```
+
+See the [model viewer how-to](docs/guides/model-viewer.md) for every feature,
+or click **Help** in the viewer header (the same guide is published on the
+viewer website).
 
 ## Repository map
 
