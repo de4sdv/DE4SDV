@@ -159,6 +159,7 @@
           item.title = u.f;
           item.addEventListener('click', function (e) {
             e.stopPropagation();
+            closeMenu();
             try {
               sessionStorage.setItem(
                 'de4sdv-hl',
