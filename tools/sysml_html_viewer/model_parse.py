@@ -38,7 +38,7 @@ _KIND = (
     r"action|state|interface|flow|attribute|metadata|usage|exhibit|enum|"
     r"verification|calc|allocation|constraint|story|interaction|event|transfer|"
     r"stakeholder|subject|dependency|trace|satisfy|verify|refine|actor|"
-    r"objective|alias|claim|argument|evidence|counterclaim|use case|include"
+    r"objective|alias|claim|argument|evidence|counterclaim|use case|include|connection|bind"
 )
 _NAME = r"[A-Za-z_][A-Za-z0-9_]*|'[^']*'"
 
@@ -56,6 +56,12 @@ _FLOW_NO_NAME = frozenset({"from", "to", "between"})
 # the declaration must be indexable under that keyword.
 _ANON_USAGE_RE = re.compile(
     rf"^\s*{_PREFIX}(?P<kind>objective|subject)\s*(?={{|;|$)"
+)
+
+# `bind a.b = c;` with a dotted source: DECL_RE cannot take the dotted
+# name, so capture the full source path as the bind's name.
+_BIND_DOTTED_RE = re.compile(
+    r"^\s*bind\s+([A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*)\s*="
 )
 
 # `exhibit state lifecycleStates { ... }` declares an inline usage inside
@@ -296,13 +302,20 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
             else:
                 mf.members.append(Member(kind=kind, name=name, depth=depth, line=lineno))
         else:
-            anon = _ANON_USAGE_RE.match(raw)
-            if anon:
-                # `objective { doc ... }` / `subject;` — anonymous usage;
-                # index it under its keyword so diagram compartment labels
-                # resolve to the declaration (with its doc)
-                akind = anon.group("kind").strip()
-                mf.members.append(Member(kind=akind, name=akind, depth=depth, line=lineno))
+            bm = _BIND_DOTTED_RE.match(raw)
+            if bm:
+                # `bind a.b = c;` — dotted source; the full path is the name
+                mf.members.append(
+                    Member(kind="bind", name=bm.group(1), depth=depth, line=lineno)
+                )
+            else:
+                anon = _ANON_USAGE_RE.match(raw)
+                if anon:
+                    # `objective { doc ... }` / `subject;` — anonymous usage;
+                    # index it under its keyword so diagram compartment labels
+                    # resolve to the declaration (with its doc)
+                    akind = anon.group("kind").strip()
+                    mf.members.append(Member(kind=akind, name=akind, depth=depth, line=lineno))
         depth += opens - closes
         if depth < 0:
             depth = 0

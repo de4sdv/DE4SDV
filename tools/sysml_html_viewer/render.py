@@ -574,11 +574,22 @@ def _svg_hover_json(
     folder = str(Path(mf.rel_path).parent)
     resolved = svg_info.resolve_labels(labels, member_index, mf.rel_path, folder)
     payload: dict[str, dict] = {}
+    by_label: dict[str, svg_info.LabelInfo] = {}
     for li in resolved:
         entry = li.to_dict()
         if li.anchor:
             entry["href"] = prefix + f"pages/{li.rel_path}.html#{li.anchor}"
         payload[li.label] = entry
+        by_label[li.label] = li
+    connectors = svg_info.resolve_connectors(svg_markup, by_label)
+    if connectors:
+        conn_payload: dict[str, dict] = {}
+        for pts, li in connectors.items():
+            entry = li.to_dict()
+            if li.anchor:
+                entry["href"] = prefix + f"pages/{li.rel_path}.html#{li.anchor}"
+            conn_payload[pts] = entry
+        payload["connectors"] = conn_payload
     raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
     return raw.replace("</", "<\\/")
 

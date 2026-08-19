@@ -151,6 +151,25 @@
           }
         });
       });
+      // connections: the polyline itself carries the tooltip of the label
+      // that lies on it (flow/connection usage), so hovering the line names
+      // the connection
+      var conns = map.connectors || {};
+      var pls = frame.querySelectorAll('svg polyline');
+      Array.prototype.forEach.call(pls, function (p) {
+        var info = conns[p.getAttribute('points')];
+        if (!info) return;
+        p.classList.add('conn-hit');
+        p.addEventListener('mouseover', function (ev) { show(p, info, ev); });
+        p.addEventListener('mousemove', move);
+        p.addEventListener('mouseout', hide);
+        p.addEventListener('click', function (ev) {
+          if (info.href) {
+            ev.stopPropagation();
+            window.location.href = info.href;
+          }
+        });
+      });
     });
 
     initTreeResizer();
