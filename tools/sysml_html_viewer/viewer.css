@@ -325,14 +325,17 @@ code {
 }
 .diagram-frame.fullscreen .diagram-scroll {
   flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: auto;
   padding: 16px;
 }
+/* render the diagram at its native size so browser zoom scales it;
+ * a viewport-bound width:100%/height:100% would cancel the zoom */
 .diagram-frame.fullscreen .diagram-scroll svg {
-  width: 100%;
-  height: 100%;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  margin: 0 auto;
 }
 .diagram-image { display: block; max-width: 100%; height: auto; }
 .diagram-missing {
