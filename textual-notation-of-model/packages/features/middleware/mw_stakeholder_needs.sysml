@@ -20,7 +20,7 @@ package DE4SDV_MWStakeholderNeeds {
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
         private import DE4SDV_MWFeatureClassification::Features::Middleware::FeatureClassification::*;
-        private import DE4SDV_MWIncrementFraming::Features::Middleware::*;
+        private import DE4SDV_MWIncrementFraming::Features::Middleware::IncrementFraming::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
         private import SysideViews::**;
@@ -143,7 +143,7 @@ package DE4SDV_MWStakeholderNeeds {
           to DE4SDV_MWFeatureClassification::Features::Middleware::FeatureClassification::adapterLayer;
         dependency needFramingTrace
           from DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::System1Product::needMiddlewareIntegration
-          to DE4SDV_MWIncrementFraming::Features::Middleware::middlewareIntegrationProblemStatement;
+          to DE4SDV_MWIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement;
 
         concern stakeholderNeedsConcern : StakeholderNeedsConcern {
           doc /*

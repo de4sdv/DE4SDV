@@ -13,7 +13,7 @@ package DE4SDV_MWOperationalContext {
       package OperationalContext {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_SYSMODAdapter::*;
-        private import DE4SDV_MWIncrementFraming::*;
+        private import DE4SDV_MWIncrementFraming::Features::Middleware::IncrementFraming::*;
         private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
         private import SAF_Viewpoints::*;
         private import StandardViewDefinitions::*;
@@ -321,7 +321,7 @@ package DE4SDV_MWOperationalContext {
           to aaosSDVIntegrationGuideSource;
         dependency middlewareOperationalContextFramingTrace
           from DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform'
-          to DE4SDV_MWIncrementFraming::Features::Middleware::middlewareIntegrationProblemStatement;
+          to DE4SDV_MWIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement;
         dependency aebsIntegrationBoundaryContextTrace
           from DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform'
           to DE4SDV_AEBSPhysicalSoftwareRealization::VehicleTargetAEBSPhysicalSoftwareBoundary;

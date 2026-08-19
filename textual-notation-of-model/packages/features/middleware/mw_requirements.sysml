@@ -22,7 +22,7 @@ package DE4SDV_MWRequirements {
         private import DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::*;
         private import DE4SDV_MWFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
         private import DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::System1Product::*;
-        private import DE4SDV_MWIncrementFraming::Features::Middleware::*;
+        private import DE4SDV_MWIncrementFraming::Features::Middleware::IncrementFraming::*;
 
         requirement def MiddlewareSignalAccessRequirement :> FunctionalRequirementCandidate;
         requirement def MiddlewareDiagnosticAccessRequirement :> FunctionalRequirementCandidate;
@@ -188,7 +188,7 @@ package DE4SDV_MWRequirements {
           to DE4SDV_MWOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform';
         dependency requirementFramingTrace
           from DE4SDV_MWRequirements::Features::Middleware::Requirements::System1Product::reqProvideMiddlewareSignalAccess
-          to DE4SDV_MWIncrementFraming::Features::Middleware::middlewareIntegrationProblemStatement;
+          to DE4SDV_MWIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement;
 
         concern requirementTraceConcern : RequirementTraceConcern {
           subject;
