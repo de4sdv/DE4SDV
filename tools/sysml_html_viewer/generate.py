@@ -478,6 +478,119 @@ def _filter_html(tree: TreeNode, files: list) -> str:
     )
 
 
+def _help_html(repo_root: Path) -> str:
+    """Render docs/guides/model-viewer.md into a standalone help page.
+
+    Minimal deterministic markdown subset (stdlib only): ATX headings,
+    fenced code blocks, bullet/numbered lists, paragraphs, inline code,
+    bold, and links. The page lives at the site root as ``help.html`` and
+    is the same documentation that ships in the repository.
+    """
+    md_path = repo_root / "docs" / "guides" / "model-viewer.md"
+    if not md_path.is_file():
+        body = (
+            "<p>No help content found. The how-to guide lives in the "
+            "repository at <code>docs/guides/model-viewer.md</code>.</p>"
+        )
+    else:
+        body = _render_help_md(md_path.read_text(encoding="utf-8"))
+    title = "DE4SDV Model Viewer — Help"
+    return (
+        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n"
+        "<meta charset=\"utf-8\">\n"
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+        f"<title>{title}</title>\n"
+        "<link rel=\"stylesheet\" href=\"assets/viewer.css\">\n"
+        "</head>\n<body class=\"help-page\">\n"
+        "<header class=\"help-header\">\n"
+        "<a class=\"help-back\" href=\"index.html\">← DE4SDV Model Viewer</a>\n"
+        "</header>\n"
+        f"<main class=\"help-content\">\n{body}\n</main>\n"
+        "</body>\n</html>\n"
+    )
+
+
+def _render_help_md(text: str) -> str:
+    """Convert the help markdown subset to HTML body content."""
+    lines = text.splitlines()
+    out: list[str] = []
+    in_code = False
+    code_buf: list[str] = []
+    list_buf: list[str] | None = None
+    list_tag = "ul"
+    para_buf: list[str] = []
+
+    def flush_para() -> None:
+        if para_buf:
+            out.append(f"<p>{_inline_md(' '.join(para_buf))}</p>")
+            para_buf.clear()
+
+    def flush_list() -> None:
+        if list_buf is not None:
+            items = "".join(f"<li>{_inline_md(i)}</li>" for i in list_buf)
+            out.append(f"<{list_tag}>{items}</{list_tag}>")
+            list_buf.clear()
+
+    for raw in lines:
+        if raw.strip().startswith("```"):
+            if in_code:
+                out.append("<pre><code>" + _esc("\n".join(code_buf)) + "</code></pre>")
+                code_buf.clear()
+                in_code = False
+            else:
+                flush_para()
+                flush_list()
+                in_code = True
+            continue
+        if in_code:
+            code_buf.append(raw)
+            continue
+        s = raw.strip()
+        if not s:
+            flush_para()
+            flush_list()
+            continue
+        m = re.match(r"^(#{1,3})\s+(.*)$", s)
+        if m:
+            flush_para()
+            flush_list()
+            level = len(m.group(1))
+            out.append(f"<h{level}>{_inline_md(m.group(2))}</h{level}>")
+            continue
+        m = re.match(r"^[-*]\s+(.*)$", s)
+        if m:
+            flush_para()
+            if list_buf is None:
+                list_buf = []
+                list_tag = "ul"
+            list_buf.append(m.group(1))
+            continue
+        m = re.match(r"^\d+\.\s+(.*)$", s)
+        if m:
+            flush_para()
+            if list_buf is None:
+                list_buf = []
+                list_tag = "ol"
+            list_buf.append(m.group(1))
+            continue
+        flush_list()
+        para_buf.append(s)
+    flush_para()
+    flush_list()
+    if in_code:
+        out.append("<pre><code>" + _esc("\n".join(code_buf)) + "</code></pre>")
+    return "\n".join(out)
+
+
+def _inline_md(s: str) -> str:
+    """Inline markdown: code, bold, and links (applied after escaping)."""
+    s = _esc(s)
+    s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+    s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+    s = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2" rel="noopener">\1</a>', s)
+    return s
+
+
 def _uses_index(
     files: list,
     member_index: dict,
@@ -594,6 +707,7 @@ def _build_site(
         ),
         encoding="utf-8",
     )
+    (out_dir / "help.html").write_text(_help_html(repo_root), encoding="utf-8")
 
     # directory TOC pages
     dirs: dict[str, list[TreeNode]] = {}

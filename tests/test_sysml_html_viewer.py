@@ -264,6 +264,51 @@ def test_revision_picker_in_pages(tmp_path):
     assert re.search(r'<option value="(\.\./)+index\.html" selected>working tree</option>', html)
 
 
+def test_help_page_fallback_when_guide_missing(tmp_path):
+    """help.html is always emitted; without docs/guides/model-viewer.md it
+    carries the explicit fallback note, and the header Help link resolves."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    help_page = out / "help.html"
+    assert help_page.is_file()
+    html = help_page.read_text(encoding="utf-8")
+    assert "DE4SDV Model Viewer — Help" in html
+    assert "No help content found" in html
+    assert 'class="help-back" href="index.html"' in html
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert re.search(r'<a class="site-chat" href="help\.html">Help</a>', index)
+
+
+def test_help_page_renders_guide_markdown(tmp_path):
+    """A repo docs/guides/model-viewer.md renders deterministically into
+    help.html: headings, fenced code, lists, inline code, and links."""
+    repo = _make_fixture_repo(tmp_path)
+    guide = repo / "docs" / "guides" / "model-viewer.md"
+    guide.parent.mkdir(parents=True)
+    guide.write_text(
+        "# Viewer help\n\n"
+        "Some **bold** prose with `inline code` and a [link](https://example.com).\n\n"
+        "- first item\n"
+        "- second item\n\n"
+        "```bash\npython -m tools.sysml_html_viewer.serve --repo . --port 8787\n```\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "site"
+    generate(repo, out, ["textual-notation-of-model/packages"])
+    html = (out / "help.html").read_text(encoding="utf-8")
+    assert "<h1>Viewer help</h1>" in html
+    assert "<strong>bold</strong>" in html
+    assert "<code>inline code</code>" in html
+    assert 'href="https://example.com"' in html
+    assert "<ul><li>first item</li><li>second item</li></ul>" in html
+    assert "python -m tools.sysml_html_viewer.serve" in html
+    assert "No help content found" not in html
+    # deterministic: a second build produces identical bytes
+    out2 = tmp_path / "site2"
+    generate(repo, out2, ["textual-notation-of-model/packages"])
+    assert (out2 / "help.html").read_bytes() == (out / "help.html").read_bytes()
+
+
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["git", "-C", str(repo), *args], capture_output=True, text=True

@@ -27,6 +27,11 @@ deterministic output). The generated site is self-contained except that it
 *references* the committed diagram SVGs in the model tree — no SVG copies,
 so it can never drift from the rendered artifacts.
 
+Every build also emits `help.html` at the site root, rendered from
+[`docs/guides/model-viewer.md`](../../docs/guides/model-viewer.md) (the same
+guide is linked as **Help** in the page header and published on
+viewer.de4sdv.org).
+
 ### Multiple revisions (branch / PR selector)
 
 By default the working tree is built, plus `main` (or `origin/main`) when
