@@ -38,7 +38,7 @@ _KIND = (
     r"action|state|interface|flow|attribute|metadata|usage|exhibit|enum|"
     r"verification|calc|allocation|constraint|story|interaction|event|transfer|"
     r"stakeholder|subject|dependency|trace|satisfy|verify|refine|actor|"
-    r"objective|alias|claim|argument|evidence|counterclaim|use case|include"
+    r"objective|alias|claim|argument|evidence|counterclaim|use case|include|connection"
 )
 _NAME = r"[A-Za-z_][A-Za-z0-9_]*|'[^']*'"
 

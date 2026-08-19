@@ -10,6 +10,7 @@ anchor) so the generated viewer can show a tooltip on hover.
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 
@@ -60,6 +61,86 @@ def extract_text_labels(svg_text: str) -> list[str]:
     return labels
 
 
+# SysIDE draws connections (bindings, flows between ports) as polylines with
+# a #1A1A1A stroke and no fill; element borders and compartment separators
+# use other colors (#336680 etc.).
+_CONNECTOR_POLY_RE = re.compile(
+    r'<polyline\b(?=[^>]*points="([^"]+)")(?=[^>]*#1A1A1A)(?=[^>]*fill="none")[^>]*>'
+)
+
+_TEXT_POS_RE = re.compile(
+    r'<text\b[^>]*x="([\d.]+)"[^>]*y="([\d.]+)"[^>]*>(.*?)</text>', flags=re.S
+)
+
+
+def _connector_polylines(svg_text: str) -> list[tuple[str, list[tuple[float, float]]]]:
+    """(raw points attr, segment points) for every connector polyline."""
+    out = []
+    for m in _CONNECTOR_POLY_RE.finditer(svg_text):
+        pts = m.group(1)
+        coords = [float(v) for v in re.split(r"[,\s]+", pts.strip()) if v]
+        points = list(zip(coords[0::2], coords[1::2]))
+        if len(points) >= 2:
+            out.append((pts, points))
+    return out
+
+
+def _dist_point_segment(
+    px: float, py: float, x1: float, y1: float, x2: float, y2: float
+) -> float:
+    dx, dy = x2 - x1, y2 - y1
+    if dx == dy == 0:
+        return math.hypot(px - x1, py - y1)
+    t = max(0.0, min(1.0, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
+
+
+_CONNECTION_KINDS = frozenset({"connection", "flow"})
+
+def resolve_connectors(
+    svg_text: str,
+    resolved: dict[str, LabelInfo],
+    radius: float = 60.0,
+) -> dict[str, LabelInfo]:
+    """Pair connector polylines with the nearest resolvable label.
+
+    The label lying on the connection (a flow/connection usage) wins over
+    nearer endpoint labels (ports) so the tooltip names the connection,
+    not its ends. Keyed by the raw points attribute so the viewer can
+    look up the hovered polyline directly.
+    """
+    out: dict[str, LabelInfo] = {}
+    positions = [
+        (
+            float(m.group(1)),
+            float(m.group(2)),
+            re.sub(r"\s+", " ", _unescape(_TAG_RE.sub("", m.group(3)))).strip(),
+        )
+        for m in _TEXT_POS_RE.finditer(svg_text)
+    ]
+    for pts, segs in _connector_polylines(svg_text):
+        best_conn: tuple[float, LabelInfo] | None = None
+        best_any: tuple[float, LabelInfo] | None = None
+        for x, y, plain in positions:
+            li = resolved.get(plain)
+            if li is None:
+                continue
+            d = min(
+                _dist_point_segment(x, y, *a, *b) for a, b in zip(segs[:-1], segs[1:])
+            )
+            if d > radius:
+                continue
+            if li.kind in _CONNECTION_KINDS:
+                if best_conn is None or d < best_conn[0]:
+                    best_conn = (d, li)
+            elif best_any is None or d < best_any[0]:
+                best_any = (d, li)
+        winner = best_conn if best_conn is not None else best_any
+        if winner is not None:
+            out[pts] = winner[1]
+    return out
+
+
 def _normalize(label: str) -> list[str]:
     """Candidate lookup keys for a raw SVG label, most specific first."""
     candidates = []
@@ -96,6 +177,11 @@ def _normalize(label: str) -> list[str]:
             if len(segs) > 1:
                 candidates.append(segs[0])
                 candidates.append(segs[-1])
+    # flow labels (`providerToObserverPayload of VehicleSpeedProviderMessage`)
+    # resolve by the flow/feature name before " of "
+    for c in list(candidates):
+        if " of " in c:
+            candidates.append(c.split(" of ", 1)[0].strip())
     # quoted-name form ('exchange vehicle signals' vs exchange vehicle signals)
     for c in list(candidates):
         if c.startswith("'") and c.endswith("'"):
@@ -199,9 +285,11 @@ def resolve_labels(
 def labels_to_json(
     resolved: list[LabelInfo],
     page_dir: str,  # repo-relative dir of the generated page (for hrefs)
+    connectors: dict[str, LabelInfo] | None = None,
 ) -> str:
-    """Stable JSON for embedding: label -> {info, href}."""
-    payload: dict[str, dict] = {}
+    """Stable JSON for embedding: label -> {info, href}; plus the
+    connector map (polyline points -> {info, href}) when present."""
+    payload: dict[str, object] = {}
     for li in resolved:
         href = ""
         if li.anchor:
@@ -210,4 +298,15 @@ def labels_to_json(
         if href:
             entry["href"] = href
         payload[li.label] = entry
+    if connectors:
+        conn_payload: dict[str, dict] = {}
+        for pts, li in connectors.items():
+            href = ""
+            if li.anchor:
+                href = f"pages/{li.rel_path}.html#{li.anchor}"
+            entry = li.to_dict()
+            if href:
+                entry["href"] = href
+            conn_payload[pts] = entry
+        payload["connectors"] = conn_payload
     return json.dumps(payload, sort_keys=True, ensure_ascii=False)
