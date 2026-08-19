@@ -33,6 +33,16 @@ Autoware application integration, or a production transport contract.
 
 ## Local rehearsal
 
+The rehearsal mirrors the modeled adapter chain in
+`mw_physical_software_realization.sysml` (`MiddlewarePhysicalSoftwareBoundary`):
+
+```text
+aaosSdvBoundary (VSIDL service access stand-in)
+    -> adapter (VssVehicleSpeedAdapter)
+    -> autowareRos2Boundary (VelocityReport-shaped record)
+    -> independent observer
+```
+
 ```bash
 pytest -q \
   implementation/aaos-sdv-reference-interop-bench/tests \

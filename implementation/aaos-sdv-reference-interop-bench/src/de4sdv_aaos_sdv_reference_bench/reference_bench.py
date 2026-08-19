@@ -38,6 +38,43 @@ class ObservedOutput:
     semantic_path: str
 
 
+@dataclass(frozen=True)
+class VelocityReportBoundaryRecord:
+    """Record emitted at the Autoware-facing ROS 2 velocity-report boundary.
+
+    Mirrors the modeled ``autowareRos2Boundary`` port contract
+    (``adapter.ros2VelocityOut -> autowareRos2Boundary.velocityReportIn``,
+    ``VelocityReport`` payload on ``/vehicle/status/velocity_status``). The
+    record is VelocityReport-shaped; live ROS 2 runtime publication is not
+    claimed by this rehearsal.
+    """
+
+    longitudinal_velocity_mps: float
+    timestamp_ns: int
+    semantic_path: str
+
+
+class AutowareRos2VelocityReportBoundary:
+    """VM-B-facing ROS 2 topic boundary stand-in for the reference slice.
+
+    Consumes adapter-normalized output and emits a VelocityReport-shaped
+    record, mirroring the modeled ``autowareRos2Boundary`` usage in
+    ``MiddlewarePhysicalSoftwareBoundary``.
+    """
+
+    def __init__(self) -> None:
+        self.records: list[VelocityReportBoundaryRecord] = []
+
+    def publish(self, output) -> None:
+        self.records.append(
+            VelocityReportBoundaryRecord(
+                longitudinal_velocity_mps=output.longitudinal_velocity_mps,
+                timestamp_ns=output.timestamp_ns,
+                semantic_path=output.semantic_path,
+            )
+        )
+
+
 class IndependentObserver:
     """Observer with expectations independent of adapter output assertions."""
 
@@ -78,7 +115,10 @@ def run_reference_rehearsal(
     provider = ReferenceProvider(speed_kmh=speed_kmh, timestamp_ns=timestamp_ns)
     observer = IndependentObserver()
     adapter = VssVehicleSpeedAdapter()
-    adapter.process(provider.sample(), observer.observe)
+    boundary = AutowareRos2VelocityReportBoundary()
+    adapter.process(provider.sample(), boundary.publish)
+    for record in boundary.records:
+        observer.observe(record)
     if publish is not None:
         publish(observer.outputs[0])
     observer.verify(
@@ -89,6 +129,14 @@ def run_reference_rehearsal(
         "claim": "de4sdv_reference_contract_rehearsal",
         "passed": True,
         "provider": "VehicleSpeedProvider reference stand-in",
+        "adapter": "VssVehicleSpeedAdapter",
+        "velocity_report_boundary": "AutowareRos2VelocityReportBoundary",
+        "chain": [
+            "aaosProviderStandIn",
+            "adapter",
+            "autowareRos2VelocityReportBoundary",
+            "independentObserver",
+        ],
         "semantic_path": "Vehicle.Speed",
         "input_speed_kmh": speed_kmh,
         "output_longitudinal_velocity_mps": speed_kmh / 3.6,
