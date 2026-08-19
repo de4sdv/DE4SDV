@@ -9,4 +9,6 @@
   <text x="45" y="178" font-family="sans-serif" font-size="12">boxPart : FixtureBoxType</text>
   <polyline points="30,120 170,120" fill="none" stroke="#1A1A1A" stroke-width="1"/>
   <text x="100" y="112" font-family="sans-serif" font-size="12">signalBridge</text>
+  <path d="M 200,30 H 214 V 44 H 200 V 30 Z" fill="#FFFFFF"/>
+  <text x="218" y="41" font-family="sans-serif" font-size="12">^signalIn</text>
 </svg>
