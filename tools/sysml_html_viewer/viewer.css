@@ -373,7 +373,8 @@ code {
 .diagram-frame.interactive svg { display: block; max-width: 100%; height: auto; }
 .diagram-frame.interactive text { cursor: default; }
 .diagram-frame.interactive text.tip-hit { cursor: pointer; }
-.diagram-frame.interactive polyline.conn-hit { cursor: pointer; }
+.diagram-frame.interactive polyline.conn-hit,
+.diagram-frame.interactive path.box-hit { cursor: pointer; }
 .diagram-frame.interactive text.tip-hit:hover {
   filter: drop-shadow(0 0 3px rgba(26, 86, 219, 0.9));
 }

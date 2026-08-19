@@ -5,4 +5,8 @@
   <rect x="170" y="120" width="100" height="40" rx="4" fill="#eaf1fe" stroke="#1a56db"/>
   <text x="180" y="145" font-family="sans-serif" font-size="12">fixtureSystem</text>
   <path d="M 150 50 C 200 50 190 140 170 140" fill="none" stroke="#1a56db" stroke-width="1.5"/>
+  <path d="M 30,160 H 130 A 6,6 0 0 1 136,166 V 190 A 6,6 0 0 1 130,196 H 30 A 6,6 0 0 1 24,190 V 166 A 6,6 0 0 1 30,160 Z" fill="#FFFFFF"/>
+  <text x="45" y="178" font-family="sans-serif" font-size="12">boxPart : FixtureBoxType</text>
+  <polyline points="30,120 170,120" fill="none" stroke="#1A1A1A" stroke-width="1"/>
+  <text x="100" y="112" font-family="sans-serif" font-size="12">signalBridge</text>
 </svg>
