@@ -844,10 +844,6 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
     expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary;
     expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary::*;
-    filter (
-      not (as SysML::DependencyUsage hastype SysML::DependencyUsage) and
-      not (as SysML::AllocationUsage hastype SysML::AllocationUsage)
-    );
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute showInheritedRows = false;
