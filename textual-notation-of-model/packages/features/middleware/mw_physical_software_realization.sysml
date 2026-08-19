@@ -842,7 +842,6 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     expose MiddlewarePhysicalSoftwareBoundary::adapter;
     expose MiddlewarePhysicalSoftwareBoundary::adapter::**;
     expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary;
-    expose MiddlewarePhysicalSoftwareBoundary::aaosSdvBoundary::*;
     expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary;
     expose MiddlewarePhysicalSoftwareBoundary::autowareRos2Boundary::*;
     attribute depth = -1;
