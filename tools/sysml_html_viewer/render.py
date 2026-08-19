@@ -181,6 +181,7 @@ def _page_shell(
     search_prefix: str = "",
     filters: str = "",
     asset_stamp: str = "",
+    uses_rel: str = "",
 ) -> str:
     crumbs = " / ".join(
         f'<a href="{esc(href)}">{esc(label)}</a>' for label, href in breadcrumbs
@@ -189,6 +190,11 @@ def _page_shell(
     if asset_stamp:
         css_rel += f"?v={asset_stamp}"
         js_rel += f"?v={asset_stamp}"
+        if uses_rel:
+            uses_rel += f"?v={asset_stamp}"
+    uses_tag = (
+        f'<script src="{esc(uses_rel)}"></script>' if uses_rel else ""
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -201,6 +207,8 @@ def _page_shell(
 <link rel="stylesheet" href="{esc(css_rel)}">
 </head>
 <body{body_attr}>
+<script>window.VIEWER_PREFIX = "{esc(search_prefix)}";</script>
+{uses_tag}
 <header class="site-header">
   <a class="site-title" href="{esc(search_prefix + 'index.html')}">DE4SDV <em>Model Viewer</em></a>
   <a class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener">
@@ -293,7 +301,7 @@ def render_index(
         "Model", tree_html, [("Model", "index.html")], content,
         css_rel="assets/viewer.css", js_rel="assets/viewer.js",
         picker=picker, search_prefix=search_prefix, filters=filters,
-        asset_stamp=asset_stamp,
+        asset_stamp=asset_stamp, uses_rel="assets/uses-index.js",
     )
 
 
@@ -340,7 +348,7 @@ def render_dir_page(
         dir_label, tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
         picker=picker, search_prefix=search_prefix, filters=filters,
-        asset_stamp=asset_stamp,
+        asset_stamp=asset_stamp, uses_rel=prefix + "assets/uses-index.js",
     )
 
 
@@ -765,5 +773,5 @@ def render_file_page(
         f"{mf.rel_path}", tree_html, breadcrumbs, content,
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
         picker=picker, search_prefix=search_prefix, filters=filters,
-        asset_stamp=asset_stamp,
+        asset_stamp=asset_stamp, uses_rel=prefix + "assets/uses-index.js",
     )

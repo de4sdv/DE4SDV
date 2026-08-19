@@ -89,11 +89,148 @@
         hint.textContent = info.hint || 'click to open in viewer';
         tip.appendChild(hint);
       }
+      if (info.uses && info.uses.length) {
+        var usesLine = document.createElement('div');
+        usesLine.className = 'tip-uses';
+        usesLine.textContent =
+          'used in ' + info.uses.length +
+          (info.uses.length === 1 ? ' diagram' : ' diagrams') +
+          ' — right-click to open';
+        tip.appendChild(usesLine);
+      }
       tip.style.display = 'block';
       move(ev);
     }
 
     /* ---- source references & viewpoint tips (hover tooltip) ---- */
+    /* ---- "used in diagrams": source ref -> diagram chooser ---- */
+    var USES = window.USES_INDEX || {};
+
+    function usesFor(a) {
+      if (!a || !a.getAttribute) return null;
+      var f = a.getAttribute('data-tip-file');
+      var l = a.getAttribute('data-tip-line');
+      if (!f || !l) return null;
+      return USES[f + ':' + l] || null;
+    }
+
+    function initUsesMenu() {
+      // visual indication: source refs that appear in diagrams
+      var refs = document.querySelectorAll('a.src-ref');
+      Array.prototype.forEach.call(refs, function (a) {
+        if (usesFor(a)) a.classList.add('has-uses');
+      });
+
+      var menu = document.createElement('div');
+      menu.className = 'uses-menu';
+      menu.style.display = 'none';
+      document.body.appendChild(menu);
+
+      function closeMenu() {
+        menu.style.display = 'none';
+        menu.textContent = '';
+      }
+      document.addEventListener('click', closeMenu);
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') closeMenu();
+      });
+      document.addEventListener('contextmenu', function (ev) {
+        var a = ev.target && ev.target.closest ? ev.target.closest('a.src-ref') : null;
+        var uses = a ? usesFor(a) : null;
+        if (!uses || !uses.length) return;
+        ev.preventDefault();
+        closeMenu();
+        var title = document.createElement('div');
+        title.className = 'uses-menu-title';
+        title.textContent =
+          'Used in ' + uses.length + (uses.length === 1 ? ' diagram' : ' diagrams');
+        menu.appendChild(title);
+        uses.forEach(function (u) {
+          var item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'uses-menu-item';
+          var icon = document.createElement('span');
+          icon.className = 'uses-menu-icon';
+          icon.textContent = '\u25C8';
+          item.appendChild(icon);
+          var name = document.createElement('span');
+          name.textContent = u.v;
+          item.appendChild(name);
+          item.title = u.f;
+          item.addEventListener('click', function (e) {
+            e.stopPropagation();
+            try {
+              sessionStorage.setItem(
+                'de4sdv-hl',
+                JSON.stringify({
+                  f: a.getAttribute('data-tip-file'),
+                  l: parseInt(a.getAttribute('data-tip-line'), 10)
+                })
+              );
+            } catch (err) {}
+            window.location.href =
+              (window.VIEWER_PREFIX || '') + 'pages/' + u.f + '.html#' + u.a;
+          });
+          menu.appendChild(item);
+        });
+        menu.style.left = Math.min(ev.clientX, window.innerWidth - 240) + 'px';
+        menu.style.top = Math.min(ev.clientY, window.innerHeight - menu.offsetHeight - 8) + 'px';
+        menu.style.display = 'block';
+      });
+    }
+
+    /* when landing on a view with a pending highlight, flash the labels of
+     * the element inside the diagram (the reverse of the source flash) */
+    function flashSvgText(t) {
+      try {
+        var b = t.getBBox();
+        var ns = 'http://www.w3.org/2000/svg';
+        var rect = document.createElementNS(ns, 'rect');
+        rect.setAttribute('x', b.x - 3);
+        rect.setAttribute('y', b.y - 1);
+        rect.setAttribute('width', b.width + 6);
+        rect.setAttribute('height', b.height + 2);
+        rect.setAttribute('rx', 2);
+        rect.setAttribute('class', 'svg-flash');
+        rect.setAttribute('pointer-events', 'none');
+        t.parentNode.insertBefore(rect, t);
+        setTimeout(function () {
+          if (rect.parentNode) rect.parentNode.removeChild(rect);
+        }, 3200);
+      } catch (err) {}
+    }
+
+    function highlightFromUses() {
+      var id = location.hash ? location.hash.slice(1) : '';
+      if (id.indexOf('view-') !== 0) return;
+      var pending = null;
+      try {
+        pending = JSON.parse(sessionStorage.getItem('de4sdv-hl') || 'null');
+      } catch (err) {}
+      if (!pending) return;
+      try { sessionStorage.removeItem('de4sdv-hl'); } catch (err) {}
+      var section = document.getElementById(id);
+      if (!section) return;
+      var script = section.querySelector('script.diagram-info');
+      var frame = section.querySelector('.diagram-frame.interactive');
+      if (!script || !frame) return;
+      var map;
+      try { map = JSON.parse(script.textContent); } catch (err) { return; }
+      var labels = [];
+      Object.keys(map).forEach(function (k) {
+        if (k === 'connectors' || k === 'boxes') return;
+        var info = map[k];
+        if (info && info.file === pending.f && info.line === pending.l) {
+          labels.push(k);
+        }
+      });
+      if (!labels.length) return;
+      var texts = frame.querySelectorAll('svg text');
+      Array.prototype.forEach.call(texts, function (t) {
+        if (labels.indexOf(norm(t.textContent)) !== -1) flashSvgText(t);
+      });
+    }
+
     function initSourceRefs() {
       var sel = 'a.src-ref, span.src-sym, span.vp-tip';
       document.addEventListener('mouseover', function (ev) {
@@ -106,7 +243,8 @@
           file: a.getAttribute('data-tip-file') || '',
           line: a.getAttribute('data-tip-line') || '',
           href: a.getAttribute('href') || '',
-          hint: a.getAttribute('data-tip-hint') || ''
+          hint: a.getAttribute('data-tip-hint') || '',
+          uses: usesFor(a)
         }, ev);
       });
       document.addEventListener('mouseout', function (ev) {
@@ -194,9 +332,14 @@
     initRefPicker();
     initDiagramFullscreen();
     initSourceRefs();
+    initUsesMenu();
     initTreeSearch();
     flashTarget();
-    window.addEventListener('hashchange', flashTarget);
+    highlightFromUses();
+    window.addEventListener('hashchange', function () {
+      flashTarget();
+      highlightFromUses();
+    });
   }
 
   /* brief fade on the element the page was just jumped to (diagram click,

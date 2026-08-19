@@ -572,6 +572,68 @@ mark.tree-hl {
 .src-ref:hover { color: var(--accent); background: var(--accent-soft); }
 .src-ref.tip-hit { background: var(--accent-soft); }
 
+/* source refs that also appear in a diagram: warm dotted underline + a
+ * small marker; right-click opens the diagram chooser */
+a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-thickness: 1.5px; }
+a.src-ref.has-uses::after {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #e8590c;
+  vertical-align: super;
+}
+.tip-uses { font-size: 11px; color: #b34a09; margin-top: 5px; }
+
+/* right-click chooser: diagrams that use the element */
+.uses-menu {
+  position: fixed;
+  z-index: 5000;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.14);
+  padding: 4px;
+  min-width: 220px;
+  max-width: 340px;
+}
+.uses-menu-title {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px 10px 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.uses-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 6px 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.uses-menu-item:hover { background: var(--accent-soft); }
+.uses-menu-icon { color: #e8590c; font-size: 10px; }
+
+/* highlight rect behind a diagram label (reverse navigation flash) */
+.svg-flash {
+  fill: var(--flash, #ffd6c2);
+  animation: svg-flash-fade 2.8s ease-out;
+}
+@keyframes svg-flash-fade {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
 /* hash targets keep clear of the sticky header when jumped to (diagram
  * clicks, tree member links, source references, search Enter) */
 .src-line[id], .view-section[id] { scroll-margin-top: calc(var(--header-h) + 10px); }
