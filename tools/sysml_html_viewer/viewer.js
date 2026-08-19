@@ -164,7 +164,8 @@
                 'de4sdv-hl',
                 JSON.stringify({
                   f: a.getAttribute('data-tip-file'),
-                  l: parseInt(a.getAttribute('data-tip-line'), 10)
+                  l: parseInt(a.getAttribute('data-tip-line'), 10),
+                  h: a.getAttribute('href') || ''
                 })
               );
             } catch (err) {}
@@ -229,6 +230,21 @@
       Array.prototype.forEach.call(texts, function (t) {
         if (labels.indexOf(norm(t.textContent)) !== -1) flashSvgText(t);
       });
+      // visible return path: "arrived from src-N" note in the toolbar
+      if (pending.h) {
+        var toolbar = section.querySelector('.diagram-toolbar');
+        if (toolbar) {
+          var note = document.createElement('a');
+          note.className = 'origin-note';
+          note.href = pending.h;
+          note.textContent = '↩ from src-' + pending.l;
+          note.title = 'Back to the source line you came from';
+          toolbar.appendChild(note);
+          setTimeout(function () {
+            if (note.parentNode) note.parentNode.removeChild(note);
+          }, 8000);
+        }
+      }
     }
 
     function initSourceRefs() {

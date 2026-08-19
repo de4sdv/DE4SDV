@@ -668,6 +668,17 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
 .uses-menu-item:hover { background: var(--accent-soft); }
 .uses-menu-icon { color: #e8590c; font-size: 10px; }
 
+/* return path note after arriving via the uses-menu */
+.origin-note {
+  margin-left: auto;
+  font-size: 12px;
+  color: #b34a09;
+  text-decoration: underline dotted #e8590c;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.origin-note:hover { color: #e8590c; }
+
 /* highlight rect behind a diagram label (reverse navigation flash) */
 .svg-flash {
   fill: var(--flash, #ffd6c2);
