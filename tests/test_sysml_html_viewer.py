@@ -1058,6 +1058,55 @@ def test_diagram_boxes_and_bind_connectors(tmp_path):
     assert bridge and bridge[0]["kind"] == "bind"
 
 
+def test_positional_disambiguation():
+    """Same-name ports on different parts resolve by label position: the
+    label near the observer's port glyph resolves to the observer port,
+    the label near the bundle's glyph to the bundle port."""
+    from tools.sysml_html_viewer.svg_info import extract_text_labels, resolve_labels
+    from tools.sysml_html_viewer.model_parse import ElementRef
+
+    svg = (
+        "<svg>"
+        '<path d="M 100,50 H 300 A 6,6 0 0 1 306,56 V 200 A 6,6 0 0 1 300,206'
+        ' H 100 A 6,6 0 0 1 94,200 V 56 A 6,6 0 0 1 100,50 Z" fill="#FFFFFF"/>'
+        '<text x="120" y="80">^observer : AAOSVehicleSpeedObserver</text>'
+        '<path d="M 400,40 H 800 A 6,6 0 0 1 806,46 V 220 A 6,6 0 0 1 800,226'
+        ' H 400 A 6,6 0 0 1 394,220 V 46 A 6,6 0 0 1 400,40 Z" fill="#FFFFFF"/>'
+        '<text x="420" y="60">cuttlefishGuest : AAOSVehicleSpeedServiceBundle</text>'
+        '<path d="M 90,150 H 104 V 164 H 90 V 150 Z" fill="#FFFFFF"/>'
+        '<text x="60" y="160">^structuredLogcatOut</text>'
+        '<path d="M 796,150 H 810 V 164 H 796 V 150 Z" fill="#FFFFFF"/>'
+        '<text x="820" y="160">^structuredLogcatOut</text>'
+        "</svg>"
+    )
+    observer = ElementRef(
+        name="observer", kind="part", rel_path="p/f.sysml", line=448, anchor="src-448",
+        parent_name="cuttlefishGuest", parent_line=440,
+    )
+    bundle = ElementRef(
+        name="cuttlefishGuest", kind="part", rel_path="p/f.sysml", line=458, anchor="src-458",
+    )
+    observer_port = ElementRef(
+        name="structuredLogcatOut", kind="port", rel_path="p/f.sysml", line=455,
+        anchor="src-455", parent_name="AAOSVehicleSpeedObserver", parent_line=448,
+    )
+    bundle_port = ElementRef(
+        name="structuredLogcatOut", kind="port", rel_path="p/f.sysml", line=465,
+        anchor="src-465", parent_name="AAOSVehicleSpeedServiceBundle", parent_line=458,
+    )
+    index = {
+        "observer": [observer],
+        "cuttlefishGuest": [bundle],
+        "structuredLogcatOut": [observer_port, bundle_port],
+    }
+    resolved = resolve_labels(
+        extract_text_labels(svg), index, "p/f.sysml", "p", svg
+    )
+    by_x = {li.x: li for li in resolved if li.name == "structuredLogcatOut"}
+    assert by_x[60.0].line == 455, "observer-side label must resolve to the observer port"
+    assert by_x[820.0].line == 465, "bundle-side label must resolve to the bundle port"
+
+
 def test_uses_index_generated(tmp_path):
     """The site carries a reverse index (declaration -> views whose diagram
     shows it), every page loads it, and fixture elements used in the

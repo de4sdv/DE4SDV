@@ -614,14 +614,20 @@ def _uses_index(
                 continue
             labels = svg_info.extract_text_labels(svg_markup)
             folder = str(Path(mf.rel_path).parent)
-            resolved = svg_info.resolve_labels(labels, member_index, mf.rel_path, folder)
+            resolved = svg_info.resolve_labels(
+                labels, member_index, mf.rel_path, folder, svg_markup
+            )
             by_label = {li.label: li for li in resolved}
             payloads = [
                 by_label,
                 svg_info.resolve_connectors(
                     svg_markup, by_label, member_index, mf.rel_path, folder
                 ),
-                svg_info.resolve_boxes(svg_markup, by_label),
+                svg_info.resolve_boxes(
+                    svg_markup,
+                    by_label,
+                    {svg_info._position_key(li.x, li.y): li for li in resolved if li.x or li.y},
+                ),
             ]
             for payload in payloads:
                 for li in payload.values():

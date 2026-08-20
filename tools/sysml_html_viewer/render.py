@@ -581,8 +581,11 @@ def _svg_hover_json(
 
     labels = svg_info.extract_text_labels(svg_markup)
     folder = str(Path(mf.rel_path).parent)
-    resolved = svg_info.resolve_labels(labels, member_index, mf.rel_path, folder)
+    resolved = svg_info.resolve_labels(
+        labels, member_index, mf.rel_path, folder, svg_markup
+    )
     payload: dict[str, dict] = {}
+    positions: dict[str, dict] = {}
     by_label: dict[str, svg_info.LabelInfo] = {}
     for li in resolved:
         entry = li.to_dict()
@@ -590,6 +593,10 @@ def _svg_hover_json(
             entry["href"] = prefix + f"pages/{li.rel_path}.html#{li.anchor}"
         payload[li.label] = entry
         by_label[li.label] = li
+        if li.x or li.y:
+            positions[f"{li.x:g},{li.y:g}"] = entry
+    if positions:
+        payload["positions"] = positions
     connectors = svg_info.resolve_connectors(
         svg_markup, by_label, member_index, mf.rel_path, folder
     )
@@ -601,7 +608,11 @@ def _svg_hover_json(
                 entry["href"] = prefix + f"pages/{li.rel_path}.html#{li.anchor}"
             conn_payload[pts] = entry
         payload["connectors"] = conn_payload
-    boxes = svg_info.resolve_boxes(svg_markup, by_label)
+    boxes = svg_info.resolve_boxes(
+        svg_markup,
+        by_label,
+        {svg_info._position_key(li.x, li.y): li for li in resolved if li.x or li.y},
+    )
     if boxes:
         box_payload: dict[str, dict] = {}
         for d, li in boxes.items():
