@@ -2,12 +2,12 @@
 
 An open-source project for **digitally engineered, configurable, continuously
 certifiable software-defined vehicle (SDV) product lines**. DE4SDV applies
-product-line engineering and model-based systems engineering — SysML v2,
-feature-based product-line engineering, digital continuity, simulation
-interoperability, and continuous compliance — so that SDV variability across
-subsystems (ADAS, operating systems, core software) is modeled explicitly as
-configurable architectures, enabling systematic comparison of alternatives,
-transparent trade-off decisions, and lifecycle-wide assurance.
+model-based systems engineering — SysML v2, product-line engineering, digital
+continuity, simulation interoperability, and continuous compliance — so that
+SDV variability across application domains (such as ADAS, telematics,
+connectivity, and core vehicle software) is modeled explicitly as configurable
+architectures, enabling systematic comparison of alternatives, transparent
+trade-off decisions, and lifecycle-wide assurance.
 
 DE4SDV is a workstream within the INCOSE Automotive Working Group.
 
