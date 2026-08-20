@@ -95,6 +95,12 @@ Vehicle (SDV)** with emphasis on:
 - Safety, security, UNECE-oriented compliance, and continuous homologation
 - DevSecOps practices for regulated cyber-physical systems
 
+# Getting started
+
+- **New to DE4SDV?** Read the [getting started guide](docs/getting-started/README.md) — what this project is, how the repository is organized, and how the process works.
+- **Explore the model** in the [model viewer](#model-viewer) or serve your own working tree locally.
+- **Want to contribute?** Follow the [contribution model](#contribution-model).
+
 # Model viewer
 
 A live viewer is deployed at **https://viewer.de4sdv.org** — the public,
@@ -120,7 +126,7 @@ viewer website).
 
 | Area | Purpose |
 |---|---|
-| `docs/` | Human-facing documentation, terminology, roadmap, references |
+| `docs/` | Human-facing documentation: getting-started, guides, terminology, ADRs, runbooks, plans |
 | `compliance/` | Safety, security, UNECE, homologation-related evidence placeholders |
 | `standards/` | Standards map and interpretation notes |
 | `approach/` | Process set, framework, ontology, viewpoints |
@@ -129,7 +135,8 @@ viewer website).
 | `digital-continuity/` | OSLC, digital thread, traceability, lifecycle integration |
 | `digital-twin/` | Digital twin concepts, parameters, and runtime alignment |
 | `simulation/` | FMI/FMU/SSP simulation integration assets |
-| `implementation/` | Reference implementation code will live here |
+| `implementation/` | Reference implementations with reproducible evidence (see `implementation/README.md`) |
+| `experiments/` | Spikes and exploration results (not maintained assets) |
 | `model-based-product-line-engineering/` | Feature models, configurations, shared assets, product models |
 | `configuration-management/` | Baselines, change control, versioning, release evidence |
 | `continuous-homologation/` | Continuous compliance and approval evidence workflow |
@@ -148,6 +155,7 @@ triage, and standards mapping are all valuable.
 
 Start here:
 
+0. New here? Read the [getting started guide](docs/getting-started/README.md)
 1. Read the practical contributor guide: [`CONTRIBUTING`](CONTRIBUTING.md)
 2. Read [`AGENTS`](AGENTS.md) if you use an AI coding assistant
 3. Read the [Project Charter](docs/project-goals/project-charter.md)
