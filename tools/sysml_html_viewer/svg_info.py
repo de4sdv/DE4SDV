@@ -230,7 +230,11 @@ def resolve_connectors(
     return out
 
 
-def resolve_boxes(svg_text: str, resolved: dict[str, LabelInfo]) -> dict[str, LabelInfo]:
+def resolve_boxes(
+    svg_text: str,
+    resolved: dict[str, LabelInfo],
+    resolved_pos: dict[str, LabelInfo] | None = None,
+) -> dict[str, LabelInfo]:
     """Pair element-box paths (white rounded rects) with the element label
     inside them — the box owner — and port glyphs (small white squares on
     box edges) with their port label — so hovering the box body or the
@@ -245,11 +249,19 @@ def resolve_boxes(svg_text: str, resolved: dict[str, LabelInfo]) -> dict[str, La
     if not boxes:
         return out
     positions = _text_positions(svg_text)
+
+    def _label_at(x: float, y: float, plain: str) -> LabelInfo | None:
+        if resolved_pos is not None:
+            li = resolved_pos.get(_position_key(x, y))
+            if li is not None:
+                return li
+        return resolved.get(plain)
+
     for d, (x1, y1, x2, y2) in boxes:
         inside = [
             (x, y, li)
             for (x, y, plain) in positions
-            if (li := resolved.get(plain)) is not None
+            if (li := _label_at(x, y, plain)) is not None
             and li.kind in _BOX_OWNER_KINDS
             and x1 < x < x2
             and y1 < y < y2
@@ -267,7 +279,7 @@ def resolve_boxes(svg_text: str, resolved: dict[str, LabelInfo]) -> dict[str, La
             best_port: tuple[float, LabelInfo] | None = None
             best_item: tuple[float, LabelInfo] | None = None
             for x, y, plain in positions:
-                li = resolved.get(plain)
+                li = _label_at(x, y, plain)
                 if li is None or li.kind not in ("port", "item"):
                     continue
                 # measure to the label's approximated box (10px font,
@@ -370,6 +382,8 @@ class LabelInfo:
     rel_path: str = ""
     line: int = 0
     anchor: str = ""
+    x: float = 0.0
+    y: float = 0.0
 
     def to_dict(self) -> dict[str, object]:
         d: dict[str, object] = {"name": self.name, "kind": self.kind}
@@ -382,11 +396,91 @@ class LabelInfo:
         return d
 
 
+def _position_key(x: float, y: float) -> str:
+    """Stable position key matching the SVG x/y attributes (`962` vs `244.4`)."""
+    return f"{x:g},{y:g}"
+
+
+def _port_contexts(
+    svg_text: str, resolved: dict[str, LabelInfo]
+) -> dict[str, list[tuple[float, float, float, float]]]:
+    """Map a definition name (from an element box's owner label type) to the
+    port glyphs on that box's edge, so an ambiguous port label can be
+    assigned to the ref whose parent's box is nearest.
+
+    Example: the observer box (owner `^observer : AAOSVehicleSpeedObserver`)
+    yields ``AAOSVehicleSpeedObserver -> [observer-port-glyphs]``; the
+    bundle frame yields ``AAOSVehicleSpeedServiceBundle -> [bundle glyphs]``.
+    """
+    positions = _text_positions(svg_text)
+    boxes: list[tuple[float, float, float, float, str]] = []
+    for m in _BOX_PATH_RE.finditer(svg_text):
+        bbox = _path_bbox(m.group(1))
+        if bbox is None:
+            continue
+        x1, y1, x2, y2 = bbox
+        inside = [
+            (x, y, plain)
+            for (x, y, plain) in positions
+            if (li := resolved.get(plain)) is not None
+            and li.kind in _BOX_OWNER_KINDS
+            and x1 < x < x2
+            and y1 < y < y2
+        ]
+        if not inside:
+            continue
+        inside.sort(key=lambda t: t[1])
+        plain = inside[0][2]
+        def_name = plain.split(" : ", 1)[-1].strip() if " : " in plain else plain
+        boxes.append((x1, y1, x2, y2, def_name))
+    glyphs: dict[str, list[tuple[float, float, float, float]]] = {}
+    for m in _BOX_PATH_RE.finditer(svg_text):
+        bbox = _path_bbox(m.group(1))
+        if bbox is None:
+            continue
+        x1, y1, x2, y2 = bbox
+        if max(x2 - x1, y2 - y1) > 60:
+            continue  # element boxes, not port glyphs
+        # the SMALLEST box this glyph overlaps (glyphs straddle box edges,
+        # often a few px OUTSIDE them; nearest-box wrongly picks the outer
+        # frame, which contains everything)
+        overlaps = [
+            b
+            for b in boxes
+            if b[0] < x2 + 20 and b[2] > x1 - 20 and b[1] < y2 + 20 and b[3] > y1 - 20
+        ]
+        if not overlaps:
+            continue  # glyph not on any known box edge
+        owner = min(overlaps, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]))
+        glyphs.setdefault(owner[4], []).append((x1, y1, x2, y2))
+    return glyphs
+
+
+def _pick_by_position(
+    x: float,
+    y: float,
+    refs: list[ElementRef],
+    glyphs: dict[str, list[tuple[float, float, float, float]]],
+) -> ElementRef | None:
+    """Among same-name refs with DIFFERENT parents, pick the one whose
+    parent's port glyphs sit nearest the label position."""
+    best: tuple[float, ElementRef] | None = None
+    for ref in refs:
+        gs = glyphs.get(ref.parent_name)
+        if not gs:
+            continue
+        dist = min(_dist_point_rect(x, y, *g) for g in gs)
+        if best is None or dist < best[0]:
+            best = (dist, ref)
+    return best[1] if best is not None else None
+
+
 def resolve_labels(
     labels: list[str],
     index: dict[str, list[ElementRef]],
     view_file: str,
     view_folder: str,
+    svg_text: str = "",
 ) -> list[LabelInfo]:
     """Resolve diagram labels against the model index, most specific first.
 
@@ -400,8 +494,14 @@ def resolve_labels(
     """
     out: list[LabelInfo] = []
     context: ElementRef | None = None
-    for label in labels:
+    resolved_key: dict[str, str] = {}
+    if svg_text:
+        items = [(x, y, plain) for (x, y, plain) in _text_positions(svg_text) if plain]
+    else:
+        items = [(0.0, 0.0, label) for label in labels]
+    for x, y, label in items:
         ref = None
+        key_hit = ""
         if context is not None and _HEADING_RE.match(label):
             # compartment headings/doc rows show their containing element
             ref = context
@@ -410,6 +510,7 @@ def resolve_labels(
                 refs = index.get(key)
                 if not refs:
                     continue
+                key_hit = key
                 ref = _prefer(refs, view_file, view_folder)
                 if context is not None:
                     inside = [
@@ -432,10 +533,44 @@ def resolve_labels(
                 rel_path=ref.rel_path,
                 line=ref.line,
                 anchor=ref.anchor,
+                x=x,
+                y=y,
             )
         )
+        if key_hit:
+            resolved_key[label] = key_hit
         if ref.has_children and ref.kind != "package":
             context = ref
+    # positional disambiguation: the SAME name can be declared several
+    # times (e.g. `port structuredLogcatOut` on the observer AND on the
+    # bundle). When a label's name has multiple same-file refs with
+    # different parents, pick the ref whose parent's port glyphs sit
+    # nearest the label position — the observer-side label resolves to
+    # the observer port, the bundle-edge label to the bundle port.
+    if svg_text and out:
+        by_label = {li.label: li for li in out}
+        glyphs = _port_contexts(svg_text, by_label)
+        for i, li in enumerate(out):
+            key = resolved_key.get(li.label)
+            if not key:
+                continue
+            refs = index.get(key) or []
+            same = [r for r in refs if r.rel_path == view_file]
+            if len(same) < 2 or len({r.parent_name for r in same if r.parent_name}) < 2:
+                continue
+            alt = _pick_by_position(li.x, li.y, same, glyphs)
+            if alt is not None:
+                out[i] = LabelInfo(
+                    label=li.label,
+                    name=alt.name,
+                    kind=alt.kind,
+                    doc=alt.doc,
+                    rel_path=alt.rel_path,
+                    line=alt.line,
+                    anchor=alt.anchor,
+                    x=li.x,
+                    y=li.y,
+                )
     return out
 
 

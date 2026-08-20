@@ -219,17 +219,29 @@
       var map;
       try { map = JSON.parse(script.textContent); } catch (err) { return; }
       var labels = [];
+      var flashPos = {};
       Object.keys(map).forEach(function (k) {
-        if (k === 'connectors' || k === 'boxes') return;
+        if (k === 'connectors' || k === 'boxes' || k === 'positions') return;
         var info = map[k];
         if (info && info.file === pending.f && info.line === pending.l) {
           labels.push(k);
         }
       });
-      if (!labels.length) return;
+      var posMap = map.positions || {};
+      Object.keys(posMap).forEach(function (pk) {
+        var info = posMap[pk];
+        if (info && info.file === pending.f && info.line === pending.l) {
+          flashPos[pk] = true;
+        }
+      });
+      if (!labels.length && !Object.keys(flashPos).length) return;
       var texts = frame.querySelectorAll('svg text');
       Array.prototype.forEach.call(texts, function (t) {
-        if (labels.indexOf(norm(t.textContent)) !== -1) flashSvgText(t);
+        var key = norm(t.textContent);
+        var x = t.getAttribute('x');
+        var y = t.getAttribute('y');
+        var pk = (parseFloat(x) || 0) + ',' + (parseFloat(y) || 0);
+        if (labels.indexOf(key) !== -1 || flashPos[pk]) flashSvgText(t);
       });
       // visible return path: "arrived from src-N" note in the toolbar
       if (pending.h) {
@@ -286,10 +298,20 @@
       } catch (e) {
         return;
       }
+      var posMap = map.positions || {};
+      function infoFor(t) {
+        var x = t.getAttribute('x');
+        var y = t.getAttribute('y');
+        if (x !== null && y !== null) {
+          var pk = (parseFloat(x) || 0) + ',' + (parseFloat(y) || 0);
+          if (posMap[pk]) return posMap[pk];
+        }
+        return map[norm(t.textContent)];
+      }
       var texts = frame.querySelectorAll('svg text');
       Array.prototype.forEach.call(texts, function (t) {
         t.addEventListener('mouseover', function (ev) {
-          var info = map[norm(t.textContent)];
+          var info = infoFor(t);
           if (!info) {
             hide();
             return;
@@ -299,7 +321,7 @@
         t.addEventListener('mousemove', move);
         t.addEventListener('mouseout', hide);
         t.addEventListener('click', function (ev) {
-          var info = map[norm(t.textContent)];
+          var info = infoFor(t);
           if (info && info.href) {
             ev.stopPropagation();
             window.location.href = info.href;
