@@ -125,7 +125,8 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
     def test_signal_translation_criterion_is_deterministic_and_bounded(self):
         criterion = self.pilot["acceptance_criteria"][0]
         self.assertEqual(criterion["id"], "AC-MW-010-01")
-        self.assertEqual(criterion["status"], "partial_lower_layer_evidence")
+        self.assertEqual(criterion["status"], "pass_bounded_verification")
+        self.assertEqual(criterion["evidence"], "E-MW-011 gates 4-6")
         # The semantic content lives in the model, not the pilot YAML.
         self.assertNotIn("statement", criterion)
         self.assertIn("division by 3.6", self.model)
@@ -136,14 +137,16 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
         self.assertEqual(len(criteria), 7)
         for criterion in criteria:
             with self.subTest(criterion=criterion["id"]):
-                # Status-only entries: id + sysml_element + status, no statement.
+                # Status-only entries: id + sysml_element + status + evidence
+                # index (evidence references E-MW-011 gates; no statement text).
                 self.assertEqual(
-                    set(criterion), {"id", "sysml_element", "status"}
+                    set(criterion), {"id", "sysml_element", "status", "evidence"}
                 )
                 self.assertIn(criterion["sysml_element"], self.model)
 
         statuses = {criterion["status"] for criterion in criteria}
         self.assertIn("blocked_target_runtime", statuses)
+        self.assertIn("pass_bounded_verification", statuses)
         self.assertNotIn("accepted", statuses)
         self.assertNotIn("pass_target_runtime", statuses)
         self.assertIn("Missing target-runtime evidence", self.model)
@@ -182,8 +185,14 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
         self.assertEqual(layers["unit_and_contract_tests"]["status"], "observed_bounded")
         self.assertEqual(layers["reference_rehearsal"]["status"], "observed_bounded")
         self.assertEqual(layers["aaos_cuttlefish_boot"]["status"], "observed_bounded")
-        self.assertEqual(layers["target_runtime_interoperability"]["status"], "blocked")
-        self.assertEqual(layers["lifecycle_update_fault_validation"]["status"], "blocked")
+        self.assertEqual(
+            layers["target_runtime_interoperability"]["status"],
+            "observed_bounded_campaign_chain",
+        )
+        self.assertEqual(
+            layers["lifecycle_update_fault_validation"]["status"],
+            "partial_fault_observed",
+        )
         self.assertIn("ArgumentationAssuranceViewpoint", self.model)
         self.assertNotIn("PhysicalStructureDefinitionViewpoint", self.model)
 
@@ -253,6 +262,7 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
             "verificationExecutionEnvironmentTrace",
             "boundedBootBaselineTrace",
             "plannedTargetRuntimeEvidence010",
+            "runtimeCampaignEvidence011",
             "reqMaintainMiddlewareBoundaryTraceability",
         ]
         for text in required:
