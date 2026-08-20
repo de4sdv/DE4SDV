@@ -60,6 +60,29 @@ The independent observer must see:
 36.0 km/h → 10.0 m/s
 ```
 
+## Runtime campaign (runbook gates 1–8)
+
+The campaign driver executes the runtime proof gates from
+`docs/runbooks/windows-aaos-sdv-reference-proof.md` and emits evidence in the
+`de4sdv.executable-integration-evidence.v1` schema:
+
+```bash
+# rehearsal dry-run (proves the harness; NOT runtime evidence)
+python3 implementation/aaos-sdv-reference-interop-bench/scripts/run_runtime_campaign.py \
+  --backend local --speed-kmh 36 --evidence-out /tmp/campaign-rehearsal.yaml
+
+# live host run (ADB to the AAOS guest + ROS 2 CLI on the host)
+python3 implementation/aaos-sdv-reference-interop-bench/scripts/run_runtime_campaign.py \
+  --backend host --adb-serial <serial> --speed-kmh 36 \
+  --evidence-out implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml
+```
+
+Gate outcomes are honest by construction: a probe that cannot execute reports
+`blocked`, a probe whose output contradicts the gate contract reports `fail`,
+and a pass requires the probe's output to match the contract. The reverse
+lifecycle path (gate 8) stays `not_claimed` unless `--claim-bidirectional` is
+passed.
+
 The evidence explicitly reports:
 
 ```text
