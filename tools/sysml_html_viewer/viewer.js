@@ -294,6 +294,21 @@
         if (rt && rt.closest && rt.closest(sel) === a) return; // still inside
         hide();
       });
+      document.addEventListener('click', function (ev) {
+        var a = ev.target && ev.target.closest ? ev.target.closest(sel) : null;
+        if (!a) return;
+        var href = a.getAttribute('data-tip-href');
+        if (!href) return;
+        // the span itself is clickable (viewpoint type -> SAF page);
+        // anchors with data-tip-href would be handled here too
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (/^https?:/i.test(href)) {
+          window.open(href, '_blank', 'noopener');
+        } else {
+          window.location.href = href;
+        }
+      });
     }
 
     var scripts = document.querySelectorAll('script.diagram-info');
