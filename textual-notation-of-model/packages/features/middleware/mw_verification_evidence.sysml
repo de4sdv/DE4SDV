@@ -221,24 +221,52 @@ package DE4SDV_MW010VerificationEvidence {
     doc /*
      * Planned evidence for provider binding, deployment, discovery, transport,
      * ROS 2 publication, independent Autoware observation, and lifecycle/fault
-     * scenarios on the configured member.
+     * scenarios on the configured member. The campaign-chain subset of this
+     * plan is now retained as runtimeCampaignEvidence011; the adapter-chain
+     * and lifecycle/update subset remains planned.
      */
   }
 
+  part runtimeCampaignEvidence011 : RetainedMiddlewareEvidence010 {
+    doc /*
+     * E-MW-011. Retained runtime campaign evidence (2026-08-20) for the
+     * configured member's modeled two-VM campaign deployment:
+     *
+     *   vmA.cuttlefishGuest (provider+observer bundles, sdv_core_cf,
+     *   instance1 bootconfig) -> vmA.hostForwarder (adb_logcat_bridge,
+     *   accepts DE4SDV_ADB_LOGCAT_FORWARD_ACCEPTED) -> privateTcpBoundary
+     *   (VPC tcp:4711) -> vmB.ros2Ingress (vehicle_speed_tcp_bridge node,
+     *   strict envelope validation, publishes VelocityReport) ->
+     *   vmB.independentObserver (validates 10.0 m/s).
+     *
+     * Gates 1-7 pass; gate 8 (reverse lifecycle/status) not claimed.
+     * Provider process, registration, discovery agent, forwarder accepts,
+     * exact topic/type/field, independent observer, and ingress rejection
+     * were all observed on the live hosts.
+     */
+    attribute :>> configurationIdentity = "MW-CONFIG-001";
+    attribute :>> executionEnvironmentIdentity = "gcp-europe-west4-a-de4sdv-aaos-build+de4sdv-ros2-autoware";
+    attribute :>> contractIdentity = "de4sdv.reference.vehicle_speed.VehicleSpeed -> autoware_vehicle_msgs/msg/VelocityReport";
+    attribute :>> rawObservationArtifact = "implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml";
+    attribute :>> independentObserverIdentity = "de4sdv_velocity_report_independent_observer (vmB)";
+    attribute :>> disposition = EvidenceDisposition010::observedBounded;
+    attribute :>> claimBoundary = "Campaign-chain runtime evidence on the two-VM deployment; not adapter-chain, lifecycle/update, safety, or certification evidence.";
+  }
+
   part providerBindingEvidenceGap010 : DeferredProductLineScope {
-    doc /* GAP-MW-025: Generated/usable VSIDL binding and deployed provider behavior remain unavailable. */
+    doc /* GAP-MW-025: Generated/usable VSIDL binding and deployed provider behavior remain unavailable. Campaign-chain subset observed (E-MW-011 gate 1: VehicleSpeedProvider:instance running); production adapter-chain binding remains open. */
   }
 
   part crossDomainTransportEvidenceGap010 : DeferredProductLineScope {
-    doc /* GAP-MW-026: Android/KVM-to-Linux/ROS 2 transport, discovery, and deployment evidence remain unavailable. */
+    doc /* GAP-MW-026: Android/KVM-to-Linux/ROS 2 transport, discovery, and deployment evidence remain unavailable. Campaign-chain subset observed (E-MW-011 gates 3-5: discovery agent, forwarder accepts, exact topic); production adapter-chain transport remains open. */
   }
 
   part independentAutowareObservationGap010 : DeferredProductLineScope {
-    doc /* GAP-MW-027: An independent observation of /vehicle/status/velocity_status and Autoware-side provenance remains unavailable. */
+    doc /* GAP-MW-027: An independent observation of /vehicle/status/velocity_status and Autoware-side provenance remains unavailable. Campaign-chain subset observed (E-MW-011 gate 6: independent observer validated 10.0 m/s); Autoware-side provenance remains open. */
   }
 
   part lifecycleUpdateFaultEvidenceGap010 : DeferredProductLineScope {
-    doc /* GAP-MW-028: Target-runtime lifecycle, update/OTA, health, and fault evidence remains unavailable. */
+    doc /* GAP-MW-028: Target-runtime lifecycle, update/OTA, health, and fault evidence remains unavailable. Fault subset observed (E-MW-011 gate 7: ingress rejects non-valid envelopes); lifecycle/update/health and reverse path remain open (gate 8 not claimed). */
   }
 
   verification def SignalTranslationVerification010 {
@@ -565,22 +593,22 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   requirement counterClaim010ProviderBinding : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-01: bounds the claim for GAP-MW-025 scope (provider binding and deployed provider behavior). */
+    doc /* CCM-MW-010-01: bounds the claim for GAP-MW-025 scope (production adapter-chain provider binding; campaign-chain provider observed by E-MW-011). */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
   requirement counterClaim010CrossDomainTransport : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-02: bounds the claim for GAP-MW-026 scope (Android/KVM-to-Linux/ROS 2 transport, discovery, deployment). */
+    doc /* CCM-MW-010-02: bounds the claim for GAP-MW-026 scope (production adapter-chain Android/KVM-to-Linux/ROS 2 transport; campaign-chain transport observed by E-MW-011). */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
   requirement counterClaim010IndependentObservation : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-03: bounds the claim for GAP-MW-027 scope (independent Autoware observation). */
+    doc /* CCM-MW-010-03: bounds the claim for GAP-MW-027 scope (Autoware-side provenance; independent ROS 2 observation observed by E-MW-011). */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
   requirement counterClaim010LifecycleUpdateFault : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-04: bounds the claim for GAP-MW-028 scope (target-runtime lifecycle, update/OTA, health, fault). */
+    doc /* CCM-MW-010-04: bounds the claim for GAP-MW-028 scope (lifecycle, update/OTA, health; fault rejection observed by E-MW-011 gate 7). */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
@@ -614,6 +642,14 @@ package DE4SDV_MW010VerificationEvidence {
     from contractAndRehearsalEvidence010 to signalTranslationArgument010;
   dependency bootBaselineReinforcesArgument
     from boundedAAOSBootBaseline010 to vehicleStartupArgument010;
+  dependency runtimeCampaignReinforcesSignalArgument
+    from runtimeCampaignEvidence011 to signalTranslationArgument010;
+  dependency runtimeCampaignReinforcesStartupArgument
+    from runtimeCampaignEvidence011 to vehicleStartupArgument010;
+  dependency runtimeCampaignReinforcesFaultArgument
+    from runtimeCampaignEvidence011 to faultDetectionArgument010;
+  dependency runtimeCampaignTraceToClaim
+    from runtimeCampaignEvidence011 to mw010ReferenceContractClaim;
 
   dependency counterClaimProviderBindingCountersClaim
     from counterClaim010ProviderBinding to mw010ReferenceContractClaim;
@@ -652,12 +688,19 @@ package DE4SDV_MW010VerificationEvidence {
     expose mw010ReferenceContractClaim;
     expose signalTranslationArgument010;
     expose vehicleStartupArgument010;
+    expose faultDetectionArgument010;
     expose contractAndRehearsalEvidence010;
     expose boundedAAOSBootBaseline010;
+    expose runtimeCampaignEvidence011;
     expose claimSupportedBySignalArgument;
     expose claimSupportedByStartupArgument;
+    expose claimSupportedByFaultArgument;
     expose contractEvidenceReinforcesArgument;
     expose bootBaselineReinforcesArgument;
+    expose runtimeCampaignReinforcesSignalArgument;
+    expose runtimeCampaignReinforcesStartupArgument;
+    expose runtimeCampaignReinforcesFaultArgument;
+    expose runtimeCampaignTraceToClaim;
     attribute maxCompartmentEntries = 0;
     attribute showAnnotationRows = false;
     render asTreeDiagram;

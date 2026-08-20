@@ -116,26 +116,33 @@ verification_cases:
 
 acceptance_criteria:
   - id: AC-MW-010-01
-    status: partial_lower_layer_evidence
+    status: pass_bounded_verification
     sysml_element: acceptanceCriterion010SignalTranslation
+    evidence: E-MW-011 gates 4-6
   - id: AC-MW-010-02
-    status: planned
-    sysml_element: acceptanceCriterion010LifecycleCoordination
-  - id: AC-MW-010-03
-    status: planned
-    sysml_element: acceptanceCriterion010HealthForwarding
-  - id: AC-MW-010-04
     status: blocked_target_runtime
+    sysml_element: acceptanceCriterion010LifecycleCoordination
+    evidence: E-MW-011 gate 8 not claimed
+  - id: AC-MW-010-03
+    status: blocked_target_runtime
+    sysml_element: acceptanceCriterion010HealthForwarding
+    evidence: no scenario executed
+  - id: AC-MW-010-04
+    status: pass_bounded_verification
     sysml_element: acceptanceCriterion010VehicleStartup
+    evidence: E-MW-011 gates 1-3
   - id: AC-MW-010-05
     status: blocked_target_runtime
     sysml_element: acceptanceCriterion010UpdateCoordination
+    evidence: no scenario executed
   - id: AC-MW-010-06
-    status: blocked_target_runtime
+    status: pass_bounded_verification
     sysml_element: acceptanceCriterion010FaultDetection
+    evidence: E-MW-011 gate 7
   - id: AC-MW-010-07
-    status: planned_evidence_integrity_control
+    status: pass_bounded_verification
     sysml_element: acceptanceCriterion010EvidenceIndependence
+    evidence: E-MW-011 retained evidence + observer identity
 
 evidence_ladder:
   - layer: repository_and_sysml
@@ -156,13 +163,17 @@ evidence_ladder:
     claim: pinned AAOS target build and bounded Cuttlefish bootability only
     artifact: implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
   - layer: target_runtime_interoperability
-    status: blocked
-    claim: provider, discovery, transport, adapter, ROS 2, and Autoware runtime behavior
+    status: observed_bounded_campaign_chain
+    claim: provider, discovery, transport, forwarder, ROS 2 publication, and independent observation on the modeled two-VM campaign deployment
+    artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml
     blockers: [GAP-MW-025, GAP-MW-026, GAP-MW-027]
+    scope: campaign chain observed; production adapter-chain binding/transport/Autoware provenance remain blocked
   - layer: lifecycle_update_fault_validation
-    status: blocked
+    status: partial_fault_observed
     claim: startup, update/OTA, health, and fault behavior on the configured member
+    artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml
     blockers: [GAP-MW-028]
+    scope: fault rejection observed (gate 7); lifecycle/update/health and reverse path not claimed (gate 8)
 
 cloud_readiness:
   purpose: >-
@@ -218,19 +229,23 @@ runtime_evidence_gaps:
   - id: GAP-MW-025
     model_element: providerBindingEvidenceGap010
     owner: supporting_implementation
-    next_action: identify_exact_vsidlc_or_binding_toolchain_and_deploy_the_provider
+    status: campaign_chain_observed
+    next_action: identify_exact_vsidlc_or_binding_toolchain_and_deploy_the_provider for the production adapter chain
   - id: GAP-MW-026
     model_element: crossDomainTransportEvidenceGap010
     owner: supporting_implementation
-    next_action: demonstrate_discovery_binding_and_android_kvm_to_linux_ros2_transport
+    status: campaign_chain_observed
+    next_action: demonstrate_discovery_binding_and_android_kvm_to_linux_ros2_transport for the production adapter chain
   - id: GAP-MW-027
     model_element: independentAutowareObservationGap010
     owner: supporting_implementation
-    next_action: retain_independent_observation_of_vehicle_status_velocity_status
+    status: campaign_chain_observed
+    next_action: retain_independent_observation_of_vehicle_status_velocity_status with Autoware-side provenance
   - id: GAP-MW-028
     model_element: lifecycleUpdateFaultEvidenceGap010
     owner: supporting_implementation_and_v_and_v
-    next_action: execute_startup_update_health_and_fault_scenarios_after_vertical_slice_exists
+    status: fault_subset_observed
+    next_action: execute_startup_update_health_and_reverse_path_scenarios after the vertical slice exists
 
 claim_boundary:
   supported_now:
@@ -239,11 +254,15 @@ claim_boundary:
     - provider-neutral 36/72 kmh conversion evidence
     - reference contract rehearsal evidence
     - bounded AAOS/Cuttlefish build-and-boot baseline
+    - E-MW-011 runtime campaign gates 1-7 on the modeled two-VM deployment
+    - independent observer validation of 36 kmh -> 10.0 m/s on the exact ROS 2 topic
+    - ingress rejection of non-valid envelopes (fault subset)
   not_supported_now:
-    - deployed AAOS VSIDL provider or generated binding
-    - service discovery or cross-domain transport
-    - ROS 2 publication or independent Autoware observation
-    - lifecycle, update/OTA, health, or fault runtime acceptance
+    - production adapter-chain VSIDL provider binding or generated binding
+    - production adapter-chain service discovery or cross-domain transport
+    - Autoware-side provenance beyond the independent ROS 2 observer
+    - lifecycle, update/OTA, or health runtime acceptance
+    - reverse lifecycle/status path (gate 8)
     - safety, compliance, certification, homologation, or type approval
 
 supporting_implementation:
