@@ -597,8 +597,18 @@ def _svg_hover_json(
             positions[f"{li.x:g},{li.y:g}"] = entry
     if positions:
         payload["positions"] = positions
+    resolved_pos = {
+        svg_info._position_key(li.x, li.y): li
+        for li in resolved
+        if li.x or li.y
+    }
     connectors = svg_info.resolve_connectors(
-        svg_markup, by_label, member_index, mf.rel_path, folder
+        svg_markup,
+        by_label,
+        member_index,
+        mf.rel_path,
+        folder,
+        resolved_pos=resolved_pos,
     )
     if connectors:
         conn_payload: dict[str, dict] = {}

@@ -61,11 +61,22 @@ def extract_text_labels(svg_text: str) -> list[str]:
     return labels
 
 
-# SysIDE draws connections (bindings, flows between ports) as polylines with
-# a #1A1A1A stroke and no fill; element borders and compartment separators
-# use other colors (#336680 etc.).
-_CONNECTOR_POLY_RE = re.compile(
-    r'<polyline\b(?=[^>]*points="([^"]+)")(?=[^>]*#1A1A1A)(?=[^>]*fill="none")[^>]*>'
+# SysIDE's committed relationship connectors use dark, unfilled geometry;
+# #336680 polylines are compartment/table separators. Keep that discriminator
+# for native polyline connectors so nearby port labels cannot turn separators
+# into relationship hit targets. Line/path support remains permissive because
+# those primitives are not present in the current committed SysIDE artifacts;
+# semantic label pairing still gates whether they become hover targets.
+_POLYLINE_RE = re.compile(
+    r'<polyline\b(?=[^>]*points="([^"]+)")'
+    r'(?=[^>]*\bfill="none")(?=[^>]*\bstroke="(?:#1A1A1A|black)")[^>]*>'
+)
+_LINE_RE = re.compile(
+    r'<line\b(?=[^>]*\bx1="([\d.-]+)")(?=[^>]*\by1="([\d.-]+)")'
+    r'(?=[^>]*\bx2="([\d.-]+)")(?=[^>]*\by2="([\d.-]+)")[^>]*>'
+)
+_PATH_RE = re.compile(
+    r'<path\b(?=[^>]*\bd="([^"]+)")(?=[^>]*\bfill="none")([^>]*)>'
 )
 
 _TEXT_POS_RE = re.compile(
@@ -74,15 +85,51 @@ _TEXT_POS_RE = re.compile(
 
 
 def _connector_polylines(svg_text: str) -> list[tuple[str, list[tuple[float, float]]]]:
-    """(raw points attr, segment points) for every connector polyline."""
+    """Return stable keys and points for all line-like SVG geometry.
+
+    The historical function name is retained for callers, but the returned
+    inventory includes polyline, line, and simple SysIDE path geometry. Paths
+    used for arrows and element borders are filtered by their SVG fill/stroke
+    attributes and by relationship-label resolution.
+    """
     out = []
-    for m in _CONNECTOR_POLY_RE.finditer(svg_text):
+    for m in _POLYLINE_RE.finditer(svg_text):
         pts = m.group(1)
         coords = [float(v) for v in re.split(r"[,\s]+", pts.strip()) if v]
         points = list(zip(coords[0::2], coords[1::2]))
         if len(points) >= 2:
             out.append((pts, points))
+    for m in _LINE_RE.finditer(svg_text):
+        points = [(float(m.group(1)), float(m.group(2))), (float(m.group(3)), float(m.group(4)))]
+        key = f"line:{m.group(1)},{m.group(2)},{m.group(3)},{m.group(4)}"
+        out.append((key, points))
+    for m in _PATH_RE.finditer(svg_text):
+        d = m.group(1)
+        if re.search(r"\bZ\b", d, re.I):
+            continue  # closed rounded/outline boxes, not open connectors
+        points = _orthogonal_path_points(d)
+        if len(points) >= 2:
+            out.append((f"path:{d}", points))
     return out
+
+
+def _orthogonal_path_points(d: str) -> list[tuple[float, float]]:
+    """Parse the M/H/V subset used by SysIDE's routed relationship paths."""
+    points: list[tuple[float, float]] = []
+    cur = (0.0, 0.0)
+    for command, args in re.findall(r"([MHV])\s*([\d.,\s-]*)", d, re.I):
+        nums = [float(v) for v in re.findall(r"-?[\d.]+", args)]
+        cmd = command.upper()
+        if cmd == "M" and len(nums) >= 2:
+            cur = (nums[0], nums[1])
+            points.append(cur)
+        elif cmd == "H" and nums:
+            cur = (nums[0], cur[1])
+            points.append(cur)
+        elif cmd == "V" and nums:
+            cur = (cur[0], nums[0])
+            points.append(cur)
+    return points
 
 
 def _dist_point_segment(
@@ -95,7 +142,7 @@ def _dist_point_segment(
     return math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
 
 
-_CONNECTION_KINDS = frozenset({"connection", "flow", "bind"})
+_CONNECTION_KINDS = frozenset({"connection", "flow", "bind", "dependency"})
 
 # kinds that own an element box (the white rounded rects SysIDE draws for
 # part defs, parts, item defs, ...)
@@ -195,39 +242,63 @@ def resolve_connectors(
     member_index: dict[str, list[ElementRef]],
     view_file: str,
     view_folder: str,
-    radius: float = 140.0,
+    radius: float = 260.0,
+    resolved_pos: dict[str, LabelInfo] | None = None,
 ) -> dict[str, LabelInfo]:
-    """Pair connector polylines with the nearest resolvable label.
+    """Pair visible relationship geometry with its model declaration.
 
-    The label lying on the connection (a flow/connection/bind usage) wins
-    over nearer endpoint labels (ports) so the tooltip names the connection,
-    not its ends. Keyed by the raw points attribute so the viewer can
-    look up the hovered polyline directly.
+    ``resolved_pos`` is the identity-preserving map built from each SVG
+    text element's coordinates. It is preferred over ``resolved`` so two
+    same-text labels in one diagram cannot collapse to one tooltip. The
+    geometry inventory includes polyline/line/path primitives; only a nearby
+    relationship declaration is accepted, so frame/separator geometry does
+    not become a fabricated relationship.
     """
-    out: dict[str, LabelInfo] = {}
     positions = _text_positions(svg_text)
-    for pts, segs in _connector_polylines(svg_text):
-        best_conn: tuple[float, LabelInfo] | None = None
-        best_any: tuple[float, LabelInfo] | None = None
-        for x, y, plain in positions:
-            li = resolved.get(plain)
-            if li is None:
-                continue
-            li = _connector_label(plain, li, member_index, view_file, view_folder)
-            d = min(
-                _dist_point_segment(x, y, *a, *b) for a, b in zip(segs[:-1], segs[1:])
-            )
-            if d > radius:
-                continue
-            if li.kind in _CONNECTION_KINDS:
-                if best_conn is None or d < best_conn[0]:
-                    best_conn = (d, li)
-            elif best_any is None or d < best_any[0]:
-                best_any = (d, li)
-        winner = best_conn if best_conn is not None else best_any
-        if winner is not None:
-            out[pts] = winner[1]
-    return out
+    shapes = _connector_polylines(svg_text)
+    # A declaration can be printed more than once (for example in an expose
+    # compartment and beside its relationship). Group those occurrences by
+    # declaration first; otherwise duplicate labels compete with distinct
+    # relationships and one real connector is silently lost.
+    relationships: dict[tuple[str, str, int], list[tuple[float, float, LabelInfo]]] = {}
+    for x, y, plain in positions:
+        li = (
+            resolved_pos.get(_position_key(x, y), resolved.get(plain))
+            if resolved_pos is not None
+            else resolved.get(plain)
+        )
+        if li is None:
+            continue
+        li = _connector_label(plain, li, member_index, view_file, view_folder)
+        if li.kind in _CONNECTION_KINDS and not plain.startswith("expose "):
+            identity = (li.rel_path, li.kind, li.line)
+            relationships.setdefault(identity, []).append((x, y, li))
+
+    # Resolve declarations and shapes as a one-to-one assignment. For each
+    # declaration, retain all printed label positions as candidates and let the
+    # globally closest unused declaration/shape pair win. This handles both
+    # duplicate labels and nearby routed lines without dropping a declaration.
+    pairs: list[tuple[float, tuple[str, str, int], str, LabelInfo]] = []
+    for identity, occurrences in relationships.items():
+        for x, y, li in occurrences:
+            for shape_key, segs in shapes:
+                d = min(
+                    _dist_point_segment(x, y, *a, *b)
+                    for a, b in zip(segs[:-1], segs[1:])
+                )
+                if d <= radius:
+                    pairs.append((d, identity, shape_key, li))
+    assignments: list[tuple[float, str, LabelInfo]] = []
+    used_relationships: set[tuple[str, str, int]] = set()
+    used_shapes: set[str] = set()
+    for distance, identity, shape_key, li in sorted(pairs, key=lambda p: p[0]):
+        if identity in used_relationships or shape_key in used_shapes:
+            continue
+        used_relationships.add(identity)
+        used_shapes.add(shape_key)
+        assignments.append((distance, shape_key, li))
+
+    return {shape_key: li for _, shape_key, li in assignments}
 
 
 def resolve_boxes(

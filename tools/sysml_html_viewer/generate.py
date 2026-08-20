@@ -618,10 +618,20 @@ def _uses_index(
                 labels, member_index, mf.rel_path, folder, svg_markup
             )
             by_label = {li.label: li for li in resolved}
+            resolved_pos = {
+                svg_info._position_key(li.x, li.y): li
+                for li in resolved
+                if li.x or li.y
+            }
             payloads = [
                 by_label,
                 svg_info.resolve_connectors(
-                    svg_markup, by_label, member_index, mf.rel_path, folder
+                    svg_markup,
+                    by_label,
+                    member_index,
+                    mf.rel_path,
+                    folder,
+                    resolved_pos=resolved_pos,
                 ),
                 svg_info.resolve_boxes(
                     svg_markup,
