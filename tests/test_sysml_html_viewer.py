@@ -1107,6 +1107,144 @@ def test_positional_disambiguation():
     assert by_x[820.0].line == 465, "bundle-side label must resolve to the bundle port"
 
 
+def test_connector_shapes_and_relationship_labels_are_resolved():
+    """Every semantic connector primitive is hoverable, regardless of stroke
+    color, while nearby part labels do not turn separator lines into fake
+    relationships."""
+    from tools.sysml_html_viewer.svg_info import (
+        extract_text_labels,
+        resolve_connectors,
+        resolve_labels,
+    )
+    from tools.sysml_html_viewer.model_parse import ElementRef
+
+    svg = (
+        '<svg>'
+        '<polyline points="10,10 90,10" fill="none" stroke="#1A1A1A"/>'
+        '<line x1="10" y1="30" x2="90" y2="30" stroke="#336680"/>'
+        '<path d="M 10,50 H 50 V 70 H 90" fill="none" stroke="#1A1A1A"/>'
+        '<polyline points="10,90 90,90" fill="none" stroke="#336680"/>'
+        '<text x="45" y="8">blueConnection</text>'
+        '<text x="45" y="28">lineFlow</text>'
+        '<text x="45" y="48">pathBinding</text>'
+        '<text x="45" y="88">nearbyPart</text>'
+        '</svg>'
+    )
+    refs = [
+        ElementRef(name="blueConnection", kind="connection", rel_path="p/f.sysml", line=1, anchor="src-1"),
+        ElementRef(name="lineFlow", kind="flow", rel_path="p/f.sysml", line=2, anchor="src-2"),
+        ElementRef(name="pathBinding", kind="bind", rel_path="p/f.sysml", line=3, anchor="src-3"),
+        ElementRef(name="nearbyPart", kind="part", rel_path="p/f.sysml", line=4, anchor="src-4"),
+    ]
+    index = {r.name: [r] for r in refs}
+    resolved_list = resolve_labels(
+        extract_text_labels(svg), index, "p/f.sysml", "p", svg
+    )
+    resolved = {li.label: li for li in resolved_list}
+    resolved_pos = {f"{li.x:g},{li.y:g}": li for li in resolved_list}
+    connectors = resolve_connectors(
+        svg, resolved, index, "p/f.sysml", "p", resolved_pos=resolved_pos
+    )
+
+    assert connectors["10,10 90,10"].name == "blueConnection"
+    assert connectors["line:10,30,90,30"].name == "lineFlow"
+    assert connectors["path:M 10,50 H 50 V 70 H 90"].name == "pathBinding"
+    assert "10,90 90,90" not in connectors
+
+
+def test_connector_resolution_reassigns_competing_labels():
+    """A second relationship label gets the next-nearest unused shape."""
+    from tools.sysml_html_viewer.svg_info import (
+        extract_text_labels,
+        resolve_connectors,
+        resolve_labels,
+    )
+    from tools.sysml_html_viewer.model_parse import ElementRef
+
+    svg = (
+        '<svg>'
+        '<polyline points="10,10 90,10" fill="none" stroke="#1A1A1A"/>'
+        '<polyline points="10,20 90,20" fill="none" stroke="#1A1A1A"/>'
+        '<text x="50" y="11">firstFlow</text>'
+        '<text x="50" y="12">secondFlow</text>'
+        '</svg>'
+    )
+    refs = {
+        "firstFlow": [ElementRef(name="firstFlow", kind="flow", rel_path="p/f.sysml", line=1)],
+        "secondFlow": [ElementRef(name="secondFlow", kind="flow", rel_path="p/f.sysml", line=2)],
+    }
+    resolved_list = resolve_labels(extract_text_labels(svg), refs, "p/f.sysml", "p", svg)
+    resolved = {li.label: li for li in resolved_list}
+    positions = {f"{li.x:g},{li.y:g}": li for li in resolved_list}
+    connectors = resolve_connectors(svg, resolved, refs, "p/f.sysml", "p", resolved_pos=positions)
+    assert {li.name for li in connectors.values()} == {"firstFlow", "secondFlow"}
+
+
+def test_connector_resolution_groups_duplicate_declaration_labels():
+    """Repeated printed labels for one declaration do not consume extra shapes."""
+    from tools.sysml_html_viewer.svg_info import (
+        extract_text_labels,
+        resolve_connectors,
+        resolve_labels,
+    )
+    from tools.sysml_html_viewer.model_parse import ElementRef
+
+    svg = (
+        '<svg>'
+        '<polyline points="10,10 90,10" fill="none" stroke="#1A1A1A"/>'
+        '<polyline points="10,20 90,20" fill="none" stroke="#1A1A1A"/>'
+        '<text x="50" y="11">sameFlow</text>'
+        '<text x="50" y="12">sameFlow</text>'
+        '</svg>'
+    )
+    ref = ElementRef(name="sameFlow", kind="flow", rel_path="p/f.sysml", line=1)
+    resolved_list = resolve_labels(
+        extract_text_labels(svg), {"sameFlow": [ref]}, "p/f.sysml", "p", svg
+    )
+    resolved = {li.label: li for li in resolved_list}
+    positions = {f"{li.x:g},{li.y:g}": li for li in resolved_list}
+    connectors = resolve_connectors(
+        svg, resolved, {"sameFlow": [ref]}, "p/f.sysml", "p", resolved_pos=positions
+    )
+    assert len(connectors) == 1
+
+
+def test_connector_shape_inventory_excludes_box_paths():
+    """Rounded element boxes are not relationship hit targets even when a
+    nearby relationship label makes a broad geometric search possible."""
+    from tools.sysml_html_viewer.svg_info import _connector_polylines
+
+    svg = (
+        '<svg>'
+        '<path d="M 10,10 H 90 V 90 H 10 Z" fill="#FFFFFF" stroke="#1A1A1A"/>'
+        '<path d="M 10,50 H 90" fill="none" stroke="#1A1A1A"/>'
+        '</svg>'
+    )
+    shapes = _connector_polylines(svg)
+    assert [key for key, _ in shapes] == ["path:M 10,50 H 90"]
+
+
+def test_hover_json_preserves_duplicate_label_identity(tmp_path):
+    """Two same-text labels keep different positional tooltip targets."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    page = (
+        out
+        / "pages"
+        / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml.html"
+    ).read_text(encoding="utf-8")
+    payloads = []
+    for m in re.finditer(r'<script[^>]*application/json[^>]*>(.*?)</script>', page, re.S):
+        payloads.append(json.loads(m.group(1).replace("<\\/", "</")))
+    diagram = next(p for p in payloads if "positions" in p)
+    signal_positions = [
+        value for value in diagram["positions"].values()
+        if value["name"] == "signalIn"
+    ]
+    assert signal_positions
+    assert all(item["line"] for item in signal_positions)
+
+
 def test_uses_index_generated(tmp_path):
     """The site carries a reverse index (declaration -> views whose diagram
     shows it), every page loads it, and fixture elements used in the

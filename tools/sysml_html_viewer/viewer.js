@@ -332,26 +332,49 @@
       // that lies on it (flow/connection usage), so hovering the line names
       // the connection
       var conns = map.connectors || {};
-      var pls = frame.querySelectorAll('svg polyline');
-      Array.prototype.forEach.call(pls, function (p) {
-        var info = conns[p.getAttribute('points')];
+      var connectorShapes = frame.querySelectorAll('svg polyline, svg line, svg path');
+      Array.prototype.forEach.call(connectorShapes, function (p) {
+        if (p.classList.contains('conn-hit-overlay')) return;
+        var key = p.hasAttribute('points')
+          ? p.getAttribute('points')
+          : (p.tagName.toLowerCase() === 'line'
+            ? 'line:' + p.getAttribute('x1') + ',' + p.getAttribute('y1') + ','
+              + p.getAttribute('x2') + ',' + p.getAttribute('y2')
+            : 'path:' + p.getAttribute('d'));
+        var info = conns[key];
         if (!info) return;
-        p.classList.add('conn-hit');
-        p.addEventListener('mouseover', function (ev) { show(p, info, ev); });
-        p.addEventListener('mousemove', move);
-        p.addEventListener('mouseout', hide);
-        p.addEventListener('click', function (ev) {
-          if (info.href) {
-            ev.stopPropagation();
-            window.location.href = info.href;
-          }
-        });
+        function bindConnector(target) {
+          target.classList.add('conn-hit');
+          target.addEventListener('mouseover', function (ev) { show(target, info, ev); });
+          target.addEventListener('mousemove', move);
+          target.addEventListener('mouseout', hide);
+          target.addEventListener('click', function (ev) {
+            if (info.href) {
+              ev.stopPropagation();
+              window.location.href = info.href;
+            }
+          });
+        }
+        bindConnector(p);
+        // SysIDE connectors are often only 0.5px wide. Keep the committed
+        // diagram visually unchanged, but add a transparent, wider SVG hit
+        // target so a reviewer can actually hover the relationship.
+        var hit = p.cloneNode(false);
+        hit.classList.add('conn-hit-overlay');
+        hit.setAttribute('fill', 'none');
+        hit.setAttribute('stroke', 'transparent');
+        hit.setAttribute('stroke-width', '12');
+        hit.setAttribute('stroke-opacity', '0');
+        hit.setAttribute('pointer-events', 'stroke');
+        p.parentNode.appendChild(hit);
+        bindConnector(hit);
       });
       // element boxes: the white rounded-rect body of a part carries the
       // tooltip of the element it belongs to (same pattern as connectors)
       var boxes = map.boxes || {};
       var paths = frame.querySelectorAll('svg path');
       Array.prototype.forEach.call(paths, function (p) {
+        if (p.classList.contains('conn-hit-overlay')) return;
         var info = boxes[p.getAttribute('d')];
         if (!info) return;
         p.classList.add('box-hit');
