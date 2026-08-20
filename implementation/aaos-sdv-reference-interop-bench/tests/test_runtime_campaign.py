@@ -119,11 +119,17 @@ def test_host_backend_pass_when_contract_matches():
     def run(cmd):
         if cmd[0] == "ros2":
             return 0, "longitudinal_velocity: 10.0"
+        if cmd[0] == "ssh":
+            return 0, "rejected AAOS Vehicle.Speed record: bad keys"
+        if "ps" in cmd:
+            return 0, "VehicleSpeedProvider:instance"
+        if "service" in cmd:
+            return 0, "IServiceRegistrationAgent/default"
         if "logcat" in cmd:
-            return 0, (
-                "VehicleSpeedProvider Available VehicleSpeedProviderMessage reject"
-            )
-        return 0, "package: /system/priv-app/sdvc/sdvc.apk"
+            return 0, "DE4SDV_VEHICLE_SPEED_PUBLISHED speed_kmh=36"
+        if cmd[0] == "grep":
+            return 0, "DE4SDV_ADB_LOGCAT_FORWARD_ACCEPTED count=1"
+        return 0, ""
 
     backend = HostBackend(run=run)
     report = run_campaign(backend, _ctx(), "runtime")

@@ -1,0 +1,92 @@
+schema: de4sdv.executable-integration-evidence.v1
+id: E-MW-011-RUNTIME-CAMPAIGN-2026-08-20
+increment: INC-MW-010
+status: passed
+mode: runtime
+recorded_at: "2026-08-20T19:45:32Z"
+claim:
+  statement: >-
+    The configured Autoware + AndroidSDV member (MW-CONFIG-001) realizes the
+    Vehicle.Speed reference contract across the modeled two-VM campaign
+    deployment: the AAOS guest provider publishes wire records, the host
+    forwarder accepts them, the private TCP boundary carries them to the ROS 2
+    ingress on the second VM, and the ingress publishes the exact
+    VelocityReport topic/type/field while rejecting non-valid envelopes. An
+    independent observer validates the known speed (36 km/h -> 10.0 m/s).
+  system_1_subject: "Configured Autoware + AndroidSDV member (MW-CONFIG-001)"
+  system_2_enabler: "Google Cloud de4sdv-aaos-build + de4sdv-ros2-autoware two-VM campaign deployment"
+  evidence_boundary: >-
+    Runtime campaign gates 1-7 on the modeled campaign chain
+    (vmA.cuttlefishGuest -> hostForwarder -> privateTcpBoundary ->
+    vmB.ros2Ingress -> independentObserver). Reverse lifecycle/status path
+    (gate 8) not claimed.
+hosts:
+  vmA:
+    instance: de4sdv-aaos-build
+    zone: europe-west4-a
+    machine_type: n2-standard-16
+    architecture: x86_64
+    guest_target: sdv_core_cf-trunk_staging-userdebug
+    guest_bootconfig: instance1 (androidboot.sdv.instance_name=instance1, boot_mode=locked)
+    adb_serial: 192.168.98.3:5555
+    forwarder_log: /home/mrk/forwarder.log
+    forwarder_accept_count: 535
+  vmB:
+    instance: de4sdv-ros2-autoware
+    zone: europe-west4-a
+    machine_type: n2-standard-16
+    architecture: x86_64
+    ros_distro: humble
+    bridge_log: /home/mrk/bridge-node.log
+    bridge_publish_count: 496
+    ingress_rejection_count: 41
+    observer_result:
+      longitudinal_velocity_mps: 10.0
+      topic: /vehicle/status/velocity_status
+firewall:
+  - de4sdv-aaos-allow-ssh-jetson (tcp:22 from 93.201.27.174/32,84.131.201.202/32)
+  - de4sdv-allow-campaign-tcp-4711 (tcp:4711 from 10.250.0.0/24)
+  - de4sdv-allow-internal-ssh-22 (tcp:22 from 10.250.0.0/24)
+toolchain:
+  runner: implementation/aaos-sdv-reference-interop-bench (feat/mw-runtime-campaign-host-probes)
+  runner_schema: de4sdv.executable-integration-evidence.v1
+  dispatch: campaign_dispatch.py (adb local on vmA, ros2 via SSH to vmB)
+gates:
+  - gate: 1
+    name: reference provider service is built and installed
+    outcome: pass
+    detail: "VehicleSpeedProvider:instance process present in guest"
+  - gate: 2
+    name: service bundle registered with the AAOS SDV middleware
+    outcome: pass
+    detail: "DE4SDV_VEHICLE_SPEED_PUBLISHED in guest logcat (538 occurrences)"
+  - gate: 3
+    name: service discovery resolves the reference service identity
+    outcome: pass
+    detail: "IServiceRegistrationAgent registered in guest service list"
+  - gate: 4
+    name: adapter receives a real AAOS publication
+    outcome: pass
+    detail: "DE4SDV_ADB_LOGCAT_FORWARD_ACCEPTED in forwarder log (535)"
+  - gate: 5
+    name: adapter publishes the exact ROS 2 topic/type/field
+    outcome: pass
+    detail: "ros2 topic echo shows longitudinal_velocity: 10.0"
+  - gate: 6
+    name: independent observer verifies known speed
+    outcome: pass
+    detail: "independent observer validated 10.0 m/s on /vehicle/status/velocity_status"
+  - gate: 7
+    name: fault tests cover stale, invalid, provider loss, discovery failure
+    outcome: pass
+    detail: "ingress rejects non-valid envelopes (41 rejections logged)"
+  - gate: 8
+    name: reverse lifecycle/status path passes if bidirectional is claimed
+    outcome: not_claimed
+    detail: "reverse lifecycle/status path not claimed for this campaign"
+model_mapping:
+  - "vmA.cuttlefishGuest -> guest VehicleSpeedProvider/Observer service bundles"
+  - "vmA.hostForwarder -> adb_logcat_bridge.py (owns extraction from guest logcat)"
+  - "privateTcpBoundary -> vmA:ephemeral -> vmB:4711 (VPC tcp:4711 rule)"
+  - "vmB.ros2Ingress -> vehicle_speed_tcp_bridge node (strict envelope validation)"
+  - "vmB.independentObserver -> observe_velocity_report entry point"

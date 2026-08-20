@@ -368,27 +368,27 @@ class HostBackend:
         probes: dict[int, HostProbe] = {
             1: HostProbe(
                 "provider built and installed",
-                self._adb("shell", "pm", "path",
-                           "com.android.sdvc"),  # placeholder: bundle identity
-                expect="package:",
+                self._adb("shell", "ps", "-A"),
+                expect="VehicleSpeedProvider:instance",
             ),
             2: HostProbe(
-                "service bundle registered",
-                self._adb("shell", "logcat", "-d", "-s", "SDV_MW"),
-                expect="VehicleSpeedProvider",
+                "service bundle registered with the AAOS SDV middleware",
+                self._adb("shell", "logcat", "-d"),
+                expect="DE4SDV_VEHICLE_SPEED_PUBLISHED",
             ),
             3: HostProbe(
-                "discovery resolves reference service",
-                self._adb("shell", "logcat", "-d", "-s", "SDV_SD"),
-                expect="Available",
+                "service discovery resolves the reference service identity",
+                self._adb("shell", "service", "list"),
+                expect="IServiceRegistrationAgent",
             ),
             4: HostProbe(
-                "adapter receives real AAOS publication",
-                self._adb("shell", "logcat", "-d", "-s", "DE4SDV_FWD"),
-                expect="VehicleSpeedProviderMessage",
+                "adapter receives a real AAOS publication",
+                ["grep", "DE4SDV_ADB_LOGCAT_FORWARD_ACCEPTED",
+                 "/home/mrk/forwarder.log"],
+                expect="DE4SDV_ADB_LOGCAT_FORWARD_ACCEPTED",
             ),
             5: HostProbe(
-                "adapter publishes exact ROS 2 topic",
+                "adapter publishes the exact ROS 2 topic/type/field",
                 ["ros2", "topic", "echo", ctx.topic, "--once"],
                 expect=ctx.field_name,
             ),
@@ -399,8 +399,11 @@ class HostBackend:
             ),
             7: HostProbe(
                 "fault tests: ingress rejects non-valid envelopes",
-                self._adb("shell", "logcat", "-d", "-s", "DE4SDV_INGRESS"),
-                expect="reject",
+                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
+                 "mrk@10.250.0.3",
+                 "grep -a 'rejected AAOS Vehicle.Speed record' "
+                 "/home/mrk/bridge-node.log | tail -1"],
+                expect="rejected AAOS Vehicle.Speed record",
             ),
         }
         if gate == 8:
