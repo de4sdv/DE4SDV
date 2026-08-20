@@ -26,6 +26,7 @@ import argparse
 import io
 import json
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -491,7 +492,8 @@ def _docs_page_html(repo_root: Path, md_rel: str, title: str, fallback: str) -> 
     if not md_path.is_file():
         body = f"<p>{fallback}</p>"
     else:
-        body = _render_help_md(md_path.read_text(encoding="utf-8"))
+        link_path = str(Path(md_rel).parent)
+        body = _render_help_md(md_path.read_text(encoding="utf-8"), link_path)
     return (
         "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n"
         "<meta charset=\"utf-8\">\n"
@@ -529,8 +531,14 @@ def _elements_html(repo_root: Path) -> str:
     )
 
 
-def _render_help_md(text: str) -> str:
-    """Convert the help markdown subset to HTML body content."""
+def _render_help_md(text: str, link_path: str = "") -> str:
+    """Convert the help markdown subset to HTML body content.
+
+    Supports ATX headings (with anchor ids), fenced code, bullet/numbered
+    lists, tables, paragraphs, blockquotes, thematic breaks, and the inline
+    subset from ``_inline_md``. ``link_path`` resolves relative links (see
+    ``_inline_md``).
+    """
     lines = text.splitlines()
     out: list[str] = []
     in_code = False
@@ -539,15 +547,23 @@ def _render_help_md(text: str) -> str:
     list_tag = "ul"
     para_buf: list[str] = []
     table_buf: list[list[str]] = []
+    quote_buf: list[str] = []
+    heading_ids: dict[str, int] = {}
+
+    def slugify(title: str) -> str:
+        slug = re.sub(r"[^a-z0-9]+", "-", re.sub(r"[`*_]", "", title.lower())).strip("-")
+        seen = heading_ids.get(slug, 0)
+        heading_ids[slug] = seen + 1
+        return slug if seen == 0 else f"{slug}-{seen}"
 
     def flush_para() -> None:
         if para_buf:
-            out.append(f"<p>{_inline_md(' '.join(para_buf))}</p>")
+            out.append(f"<p>{_inline_md(' '.join(para_buf), link_path)}</p>")
             para_buf.clear()
 
     def flush_list() -> None:
         if list_buf is not None:
-            items = "".join(f"<li>{_inline_md(i)}</li>" for i in list_buf)
+            items = "".join(f"<li>{_inline_md(i, link_path)}</li>" for i in list_buf)
             out.append(f"<{list_tag}>{items}</{list_tag}>")
             list_buf.clear()
 
@@ -565,18 +581,27 @@ def _render_help_md(text: str) -> str:
         ):
             body = body[1:]
         cells = "".join(
-            f"<th>{_inline_md(c)}</th>" for c in header
+            f"<th>{_inline_md(c, link_path)}</th>" for c in header
         )
         rows_html = "".join(
-            "<tr>" + "".join(f"<td>{_inline_md(c)}</td>" for c in row) + "</tr>"
+            "<tr>" + "".join(f"<td>{_inline_md(c, link_path)}</td>" for c in row) + "</tr>"
             for row in body
         )
         out.append(f"<table><thead><tr>{cells}</tr></thead><tbody>{rows_html}</tbody></table>")
+
+    def flush_quote() -> None:
+        if quote_buf:
+            paras = "".join(
+                f"<p>{_inline_md(q, link_path)}</p>" for q in quote_buf
+            )
+            out.append(f"<blockquote>{paras}</blockquote>")
+            quote_buf.clear()
 
     def flush_all() -> None:
         flush_para()
         flush_list()
         flush_table()
+        flush_quote()
 
     def table_row(s: str) -> list[str] | None:
         if not (s.startswith("|") and s.endswith("|") and s.count("|") >= 2):
@@ -604,15 +629,29 @@ def _render_help_md(text: str) -> str:
         if row is not None:
             flush_para()
             flush_list()
+            flush_quote()
             table_buf.append(row)
             continue
         flush_table()
+        if re.fullmatch(r"[-*_]{3,}", s):
+            flush_all()
+            out.append("<hr>")
+            continue
+        if s.startswith(">"):
+            flush_para()
+            flush_list()
+            flush_table()
+            quote_buf.append(s[1:].strip())
+            continue
+        flush_quote()
         m = re.match(r"^(#{1,3})\s+(.*)$", s)
         if m:
             flush_para()
             flush_list()
             level = len(m.group(1))
-            out.append(f"<h{level}>{_inline_md(m.group(2))}</h{level}>")
+            out.append(
+                f'<h{level} id="{slugify(m.group(2))}">{_inline_md(m.group(2), link_path)}</h{level}>'
+            )
             continue
         m = re.match(r"^[-*]\s+(.*)$", s)
         if m:
@@ -638,12 +677,34 @@ def _render_help_md(text: str) -> str:
     return "\n".join(out)
 
 
-def _inline_md(s: str) -> str:
-    """Inline markdown: code, bold, and links (applied after escaping)."""
+def _inline_md(s: str, link_path: str = "") -> str:
+    """Inline markdown: code, bold, italic, and links (applied after escaping).
+
+    ``link_path`` is the repo directory the markdown lives in (for example
+    ``docs/guides``); relative links are normalized against it and rendered
+    as GitHub blob URLs on the published site. http(s)/mailto links and
+    same-page anchors stay as written.
+    """
     s = _esc(s)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
     s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
-    s = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2" rel="noopener">\1</a>', s)
+    s = re.sub(r"(?<!\*)\*([^*\s][^*]*)\*(?!\*)", r"<em>\1</em>", s)
+
+    def _link(m: re.Match) -> str:
+        text, url = m.group(1), m.group(2)
+        if url.startswith("#"):
+            return f'<a href="{url}">{text}</a>'
+        if url.startswith(("http://", "https://", "mailto:")):
+            return f'<a href="{url}" rel="noopener">{text}</a>'
+        if link_path:
+            rel = posixpath.normpath(posixpath.join(link_path, url))
+            return (
+                f'<a href="https://github.com/de4sdv/DE4SDV/blob/main/{rel}" '
+                f'rel="noopener">{text}</a>'
+            )
+        return f'<a href="{url}" rel="noopener">{text}</a>'
+
+    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", _link, s)
     return s
 
 
