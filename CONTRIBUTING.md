@@ -4,6 +4,8 @@ Thank you for your interest in contributing to DE4SDV (Digital Engineering for S
 
 DE4SDV is an open-source effort focused on model-based, product-line, and continuously certifiable SDV engineering. We welcome contributions from systems engineers, software engineers, safety/compliance specialists, and documentation contributors.
 
+New here? Start with the [getting started guide](docs/getting-started/README.md) for orientation, then come back here for the contribution workflow.
+
 ## Contribution sizes
 
 Use these size classes to keep work reviewable:
