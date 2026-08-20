@@ -43,7 +43,7 @@ VERIFICATION_SYSML_FILES = [
     "aebs_pedestrian_verification.sysml",
     "aebs_bicycle_verification.sysml",
     "aebs_regulatory_criterion_verification.sysml",
-    "aebs_nominal_evidence.sysml",
+    "aebs_evidence.sysml",
 ]
 
 # Sync point 1 — mapping of SysML scenario-identity enum to Python evaluator.
@@ -365,7 +365,7 @@ def _extract_expected_usages(test_text: str) -> dict[str, set[str]]:
 
 # Map increment codes to verification .sysml filenames.
 _INCREMENT_TO_FILE: dict[str, str] = {
-    "009B": "aebs_nominal_evidence.sysml",
+    "009B": "aebs_evidence.sysml",
     "009C": "aebs_partial_intervention_verification.sysml",
     "009D": "aebs_override_verification.sysml",
     "009E": "aebs_non_activation_verification.sysml",

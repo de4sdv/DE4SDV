@@ -247,7 +247,7 @@ def list_requirements() -> List[str]:
 def _verification_and_evidence_files() -> List[Path]:
     """Return sorted verification + nominal-evidence ``.sysml`` files."""
     files = sorted(AEBS_DIR.glob("*_verification.sysml"))
-    nominal = AEBS_DIR / "aebs_nominal_evidence.sysml"
+    nominal = AEBS_DIR / "aebs_evidence.sysml"
     if nominal.exists() and nominal not in files:
         files.append(nominal)
     return files

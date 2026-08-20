@@ -67,7 +67,7 @@ def test_query_reqCommandEmergencyBraking_returns_009B_009C_009D():
     report = qmi.query_impact("reqCommandEmergencyBraking")
     files = {edge.file for edge in report.edges}
     # 009B (nominal), 009C (partial intervention) both trace to braking.
-    assert "aebs_nominal_evidence.sysml" in files, files
+    assert "aebs_evidence.sysml" in files, files
     assert "aebs_partial_intervention_verification.sysml" in files, files
 
 
@@ -82,7 +82,7 @@ def test_query_reqCommandEmergencyBraking_sources_include_expected_contracts():
 def test_query_reqCommandEmergencyBraking_edges_carry_verification_def():
     report = qmi.query_impact("reqCommandEmergencyBraking")
     for edge in report.edges:
-        if edge.file == "aebs_nominal_evidence.sysml":
+        if edge.file == "aebs_evidence.sysml":
             assert edge.verification_def == "NominalMovingVehicleTargetVerification009B"
         elif edge.file == "aebs_partial_intervention_verification.sysml":
             assert edge.verification_def == "NativeInterventionToMRMVerification009C"
@@ -180,7 +180,7 @@ def test_cli_text_query_includes_file_grouping():
         cwd=ROOT,
     )
     assert proc.returncode == 0, proc.stderr
-    assert "aebs_nominal_evidence.sysml" in proc.stdout
+    assert "aebs_evidence.sysml" in proc.stdout
     assert "aebs_partial_intervention_verification.sysml" in proc.stdout
     assert "evidenceContract009BFreshOverrideClear" in proc.stdout
 
