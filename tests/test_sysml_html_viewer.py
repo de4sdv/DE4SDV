@@ -303,7 +303,7 @@ def test_help_page_renders_guide_markdown(tmp_path):
     out = tmp_path / "site"
     generate(repo, out, ["textual-notation-of-model/packages"])
     html = (out / "help.html").read_text(encoding="utf-8")
-    assert "<h1>Viewer help</h1>" in html
+    assert '<h1 id="viewer-help">Viewer help</h1>' in html
     assert "<strong>bold</strong>" in html
     assert "<code>inline code</code>" in html
     assert 'href="https://example.com"' in html
@@ -318,15 +318,20 @@ def test_help_page_renders_guide_markdown(tmp_path):
 
 def test_elements_page_renders_guide_markdown(tmp_path):
     """A repo docs/guides/sysml-elements.md renders deterministically into
-    elements.html with the same markdown subset as the help page."""
+    elements.html with the same markdown subset as the help page: headings
+    with anchor ids, fenced code, lists, tables, italics, relative links
+    resolved to GitHub, blockquotes, and thematic breaks."""
     repo = _make_fixture_repo(tmp_path)
     guide = repo / "docs" / "guides" / "sysml-elements.md"
     guide.parent.mkdir(parents=True)
     guide.write_text(
         "# Model elements\n\n"
-        "Some **bold** prose with `inline code` and a [link](https://example.com).\n\n"
+        "Some **bold** and *italic* prose with `inline code` and a "
+        "[link](https://example.com) plus a [repo doc](../../methodologies/x.md).\n\n"
         "- first item\n"
         "- second item\n\n"
+        "> A quoted note with **bold**.\n\n"
+        "---\n\n"
         "| Kind | Used for |\n"
         "|---|---|\n"
         "| `part def` | structure |\n"
@@ -336,11 +341,18 @@ def test_elements_page_renders_guide_markdown(tmp_path):
     out = tmp_path / "site"
     generate(repo, out, ["textual-notation-of-model/packages"])
     html = (out / "elements.html").read_text(encoding="utf-8")
-    assert "<h1>Model elements</h1>" in html
+    assert '<h1 id="model-elements">Model elements</h1>' in html
     assert "<strong>bold</strong>" in html
+    assert "<em>italic</em>" in html
     assert "<code>inline code</code>" in html
     assert 'href="https://example.com"' in html
+    assert (
+        'href="https://github.com/de4sdv/DE4SDV/blob/main/methodologies/x.md"'
+        in html
+    )
     assert "<ul><li>first item</li><li>second item</li></ul>" in html
+    assert "<blockquote><p>A quoted note with <strong>bold</strong>.</p></blockquote>" in html
+    assert "<hr>" in html
     assert "<table><thead><tr><th>Kind</th><th>Used for</th></tr></thead><tbody>" in html
     assert "<td><code>part def</code></td><td>structure</td>" in html
     assert "<td><code>dependency</code></td><td>trace links</td>" in html
