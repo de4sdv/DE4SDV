@@ -5,6 +5,10 @@
 | SDV | Software-Defined Vehicle; a vehicle whose behavior and value are increasingly defined by software capabilities. |
 | MBSE | Model-Based Systems Engineering. |
 | SysML v2 | Next-generation Systems Modeling Language and related API concepts. |
+| Concern | Any topic of interest for one or more stakeholders, such as functionality, variability, safety, security, compliance, cost, or evolvability; the questions a view must answer. |
+| Viewpoint | A convention that frames one or more concerns: the stakeholders it serves and the way views are expressed. In SysML v2, a `viewpoint def` frames `concern usage` elements. |
+| View | The result of applying a viewpoint to the model: a scoped selection of model elements that answers the framed concerns. In SysML v2, a `view` selects a `viewpoint` and exposes the elements needed to answer it. |
+| Increment | A bounded, reviewable unit of DE4SDV work that answers one engineering question and leaves behind reviewable artifacts; executed through the 13-phase increment workflow. |
 | MBPLE | Model-Based Product Line Engineering. |
 | Feature model | A model of common and variable product capabilities. |
 | Feature configuration | A selected set of features defining a product variant. |
