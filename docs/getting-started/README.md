@@ -77,6 +77,12 @@ If you prefer the source, start here:
 - `textual-notation-of-model/packages/features/middleware/` — the
   middleware pilot slices
 
+To understand the element kinds you will meet in these files — packages,
+parts and ports, requirement candidates, verification cases, evidence items,
+views — and why DE4SDV uses them, read the
+[model element guide](../guides/sysml-elements.md). It is also published in
+the model viewer under **Elements**.
+
 ## Understand the process
 
 DE4SDV builds the model in small, reviewable increments. Each increment walks

@@ -62,8 +62,9 @@ docs/architecture-decisions/0006-variant-selection-construct-and-ple-adequacy.md
 docs/architecture-decisions/0007-pin-sysmod-sysand-dependency.md
 docs/architecture-decisions/README.md
 docs/architecture-decisions/TEMPLATE.md
-docs/getting-started/naming-note.md
+docs/getting-started/README.md
 docs/guides/model-viewer.md
+docs/guides/sysml-elements.md
 docs/plans/2026-07-27-aebs-009c-009i.md
 docs/plans/2026-07-29-middleware-integration-chain.md
 docs/project-goals/project-charter.md
@@ -93,6 +94,7 @@ implementation/aaos-sdv-reference-interop-bench/contract/Android.bp
 implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.proto
 implementation/aaos-sdv-reference-interop-bench/contract/vehicle_speed.vsidl
 implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
+implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml
 implementation/aaos-sdv-reference-interop-bench/evidence/mw-010-google-cloud-vsidlc-cuttlefish.yaml
 implementation/aaos-sdv-reference-interop-bench/ros2/vehicle_speed_tcp_bridge/.gitignore
 implementation/aaos-sdv-reference-interop-bench/ros2/vehicle_speed_tcp_bridge/README.md
@@ -422,12 +424,12 @@ textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
 textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml
 textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml
 textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml
+textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml
 textual-notation-of-model/packages/features/aebs/aebs_execution_environment.sysml
 textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml
 textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml
 textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml
 textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml
-textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml
 textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml
 textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml
 textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml

@@ -30,7 +30,10 @@ so it can never drift from the rendered artifacts.
 Every build also emits `help.html` at the site root, rendered from
 [`docs/guides/model-viewer.md`](../../docs/guides/model-viewer.md) (the same
 guide is linked as **Help** in the page header and published on
-viewer.de4sdv.org).
+viewer.de4sdv.org). It also emits `elements.html` from
+[`docs/guides/sysml-elements.md`](../../docs/guides/sysml-elements.md)
+(linked as **Elements** in the page header): the high-level guide to the
+SysML v2 element kinds used across the model and why DE4SDV uses them.
 
 ### Multiple revisions (branch / PR selector)
 

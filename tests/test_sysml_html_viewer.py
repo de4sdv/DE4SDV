@@ -277,6 +277,13 @@ def test_help_page_fallback_when_guide_missing(tmp_path):
     assert 'class="help-back" href="index.html"' in html
     index = (out / "index.html").read_text(encoding="utf-8")
     assert re.search(r'<a class="site-chat" href="help\.html">Help</a>', index)
+    # the elements page is always emitted too, with its own fallback
+    elements_page = out / "elements.html"
+    assert elements_page.is_file()
+    elements_html = elements_page.read_text(encoding="utf-8")
+    assert "DE4SDV Model Viewer — Model Elements" in elements_html
+    assert "No element guide found" in elements_html
+    assert re.search(r'<a class="site-chat" href="elements\.html">Elements</a>', index)
 
 
 def test_help_page_renders_guide_markdown(tmp_path):
@@ -307,6 +314,43 @@ def test_help_page_renders_guide_markdown(tmp_path):
     out2 = tmp_path / "site2"
     generate(repo, out2, ["textual-notation-of-model/packages"])
     assert (out2 / "help.html").read_bytes() == (out / "help.html").read_bytes()
+
+
+def test_elements_page_renders_guide_markdown(tmp_path):
+    """A repo docs/guides/sysml-elements.md renders deterministically into
+    elements.html with the same markdown subset as the help page."""
+    repo = _make_fixture_repo(tmp_path)
+    guide = repo / "docs" / "guides" / "sysml-elements.md"
+    guide.parent.mkdir(parents=True)
+    guide.write_text(
+        "# Model elements\n\n"
+        "Some **bold** prose with `inline code` and a [link](https://example.com).\n\n"
+        "- first item\n"
+        "- second item\n\n"
+        "| Kind | Used for |\n"
+        "|---|---|\n"
+        "| `part def` | structure |\n"
+        "| `dependency` | trace links |\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "site"
+    generate(repo, out, ["textual-notation-of-model/packages"])
+    html = (out / "elements.html").read_text(encoding="utf-8")
+    assert "<h1>Model elements</h1>" in html
+    assert "<strong>bold</strong>" in html
+    assert "<code>inline code</code>" in html
+    assert 'href="https://example.com"' in html
+    assert "<ul><li>first item</li><li>second item</li></ul>" in html
+    assert "<table><thead><tr><th>Kind</th><th>Used for</th></tr></thead><tbody>" in html
+    assert "<td><code>part def</code></td><td>structure</td>" in html
+    assert "<td><code>dependency</code></td><td>trace links</td>" in html
+    assert "No element guide found" not in html
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert re.search(r'<a class="site-chat" href="elements\.html">Elements</a>', index)
+    # deterministic: a second build produces identical bytes
+    out2 = tmp_path / "site2"
+    generate(repo, out2, ["textual-notation-of-model/packages"])
+    assert (out2 / "elements.html").read_bytes() == (out / "elements.html").read_bytes()
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
