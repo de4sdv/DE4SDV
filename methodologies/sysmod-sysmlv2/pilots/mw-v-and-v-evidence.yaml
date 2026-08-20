@@ -118,31 +118,31 @@ acceptance_criteria:
   - id: AC-MW-010-01
     status: pass_bounded_verification
     sysml_element: acceptanceCriterion010SignalTranslation
-    evidence: E-MW-011 gates 4-6 (forwarder accepts, exact topic/type/field, independent observer 10.0 m/s)
+    evidence: E-MW-011 gates 4-6
   - id: AC-MW-010-02
     status: blocked_target_runtime
     sysml_element: acceptanceCriterion010LifecycleCoordination
-    evidence: gate 8 not claimed
+    evidence: E-MW-011 gate 8 not claimed
   - id: AC-MW-010-03
     status: blocked_target_runtime
     sysml_element: acceptanceCriterion010HealthForwarding
-    evidence: no health/forwarding scenario executed
+    evidence: no scenario executed
   - id: AC-MW-010-04
     status: pass_bounded_verification
     sysml_element: acceptanceCriterion010VehicleStartup
-    evidence: E-MW-011 gates 1-3 (provider process, bundle registration, discovery agent)
+    evidence: E-MW-011 gates 1-3
   - id: AC-MW-010-05
     status: blocked_target_runtime
     sysml_element: acceptanceCriterion010UpdateCoordination
-    evidence: no update/OTA scenario executed
+    evidence: no scenario executed
   - id: AC-MW-010-06
     status: pass_bounded_verification
     sysml_element: acceptanceCriterion010FaultDetection
-    evidence: E-MW-011 gate 7 (ingress rejects non-valid envelopes)
+    evidence: E-MW-011 gate 7
   - id: AC-MW-010-07
     status: pass_bounded_verification
     sysml_element: acceptanceCriterion010EvidenceIndependence
-    evidence: E-MW-011 retains raw observations + independent observer identity
+    evidence: E-MW-011 retained evidence + observer identity
 
 evidence_ladder:
   - layer: repository_and_sysml
