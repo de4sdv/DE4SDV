@@ -266,6 +266,38 @@ verifiable requirements with trace links back to both. Phase 10 (V&V)
 consumes requirements from phase 5 and architecture from phases 6–8 to
 produce verification cases and evidence records.
 
+## Phase-to-artifact map
+
+Each phase produces concrete model slices. The table below names the actual
+files per pilot, so a phase explanation can be opened side by side with its
+artifact. The AEBS and middleware packages follow the same naming pattern
+(`<prefix>_<phase>.sysml`); the middleware package also carries a generated
+view index (`VIEWS.md`) that maps every declared view to its source file,
+viewpoint, concern, and rendered diagram. To read the element kinds used in
+these files — parts, ports, requirements, verification cases, evidence,
+views — see the
+[model element guide](../../docs/guides/sysml-elements.md).
+
+| Phase | AEBS slices (`packages/features/aebs/`) | Middleware slices (`packages/features/middleware/`) | Reviewer-facing docs and YAML (`methodologies/sysmod-sysmlv2/pilots/`) |
+|---|---|---|---|
+| 0 — Increment framing | `aebs_increment_framing.sysml` (3 views) | `mw_increment_framing.sysml` | `aebs-increment-framing.yaml`, `middleware-adapter-increment-framing.yaml` |
+| 1 — Concern framing | stakeholder/concern parts in `aebs_increment_framing.sysml` | stakeholder/concern parts in `mw_increment_framing.sysml` | increment-framing YAML above |
+| 2 — Operational context | `aebs_operational_context.sysml` | `mw_operational_context.sysml` (3 views) | `aebs-operational-context.yaml`, `aebs-operational-story.md`, `mw-operational-context.yaml` |
+| 3 — Capability/feature semantics | product-line classification view in `aebs_increment_framing.sysml` | `mw_feature_classification.sysml` | `mw-feature-classification.yaml` |
+| 4 — Needs | needs slices in `aebs_needs_requirements.sysml` | `mw_stakeholder_needs.sysml` | `aebs-needs-requirements.md`/`.yaml`, `mw-stakeholder-needs.yaml` |
+| 5 — Requirements | `aebs_needs_requirements.sysml` (5 views) | `mw_requirements.sysml` (2 views) | `aebs-needs-requirements.md`/`.yaml`, `mw-requirements.yaml` |
+| 6 — Functional architecture | `aebs_functional_behavior.sysml` (2 views) | `mw_functional_architecture.sysml` (2 views) | `aebs-functional-behavior.md`/`.yaml`, `aebs-functional-interfaces.md`/`.yaml`, `mw-functional-architecture.yaml` |
+| 7 — Logical architecture | `aebs_logical_architecture.sysml` (6 views) | `mw_logical_architecture.sysml` (2 views) | `aebs-logical-architecture.md`/`.yaml`, `mw-logical-architecture.yaml` |
+| 8 — Physical/software realization | `aebs_physical_software_realization.sysml` (7 views), `aebs_execution_environment.sysml` (2 views), `aebs_simulation_deployment.sysml` (17 views) | `mw_physical_software_realization.sysml` (7 views) | `aebs-physical-software-realization.md`/`.yaml`, `aebs-simulation-deployment.md`/`.yaml`, `mw-physical-software-realization.yaml` |
+| 9 — Variability and configuration | variation-modeling gaps in needs slices; configurations in `model-based-product-line-engineering/` | `mw_variability_configuration.sysml` (2 views) | `mw-variability-configuration.yaml`, `model-based-product-line-engineering/feature-configurations/` |
+| 10 — V&V and evidence | `aebs_nominal_evidence.sysml`, `aebs_bicycle_verification.sysml`, `aebs_degraded_input_verification.sysml`, `aebs_non_activation_verification.sysml`, `aebs_partial_intervention_verification.sysml`, `aebs_pedestrian_verification.sysml`, `aebs_regulatory_criterion_verification.sysml` | `mw_verification_evidence.sysml` (2 views) | `mw-v-and-v-evidence.yaml`; implementation evidence under `implementation/` |
+| 11 — Publication | generated view index and viewer build | `VIEWS.md` (generated) | PR description with gate evidence |
+| 12 — Baseline and next slice | baseline entries and gap docs | baseline entries and gap docs | `configuration-management/baseline-register.md`, increment YAML baselines |
+
+The AEBS pilot is the richer model (about 50 declared views across phases);
+the middleware pilot demonstrates the full 0–12 chain with a generated view
+index. Both stay reviewable as small, per-phase slices.
+
 ## Required trace chain
 
 Every substantial increment should try to establish this chain, even if

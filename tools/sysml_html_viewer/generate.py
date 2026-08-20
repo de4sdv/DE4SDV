@@ -478,23 +478,20 @@ def _filter_html(tree: TreeNode, files: list) -> str:
     )
 
 
-def _help_html(repo_root: Path) -> str:
-    """Render docs/guides/model-viewer.md into a standalone help page.
+def _docs_page_html(repo_root: Path, md_rel: str, title: str, fallback: str) -> str:
+    """Render a docs/guides markdown file into a standalone page.
 
     Minimal deterministic markdown subset (stdlib only): ATX headings,
     fenced code blocks, bullet/numbered lists, paragraphs, inline code,
-    bold, and links. The page lives at the site root as ``help.html`` and
-    is the same documentation that ships in the repository.
+    bold, and links. The page lives at the site root (``help.html``,
+    ``elements.html``) and is the same documentation that ships in the
+    repository.
     """
-    md_path = repo_root / "docs" / "guides" / "model-viewer.md"
+    md_path = repo_root / md_rel
     if not md_path.is_file():
-        body = (
-            "<p>No help content found. The how-to guide lives in the "
-            "repository at <code>docs/guides/model-viewer.md</code>.</p>"
-        )
+        body = f"<p>{fallback}</p>"
     else:
         body = _render_help_md(md_path.read_text(encoding="utf-8"))
-    title = "DE4SDV Model Viewer — Help"
     return (
         "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n"
         "<meta charset=\"utf-8\">\n"
@@ -510,6 +507,28 @@ def _help_html(repo_root: Path) -> str:
     )
 
 
+def _help_html(repo_root: Path) -> str:
+    """The viewer how-to page (docs/guides/model-viewer.md)."""
+    return _docs_page_html(
+        repo_root,
+        "docs/guides/model-viewer.md",
+        "DE4SDV Model Viewer — Help",
+        "No help content found. The how-to guide lives in the "
+        "repository at <code>docs/guides/model-viewer.md</code>.",
+    )
+
+
+def _elements_html(repo_root: Path) -> str:
+    """The model element guide page (docs/guides/sysml-elements.md)."""
+    return _docs_page_html(
+        repo_root,
+        "docs/guides/sysml-elements.md",
+        "DE4SDV Model Viewer — Model Elements",
+        "No element guide found. It lives in the "
+        "repository at <code>docs/guides/sysml-elements.md</code>.",
+    )
+
+
 def _render_help_md(text: str) -> str:
     """Convert the help markdown subset to HTML body content."""
     lines = text.splitlines()
@@ -519,6 +538,7 @@ def _render_help_md(text: str) -> str:
     list_buf: list[str] | None = None
     list_tag = "ul"
     para_buf: list[str] = []
+    table_buf: list[list[str]] = []
 
     def flush_para() -> None:
         if para_buf:
@@ -531,6 +551,38 @@ def _render_help_md(text: str) -> str:
             out.append(f"<{list_tag}>{items}</{list_tag}>")
             list_buf.clear()
 
+    def flush_table() -> None:
+        if not table_buf:
+            return
+        rows = list(table_buf)
+        table_buf.clear()
+        if not rows:
+            return
+        header = rows[0]
+        body = rows[1:]
+        if len(body) > 1 and all(
+            re.fullmatch(r":?-{1,}:?", cell) for cell in body[0]
+        ):
+            body = body[1:]
+        cells = "".join(
+            f"<th>{_inline_md(c)}</th>" for c in header
+        )
+        rows_html = "".join(
+            "<tr>" + "".join(f"<td>{_inline_md(c)}</td>" for c in row) + "</tr>"
+            for row in body
+        )
+        out.append(f"<table><thead><tr>{cells}</tr></thead><tbody>{rows_html}</tbody></table>")
+
+    def flush_all() -> None:
+        flush_para()
+        flush_list()
+        flush_table()
+
+    def table_row(s: str) -> list[str] | None:
+        if not (s.startswith("|") and s.endswith("|") and s.count("|") >= 2):
+            return None
+        return [cell.strip() for cell in s[1:-1].split("|")]
+
     for raw in lines:
         if raw.strip().startswith("```"):
             if in_code:
@@ -538,8 +590,7 @@ def _render_help_md(text: str) -> str:
                 code_buf.clear()
                 in_code = False
             else:
-                flush_para()
-                flush_list()
+                flush_all()
                 in_code = True
             continue
         if in_code:
@@ -547,9 +598,15 @@ def _render_help_md(text: str) -> str:
             continue
         s = raw.strip()
         if not s:
+            flush_all()
+            continue
+        row = table_row(s)
+        if row is not None:
             flush_para()
             flush_list()
+            table_buf.append(row)
             continue
+        flush_table()
         m = re.match(r"^(#{1,3})\s+(.*)$", s)
         if m:
             flush_para()
@@ -575,8 +632,7 @@ def _render_help_md(text: str) -> str:
             continue
         flush_list()
         para_buf.append(s)
-    flush_para()
-    flush_list()
+    flush_all()
     if in_code:
         out.append("<pre><code>" + _esc("\n".join(code_buf)) + "</code></pre>")
     return "\n".join(out)
@@ -724,6 +780,7 @@ def _build_site(
         encoding="utf-8",
     )
     (out_dir / "help.html").write_text(_help_html(repo_root), encoding="utf-8")
+    (out_dir / "elements.html").write_text(_elements_html(repo_root), encoding="utf-8")
 
     # directory TOC pages
     dirs: dict[str, list[TreeNode]] = {}

@@ -98,6 +98,7 @@ Vehicle (SDV)** with emphasis on:
 # Getting started
 
 - **New to DE4SDV?** Read the [getting started guide](docs/getting-started/README.md) — what this project is, how the repository is organized, and how the process works.
+- **Read the model** — [how to read the SysML v2 model](docs/guides/sysml-elements.md): the element kinds and why DE4SDV uses them.
 - **Explore the model** in the [model viewer](#model-viewer) or serve your own working tree locally.
 - **Want to contribute?** Follow the [contribution model](#contribution-model).
 
