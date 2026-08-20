@@ -427,7 +427,7 @@ textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml
 textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml
 textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml
 textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml
-textual-notation-of-model/packages/features/aebs/aebs_nominal_evidence.sysml
+textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml
 textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml
 textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml
 textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml

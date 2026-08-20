@@ -4,7 +4,7 @@ import re
 
 MODEL = (
     Path(__file__).parents[1]
-    / "textual-notation-of-model/packages/features/aebs/aebs_nominal_evidence.sysml"
+    / "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml"
 )
 PRODUCT_CLAIM_RELATIONSHIP = re.compile(
     r"\b(?:verify|satisfy)\b[^;]*\b(?:reqProvideCollisionWarning|"
