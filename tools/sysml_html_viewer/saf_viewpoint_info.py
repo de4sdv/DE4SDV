@@ -134,3 +134,29 @@ SAF_VIEWPOINT_INFO: dict[str, str] = {
         "generations."
     ),
 }
+
+
+# SAF userdoc URLs for the SAF viewpoints the DE4SDV model uses. The
+# pattern is https://saf.gfse.org/userdoc/<Domain>/<Viewpoint Name>.html
+# (verified against the live userdoc; the PreRefactor2026 branch used the
+# pre-merge domain names). Viewpoints without a SAF page are absent.
+SAF_VIEWPOINT_URLS: dict[str, str] = {
+    "ArgumentationAssuranceViewpoint": "https://saf.gfse.org/userdoc/Architecture%20Management%20Domain/Argumentation%20Assurance%20Viewpoint.html",
+    "OperationalCapabilityDefinitionViewpoint": "https://saf.gfse.org/userdoc/Operational%20Domain/Operational%20Capability%20Definition%20Viewpoint.html",
+    "OperationalContextDefinitionViewpoint": "https://saf.gfse.org/userdoc/Operational%20Domain/Operational%20Context%20Definition%20Viewpoint.html",
+    "OperationalStoryViewpoint": "https://saf.gfse.org/userdoc/Operational%20Domain/Operational%20Story%20Viewpoint.html",
+    "PhysicalContextDefinitionViewpoint": "https://saf.gfse.org/userdoc/Physical%20Domain/Physical%20Context%20Definition%20Viewpoint.html",
+    "PhysicalContextExchangeViewpoint": "https://saf.gfse.org/userdoc/Physical%20Domain/Physical%20Context%20Exchange%20Viewpoint.html",
+    "PhysicalInterfaceDefinitionViewpoint": "https://saf.gfse.org/userdoc/Physical%20Domain/Physical%20Interface%20Definition%20Viewpoint.html",
+    "PhysicalInternalExchangeViewpoint": "https://saf.gfse.org/userdoc/Physical%20Domain/Physical%20Internal%20Exchange%20Viewpoint.html",
+    "PhysicalLogicalMappingViewpoint": "https://saf.gfse.org/userdoc/Physical%20Domain/Physical%20Logical%20Mapping%20Viewpoint.html",
+    "PhysicalStructureDefinitionViewpoint": "https://saf.gfse.org/userdoc/Physical%20Domain/Physical%20Structure%20Definition%20Viewpoint.html",
+    "StakeholderRequirementDefinitionViewpoint": "https://saf.gfse.org/userdoc/Operational%20Domain/Stakeholder%20Requirement%20Definition%20Viewpoint.html",
+    "SystemFunctionalBreakdownStructureViewpoint": "https://saf.gfse.org/userdoc/Conceptual%20Domain/System%20Functional%20Breakdown%20Structure%20Viewpoint.html",
+    "SystemFunctionMappingViewpoint": "https://saf.gfse.org/userdoc/Conceptual%20Domain/System%20Function%20Mapping%20Viewpoint.html",
+    "SystemInterfaceDefinitionViewpoint": "https://saf.gfse.org/userdoc/Conceptual%20Domain/System%20Interface%20Definition%20Viewpoint.html",
+    "SystemInternalExchangeViewpoint": "https://saf.gfse.org/userdoc/Conceptual%20Domain/System%20Internal%20Exchange%20Viewpoint.html",
+    "SystemRequirementDefinitionViewpoint": "https://saf.gfse.org/userdoc/Conceptual%20Domain/System%20Requirement%20Definition%20Viewpoint.html",
+    "SystemRequirementTraceabilityViewpoint": "https://saf.gfse.org/userdoc/Conceptual%20Domain/System%20Requirement%20Traceability%20Viewpoint.html",
+    "SystemStructureDefinitionViewpoint": "https://saf.gfse.org/userdoc/Conceptual%20Domain/System%20Structure%20Definition%20Viewpoint.html",
+}

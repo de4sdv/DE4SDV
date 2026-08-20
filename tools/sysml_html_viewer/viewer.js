@@ -86,7 +86,18 @@
       if (info.href) {
         var hint = document.createElement('div');
         hint.className = 'tip-hint';
-        hint.textContent = info.hint || 'click to open in viewer';
+        // external SAF page links open in a new tab; in-viewer jumps stay
+        if (/^https?:/i.test(info.href)) {
+          var ext = document.createElement('a');
+          ext.className = 'tip-link';
+          ext.href = info.href;
+          ext.target = '_blank';
+          ext.rel = 'noopener';
+          ext.textContent = info.hint || 'open SAF viewpoint page';
+          hint.appendChild(ext);
+        } else {
+          hint.textContent = info.hint || 'click to open in viewer';
+        }
         tip.appendChild(hint);
       }
       if (info.uses && info.uses.length) {
@@ -271,7 +282,7 @@
           doc: a.getAttribute('data-tip-doc') || '',
           file: a.getAttribute('data-tip-file') || '',
           line: a.getAttribute('data-tip-line') || '',
-          href: a.getAttribute('href') || '',
+          href: a.getAttribute('data-tip-href') || a.getAttribute('href') || '',
           hint: a.getAttribute('data-tip-hint') || '',
           uses: usesFor(a)
         }, ev);
@@ -324,7 +335,11 @@
           var info = infoFor(t);
           if (info && info.href) {
             ev.stopPropagation();
-            window.location.href = info.href;
+            if (/^https?:/i.test(info.href)) {
+              window.open(info.href, '_blank', 'noopener');
+            } else {
+              window.location.href = info.href;
+            }
           }
         });
       });

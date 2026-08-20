@@ -633,6 +633,14 @@ mark.tree-hl {
  * diagram usage; right-click opens the diagram chooser */
 a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-thickness: 1.5px; }
 .tip-uses { font-size: 11px; color: #b34a09; margin-top: 5px; }
+.tip-link {
+  display: inline-block;
+  color: var(--accent);
+  text-decoration: underline;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.tip-link:hover { color: #0d3d9e; }
 
 /* right-click chooser: diagrams that use the element */
 .uses-menu {

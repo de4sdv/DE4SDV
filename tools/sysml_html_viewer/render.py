@@ -24,7 +24,7 @@ from .model_parse import (
     artifact_filename,
     slugify,
 )
-from .saf_viewpoint_info import SAF_VIEWPOINT_INFO
+from .saf_viewpoint_info import SAF_VIEWPOINT_INFO, SAF_VIEWPOINT_URLS
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -700,12 +700,18 @@ def _render_view_block(
     rows = []
     if v.viewpoint:
         vp_info = SAF_VIEWPOINT_INFO.get(v.viewpoint_type, "")
+        vp_url = SAF_VIEWPOINT_URLS.get(v.viewpoint_type, "")
         vp_tip = ""
         if vp_info:
             vp_tip = (
                 f' data-tip-kind="SAF viewpoint"'
                 f' data-tip-name="{esc(v.viewpoint_type)}"'
                 f' data-tip-doc="{esc(vp_info)}"'
+            )
+        if vp_url:
+            vp_tip += (
+                f' data-tip-href="{esc(vp_url)}"'
+                f' data-tip-hint="click to open the SAF viewpoint page"'
             )
         rows.append(
             ("Viewpoint", f"<code>{esc(v.viewpoint)}</code>"
