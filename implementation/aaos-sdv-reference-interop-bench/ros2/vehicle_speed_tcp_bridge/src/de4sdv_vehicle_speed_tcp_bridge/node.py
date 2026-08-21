@@ -84,8 +84,7 @@ class VehicleSpeedTcpBridgeNode(Node):
 
     def _emit_restored(self) -> None:
         self.get_logger().warning(
-            "DE4SDV_VELOCITY_HEALTH restored=healthy topic=%s_health",
-            self._topic,
+            f"DE4SDV_VELOCITY_HEALTH restored=healthy topic={self._topic}_health"
         )
 
     def _check_staleness(self) -> None:
