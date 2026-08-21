@@ -1,0 +1,63 @@
+schema: de4sdv.executable-integration-evidence.v1
+id: E-MW-013-AUTOWARE-CONSUMER-2026-08-21
+increment: INC-MW-010
+status: passed
+mode: runtime
+recorded_at: "2026-08-21T15:53:00Z"
+claim:
+  statement: >-
+    A real Autoware node (autoware_vehicle_velocity_converter, built from
+    autowarefoundation/autoware humble source) subscribes to the
+    /vehicle/status/velocity_status topic published by the DE4SDV adapter
+    chain and converts it into /vehicle/status/twist_with_covariance with
+    linear.x = 10.0 m/s, providing Autoware-side consumption provenance for
+    the AAOS SDV -> VSIDL -> TCP egress -> bridge -> ROS 2 chain.
+  system_1_subject: "Configured Autoware + AndroidSDV member (MW-CONFIG-001)"
+  system_2_enabler: "Google Cloud de4sdv-aaos-build + de4sdv-ros2-autoware two-VM deployment"
+  evidence_boundary: >-
+    Autoware-side consumption of the published VelocityReport by the real
+    autoware_vehicle_velocity_converter node. Not full Autoware stack
+    (perception/planning/control), not production deployment, not safety.
+hosts:
+  vmA:
+    instance: de4sdv-aaos-build
+    guest: sdv_core_cf Cuttlefish (instance1)
+    provider: DE4SDV_VEHICLE_SPEED_PUBLISHED speed_kmh=36 (1 Hz)
+    observer: DE4SDV_VEHICLE_SPEED_OBSERVED (same timestamp_ns)
+    egress: Vehicle.Speed TCP egress connected endpoint=10.250.0.3:4711
+  vmB:
+    instance: de4sdv-ros2-autoware
+    bridge: vehicle_speed_tcp_bridge (100+ VelocityReport publishes)
+    autoware: autowarefoundation/autoware humble source build
+    consumer_node: autoware_vehicle_velocity_converter
+    input_topic: /vehicle/status/velocity_status (autoware_vehicle_msgs/msg/VelocityReport)
+    output_topic: /vehicle/status/twist_with_covariance (geometry_msgs/msg/TwistWithCovarianceStamped)
+    output_value: "linear.x = 10.0 m/s, covariance[0] = 0.04 (velocity_stddev_xx=0.2)"
+    output_rate: "~2 Hz (matches provider publication)"
+    discovery: ROS_LOCALHOST_ONLY=1 on bridge and converter (same-host DDS)
+toolchain:
+  autoware_source: https://github.com/autowarefoundation/autoware (humble branch)
+  consumer_package: autoware_vehicle_velocity_converter (built via colcon --packages-up-to)
+  bridge: vehicle_speed_tcp_bridge (de4sdv)
+  evidence_runner: implementation/aaos-sdv-reference-interop-bench
+gates:
+  - gate: autoware_consumer_running
+    outcome: pass
+    detail: "autoware_vehicle_velocity_converter node running on vmB"
+  - gate: autoware_subscribes_velocity_report
+    outcome: pass
+    detail: "subscribes to /vehicle/status/velocity_status (autoware_vehicle_msgs/msg/VelocityReport)"
+  - gate: autoware_publishes_twist
+    outcome: pass
+    detail: "/vehicle/status/twist_with_covariance published at ~2 Hz"
+  - gate: autoware_value_correct
+    outcome: pass
+    detail: "linear.x = 10.0 m/s (36 km/h / 3.6), covariance[0] = 0.04"
+  - gate: end_to_end_continuity
+    outcome: pass
+    detail: "same source_timestamp_ns across guest observer, bridge, and consumer input"
+model_mapping:
+  - "vmB.autowareConsumer -> autoware_vehicle_velocity_converter (real Autoware node)"
+  - "autowareConsumer.velocityReportIn -> /vehicle/status/velocity_status"
+  - "ros2Ingress.velocityReportOut -> /vehicle/status/velocity_status (bridge)"
+  - "connection ros2IngressToAutowareConsumer + flow ros2IngressToAutowareConsumerPayload (SysML)"

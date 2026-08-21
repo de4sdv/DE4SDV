@@ -132,3 +132,38 @@ Do not call the result AAOS ↔ Autoware runtime interoperability until all gate
 8. A reverse lifecycle/status path passes if bidirectional communication is claimed.
 
 The local rehearsal is useful preparation, but it is not runtime evidence. The current bench reports AAOS and ROS 2 runtime interoperability as `not_proven` until these gates execute on the Windows-hosted Linux target.
+
+## Autoware-side consumption (provenance) — E-MW-013
+
+Beyond the independent observer, real Autoware consumption is evidenced by running the
+`autoware_vehicle_velocity_converter` node from a source build of
+[autowarefoundation/autoware](https://github.com/autowarefoundation/autoware) (humble branch)
+against the published topic:
+
+```bash
+# On the ROS 2 host (Ubuntu 22.04 / Humble), from the autoware workspace:
+colcon build --symlink-install --packages-up-to autoware_vehicle_velocity_converter \
+  --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+# Run the consumer (ROS_LOCALHOST_ONLY=1 required on both bridge and consumer
+# for same-host DDS discovery on cloud VMs):
+export ROS_LOCALHOST_ONLY=1
+source install/setup.bash
+ros2 launch autoware_vehicle_velocity_converter vehicle_velocity_converter.launch.xml \
+  input_vehicle_velocity_topic:=/vehicle/status/velocity_status \
+  output_twist_with_covariance:=/vehicle/status/twist_with_covariance
+
+# Verify:
+ros2 topic echo /vehicle/status/twist_with_covariance --once
+#   twist.twist.linear.x: 10.0   (36 km/h / 3.6)
+ros2 topic hz /vehicle/status/twist_with_covariance   # ~2 Hz
+```
+
+The node subscribes to `autoware_vehicle_msgs/msg/VelocityReport` on
+`/vehicle/status/velocity_status` and publishes
+`geometry_msgs/msg/TwistWithCovarianceStamped` with `linear.x = 10.0 m/s` and
+`covariance[0] = velocity_stddev_xx^2`. Retained evidence: `E-MW-013`.
+
+**Important**: `ROS_LOCALHOST_ONLY=1` must be set identically on the bridge and
+the consumer; a mismatch silently breaks DDS discovery on cloud VMs (topics
+visible, no data flow).
