@@ -1,0 +1,7 @@
+# DE4SDV service-bundle SELinux domain mapping.
+# Appended to device/google/sdv/sdv_core_base/sepolicy/samples/service_bundle_contexts.
+#
+# Maps the Vehicle.Speed observer bundle to its dedicated domain so it can use
+# the direct TCP egress path; the provider stays on the default
+# untrusted_service_bundle domain (no network needed).
+de4sdv.reference.vehicle_speed.VehicleSpeedObserver    u:r:de4sdv_vehicle_speed_observer:s0

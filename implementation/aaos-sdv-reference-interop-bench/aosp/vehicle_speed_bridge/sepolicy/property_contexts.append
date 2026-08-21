@@ -1,0 +1,3 @@
+# DE4SDV egress endpoint property.
+# Appended to device/google/sdv/sdv_core_base/sepolicy/samples/product/private/property_contexts.
+persist.sdv.de4sdv.vehicle_speed_egress   u:object_r:de4sdv_vehicle_speed_egress_prop:s0 exact string

@@ -383,9 +383,8 @@ class HostBackend:
             ),
             4: HostProbe(
                 "adapter receives a real AAOS publication",
-                ["grep", "DE4SDV_ADB_LOGCAT_FORWARD_ACCEPTED",
-                 "/home/mrk/forwarder.log"],
-                expect="DE4SDV_ADB_LOGCAT_FORWARD_ACCEPTED",
+                self._adb("shell", "logcat", "-d"),
+                expect="TCP egress connected",
             ),
             5: HostProbe(
                 "adapter publishes the exact ROS 2 topic/type/field",

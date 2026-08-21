@@ -126,7 +126,7 @@ def test_host_backend_pass_when_contract_matches():
         if "service" in cmd:
             return 0, "IServiceRegistrationAgent/default"
         if "logcat" in cmd:
-            return 0, "DE4SDV_VEHICLE_SPEED_PUBLISHED speed_kmh=36"
+            return 0, "DE4SDV_VEHICLE_SPEED_PUBLISHED speed_kmh=36 TCP egress connected"
         if cmd[0] == "grep":
             return 0, "DE4SDV_ADB_LOGCAT_FORWARD_ACCEPTED count=1"
         return 0, ""
