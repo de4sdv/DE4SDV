@@ -187,7 +187,7 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
         self.assertEqual(layers["aaos_cuttlefish_boot"]["status"], "observed_bounded")
         self.assertEqual(
             layers["target_runtime_interoperability"]["status"],
-            "observed_bounded_campaign_chain",
+            "observed_bounded_autoware_consumer",
         )
         self.assertEqual(
             layers["lifecycle_update_fault_validation"]["status"],

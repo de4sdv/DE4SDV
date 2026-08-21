@@ -163,11 +163,11 @@ evidence_ladder:
     claim: pinned AAOS target build and bounded Cuttlefish bootability only
     artifact: implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
   - layer: target_runtime_interoperability
-    status: observed_bounded_campaign_chain
-    claim: provider, discovery, transport, forwarder, ROS 2 publication, and independent observation on the modeled two-VM campaign deployment
-    artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml
-    blockers: [GAP-MW-025, GAP-MW-026, GAP-MW-027]
-    scope: campaign chain observed; production adapter-chain binding/transport/Autoware provenance remain blocked
+    status: observed_bounded_autoware_consumer
+    claim: provider, discovery, direct VSIDL service egress, adapter, ROS 2 publication, independent observation, and real Autoware consumer consumption on the modeled two-VM deployment
+    artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-013-autoware-consumer.yaml
+    blockers: [GAP-MW-019, GAP-MW-022, GAP-MW-027]
+    scope: adapter path + real Autoware consumer observed (E-MW-012/013); full Autoware stack and production deployment decision remain open
   - layer: lifecycle_update_fault_validation
     status: partial_fault_observed
     claim: startup, update/OTA, health, and fault behavior on the configured member
