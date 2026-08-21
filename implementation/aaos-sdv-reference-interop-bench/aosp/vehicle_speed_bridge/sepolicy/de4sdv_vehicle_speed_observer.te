@@ -1,0 +1,39 @@
+# Copyright (C) 2026 DE4SDV contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Dedicated SELinux domain for the DE4SDV Vehicle.Speed observer service
+# bundle. The default `untrusted_service_bundle` domain has no network socket
+# permission, so the direct VSIDL -> wire egress path (the product adapter
+# chain) is granted only to this observer domain, not to all service bundles.
+#
+# This is the product-policy opt-in the observer override documents: direct
+# TCP egress is enabled per bundle, not for untrusted service bundles in
+# general.
+
+type de4sdv_vehicle_speed_observer, domain;
+typeattribute de4sdv_vehicle_speed_observer coredomain;
+
+service_bundle_domain(de4sdv_vehicle_speed_observer)
+
+# Outbound TCP client connect for the Vehicle.Speed wire egress endpoint
+# (persist.sdv.de4sdv.vehicle_speed_egress / DE4SDV_VEHICLE_SPEED_EGRESS_ENDPOINT).
+allow de4sdv_vehicle_speed_observer self:tcp_socket { create bind getopt setopt connect read write shutdown getattr };
+allow de4sdv_vehicle_speed_observer port_type:tcp_socket name_connect;
+
+# Egress endpoint property: read by the observer, set by shell (campaign).
+# product_internal_prop (not plain property_type) keeps the set access legal
+# under the core property neverallows, matching the sdv_sample_cujs pattern.
+product_internal_prop(de4sdv_vehicle_speed_egress_prop)
+get_prop(de4sdv_vehicle_speed_observer, de4sdv_vehicle_speed_egress_prop)
+set_prop(shell, de4sdv_vehicle_speed_egress_prop)

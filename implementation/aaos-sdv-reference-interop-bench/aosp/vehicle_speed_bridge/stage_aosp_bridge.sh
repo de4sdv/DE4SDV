@@ -52,6 +52,43 @@ for bundle in VehicleSpeedProvider VehicleSpeedObserver; do
     "$OUTPUT_ROOT/generated/services/$bundle/src/main.rs"
 done
 
+# --- Stage the SELinux additions (dedicated observer domain with TCP egress).
+# The observer override reads the egress endpoint from
+# persist.sdv.de4sdv.vehicle_speed_egress; reading it requires rustutils and
+# the dedicated domain policy staged below.
+
+SEPOLICY_SRC="$OVERRIDE_ROOT/../sepolicy"
+SEPOLICY_SRC="$(cd "$SEPOLICY_SRC" && pwd)"
+SDV_SEPOLICY_ROOT="$AOSP_ROOT/device/google/sdv/sdv_core_base/sepolicy/samples"
+
+cp "$SEPOLICY_SRC/de4sdv_vehicle_speed_observer.te" \
+  "$SDV_SEPOLICY_ROOT/product/private/de4sdv_vehicle_speed_observer.te"
+
+cat "$SEPOLICY_SRC/service_bundle_contexts.append" \
+  >> "$SDV_SEPOLICY_ROOT/service_bundle_contexts"
+
+cat "$SEPOLICY_SRC/property_contexts.append" \
+  >> "$SDV_SEPOLICY_ROOT/product/private/property_contexts"
+
+# The generated observer Android.bp has no rustutils dependency; add it so the
+# override's system-property read compiles.
+OBSERVER_BP="$OUTPUT_ROOT/generated/services/VehicleSpeedObserver/Android.bp"
+python3 - "$OBSERVER_BP" <<'PY'
+import sys
+path = sys.argv[1]
+with open(path) as fh:
+    text = fh.read()
+if "librustutils" not in text:
+    text = text.replace(
+        '        "libfutures",\n',
+        '        "libfutures",\n        "librustutils",\n',
+        1,
+    )
+    with open(path, "w") as fh:
+        fh.write(text)
+print("patched rustutils into", path)
+PY
+
 printf '%s\n' "Staged DE4SDV Vehicle.Speed bridge at $OUTPUT_ROOT"
 printf '%s\n' 'Generated files, including APEX signing material, are staging artifacts only.'
 printf '%s\n' 'Build the generated modules explicitly before attempting target deployment:'

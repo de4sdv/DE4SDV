@@ -126,10 +126,17 @@ async fn sdv_main(comms: Arc<dyn Communicate>) -> SdvResult<()> {
     let descriptor = sdv_mw_rs_de4sdv_reference_vehicle_speed_vehicle_speed_observer::SubscriberDescriptors::<VehicleSpeed>::VEHICLE_SPEED;
     wait_for_publisher_to_be_available(comms.as_ref(), descriptor).await?;
 
-    let egress = std::env::var("DE4SDV_VEHICLE_SPEED_EGRESS_ENDPOINT")
+    let egress_endpoint = std::env::var("DE4SDV_VEHICLE_SPEED_EGRESS_ENDPOINT")
         .ok()
-        .filter(|endpoint| !endpoint.trim().is_empty())
-        .map(spawn_tcp_egress);
+        .or_else(|| {
+            rustutils::android::system_properties::read(
+                "persist.sdv.de4sdv.vehicle_speed_egress",
+            )
+            .ok()
+            .flatten()
+        })
+        .filter(|endpoint| !endpoint.trim().is_empty());
+    let egress = egress_endpoint.map(spawn_tcp_egress);
     let observer = clientlib::create_observer(
         comms.as_ref(),
         descriptor,
