@@ -124,9 +124,9 @@ acceptance_criteria:
     sysml_element: acceptanceCriterion010LifecycleCoordination
     evidence: E-MW-011 gate 8 not claimed
   - id: AC-MW-010-03
-    status: blocked_target_runtime
+    status: pass_bounded_verification
     sysml_element: acceptanceCriterion010HealthForwarding
-    evidence: no scenario executed
+    evidence: E-MW-014 degraded=stale/restored=healthy (5s/2s detection)
   - id: AC-MW-010-04
     status: pass_bounded_verification
     sysml_element: acceptanceCriterion010VehicleStartup
@@ -169,11 +169,11 @@ evidence_ladder:
     blockers: [GAP-MW-019, GAP-MW-022, GAP-MW-027]
     scope: adapter path + real Autoware consumer observed (E-MW-012/013); full Autoware stack and production deployment decision remain open
   - layer: lifecycle_update_fault_validation
-    status: partial_fault_observed
+    status: partial_health_observed
     claim: startup, update/OTA, health, and fault behavior on the configured member
-    artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml
+    artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-014-health-disposition.yaml
     blockers: [GAP-MW-028]
-    scope: fault rejection observed (gate 7); lifecycle/update/health and reverse path not claimed (gate 8)
+    scope: fault rejection (gate 7) and health disposition (E-MW-014, AC-03) observed; lifecycle/update/OTA and reverse path not claimed (gate 8)
 
 cloud_readiness:
   purpose: >-

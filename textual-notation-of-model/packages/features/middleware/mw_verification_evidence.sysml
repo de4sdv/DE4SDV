@@ -266,7 +266,7 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   part lifecycleUpdateFaultEvidenceGap010 : DeferredProductLineScope {
-    doc /* GAP-MW-028: Target-runtime lifecycle, update/OTA, health, and fault evidence remains unavailable. Fault subset observed (E-MW-011 gate 7: ingress rejects non-valid envelopes); lifecycle/update/health and reverse path remain open (gate 8 not claimed). */
+    doc /* GAP-MW-028: Target-runtime lifecycle, update/OTA, health, and fault evidence was unavailable. Fault subset observed (E-MW-011 gate 7: ingress rejects non-valid envelopes); health disposition now observed (E-MW-014: degraded=stale within 5s of provider loss, restored=healthy on resume — AC-MW-010-03 satisfied); lifecycle/update/OTA and reverse path remain open (gate 8 not claimed). */
   }
 
   verification def SignalTranslationVerification010 {
@@ -608,7 +608,7 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   requirement counterClaim010LifecycleUpdateFault : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-04: bounds the claim for GAP-MW-028 scope (lifecycle, update/OTA, health; fault rejection observed by E-MW-011 gate 7). */
+    doc /* CCM-MW-010-04: bounds the claim for GAP-MW-028 scope (lifecycle, update/OTA, reverse path; fault rejection observed by E-MW-011 gate 7, health disposition observed by E-MW-014). */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
