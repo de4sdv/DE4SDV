@@ -262,7 +262,7 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   part independentAutowareObservationGap010 : DeferredProductLineScope {
-    doc /* GAP-MW-027: An independent observation of /vehicle/status/velocity_status and Autoware-side provenance remains unavailable. Campaign-chain subset observed (E-MW-011 gate 6: independent observer validated 10.0 m/s); Autoware-side provenance remains open. */
+    doc /* GAP-MW-027: Autoware-side provenance for /vehicle/status/velocity_status was unavailable; the campaign-chain subset was observed (E-MW-011 gate 6: independent observer validated 10.0 m/s). A real Autoware node (autoware_vehicle_velocity_converter) now consumes the topic and produces twist_with_covariance with linear.x = 10.0 m/s (E-MW-013); full Autoware stack provenance remains open. */
   }
 
   part lifecycleUpdateFaultEvidenceGap010 : DeferredProductLineScope {
@@ -603,7 +603,7 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   requirement counterClaim010IndependentObservation : MiddlewareCounterClaim010 {
-    doc /* CCM-MW-010-03: bounds the claim for GAP-MW-027 scope (Autoware-side provenance; independent ROS 2 observation observed by E-MW-011). */
+    doc /* CCM-MW-010-03: bounds the claim for GAP-MW-027 scope (full Autoware stack provenance; real consumer node observed by E-MW-013). */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
