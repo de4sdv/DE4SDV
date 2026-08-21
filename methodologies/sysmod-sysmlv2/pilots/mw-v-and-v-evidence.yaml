@@ -255,6 +255,7 @@ claim_boundary:
     - reference contract rehearsal evidence
     - bounded AAOS/Cuttlefish build-and-boot baseline
     - E-MW-011 runtime campaign gates 1-7 on the modeled two-VM deployment
+    - E-MW-012 adapter-path campaign: direct VSIDL service egress, adapter, ROS 2, independent observer
     - independent observer validation of 36 kmh -> 10.0 m/s on the exact ROS 2 topic
     - ingress rejection of non-valid envelopes (fault subset)
   not_supported_now:

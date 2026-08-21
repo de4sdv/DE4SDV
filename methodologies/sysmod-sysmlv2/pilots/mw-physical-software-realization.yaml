@@ -94,7 +94,8 @@ signal_mappings:
     model_element: DE4SDV_MWPhysicalSoftwareRealization::physicalSoftware::adapter::aaosSignal::vehicleSpeed
     direction: provider_to_adapter_to_autoware
     downstream_mapping_id: VSS-SIM-AEBS-001
-    runtime_status: deferred
+    runtime_status: campaign_path_observed
+    evidence: E-MW-012 (direct VSIDL service -> TCP egress -> bridge -> ROS 2)
   logical_realization:
     model_element: DE4SDV_MWLogicalArchitecture::system::signalTranslator
     mapping_allocation: vehicleSpeedSystemToSoftwareSignalCandidate
@@ -102,7 +103,9 @@ signal_mappings:
     contract_tests:
     - implementation/aaos-sdv-reference-interop-bench/tests/test_reference_bench.py
     - implementation/vss-vehicle-speed-adapter/tests/test_adapter.py
-    runtime_evidence: gap
+    runtime_evidence:
+      campaign_chain: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml
+      adapter_path: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-012-adapter-path-campaign.yaml
   open_gaps:
   - GAP-MW-022
   - GAP-MW-020

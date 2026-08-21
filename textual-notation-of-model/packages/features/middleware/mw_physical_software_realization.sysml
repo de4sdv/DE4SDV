@@ -37,7 +37,14 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   part physicalSourceContractGap : DeferredProductLineScope {
-    doc /* GAP-MW-019: The Autoware ROS 2 topic and AOSP SDV transport sources are pinned, but the selected vehicle-velocity VSIDL/service-bundle schema and its generated client contract are not. */
+    doc /*
+     * GAP-MW-019: The Autoware ROS 2 topic and AOSP SDV transport sources are
+     * pinned, and the selected vehicle-velocity VSIDL/service-bundle schema
+     * (de4sdv.reference.vehicle_speed) with its generated client binding is
+     * now exercised at runtime (E-MW-012). The generated binding remains a
+     * staging artifact (stage_aosp_bridge.sh), not a committed production
+     * contract; the production adapter-chain binding decision remains open.
+     */
   }
 
   part physicalProcessDeploymentGap : DeferredProductLineScope {
@@ -63,7 +70,16 @@ package DE4SDV_MWPhysicalSoftwareRealization {
   }
 
   part velocitySignalContractGap : DeferredProductLineScope {
-    doc /* GAP-MW-022: The pinned public AOSP SDV tree provides gateway, service-discovery, data-tunnel, RPC-agent, and transport interfaces, but does not provide the selected production vehicle-velocity VSIDL service bundle, FQIN, payload contract, or generated client binding. The DE4SDV reference payload and VSIDL catalog remain candidates only. */
+    doc /*
+     * GAP-MW-022: The pinned public AOSP SDV tree provides gateway,
+     * service-discovery, data-tunnel, RPC-agent, and transport interfaces,
+     * but the selected production vehicle-velocity VSIDL service bundle,
+     * FQIN, payload contract, or generated client binding were not
+     * established. The DE4SDV reference payload and VSIDL catalog remain
+     * candidate-only. The campaign path now exercises the reference
+     * provider/observer bundles end-to-end (E-MW-012) through the dedicated
+     * observer domain; the production deployment decision remains open.
+     */
   }
 
   part def AAOSSDVSourceArtifact {
