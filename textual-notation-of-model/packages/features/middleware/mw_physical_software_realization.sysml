@@ -512,6 +512,20 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     port velocityReportIn : VelocityReportSubscription;
   }
 
+  part def AutowareVehicleVelocityConsumer {
+    doc /*
+     * Real Autoware-side consumer of the published VelocityReport on
+     * /vehicle/status/velocity_status. This is the product-path consumption
+     * leg: an Autoware node (Autoware vehicle-interface or equivalent) that
+     * subscribes to the topic and processes the velocity into its own state
+     * and logs, providing Autoware-side provenance (GAP-MW-027 scope).
+     *
+     * This part is realized by the Autoware runtime on VM-B; it is distinct
+     * from the independent observer, which exists only for evidence.
+     */
+    port velocityReportIn : VelocityReportSubscription;
+  }
+
   part def AAOSVehicleSpeedCampaignHostVm :> AOSPAAOSBuildRuntimeEnvironment {
     doc /*
      * VM-A/System-2 campaign host containing the nested AAOS/Cuttlefish guest
@@ -523,11 +537,13 @@ package DE4SDV_MWPhysicalSoftwareRealization {
 
   part def ROS2VehicleSpeedCampaignHostVm :> EngineeringExecutionEnvironment {
     doc /*
-     * VM-B/System-2 campaign host containing the ROS 2 ingress and independent
-     * observer. It is not a System 1 vehicle compute target.
+     * VM-B/System-2 campaign host containing the ROS 2 ingress, independent
+     * observer, and the real Autoware vehicle-velocity consumer. It is not a
+     * System 1 vehicle compute target.
      */
     part ros2Ingress : ROS2VehicleSpeedTcpIngress;
     part independentObserver : ROS2VelocityReportIndependentObserver;
+    part autowareConsumer : AutowareVehicleVelocityConsumer;
   }
 
   part def VehicleSpeedCampaignCommunicationDeployment {
@@ -535,10 +551,11 @@ package DE4SDV_MWPhysicalSoftwareRealization {
      * Bounded cross-domain communication path exercised by the reference
      * campaign: AAOS guest -> structured logcat -> VM-A host forwarder ->
      * private TCP -> VM-B ROS 2 ingress -> VelocityReport -> independent
-     * observer. The deployment is evidence infrastructure, not a production
-     * SDV deployment or a direct AAOS-service-to-ROS socket claim. The flows
-     * establish typed boundary topology; executable forwarding and conversion
-     * semantics remain owned by the implementation and evidence artifacts.
+     * observer and real Autoware vehicle-velocity consumer. The deployment is
+     * evidence infrastructure, not a production SDV deployment or a direct
+     * AAOS-service-to-ROS socket claim. The flows establish typed boundary
+     * topology; executable forwarding and conversion semantics remain owned by
+     * the implementation and evidence artifacts.
      */
     part vmA : AAOSVehicleSpeedCampaignHostVm;
     part vmB : ROS2VehicleSpeedCampaignHostVm;
@@ -554,6 +571,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     connection ros2IngressToObserver
       connect vmB.ros2Ingress.velocityReportOut
       to vmB.independentObserver.velocityReportIn;
+    connection ros2IngressToAutowareConsumer
+      connect vmB.ros2Ingress.velocityReportOut
+      to vmB.autowareConsumer.velocityReportIn;
 
     flow guestToHostForwarderPayload
       from vmA.cuttlefishGuest.structuredLogcatOut.envelope
@@ -567,6 +587,9 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     flow ros2IngressToObserverPayload
       from vmB.ros2Ingress.velocityReportOut.velocityReport
       to vmB.independentObserver.velocityReportIn.velocityReport;
+    flow ros2IngressToAutowareConsumerPayload
+      from vmB.ros2Ingress.velocityReportOut.velocityReport
+      to vmB.autowareConsumer.velocityReportIn.velocityReport;
   }
 
   part vehicleSpeedCampaignDeployment : VehicleSpeedCampaignCommunicationDeployment;
