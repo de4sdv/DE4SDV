@@ -11,7 +11,11 @@ import rclpy
 from autoware_vehicle_msgs.msg import VelocityReport
 from rclpy.node import Node
 
-from .bridge_core import ROS_VELOCITY_REPORT_TOPIC, VehicleSpeedTcpBridgeCore
+from .bridge_core import (
+    ROS_VELOCITY_REPORT_TOPIC,
+    StalenessWatchdog,
+    VehicleSpeedTcpBridgeCore,
+)
 
 
 class _VehicleSpeedRequestHandler(socketserver.StreamRequestHandler):
@@ -42,10 +46,23 @@ class VehicleSpeedTcpBridgeNode(Node):
     def __init__(self, topic: str = ROS_VELOCITY_REPORT_TOPIC) -> None:
         super().__init__("de4sdv_vehicle_speed_tcp_bridge")
         self._publisher = self.create_publisher(VelocityReport, topic, 10)
+        self._health_publisher = self.create_publisher(
+            VelocityReport, topic + "_health", 10
+        )
         self._core = VehicleSpeedTcpBridgeCore(self._publish)
         self._topic = topic
+        self._watchdog = StalenessWatchdog(
+            on_degraded=self._emit_degraded,
+            on_restored=self._emit_restored,
+        )
+        self._watchdog.mark_valid(now_ns=time.time_ns())
+        self._watchdog_period_s = 1.0
+        self._watchdog_timer = self.create_timer(
+            self._watchdog_period_s, self._check_staleness
+        )
 
     def _publish(self, output) -> None:
+        self._watchdog.mark_valid(now_ns=time.time_ns())
         message = VelocityReport()
         message.longitudinal_velocity = output.longitudinal_velocity_mps
         self._publisher.publish(message)
@@ -54,6 +71,24 @@ class VehicleSpeedTcpBridgeNode(Node):
             f"longitudinal_velocity_mps={output.longitudinal_velocity_mps} "
             f"source_timestamp_ns={output.timestamp_ns} topic={self._topic}"
         )
+
+    def _emit_degraded(self, age_ns: int) -> None:
+        # Honest degraded disposition: stale marker on the health topic.
+        message = VelocityReport()
+        message.longitudinal_velocity = float("nan")
+        self._health_publisher.publish(message)
+        self.get_logger().warning(
+            "DE4SDV_VELOCITY_HEALTH degraded=stale "
+            f"last_valid_age_ns={age_ns} topic={self._topic}_health"
+        )
+
+    def _emit_restored(self) -> None:
+        self.get_logger().warning(
+            f"DE4SDV_VELOCITY_HEALTH restored=healthy topic={self._topic}_health"
+        )
+
+    def _check_staleness(self) -> None:
+        self._watchdog.tick(now_ns=time.time_ns())
 
     def handle_wire_line(self, line: bytes) -> None:
         try:

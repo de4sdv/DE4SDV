@@ -78,6 +78,33 @@ def test_rejects_stale_source_sample_before_ros_publication():
     assert published == []
 
 
+def test_staleness_watchdog_emits_degraded_then_restored():
+    """AC-MW-010-03: missing source produces an observable degraded
+    disposition, and recovery restores healthy — not silent absence."""
+    from de4sdv_vehicle_speed_tcp_bridge.bridge_core import StalenessWatchdog
+
+    events = []
+    wd = StalenessWatchdog(
+        max_age_ns=5_000_000_000,
+        on_degraded=lambda _age: events.append("degraded=stale"),
+        on_restored=lambda: events.append("restored=healthy"),
+    )
+
+    # Healthy ticks (valid sample at t=0).
+    wd.mark_valid(now_ns=1_000)
+    wd.tick(now_ns=1_000)
+    assert events == []
+
+    # Source stops; 6s later the watchdog fires degraded.
+    wd.tick(now_ns=6_000_000_000)
+    assert events == ["degraded=stale"]
+
+    # A valid sample arrives; watchdog restores healthy.
+    wd.mark_valid(now_ns=7_000_000_000)
+    wd.tick(now_ns=7_000_000_000)
+    assert events == ["degraded=stale", "restored=healthy"]
+
+
 def test_adb_logcat_forwarder_extracts_and_recanonicalizes_wire_record():
     line = "de4sdv_reference_vehicle_speed: I DE4SDV_VEHICLE_SPEED_WIRE " + wire().strip()
 
