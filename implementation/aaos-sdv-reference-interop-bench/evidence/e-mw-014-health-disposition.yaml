@@ -1,0 +1,53 @@
+schema: de4sdv.executable-integration-evidence.v1
+id: E-MW-014-HEALTH-DISPOSITION-2026-08-21
+increment: INC-MW-010
+status: passed
+mode: runtime
+recorded_at: "2026-08-21T22:46:30Z"
+claim:
+  statement: >-
+    The bridge emits an observable degraded disposition (DE4SDV_VELOCITY_HEALTH
+    degraded=stale with NaN velocity marker on the health topic) within ~5s when
+    the AAOS provider stops, and emits restored=healthy when the provider
+    resumes — satisfying AC-MW-010-03 (health forwarding: missing/stale source
+    produces an observable disposition, not silent absence or relabeling).
+  system_1_subject: "Configured Autoware + AndroidSDV member (MW-CONFIG-001)"
+  system_2_enabler: "Google Cloud de4sdv-aaos-build + de4sdv-ros2-autoware two-VM deployment"
+  evidence_boundary: >-
+    Health disposition at the ROS 2 application boundary (topic +_health with
+    NaN velocity marker and log lines). Lifecycle transitions (AC-02) and
+    update/OTA (AC-05) remain separately bounded.
+events:
+  - at: "22:45:54Z"
+    action: stop provider bundle (sdv_service_bundle stop)
+    observed: velocity publications stop
+  - at: "22:46:00Z"
+    observed: "DE4SDV_VELOCITY_HEALTH degraded=stale last_valid_age_ns=5799837927 topic=/vehicle/status/velocity_status_health"
+    detail: watchdog fired 5.8s after provider stop (max_age_ns=5s)
+  - at: "22:46:18Z"
+    action: start provider bundle (sdv_service_bundle start)
+    observed: velocity publications resume (longitudinal_velocity_mps=10.0)
+  - at: "22:46:20Z"
+    observed: "DE4SDV_VELOCITY_HEALTH restored=healthy topic=/vehicle/status/velocity_status_health"
+    detail: restore detected 2s after provider restart
+gates:
+  - gate: degraded_disposition_emitted
+    outcome: pass
+    detail: "degraded=stale with NaN health marker within ~5s of source loss"
+  - gate: not_relabeled_healthy
+    outcome: pass
+    detail: "no VALID velocity published during provider absence (silence, not fake data)"
+  - gate: restored_disposition_emitted
+    outcome: pass
+    detail: "restored=healthy within 2s of provider restart"
+  - gate: velocity_continues_after_restore
+    outcome: pass
+    detail: "10.0 m/s publications resume after restore"
+implementation:
+  - "StalenessWatchdog in ros2/vehicle_speed_tcp_bridge (PR #147)"
+  - "health publisher on <topic>_health with NaN VelocityReport marker"
+  - "DE4SDV_VELOCITY_HEALTH degraded=stale / restored=healthy log lines"
+model_mapping:
+  - "AC-MW-010-03 health forwarding (mw_verification_evidence.sysml)"
+  - "GAP-MW-028 lifecycle/update/health subset — health disposition now observed"
+  - "bridge: VehicleSpeedTcpBridgeNode (ros2 ingress)"

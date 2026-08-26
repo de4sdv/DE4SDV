@@ -41,6 +41,43 @@ def _require_timestamp(value: Any) -> int:
     return value
 
 
+class StalenessWatchdog:
+    """Emit an observable degraded disposition when valid samples stop.
+
+    AC-MW-010-03: missing/stale source must produce an observable degraded or
+    unavailable disposition — not silent absence. The watchdog fires
+    on_degraded once when no valid sample arrives within max_age_ns, and
+    on_restored when a valid sample resumes.
+    """
+
+    def __init__(
+        self,
+        *,
+        max_age_ns: int = 5_000_000_000,
+        on_degraded,
+        on_restored,
+    ) -> None:
+        self._max_age_ns = max_age_ns
+        self._on_degraded = on_degraded
+        self._on_restored = on_restored
+        self._last_valid_ns: int | None = None
+        self._degraded = False
+
+    def mark_valid(self, *, now_ns: int) -> None:
+        self._last_valid_ns = now_ns
+
+    def tick(self, *, now_ns: int) -> None:
+        if self._last_valid_ns is None:
+            return
+        age_ns = now_ns - self._last_valid_ns
+        if age_ns > self._max_age_ns and not self._degraded:
+            self._degraded = True
+            self._on_degraded(age_ns)
+        elif age_ns <= self._max_age_ns and self._degraded:
+            self._degraded = False
+            self._on_restored()
+
+
 def parse_vehicle_speed_line(line: bytes | str) -> VehicleSpeedSample:
     """Parse one strict newline-delimited AAOS Vehicle.Speed record."""
     if isinstance(line, bytes):
