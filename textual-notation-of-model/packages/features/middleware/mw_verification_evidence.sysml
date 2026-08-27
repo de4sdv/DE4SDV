@@ -2,14 +2,15 @@
  * DE4SDV middleware verification and validation/evidence model slice.
  *
  * INC-MW-010 defines the verification cases, validation scenarios, acceptance
- * criteria, evidence roles, and explicit claim boundary for the configured
- * Autoware + AndroidSDV member. It may be planned and exercised incrementally;
- * planned cases are not runtime passes.
+ * criteria, retained evidence, bounded assurance claim, deferred counterclaims,
+ * and Phase 12 baseline decision for the configured Autoware + AndroidSDV
+ * member.
  *
- * Contract tests and the bounded Cuttlefish boot record support lower-level
- * claims. Target-runtime provider, transport, ROS 2, Autoware, lifecycle,
- * update, and fault evidence remain blocked until the executable realization
- * and independent observation path exist.
+ * The accepted baseline is limited to the observed forward Vehicle.Speed chain,
+ * bounded real Autoware consumption, invalid-envelope rejection, and provider-
+ * loss health disposition. Full lifecycle ordering, update/OTA behavior, the
+ * reverse lifecycle/status path, production deployment, full-stack Autoware,
+ * safety, and certification claims remain deferred or not claimed.
  */
 
 package DE4SDV_MW010VerificationEvidence {
@@ -251,6 +252,80 @@ package DE4SDV_MW010VerificationEvidence {
     attribute :>> independentObserverIdentity = "de4sdv_velocity_report_independent_observer (vmB)";
     attribute :>> disposition = EvidenceDisposition010::observedBounded;
     attribute :>> claimBoundary = "Campaign-chain runtime evidence on the two-VM deployment; not adapter-chain, lifecycle/update, safety, or certification evidence.";
+  }
+
+  part runtimeAdapterPathEvidence012 : RetainedMiddlewareEvidence010 {
+    doc /*
+     * E-MW-012. Retained direct adapter-path campaign evidence for the same
+     * configured member. The AAOS provider and observer service bundles,
+     * discovery, direct TCP egress, ROS 2 VelocityReport publication,
+     * independent 10.0 m/s observation, and invalid-envelope rejection were
+     * observed. Gate 8 remained not claimed.
+     */
+    attribute :>> configurationIdentity = "MW-CONFIG-001";
+    attribute :>> executionEnvironmentIdentity = "gcp-europe-west4-a-de4sdv-aaos-build+de4sdv-ros2-autoware";
+    attribute :>> contractIdentity = "de4sdv.reference.vehicle_speed.VehicleSpeed -> autoware_vehicle_msgs/msg/VelocityReport";
+    attribute :>> rawObservationArtifact = "implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-012-adapter-path-campaign.yaml";
+    attribute :>> independentObserverIdentity = "de4sdv_velocity_report_independent_observer (vmB)";
+    attribute :>> disposition = EvidenceDisposition010::observedBounded;
+    attribute :>> claimBoundary = "Direct campaign adapter path only; not bidirectional, production-deployment, lifecycle/update, safety, or certification evidence.";
+  }
+
+  part runtimeAutowareConsumerEvidence013 : RetainedMiddlewareEvidence010 {
+    doc /*
+     * E-MW-013. A real autoware_vehicle_velocity_converter instance consumed
+     * /vehicle/status/velocity_status and produced
+     * /vehicle/status/twist_with_covariance with linear.x = 10.0 m/s and
+     * covariance[0] = 0.04. This proves bounded Autoware-side consumption by
+     * that node, not operation of the full Autoware stack.
+     */
+    attribute :>> configurationIdentity = "MW-CONFIG-001";
+    attribute :>> executionEnvironmentIdentity = "gcp-europe-west4-a-de4sdv-aaos-build+de4sdv-ros2-autoware";
+    attribute :>> contractIdentity = "autoware_vehicle_msgs/msg/VelocityReport -> geometry_msgs/msg/TwistWithCovarianceStamped";
+    attribute :>> rawObservationArtifact = "implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-013-autoware-consumer.yaml";
+    attribute :>> independentObserverIdentity = "autoware_vehicle_velocity_converter output observation (vmB)";
+    attribute :>> disposition = EvidenceDisposition010::observedBounded;
+    attribute :>> claimBoundary = "One real Autoware consumer and its converted output; not localization, planning, perception, control, safety, or certification evidence.";
+  }
+
+  part runtimeHealthDispositionEvidence014 : RetainedMiddlewareEvidence010 {
+    doc /*
+     * E-MW-014. Provider loss produced an observable degraded=stale
+     * disposition after the five-second freshness bound; provider restoration
+     * produced restored=healthy and resumed 10.0 m/s publication. This closes
+     * only the health-disposition subset of GAP-MW-028.
+     */
+    attribute :>> configurationIdentity = "MW-CONFIG-001";
+    attribute :>> executionEnvironmentIdentity = "gcp-europe-west4-a-de4sdv-aaos-build+de4sdv-ros2-autoware";
+    attribute :>> contractIdentity = "/vehicle/status/velocity_status provider-loss health disposition";
+    attribute :>> rawObservationArtifact = "implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-014-health-disposition.yaml";
+    attribute :>> independentObserverIdentity = "retained VM-B bridge log and health-topic observation";
+    attribute :>> disposition = EvidenceDisposition010::observedBounded;
+    attribute :>> claimBoundary = "Provider-loss degraded/restored disposition only; not complete lifecycle ordering, update/OTA, reverse-path, safety, or certification evidence.";
+  }
+
+  part boundedBaselineDecision010 : IncrementLifecycleDecision {
+    doc /*
+     * BL-MW-010-P12. Phase 12 accepts the bounded forward Vehicle.Speed chain,
+     * direct adapter path, independent ROS 2 observation, one real Autoware
+     * consumer, invalid-envelope rejection, and provider-loss degraded/restored
+     * health disposition demonstrated by E-MW-011 through E-MW-014.
+     *
+     * Complete lifecycle transition ordering (AC-MW-010-02), update/OTA
+     * contract preservation (AC-MW-010-05), and the reverse lifecycle/status
+     * path (gate 8) are deferred or not claimed. Production deployment, full
+     * Autoware-stack, safety, certification, compliance, homologation, and
+     * type-approval claims are also excluded. INC-MW-010 closes with these
+     * residual counterclaims and gaps still explicit.
+     */
+  }
+
+  part successorIncrementDecision010 : IncrementLifecycleDecision {
+    doc /*
+     * Any stakeholder-visible Autoware-to-AAOS visualization and any reverse
+     * transport used by it shall be framed as a separate capability increment.
+     * It is not added to INC-MW-010 and does not retroactively satisfy gate 8.
+     */
   }
 
   part providerBindingEvidenceGap010 : DeferredProductLineScope {
@@ -548,47 +623,52 @@ package DE4SDV_MW010VerificationEvidence {
 
   requirement mw010ReferenceContractClaim : MiddlewareClaim010 {
     doc /*
-     * CLM-MW-010-01: the configured Autoware + AndroidSDV member realizes the
-     * Vehicle.Speed reference contract within the declared claim boundary:
-     * signal translation semantics, lifecycle coordination, health forwarding,
-     * startup and update coordination, and fault containment are observable,
-     * replayable, and independently observed.
+     * CLM-MW-010-01: for MW-CONFIG-001 on the retained two-VM execution
+     * environment, the forward Vehicle.Speed slice was observed from the AAOS
+     * provider through the direct adapter path to ROS 2, where one real
+     * Autoware consumer produced the expected converted output. Invalid
+     * envelopes were rejected and provider loss/restoration produced explicit
+     * degraded/restored health dispositions.
      */
     subject claimSubject : MiddlewareIntegrationVandVBench010;
     require constraint {
-      doc /* The claim is bounded by retained, replayable, independently
-        observed evidence bound to the configured member, execution
-        environment, and contract identities. It is not target-runtime proof. */
+      doc /*
+       * The claim requires retained E-MW-011 through E-MW-014 evidence bound to
+       * the configured member, exact contracts, execution environment, and
+       * observer identities. It excludes complete lifecycle ordering,
+       * update/OTA, reverse-path, production, full-stack Autoware, safety, and
+       * certification claims.
+       */
     }
   }
 
   requirement signalTranslationArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-01: argues that AC-MW-010-01 (bounded signal translation semantics) is satisfied within the claim boundary. */
+    doc /* AGT-MW-010-01: argues that AC-MW-010-01 (bounded signal translation semantics) is satisfied within the accepted claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
   requirement lifecycleCoordinationArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-02: argues that AC-MW-010-02 (observable integration lifecycle coordination) is satisfied within the claim boundary. */
+    doc /* AGT-MW-010-02: records the AC-MW-010-02 verification branch; complete lifecycle transition ordering is deferred and does not support the accepted claim. */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
   requirement healthForwardingArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-03: argues that AC-MW-010-03 (health forwarding without relabeling) is satisfied within the claim boundary. */
+    doc /* AGT-MW-010-03: argues that AC-MW-010-03 (provider-loss health disposition without relabeling) is satisfied within the accepted claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
   requirement vehicleStartupArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-04: argues that AC-MW-010-04 (causally ordered startup readiness) is satisfied within the claim boundary. */
+    doc /* AGT-MW-010-04: argues that AC-MW-010-04 (bounded provider, registration, and discovery startup observations) is satisfied within the accepted claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
   requirement updateCoordinationArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-05: argues that AC-MW-010-05 (update coordination with identity retention) is satisfied within the claim boundary. */
+    doc /* AGT-MW-010-05: records the AC-MW-010-05 verification branch; update/OTA contract preservation is deferred and does not support the accepted claim. */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
   requirement faultDetectionArgument010 : MiddlewareArgument010 {
-    doc /* AGT-MW-010-06: argues that AC-MW-010-06 (fault detection and containment) is satisfied within the claim boundary. */
+    doc /* AGT-MW-010-06: argues that AC-MW-010-06 (invalid-envelope rejection) is satisfied within the accepted claim boundary. */
     subject bench : MiddlewareIntegrationVandVBench010;
   }
 
@@ -614,14 +694,10 @@ package DE4SDV_MW010VerificationEvidence {
 
   dependency claimSupportedBySignalArgument
     from signalTranslationArgument010 to mw010ReferenceContractClaim;
-  dependency claimSupportedByLifecycleArgument
-    from lifecycleCoordinationArgument010 to mw010ReferenceContractClaim;
   dependency claimSupportedByHealthArgument
     from healthForwardingArgument010 to mw010ReferenceContractClaim;
   dependency claimSupportedByStartupArgument
     from vehicleStartupArgument010 to mw010ReferenceContractClaim;
-  dependency claimSupportedByUpdateArgument
-    from updateCoordinationArgument010 to mw010ReferenceContractClaim;
   dependency claimSupportedByFaultArgument
     from faultDetectionArgument010 to mw010ReferenceContractClaim;
 
@@ -648,8 +724,24 @@ package DE4SDV_MW010VerificationEvidence {
     from runtimeCampaignEvidence011 to vehicleStartupArgument010;
   dependency runtimeCampaignReinforcesFaultArgument
     from runtimeCampaignEvidence011 to faultDetectionArgument010;
+  dependency runtimeAdapterPathReinforcesSignalArgument
+    from runtimeAdapterPathEvidence012 to signalTranslationArgument010;
+  dependency runtimeAdapterPathReinforcesStartupArgument
+    from runtimeAdapterPathEvidence012 to vehicleStartupArgument010;
+  dependency runtimeAdapterPathReinforcesFaultArgument
+    from runtimeAdapterPathEvidence012 to faultDetectionArgument010;
+  dependency runtimeAutowareConsumerReinforcesSignalArgument
+    from runtimeAutowareConsumerEvidence013 to signalTranslationArgument010;
+  dependency runtimeHealthDispositionReinforcesHealthArgument
+    from runtimeHealthDispositionEvidence014 to healthForwardingArgument010;
   dependency runtimeCampaignTraceToClaim
     from runtimeCampaignEvidence011 to mw010ReferenceContractClaim;
+  dependency runtimeAdapterPathTraceToClaim
+    from runtimeAdapterPathEvidence012 to mw010ReferenceContractClaim;
+  dependency runtimeAutowareConsumerTraceToClaim
+    from runtimeAutowareConsumerEvidence013 to mw010ReferenceContractClaim;
+  dependency runtimeHealthDispositionTraceToClaim
+    from runtimeHealthDispositionEvidence014 to mw010ReferenceContractClaim;
 
   dependency counterClaimProviderBindingCountersClaim
     from counterClaim010ProviderBinding to mw010ReferenceContractClaim;
@@ -669,8 +761,29 @@ package DE4SDV_MW010VerificationEvidence {
   dependency counterClaimLifecycleGapTrace
     from counterClaim010LifecycleUpdateFault to lifecycleUpdateFaultEvidenceGap010;
 
+  dependency boundedClaimToBaselineDecision010
+    from mw010ReferenceContractClaim to boundedBaselineDecision010;
+  dependency runtimeCampaignToBaselineDecision010
+    from runtimeCampaignEvidence011 to boundedBaselineDecision010;
+  dependency runtimeAdapterPathToBaselineDecision010
+    from runtimeAdapterPathEvidence012 to boundedBaselineDecision010;
+  dependency runtimeAutowareConsumerToBaselineDecision010
+    from runtimeAutowareConsumerEvidence013 to boundedBaselineDecision010;
+  dependency runtimeHealthDispositionToBaselineDecision010
+    from runtimeHealthDispositionEvidence014 to boundedBaselineDecision010;
+  dependency deferredProviderCounterclaimToBaselineDecision010
+    from counterClaim010ProviderBinding to boundedBaselineDecision010;
+  dependency deferredTransportCounterclaimToBaselineDecision010
+    from counterClaim010CrossDomainTransport to boundedBaselineDecision010;
+  dependency deferredObservationCounterclaimToBaselineDecision010
+    from counterClaim010IndependentObservation to boundedBaselineDecision010;
+  dependency deferredLifecycleCounterclaimToBaselineDecision010
+    from counterClaim010LifecycleUpdateFault to boundedBaselineDecision010;
+  dependency successorIncrementToBaselineDecision010
+    from successorIncrementDecision010 to boundedBaselineDecision010;
+
   concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
-    doc /* Evidence-based assurance claims and their supporting argumentation. */
+    doc /* Evidence-based assurance claims, counterclaims, retained evidence, and the bounded baseline decision. */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder verificationEngineer : VerificationEngineer;
@@ -682,17 +795,25 @@ package DE4SDV_MW010VerificationEvidence {
       frame argumentationAssuranceConcern;
     }
     doc /*
-     * Positive evidence slice: the claim branches that currently have retained
-     * evidence. Open counterclaims and gaps are published separately.
+     * Positive Phase 12 slice: the bounded claim, retained evidence branches,
+     * accepted baseline decision, and separately framed successor decision.
+     * Open counterclaims and gaps are published separately.
      */
+    expose boundedBaselineDecision010;
+    expose successorIncrementDecision010;
     expose mw010ReferenceContractClaim;
     expose signalTranslationArgument010;
+    expose healthForwardingArgument010;
     expose vehicleStartupArgument010;
     expose faultDetectionArgument010;
     expose contractAndRehearsalEvidence010;
     expose boundedAAOSBootBaseline010;
     expose runtimeCampaignEvidence011;
+    expose runtimeAdapterPathEvidence012;
+    expose runtimeAutowareConsumerEvidence013;
+    expose runtimeHealthDispositionEvidence014;
     expose claimSupportedBySignalArgument;
+    expose claimSupportedByHealthArgument;
     expose claimSupportedByStartupArgument;
     expose claimSupportedByFaultArgument;
     expose contractEvidenceReinforcesArgument;
@@ -700,7 +821,21 @@ package DE4SDV_MW010VerificationEvidence {
     expose runtimeCampaignReinforcesSignalArgument;
     expose runtimeCampaignReinforcesStartupArgument;
     expose runtimeCampaignReinforcesFaultArgument;
+    expose runtimeAdapterPathReinforcesSignalArgument;
+    expose runtimeAdapterPathReinforcesStartupArgument;
+    expose runtimeAdapterPathReinforcesFaultArgument;
+    expose runtimeAutowareConsumerReinforcesSignalArgument;
+    expose runtimeHealthDispositionReinforcesHealthArgument;
     expose runtimeCampaignTraceToClaim;
+    expose runtimeAdapterPathTraceToClaim;
+    expose runtimeAutowareConsumerTraceToClaim;
+    expose runtimeHealthDispositionTraceToClaim;
+    expose boundedClaimToBaselineDecision010;
+    expose runtimeCampaignToBaselineDecision010;
+    expose runtimeAdapterPathToBaselineDecision010;
+    expose runtimeAutowareConsumerToBaselineDecision010;
+    expose runtimeHealthDispositionToBaselineDecision010;
+    expose successorIncrementToBaselineDecision010;
     attribute maxCompartmentEntries = 0;
     attribute showAnnotationRows = false;
     render asTreeDiagram;
@@ -711,9 +846,11 @@ package DE4SDV_MW010VerificationEvidence {
       frame argumentationAssuranceConcern;
     }
     doc /*
-     * Challenge slice: unresolved counterclaims against the reference claim and
-     * the explicit evidence gaps that prevent target-runtime assurance.
+     * Challenge slice: unresolved counterclaims and explicit gaps retained by
+     * the bounded Phase 12 decision. They prevent broader production, full-
+     * stack, lifecycle/update, and reverse-path assurance.
      */
+    expose boundedBaselineDecision010;
     expose mw010ReferenceContractClaim;
     expose counterClaim010ProviderBinding;
     expose counterClaim010CrossDomainTransport;
@@ -731,6 +868,10 @@ package DE4SDV_MW010VerificationEvidence {
     expose counterClaimTransportGapTrace;
     expose counterClaimObservationGapTrace;
     expose counterClaimLifecycleGapTrace;
+    expose deferredProviderCounterclaimToBaselineDecision010;
+    expose deferredTransportCounterclaimToBaselineDecision010;
+    expose deferredObservationCounterclaimToBaselineDecision010;
+    expose deferredLifecycleCounterclaimToBaselineDecision010;
     attribute maxCompartmentEntries = 0;
     attribute showAnnotationRows = false;
     render asTreeDiagram;
