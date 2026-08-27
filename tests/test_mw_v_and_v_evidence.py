@@ -191,7 +191,7 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
         )
         self.assertEqual(
             layers["lifecycle_update_fault_validation"]["status"],
-            "partial_fault_observed",
+            "partial_health_observed",
         )
         self.assertIn("ArgumentationAssuranceViewpoint", self.model)
         self.assertNotIn("PhysicalStructureDefinitionViewpoint", self.model)
