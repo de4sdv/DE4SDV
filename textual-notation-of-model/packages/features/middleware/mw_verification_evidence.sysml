@@ -806,6 +806,12 @@ package DE4SDV_MW010VerificationEvidence {
     expose runtimeAdapterPathEvidence012;
     expose runtimeAutowareConsumerEvidence013;
     expose runtimeHealthDispositionEvidence014;
+    expose signalTranslationArgument010;
+    expose healthForwardingArgument010;
+    expose vehicleStartupArgument010;
+    expose faultDetectionArgument010;
+    expose contractAndRehearsalEvidence010;
+    expose boundedAAOSBootBaseline010;
     expose boundedClaimToBaselineDecision010;
     expose runtimeCampaignToBaselineDecision010;
     expose runtimeAdapterPathToBaselineDecision010;
@@ -827,6 +833,7 @@ package DE4SDV_MW010VerificationEvidence {
      * stack, lifecycle/update, and reverse-path assurance.
      */
     expose boundedBaselineDecision010;
+    expose mw010ReferenceContractClaim;
     expose counterClaim010ProviderBinding;
     expose counterClaim010CrossDomainTransport;
     expose counterClaim010IndependentObservation;
