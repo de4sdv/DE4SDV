@@ -802,34 +802,10 @@ package DE4SDV_MW010VerificationEvidence {
     expose boundedBaselineDecision010;
     expose successorIncrementDecision010;
     expose mw010ReferenceContractClaim;
-    expose signalTranslationArgument010;
-    expose healthForwardingArgument010;
-    expose vehicleStartupArgument010;
-    expose faultDetectionArgument010;
-    expose contractAndRehearsalEvidence010;
-    expose boundedAAOSBootBaseline010;
     expose runtimeCampaignEvidence011;
     expose runtimeAdapterPathEvidence012;
     expose runtimeAutowareConsumerEvidence013;
     expose runtimeHealthDispositionEvidence014;
-    expose claimSupportedBySignalArgument;
-    expose claimSupportedByHealthArgument;
-    expose claimSupportedByStartupArgument;
-    expose claimSupportedByFaultArgument;
-    expose contractEvidenceReinforcesArgument;
-    expose bootBaselineReinforcesArgument;
-    expose runtimeCampaignReinforcesSignalArgument;
-    expose runtimeCampaignReinforcesStartupArgument;
-    expose runtimeCampaignReinforcesFaultArgument;
-    expose runtimeAdapterPathReinforcesSignalArgument;
-    expose runtimeAdapterPathReinforcesStartupArgument;
-    expose runtimeAdapterPathReinforcesFaultArgument;
-    expose runtimeAutowareConsumerReinforcesSignalArgument;
-    expose runtimeHealthDispositionReinforcesHealthArgument;
-    expose runtimeCampaignTraceToClaim;
-    expose runtimeAdapterPathTraceToClaim;
-    expose runtimeAutowareConsumerTraceToClaim;
-    expose runtimeHealthDispositionTraceToClaim;
     expose boundedClaimToBaselineDecision010;
     expose runtimeCampaignToBaselineDecision010;
     expose runtimeAdapterPathToBaselineDecision010;
@@ -851,7 +827,6 @@ package DE4SDV_MW010VerificationEvidence {
      * stack, lifecycle/update, and reverse-path assurance.
      */
     expose boundedBaselineDecision010;
-    expose mw010ReferenceContractClaim;
     expose counterClaim010ProviderBinding;
     expose counterClaim010CrossDomainTransport;
     expose counterClaim010IndependentObservation;
@@ -860,10 +835,6 @@ package DE4SDV_MW010VerificationEvidence {
     expose crossDomainTransportEvidenceGap010;
     expose independentAutowareObservationGap010;
     expose lifecycleUpdateFaultEvidenceGap010;
-    expose counterClaimProviderBindingCountersClaim;
-    expose counterClaimTransportCountersClaim;
-    expose counterClaimObservationCountersClaim;
-    expose counterClaimLifecycleCountersClaim;
     expose counterClaimProviderBindingGapTrace;
     expose counterClaimTransportGapTrace;
     expose counterClaimObservationGapTrace;
