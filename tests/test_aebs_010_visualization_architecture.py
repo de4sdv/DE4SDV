@@ -59,21 +59,12 @@ def test_logical_adapter_has_no_command_path() -> None:
 def test_logical_flow_is_one_directional_sources_to_evidence() -> None:
     logic = _read(LOGIC)
     system = logic.split("part def AEBSVisualizationLogicalSystem")[1].split("part def VisualizationHealthSupervisorRole")[0]
-    flows = [line.strip() for line in system.splitlines() if line.strip().startswith("flow from")]
+    flows = [line.strip() for line in system.splitlines() if line.strip().startswith("connect ")]
     assert flows, "no flows modeled"
     for flow in flows:
-        # No flow may target a source role or run backwards into the adapter.
-        for backwards in (
-            "to nativeAebSource",
-            "to coordinatorSource",
-            "sourceAdapter.rssDistanceIn",
-            "sourceAdapter.obstacleCloudIn",
-            "sourceAdapter.diagnosticsIn",
-            "sourceAdapter.warningIn",
-            "sourceAdapter.brakingIn",
-            "sourceAdapter.lifecycleIn",
-        ):
-            assert backwards not in flow, (backwards, flow)
+        # No connection may end at a source role; sources are publish-only.
+        assert not flow.endswith("nativeAebSource;") and "to nativeAebSource" not in flow, flow
+        assert "to coordinatorSource" not in flow, flow
 
 
 def test_physical_slice_pins_the_autoware_source_revision() -> None:

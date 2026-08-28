@@ -126,33 +126,33 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
     }
     part evidenceRecorder : VisualizationEvidenceRecorder;
 
-    // Source-side exchanges reuse the selected Autoware publications.
-    flow from pinnedAeb.rssDistanceOut.rssDistance
-      to sourceAdapter.rssDistanceIn.rssDistance;
-    flow from pinnedAeb.obstacleCloudOut.debugPointCloud
-      to sourceAdapter.obstacleCloudIn.obstacleCloud;
-    flow from pinnedAeb.diagnosticsOut.diagnostics
-      to sourceAdapter.diagnosticsIn.diagnostics;
+    // Source-side connections reuse the selected Autoware publications.
+    connection rssDistanceSource
+      connect pinnedAeb.rssDistanceOut to sourceAdapter.rssDistanceIn;
+    connection obstacleCloudSource
+      connect pinnedAeb.obstacleCloudOut to sourceAdapter.obstacleCloudIn;
+    connection diagnosticSource
+      connect pinnedAeb.diagnosticsOut to sourceAdapter.diagnosticsIn;
 
     // Coordinator outputs remain DE4SDV-derived; provenance is per-field.
-    flow from coordinator.warningRequestOut
-      to sourceAdapter.warningIn;
-    flow from coordinator.brakingRequestOut
-      to sourceAdapter.brakingIn;
-    flow from coordinator.lifecycleStateOut
-      to sourceAdapter.lifecycleIn;
+    connection warningSource
+      connect coordinator.warningRequestOut to sourceAdapter.warningIn;
+    connection brakingSource
+      connect coordinator.brakingRequestOut to sourceAdapter.brakingIn;
+    connection lifecycleSource
+      connect coordinator.lifecycleStateOut to sourceAdapter.lifecycleIn;
 
     // Reverse visualization flow only; no command path exists anywhere.
-    flow from sourceAdapter.frameOut.visualizationFrame
-      to transport.frameIn.visualizationFrame;
-    flow from transport.frameOut.visualizationFrame
-      to iviGuest.gatewayIngress.frameIn.visualizationFrame;
-    flow from iviGuest.gatewayIngress.frameOut.visualizationFrame
-      to iviGuest.dataTunnel.publishedIn.visualizationFrame;
-    flow from iviGuest.dataTunnel.subscriptionOut.visualizationFrame
-      to iviGuest.displayApp.frameIn.visualizationFrame;
-    flow from iviGuest.displayApp.renderedOut.rendered
-      to evidenceRecorder.renderedIn.rendered;
+    connection adapterToTransport
+      connect sourceAdapter.frameOut to transport.frameIn;
+    connection transportToIngress
+      connect transport.frameOut to iviGuest.gatewayIngress.frameIn;
+    connection ingressToTunnel
+      connect iviGuest.gatewayIngress.frameOut to iviGuest.dataTunnel.publishedIn;
+    connection tunnelToApplication
+      connect iviGuest.dataTunnel.subscriptionOut to iviGuest.displayApp.frameIn;
+    connection applicationToEvidence
+      connect iviGuest.displayApp.renderedOut to evidenceRecorder.renderedIn;
   }
 
   part physicalSystem : AEBS010VisualizationPhysicalSystem;

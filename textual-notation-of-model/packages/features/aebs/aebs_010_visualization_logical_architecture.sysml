@@ -186,32 +186,32 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
     part healthSupervisor : VisualizationHealthSupervisorRole;
 
     // Source observations into the adapter.
-    flow from nativeAebSource.rssDistanceOut.rssDistance
-      to sourceAdapter.rssDistanceIn.rssDistance;
-    flow from nativeAebSource.obstacleCloudOut.debugPointCloud
-      to sourceAdapter.obstacleCloudIn.obstacleCloud;
-    flow from nativeAebSource.diagnosticsOut.diagnostics
-      to sourceAdapter.diagnosticsIn.diagnostics;
-    flow from coordinatorSource.warningRequestOut
-      to sourceAdapter.warningIn;
-    flow from coordinatorSource.brakingRequestOut
-      to sourceAdapter.brakingIn;
-    flow from coordinatorSource.lifecycleStateOut
-      to sourceAdapter.lifecycleIn;
+    connection rssDistanceObservation
+      connect nativeAebSource.rssDistanceOut to sourceAdapter.rssDistanceIn;
+    connection obstacleCloudObservation
+      connect nativeAebSource.obstacleCloudOut to sourceAdapter.obstacleCloudIn;
+    connection diagnosticObservation
+      connect nativeAebSource.diagnosticsOut to sourceAdapter.diagnosticsIn;
+    connection warningObservation
+      connect coordinatorSource.warningRequestOut to sourceAdapter.warningIn;
+    connection brakingObservation
+      connect coordinatorSource.brakingRequestOut to sourceAdapter.brakingIn;
+    connection lifecycleObservation
+      connect coordinatorSource.lifecycleStateOut to sourceAdapter.lifecycleIn;
 
-    // Forward visualization flow only.
-    flow from sourceAdapter.frameOut.visualizationFrame
-      to transport.frameIn.visualizationFrame;
-    flow from transport.frameOut.visualizationFrame
-      to ingress.frameIn.visualizationFrame;
-    flow from ingress.frameOut.visualizationFrame
-      to displayService.publishedIn.visualizationFrame;
-    flow from displayService.subscriptionOut.visualizationFrame
-      to application.frameIn.visualizationFrame;
-    flow from application.renderedOut.rendered
-      to evidence.renderedIn.rendered;
-    flow from application.renderedOut.rendered
-      to healthSupervisor.renderedIn.rendered;
+    // Forward visualization flow only; no connection runs back toward sources.
+    connection adapterToTransport
+      connect sourceAdapter.frameOut to transport.frameIn;
+    connection transportToIngress
+      connect transport.frameOut to ingress.frameIn;
+    connection ingressToService
+      connect ingress.frameOut to displayService.publishedIn;
+    connection serviceToApplication
+      connect displayService.subscriptionOut to application.frameIn;
+    connection applicationToEvidence
+      connect application.renderedOut to evidence.renderedIn;
+    connection applicationToHealthSupervisor
+      connect application.renderedOut to healthSupervisor.renderedIn;
   }
 
   part logicalSystem : AEBSVisualizationLogicalSystem;
