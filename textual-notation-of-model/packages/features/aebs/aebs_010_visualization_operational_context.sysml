@@ -10,6 +10,7 @@
  */
 
 package DE4SDV_AEBS010VisualizationOperationalContext {
+  private import DE4SDV_MethodContext::*;
   private import DE4SDV_OperationalContext::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodViewpoints::*;
@@ -58,22 +59,19 @@ package DE4SDV_AEBS010VisualizationOperationalContext {
     flow from observe.visualizationFrame to validate.visualizationFrame;
     first observe then validate;
 
-    action render : RenderAEBSState {
-      in validatedFrame = validate.validatedFrame;
-      out renderedState;
+    action presentState : RenderAEBSState {
+      in validatedFrame;
+      out renderedState = AebsVisualizationObservationFlow::renderedState;
     }
 
-    flow from validate.validatedFrame to render.validatedFrame;
+    flow from validate.validatedFrame to presentState.validatedFrame;
 
     action suppress : SuppressStalePresentation {
-      in freshness = validate.freshness;
-      out renderedState;
+      in freshness;
+      out renderedState = AebsVisualizationObservationFlow::renderedState;
     }
 
     flow from validate.freshness to suppress.freshness;
-
-    /* Either the healthy render or the fail-closed suppression produces the
-       observable state; both write the same outgoing item. */
   }
 
   use case def ObserveAEBSVisualizationOnAAOS
@@ -107,11 +105,11 @@ package DE4SDV_AEBS010VisualizationOperationalContext {
   part visualizationEvidenceBaseline : DE4SDVEvidenceBaseline;
 
   use case aebsVisualizationStory : ObserveAEBSVisualizationOnAAOS {
-    subject instrumentedMember = OperationalContext::instrumentedMember;
-    actor reviewer = OperationalContext::displayReviewer;
-    actor driver = OperationalContext::observingDriver;
-    actor vehicleTarget = OperationalContext::scenarioVehicleTarget;
-    actor evidenceBaseline = OperationalContext::visualizationEvidenceBaseline;
+    subject instrumentedMember;
+    actor reviewer = displayReviewer;
+    actor driver = observingDriver;
+    actor vehicleTarget = scenarioVehicleTarget;
+    actor evidenceBaseline = visualizationEvidenceBaseline;
   }
 
   action aebsVisualizationObservation : AebsVisualizationObservationFlow;
@@ -156,7 +154,7 @@ package DE4SDV_AEBS010VisualizationOperationalContext {
       frame visualizationScenarioConcern;
     }
 
-    expose OperationalContext::aebsVisualizationStory;
+    expose aebsVisualizationStory;
     attribute depth = 1;
     render asTreeDiagram;
   }

@@ -20,6 +20,7 @@ package DE4SDV_AEBS010VisualizationNeedsRequirements {
   private import DE4SDV_AEBS010VisualizationFraming::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
+  private import SysideViews::**;
 
   requirement def VisualizationEngineeringNeed :> StakeholderNeedCandidate {
     doc /* Need for bounded, honest AEBS visualization engineering support. */
@@ -137,6 +138,9 @@ package DE4SDV_AEBS010VisualizationNeedsRequirements {
       require constraint { doc /* The visualization test system shall retain enough source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture information to correlate each rendered state with its observed source event. */ }
     }
   }
+
+  public import VisualizationNeeds::*;
+  public import VisualizationRequirements::*;
 
   dependency s2002DerivedFromN009 from req010SourceFidelity to needLiveVisualizationOnAAOS;
   dependency s2002DerivedFromN010 from req010SourceFidelity to needPreservedSourceProvenance;
