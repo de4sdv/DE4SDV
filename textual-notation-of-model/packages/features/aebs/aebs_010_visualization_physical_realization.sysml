@@ -149,7 +149,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
     connection rssDistanceSource
       connect pinnedAeb.rssDistanceOut to sourceAdapter.rssDistanceIn;
     connection obstacleCloudSource
-      connect pinnedAeb.obstacleCloudOut to sourceAdapter.obstacleCloudIn;
+      connect pinnedAeb.debugPointCloudOut to sourceAdapter.obstacleCloudIn;
     connection diagnosticSource
       connect pinnedAeb.diagnosticsOut to sourceAdapter.diagnosticsIn;
 
