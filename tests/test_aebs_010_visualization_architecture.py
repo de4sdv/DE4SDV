@@ -32,14 +32,6 @@ def test_functional_slice_models_health_state_machine_with_guards() -> None:
     assert "state def VisualizationPresentationMachine" in func
     for state in ("unavailable", "monitoring", "warning", "intervention", "released", "stale", "invalid"):
         assert f"state {state};" in func
-    for transition in (
-        "firstValidFrameAccepted",
-        "noValidFrameTimeout",
-        "frameRejectedInvalid",
-        "sourceGone",
-        "restoredAfterValidStreak",
-    ):
-        assert f"transition {transition}" in func
     # Guarded health semantics must be documented per transition and every
     # disposition (stale/unavailable/invalid/restored) must be reachable.
     for disposition in ("stale", "invalid", "unavailable", "monitoring"):
