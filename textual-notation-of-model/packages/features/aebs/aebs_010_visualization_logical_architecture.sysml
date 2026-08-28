@@ -57,22 +57,22 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
 
   port def VisualizationFrameOutput {
     doc /* Assembled visualization frame handed to transport. */
-    out item frame : AEBSVisualizationFrame;
+    out item visualizationFrame : AEBSVisualizationFrame;
   }
 
   port def VisualizationFrameInput {
     doc /* Frame received by the display-side ingress. */
-    in item frame : AEBSVisualizationFrame;
+    in item visualizationFrame : AEBSVisualizationFrame;
   }
 
   port def VisualizationPublicationOutput {
     doc /* Display-side service publication consumed by the application. */
-    out item frame : AEBSVisualizationFrame;
+    out item visualizationFrame : AEBSVisualizationFrame;
   }
 
   port def VisualizationSubscriptionInput {
     doc /* Application-side subscription to the display service. */
-    in item frame : AEBSVisualizationFrame;
+    in item visualizationFrame : AEBSVisualizationFrame;
   }
 
   port def RenderedStateOutput {
@@ -200,14 +200,14 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
       to sourceAdapter.lifecycleIn;
 
     // Forward visualization flow only.
-    flow from sourceAdapter.frameOut.frame
-      to transport.frameIn.frame;
-    flow from transport.frameOut.frame
-      to ingress.frameIn.frame;
-    flow from ingress.frameOut.frame
-      to displayService.publishedIn.frame;
-    flow from displayService.subscriptionOut.frame
-      to application.frameIn.frame;
+    flow from sourceAdapter.frameOut.visualizationFrame
+      to transport.frameIn.visualizationFrame;
+    flow from transport.frameOut.visualizationFrame
+      to ingress.frameIn.visualizationFrame;
+    flow from ingress.frameOut.visualizationFrame
+      to displayService.publishedIn.visualizationFrame;
+    flow from displayService.subscriptionOut.visualizationFrame
+      to application.frameIn.visualizationFrame;
     flow from application.renderedOut.rendered
       to evidence.renderedIn.rendered;
     flow from application.renderedOut.rendered

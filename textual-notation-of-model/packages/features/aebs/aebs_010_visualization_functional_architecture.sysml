@@ -188,15 +188,15 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     flow from transport.transportedFrame to publish.transportedFrame;
     flow from supervise.health to publish.health;
 
-    action render : RenderAEBSState {
+    action present : RenderAEBSState {
       in publishedFrame;
       in health;
       out rendered = Aebs010VisualizationFunctionalFlow::rendered;
     }
 
-    flow from publish.publishedFrame to render.publishedFrame;
-    flow from supervise.health to render.health;
-    first publish then render;
+    flow from publish.publishedFrame to present.publishedFrame;
+    flow from supervise.health to present.health;
+    first publish then present;
 
     action record : RecordVisualizationEvidence {
       in observedFrame;
@@ -205,7 +205,7 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     }
 
     flow from observe.observedFrame to record.observedFrame;
-    flow from render.rendered to record.rendered;
+    flow from present.rendered to record.rendered;
   }
 
   action aebs010FunctionalFlow : Aebs010VisualizationFunctionalFlow;
@@ -229,41 +229,41 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     state stale;
     state invalid;
 
-    entry via initial to unavailable;
+    initial via initialTransition to unavailable;
 
     transition firstValidFrameAccepted
-      when Framed when health == VisualizationHealthKind::healthy
+      when FrameAccepted when health == VisualizationHealthKind::healthy
       from unavailable to monitoring;
 
     transition warningThresholdReached
-      when Framed when frame.de4sdvWarningRequest implies true
+      when FrameAccepted when frame.de4sdvWarningRequest implies true
         and health == VisualizationHealthKind::healthy
       from monitoring to warning;
 
     transition nativeInterventionObserved
-      when Framed when frame.nativeIntervention implies true
+      when FrameAccepted when frame.nativeIntervention implies true
         and health == VisualizationHealthKind::healthy
       from warning to intervention;
 
     transition verifiedStopReleased
-      when Framed when frame.de4sdvLifecycleState == "released_verified_stop"
+      when FrameAccepted when frame.de4sdvLifecycleState == "released_verified_stop"
         and health == VisualizationHealthKind::healthy
       from intervention to released;
 
     transition noValidFrameTimeout
-      when HealthChanges when health == VisualizationHealthKind::stale
+      when HealthObserved when health == VisualizationHealthKind::stale
       from monitoring, warning, intervention, released to stale;
 
     transition frameRejectedInvalid
-      when HealthChanges when health == VisualizationHealthKind::invalid
+      when HealthObserved when health == VisualizationHealthKind::invalid
       from monitoring, warning, intervention, released to invalid;
 
     transition sourceGone
-      when HealthChanges when health == VisualizationHealthKind::unavailable
+      when HealthObserved when health == VisualizationHealthKind::unavailable
       from monitoring, warning, intervention, released, stale, invalid to unavailable;
 
     transition restoredAfterValidStreak
-      when HealthChanges when health == VisualizationHealthKind::restored
+      when HealthObserved when health == VisualizationHealthKind::restored
       from stale, invalid to monitoring;
   }
 
@@ -298,7 +298,7 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     allocate req010RestorationBehavior to Aebs010VisualizationFunctionalFlow::supervise;
 
   allocation realAaosRenderingAllocation : System2RequirementToFunction
-    allocate req010RealAAOSRendering to Aebs010VisualizationFunctionalFlow::render;
+    allocate req010RealAAOSRendering to Aebs010VisualizationFunctionalFlow::present;
 
   allocation evidenceCorrelationAllocation : System2RequirementToFunction
     allocate req010EvidenceCorrelation to Aebs010VisualizationFunctionalFlow::record;
@@ -371,7 +371,7 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
       expose Aebs010VisualizationFunctionalFlow::supervise;
       expose Aebs010VisualizationFunctionalFlow::transport;
       expose Aebs010VisualizationFunctionalFlow::publish;
-      expose Aebs010VisualizationFunctionalFlow::render;
+      expose Aebs010VisualizationFunctionalFlow::present;
       expose Aebs010VisualizationFunctionalFlow::record;
       attribute :>> representation = Rep::name;
     }

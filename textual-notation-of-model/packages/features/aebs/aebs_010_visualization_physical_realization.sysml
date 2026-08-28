@@ -143,14 +143,14 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
       to sourceAdapter.lifecycleIn;
 
     // Reverse visualization flow only; no command path exists anywhere.
-    flow from sourceAdapter.frameOut.frame
-      to transport.frameIn.frame;
-    flow from transport.frameOut.frame
-      to iviGuest.gatewayIngress.frameIn.frame;
-    flow from iviGuest.gatewayIngress.frameOut.frame
-      to iviGuest.dataTunnel.publishedIn.frame;
-    flow from iviGuest.dataTunnel.subscriptionOut.frame
-      to iviGuest.displayApp.frameIn.frame;
+    flow from sourceAdapter.frameOut.visualizationFrame
+      to transport.frameIn.visualizationFrame;
+    flow from transport.frameOut.visualizationFrame
+      to iviGuest.gatewayIngress.frameIn.visualizationFrame;
+    flow from iviGuest.gatewayIngress.frameOut.visualizationFrame
+      to iviGuest.dataTunnel.publishedIn.visualizationFrame;
+    flow from iviGuest.dataTunnel.subscriptionOut.visualizationFrame
+      to iviGuest.displayApp.frameIn.visualizationFrame;
     flow from iviGuest.displayApp.renderedOut.rendered
       to evidenceRecorder.renderedIn.rendered;
   }
