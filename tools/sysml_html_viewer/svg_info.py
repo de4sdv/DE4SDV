@@ -546,6 +546,34 @@ def _pick_by_position(
     return best[1] if best is not None else None
 
 
+def _typed_doc_fallback(
+    label: str,
+    index: dict[str, list[ElementRef]],
+    view_file: str,
+    view_folder: str,
+) -> str:
+    """Doc of the TYPE named in a usage label (`aaosSdvBoundary :
+    SDVCoreBoundary` -> the doc of `part def SDVCoreBoundary`).
+
+    A part/port/item usage rarely carries its own `doc`; the documentation a
+    reader wants when hovering the usage is the documentation of its
+    definition. Returns '' when the label carries no typing or the type is
+    unknown/undocumented (honest: no invented text)."""
+    for key in _normalize(label):
+        if " : " not in key:
+            continue
+        type_name = key.rsplit(" : ", 1)[-1].strip()
+        if not type_name:
+            return ""
+        refs = index.get(type_name) or index.get(f"'{type_name}'")
+        if not refs:
+            return ""
+        ref = _prefer(refs, view_file, view_folder)
+        if ref is not None and ref.doc:
+            return ref.doc
+    return ""
+
+
 def resolve_labels(
     labels: list[str],
     index: dict[str, list[ElementRef]],
@@ -642,6 +670,26 @@ def resolve_labels(
                     x=li.x,
                     y=li.y,
                 )
+    # typed-usage doc fallback: a usage label (`name : Type`) whose resolved
+    # declaration carries no doc shows the doc of its TYPE definition instead.
+    # The usage still links to its own declaration; only the doc text falls
+    # back to the definition the reader actually wants.
+    for i, li in enumerate(out):
+        if li.doc:
+            continue
+        typed_doc = _typed_doc_fallback(li.label, index, view_file, view_folder)
+        if typed_doc:
+            out[i] = LabelInfo(
+                label=li.label,
+                name=li.name,
+                kind=li.kind,
+                doc=typed_doc,
+                rel_path=li.rel_path,
+                line=li.line,
+                anchor=li.anchor,
+                x=li.x,
+                y=li.y,
+            )
     return out
 
 

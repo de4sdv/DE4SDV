@@ -232,23 +232,49 @@ def _attach_docs(text: str, members: list[Member]) -> None:
     (only whitespace between) or immediately after the declaration's opening
     brace. A doc nested deeper (e.g. inside a ``require constraint``) is not
     the declaration's doc and attaches to nothing.
+
+    A doc that sits inside a member's block (immediately after its opening
+    brace) belongs to that member EXCLUSIVELY — rule (b) claims it first so
+    rule (a) can never hand the same doc to the next declaration too (the
+    off-by-one doc steal: `part def X { doc ... }` followed by `part a ...`
+    must give the doc to X, not to a).
     """
     if not members:
         return
     decl_lines = sorted(m.line for m in members)
+    # docs already claimed by rule (b): they sit inside a member's block and
+    # must not also be offered to the member that follows them.
+    claimed_by_block: set[int] = set()
+    for i, m in enumerate(members):
+        if m.doc:
+            continue
+        next_line = decl_lines[i + 1] if i + 1 < len(decl_lines) else m.line + 1
+        brace = _block_open_brace(text, _line_start(text, m.line), _line_start(text, next_line))
+        if brace == -1:
+            continue
+        for doc in DOC_RE.finditer(text):
+            if doc.start() <= brace + 1:
+                continue
+            gap = text[brace + 1 : doc.start()]
+            if not gap.strip():
+                claimed_by_block.add(doc.start())
+                break
     for doc in DOC_RE.finditer(text):
         doc_text = _clean_doc(doc.group(1))
         if not doc_text:
             continue
         doc_line = text.count("\n", 0, doc.start()) + 1
         doc_end = doc.end()
-        # (a) doc immediately before a declaration
-        for m in members:
-            if m.line > doc_line and not m.doc:
-                gap = text[doc_end : _line_start(text, m.line)]
-                if not gap.strip():
-                    m.doc = doc_text
-                    break
+        # (a) doc immediately before a declaration — unless the previous
+        # declaration's block already owns this doc (it sits right after
+        # that member's `{`).
+        if doc.start() not in claimed_by_block:
+            for m in members:
+                if m.line > doc_line and not m.doc:
+                    gap = text[doc_end : _line_start(text, m.line)]
+                    if not gap.strip():
+                        m.doc = doc_text
+                        break
         if all(m.doc for m in members):
             break
         # (b) doc immediately after a declaration's opening brace

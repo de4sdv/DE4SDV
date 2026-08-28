@@ -180,7 +180,12 @@ Diagrams are inlined into the page (not `<img>`), and every element label
 the diagram shows is resolved back to the model:
 
 - **Hover** an element label — a tooltip shows its kind, its `doc`
-  comment, and its exact source location (file:line).
+  comment, and its exact source location (file:line). A usage label
+  (`name : Type`) whose own declaration has no `doc` shows the `doc`
+  of its **type definition** instead — the documentation a reader
+  wants when hovering a part/port usage. A doc comment placed right
+  after a declaration's opening brace belongs to that declaration
+  only; it never leaks onto the member that follows it.
 - **Click** a label — the viewer jumps to the element's declaration
   line (`#src-N`) in its defining file.
 - Labels that are pure layout text (headers, "parts", stereotype labels)

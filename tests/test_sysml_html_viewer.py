@@ -91,6 +91,20 @@ def test_doc_attachment_no_leak_and_star_stripping(fixture_sysml):
     )
 
 
+def test_doc_block_owner_exclusive(fixture_sysml):
+    """Regression: a doc sitting right after a member's opening brace belongs
+    to THAT member exclusively. Rule (a) ('doc immediately before a
+    declaration') must not hand the same doc to the member that follows it —
+    `part def X { doc ... }` followed by `part a ...` must give the doc to X
+    only. The old code copied it onto the first nested member too."""
+    mf = parse_file(fixture_sysml, FIXTURE)
+    by_name = {m.name: m for m in mf.members}
+    assert by_name["FixtureSystem"].doc.startswith("A synthetic system part")
+    # the first port inside the block did NOT steal the block-owner's doc
+    assert by_name["signalIn"].doc == ""
+    assert by_name["signalOut"].doc == ""
+
+
 def test_view_parsing(fixture_sysml):
     mf = parse_file(fixture_sysml, FIXTURE)
     views = {v.name: v for v in mf.views}
@@ -243,6 +257,32 @@ def test_resolve_labels(model_files, fixture_sysml):
     # layout text without a model match resolves to nothing
     assert "parts" not in by_label
     assert "«part def»" not in by_label
+
+
+def test_typed_usage_doc_fallback(model_files, fixture_sysml):
+    """A usage label (`name : Type`) whose resolved declaration carries no
+    doc of its own shows the doc of its TYPE definition — the documentation
+    a reader actually wants when hovering a part usage. The usage still
+    links to its own declaration; only the doc text falls back."""
+    index = build_member_index(model_files)
+    resolved = svg_info.resolve_labels(
+        ["boxPart : FixtureBoxType", "fixtureSystem : FixtureSystem"],
+        index,
+        view_file=fixture_sysml.relative_to(FIXTURE).as_posix(),
+        view_folder="textual-notation-of-model/packages/features/fixture",
+    )
+    by_label = {r.label: r for r in resolved}
+    # `part boxPart : FixtureBoxType` has no own doc; `part def
+    # FixtureBoxType;` has none either -> no doc, no invention
+    assert by_label["boxPart : FixtureBoxType"].name == "boxPart"
+    assert by_label["boxPart : FixtureBoxType"].doc == ""
+    # the usage WITH a documented type shows the type's doc
+    assert by_label["fixtureSystem : FixtureSystem"].name == "fixtureSystem"
+    assert by_label["fixtureSystem : FixtureSystem"].doc.startswith(
+        "A synthetic system part"
+    )
+    # the usage still resolves (and links) to its own declaration, not the def
+    assert by_label["fixtureSystem : FixtureSystem"].kind == "part"
 
 
 def test_revision_picker_in_pages(tmp_path):
