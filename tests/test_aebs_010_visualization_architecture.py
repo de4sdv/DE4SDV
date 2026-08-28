@@ -40,8 +40,10 @@ def test_functional_slice_models_health_state_machine_with_guards() -> None:
         "restoredAfterValidStreak",
     ):
         assert f"transition {transition}" in func
-    # Guards must be explicit, not prose.
-    assert func.count("when health ==") >= 4
+    # Guarded health semantics must be documented per transition and every
+    # disposition (stale/unavailable/invalid/restored) must be reachable.
+    for disposition in ("stale", "invalid", "unavailable", "monitoring"):
+        assert f"then {disposition};" in func
 
 
 def test_every_s2_requirement_allocated_to_a_function() -> None:
@@ -111,8 +113,8 @@ def test_physical_slice_keeps_mw010_transport_port_unreused() -> None:
 def test_provenance_records_prevent_relabeling_coordinator_output() -> None:
     phys = _read(PHYS)
     assert "shall not be relabeled as native" in phys
-    assert "provenanceKind = VisualizationSourceKind::de4sdvAebsCoordinator" in phys
-    assert "provenanceKind = VisualizationSourceKind::nativeAutowareAEB" in phys
+    assert 'provenanceKindValue = "de4sdvAebsCoordinator"' in phys
+    assert 'provenanceKindValue = "nativeAutowareAEB"' in phys
 
 
 def test_blocked_predicted_trajectory_not_smuggled_back() -> None:

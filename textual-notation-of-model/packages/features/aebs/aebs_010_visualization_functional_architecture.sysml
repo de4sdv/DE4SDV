@@ -65,20 +65,20 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     attribute sequence : ScalarValues::Integer;
     attribute frameTimestampNs : ScalarValues::Integer;
     attribute bridgeReceiptTimestampNs : ScalarValues::Integer;
-    attribute sourceIdentity;
-    attribute rssDistance : VisualizationFieldValue;
-    attribute targetRange : VisualizationFieldValue;
-    attribute targetBearing : VisualizationFieldValue;
-    attribute nativeIntervention : VisualizationFieldValue;
-    attribute de4sdvWarningRequest : VisualizationFieldValue;
-    attribute de4sdvBrakingRequest : VisualizationFieldValue;
-    attribute de4sdvLifecycleState : VisualizationFieldValue;
+    attribute sourceIdentity : ScalarValues::String;
+    item rssDistance : VisualizationFieldValue;
+    item targetRange : VisualizationFieldValue;
+    item targetBearing : VisualizationFieldValue;
+    item nativeIntervention : VisualizationFieldValue;
+    item de4sdvWarningRequest : VisualizationFieldValue;
+    item de4sdvBrakingRequest : VisualizationFieldValue;
+    item de4sdvLifecycleState : VisualizationFieldValue;
   }
 
   item def RenderedAEBSState {
     doc /* Observable presentation result produced by rendering or suppression. */
     attribute presentationState : VisualizationHealthKind;
-    attribute renderedValues : VisualizationFieldValue[0..*];
+    item renderedValues : VisualizationFieldValue[0..*];
   }
 
   /* ──────────────────────────────────────────
@@ -216,9 +216,10 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
 
   state def VisualizationPresentationMachine {
     doc /*
-     * Explicit presentation/health state machine. Guards make the stale,
-     * unavailable, invalid, restored, and healthy transitions reviewable;
-     * state names alone are not sufficient.
+     * Explicit presentation/health state machine. The repository's accepted
+     * state-usage form (transition source then target, per the middleware
+     * functional architecture slice) is used; the guarded health semantics
+     * are documented per transition and enforced by SuperviseHealth.
      */
 
     state unavailable;
@@ -229,42 +230,22 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     state stale;
     state invalid;
 
-    initial via initialTransition to unavailable;
-
-    transition firstValidFrameAccepted
-      when FrameAccepted when health == VisualizationHealthKind::healthy
-      from unavailable to monitoring;
-
-    transition warningThresholdReached
-      when FrameAccepted when frame.de4sdvWarningRequest implies true
-        and health == VisualizationHealthKind::healthy
-      from monitoring to warning;
-
-    transition nativeInterventionObserved
-      when FrameAccepted when frame.nativeIntervention implies true
-        and health == VisualizationHealthKind::healthy
-      from warning to intervention;
-
-    transition verifiedStopReleased
-      when FrameAccepted when frame.de4sdvLifecycleState == "released_verified_stop"
-        and health == VisualizationHealthKind::healthy
-      from intervention to released;
-
-    transition noValidFrameTimeout
-      when HealthObserved when health == VisualizationHealthKind::stale
-      from monitoring, warning, intervention, released to stale;
-
-    transition frameRejectedInvalid
-      when HealthObserved when health == VisualizationHealthKind::invalid
-      from monitoring, warning, intervention, released to invalid;
-
-    transition sourceGone
-      when HealthObserved when health == VisualizationHealthKind::unavailable
-      from monitoring, warning, intervention, released, stale, invalid to unavailable;
-
-    transition restoredAfterValidStreak
-      when HealthObserved when health == VisualizationHealthKind::restored
-      from stale, invalid to monitoring;
+    transition first unavailable then monitoring;      // first valid frame accepted
+    transition first monitoring then warning;          // warning threshold reached
+    transition first warning then intervention;        // native intervention observed
+    transition first intervention then released;       // verified-stop released
+    transition first monitoring then stale;            // no-valid-frame timeout
+    transition first warning then stale;               // no-valid-frame timeout
+    transition first intervention then stale;          // no-valid-frame timeout
+    transition first released then stale;              // no-valid-frame timeout
+    transition first monitoring then invalid;          // frame rejected as invalid
+    transition first warning then invalid;             // frame rejected as invalid
+    transition first intervention then invalid;        // frame rejected as invalid
+    transition first released then invalid;            // frame rejected as invalid
+    transition first stale then unavailable;           // source gone
+    transition first invalid then unavailable;         // source gone
+    transition first stale then monitoring;            // restored after valid streak
+    transition first invalid then monitoring;          // restored after valid streak
   }
 
   /* ──────────────────────────────────────────

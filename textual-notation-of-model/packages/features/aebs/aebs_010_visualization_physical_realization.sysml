@@ -127,11 +127,11 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
     part evidenceRecorder : VisualizationEvidenceRecorder;
 
     // Source-side exchanges reuse the selected Autoware publications.
-    flow from pinnedAeb.rssDistanceOut.payload
+    flow from pinnedAeb.rssDistanceOut.rssDistance
       to sourceAdapter.rssDistanceIn.rssDistance;
-    flow from pinnedAeb.obstacleCloudOut.payload
+    flow from pinnedAeb.obstacleCloudOut.debugPointCloud
       to sourceAdapter.obstacleCloudIn.obstacleCloud;
-    flow from pinnedAeb.diagnosticsOut.payload
+    flow from pinnedAeb.diagnosticsOut.diagnostics
       to sourceAdapter.diagnosticsIn.diagnostics;
 
     // Coordinator outputs remain DE4SDV-derived; provenance is per-field.
@@ -200,18 +200,21 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
    * Source provenance records
    * ────────────────────────────────────────── */
 
-  part def VisualizationSourceContributionRecord :> SourceContributionRecord;
+  part def VisualizationSourceContributionRecord :> SourceContributionRecord {
+    doc /* Records which provenance kind a physical source contributes. */
+    attribute provenanceKindValue : ScalarValues::String;
+  }
 
   part nativeRssProvenance : VisualizationSourceContributionRecord {
     doc /* Native Autoware AEB RSS distance: ~/debug/rss_distance (Float32Stamped). */
     ref part physicalSource = physicalSystem.pinnedAeb;
-    ref part provenanceKind = VisualizationSourceKind::nativeAutowareAEB;
+    attribute :>> provenanceKindValue = "nativeAutowareAEB";
   }
 
   part nativeObstacleProvenance : VisualizationSourceContributionRecord {
     doc /* Native Autoware AEB filtered obstacle cloud: ~/debug/obstacle_pointcloud. */
     ref part physicalSource = physicalSystem.pinnedAeb;
-    ref part provenanceKind = VisualizationSourceKind::nativeAutowareAEB;
+    attribute :>> provenanceKindValue = "nativeAutowareAEB";
   }
 
   part nativeInterventionProvenance : VisualizationSourceContributionRecord {
@@ -220,7 +223,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
      * aeb_emergency_stop / ERROR / "[AEB]: Emergency Brake".
      */
     ref part physicalSource = physicalSystem.pinnedAeb;
-    ref part provenanceKind = VisualizationSourceKind::nativeAutowareAEB;
+    attribute :>> provenanceKindValue = "nativeAutowareAEB";
   }
 
   part coordinatorStateProvenance : VisualizationSourceContributionRecord {
@@ -230,7 +233,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
      * distance is DE4SDV-derived and shall not be relabeled as native.
      */
     ref part physicalSource = physicalSystem.coordinator;
-    ref part provenanceKind = VisualizationSourceKind::de4sdvAebsCoordinator;
+    attribute :>> provenanceKindValue = "de4sdvAebsCoordinator";
   }
 
   part blockedPredictedTrajectoryRemainsDeferred : BlockedRealizationBranchRecord {

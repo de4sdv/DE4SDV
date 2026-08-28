@@ -27,17 +27,17 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
 
   port def NativeAEBMetricInput {
     doc /* Read-only native AEB RSS-distance observation. */
-    in item rssDistance : DebugDistancePublication::payload;
+    in item rssDistance : Float32StampedMessage;
   }
 
   port def NativeAEBObstacleInput {
     doc /* Read-only native AEB filtered obstacle observation. */
-    in item obstacleCloud : DebugPointCloudPublication::payload;
+    in item obstacleCloud : DebugPointCloudMessage;
   }
 
   port def NativeAEBDiagnosticInput {
     doc /* Read-only native AEB intervention diagnostic observation. */
-    in item diagnostics : DiagnosticPublication::payload;
+    in item diagnostics : DiagnosticArrayMessage;
   }
 
   port def De4sdvWarningInput {
@@ -186,11 +186,11 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
     part healthSupervisor : VisualizationHealthSupervisorRole;
 
     // Source observations into the adapter.
-    flow from nativeAebSource.rssDistanceOut.payload
+    flow from nativeAebSource.rssDistanceOut.rssDistance
       to sourceAdapter.rssDistanceIn.rssDistance;
-    flow from nativeAebSource.obstacleCloudOut.payload
+    flow from nativeAebSource.obstacleCloudOut.debugPointCloud
       to sourceAdapter.obstacleCloudIn.obstacleCloud;
-    flow from nativeAebSource.diagnosticsOut.payload
+    flow from nativeAebSource.diagnosticsOut.diagnostics
       to sourceAdapter.diagnosticsIn.diagnostics;
     flow from coordinatorSource.warningRequestOut
       to sourceAdapter.warningIn;
@@ -243,8 +243,8 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
     allocate aebs010FunctionalFlow.publish
     to logicalSystem.ingress;
 
-  allocation renderByApplication : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.render
+  allocation presentByApplication : LogicalRoleToFunction
+    allocate aebs010FunctionalFlow.present
     to logicalSystem.application;
 
   allocation recordByEvidence : LogicalRoleToFunction
