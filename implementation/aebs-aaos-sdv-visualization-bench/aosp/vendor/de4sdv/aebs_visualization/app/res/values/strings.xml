@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DE4SDV AEBS Visualization</string>
+    <string name="initial_disposition">unavailable</string>
+    <string name="provenance_footer">
+        Sources: AUTOWARE AEB (RSS, intervention) · DE4SDV AEBS (warning, braking, lifecycle) ·
+        presentation derived on display. Read-only instrumentation; issues no commands.
+    </string>
+</resources>

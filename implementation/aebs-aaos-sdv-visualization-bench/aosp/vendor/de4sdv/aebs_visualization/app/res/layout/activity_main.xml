@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DE4SDV AEBS 010 center-display layout: disposition + provenance footer. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#FF101418">
+
+    <TextView
+        android:id="@+id/disposition"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="64sp"
+        android:textStyle="bold"
+        android:text="@string/initial_disposition" />
+
+    <TextView
+        android:id="@+id/provenance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:textSize="14sp"
+        android:text="@string/provenance_footer" />
+</LinearLayout>

@@ -1,0 +1,89 @@
+// DE4SDV INC-AEBS-010 AOSP overlay modules.
+//
+// Proto: generated at build time from interface/aebs_visualization.proto
+// (repo source of truth; not vendored). Ingress: cc_binary + cc_test.
+// App: java_sdk_library-style android_app with platform certificate, consistent
+// with a system-privileged AAOS engineering visualization (not production HMI).
+
+soong_namespace {
+}
+
+// ---------- shared protobuf ----------
+
+proto_library {
+    name: "de4sdv_aebs_visualization_proto",
+    srcs: [
+        // Staged by scripts/stage_aosp_overlay.py from the repo interface dir.
+        "interface/aebs_visualization.proto",
+    ],
+    canonical_path_from_root: false,
+}
+
+// ---------- native ingress ----------
+
+cc_binary {
+    name: "de4sdv_aebs_ingress",
+    srcs: [
+        "ingress/main.cpp",
+        "ingress/validator.cpp",
+    ],
+    generated_headers: ["de4sdv_aebs_visualization_proto_gen"],
+    static_libs: [
+        "libprotobuf-cpp-lite",
+        "libgflags",
+    ],
+    shared_libs: [
+        "libbase",
+        "liblog",
+        "libsdvgatewayclient",
+    ],
+    include_dirs: ["vendor/de4sdv/aebs_visualization/ingress"],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+    ],
+    init_rc: ["ingress/de4sdv_aebs_ingress.rc"],
+    sepolicy: [
+        "sepolicy/de4sdv_aebs_ingress.te",
+    ],
+    owner: "de4sdv",
+}
+
+cc_test {
+    name: "De4sdvAebsIngressValidatorTest",
+    srcs: [
+        "ingress/validator.cpp",
+        "ingress/tests/validator_test.cpp",
+    ],
+    generated_headers: ["de4sdv_aebs_visualization_proto_gen"],
+    static_libs: ["libprotobuf-cpp-lite"],
+    shared_libs: ["liblog"],
+    test_suites: ["device-tests"],
+    owner: "de4sdv",
+}
+
+// ---------- Java center-display app ----------
+
+android_app {
+    name: "De4sdvAebsVisualizationApp",
+    srcs: ["app/src/**/*.java"],
+    resource_dirs: ["app/res"],
+    sdk_version: "system_current",
+    certificate: "platform",
+    privileged: true,
+    owner: "de4sdv",
+    static_libs: ["androidx.annotation_annotation"],
+    optimize: { enabled: false },
+}
+
+java_test {
+    name: "De4sdvAebsVisualizationReducerTest",
+    srcs: ["app/tests/**/*.java"],
+    static_libs: [
+        "junit",
+        "androidx.annotation_annotation",
+    ],
+    sdk_version: "system_current",
+    owner: "de4sdv",
+}
