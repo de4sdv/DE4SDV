@@ -214,7 +214,9 @@ jobs:
             diagrams/diagram-mwPhysicalStructureView.svg \
             --view-name mwPhysicalStructureView \
             --require-label "adapter : AutowareToAAOSSDVAdapterPhysical" \
-            --require-label "aaosSdvBoundary : SDVCoreBoundary"
+            --require-label "aaosSdvBoundary : SDVCoreBoundary" \
+            --require-label "serviceDiscoveryClient : ServiceDiscoveryClient" \
+            --forbid-label "…"
 
       - name: Export grid views and render review SVGs (Labs)
         if: steps.syside-secret.outputs.available == 'true'
