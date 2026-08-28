@@ -5,11 +5,12 @@ textual SysML v2 package for the leaf signals under the COVESA Vehicle
 Signal Specification `spec/` tree.
 
 - Source repository: <https://github.com/COVESA/vehicle_signal_specification>
-- Source commit: `6fb1dac2630a8910ee996863b2af02b310dcd7ce`
+- Source release: `v6.0`
+- Source commit: `20c609bf95c73b51d483fb8f81a099d1d5b73066`
 - Source entry point: `spec/VehicleSignalSpecification.vspec`
-- Generated leaves: 626 (280 sensors, 246 actuators, 100 attributes)
-- Generated allowed-value enum types: 65
-- Generated branches: 139
+- Generated leaves: 616 (270 sensors, 246 actuators, 100 attributes)
+- Generated allowed-value enum types: 62
+- Generated branches: 137
 
 ## DE4SDV candidate extensions
 
@@ -60,10 +61,46 @@ sysand include COVESA_VSS.sysml
 
 ## Sysand usage
 
+Install the library into a Sysand project:
+
+```bash
+sysand add de4sdv/covesa-vss-sysmlv2
+```
+
+Point your SysML v2 tool at every file listed by `sysand sources` and import
+the library package from your model:
+
+```sysml
+package MyModel {
+    private import COVESA_VSS::*;
+
+    attribute mySpeed : Vehicle_Speed;
+}
+```
+
+VSS semantics for each signal are available through the metadata annotations
+(`VssSignalMetadata`, `VssQuantityMetadata`, `VssRangeMetadata`,
+`VssAllowedValuesMetadata`); for example, the original VSS path string of a
+signal definition is carried in its `VssSignalMetadata` `path` attribute.
+
+### Maintainer commands
+
 ```bash
 sysand sources
 sysand build --update-meta
 ```
+
+The project is prepared for publication on the Sysand Index as
+`de4sdv/covesa-vss-sysmlv2` (see
+[ADR 0008](../../../docs/architecture-decisions/0008-publish-covesa-vss-sysand-package.md)):
+
+```bash
+sysand build --update-meta
+sysand publish --index https://sysand.com
+```
+
+Each published version is permanent on the index; regenerating from a new
+pinned VSS commit requires a new version number and changelog entry.
 
 `output/` and `.sysand/` are local build/dependency artifacts and should not
 be committed.

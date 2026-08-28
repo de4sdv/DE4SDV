@@ -4,6 +4,9 @@
 
 Accepted
 
+> Note (2026-08-28): publication of this package on the Sysand Index is now
+> proposed separately in [ADR 0008](0008-publish-covesa-vss-sysand-package.md).
+
 ## Context
 
 DE4SDV needs a reviewable way to reference vehicle signal definitions in
@@ -25,9 +28,9 @@ Add a Sysand-managed draft interchange project at:
 
 `textual-notation-of-model/libraries/covesa-vss-sysmlv2/`
 
-The project contains a generated `COVESA_VSS.sysml` package with all leaf VSS
-attributes, sensors, and actuators reachable from
-`spec/VehicleSignalSpecification.vspec` in the referenced source commit.
+The project contains a generated `COVESA_VSS.sysml` library package with all
+leaf VSS attributes, sensors, and actuators reachable from
+`spec/VehicleSignalSpecification.vspec` in the referenced source release.
 
 The package:
 

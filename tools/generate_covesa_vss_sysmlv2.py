@@ -271,7 +271,7 @@ def generate(vss_repo: Path, output: Path) -> tuple[int, int, str]:
         " * fields are promoted into SysML metadata annotations instead of being kept only in comments.",
         " */",
         "",
-        "package COVESA_VSS {",
+        "library package COVESA_VSS {",
         "",
         "private import ScalarValues::*;",
         "private import ISQ::*;",

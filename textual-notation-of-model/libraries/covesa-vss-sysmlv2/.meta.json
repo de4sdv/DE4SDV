@@ -3,6 +3,7 @@
     "COVESA_VSS": "COVESA_VSS.sysml"
   },
   "created": "2026-06-02T19:32:36Z",
+  "metamodel": "https://www.omg.org/spec/SysML/20250201",
   "checksum": {
     "COVESA_VSS.sysml": {
       "value": "",

@@ -60,6 +60,7 @@ docs/architecture-decisions/0004-adopt-aselcm-three-system-framing.md
 docs/architecture-decisions/0005-use-sysml-v2-api-repository-as-live-model-store.md
 docs/architecture-decisions/0006-variant-selection-construct-and-ple-adequacy.md
 docs/architecture-decisions/0007-pin-sysmod-sysand-dependency.md
+docs/architecture-decisions/0008-publish-covesa-vss-sysand-package.md
 docs/architecture-decisions/README.md
 docs/architecture-decisions/TEMPLATE.md
 docs/getting-started/README.md
@@ -413,6 +414,7 @@ textual-notation-of-model/README.md
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/.gitignore
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/.meta.json
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/.project.json
+textual-notation-of-model/libraries/covesa-vss-sysmlv2/CHANGELOG.md
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/DE4SDV_VSS_Extensions.sysml
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/LICENSES/MPL-2.0.txt
