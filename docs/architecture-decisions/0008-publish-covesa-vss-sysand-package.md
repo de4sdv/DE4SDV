@@ -37,8 +37,8 @@ extension signals are separately authored DE4SDV vocabulary; they stay in the
 repository until they are proposed to and accepted by COVESA upstream, and
 must not be presented as upstream COVESA VSS signals.
 
-The package retains the pinned COVESA source commit
-(`6fb1dac2630a8910ee996863b2af02b310dcd7ce`) in its README and changelog as
+The package retains the pinned COVESA source release (`v6.0`, commit
+`20c609bf95c73b51d483fb8f81a099d1d5b73066`) in its README and changelog as
 source provenance. Publication is a redistribution of a derived, attributed
 work under MPL-2.0; it does not imply COVESA review, endorsement, or
 acceptance of this SysML v2 rendering.

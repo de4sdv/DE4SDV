@@ -10,11 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Initial packaged release of the generated COVESA VSS SysML v2 library.
-- Generated textual SysML v2 package for the leaf signals under the COVESA
-  Vehicle Signal Specification `spec/` tree, pinned to upstream source commit
-  `6fb1dac2630a8910ee996863b2af02b310dcd7ce`
-  (626 leaves: 280 sensors, 246 actuators, 100 attributes; 65 allowed-value
-  enum types; 139 branches).
+- Generated textual SysML v2 library package for the leaf signals under the
+  COVESA Vehicle Signal Specification `spec/` tree, pinned to the upstream
+  `v6.0` release (source commit
+  `20c609bf95c73b51d483fb8f81a099d1d5b73066`; 616 leaves: 270 sensors,
+  246 actuators, 100 attributes; 62 allowed-value enum types; 137 branches).
 - VSS semantics (path, kind, datatype, description, comment, quantity/unit,
   range, allowed values) promoted into SysML v2 metadata annotations instead of
   comments only.
@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
+- The generated root is a SysML v2 `library package`, matching the convention
+  used by other published SysML v2 libraries.
 - `COVESA_VSS.sysml` is generated from the pinned upstream COVESA VSS source
   commit and carries `SPDX-License-Identifier: MPL-2.0`.
 - DE4SDV candidate extension signals are intentionally **not** part of this

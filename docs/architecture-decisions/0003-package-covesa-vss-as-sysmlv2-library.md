@@ -28,9 +28,9 @@ Add a Sysand-managed draft interchange project at:
 
 `textual-notation-of-model/libraries/covesa-vss-sysmlv2/`
 
-The project contains a generated `COVESA_VSS.sysml` package with all leaf VSS
-attributes, sensors, and actuators reachable from
-`spec/VehicleSignalSpecification.vspec` in the referenced source commit.
+The project contains a generated `COVESA_VSS.sysml` library package with all
+leaf VSS attributes, sensors, and actuators reachable from
+`spec/VehicleSignalSpecification.vspec` in the referenced source release.
 
 The package:
 

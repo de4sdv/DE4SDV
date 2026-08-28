@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: MPL-2.0
  * Generated SysML v2 textual library for COVESA Vehicle Signal Specification (VSS).
- * Source: https://github.com/COVESA/vehicle_signal_specification/tree/6fb1dac2630a8910ee996863b2af02b310dcd7ce/spec
+ * Source: https://github.com/COVESA/vehicle_signal_specification/tree/20c609bf95c73b51d483fb8f81a099d1d5b73066/spec
  * Scope: leaf VSS attributes, sensors, and actuators reachable from spec/VehicleSignalSpecification.vspec.
  * Unit policy: VSS unit/quantity YAML files are not imported; unit references below point to SysML v2 standard
  * quantity/unit libraries (ISQ/SI/USCustomaryUnits) or derived expressions over those libraries.
@@ -9,7 +9,7 @@
  * fields are promoted into SysML metadata annotations instead of being kept only in comments.
  */
 
-package COVESA_VSS {
+library package COVESA_VSS {
 
 private import ScalarValues::*;
 private import ISQ::*;
@@ -361,17 +361,6 @@ package AllowedValueDefinitions {
     THREE_D_SATELLITE_AND_GROUND_BASED_AUGMENTATION;
   }
 
-  enum def Vehicle_Exterior_RoadSurfaceCondition_AllowedValue {
-    UNKNOWN;
-    DRY;
-    WET;
-    SNOW;
-    ICE;
-    SLUSH;
-    WET_ICE;
-    LOOSE_GRAVEL;
-  }
-
   enum def Vehicle_LowVoltageSystemState_AllowedValue {
     UNDEFINED;
     LOCK;
@@ -415,13 +404,6 @@ package AllowedValueDefinitions {
     NORMAL;
     HIGH;
     CRITICALLY_HIGH;
-  }
-
-  enum def Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus_AllowedValue {
-    NORMAL;
-    WARNING;
-    ALERT;
-    ERROR;
   }
 
   enum def Vehicle_Powertrain_ElectricMotor_EngineCoolant_Level_AllowedValue {
@@ -555,13 +537,6 @@ package AllowedValueDefinitions {
     COMBUSTION;
     HYBRID;
     ELECTRIC;
-  }
-
-  enum def Vehicle_Safety_Rollover_AllowedValue {
-    UNKNOWN;
-    NONE;
-    RISK;
-    DETECTED;
   }
 
 }
@@ -3616,19 +3591,6 @@ package SignalDefinitions {
     unitReference = "SI::millimetre";
   }
 
-  attribute def Vehicle_Chassis_Axle_Torque :> Integer;
-  @VssSignalMetadata about Vehicle_Chassis_Axle_Torque {
-    path = "Vehicle.Chassis.Axle.Torque";
-    kind = "sensor";
-    datatype = "int16";
-    sourceDescription = "Incoming axle torque to differential. Negative values indicate regen mode.";
-    sourceComment = "For combustion engine this typically corresponds to the output torque of the multi-speed gearbox. For electrical motor this typically corresponds to the output torque of the single-speed reduction-gear. This signal is typically not used if there is separate electrical motors for left and right wheels.";
-  }
-  @VssQuantityMetadata about Vehicle_Chassis_Axle_Torque {
-    quantityReference = "ISQ::momentOfForce";
-    unitReference = "SI::newtonMetre";
-  }
-
   attribute def Vehicle_Chassis_Axle_TrackWidth :> Integer;
   @VssSignalMetadata about Vehicle_Chassis_Axle_TrackWidth {
     path = "Vehicle.Chassis.Axle.TrackWidth";
@@ -3792,19 +3754,6 @@ package SignalDefinitions {
   @VssQuantityMetadata about Vehicle_Chassis_Axle_Wheel_Tire_Temperature {
     quantityReference = "ISQ::thermodynamicTemperature";
     unitReference = "SI::degreeCelsius";
-  }
-
-  attribute def Vehicle_Chassis_Axle_Wheel_Torque :> Integer;
-  @VssSignalMetadata about Vehicle_Chassis_Axle_Wheel_Torque {
-    path = "Vehicle.Chassis.Axle.Wheel.Torque";
-    kind = "sensor";
-    datatype = "int16";
-    sourceDescription = "Torque provided by drivetrain, excluding torque provided by friction brakes. Negative values indicate regen mode.";
-    sourceComment = "This is typically the torque provided by the differential, or by a motor dedicated for this wheel, after reduction gear if present.";
-  }
-  @VssQuantityMetadata about Vehicle_Chassis_Axle_Wheel_Torque {
-    quantityReference = "ISQ::momentOfForce";
-    unitReference = "SI::newtonMetre";
   }
 
   attribute def Vehicle_Chassis_Axle_WheelCount :> Integer;
@@ -4442,18 +4391,6 @@ package SignalDefinitions {
   @VssRangeMetadata about Vehicle_Exterior_LightIntensity {
     minValue = "0";
     maxValue = "100";
-  }
-
-  attribute def Vehicle_Exterior_RoadSurfaceCondition :> Vehicle_Exterior_RoadSurfaceCondition_AllowedValue;
-  @VssSignalMetadata about Vehicle_Exterior_RoadSurfaceCondition {
-    path = "Vehicle.Exterior.RoadSurfaceCondition";
-    kind = "sensor";
-    datatype = "string";
-    sourceDescription = "Assessed condition of the road surface beneath or ahead of the vehicle.";
-    sourceComment = "Determination method is implementation specific. May be derived from sensor fusion of Vehicle.ADAS.ESC.RoadFriction.MostProbable, Vehicle.Exterior.AirTemperature, Vehicle.Body.Raindetection.Intensity, and optional camera-based road surface classification. UNKNOWN shall be used when the system cannot assess the road surface condition. Primary consumers: navigation and ADAS safety systems. Related to VSS issue #877 (Connected Safety signals).";
-  }
-  @VssAllowedValuesMetadata about Vehicle_Exterior_RoadSurfaceCondition {
-    allowedValues = "UNKNOWN, DRY, WET, SNOW, ICE, SLUSH, WET_ICE, LOOSE_GRAVEL";
   }
 
   attribute def Vehicle_GrossWeight :> Integer;
@@ -5508,57 +5445,6 @@ package SignalDefinitions {
     maxValue = "90";
   }
 
-  attribute def Vehicle_Orientation_Pitch :> Real;
-  @VssSignalMetadata about Vehicle_Orientation_Pitch {
-    path = "Vehicle.Orientation.Pitch";
-    kind = "sensor";
-    datatype = "float";
-    sourceDescription = "Vehicle rotation (tilt) around Y (lateral). Positive values = nose up.";
-    sourceComment = "Reference is the vehicle at rest on a level surface. Useful for incline detection and trailer loading applications. Related to VSS issue #877 (Connected Safety signals).";
-  }
-  @VssQuantityMetadata about Vehicle_Orientation_Pitch {
-    quantityReference = "ISQ::planeAngle";
-    unitReference = "SI::degree";
-  }
-  @VssRangeMetadata about Vehicle_Orientation_Pitch {
-    minValue = "-180";
-    maxValue = "180";
-  }
-
-  attribute def Vehicle_Orientation_Roll :> Real;
-  @VssSignalMetadata about Vehicle_Orientation_Roll {
-    path = "Vehicle.Orientation.Roll";
-    kind = "sensor";
-    datatype = "float";
-    sourceDescription = "Vehicle rotation (tilt) around X (longitudinal). Positive values = right side down.";
-    sourceComment = "Reference is the vehicle at rest on a level surface. Useful for rollover detection and off-road applications. Related to VSS issue #877 (Connected Safety signals).";
-  }
-  @VssQuantityMetadata about Vehicle_Orientation_Roll {
-    quantityReference = "ISQ::planeAngle";
-    unitReference = "SI::degree";
-  }
-  @VssRangeMetadata about Vehicle_Orientation_Roll {
-    minValue = "-180";
-    maxValue = "180";
-  }
-
-  attribute def Vehicle_Orientation_Yaw :> Real;
-  @VssSignalMetadata about Vehicle_Orientation_Yaw {
-    path = "Vehicle.Orientation.Yaw";
-    kind = "sensor";
-    datatype = "float";
-    sourceDescription = "Vehicle rotation around Z (vertical) relative to geographic north.";
-    sourceComment = "0 = North, 90 = East, 180 = South, 270 = West. Complements CurrentLocation.Heading by providing IMU-derived orientation rather than GNSS-derived heading. Related to VSS issue #877 (Connected Safety signals).";
-  }
-  @VssQuantityMetadata about Vehicle_Orientation_Yaw {
-    quantityReference = "ISQ::planeAngle";
-    unitReference = "SI::degree";
-  }
-  @VssRangeMetadata about Vehicle_Orientation_Yaw {
-    minValue = "0";
-    maxValue = "360";
-  }
-
   attribute def Vehicle_PowerOptimizeLevel :> Integer;
   @VssSignalMetadata about Vehicle_PowerOptimizeLevel {
     path = "Vehicle.PowerOptimizeLevel";
@@ -5857,18 +5743,6 @@ package SignalDefinitions {
   @VssQuantityMetadata about Vehicle_Powertrain_CombustionEngine_EngineOil_LifeRemaining {
     quantityReference = "ISQ::time";
     unitReference = "SI::second";
-  }
-
-  attribute def Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus :> Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus_AllowedValue;
-  @VssSignalMetadata about Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus {
-    path = "Vehicle.Powertrain.CombustionEngine.EngineOil.PressureStatus";
-    kind = "sensor";
-    datatype = "string";
-    sourceDescription = "Engine oil pressure status.";
-    sourceComment = "";
-  }
-  @VssAllowedValuesMetadata about Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus {
-    allowedValues = "NORMAL, WARNING, ALERT, ERROR";
   }
 
   attribute def Vehicle_Powertrain_CombustionEngine_EngineOil_Temperature :> Real;
@@ -7742,36 +7616,6 @@ package SignalDefinitions {
     unitReference = "SI::kilogram";
   }
 
-  attribute def Vehicle_Safety_IsFire :> Boolean;
-  @VssSignalMetadata about Vehicle_Safety_IsFire {
-    path = "Vehicle.Safety.IsFire";
-    kind = "sensor";
-    datatype = "boolean";
-    sourceDescription = "Indicates whether a fire has been detected in or on the vehicle.";
-    sourceComment = "Determination method is implementation specific. May be derived from temperature sensors, battery thermal runaway detection, or dedicated fire/smoke detection systems. Primary consumers: emergency dispatch and first responder systems. Related to VSS issue #877 (Connected Safety signals).";
-  }
-
-  attribute def Vehicle_Safety_IsSubmersed :> Boolean;
-  @VssSignalMetadata about Vehicle_Safety_IsSubmersed {
-    path = "Vehicle.Safety.IsSubmersed";
-    kind = "sensor";
-    datatype = "boolean";
-    sourceDescription = "Indicates whether the vehicle is partially or fully submersed in water.";
-    sourceComment = "Determination method is implementation specific. May be derived from pressure sensors, water contact sensors, door seal sensors, or anomalous rain detection intensity readings. Primary consumers: emergency dispatch and first responder systems. Related to VSS issue #877 (Connected Safety signals).";
-  }
-
-  attribute def Vehicle_Safety_Rollover :> Vehicle_Safety_Rollover_AllowedValue;
-  @VssSignalMetadata about Vehicle_Safety_Rollover {
-    path = "Vehicle.Safety.Rollover";
-    kind = "sensor";
-    datatype = "string";
-    sourceDescription = "Indicates whether the vehicle has rolled over or is at risk of rollover.";
-    sourceComment = "May be derived from Vehicle.AngularVelocity, Vehicle.Orientation.Roll, and Vehicle.Orientation.Pitch signals. NONE indicates normal orientation. RISK indicates the vehicle is at elevated risk of rollover. DETECTED indicates a rollover event has occurred. UNKNOWN shall be used when the system cannot assess rollover status. Criteria for each state may be OEM specific. Primary consumers: emergency dispatch and first responder systems. Related to VSS issue #877 (Connected Safety signals).";
-  }
-  @VssAllowedValuesMetadata about Vehicle_Safety_Rollover {
-    allowedValues = "UNKNOWN, NONE, RISK, DETECTED";
-  }
-
   attribute def Vehicle_Service_DistanceToService :> Real;
   @VssSignalMetadata about Vehicle_Service_DistanceToService {
     path = "Vehicle.Service.DistanceToService";
@@ -8404,8 +8248,6 @@ package BranchDefinitions {
   part def Vehicle_Occupant_Identifier;
   /* VSS branch: Vehicle.Occupant.MidEyeGaze — Direction from mid eye position to object driver is looking at. */
   part def Vehicle_Occupant_MidEyeGaze;
-  /* VSS branch: Vehicle.Orientation — Spatial orientation. Axis definitions according to ISO 8855. */
-  part def Vehicle_Orientation;
   /* VSS branch: Vehicle.Powertrain — Powertrain data for battery management, etc. */
   part def Vehicle_Powertrain;
   /* VSS branch: Vehicle.Powertrain.CombustionEngine — Engine-specific data, stopping at the bell housing. */
@@ -8458,8 +8300,6 @@ package BranchDefinitions {
   part def Vehicle_Powertrain_TractionBattery_Temperature;
   /* VSS branch: Vehicle.Powertrain.Transmission — Transmission-specific data, stopping at the drive shafts. */
   part def Vehicle_Powertrain_Transmission;
-  /* VSS branch: Vehicle.Safety — Safety-related derived signals for crash detection and emergency response. */
-  part def Vehicle_Safety;
   /* VSS branch: Vehicle.Service — Service data. */
   part def Vehicle_Service;
   /* VSS branch: Vehicle.Trailer — Trailer signals. */
@@ -8735,7 +8575,6 @@ package SignalPathIndex {
   alias Vehicle_Chassis_Axle_TireAspectRatio for SignalDefinitions::Vehicle_Chassis_Axle_TireAspectRatio;
   alias Vehicle_Chassis_Axle_TireDiameter for SignalDefinitions::Vehicle_Chassis_Axle_TireDiameter;
   alias Vehicle_Chassis_Axle_TireWidth for SignalDefinitions::Vehicle_Chassis_Axle_TireWidth;
-  alias Vehicle_Chassis_Axle_Torque for SignalDefinitions::Vehicle_Chassis_Axle_Torque;
   alias Vehicle_Chassis_Axle_TrackWidth for SignalDefinitions::Vehicle_Chassis_Axle_TrackWidth;
   alias Vehicle_Chassis_Axle_TreadWidth for SignalDefinitions::Vehicle_Chassis_Axle_TreadWidth;
   alias Vehicle_Chassis_Axle_Wheel_AngularSpeed for SignalDefinitions::Vehicle_Chassis_Axle_Wheel_AngularSpeed;
@@ -8749,7 +8588,6 @@ package SignalPathIndex {
   alias Vehicle_Chassis_Axle_Wheel_Tire_Pressure for SignalDefinitions::Vehicle_Chassis_Axle_Wheel_Tire_Pressure;
   alias Vehicle_Chassis_Axle_Wheel_Tire_RubberTemperature for SignalDefinitions::Vehicle_Chassis_Axle_Wheel_Tire_RubberTemperature;
   alias Vehicle_Chassis_Axle_Wheel_Tire_Temperature for SignalDefinitions::Vehicle_Chassis_Axle_Wheel_Tire_Temperature;
-  alias Vehicle_Chassis_Axle_Wheel_Torque for SignalDefinitions::Vehicle_Chassis_Axle_Wheel_Torque;
   alias Vehicle_Chassis_Axle_WheelCount for SignalDefinitions::Vehicle_Chassis_Axle_WheelCount;
   alias Vehicle_Chassis_Axle_WheelDiameter for SignalDefinitions::Vehicle_Chassis_Axle_WheelDiameter;
   alias Vehicle_Chassis_Axle_WheelWidth for SignalDefinitions::Vehicle_Chassis_Axle_WheelWidth;
@@ -8800,7 +8638,6 @@ package SignalPathIndex {
   alias Vehicle_Exterior_AirTemperature for SignalDefinitions::Vehicle_Exterior_AirTemperature;
   alias Vehicle_Exterior_Humidity for SignalDefinitions::Vehicle_Exterior_Humidity;
   alias Vehicle_Exterior_LightIntensity for SignalDefinitions::Vehicle_Exterior_LightIntensity;
-  alias Vehicle_Exterior_RoadSurfaceCondition for SignalDefinitions::Vehicle_Exterior_RoadSurfaceCondition;
   alias Vehicle_GrossWeight for SignalDefinitions::Vehicle_GrossWeight;
   alias Vehicle_Height for SignalDefinitions::Vehicle_Height;
   alias Vehicle_IsAutoPowerOptimize for SignalDefinitions::Vehicle_IsAutoPowerOptimize;
@@ -8878,9 +8715,6 @@ package SignalPathIndex {
   alias Vehicle_Occupant_Identifier_Subject for SignalDefinitions::Vehicle_Occupant_Identifier_Subject;
   alias Vehicle_Occupant_MidEyeGaze_Azimuth for SignalDefinitions::Vehicle_Occupant_MidEyeGaze_Azimuth;
   alias Vehicle_Occupant_MidEyeGaze_Elevation for SignalDefinitions::Vehicle_Occupant_MidEyeGaze_Elevation;
-  alias Vehicle_Orientation_Pitch for SignalDefinitions::Vehicle_Orientation_Pitch;
-  alias Vehicle_Orientation_Roll for SignalDefinitions::Vehicle_Orientation_Roll;
-  alias Vehicle_Orientation_Yaw for SignalDefinitions::Vehicle_Orientation_Yaw;
   alias Vehicle_PowerOptimizeLevel for SignalDefinitions::Vehicle_PowerOptimizeLevel;
   alias Vehicle_Powertrain_AccumulatedBrakingEnergy for SignalDefinitions::Vehicle_Powertrain_AccumulatedBrakingEnergy;
   alias Vehicle_Powertrain_CombustionEngine_AspirationType for SignalDefinitions::Vehicle_Powertrain_CombustionEngine_AspirationType;
@@ -8905,7 +8739,6 @@ package SignalPathIndex {
   alias Vehicle_Powertrain_CombustionEngine_EngineOil_Capacity for SignalDefinitions::Vehicle_Powertrain_CombustionEngine_EngineOil_Capacity;
   alias Vehicle_Powertrain_CombustionEngine_EngineOil_Level for SignalDefinitions::Vehicle_Powertrain_CombustionEngine_EngineOil_Level;
   alias Vehicle_Powertrain_CombustionEngine_EngineOil_LifeRemaining for SignalDefinitions::Vehicle_Powertrain_CombustionEngine_EngineOil_LifeRemaining;
-  alias Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus for SignalDefinitions::Vehicle_Powertrain_CombustionEngine_EngineOil_PressureStatus;
   alias Vehicle_Powertrain_CombustionEngine_EngineOil_Temperature for SignalDefinitions::Vehicle_Powertrain_CombustionEngine_EngineOil_Temperature;
   alias Vehicle_Powertrain_CombustionEngine_IdleHours for SignalDefinitions::Vehicle_Powertrain_CombustionEngine_IdleHours;
   alias Vehicle_Powertrain_CombustionEngine_IsRunning for SignalDefinitions::Vehicle_Powertrain_CombustionEngine_IsRunning;
@@ -9056,9 +8889,6 @@ package SignalPathIndex {
   alias Vehicle_Powertrain_Transmission_Type for SignalDefinitions::Vehicle_Powertrain_Transmission_Type;
   alias Vehicle_Powertrain_Type for SignalDefinitions::Vehicle_Powertrain_Type;
   alias Vehicle_RoofLoad for SignalDefinitions::Vehicle_RoofLoad;
-  alias Vehicle_Safety_IsFire for SignalDefinitions::Vehicle_Safety_IsFire;
-  alias Vehicle_Safety_IsSubmersed for SignalDefinitions::Vehicle_Safety_IsSubmersed;
-  alias Vehicle_Safety_Rollover for SignalDefinitions::Vehicle_Safety_Rollover;
   alias Vehicle_Service_DistanceToService for SignalDefinitions::Vehicle_Service_DistanceToService;
   alias Vehicle_Service_IsServiceDue for SignalDefinitions::Vehicle_Service_IsServiceDue;
   alias Vehicle_Service_TimeToService for SignalDefinitions::Vehicle_Service_TimeToService;
