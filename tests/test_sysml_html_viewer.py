@@ -285,6 +285,42 @@ def test_typed_usage_doc_fallback(model_files, fixture_sysml):
     assert by_label["fixtureSystem : FixtureSystem"].kind == "part"
 
 
+def test_declared_type_captured(fixture_sysml):
+    """Usage typings are captured at parse time (`part x : T;` -> "T") so the
+    typed-doc fallback can fire from the resolved declaration itself, not
+    only from labels that print `name : Type`."""
+    mf = parse_file(fixture_sysml, FIXTURE)
+    by_name = {m.name: m for m in mf.members}
+    assert by_name["fixtureSystem"].type_name == "FixtureSystem"
+    assert by_name["boxPart"].type_name == "FixtureBoxType"
+    assert by_name["importedPart"].type_name == "FixtureSharedType"
+    # definitions and untyped usages carry no typing
+    assert by_name["FixtureSystem"].kind == "part def"
+    assert by_name["FixtureSystem"].type_name == ""
+    # a specialization is not a typing
+    assert by_name["FixtureAbstractPart"].type_name == ""
+
+
+def test_bare_label_typed_doc_fallback(model_files, fixture_sysml):
+    """Matrix diagrams print BARE usage names (no `: Type` suffix). An
+    undocumented usage resolved from such a label still shows its type
+    definition's doc via ElementRef.type_name."""
+    mf = parse_file(fixture_sysml, FIXTURE)
+    index = build_member_index(model_files)
+    resolved = svg_info.resolve_labels(
+        ["fixtureSystem"],
+        index,
+        view_file=fixture_sysml.relative_to(FIXTURE).as_posix(),
+        view_folder="textual-notation-of-model/packages/features/fixture",
+    )
+    assert len(resolved) == 1
+    li = resolved[0]
+    assert li.name == "fixtureSystem"
+    assert li.kind == "part"
+    # the usage has no doc; the fallback surfaces the def's doc
+    assert li.doc.startswith("A synthetic system part")
+
+
 def test_revision_picker_in_pages(tmp_path):
     """Every page carries the revision picker; the option hrefs are relative
     to that page and always resolve (they are crawled by the link test)."""

@@ -87,6 +87,7 @@ class Member:
     depth: int          # brace depth at which the member lives
     line: int           # 1-based line of the declaration
     doc: str = ""       # attached doc /* ... */ text (raw, unescaped)
+    type_name: str = "" # declared typing (`part x : T;` -> "T"), usages only
     children: list["Member"] = field(default_factory=list)
 
 
@@ -296,6 +297,31 @@ def _attach_docs(text: str, members: list[Member]) -> None:
                 break
 
 
+def _declared_type(raw: str, name: str) -> str:
+    """Typing named in a usage declaration (`part x : T;` -> "T").
+
+    Captured so hover enrichment can fall back to the type definition's doc
+    when the usage itself is undocumented, even from BARE diagram labels
+    (matrix row/column labels print only the usage name). Returns "" for
+    definitions, untyped usages, and specialization forms (`:>` / `:>>`),
+    which are not typing references.
+    """
+    if " : " not in raw:
+        return ""
+    tail = raw.split(" : ", 1)[1]
+    m = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)", tail)
+    if not m:
+        return ""
+    candidate = m.group(1)
+    # `:>`/`:>>` specializations land here only if written with spaces around
+    # the colon; those are not typings. A typing is followed by `;`, `{`, or
+    # end-of-line (possibly with a redefinition/assignment after).
+    after = tail[m.end():].lstrip()
+    if after.startswith((";", "{", "={", "= {")) or after == "":
+        return candidate
+    return ""
+
+
 def parse_file(path: Path, repo_root: Path) -> ModelFile:
     """Parse one .sysml file into a ModelFile."""
     text = path.read_text(encoding="utf-8")
@@ -309,6 +335,7 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
         if m:
             kind = m.group("kind").strip()
             name = m.group("name")
+            type_name = _declared_type(raw, name)
             if kind == "exhibit":
                 # `exhibit state lifecycleStates {` — index the exhibited
                 # usage (state, action, ...) under its real name so diagram
@@ -324,9 +351,13 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
             elif kind == "package":
                 decl_depth = depth + 1
                 depth += 1
-                mf.members.append(Member(kind=kind, name=name, depth=decl_depth, line=lineno))
+                mf.members.append(
+                    Member(kind=kind, name=name, depth=decl_depth, line=lineno)
+                )
             else:
-                mf.members.append(Member(kind=kind, name=name, depth=depth, line=lineno))
+                mf.members.append(
+                    Member(kind=kind, name=name, depth=depth, line=lineno, type_name=type_name)
+                )
         else:
             bm = _BIND_DOTTED_RE.match(raw)
             if bm:
@@ -539,6 +570,7 @@ class ElementRef:
     parent_name: str = ""   # enclosing declaration (for anonymous usages)
     parent_line: int = 0
     has_children: bool = False
+    type_name: str = ""     # declared typing (`part x : T;` -> "T"), usages only
 
 
 def _walk_with_parent(
@@ -588,6 +620,7 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
                 parent_name=parent.name if parent else "",
                 parent_line=parent.line if parent else 0,
                 has_children=bool(m.children),
+                type_name=m.type_name,
             )
             _index_add(index, ref)
         for v in mf.views:

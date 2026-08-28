@@ -551,23 +551,30 @@ def _typed_doc_fallback(
     index: dict[str, list[ElementRef]],
     view_file: str,
     view_folder: str,
+    resolved_ref: "ElementRef | None" = None,
 ) -> str:
-    """Doc of the TYPE named in a usage label (`aaosSdvBoundary :
-    SDVCoreBoundary` -> the doc of `part def SDVCoreBoundary`).
+    """Doc of the TYPE of a usage, used when the usage itself is undocumented.
 
-    A part/port/item usage rarely carries its own `doc`; the documentation a
-    reader wants when hovering the usage is the documentation of its
-    definition. Returns '' when the label carries no typing or the type is
-    unknown/undocumented (honest: no invented text)."""
+    Two paths reach the type definition's doc:
+    - the LABEL carries the typing (`aaosSdvBoundary : SDVCoreBoundary`);
+    - the RESOLVED declaration carries it (`part x : T;` parsed into
+      ``ElementRef.type_name``) — this covers BARE diagram labels such as
+      matrix row/column headers, which print only the usage name.
+
+    Returns '' when no typing is known or the type is undocumented (honest:
+    no invented text)."""
+    type_names: list[str] = []
     for key in _normalize(label):
-        if " : " not in key:
-            continue
-        type_name = key.rsplit(" : ", 1)[-1].strip()
+        if " : " in key:
+            type_names.append(key.rsplit(" : ", 1)[-1].strip())
+    if resolved_ref is not None and resolved_ref.type_name:
+        type_names.append(resolved_ref.type_name)
+    for type_name in type_names:
         if not type_name:
-            return ""
+            continue
         refs = index.get(type_name) or index.get(f"'{type_name}'")
         if not refs:
-            return ""
+            continue
         ref = _prefer(refs, view_file, view_folder)
         if ref is not None and ref.doc:
             return ref.doc
@@ -673,11 +680,21 @@ def resolve_labels(
     # typed-usage doc fallback: a usage label (`name : Type`) whose resolved
     # declaration carries no doc shows the doc of its TYPE definition instead.
     # The usage still links to its own declaration; only the doc text falls
-    # back to the definition the reader actually wants.
+    # back to the definition the reader actually wants. The resolved
+    # declaration itself carries the typing (`ElementRef.type_name`), so the
+    # fallback also fires for BARE labels (matrix row/column headers).
     for i, li in enumerate(out):
         if li.doc:
             continue
-        typed_doc = _typed_doc_fallback(li.label, index, view_file, view_folder)
+        resolved_refs = [
+            r
+            for r in (index.get(li.name) or [])
+            if r.rel_path == li.rel_path and r.line == li.line
+        ]
+        typed_doc = _typed_doc_fallback(
+            li.label, index, view_file, view_folder,
+            resolved_ref=resolved_refs[0] if resolved_refs else None,
+        )
         if typed_doc:
             out[i] = LabelInfo(
                 label=li.label,
