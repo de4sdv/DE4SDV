@@ -1496,4 +1496,70 @@ def test_generate_deterministic(tmp_path):
         b = (out2 / rel).read_bytes()
         assert a == b, f"non-deterministic output for {rel}"
 
+def test_requirements_browser_page(tmp_path):
+    """The needs & requirements browser page exists on every build with the
+    search/filter controls; on the real model it carries all record cards,
+    kind filter chips, and the embedded trace JSON."""
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    page = (out / "requirements.html").read_text(encoding="utf-8")
+    assert 'id="reqSearch"' in page
+    assert "req-filter" in page
+    assert 'id="reqTraceData"' in page
+    # the fixture's requirement usage gets a card even without a controlled ID
+    assert "req-card" in page
+    # index header links to the browser page
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert 'href="requirements.html"' in index
+
+    # real model: full record inventory on the page
+    out2 = tmp_path / "site-real"
+    generate(REPO_ROOT, out2, ["textual-notation-of-model/packages"])
+    real = (out2 / "requirements.html").read_text(encoding="utf-8")
+    for rid in ("N-MW-001", "REQ-MW-001", "N-AEBS-001", "AC-MW-010-01",
+                "EC-AEBS-009B-01"):
+        assert f'id="req-{rid}"' in real, f"missing card {rid}"
+    # kind filter chips for the kinds present in the model
+    for kind in ("need", "requirement", "acceptance criterion", "evidence contract"):
+        assert f'data-kind="{kind}"' in real
+    # trace links between records resolve to existing card anchors
+    m = re.search(
+        r'<script type="application/json" id="reqTraceData">(.*?)</script>',
+        real, re.S,
+    )
+    traces = json.loads(m.group(1))
+    assert traces, "trace network empty"
+    card_ids = set(re.findall(r'data-id="([^"]+)"', real))
+    for src, targets in traces.items():
+        assert src in card_ids
+        for tgt in targets:
+            assert tgt in card_ids, f"dangling trace {src} -> {tgt}"
+
+def test_requirements_records_extraction():
+    """Real model: needs/requirements/ACs/ECs/claims extracted with IDs,
+    statements, subjects, and a resolvable trace network."""
+    from tools.sysml_html_viewer.requirements_data import (
+        build_trace_links,
+        collect_requirement_records,
+    )
+    files = load_model(REPO_ROOT, ["textual-notation-of-model/packages"])
+    records = collect_requirement_records(files)
+    assert len(records) > 80  # the model carries 100+ requirement-usage records
+    by_id = {r.rid: r for r in records if r.rid}
+    # the middleware and AEBS slices are present with their controlled IDs
+    for rid in ("N-MW-001", "REQ-MW-001", "N-AEBS-001", "REQ-AEBS-001",
+                "AC-MW-010-01", "EC-AEBS-009B-01"):
+        assert rid in by_id, f"missing record {rid}"
+    # needs vs requirements classified by ID prefix
+    assert by_id["N-MW-001"].kind == "need"
+    assert by_id["REQ-MW-001"].kind == "requirement"
+    assert by_id["AC-MW-010-01"].kind == "acceptance criterion"
+    # statements and subjects come from the model text
+    assert by_id["REQ-MW-001"].statement.startswith("Each SDV product-line member product")
+    assert by_id["N-MW-001"].subject == "productLine : SDVProductLine"
+    assert "platformEngineer" in by_id["N-MW-001"].stakeholders
+    # trace network is bidirectional and resolvable
+    links = build_trace_links(records)
+    assert "N-AEBS-008" in links.get("REQ-AEBS-005", [])
+    assert "REQ-AEBS-005" in links.get("N-AEBS-008", [])
 

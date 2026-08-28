@@ -217,6 +217,7 @@ def _page_shell(
   </a>
   <a class="site-chat" href="{esc(search_prefix + 'help.html')}">Help</a>
   <a class="site-chat" href="{esc(search_prefix + 'elements.html')}">Elements</a>
+  <a class="site-chat" href="{esc(search_prefix + 'requirements.html')}">Needs &amp; Reqs</a>
   {picker}
 </header>
 <div class="layout">

@@ -825,9 +825,73 @@
     });
   }
 
+
+  /* ---- needs & requirements browser (requirements.html) ---- */
+
+  function initRequirements() {
+    var list = document.getElementById('reqList');
+    if (!list) return; // not on the requirements page
+    var input = document.getElementById('reqSearch');
+    var status = document.getElementById('reqStatus');
+    var cards = Array.prototype.slice.call(list.querySelectorAll('.req-card'));
+    var chips = Array.prototype.slice.call(document.querySelectorAll('.req-filter'));
+    var activeKinds = [];
+
+    function apply() {
+      var q = input ? input.value.trim().toLowerCase() : '';
+      var shown = 0;
+      cards.forEach(function (card) {
+        var kindOk = !activeKinds.length ||
+          activeKinds.indexOf(card.getAttribute('data-kind')) !== -1;
+        var textOk = !q ||
+          (card.getAttribute('data-search') || '').indexOf(q) !== -1;
+        var show = kindOk && textOk;
+        card.classList.toggle('filtered-out', !show);
+        if (show) shown += 1;
+      });
+      if (status) {
+        var filtered = activeKinds.length || q;
+        status.hidden = !filtered;
+        if (filtered) {
+          status.textContent = shown + ' of ' + cards.length + ' records shown';
+        }
+      }
+    }
+
+    if (input) {
+      input.addEventListener('input', apply);
+    }
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var kind = chip.getAttribute('data-kind');
+        var idx = activeKinds.indexOf(kind);
+        if (idx === -1) {
+          activeKinds.push(kind);
+          chip.classList.add('active');
+        } else {
+          activeKinds.splice(idx, 1);
+          chip.classList.remove('active');
+        }
+        apply();
+      });
+    });
+
+    // hash navigation: flash the target record and scroll past the header
+    function flashFromHash() {
+      if (!location.hash) return;
+      var target = document.getElementById(location.hash.slice(1));
+      if (!target || !target.classList.contains('req-card')) return;
+      target.classList.remove('flash');
+      void target.offsetWidth;
+      target.classList.add('flash');
+    }
+    window.addEventListener('hashchange', flashFromHash);
+    flashFromHash();
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', initRequirements);
   } else {
-    init();
+    initRequirements();
   }
 })();
