@@ -355,6 +355,12 @@ def _materialize(
     return existing
 
 
+def _record_page_paths(records: list) -> dict[str, str]:
+    """rel_path -> file-page href for requirement records (site-root pages
+    always live at pages/<rel_path>.html; ref builds re-root via prefix)."""
+    return {mf_rel: f"pages/{mf_rel}.html" for mf_rel in {r.rel_path for r in records}}
+
+
 def _breadcrumbs(site_path: str) -> list[tuple[str, str]]:
     """Breadcrumb trail: Model / ... / page label."""
     parts = Path(site_path).parts  # e.g. pages / textual-notation-of-model / ... / file.html
@@ -842,6 +848,25 @@ def _build_site(
     )
     (out_dir / "help.html").write_text(_help_html(repo_root), encoding="utf-8")
     (out_dir / "elements.html").write_text(_elements_html(repo_root), encoding="utf-8")
+
+    # requirements browser page (site root, tree + filters, one card per record)
+    from .requirements_data import collect_requirement_records
+    from .requirements_page import render_requirements_page
+
+    req_records = collect_requirement_records(files)
+    (out_dir / "requirements.html").write_text(
+        render_requirements_page(
+            req_records,
+            _tree_with_prefix(tree, "", ""),
+            [("Model", "index.html"), ("Needs & Requirements", "")],
+            _record_page_paths(req_records),
+            "",
+            picker=picker("requirements.html"),
+            filters=filters_html,
+            asset_stamp=stamp,
+        ),
+        encoding="utf-8",
+    )
 
     # directory TOC pages
     dirs: dict[str, list[TreeNode]] = {}
