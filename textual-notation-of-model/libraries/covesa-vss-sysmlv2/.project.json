@@ -2,7 +2,7 @@
   "name": "covesa-vss-sysmlv2",
   "publisher": "de4sdv",
   "description": "SysML v2 textual library generated from the COVESA Vehicle Signal Specification (VSS) leaf signals, with VSS semantics promoted into SysML v2 metadata annotations.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MPL-2.0",
   "website": "https://github.com/de4sdv/DE4SDV",
   "topic": [
