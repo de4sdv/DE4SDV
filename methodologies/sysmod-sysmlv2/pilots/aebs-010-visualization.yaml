@@ -1,0 +1,245 @@
+schema: de4sdv.aebs-010-visualization.v0
+id: INC-AEBS-010
+name: AEBS visualization on AAOS SDV — framing, needs, and System 2 requirements
+status: draft
+type: FeatureIncrement
+parent_increment: INC-AEBS-009
+owner: DE4SDV maintainers
+
+purpose: >-
+  Frame a bounded, stakeholder-visible AEBS threat and intervention
+  visualization on a real AAOS SDV display and derive its stakeholder needs
+  and System 2 requirement candidates. This slice is the Phase 0-5 portion of
+  the INC-AEBS-010 chain only. It selects no architecture, target, transport,
+  or application technology and retains no execution evidence. SysML owns
+  semantics; this YAML indexes IDs, status, and traceability only.
+
+predecessor_alignment:
+  - predecessor_id: INC-MW-010
+    use: mandated_successor
+    artifact: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
+    dependency_element: DE4SDV_MW010VerificationEvidence::successorIncrementDecision010
+    notes:
+      - The merged INC-MW-010 Phase 12 decision mandates any stakeholder-visible
+        Autoware-to-AAOS visualization and reverse transport to be framed as a
+        separate capability increment.
+      - This increment does not reopen, extend, or retroactively satisfy
+        INC-MW-010 gate 8, AC-MW-010-02, or AC-MW-010-05.
+      - The retained INC-MW-010 evidence set remains E-MW-011 through E-MW-014.
+  - predecessor_id: INC-AEBS-009
+    use: aebs_capability_baseline
+    notes:
+      - The visualization consumes the existing common VehicleTargetAEBS
+        capability behavior proven by the 009-series benches.
+      - No AEBS requirement, evidence, or classification element from the
+        009-series is modified by this increment.
+
+engineering_question: >-
+  Can a real pinned Autoware AEBS execution and the existing DE4SDV AEBS
+  coordination state be presented as a bounded center-display threat and
+  intervention visualization on a display-capable AAOS SDV member, with honest
+  source provenance and fail-closed degradation behavior?
+
+lifecycle_decision_supported:
+  decision: approve_visualization_framing_for_needs_and_requirements
+  description: >-
+    Decide whether the visualization increment is framed tightly enough to
+    derive System 2 needs and requirement candidates without dragging
+    architecture, configuration, implementation, or evidence claims into this
+    slice.
+
+system_layers:
+  system_1:
+    name: Configured member product executing unchanged AEBS behavior
+    role: >-
+      The member whose live native Autoware AEB execution and DE4SDV AEBS
+      coordination state are observed. System 1 behavior is unchanged.
+  system_2:
+    name: AEBS visualization test system
+    role: >-
+      Source observation, reverse transport, AAOS rendering, health
+      supervision, and evidence recording instrumentation.
+  system_3:
+    name: DE4SDV open-source governance and review ecosystem
+    role: >-
+      Reviews that the increment stays bounded, honest about provenance, and
+      free of production-HMI overclaim.
+
+product_line_classification:
+  - id: CLS-AEBS-010-001
+    label: AEBS visualization
+    classification: system2_engineering_instrumentation
+    rationale: >-
+      The visualization serves demonstration, integration review, and V&V
+      instrumentation. It is not selectable across member products and must
+      stay out of every System 1 bill of features.
+  - id: CLS-AEBS-010-002
+    label: VehicleTargetAEBS common capability
+    classification: common_capability
+    rationale: >-
+      Reaffirmed unchanged; the visualization does not alter the capability
+      classification or any member-product behavior.
+
+first_slice_scope:
+  in_scope:
+    - increment framing with mandated-successor dependency to INC-MW-010
+    - stakeholder concerns and views for framing and needs
+    - bounded operational observation scenarios including failure dispositions
+    - System 2 classification of the visualization test system
+    - stakeholder needs N-AEBS-009 through N-AEBS-013
+    - System 2 requirement candidates REQ-AEBS-S2-002 through REQ-AEBS-S2-011
+    - controlled gaps for unpinned thresholds and unproven AAOS surface
+  out_of_scope:
+    - production driver-HMI suitability, warning timing, modality, or human factors
+    - DriverUI, instrument cluster, HAR, Display Safety, or tell-tale rendering
+    - architecture, target, transport, or application technology selection
+    - implementation code or AOSP modules
+    - execution evidence or verification verdicts
+    - any retroactive INC-MW-010 gate 8 or evidence-set change
+    - full Autoware-stack, on-road, safety, ASIL, compliance, or certification claims
+
+stakeholders:
+  - id: STK-SYSTEMS-ENGINEER
+    role: Systems engineer
+    concerns:
+      - Displayed AEBS state must carry honest per-field provenance.
+      - The increment boundary must stay separate across the chain.
+  - id: STK-PRODUCT-LINE-ENGINEER
+    role: Product-line engineer
+    concerns:
+      - The visualization must stay System 2 instrumentation, not a feature.
+  - id: STK-VERIFICATION-ENGINEER
+    role: Verification engineer
+    concerns:
+      - Displayed states must be correlatable to observed source events.
+  - id: STK-OSS-MAINTAINER
+    role: Open-source maintainer
+    concerns:
+      - Failure dispositions must be fail-closed and reviewable.
+      - INC-MW-010 closure must remain untouched.
+  - id: STK-OPEN-SOURCE-REVIEWER
+    role: Open-source reviewer
+    concerns:
+      - Rendering must occur in a real AAOS guest, never a host browser page.
+
+source_anchors:
+  - id: SRC-DE4SDV-AEBS-BENCH
+    label: DE4SDV INC-AEBS-009B Autoware AEBS bench
+    role: system1_behavior_source
+    repository_artifact: implementation/aebs-autoware-nominal-vehicle-target-bench/
+    use_policy: >-
+      Reuse as the deterministic System 1 AEBS behavior source. Do not copy
+      coordinator, scenario, or evidence content into the visualization chain.
+  - id: SRC-DE4SDV-MW010-DECISION
+    label: INC-MW-010 Phase 12 bounded baseline and successor decision
+    role: predecessor_mandate
+    repository_artifact: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
+    use_policy: >-
+      Reference the successor decision by qualified name. Do not restate,
+      edit, or reinterpret predecessor closure semantics.
+  - id: SRC-AAOS-SDV-DOCS
+    label: Android Automotive OS SDV documentation
+    role: reference_architecture
+    use_policy: >-
+      Architecture, target, Gateway, and application selection is deferred to
+      the Phase 8 slice of the chain. This framing slice names no technology.
+
+need_ids:
+  - N-AEBS-009
+  - N-AEBS-010
+  - N-AEBS-011
+  - N-AEBS-012
+  - N-AEBS-013
+
+requirement_ids:
+  - REQ-AEBS-S2-002
+  - REQ-AEBS-S2-003
+  - REQ-AEBS-S2-004
+  - REQ-AEBS-S2-005
+  - REQ-AEBS-S2-006
+  - REQ-AEBS-S2-007
+  - REQ-AEBS-S2-008
+  - REQ-AEBS-S2-009
+  - REQ-AEBS-S2-010
+  - REQ-AEBS-S2-011
+
+requirement_derivation:
+  - requirement: REQ-AEBS-S2-002
+    derived_from: [N-AEBS-009, N-AEBS-010]
+  - requirement: REQ-AEBS-S2-003
+    derived_from: [N-AEBS-009]
+  - requirement: REQ-AEBS-S2-004
+    derived_from: [N-AEBS-009]
+  - requirement: REQ-AEBS-S2-005
+    derived_from: [N-AEBS-013]
+  - requirement: REQ-AEBS-S2-006
+    derived_from: [N-AEBS-011]
+  - requirement: REQ-AEBS-S2-007
+    derived_from: [N-AEBS-011]
+  - requirement: REQ-AEBS-S2-008
+    derived_from: [N-AEBS-011]
+  - requirement: REQ-AEBS-S2-009
+    derived_from: [N-AEBS-011]
+  - requirement: REQ-AEBS-S2-010
+    derived_from: [N-AEBS-009, N-AEBS-012]
+  - requirement: REQ-AEBS-S2-011
+    derived_from: [N-AEBS-012]
+
+operational_scenario_ids:
+  - SC-AEBS-010-01
+  - SC-AEBS-010-02
+  - SC-AEBS-010-03
+  - SC-AEBS-010-04
+  - SC-AEBS-010-05
+  - SC-AEBS-010-06
+
+gap_ids:
+  - GAP-AEBS-010-001
+  - GAP-AEBS-010-002
+  - GAP-AEBS-010-003
+  - GAP-AEBS-010-004
+  - GAP-AEBS-010-005
+
+verification_planning:
+  status: deferred_to_chain
+  ownership: System 2 verification and assurance workflow
+  note: >-
+    Verification cases, acceptance criteria, and evidence artifacts are
+    planned in the Phase 10 slice of the INC-AEBS-010 chain. Controlled
+    dispositions for that later evidence are observed_bounded,
+    deferred_not_proven, and not_claimed. No verdict exists in this slice.
+
+claim_boundary: >-
+  Framing, needs, and System 2 requirement candidates only. No architecture,
+  configuration, implementation, runtime, safety, human-factors, compliance,
+  certification, or INC-MW-010-modifying claim is made or implied.
+
+model_artifacts:
+  - id: MODEL-AEBS-010-FRAMING-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_framing.sysml
+    status: draft
+  - id: MODEL-AEBS-010-OPERATIONAL-CONTEXT-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_operational_context.sysml
+    status: draft
+  - id: MODEL-AEBS-010-NEEDS-REQUIREMENTS-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_needs_requirements.sysml
+    status: draft
+
+chain_plan:
+  - slice: Phase 0-5 (this slice)
+    pr: feat/aebs010-visualization-intent-requirements
+  - slice: Phase 6-8 architecture and selected realization
+    pr: feat/aebs010-visualization-architecture
+  - slice: Phase 9 configured test article
+    pr: feat/aebs010-visualization-configuration
+  - slice: Implementation
+    pr: feat/aebs010-aaos-sdv-visualization-runtime
+  - slice: Phase 10-12 evidence, views, and bounded decision
+    pr: feat/aebs010-visualization-evidence-baseline
+
+next_increment:
+  id: INC-AEBS-010-architecture
+  name: AEBS visualization functional/logical architecture and selected physical realization
+  entry_condition: >-
+    This framing/needs/requirements slice is reviewed and accepted as a
+    sufficient basis for the architecture slices of the same increment chain.
