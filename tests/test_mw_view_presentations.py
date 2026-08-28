@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 MIDDLEWARE = Path("textual-notation-of-model/packages/features/middleware")
@@ -200,7 +201,15 @@ def test_physical_structure_view_contains_only_physical_software_parts() -> None
     assert "Source" not in boundary
     assert "ref part aaosSourceArtifact" in sources
     assert "part physicalSoftwareSources : MiddlewarePhysicalSoftwareSourceSet;" in text
-    assert "attribute maxCompartmentEntries = 8;" in view
+    # every part of the boundary must be visible: the compartment cap is -1
+    # (show all rows). Syside semantics: -1 = all rows, 0 = hide feature
+    # compartments, N = first N rows. PR #118 added a 9th part while the cap
+    # was 8 — serviceDiscoveryClient disappeared behind an ellipsis; an
+    # earlier attempt used 0, which hid the whole parts compartment (CI
+    # render came back as a bare skeleton).
+    assert "attribute maxCompartmentEntries = -1;" in view
+    part_count = len(re.findall(r"^\s+part \w+ :", boundary, flags=re.M))
+    assert part_count == 9
 
 
 def test_unsubstantiated_system1_physical_interface_view_is_withheld() -> None:
