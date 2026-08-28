@@ -1,0 +1,96 @@
+# Bill-of-Features: AEBS visualization test article
+#
+# NOT a product Bill-of-Features. This file records the planned execution
+# configuration of the INC-AEBS-010 System 2 test article. The product-level
+# feature selections are inherited unchanged from the accepted
+# mw-autoware-aaos-sdv-reference.yaml BoF; no feature selection is added or
+# modified, and the visualization is not a product feature.
+
+name: AEBSAutowareAAOSSDVVisualizationTestArticle
+description: >
+  Instrumented specialization of the accepted MWAutowareAAOSSDVReference
+  member for the INC-AEBS-010 AEBS visualization chain. The member's
+  platform stack and capability selections are inherited unchanged; this
+  configuration adds only System 2 visualization instrumentation. It proves
+  no runtime interoperability, preflight outcome, rendering behavior, or
+  requirement satisfaction.
+
+evidence:
+  status: planned
+  artifacts: []
+
+# Product selections are inherited from the accepted reference member BoF
+# (reused by qualified reference in SysML). Reproduced here for execution
+# reproducibility only; the authoritative source remains the reference file.
+inherits_product_configuration:
+  source: model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
+  reused_unchanged: true
+
+system2_instrumentation:
+  visualization_chain:
+    architecture_slice: INC-AEBS-010 Phase 8
+    sysml_owner: >-
+      textual-notation-of-model/packages/features/aebs/
+      aebs_010_visualization_physical_realization.sysml
+    notes:
+      - Read-only ROS 2 source adapter over the 009B bench.
+      - New bounded transport; the INC-MW-010 port is not reused.
+      - sdv_ivi_cf AAOS guest with SDV Gateway ingress, Data Tunnel, and a
+        Java center-display application.
+
+runtime_bindings:
+  # Obligations bound to exact values by the implementation slice.
+  - id: AO-AEBS-010-001
+    name: aosp_manifest_revision
+    pinned_at: implementation_slice
+  - id: AO-AEBS-010-002
+    name: autoware_container_digest
+    source: implementation/aebs-autoware-nominal-vehicle-target-bench/runtime-lock.yaml
+    pinned_at: implementation_slice
+  - id: AO-AEBS-010-003
+    name: autoware_source_revision
+    value: f603d8759c92fb2f423f1544844e13086d79ad09
+    pinned_at: architecture_slice
+  - id: AO-AEBS-010-004
+    name: visualization_transport_port
+    constraint: new_port_not_inc_mw_010_port
+    pinned_at: implementation_slice
+  - id: AO-AEBS-010-005
+    name: stale_timeout_s
+    constraint: bounded_bench_value_planning_target_1.0s
+    pinned_at: implementation_slice
+  - id: AO-AEBS-010-006
+    name: restore_consecutive_frames
+    constraint: bounded_bench_value_planning_target_3
+    pinned_at: implementation_slice
+  - id: AO-AEBS-010-007
+    name: gateway_service_unit_name
+    pinned_at: implementation_slice
+  - id: AO-AEBS-010-008
+    name: display_app_package
+    pinned_at: implementation_slice
+  - id: AO-AEBS-010-009
+    name: bench_scenario
+    value: config/scenario-009b-moving-vehicle-target.yaml
+    pinned_at: architecture_slice
+
+preflight_gates:
+  owner: INC-AEBS-010 Phase 8 slice
+  sysml_owner: >-
+    textual-notation-of-model/packages/features/aebs/
+    aebs_010_visualization_physical_realization.sysml
+  status: planned_not_executed
+  gates:
+    - PF-AEBS-010-001 gateIviBuildBoot
+    - PF-AEBS-010-002 gateFrameworkServices
+    - PF-AEBS-010-003 gateGatewayJavaSample
+    - PF-AEBS-010-004 gateNativeToJavaPayload
+    - PF-AEBS-010-005 gateVmToVmConnectivity
+    - PF-AEBS-010-006 gateNoUpstreamFork
+  kill_gate: realizationKillGate
+
+claim_boundary: >-
+  Planned test-article configuration only. No runtime evidence, preflight
+  result, rendering proof, or requirement satisfaction is claimed by this
+  slice. The visualization remains System 2 instrumentation; no product
+  feature is added to any Bill-of-Features.
