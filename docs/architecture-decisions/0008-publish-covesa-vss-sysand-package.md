@@ -43,10 +43,11 @@ source provenance. Publication is a redistribution of a derived, attributed
 work under MPL-2.0; it does not imply COVESA review, endorsement, or
 acceptance of this SysML v2 rendering.
 
-Publisher namespace: `de4sdv` on `sysand.com`, created as an organization and
-reviewed by Sysand staff before it becomes publishable. Releases are made
-with an account API token held by the maintainer; automated releases should
-later move to trusted publishing from CI.
+Publisher namespace: the `de4sdv` user namespace on `sysand.com` (maintainer
+account `de4sdv`). Releases are made with an account API token held by the
+maintainer; automated releases should later move to trusted publishing from
+CI. If the project later adopts an organization namespace, that is a new,
+separate project on the index — namespaces cannot be migrated.
 
 ## Consequences
 
@@ -56,8 +57,9 @@ later move to trusted publishing from CI.
 - Every published version is permanent. Regenerating the library from a new
   pinned VSS commit therefore requires a new version number, an updated
   changelog entry, and a fresh review before upload.
-- The `de4sdv` namespace must exist and be approved on `sysand.com` before
-  the first upload; organization approval is not instant.
+- The `de4sdv` user namespace exists on `sysand.com` (maintainer account
+  registered as `de4sdv`); the first upload requires only an account API
+  token.
 - DE4SDV candidate extensions remain repository-internal and are excluded
   from the package by design.
 - The package remains a draft redistribution of upstream source material, not
