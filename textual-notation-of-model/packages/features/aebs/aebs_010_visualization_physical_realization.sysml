@@ -52,6 +52,9 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
      * the DE4SDV-originated source of warning request, braking request, and
      * intervention lifecycle state. Composed, never copied.
      */
+    port warningRequestOut;
+    port brakingRequestOut;
+    port lifecycleStateOut;
   }
 
   part def Ros2VisualizationSourceAdapter {
@@ -60,6 +63,13 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
      * versioned visualization frame and enforces per-field provenance.
      * Selected realization of the source-adapter logical role.
      */
+    port rssDistanceIn : NativeAEBMetricInput;
+    port obstacleCloudIn : NativeAEBObstacleInput;
+    port diagnosticsIn : NativeAEBDiagnosticInput;
+    port warningIn : De4sdvWarningInput;
+    port brakingIn : De4sdvBrakingInput;
+    port lifecycleIn : De4sdvLifecycleInput;
+    port frameOut : VisualizationFrameOutput;
   }
 
   part def BoundedLengthDelimitedTransport {
@@ -68,6 +78,8 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
      * historical INC-MW-010 transport port is not reused and carries no
      * inherited evidence.
      */
+    port frameIn : VisualizationFrameInput;
+    port frameOut : VisualizationFrameOutput;
   }
 
   part def SdvIviCfGuestTarget {
@@ -85,6 +97,8 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
      * validates incoming frames and publishes via the SDV Gateway Data
      * Tunnel. Selected realization of the ingress logical role.
      */
+    port frameIn : VisualizationFrameInput;
+    port frameOut : VisualizationFrameOutput;
   }
 
   part def SdvGatewayDataTunnelService {
@@ -93,6 +107,8 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
      * path between ingress service and application. No vendored or modified
      * upstream samples; documented client APIs only.
      */
+    port publishedIn : VisualizationPublicationOutput;
+    port subscriptionOut : VisualizationSubscriptionInput;
   }
 
   part def JavaCenterDisplayApplication {
@@ -102,9 +118,12 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
      * center-display view. Selected realization of the application logical
      * role.
      */
+    port frameIn : VisualizationSubscriptionInput;
+    port renderedOut : RenderedStateOutput;
   }
 
   part def VisualizationEvidenceRecorder {
+    port renderedIn : RenderedStateOutput;
     doc /* Deterministic campaign recorder and independent replay validator host. */
   }
 
