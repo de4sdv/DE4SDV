@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Stage the INC-AEBS-010 AOSP overlay into an AOSP checkout.
 
-Copies vendor/de4sdv/aebs_visualization/** into <aosp>/vendor/de4sdv/
-aebs_visualization/ and the protobuf contract into the overlay's interface/
-dir so the soong proto_library target can compile it. Idempotent: re-running
-refreshes files but never deletes unrelated AOSP content.
+Copies aosp/vendor/de4sdv/aebs_visualization/** into
+<aosp>/system/software_defined_vehicle/samples/de4sdv_aebs_visualization/
+(the location where soong demonstrably instantiates DE4SDV modules in this
+tree, matching the MW-010 modules) and the protobuf contract into the
+overlay's interface/ dir so the genrule can compile it. Also appends the
+PRODUCT_PACKAGES block to device/google/sdv/sdv_ivi_cf/sdv_ivi_cf.mk when
+not already present.
+
+Idempotent: re-running refreshes files but never deletes unrelated AOSP
+content.
 
 Usage:
     python scripts/stage_aosp_overlay.py --aosp /path/to/aosp
@@ -21,6 +27,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OVERLAY_SRC = REPO_ROOT / "aosp" / "vendor" / "de4sdv" / "aebs_visualization"
 PROTO_SRC = REPO_ROOT / "interface" / "aebs_visualization.proto"
+DEST_REL = Path("system/software_defined_vehicle/samples/de4sdv_aebs_visualization")
+DEVICE_MK = Path("device/google/sdv/sdv_ivi_cf/sdv_ivi_cf.mk")
+
+PRODUCT_PACKAGES_BLOCK = """
+# DE4SDV INC-AEBS-010 visualization instrumentation (System 2 test article)
+PRODUCT_PACKAGES += \\
+    de4sdv_aebs_ingress \\
+    De4sdvAebsVisualizationApp
+"""
 
 
 def sha256(path: Path) -> str:
@@ -41,7 +56,7 @@ def main() -> int:
         print(f"error: {aosp} does not look like an AOSP checkout", file=sys.stderr)
         return 1
 
-    destination = aosp / "vendor" / "de4sdv" / "aebs_visualization"
+    destination = aosp / DEST_REL
     copied = 0
     for source in sorted(OVERLAY_SRC.rglob("*")):
         if not source.is_file() or "__pycache__" in source.parts:
@@ -62,7 +77,14 @@ def main() -> int:
         copied += 1
         print("staged interface/aebs_visualization.proto")
 
-    print(f"overlay staged at {destination} ({copied} file(s) updated)")
+    device_mk = aosp / DEVICE_MK
+    if device_mk.exists() and "de4sdv_aebs_ingress" not in device_mk.read_text(encoding="utf-8"):
+        with device_mk.open("a", encoding="utf-8") as handle:
+            handle.write(PRODUCT_PACKAGES_BLOCK)
+        copied += 1
+        print(f"appended PRODUCT_PACKAGES to {DEVICE_MK}")
+
+    print(f"overlay staged at {destination} ({copied} change(s))")
     return 0
 
 
