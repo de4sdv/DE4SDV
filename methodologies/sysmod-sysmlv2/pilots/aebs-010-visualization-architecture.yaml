@@ -1,0 +1,127 @@
+schema: de4sdv.aebs-010-visualization-architecture.v0
+id: INC-AEBS-010
+name: AEBS visualization on AAOS SDV — functional/logical architecture and selected physical realization
+status: draft
+type: FeatureIncrement
+parent_increment: INC-AEBS-010
+owner: DE4SDV maintainers
+
+purpose: >-
+  Phase 6-8 slice of the INC-AEBS-010 chain: technology-neutral functional
+  architecture, logical roles with typed ports and per-field provenance, and
+  the selected source-backed physical/software realization for the reverse
+  AEBS visualization path. SysML owns semantics; this YAML indexes IDs,
+  status, selection rationale, and preflight gates only.
+
+selected_realization:
+  autoware_runtime:
+    element: PinnedAutowareAEBExecution
+    source_revision: f603d8759c92fb2f423f1544844e13086d79ad09
+    package: control/autoware_autonomous_emergency_braking
+    bench: implementation/aebs-autoware-nominal-vehicle-target-bench
+    notes:
+      - RSS distance, filtered obstacle cloud, and aeb_emergency_stop
+        diagnostic are Autoware-originated sources.
+      - The coordinator's risk-assessment object distance is DE4SDV-derived
+        and is never relabeled as native.
+  coordinator_runtime:
+    element: De4sdv009bCoordinatorExecution
+    notes:
+      - Warning request, braking request, and lifecycle state are consumed
+        live from the existing 009B bench coordinator, composed not copied.
+  source_adapter:
+    element: Ros2VisualizationSourceAdapter
+    notes:
+      - Subscriptions only; no publishers to control topics; no command path.
+  transport:
+    element: BoundedLengthDelimitedTransport
+    notes:
+      - New allocated port; the historical INC-MW-010 transport port is not
+        reused and carries no inherited evidence.
+  aaos_target:
+    element: SdvIviCfGuestTarget
+    lunch_target: sdv_ivi_cf-aosp_current-userdebug
+    manifest_revision: pinned_at_execution_time
+    notes:
+      - Headless sdv_core_cf evidence is not transferable to an HMI target.
+  ingress:
+    element: SdvGatewayIngressService
+    notes:
+      - Native libsdvgatewayclient service; validates frames then publishes
+        via the SDV Gateway Data Tunnel.
+  application:
+    element: JavaCenterDisplayApplication
+    notes:
+      - Java privileged/system app using the documented SDV Gateway Java
+        client; center-display rendering; no host browser surface.
+  deferred_sources:
+    - ~/virtual_wall
+    - ~/debug/markers
+    - ~/metrics
+    - predicted-trajectory branch (blocked at pinned revision)
+
+preflight_gates:
+  - id: PF-AEBS-010-001
+    gate: gateIviBuildBoot
+    question: Does the pinned sdv_ivi_cf target build and boot?
+  - id: PF-AEBS-010-002
+    gate: gateFrameworkServices
+    question: Are package manager, system server, display composition, vehicle service, and SDV Gateway observed in the guest?
+  - id: PF-AEBS-010-003
+    gate: gateGatewayJavaSample
+    question: Does the documented Java Gateway sample discover and subscribe over the Data Tunnel in the guest?
+  - id: PF-AEBS-010-004
+    gate: gateNativeToJavaPayload
+    question: Can a native Gateway publisher and Java subscriber exchange a bounded payload?
+  - id: PF-AEBS-010-005
+    gate: gateVmToVmConnectivity
+    question: Can the IVI guest reach the ROS-side frame server over the selected connection?
+  - id: PF-AEBS-010-006
+    gate: gateNoUpstreamFork
+    question: Does the realization use documented APIs only, with any fork/patch escalated to maintainer involvement first?
+
+kill_gate:
+  element: realizationKillGate
+  rule: >-
+    If any mandatory gate cannot be executed at the pinned revision, the
+    chain stops at Phase 8 with a blocked realization decision and a separate
+    enabling slice. No host webpage, screenshot mock, direct host rendering,
+    or unreviewed upstream fork is an acceptable fallback.
+
+claim_boundary: >-
+  Architecture and selection only. No executable implementation, runtime
+  behavior, preflight results, or end-to-end evidence is claimed by this
+  slice. Preflight gates are planned questions, not results.
+
+model_artifacts:
+  - id: MODEL-AEBS-010-FUNCTIONAL-ARCH-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_functional_architecture.sysml
+    status: draft
+  - id: MODEL-AEBS-010-LOGICAL-ARCH-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_logical_architecture.sysml
+    status: draft
+  - id: MODEL-AEBS-010-PHYSICAL-REALIZATION-SYSML
+    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_physical_realization.sysml
+    status: draft
+
+traceability:
+  requirements_source: methodologies/sysmod-sysmlv2/pilots/aebs-010-visualization.yaml
+  requirement_allocations:
+    - REQ-AEBS-S2-002: assemble
+    - REQ-AEBS-S2-003: observe
+    - REQ-AEBS-S2-004: observe
+    - REQ-AEBS-S2-005: observe
+    - REQ-AEBS-S2-006: supervise
+    - REQ-AEBS-S2-007: supervise
+    - REQ-AEBS-S2-008: validate
+    - REQ-AEBS-S2-009: supervise
+    - REQ-AEBS-S2-010: render
+    - REQ-AEBS-S2-011: record
+
+next_increment:
+  id: INC-AEBS-010-configuration
+  name: AEBS visualization configured test article (Phase 9)
+  entry_condition: >-
+    This architecture/realization slice is reviewed and accepted, and the
+    mandatory preflight gates are executed and recorded by the configuration
+    slice.
