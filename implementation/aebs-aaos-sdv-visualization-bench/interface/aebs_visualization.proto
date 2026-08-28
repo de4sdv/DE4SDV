@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package de4sdv.aebs_visualization.v1;
+
+// DE4SDV INC-AEBS-010 AEBS visualization frame wire contract.
+//
+// Serialization only: the semantic authority for every field, its units, its
+// provenance kind, and its freshness semantics is the SysML model
+// (textual-notation-of-model/packages/features/aebs/
+// aebs_010_visualization_functional_architecture.sysml, item def
+// AEBSVisualizationFrame and enum defs VisualizationSourceKind /
+// VisualizationHealthKind). This file adds no semantics and must not gain
+// fields that are not modeled in SysML first.
+//
+// Wire format: length-delimited (4-byte little-endian prefix) on a NEW
+// bounded transport port; the INC-MW-010 port is not reused.
+
+enum SourceKind {
+  SOURCE_KIND_UNSPECIFIED = 0;
+  SOURCE_KIND_NATIVE_AUTOWARE_AEB = 1;      // nativeAutowareAEB
+  SOURCE_KIND_DE4SDV_AEBS_COORDINATOR = 2;  // de4sdvAebsCoordinator
+  SOURCE_KIND_DISPLAY_DERIVED = 3;          // displayDerived
+}
+
+message FieldValue {
+  SourceKind source_kind = 1;       // mandatory per-field provenance
+  int64 source_timestamp_ns = 2;    // positive; source-side stamp
+  string units = 3;                 // e.g. "m", "rad", "boolean", "enum"
+  string coordinate_frame = 4;      // e.g. "base_link", "map", "none"
+  oneof value {
+    double numeric_value = 5;       // rss/target fields
+    bool bool_value = 6;            // warning/braking/intervention fields
+    string enum_value = 7;          // lifecycle state
+  }
+}
+
+message VisualizationFrame {
+  // Schema identity. A major bump breaks wire compatibility.
+  uint32 schema_major = 1;          // fixed 1
+  uint32 schema_minor = 2;          // fixed 0
+  uint64 sequence = 3;              // monotonically increasing per source
+  int64 frame_timestamp_ns = 4;     // source-side frame stamp
+  int64 bridge_receipt_timestamp_ns = 5; // adapter-side receipt stamp
+  string source_identity = 6;       // producer identity string
+
+  // Native Autoware AEB fields (SOURCE_KIND_NATIVE_AUTOWARE_AEB).
+  FieldValue rss_distance = 7;      // ~/debug/rss_distance [m]
+  FieldValue native_intervention = 8; // exact aeb_emergency_stop tuple
+
+  // Display-derived projection of the native filtered obstacle cloud.
+  FieldValue target_range = 9;      // [m]
+  FieldValue target_bearing = 10;   // [rad]
+
+  // DE4SDV AEBS coordinator fields (SOURCE_KIND_DE4SDV_AEBS_COORDINATOR).
+  FieldValue de4sdv_warning_request = 11;
+  FieldValue de4sdv_braking_request = 12;
+  FieldValue de4sdv_lifecycle_state = 13; // armed|braking_latched|released_verified_stop
+}
+
+// No command, acknowledgement, or request field exists in this schema by
+// design: the reverse visualization path is read-only end to end
+// (REQ-AEBS-S2-005).

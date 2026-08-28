@@ -1,0 +1,13 @@
+service de4sdv_aebs_ingress /vendor/bin/de4sdv_aebs_ingress
+    class late_start
+    user system
+    group inet
+    seclabel u:r:de4sdv_aebs_ingress:s0
+    oneshot
+    disabled
+
+on property:de4sdv.aebs.frame_server.host=*
+    setprop de4sdv.aebs.ingress.start 1
+
+on property:de4sdv.aebs.ingress.start=1
+    start de4sdv_aebs_ingress

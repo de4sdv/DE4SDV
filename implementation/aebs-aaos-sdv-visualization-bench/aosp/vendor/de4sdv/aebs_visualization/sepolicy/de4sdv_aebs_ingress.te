@@ -1,0 +1,18 @@
+# DE4SDV AEBS visualization ingress SELinux domain.
+#
+# The ingress is an egress-only client: it opens ONE outbound TCP connection
+# to the ROS-side frame server and never accepts inbound connections. It
+# talks to the SDV Gateway through the standard sdv_gateway_client domain
+# macro; the TCP allow rules below are scoped to the frame-server port only.
+
+type de4sdv_aebs_ingress, domain;
+type de4sdv_aebs_ingress_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(de4sdv_aebs_ingress)
+
+# Gateway client access (same macro used by documented Gateway samples).
+sdv_gateway_client_domain(de4sdv_aebs_ingress)
+
+# Outbound TCP to the ROS-side frame server only.
+allow de4sdv_aebs_ingress self:tcp_socket { create getopt setopt connect read write shutdown getattr };
+allow de4sdv_aebs_ingress port:tcp_socket name_connect;

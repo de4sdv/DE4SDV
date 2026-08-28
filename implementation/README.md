@@ -14,3 +14,7 @@ configuration or model validation as runtime proof.
   — INC-AEBS-009C replay-validated, explicitly partial stationary-target
   native-intervention-to-MRM/gate chain. Negative, override, degraded, and
   pedestrian/bicycle matrices remain later increments.
+- [`aebs-aaos-sdv-visualization-bench`](aebs-aaos-sdv-visualization-bench/README.md)
+  — INC-AEBS-010 read-only AEBS visualization bridge, AAOS SDV ingress, and
+  center-display app. Implemented and locally tested; runtime evidence
+  pending the Phase 10 campaign.
