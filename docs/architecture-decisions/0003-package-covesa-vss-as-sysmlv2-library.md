@@ -4,6 +4,9 @@
 
 Accepted
 
+> Note (2026-08-28): publication of this package on the Sysand Index is now
+> proposed separately in [ADR 0008](0008-publish-covesa-vss-sysand-package.md).
+
 ## Context
 
 DE4SDV needs a reviewable way to reference vehicle signal definitions in

@@ -65,6 +65,18 @@ sysand sources
 sysand build --update-meta
 ```
 
+The project is prepared for publication on the Sysand Index as
+`de4sdv/covesa-vss-sysmlv2` (see
+[ADR 0008](../../../docs/architecture-decisions/0008-publish-covesa-vss-sysand-package.md)):
+
+```bash
+sysand build --update-meta
+sysand publish --index https://sysand.com
+```
+
+Each published version is permanent on the index; regenerating from a new
+pinned VSS commit requires a new version number and changelog entry.
+
 `output/` and `.sysand/` are local build/dependency artifacts and should not
 be committed.
 
