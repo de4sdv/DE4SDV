@@ -14,7 +14,7 @@ Signal Specification `spec/` tree.
 
 ## DE4SDV candidate extensions
 
-[`DE4SDV_VSS_Extensions.sysml`](DE4SDV_VSS_Extensions.sysml) contains
+[`DE4SDV_VSS_Extensions.sysml`](https://github.com/de4sdv/DE4SDV/blob/main/textual-notation-of-model/libraries/covesa-vss-sysmlv2/DE4SDV_VSS_Extensions.sysml) contains
 DE4SDV candidate signal definitions for AEBS semantics that were needed by the
 functional behavior slice but were not present in the generated COVESA VSS
 snapshot.
@@ -90,9 +90,9 @@ sysand sources
 sysand build --update-meta
 ```
 
-The project is prepared for publication on the Sysand Index as
+The project is published on the Sysand Index as
 `de4sdv/covesa-vss-sysmlv2` (see
-[ADR 0008](../../../docs/architecture-decisions/0008-publish-covesa-vss-sysand-package.md)):
+[ADR 0008](https://github.com/de4sdv/DE4SDV/blob/main/docs/architecture-decisions/0008-publish-covesa-vss-sysand-package.md)):
 
 ```bash
 sysand build --update-meta
