@@ -47,6 +47,7 @@ PHASE10_PILOT = (
     / "pilots"
     / "mw-v-and-v-evidence.yaml"
 )
+BASELINE_REGISTER = REPO_ROOT / "configuration-management" / "baseline-register.md"
 CLOUD_BASELINE = (
     REPO_ROOT
     / "implementation"
@@ -75,6 +76,7 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
     def setUpClass(cls):
         cls.model = PHASE10_MODEL.read_text()
         cls.pilot = yaml.safe_load(PHASE10_PILOT.read_text())
+        cls.baseline_register = BASELINE_REGISTER.read_text()
         cls.cloud_baseline = yaml.safe_load(CLOUD_BASELINE.read_text())
         cls.cloud_evidence = yaml.safe_load(PHASE10_CLOUD_EVIDENCE.read_text())
 
@@ -83,7 +85,7 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
         self.assertTrue(PHASE10_PILOT.is_file())
         self.assertEqual(self.pilot["id"], "INC-MW-010")
         self.assertEqual(self.pilot["parent_increment"], "INC-MW-009")
-        self.assertEqual(self.pilot["status"], "draft")
+        self.assertEqual(self.pilot["status"], "baselined_bounded")
         self.assertTrue(VSIDL_CATALOG_BUILD.is_file())
         self.assertTrue(PHASE10_CLOUD_EVIDENCE.is_file())
         self.assertIn("rust_protobuf", VSIDL_CATALOG_BUILD.read_text())
@@ -91,6 +93,106 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
             self.pilot["model_artifacts"]["sysml"],
             "textual-notation-of-model/packages/features/middleware/"
             "mw_verification_evidence.sysml",
+        )
+
+    def test_phase12_bounded_baseline_is_explicit_and_controlled(self):
+        baseline = self.pilot["phase12_baseline"]
+        self.assertEqual(
+            set(baseline),
+            {
+                "id",
+                "sysml_element",
+                "status",
+                "recorded_on",
+                "evidence",
+                "deferred_items",
+                "successor_decision",
+            },
+        )
+        self.assertEqual(baseline["id"], "BL-MW-010-P12")
+        self.assertEqual(baseline["sysml_element"], "boundedBaselineDecision010")
+        self.assertEqual(baseline["status"], "accepted_bounded")
+        self.assertEqual(str(baseline["recorded_on"]), "2026-08-27")
+        self.assertEqual(
+            {item["id"] for item in baseline["evidence"]},
+            {"E-MW-011", "E-MW-012", "E-MW-013", "E-MW-014"},
+        )
+        self.assertTrue(
+            all(set(item) == {"id", "artifact", "status"} for item in baseline["evidence"])
+        )
+        for evidence in baseline["evidence"]:
+            with self.subTest(evidence=evidence["id"]):
+                artifact = REPO_ROOT / evidence["artifact"]
+                self.assertTrue(artifact.is_file(), f"missing {artifact}")
+                self.assertIn(evidence["artifact"], self.model)
+        self.assertEqual(
+            baseline["deferred_items"],
+            [
+                {"id": "AC-MW-010-02", "status": "deferred_not_proven"},
+                {"id": "AC-MW-010-05", "status": "deferred_not_proven"},
+                {"gate": 8, "status": "not_claimed"},
+            ],
+        )
+        self.assertEqual(
+            baseline["successor_decision"], "successorIncrementDecision010"
+        )
+
+        self.assertIn(
+            "part boundedBaselineDecision010 : IncrementLifecycleDecision", self.model
+        )
+        self.assertIn(
+            "part successorIncrementDecision010 : IncrementLifecycleDecision", self.model
+        )
+        self.assertIn("runtimeAdapterPathEvidence012", self.model)
+        self.assertIn("runtimeAutowareConsumerEvidence013", self.model)
+        self.assertIn("runtimeHealthDispositionEvidence014", self.model)
+        self.assertIn("boundedClaimToBaselineDecision010", self.model)
+        self.assertIn("deferredLifecycleCounterclaimToBaselineDecision010", self.model)
+        self.assertNotIn("dependency claimSupportedByLifecycleArgument", self.model)
+        self.assertNotIn("dependency claimSupportedByUpdateArgument", self.model)
+
+        self.assertIn("Status: controlled", self.baseline_register)
+        self.assertNotIn("BL-001", self.baseline_register)
+        self.assertRegex(
+            self.baseline_register,
+            r"\| BL-MW-010-P12 \| System 1 \+ System 2 \|[^\n]+"
+            r"\| INC-MW-010@Phase12 \| 2026-08-27 \| "
+            r"boundedBaselineDecision010 \| E-MW-011; E-MW-012; E-MW-013; E-MW-014 \|",
+        )
+
+    def test_phase12_status_index_matches_bounded_verdicts(self):
+        self.assertEqual(
+            self.pilot["system_boundary"]["system_1_member_product"]["runtime_status"],
+            "observed_bounded_two_vm_campaign",
+        )
+        case_statuses = {
+            case["id"]: case["status"] for case in self.pilot["verification_cases"]
+        }
+        self.assertEqual(
+            case_statuses,
+            {
+                "VC-MW-010-01": "pass_bounded_verification",
+                "VC-MW-010-02": "deferred_not_proven",
+                "VC-MW-010-03": "pass_bounded_verification",
+                "VC-MW-010-04": "pass_bounded_verification",
+                "VC-MW-010-05": "deferred_not_proven",
+                "VC-MW-010-06": "pass_bounded_verification",
+            },
+        )
+        criterion_statuses = {
+            criterion["id"]: criterion["status"]
+            for criterion in self.pilot["acceptance_criteria"]
+        }
+        self.assertEqual(criterion_statuses["AC-MW-010-02"], "deferred_not_proven")
+        self.assertEqual(criterion_statuses["AC-MW-010-05"], "deferred_not_proven")
+        self.assertNotIn("not_yet_realized", PHASE10_PILOT.read_text())
+        self.assertNotIn("planned_target_runtime_case", PHASE10_PILOT.read_text())
+        self.assertEqual(
+            self.pilot["claim_boundary"],
+            {
+                "sysml_element": "boundedBaselineDecision010",
+                "status": "accepted_bounded",
+            },
         )
 
     def test_all_requested_verification_and_validation_scenarios_exist(self):
@@ -145,7 +247,7 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
                 self.assertIn(criterion["sysml_element"], self.model)
 
         statuses = {criterion["status"] for criterion in criteria}
-        self.assertIn("blocked_target_runtime", statuses)
+        self.assertIn("deferred_not_proven", statuses)
         self.assertIn("pass_bounded_verification", statuses)
         self.assertNotIn("accepted", statuses)
         self.assertNotIn("pass_target_runtime", statuses)
