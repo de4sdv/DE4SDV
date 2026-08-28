@@ -61,6 +61,30 @@ sysand include COVESA_VSS.sysml
 
 ## Sysand usage
 
+Install the library into a Sysand project:
+
+```bash
+sysand add de4sdv/covesa-vss-sysmlv2
+```
+
+Point your SysML v2 tool at every file listed by `sysand sources` and import
+the library package from your model:
+
+```sysml
+package MyModel {
+    private import COVESA_VSS::*;
+
+    attribute mySpeed : Vehicle_Speed;
+}
+```
+
+VSS semantics for each signal are available through the metadata annotations
+(`VssSignalMetadata`, `VssQuantityMetadata`, `VssRangeMetadata`,
+`VssAllowedValuesMetadata`); for example, the original VSS path string of a
+signal definition is carried in its `VssSignalMetadata` `path` attribute.
+
+### Maintainer commands
+
 ```bash
 sysand sources
 sysand build --update-meta
