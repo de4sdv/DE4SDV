@@ -240,7 +240,8 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     ).read_text(encoding="utf-8")
     physical_structure = _block(physical, "view mwPhysicalStructureView")
     assert "expose MiddlewarePhysicalSoftwareBoundary;" in physical_structure
-    assert "attribute maxCompartmentEntries = 8;" in physical_structure
+    # -1 = show all compartment rows (Syside: -1 all, 0 hide, N first N)
+    assert "attribute maxCompartmentEntries = -1;" in physical_structure
     assert "expose MiddlewarePhysicalSoftwareBoundary::*;" not in physical_structure
     assert "expose DE4SDV_MWPhysicalSoftwareRealization::*;" not in physical_structure
     assert "view mwPhysicalInterfaceView" not in physical

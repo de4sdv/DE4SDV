@@ -854,7 +854,7 @@ package DE4SDV_MWPhysicalSoftwareRealization {
     expose MiddlewarePhysicalSoftwareBoundary;
     attribute depth = 1;
     attribute showAnnotationRows = false;
-    attribute maxCompartmentEntries = 0;
+    attribute maxCompartmentEntries = -1;
     render asTreeDiagram;
   }
 
