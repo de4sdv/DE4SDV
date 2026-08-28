@@ -86,16 +86,19 @@ package DE4SDV_MWFunctionalArchitecture {
         }
 
         action def TranslateVehicleSignal {
+          doc /* Conceptual responsibility for translating ADAS application vehicle-signal access through the selected middleware integration boundary (REQ-MW-001). */
           in signalRequest : VehicleSignalAccessRequest;
           out signalResponse : VehicleSignalAccessResponse;
         }
 
         action def ProxyDiagnosticAccess {
+          doc /* Conceptual responsibility for proxying diagnostic requests and responses needed to determine the health of the middleware integration boundary (REQ-MW-002). */
           in diagnosticRequest : DiagnosticAccessRequest;
           out diagnosticResponse : DiagnosticAccessResponse;
         }
 
         action def CoordinateLifecycle {
+          doc /* Conceptual responsibility for coordinating middleware integration lifecycle state (startup, readiness, degradation) with the ADAS application (REQ-MW-003). */
           in lifecycleRequest : LifecycleCoordinationRequest;
           out lifecycleStatus : LifecycleCoordinationStatus;
 
@@ -115,6 +118,7 @@ package DE4SDV_MWFunctionalArchitecture {
         }
 
         action def ForwardServiceHealth {
+          doc /* Conceptual responsibility for monitoring middleware integration boundary health and providing an observable indication when it degrades (REQ-MW-004). */
           in healthStatus : HealthStatus;
           out forwardedHealth : HealthForwardingStatus;
 
@@ -130,11 +134,13 @@ package DE4SDV_MWFunctionalArchitecture {
         }
 
         action def CoordinateIntegrationUpdate {
+          doc /* Conceptual responsibility for coordinating middleware integration updates with the ADAS application lifecycle so an update does not silently interrupt an operational use case (REQ-MW-005). */
           in updateNotification : UpdateNotification;
           out updateStatus : UpdateCoordinationStatus;
         }
 
         action def DiscoverAndBindService {
+          doc /* Conceptual responsibility for discovering and binding the middleware services required by the selected ADAS application integration configuration (REQ-MW-007). */
           in bindingRequest : ServiceBindingRequest;
           out bindingStatus : ServiceBindingStatus;
 
@@ -155,6 +161,7 @@ package DE4SDV_MWFunctionalArchitecture {
         }
 
         action def ProtectEmergencyInterventionPath {
+          doc /* Conceptual responsibility for protecting the emergency intervention path: contain non-safety middleware failure so it cannot cause uncontrolled emergency intervention behavior (REQ-MW-006). */
           in middlewareHealth : HealthForwardingStatus;
           in lifecycleStatus : LifecycleCoordinationStatus;
           out safetyPathStatus : SafetyPathProtectionStatus;
