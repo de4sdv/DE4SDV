@@ -38,26 +38,6 @@ Domain concepts and relationships.
   assets.
 - ADRs record System 3 decisions that shape System 2 capabilities.
 
-## Candidate ontology elements
-
-Future SysML v2 or structured ontology artifacts may introduce elements such as:
-
-- `SDVProductLine`
-- `ConfiguredSDVVariant`
-- `DE4SDVLifeCycleEngineeringSystem`
-- `DE4SDVInnovationEcosystem`
-- `FeatureConfiguration`
-- `ProductModel`
-- `DigitalThreadLink`
-- `DigitalTwinCapability`
-- `EvidenceBaseline`
-- `ConfigurationBaseline`
-- `CredibilityAssessment`
-- `ConsistencyManagementConcern`
-- `ArchitectureDecisionRecord`
-
-These names are draft conceptual terms, not yet a normative model vocabulary.
-
 ## Minimal increment ontology kernel
 
 [`de4sdv-basic-ontology.yaml`](de4sdv-basic-ontology.yaml) defines the current
@@ -68,4 +48,43 @@ minimal vocabulary for SYSMOD/SysML v2 increments. It is intentionally lightweig
 - terms exist to keep feature increments, SAF viewpoints, requirements,
   architecture elements, evidence, and baselines semantically consistent.
 
-Use it as a reviewable semantic kernel before creating richer ontology tooling.
+### Kernel sync
+
+The YAML is not a free-floating word list: every class carries a `kernel`
+mapping stating where its semantics actually live:
+
+- `file` + `declaration` — a SysML declaration in the method kernel
+  (for example `part def EngineeringIncrement` in
+  `de4sdv_method_context.sysml`);
+- `native` — a native SysML v2 language construct (`variation`, `variant`,
+  `viewpoint def`, `verification def`, and so on) rather than a kernel
+  declaration;
+- `external` — an artifact outside the SysML model (the feature catalogue and
+  Bill-of-Features records, the ODE4HERA requirements-management library, or
+  evidence registers).
+
+Sync point 5 of `scripts/check_model_sync.py` verifies every
+`file` + `declaration` mapping against the actual SysML text, so the ontology
+cannot silently drift from the model. The gate runs as part of
+`python scripts/check_repo.py`, and its failure modes are covered by
+`tests/test_ontology_kernel_sync.py`.
+
+### Terminology alignment
+
+Status vocabulary is not redefined here: requirement and verification status
+come from the ODE4HERA requirements-management library (`ReqStatus`,
+`VVStatus`) adopted via ADR 0009 through the method-context adapter. Needs are
+modeled as `StakeholderNeedCandidate` specializations and design-input
+requirements as `RequirementCandidate` specializations; the ontology's `Need`
+and `Requirement` classes map to those kernel declarations. Product-line
+classes map to `DE4SDV_ProductLine` (`CommonProductLineCapability`,
+`ProductLineFeatureCandidate`), which enforces the ISO/IEC 26580-aligned rule
+that a characteristic is only a feature once it distinguishes member products.
+
+## Candidate ontology elements
+
+Superseded: the concepts previously listed here as draft candidates
+(`SDVProductLine`, `ConfiguredSDVVariant`, `FeatureConfiguration`,
+`EvidenceBaseline`, and others) now exist as concrete kernel declarations or
+kernel mappings in `de4sdv-basic-ontology.yaml`. See the `kernel_sync`
+section of that file for the current class-to-declaration mapping.
