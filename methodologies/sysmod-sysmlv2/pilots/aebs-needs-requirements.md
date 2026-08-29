@@ -158,6 +158,8 @@ Methods, candidate criteria, and evidence status are maintained in the separate 
 
 Records whose requirement relates to an implemented or executed INC-AEBS-009 evidence contract carry a `bounded_evidence` field pointing at the owning increment status and evidence artifact. These links record System 2 evidence-contract work only; they do not verify or satisfy any System 1 product requirement, and pending increments (INC-AEBS-009E through INC-AEBS-009I) remain explicitly executed-pending.
 
+Per-requirement verification methods (`verificationMethod`, NRM A8) and verification status (`verificationStatus` via the ODE4HERA `VVStatus` enum, NRM A13/A14) are native ODE4HERA attributes on each requirement usage in the SysML slice, per the ADR 0009 amendment; this file no longer duplicates them.
+
 | ID | Validates | Method | Question |
 |---|---|---|---|
 | `VAL-AEBS-001` | `N-AEBS-001` | stakeholder scenario review | Do the draft requirements preserve the stakeholder-visible vehicle-target collision-risk mitigation intent without exceeding the operational slice? |

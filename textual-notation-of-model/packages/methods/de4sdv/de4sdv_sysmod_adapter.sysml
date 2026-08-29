@@ -21,6 +21,7 @@ package DE4SDV_SYSMODAdapter {
   private import SYSMOD::ConstrainedOccurrence;
   private import RequirementsManagement::NeedsRequirementsAttributes;
   public import RequirementsManagement::ReqStatus;
+  public import RequirementsManagement::VVStatus;
 
   part def SYSMODStakeholderBase :> ExtendedStakeholder {
     doc /* Selected upstream stakeholder-metadata seam. Existing DE4SDV roles are not migrated by this definition. */

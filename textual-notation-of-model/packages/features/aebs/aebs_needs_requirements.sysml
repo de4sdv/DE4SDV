@@ -106,6 +106,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::ReadyForReview;
             attribute :>> source = "Derived from N-AEBS-001";
             attribute :>> rationale = "Detection is the enabling behavior for every downstream AEBS intervention.";
+            attribute :>> verificationMethod = "analyze";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqProvideCollisionWarning : FunctionalRequirementCandidate {
             doc /* REQ-AEBS-002 candidate. */
@@ -114,6 +116,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::ReadyForReview;
             attribute :>> source = "Derived from N-AEBS-001";
             attribute :>> rationale = "Driver warning precedes autonomous braking and is required before intervention.";
+            attribute :>> verificationMethod = "demo";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqCommandEmergencyBraking : FunctionalRequirementCandidate {
             doc /* REQ-AEBS-003 candidate. */
@@ -122,6 +126,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::ReadyForReview;
             attribute :>> source = "Derived from N-AEBS-001";
             attribute :>> rationale = "Collision-risk reduction ultimately requires braking intervention when warning is insufficient.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqAllowDriverOverride : FunctionalRequirementCandidate {
             doc /* REQ-AEBS-004 draft; controlled override-response mapping remains a blocker. */
@@ -130,6 +136,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-001";
             attribute :>> rationale = "Driver authority over intervention is expected behavior; the controlled override-response mapping is unresolved.";
+            attribute :>> verificationMethod = "demo";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqDetectAEBSFailureCondition : SafetyConstraintRequirementCandidate {
             doc /* REQ-AEBS-005 failure-detection draft derived from N-AEBS-008; carries the bounded-behavior envelope of N-AEBS-008 pending safe-operation criteria, see GAP-AEBS-REQ-007. */
@@ -138,6 +146,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-008; carries the bounded-behavior envelope pending safe-operation criteria (GAP-AEBS-REQ-007)";
             attribute :>> rationale = "Degradation management presupposes failure detection.";
+            attribute :>> verificationMethod = "inspect";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqResistFalseReaction : SafetyConstraintRequirementCandidate {
             doc /* REQ-AEBS-008 warning-silence draft derived from N-AEBS-014; criteria, window, and tolerances remain gaps. */
@@ -146,6 +156,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-014";
             attribute :>> rationale = "Prevents nuisance warnings when controlled non-activation criteria rule out imminent risk.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqHandleDegradedUnavailableInputs : SafetyConstraintRequirementCandidate {
             doc /* REQ-AEBS-009 state-transition draft; state mapping, ownership, and timing remain gaps. */
@@ -154,6 +166,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-008";
             attribute :>> rationale = "Unhealthy inputs must drive a controlled degraded state rather than silent misbehavior.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqPedestrianTargetResponse : FunctionalRequirementCandidate {
             doc /* REQ-AEBS-010 pedestrian detection draft; stable usage name retained for imports. */
@@ -162,6 +176,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-006";
             attribute :>> rationale = "Pedestrian targets require distinct detection behavior from vehicle targets; criteria open per GAP-AEBS-REQ-015.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqBicycleTargetResponse : FunctionalRequirementCandidate {
             doc /* REQ-AEBS-011 bicycle detection draft; stable usage name retained for imports. */
@@ -170,6 +186,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-007";
             attribute :>> rationale = "Bicycle targets require distinct detection behavior from vehicle targets; criteria open per GAP-AEBS-REQ-016.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqResistFalseBrakingCommand : SafetyConstraintRequirementCandidate {
             doc /* REQ-AEBS-012 braking-silence draft derived from N-AEBS-014. */
@@ -178,6 +196,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-014";
             attribute :>> rationale = "Prevents nuisance braking when controlled non-activation criteria rule out imminent risk.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqIndicateDegradedUnavailableStatus : SafetyConstraintRequirementCandidate {
             doc /* REQ-AEBS-013 status-indication draft. */
@@ -186,6 +206,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-008";
             attribute :>> rationale = "Availability must be apparent to the driver when AEBS inputs or functions are not healthy.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqPedestrianTargetControlledResponse : FunctionalRequirementCandidate {
             doc /* REQ-AEBS-014 pedestrian response draft; specializes the braking-command response family of REQ-AEBS-003 for classified pedestrian-target risk. */
@@ -194,6 +216,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-006";
             attribute :>> rationale = "Classified pedestrian-target risk needs a defined response; specializes the REQ-AEBS-003 response family.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqBicycleTargetControlledResponse : FunctionalRequirementCandidate {
             doc /* REQ-AEBS-015 bicycle response draft; specializes the braking-command response family of REQ-AEBS-003 for classified bicycle-target risk. */
@@ -202,6 +226,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::InDevelopment;
             attribute :>> source = "Derived from N-AEBS-007";
             attribute :>> rationale = "Classified bicycle-target risk needs a defined response; specializes the REQ-AEBS-003 response family.";
+            attribute :>> verificationMethod = "test";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
         }
 
@@ -249,6 +275,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::ReadyForReview;
             attribute :>> source = "Derived from N-AEBS-003";
             attribute :>> rationale = "Makes the classification need enforceable on the increment baseline.";
+            attribute :>> verificationMethod = "inspect";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqTraceRequirementVVAndGaps : TraceabilityConstraintRequirementCandidate {
             doc /* REQ-AEBS-007 System 2 candidate. */
@@ -257,6 +285,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::ReadyForReview;
             attribute :>> source = "Derived from N-AEBS-004 and N-AEBS-005";
             attribute :>> rationale = "Traceability is the mechanism that keeps regulatory assumptions and V&V planning visible.";
+            attribute :>> verificationMethod = "inspect";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
           requirement reqTraceEvidenceContractsToControlledBoundary : EvidenceContractTraceabilityRequirementCandidate {
             doc /* REQ-AEBS-S2-001 System 2 evidence-contract candidate derived only from N-AEBS-002. */
@@ -265,6 +295,8 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> status = ReqStatus::ReadyForReview;
             attribute :>> source = "Derived from N-AEBS-002";
             attribute :>> rationale = "Evidence contracts are only reviewable against their controlled operational boundary.";
+            attribute :>> verificationMethod = "inspect";
+            attribute :>> verificationStatus = VVStatus::NotStarted;
           }
         }
 

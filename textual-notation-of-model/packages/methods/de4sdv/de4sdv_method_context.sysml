@@ -19,6 +19,11 @@ package DE4SDV_MethodContext {
    * ReqStatus::...` (ADR 0009) without importing the adapter directly. */
   public import ReqStatus;
 
+  /* Re-exported so feature packages can assign `attribute :>>
+   * verificationStatus = VVStatus::...` (ADR 0009 amendment) without
+   * importing the adapter directly. */
+  public import VVStatus;
+
   part def EngineeringIncrement {
     doc /* Bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
   }

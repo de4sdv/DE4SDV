@@ -4,6 +4,18 @@
 
 Proposed
 
+**Amendment (2026-08):** the adopted attribute set is extended with the
+library's verification-planning attributes — `verificationMethod` (NRM A8)
+and `verificationStatus` via the `VVStatus` enum (NRM A13+A14) — so each
+requirement usage carries its planned verification method and status natively
+in the model. The pilot YAML files no longer duplicate `method` or
+`evidence_status` columns; they retain criterion gaps and evidence artifact
+locations. `verificationMethod` is typed upstream as `String[0..1]`; DE4SDV
+populates it with the standard `VerificationMethodKind` vocabulary
+(`inspect`, `demo`, `test`, `analyze`) and enforces that vocabulary by test
+until an upstream enum-typed attribute exists. Adoption began with the AEBS
+needs/requirements slice; other slices follow the same pattern on touch.
+
 ## Context
 
 The DE4SDV needs/requirements corpus (AEBS INC-AEBS-003, AEBS-010, middleware
