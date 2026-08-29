@@ -14,6 +14,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <unistd.h>
 
 namespace {
 
@@ -90,5 +91,18 @@ int main() {
     }
   }
   std::printf("PF004 published 5 frames\n");
+  if (loop) {
+    for (int burst = 6;; ++burst) {
+      usleep(500000);
+      payload[0] = static_cast<uint8_t>(burst);
+      if (ASDVGateway_Client_publishMessages(client, payload, sizeof(payload),
+                                             metadata.publicationId, &status) !=
+          ASDVGateway_StatusCode_OK) {
+        std::printf("PF004 publishMessages failed: %d\n",
+                    static_cast<int>(status.statusCode));
+        return 1;
+      }
+    }
+  }
   return 0;
 }

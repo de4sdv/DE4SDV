@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package de4sdv.aebs_visualization.v1;
 
+option java_package = "de4sdv.aebs.visualization";
+option java_multiple_files = true;
+
 option optimize_for = LITE_RUNTIME;
 
 // DE4SDV INC-AEBS-010 AEBS visualization frame wire contract.

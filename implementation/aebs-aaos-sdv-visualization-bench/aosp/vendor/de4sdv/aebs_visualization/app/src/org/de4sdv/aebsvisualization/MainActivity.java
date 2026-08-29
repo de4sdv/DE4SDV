@@ -3,6 +3,7 @@ package org.de4sdv.aebsvisualization;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.widget.TextView;
@@ -28,6 +29,7 @@ public class MainActivity extends Activity {
     private HandlerThread tickerThread;
     private Handler tickerHandler;
     private long lastFrameElapsedMs;
+    private GatewayFrameSubscriber gatewaySubscriber;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +44,51 @@ public class MainActivity extends Activity {
         tickerHandler = new Handler(tickerThread.getLooper());
         tickerHandler.postDelayed(this::tick, 200);
         render();
+
+        // Live Data Tunnel subscription (PF-004 proven path). Read-only.
+        gatewaySubscriber = new GatewayFrameSubscriber();
+        gatewaySubscriber.setListeners(this::onGatewayFrame, new GatewayFrameSubscriber.StateListener() {
+            @Override
+            public void onUnavailable() {
+                runOnUiThread(() -> onDisposition(reducer.onUnavailable(
+                        android.os.SystemClock.elapsedRealtime())));
+            }
+
+            @Override
+            public void onSubscriptionActive() {
+                Log.i("MainActivity", "Gateway subscription active");
+            }
+        });
+        gatewaySubscriber.start();
     }
+
+    private void onGatewayFrame(de4sdv.aebs.visualization.VisualizationFrame frame,
+                                long receivedElapsedMs) {
+        // Map the wire frame onto the reducer's input. The wire schema uses
+        // FieldValue oneofs with per-field provenance; boolean/enum fields
+        // carry the coordinator decisions and the native intervention flag.
+        // Validation (sequence, freshness, finiteness) mirrors the bridge sink
+        // contract; the exact FQIN/topic pin is recorded in runtime-lock.yaml.
+        final boolean intervention = frame.hasNativeIntervention()
+                && frame.getNativeIntervention().hasBoolValue()
+                && frame.getNativeIntervention().getBoolValue();
+        final boolean warning = frame.hasDe4SdvWarningRequest()
+                && frame.getDe4SdvWarningRequest().hasBoolValue()
+                && frame.getDe4SdvWarningRequest().getBoolValue();
+        final boolean braking = frame.hasDe4SdvBrakingRequest()
+                && frame.getDe4SdvBrakingRequest().hasBoolValue()
+                && frame.getDe4SdvBrakingRequest().getBoolValue();
+        final String lifecycle = frame.hasDe4SdvLifecycleState()
+                && frame.getDe4SdvLifecycleState().hasEnumValue()
+                ? frame.getDe4SdvLifecycleState().getEnumValue()
+                : "armed";
+        Log.i("MainActivity", "onGatewayFrame: frame seq=" + frame.getSequence()
+                + " intervention=" + intervention + " warning=" + warning
+                + " braking=" + braking + " lifecycle=" + lifecycle);
+        runOnUiThread(() -> onFrame(new VisualizationStateReducer.FrameInput(
+                frame.getSequence(), intervention, warning, braking, lifecycle)));
+    }
+
 
     private void tick() {
         final long now = android.os.SystemClock.elapsedRealtime();
@@ -100,6 +146,10 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         tickerHandler.removeCallbacksAndMessages(null);
         tickerThread.quitSafely();
+        if (gatewaySubscriber != null) {
+            gatewaySubscriber.stop();
+            gatewaySubscriber = null;
+        }
         super.onDestroy();
     }
 }

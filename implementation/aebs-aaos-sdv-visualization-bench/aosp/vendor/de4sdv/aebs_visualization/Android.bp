@@ -105,19 +105,36 @@ java_library {
     static_libs: ["androidx.annotation_annotation"],
 }
 
+
+// Java protobuf for the center-display app (aprotoc --java_out).
+java_library {
+    name: "de4sdv_aebs_visualization_proto_java",
+    srcs: ["interface/aebs_visualization.proto"],
+    proto: {
+        type: "lite",
+    },
+    sdk_version: "system_current",
+    owner: "de4sdv",
+}
+
 android_app {
     name: "De4sdvAebsVisualizationApp",
     manifest: "app/AndroidManifest.xml",
-    srcs: [
-        "app/src/**/*.java",
-    ],
-    exclude_srcs: ["app/src/org/de4sdv/aebsvisualization/VisualizationStateReducer.java"],
+    srcs: ["app/src/**/*.java"],
+    vendor: true,
+    uses_libs: ["libsdvgatewayclient-java-sdk"],
     static_libs: [
+        "de4sdv_aebs_visualization_proto_java",
         "de4sdv_aebs_visualization_reducer",
+        "grpc-java-core-android",
+        "grpc-java-okhttp-client-lite",
+        "libprotobuf-java-lite",
+        "guava",
         "androidx.annotation_annotation",
     ],
+    exclude_srcs: ["app/src/org/de4sdv/aebsvisualization/VisualizationStateReducer.java"],
     resource_dirs: ["app/res"],
-    sdk_version: "system_current",
+    sdk_version: "module_current",
     certificate: "platform",
     privileged: true,
     owner: "de4sdv",
