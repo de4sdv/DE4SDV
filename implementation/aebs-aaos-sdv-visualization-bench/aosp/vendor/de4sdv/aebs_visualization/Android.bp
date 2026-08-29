@@ -140,7 +140,10 @@ java_test {
 cc_binary {
     name: "de4sdv_aebs010_pf004_publisher",
     srcs: ["preflight/pf004_publisher.cpp"],
-    shared_libs: ["libsdvgatewayclient"],
+    shared_libs: [
+        "libsdvgatewayclient",
+        "libbinder_ndk",
+    ],
     cflags: ["-Wall", "-Wextra", "-Werror"],
     owner: "de4sdv",
 }

@@ -1,59 +1,65 @@
-# PF-004 blocker: SDV Gateway CA not VINTF-declared (upstream report pending)
+# PF-004 status — CORRECTED diagnosis pending re-run
 
-## Status
+## Status: report withdrawn, root cause misidentified in v1
 
-**PF-002 PASSED · PF-004 blocked upstream · fix prepared as labeled bench patch · upstream report drafted**
+Orkun's review (2026-08-29) identified that the v1 diagnosis was wrong:
 
-## What happened (segment 1, 2026-08-28/29)
+- The probe (`pf004_publisher.cpp` v1) never started the NDK Binder thread
+  pool. The official `libsdvgatewayclient` checks that **first** and returns
+  `FAILED_PRECONDITION` with message *"Binder thread pool is not started. The
+  Binder thread pool must be started before attempting to create a client."*
+- The probe printed only the numeric status and discarded
+  `status.errorMessage`, hiding the real cause.
+- The Certificate-Authority VINTF check is **not** in `Client_new()`; it sits
+  inside `initComms()` and is reached only when secure RPC is enabled. The
+  v1 run never got that far.
 
-1. **Full `sdv_ivi_cf` image built** (`BUILD_RC=0`, ~181k steps, ~4h on vmA).
-2. **PF-002 PASSED** — guest booted (`sys.boot_completed=1`, fingerprint
-   `google/sdv_ivi_cf:17/CP2A.260605.016/eng`), and the DE4SDV AEBS
-   Visualization app is installed and **renders on the IVI display**:
-   - `pf002_app_rendered.png` — first launch with the AAOS user-notice overlay
-   - `pf002b_after_dismiss.png` — app UI showing the fail-closed `unavailable`
-     disposition + provenance footer. This is the correct no-data state of the
-     visualization on real AAOS.
-3. **PF-004 BLOCKED** — the native Data Tunnel publisher probe
-   (`de4sdv_aebs010_pf004_publisher`, committed at `preflight/pf004_publisher.cpp`)
-   fails at `ASDVGateway_Client_new()` with `FAILED_PRECONDITION` (status 9).
+## What remains plausibly true (static analysis only)
 
-## Root cause (source-verified)
+- `sdv_sd_agent` registers the CA with plain `binder::add_service`.
+- No CA VINTF declaration exists in the current middleware/device sources;
+  only a `service_contexts` entry.
+- `AServiceManager_isDeclared()` checks VINTF declaration, not registration.
+- => a **latent** `initComms()` bug for secure-RPC clients is plausible but
+  **unproven**. The v1 claim "all native clients fail because the CA is not
+  declared" is unsupported and must not be filed upstream.
 
-`libsdvgatewayclient` (`SdvGatewayClientImpl.cpp`,
-`waitForCertificateAuthority`) requires
-`google.sdv.ca.ICertificateAuthority/default` to be **VINTF-declared**
-(`AServiceManager_isDeclared`). The CA is served by `sdv_sd_agent`
-(`srcs/ca/service.rs`), which registers via plain `binder::add_service` and
-ships **no VINTF manifest fragment**. No declaration exists anywhere in the
-tree, so every native client init is rejected. The middleware's own Rust
-clients bypass this by calling `waitForService` directly, which is why the
-stack otherwise works.
+## Corrections applied (v2 probe)
 
-## Fix path (decision: upstream-first, per DE4SDV governance)
+1. `ABinderProcess_setThreadPoolMaxThreadCount(1)` +
+   `ABinderProcess_startThreadPool()` before `ASDVGateway_Client_new()`.
+2. `libbinder_ndk` added to the probe's `shared_libs`.
+3. `status.errorMessage` printed for **every** failing call
+   (`client_new`, `initComms`, `createPublication`, `publishMessages`).
 
-- **Upstream report drafted** (`upstream/aebs-010-gateway-ca-vintf-report.md`)
-  with symptom, root cause, minimal probe, and the either/or fix question for
-  the SDV Gateway team.
-- **Labeled bench patch prepared**:
-  `aosp/device-patch/manifest_sdv_ca.xml` — a framework manifest fragment
-  declaring the CA (+ Identity Agent), clearly marked
-  *bench patch, pending upstream confirmation, remove when upstream ships its
-  own declaration*.
-- Application of the patch requires a device-tree change
-  (`DEVICE_FRAMEWORK_MANIFEST_FILE` in the sdv_ivi BoardConfig) plus image
-  rebuild — next VM segment once Orkun approves filing the upstream issue and
-  carrying the labeled patch.
+## Required evidence before any upstream filing
 
-## Evidence retained
+Rerun the v2 probe against the **unpatched stock image**. The CA-declaration
+bug is confirmed **only if** `initComms()` fails with the exact message:
 
-- `preflight/pf002_app_rendered.png`, `preflight/pf002b_after_dismiss.png`
-  (guest screenshots, PF-002)
-- `preflight/pf004_publisher.cpp` (the blocking probe, reusable after fix)
-- Build log excerpts in session history; image at
-  `out/target/product/sdv_ivi_cf/` on the (stopped) vmA persists on disk
+```
+google.sdv.ca.ICertificateAuthority/default not declared
+```
 
-## Budget
+Until then:
 
-Segment 1 consumed ~€14–16 of the €92 cap (dominated by the image build).
-VM stopped immediately after the blocker was confirmed.
+- the proposed manifest patch (`aosp/device-patch/manifest_sdv_ca.xml`) is
+  **unverified** and must not be applied,
+- the Identity Agent declaration in that patch is **unproven**,
+- the Java-client impact claim remains source-inferred, not
+  runtime-confirmed,
+- the upstream report stays withdrawn (file kept in
+  `upstream/aebs-010-gateway-ca-vintf-report.md` as draft with a correction
+  note to be added if the re-run supports it).
+
+## Next segment (budget-guarded)
+
+1. Start vmA, rebuild the probe (`m de4sdv_aebs010_pf004_publisher` —
+   incremental, minutes), boot guest.
+2. Run v2 probe on the **stock** image (no manifest patch applied).
+3. Record the exact `errorMessage` output. Decision follows the message:
+   - "Binder thread pool is not started" would contradict the v2 fix itself
+     (should not happen — pool is started).
+   - CA "not declared" confirms the latent bug → apply the labeled patch,
+     rebuild, re-run, then revisit upstream filing.
+   - Any other message → follow the message; new root cause.
