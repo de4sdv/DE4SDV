@@ -58,7 +58,7 @@ package DE4SDV_MWStakeholderNeeds {
           }
 
           requirement needSafetyPathIsolation : SafetyPathIsolationNeed {
-            doc /* N-MW-004 draft System 1 need; isolation and containment criteria remain open per GAP-MW-013. */
+            doc /* N-MW-004 draft System 1 need; isolation and containment criteria remain open per GAP-MW-029. */
             subject memberProduct : ProductLineMemberProduct;
             stakeholder safetyExpert : SafetyExpert;
             require constraint statement { language "English" /* Safety experts need each SDV product-line member product to ensure that the emergency intervention path is isolated from middleware failures, whether routed through a safety-certified middleware partition or via a direct vehicle-command path. */ }
@@ -122,7 +122,7 @@ package DE4SDV_MWStakeholderNeeds {
 
         part safetyPathIsolationCriteriaGap : DeferredProductLineScope {
           doc /*
-           * GAP-MW-013: The isolation criteria and failure-containment
+           * GAP-MW-029: The isolation criteria and failure-containment
            * expectations for the emergency intervention path remain
            * undefined; the selected safety-path architecture is deferred
            * to INC-MW-005.

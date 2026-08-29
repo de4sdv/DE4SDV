@@ -70,7 +70,7 @@ package DE4SDV_MWRequirements {
           }
 
           requirement reqIsolateSafetyPath : MiddlewareSafetyPathIsolationRequirement {
-            doc /* REQ-MW-006 draft safety-constraint requirement; architecture choice and containment criteria remain open per GAP-MW-013. */
+            doc /* REQ-MW-006 draft safety-constraint requirement; architecture choice and containment criteria remain open per GAP-MW-029. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall prevent a failure of the non-safety middleware integration path from causing an uncontrolled emergency intervention command, whether the selected realization uses a safety-certified middleware partition or a direct vehicle-command path. */ }
           }
