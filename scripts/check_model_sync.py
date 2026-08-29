@@ -97,6 +97,22 @@ def _camel_to_snake(name: str) -> str:
     return s2.lower()
 
 
+# Sync point 5 — DE4SDV basic-ontology YAML ↔ method kernel declarations.
+# The ontology YAML maps each class to the SysML declaration that carries its
+# semantics. This gate verifies each mapped declaration still exists in the
+# named kernel file, so the vocabulary cannot drift from the model unnoticed.
+ONTOLOGY_YAML = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+
+# Native-mapping classes are validated separately (see check_ontology_kernel):
+# their kernel mapping is "native", meaning the semantics live in a SysML v2
+# language construct rather than a kernel declaration, or live in an external
+# artifact outside the model (external).
+
+# Helper and re-export declarations that appear in de4sdv_method_context.sysml
+# but are not ontology vocabulary classes.
+_ONTOLOGY_FILE_EXEMPT_DECLARATIONS: dict[str, set[str]] = {}
+
+
 def _strip_comments(text: str) -> str:
     """Remove /* */ and // comments from SysML text."""
     return re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.DOTALL)
@@ -363,16 +379,106 @@ def check_verification_usages(errors: list[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Sync point 5: Basic-ontology YAML ↔ method kernel declarations
+# ---------------------------------------------------------------------------
+
+def _declaration_exists(sysml_text: str, declaration: str) -> bool:
+    """Check that a declaration like 'part def X' or 'requirement def Y' exists.
+
+    The declaration string is escaped into a regex; whitespace in it matches
+    any whitespace run, and the name must appear as a whole word in
+    comment-stripped text.
+    """
+    code = _strip_comments(sysml_text)
+    pattern = r"\b" + re.escape(declaration).replace(r"\ ", r"\s+") + r"\b"
+    return re.search(pattern, code) is not None
+
+
+def check_ontology_kernel(errors: list[str]) -> None:
+    """Sync point 5: ontology YAML kernel mappings ↔ actual SysML declarations.
+
+    Each ontology class must carry a ``kernel`` mapping stating where its
+    semantics live:
+
+    - ``file:`` + ``declaration:`` — a SysML declaration in a kernel file;
+      the gate verifies the declaration still exists there.
+    - ``native:`` — the semantics live in a native SysML v2 language
+      construct (no kernel declaration to check).
+    - ``external:`` — the semantics live in an artifact outside the SysML
+      model (feature catalogue, upstream library, evidence registers).
+    """
+    import yaml  # local import: PyYAML is a CI test dependency
+
+    if not ONTOLOGY_YAML.exists():
+        errors.append(f"[SP5] {ONTOLOGY_YAML}: ontology YAML not found")
+        return
+
+    try:
+        doc = yaml.safe_load(_read(ONTOLOGY_YAML))
+    except yaml.YAMLError as exc:
+        errors.append(f"[SP5] {ONTOLOGY_YAML}: invalid YAML: {exc}")
+        return
+
+    classes = doc.get("classes") if isinstance(doc, dict) else None
+    if not isinstance(classes, dict) or not classes:
+        errors.append(f"[SP5] {ONTOLOGY_YAML}: no classes section")
+        return
+
+    # Load each kernel file once.
+    file_cache: dict[str, str] = {}
+    for class_name, spec in classes.items():
+        if not isinstance(spec, dict):
+            errors.append(f"[SP5] {class_name}: malformed class entry")
+            continue
+        kernel = spec.get("kernel")
+        if not isinstance(kernel, dict):
+            errors.append(
+                f"[SP5] {class_name}: missing kernel mapping "
+                f"(file+declaration, native, or external)"
+            )
+            continue
+        if "file" in kernel or "declaration" in kernel:
+            rel_file = kernel.get("file")
+            declaration = kernel.get("declaration")
+            if not rel_file or not declaration:
+                errors.append(
+                    f"[SP5] {class_name}: kernel mapping needs both "
+                    f"file: and declaration: (got file={rel_file!r}, "
+                    f"declaration={declaration!r})"
+                )
+                continue
+            path = ROOT / rel_file
+            if not path.exists():
+                errors.append(
+                    f"[SP5] {class_name}: kernel file not found: {rel_file}"
+                )
+                continue
+            if rel_file not in file_cache:
+                file_cache[rel_file] = _read(path)
+            if not _declaration_exists(file_cache[rel_file], declaration):
+                errors.append(
+                    f"[SP5] {class_name}: declaration '{declaration}' not "
+                    f"found in {rel_file}"
+                )
+        elif "native" not in kernel and "external" not in kernel:
+            errors.append(
+                f"[SP5] {class_name}: kernel mapping must use "
+                f"file+declaration, native, or external"
+            )
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def run_all_checks() -> list[str]:
-    """Run all four sync-point checks and return a list of error strings."""
+    """Run all five sync-point checks and return a list of error strings."""
     errors: list[str] = []
     check_scenario_identities(errors)
     check_yaml_profiles(errors)
     check_dependency_targets(errors)
     check_verification_usages(errors)
+    check_ontology_kernel(errors)
     return errors
 
 

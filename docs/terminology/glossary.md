@@ -11,7 +11,9 @@
 | Increment | A bounded, reviewable unit of DE4SDV work that answers one engineering question and leaves behind reviewable artifacts; executed through the 13-phase increment workflow. |
 | MBPLE | Model-Based Product Line Engineering. |
 | Feature model | A model of common and variable product capabilities. |
-| Feature configuration | A selected set of features defining a product variant. |
+| Feature | A distinguishing characteristic that expresses variability among member products in a product line; in DE4SDV a characteristic stays a feature candidate until member-product variability is shown. |
+| Common capability | A capability present in all relevant member products; never modeled as a feature unless it distinguishes member products. |
+| Feature configuration | A selected set of features and variation choices defining a product variant; in DE4SDV recorded as a Bill-of-Features under `model-based-product-line-engineering/feature-configurations/`. |
 | Shared asset | Reusable engineering artifact used across product variants. |
 | Product model | Variant-specific system model assembled from shared assets and configuration decisions. |
 | Digital thread | Traceability chain across lifecycle artifacts and decisions, including System 1 product-line artifacts, System 2 engineering and evidence artifacts, and System 3 governance decisions. |

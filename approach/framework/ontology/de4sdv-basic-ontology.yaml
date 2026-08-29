@@ -1,4 +1,4 @@
-schema: de4sdv.basic-ontology.v0
+schema: de4sdv.basic-ontology.v0.1
 status: draft
 purpose: >-
   Minimal semantic kernel for DE4SDV increment planning. This is not a formal
@@ -8,84 +8,251 @@ source_notes:
   - DE4SDV uses ISO/IEC 26580-aligned feature terminology: a feature distinguishes member products in a product line.
   - SAF provides viewpoint selection for stakeholder concerns and views.
   - SYSMOD provides the method flow from context and needs toward requirements and architecture.
+  - ADR 0009 adopted the ODE4HERA requirements-management attribute library
+    (Sysand dependency). Requirement and verification status are carried by the
+    upstream ReqStatus and VVStatus enums through the DE4SDV method-context
+    adapter; this ontology maps to them instead of defining parallel status
+    vocabularies.
+
+kernel_sync:
+  description: >-
+    Every class below carries a kernel mapping stating where its semantics
+    actually live: a SysML declaration in the method kernel (declaration),
+    a native SysML v2 construct (native), or an external/upstream artifact
+    (external). Sync point 5 of scripts/check_model_sync.py verifies that
+    each mapped declaration exists in the named file, so this vocabulary
+    cannot drift from the model unnoticed.
+  gate: scripts/check_model_sync.py (sync point 5)
 
 classes:
   EngineeringIncrement:
     definition: A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge.
     examples: [AEBSFeatureIncrement, SysONViewPublicationIncrement]
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def EngineeringIncrement
   FeatureIncrement:
     definition: An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice.
     subClassOf: EngineeringIncrement
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def FeatureIncrement
+  NeedsRequirementsIncrement:
+    definition: An engineering increment focused on needs, draft requirements, traceability, and V&V planning.
+    subClassOf: EngineeringIncrement
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def NeedsRequirementsIncrement
+  SystemLayer:
+    definition: Coarse ASELCM-style layer used to frame DE4SDV increments and their environments.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def SystemLayer
   ProductLine:
     definition: A family of related member products managed through shared assets and variability.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def ProductLine
   MemberProduct:
     definition: A configured product or product variant that belongs to a product line.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def ProductLineMemberProduct
   Feature:
-    definition: A distinguishing characteristic expressing variability among member products in the product line.
+    definition: >-
+      A distinguishing characteristic expressing variability among member
+      products. In the kernel a feature is a candidate until member-product
+      variability is shown; it must not be accepted as a feature before that.
     disjointWith: [CommonCapability]
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def ProductLineFeatureCandidate
   CommonCapability:
-    definition: A capability or characteristic present in all relevant member products; not a feature unless it distinguishes variants.
+    definition: >-
+      A capability or characteristic present in all relevant member products;
+      not a feature unless it distinguishes variants.
     disjointWith: [Feature]
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def CommonProductLineCapability
+  DeferredProductLineScope:
+    definition: Product-line scope deliberately deferred from the current increment, including recorded gaps.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def DeferredProductLineScope
   VariationPoint:
-    definition: A native SysML v2 `variation` definition or usage that identifies an element whose allowed instances vary across product-line configurations.
-    notation: Use SysML v2 `variation`; do not model this as a generic variation-point part definition.
+    definition: >-
+      A native SysML v2 variation definition or usage that identifies an
+      element whose allowed instances vary across product-line configurations.
+    notation: Use SysML v2 variation; do not model this as a generic variation-point part definition.
+    kernel:
+      native: SysML v2 variation definition/usage
   Variant:
-    definition: A native SysML v2 `variant` usage owned by a variation point and representing one allowed choice for that variation.
-    notation: Use SysML v2 `variant`; variants are usages, not reusable product-line classes by themselves.
+    definition: A native SysML v2 variant usage owned by a variation point and representing one allowed choice for that variation.
+    notation: Use SysML v2 variant; variants are usages, not reusable product-line classes by themselves.
+    kernel:
+      native: SysML v2 variant usage
   FeatureConfiguration:
     definition: A selection of features, common capabilities, and variation choices for a member product or scenario.
+    kernel:
+      external: >-
+        Bill-of-Features records under
+        model-based-product-line-engineering/feature-configurations/ resolved
+        against the feature catalogue in
+        model-based-product-line-engineering/feature-models/
   Stakeholder:
     definition: A role, person, organization, or community with concerns about the system or increment.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml
+      declaration: part def Stakeholder
   Concern:
     definition: An interest or issue that matters to a stakeholder and motivates views, needs, requirements, or evidence.
+    kernel:
+      native: SysML v2 concern def and concern usage; kernel examples in DE4SDV_MethodViewpoints
   Need:
-    definition: Stakeholder-expressed problem-space intent, before conversion into design input requirements.
+    definition: >-
+      Stakeholder-expressed problem-space intent, before conversion into design
+      input requirements. The kernel models needs as requirement usages of
+      StakeholderNeedCandidate specializations carrying the ADR 0009 attribute
+      set.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def StakeholderNeedCandidate
   Requirement:
-    definition: A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions.
+    definition: >-
+      A verifiable design input obligation or constraint derived from needs,
+      standards, or architecture decisions. The kernel models requirement
+      candidates on the SYSMOD requirement seam with ADR 0009 attributes.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def RequirementCandidate
+  ProblemStatement:
+    definition: The problem that is to be solved by the system or increment, modeled as a requirement.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def ProblemStatement
   RegulatoryConstraint:
-    definition: A constraint or reference derived from a standard, regulation, or homologation-relevant source.
+    definition: A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim.
+    kernel:
+      native: Requirement usage constrained by a controlled regulatory source; framed by the regulatory-scope viewpoint
   ArchitectureElement:
     definition: Any model element used to describe system context, function, logical realization, physical/software realization, interface, or behavior.
+    kernel:
+      native: part def, port def, and behavior definitions in feature and architecture slices
   Function:
     definition: A behavior or transformation expected from the system or product-line architecture.
     subClassOf: ArchitectureElement
+    kernel:
+      native: SysML v2 action/state/behavior definitions in functional-architecture slices
   LogicalElement:
     definition: A logical service, component, or responsibility grouping that realizes functions.
     subClassOf: ArchitectureElement
+    kernel:
+      native: part def elements in logical-architecture slices
   PhysicalElement:
     definition: A physical, software, hardware, deployment, or platform element that realizes conceptual elements or functions.
     subClassOf: ArchitectureElement
+    kernel:
+      native: part def elements in physical/software realization slices
   Interface:
     definition: A boundary or interaction point through which items, signals, services, or information are exchanged.
     subClassOf: ArchitectureElement
+    kernel:
+      native: SysML v2 port def and connection elements
   Scenario:
     definition: A bounded operational, validation, test, or threat situation used to reason about behavior and evidence.
+    kernel:
+      native: >-
+        Operational-context parts plus scenario-identity enums
+        (for example ScenarioIdentity010) in verification slices
   VerificationCase:
     definition: A planned or executed check that evaluates whether a requirement or model claim is satisfied.
+    kernel:
+      native: SysML v2 verification def; see aebs and middleware verification slices
   ValidationScenario:
     definition: A scenario used to assess stakeholder fitness for intended use.
-  EvidenceArtifact:
-    definition: A reviewable artifact that supports a verification, validation, assurance, or release decision.
+    kernel:
+      native: Scenario parts with bounded validation outcomes (for example passBoundedValidation)
   VerificationMethod:
-    definition: A method used to check requirement satisfaction, such as inspection, analysis, demonstration, simulation, or test.
+    definition: >-
+      A method used to check requirement satisfaction. Carried natively by
+      VerificationMethod metadata with the standard method-kind vocabulary
+      (inspect, demo, test, analyze), per the ADR 0009 amendment.
+    kernel:
+      external: >-
+        ODE4HERA requirements-management library verificationMethod (NRM A8)
+        populated with the SysML standard-library VerificationMethodKind values
   AcceptanceCriterion:
     definition: A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.
+    kernel:
+      file: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
+      declaration: requirement def MiddlewareAcceptanceCriterion010
+  EvidenceArtifact:
+    definition: A reviewable artifact that supports a verification, validation, assurance, or release decision.
+    kernel:
+      external: >-
+        Evidence registers and retained-evidence items referenced by
+        verification slices (for example RetainedMiddlewareEvidence010)
+        and bench evidence YAML records
   EvidenceStatus:
-    definition: A lifecycle status for evidence, such as draft, planned, simulated, tested, inspected, analyzed, accepted, rejected, or gap.
+    definition: >-
+      Lifecycle status for evidence and verification results. DE4SDV does not
+      define its own status vocabulary: requirement verification status uses the
+      upstream VVStatus enum, and bounded evidence outcomes/dispositions use
+      slice-local enums such as EvidenceOutcome010 and EvidenceDisposition010.
+    kernel:
+      external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter
   Assumption:
     definition: A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def IncrementAssumption
   Gap:
     definition: A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def IncrementGap
+  MissingRealizationRecord:
+    definition: A record of a missing or blocked realization allocation for a conceptual element.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def MissingRealizationRecord
   AssuranceClaim:
-    definition: A claim about safety, security, compliance alignment, release readiness, or fitness-for-use that requires argument and evidence before acceptance.
+    definition: >-
+      A claim about safety, security, compliance alignment, release readiness,
+      or fitness-for-use that requires argument and evidence before acceptance.
+      Claims are bounded and never imply certification or homologation.
+    kernel:
+      native: Claim usages framed by the argumentation-assurance viewpoint
   Viewpoint:
     definition: A specification of stakeholder concerns, conventions, and expected view content.
+    kernel:
+      native: SysML v2 viewpoint def; kernel selections in DE4SDV_MethodViewpoints and SAF_Viewpoints
   View:
     definition: A representation produced according to a viewpoint for stakeholder review.
+    kernel:
+      native: SysML v2 view
   TraceLink:
     definition: A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+      declaration: item def TraceLink
+  RequiredTraceChain:
+    definition: >-
+      The ordered trace chain every substantial increment should establish,
+      even if some links are draft: stakeholder concern, need, requirement,
+      feature or common capability, architecture element, logical-to-software
+      signal mapping when a boundary is crossed, physical/software realization,
+      verification case, acceptance criterion, evidence artifact, baseline
+      decision. Intentionally missing links are recorded as gaps.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+      declaration: part def RequiredTraceChain
   Baseline:
     definition: A reviewed and controlled state of model, evidence, configuration, or publication artifacts.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml
+      declaration: part def DE4SDVEvidenceBaseline
 
 relationships:
   addressesConcern:
@@ -176,40 +343,41 @@ relationships:
 validation_rules:
   - id: DE4SDV-ONT-R001
     statement: Every Feature shall distinguish at least one member product from another member product.
-    candidate_check: SHACL or repository script over feature configuration records.
+    enforced_by: Kernel rule (a feature stays a ProductLineFeatureCandidate until variability is shown) plus feature-catalogue review.
   - id: DE4SDV-ONT-R002
     statement: Every FeatureIncrement shall identify selected SAF viewpoints and out-of-scope viewpoints.
-    candidate_check: Markdown/YAML checklist review.
+    enforced_by: Increment framing review against the kernel viewpoint selections.
   - id: DE4SDV-ONT-R003
     statement: Every Requirement in a feature increment shall trace to at least one Need, RegulatoryConstraint, or ArchitectureDecisionRecord.
-    candidate_check: traceability table or YAML validation.
+    enforced_by: scripts/check_model_sync.py dependency-target checks plus requirements QA review.
   - id: DE4SDV-ONT-R004
     statement: Every compliance-oriented claim shall be marked as draft, planned, example, verified, or accepted.
-    candidate_check: evidence register status field.
+    enforced_by: Verification-model invariant tests (product-claim bans) and evidence-register status review.
   - id: DE4SDV-ONT-R005
     statement: Common capabilities shall not be modeled as Features unless they distinguish member products.
-    candidate_check: review plus feature configuration query.
+    enforced_by: Kernel ProductLineCharacteristic specialization structure plus product-line classification review.
   - id: DE4SDV-ONT-R006
     statement: Every VerificationCase shall identify a verification method and at least one acceptance criterion or open gap.
-    candidate_check: traceability table or YAML validation.
+    enforced_by: ADR 0009 amendment attributes (VerificationMethod metadata, verificationStatus) plus capability-agnostic verification-model invariant tests.
   - id: DE4SDV-ONT-R007
     statement: Every ValidationScenario shall identify the Need or stakeholder concern whose fitness-for-use it evaluates.
-    candidate_check: traceability table or YAML validation.
+    enforced_by: V&V planning review.
   - id: DE4SDV-ONT-R008
     statement: Every EvidenceArtifact shall carry an explicit status value.
-    candidate_check: evidence register status field.
+    enforced_by: ADR 0009 amendment (VVStatus in the model); evidence YAML records no longer duplicate method or evidence_status columns.
   - id: DE4SDV-ONT-R009
     statement: Every AssuranceClaim shall be supported by evidence or recorded as an open gap.
-    candidate_check: assurance/traceability review.
+    enforced_by: Argumentation-assurance viewpoint review.
   - id: DE4SDV-ONT-R010
-    statement: Product-line variation points represented in SysML v2 shall use native `variation` with owned `variant` usages; do not substitute a generic variation-point part taxonomy.
-    candidate_check: semantic review plus targeted SysML text scan for fake variation-point classes.
+    statement: Product-line variation points represented in SysML v2 shall use native variation with owned variant usages; do not substitute a generic variation-point part taxonomy.
+    enforced_by: Kernel guard doc plus variability-configuration tests.
 
 pilot_queries:
-  - Which selected features lack requirements?
-  - Which selected features lack verification cases, validation scenarios, acceptance criteria, or evidence artifacts?
-  - Which requirements are constrained by a regulation or standard source?
-  - Which member products are affected when a variation point or selected variant changes?
-  - Which views were produced for each selected SAF viewpoint?
-  - Which evidence artifacts are still draft, planned, or gaps?
-  - Which assurance claims are unsupported by accepted evidence?
+  - Which selected features lack requirements? (feature catalogue/configuration review)
+  - Which selected features lack verification cases, validation scenarios, acceptance criteria, or evidence artifacts? (V&V planning review)
+  - Which requirements are constrained by a regulation or standard source? (regulatory-scope review)
+  - Which member products are affected when a variation point or selected variant changes? (feature catalogue plus configurator impact)
+  - Which views were produced for each selected SAF viewpoint? (view index)
+  - Which evidence artifacts are still draft, planned, or gaps? (evidence registers)
+  - Which assurance claims are unsupported by accepted evidence? (assurance review)
+  - If I change requirement X, what is affected? (scripts/query_model_impact.py)
