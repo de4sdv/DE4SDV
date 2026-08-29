@@ -15,6 +15,10 @@
 package DE4SDV_MethodContext {
   private import DE4SDV_SYSMODAdapter::*;
 
+  /* Re-exported so feature packages can assign `attribute :>> status =
+   * ReqStatus::...` (ADR 0009) without importing the adapter directly. */
+  public import ReqStatus;
+
   part def EngineeringIncrement {
     doc /* Bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
   }
