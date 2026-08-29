@@ -41,7 +41,7 @@ package DE4SDV_AEBS009FVerification {
   requirement def EvidenceContract009F;
   requirement evidenceContract009FClosedInputHealthScenario : EvidenceContract009F {
     subject bench : DegradedInputMatrixBench009F;
-    require constraint { doc /* The bench shall inject exactly one closed stale, missing, malformed, inconsistent, or unavailable input condition after any required healthy baseline. */ }
+    require constraint { doc /* The bench shall inject exactly one closed stale, missing, malformed, inconsistent, or unavailable input condition after any required healthy baseline. A degraded state is accepted only while its observation age stays within 0.2 s, detection is closed within a 0.25 s window, and runtime-graph sampling gaps stay at or below 0.2 s. */ }
   }
   requirement evidenceContract009FStateOwnership : EvidenceContract009F {
     subject bench : DegradedInputMatrixBench009F;
