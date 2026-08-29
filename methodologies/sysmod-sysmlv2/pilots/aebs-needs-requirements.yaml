@@ -201,6 +201,13 @@ validation_scenarios:
   question: Do the degraded-state and status-indication candidates preserve the System 1 safety and availability intent without
     importing System 2 evidence-governance concerns?
   evidence_artifact: planned degraded-state stakeholder review record
+- id: VAL-AEBS-014
+  validates_need: N-AEBS-014
+  method: road-user and vehicle-occupant false-reaction review
+  status: planned
+  question: Do the non-activation silence candidates preserve the trustworthy-intervention intent without weakening the collision-risk
+    mitigation obligation of N-AEBS-001?
+  evidence_artifact: planned false-reaction stakeholder review record
 quality_findings:
 - id: QF-AEBS-REQ-001
   severity: expected_gap
@@ -222,6 +229,14 @@ quality_findings:
   severity: controlled_scope
   finding: SysML v2 requirement satisfaction is deferred because the current increment has no functional/logical realization
     elements that can honestly satisfy the candidate requirements.
+- id: QF-AEBS-REQ-007
+  severity: correction
+  finding: 'REQ-AEBS-008 and REQ-AEBS-012 were re-parented from N-AEBS-001 to the new N-AEBS-014 (trustworthy intervention decisions):
+    a non-activation silence constraint does not preserve a collision-risk-reduction parent intent.'
+- id: QF-AEBS-REQ-008
+  severity: correction
+  finding: Operating-condition qualifiers unified to one controlled phrase ('defined operating conditions' and 'defined applicable
+    ... operating conditions') across N-AEBS-006/007, REQ-AEBS-001/002/003, and REQ-AEBS-010/011/014/015; all point at GAP-AEBS-REQ-001.
 model_artifacts:
 - id: MODEL-AEBS-NEEDS-REQ-SYSML
   path: textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml
@@ -246,6 +261,7 @@ need_ids:
 - N-AEBS-006
 - N-AEBS-007
 - N-AEBS-008
+- N-AEBS-014
 requirement_ids:
 - REQ-AEBS-001
 - REQ-AEBS-002

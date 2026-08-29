@@ -5,7 +5,7 @@
  * needs, and System 2 requirement candidates for the AEBS visualization test
  * system. Needs continue the existing N-AEBS series (N-AEBS-009..013);
  * requirements continue the dedicated System 2 series
- * (REQ-AEBS-S2-002..011) to avoid collision with System 1
+ * (REQ-AEBS-S2-002..014) to avoid collision with System 1
  * REQ-AEBS-001..015 and REQ-AEBS-S2-001 in aebs_needs_requirements.sysml.
  *
  * All requirements are System 2 engineering-instrumentation candidates.
@@ -82,7 +82,7 @@ package DE4SDV_AEBS010VisualizationNeedsRequirements {
       subject increment : VisualizationIncrement;
       stakeholder maintainer : Maintainer;
       stakeholder verificationEngineer : VerificationEngineer;
-      require constraint { doc /* System 1 owners need assurance that visualization instrumentation cannot command or modify AEBS detection, warning, intervention, or release behavior. */ }
+      require constraint { doc /* Maintainers and verification engineers need assurance that visualization instrumentation cannot command or modify AEBS detection, warning, intervention, or release behavior. */ }
     }
   }
 
@@ -90,12 +90,17 @@ package DE4SDV_AEBS010VisualizationNeedsRequirements {
     requirement req010SourceFidelity : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-002 System 2 candidate derived from N-AEBS-009 and N-AEBS-010. */
       subject increment : VisualizationIncrement;
-      require constraint { doc /* The visualization test system shall preserve source identity, timestamp, units, coordinate frame, freshness, validity, and bounded cardinality for every displayed AEBS value or state. */ }
+      require constraint { doc /* The visualization test system shall preserve source identity, timestamp, units, coordinate frame, freshness, validity, and bounded cardinality for each displayed AEBS value or state. */ }
     }
     requirement req010NativeParticipation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-003 System 2 candidate derived from N-AEBS-009. */
       subject increment : VisualizationIncrement;
-      require constraint { doc /* The visualization test system shall consume live output from the pinned native Autoware AEB component, including RSS threshold data and the exact native intervention diagnostic, and shall not present coordinator-derived distance values as native Autoware output. */ }
+      require constraint { doc /* The visualization test system shall consume live output from the pinned native Autoware AEB component: RSS threshold data and the exact native intervention diagnostic. */ }
+    }
+    requirement req010NoNativeImpersonation : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-014 System 2 candidate derived from N-AEBS-010. */
+      subject increment : VisualizationIncrement;
+      require constraint { doc /* The visualization test system shall not present coordinator-derived distance values as native Autoware output. */ }
     }
     requirement req010De4sdvParticipation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-004 System 2 candidate derived from N-AEBS-009. */
@@ -130,12 +135,22 @@ package DE4SDV_AEBS010VisualizationNeedsRequirements {
     requirement req010RealAAOSRendering : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-010 System 2 candidate derived from N-AEBS-009 and N-AEBS-012. */
       subject increment : VisualizationIncrement;
-      require constraint { doc /* The visualization test system shall render AEBS state in a native application inside a booted display-capable AAOS SDV guest whose package manager, system server, display composition, vehicle service, and SDV gateway are observed, and shall not use a host-side browser page as the rendering surface. */ }
+      require constraint { doc /* The visualization test system shall render AEBS state in a native application inside a booted display-capable AAOS SDV guest. */ }
+    }
+    requirement req010AaosEnvironmentObservation : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-012 System 2 candidate derived from N-AEBS-009. */
+      subject increment : VisualizationIncrement;
+      require constraint { doc /* While AEBS state is rendered, the visualization test system shall observe the AAOS SDV guest package manager, system server, display composition, vehicle service, and SDV gateway within the same rendered session. */ }
+    }
+    requirement req010NoHostBrowserSurface : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-013 System 2 candidate derived from N-AEBS-009. */
+      subject increment : VisualizationIncrement;
+      require constraint { doc /* The visualization test system shall not use a host-side browser page as the AEBS rendering surface. */ }
     }
     requirement req010EvidenceCorrelation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-011 System 2 candidate derived from N-AEBS-012. */
       subject increment : VisualizationIncrement;
-      require constraint { doc /* The visualization test system shall retain enough source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture information to correlate each rendered state with its observed source event. */ }
+      require constraint { doc /* The visualization test system shall retain source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture records for each rendered state so that each rendered state can be correlated with its observed source event. */ }
     }
   }
 
@@ -145,6 +160,7 @@ package DE4SDV_AEBS010VisualizationNeedsRequirements {
   dependency s2002DerivedFromN009 from req010SourceFidelity to needLiveVisualizationOnAAOS;
   dependency s2002DerivedFromN010 from req010SourceFidelity to needPreservedSourceProvenance;
   dependency s2003DerivedFromN009 from req010NativeParticipation to needLiveVisualizationOnAAOS;
+  dependency s2014DerivedFromN010 from req010NoNativeImpersonation to needPreservedSourceProvenance;
   dependency s2004DerivedFromN009 from req010De4sdvParticipation to needLiveVisualizationOnAAOS;
   dependency s2005DerivedFromN013 from req010NonInterference to needNonInterference;
   dependency s2006DerivedFromN011 from req010FailClosedFreshness to needFailClosedDegradation;
@@ -153,6 +169,8 @@ package DE4SDV_AEBS010VisualizationNeedsRequirements {
   dependency s2009DerivedFromN011 from req010RestorationBehavior to needFailClosedDegradation;
   dependency s2010DerivedFromN009 from req010RealAAOSRendering to needLiveVisualizationOnAAOS;
   dependency s2010DerivedFromN012 from req010RealAAOSRendering to needCorrelatableEvidence;
+  dependency s2012DerivedFromN009 from req010AaosEnvironmentObservation to needLiveVisualizationOnAAOS;
+  dependency s2013DerivedFromN009 from req010NoHostBrowserSurface to needLiveVisualizationOnAAOS;
   dependency s2011DerivedFromN012 from req010EvidenceCorrelation to needCorrelatableEvidence;
 
   dependency framingToNeeds010 from incAEBS010NeedsRequirements to incAEBS010;

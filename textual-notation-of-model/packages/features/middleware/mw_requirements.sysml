@@ -31,8 +31,8 @@ package DE4SDV_MWRequirements {
         requirement def MiddlewareUpdateCoordinationRequirement :> FunctionalRequirementCandidate;
         requirement def MiddlewareSafetyPathIsolationRequirement :> SafetyConstraintRequirementCandidate;
         requirement def MiddlewareServiceDiscoveryRequirement :> FunctionalRequirementCandidate;
-        requirement def MiddlewareServiceAuthenticationRequirement :> SafetyConstraintRequirementCandidate;
         requirement def MiddlewareBoundaryTraceabilityRequirement :> TraceabilityConstraintRequirementCandidate;
+        requirement def MiddlewareServiceAuthenticationRequirement :> SecurityConstraintRequirementCandidate;
 
         part incMW005 : NeedsRequirementsIncrement {
           doc /* INC-MW-005: middleware integration design-input requirements. */
@@ -48,7 +48,7 @@ package DE4SDV_MWRequirements {
           requirement reqProvideMiddlewareDiagnosticAccess : MiddlewareDiagnosticAccessRequirement {
             doc /* REQ-MW-002 draft design-input requirement. */
             subject memberProduct : ProductLineMemberProduct;
-            require constraint statement { language "English" /* Each SDV product-line member product shall provide the ADAS application access to middleware and vehicle diagnostic status needed to determine the health of the selected integration boundary. */ }
+            require constraint statement { language "English" /* Each SDV product-line member product shall provide the ADAS application access to middleware and vehicle diagnostic status from which the health of the selected integration boundary can be determined. */ }
           }
 
           requirement reqCoordinateMiddlewareLifecycle : MiddlewareLifecycleCoordinationRequirement {
@@ -70,7 +70,7 @@ package DE4SDV_MWRequirements {
           }
 
           requirement reqIsolateSafetyPath : MiddlewareSafetyPathIsolationRequirement {
-            doc /* REQ-MW-006 draft safety-constraint requirement; architecture choice remains open. */
+            doc /* REQ-MW-006 draft safety-constraint requirement; architecture choice and containment criteria remain open per GAP-MW-029. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall prevent a failure of the non-safety middleware integration path from causing an uncontrolled emergency intervention command, whether the selected realization uses a safety-certified middleware partition or a direct vehicle-command path. */ }
           }
@@ -82,7 +82,7 @@ package DE4SDV_MWRequirements {
           }
 
           requirement reqAuthenticateServiceBinding : MiddlewareServiceAuthenticationRequirement {
-            doc /* REQ-MW-008 draft safety/security constraint; trust-boundary details remain deferred. */
+            doc /* REQ-MW-008 draft security constraint derived from N-MW-009; trust-boundary details remain deferred per GAP-MW-012. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall authenticate a middleware service binding before accepting service data or commands across a trust boundary defined for the selected integration configuration. */ }
           }
@@ -117,9 +117,9 @@ package DE4SDV_MWRequirements {
         dependency req007DerivedFromNeed002
           from reqProvideServiceDiscovery
           to DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::needPlatformDecoupling;
-        dependency req008DerivedFromNeed012
+        dependency req008DerivedFromNeed009
           from reqAuthenticateServiceBinding
-          to DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::securityTrustBoundaryGap;
+          to DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::System2EngineeringAssurance::needSecurityTrustBoundary;
         dependency req009DerivedFromNeed006
           from reqMaintainMiddlewareBoundaryTraceability
           to DE4SDV_MWStakeholderNeeds::Features::Middleware::StakeholderNeeds::needTraceabilityToOperationalContext;

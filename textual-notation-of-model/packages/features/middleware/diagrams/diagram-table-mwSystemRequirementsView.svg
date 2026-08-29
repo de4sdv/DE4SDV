@@ -53,8 +53,8 @@
     <tspan x="724" dy="0">Each SDV product-line member product shall</tspan>
     <tspan x="724" dy="20">provide the ADAS application access to</tspan>
     <tspan x="724" dy="20">middleware and vehicle diagnostic status</tspan>
-    <tspan x="724" dy="20">needed to determine the health of the</tspan>
-    <tspan x="724" dy="20">selected integration boundary.</tspan>
+    <tspan x="724" dy="20">from which the health of the selected</tspan>
+    <tspan x="724" dy="20">integration boundary can be determined.</tspan>
   </text>
   <rect x="0" y="334" width="352" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
@@ -164,7 +164,7 @@
   <rect x="352" y="1054" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="364" y="1078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="364" dy="0">MiddlewareServiceAuthenticationRequirement,</tspan>
-    <tspan x="364" dy="20">SafetyConstraintRequirementCandidate,</tspan>
+    <tspan x="364" dy="20">SecurityConstraintRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
     <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
   </text>
