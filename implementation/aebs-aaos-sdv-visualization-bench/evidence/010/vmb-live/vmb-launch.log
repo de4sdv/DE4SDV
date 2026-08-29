@@ -1,0 +1,42 @@
+[INFO] [launch]: All log files can be found below /home/mrk/.ros/log/2026-08-29-23-35-52-405934-de4sdv-ros2-autoware-75228
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [component_container-1]: process started with pid [75257]
+[INFO] [map_hash_generator-2]: process started with pid [75259]
+[INFO] [autoware_map_projection_loader_node-3]: process started with pid [75261]
+[INFO] [autoware_simple_planning_simulator_node-4]: process started with pid [75263]
+[INFO] [vehicle_cmd_gate_exe-5]: process started with pid [75265]
+[INFO] [scenario_fixture-6]: process started with pid [75267]
+[INFO] [autoware_autonomous_emergency_braking-7]: process started with pid [75269]
+[INFO] [aebs_coordinator-8]: process started with pid [75271]
+[autoware_map_projection_loader_node-3] Load /home/mrk/map-cache/sample-map-planning/map_projector_info.yaml
+[autoware_simple_planning_simulator_node-4] [INFO] [1788046552.896203292] [simulation.simple_planning_simulator]: waiting initialization...
+[component_container-1] [INFO] [1788046553.002984760] [map.map_container]: Load Library: /home/mrk/autoware/install/autoware_map_loader/lib/libpointcloud_map_loader_node.so
+[component_container-1] [INFO] [1788046553.052537501] [map.map_container]: Found class: rclcpp_components::NodeFactoryTemplate<autoware::map_loader::PointCloudMapLoaderNode>
+[component_container-1] [INFO] [1788046553.052607760] [map.map_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<autoware::map_loader::PointCloudMapLoaderNode>
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map/pointcloud_map_loader' in container '/map/map_container'
+[component_container-1] [INFO] [1788046553.230144791] [map.map_container]: Load Library: /home/mrk/autoware/install/autoware_map_loader/lib/liblanelet2_map_loader_node.so
+[component_container-1] [INFO] [1788046553.245480532] [map.map_container]: Found class: rclcpp_components::NodeFactoryTemplate<autoware::map_loader::Lanelet2MapLoaderNode>
+[component_container-1] [INFO] [1788046553.245551125] [map.map_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<autoware::map_loader::Lanelet2MapLoaderNode>
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map/lanelet2_map_loader' in container '/map/map_container'
+[component_container-1] [ERROR] [1788046553.257130993] [map.map_container]: Could not find requested resource in ament index
+[ERROR] [launch_ros.actions.load_composable_nodes]: Failed to load node 'lanelet2_map_visualization' of type 'autoware::lanelet2_map_visualizer::Lanelet2MapVisualizationNode' in container '/map/map_container': Could not find requested resource in ament index
+[component_container-1] [INFO] [1788046553.259626606] [map.map_container]: Load Library: /home/mrk/autoware/install/autoware_map_tf_generator/lib/libvector_map_tf_generator_node.so
+[component_container-1] [INFO] [1788046553.262689085] [map.map_container]: Found class: rclcpp_components::NodeFactoryTemplate<autoware::map_tf_generator::VectorMapTFGeneratorNode>
+[component_container-1] [INFO] [1788046553.262751488] [map.map_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<autoware::map_tf_generator::VectorMapTFGeneratorNode>
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map/vector_map_tf_generator' in container '/map/map_container'
+[component_container-1] [WARN] [1788046553.318546543] [map.lanelet2_map_loader]: /home/mrk/map-cache/sample-map-planning/lanelet2_map.osm has no format_version(null) or non semver-style format_version(null) information
+[component_container-1] [INFO] [1788046553.318632941] [map.lanelet2_map_loader]: Loaded map format_version: null
+[component_container-1] [INFO] [1788046553.332319534] [map.lanelet2_map_loader]: Succeeded to load lanelet2_map. Map is published.
+[scenario_fixture-6] /opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/node.py:440: UserWarning: when declaring parameter named 'scenario_config', declaring a parameter only providing its name is deprecated. You have to either:
+[scenario_fixture-6] 	- Pass a name and a default value different to "PARAMETER NOT SET" (and optionally a descriptor).
+[scenario_fixture-6] 	- Pass a name and a parameter type.
+[scenario_fixture-6] 	- Pass a name and a descriptor with `dynamic_typing=True
+[scenario_fixture-6]   warnings.warn(
+[component_container-1] [INFO] [1788046553.353220242] [map.vector_map_tf_generator]: broadcast static tf. map_frame:map, viewer_frame:viewer, x:3749.71, y:73724.3, z:19.4406
+[vehicle_cmd_gate_exe-5] [ERROR] [1788046554.744462942] [vehicle_cmd_gate]: [VehicleCmdFilter] Acceleration change limit by longitudinal jerk: constraint(delta)=±0.000 [m/s^2], input_acc=1.500 [m/s^2], output_acc=0.000 [m/s^2]
+[vehicle_cmd_gate_exe-5] [ERROR] [1788046554.744674812] [vehicle_cmd_gate]: [VehicleCmdFilter] Velocity change limit by longitudinal acceleration: constraint(delta)=±0.000 [m/s], input_vel=6.000 [m/s], output_vel=0.000 [m/s]
+[vehicle_cmd_gate_exe-5] [ERROR] [1788046645.694677813] [vehicle_cmd_gate]: [VehicleCmdFilter] Acceleration change limit by longitudinal jerk: constraint(delta)=±0.250 [m/s^2], input_acc=-6.000 [m/s^2], output_acc=-0.250 [m/s^2]
+[vehicle_cmd_gate_exe-5] [ERROR] [1788046645.694785609] [vehicle_cmd_gate]: [VehicleCmdFilter] Longitudinal jerk limit: constraint=±5.000 [m/s^3], input=-10.000 [m/s^3], output=-5.000 [m/s^3]
+[vehicle_cmd_gate_exe-5] [ERROR] [1788046645.694800811] [vehicle_cmd_gate]: [VehicleCmdFilter] Velocity change limit by longitudinal acceleration: constraint(delta)=±0.250 [m/s], input_vel=0.000 [m/s], output_vel=5.750 [m/s]
+[vehicle_cmd_gate_exe-5] [ERROR] [1788046646.644759107] [vehicle_cmd_gate]: [VehicleCmdFilter] Longitudinal acceleration limit: constraint=±5.000 [m/s^2], input=-5.000 [m/s^2], output=-5.000 [m/s^2]
+[vehicle_cmd_gate_exe-5] [ERROR] [1788046652.744712260] [vehicle_cmd_gate]: [VehicleCmdFilter] Acceleration change limit by longitudinal jerk: constraint(delta)=±0.250 [m/s^2], input_acc=0.000 [m/s^2], output_acc=1.250 [m/s^2]
