@@ -20,6 +20,7 @@ package DE4SDV_SYSMODAdapter {
   private import SYSMOD::SystemUseCase;
   private import SYSMOD::ConstrainedOccurrence;
   private import RequirementsManagement::NeedsRequirementsAttributes;
+  public import RequirementsManagement::ReqStatus;
 
   part def SYSMODStakeholderBase :> ExtendedStakeholder {
     doc /* Selected upstream stakeholder-metadata seam. Existing DE4SDV roles are not migrated by this definition. */
@@ -44,6 +45,9 @@ package DE4SDV_SYSMODAdapter {
      * need and candidate definitions. Adopted scope per ADR 0009: rationale,
      * source, status, and authoring-provenance attributes; ReqPriority and
      * ReqImplementationStatus are intentionally not adopted at this time.
+     *
+     * ReqStatus is re-exported publicly so feature packages can assign
+     * `attribute :>> status = ReqStatus::...` through this seam.
      */
   }
 }
