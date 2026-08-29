@@ -81,6 +81,30 @@ def test_sysmod_dependency_is_exactly_pinned_and_locked() -> None:
     assert "pkg:sysand/mbse4u/sysmod" in de4sdv["usages"]
 
 
+def test_requirements_management_dependency_is_exactly_pinned_and_locked() -> None:
+    """ADR 0009: ODE4HERA requirements-management attribute library is an
+    exact-pinned Sysand dependency resolved behind the adapter."""
+    project = json.loads(PROJECT.read_text(encoding="utf-8"))
+    usages = {
+        usage["resource"]: usage["versionConstraint"]
+        for usage in project["usage"]
+    }
+    assert usages["pkg:sysand/ode4hera/requirements-management"] == "=2.0.1"
+
+    lock = tomllib.loads(LOCK.read_text(encoding="utf-8"))
+    ode4hera_projects = [
+        entry
+        for entry in lock["project"]
+        if "pkg:sysand/ode4hera/requirements-management"
+        in entry.get("identifiers", [])
+    ]
+    assert len(ode4hera_projects) == 1
+    assert ode4hera_projects[0]["version"] == "2.0.1"
+
+    de4sdv = next(entry for entry in lock["project"] if entry["name"] == "de4sdv-model")
+    assert "pkg:sysand/ode4hera/requirements-management" in de4sdv["usages"]
+
+
 def test_adapter_is_the_only_sysmod_import_boundary() -> None:
     adapter = ADAPTER.read_text(encoding="utf-8")
     assert "package DE4SDV_SYSMODAdapter" in adapter
@@ -99,6 +123,7 @@ def test_adapter_is_the_only_sysmod_import_boundary() -> None:
         "requirement def SYSMODRequirementBase :> ExtendedRequirement",
         "use case def SYSMODSystemUseCaseBase :> SystemUseCase",
         "occurrence def SYSMODConstrainedOccurrenceBase :> ConstrainedOccurrence",
+        "requirement def RequirementsManagementAttributeBase :> NeedsRequirementsAttributes",
     }
     for expected in expected_seams:
         assert expected in adapter

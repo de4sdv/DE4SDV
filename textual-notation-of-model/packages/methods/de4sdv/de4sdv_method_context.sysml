@@ -69,14 +69,13 @@ package DE4SDV_MethodContext {
     doc /* The problem that is to be solved by the system or increment. */
   }
 
-  requirement def StakeholderNeedCandidate {
-    doc /* Generic base for stakeholder needs before acceptance and quality gate. */
+  requirement def StakeholderNeedCandidate :> RequirementsManagementAttributeBase {
+    doc /* Generic base for stakeholder needs before acceptance and quality gate. Inherits the NRM Chapter 15 attribute set adopted via ADR 0009. */
   }
 
   requirement def ProductLineCommonCapabilityNeed :> StakeholderNeedCandidate {
     doc /* Need for a common product-line capability required across member products. */
   }
-
   requirement def EngineeringTraceabilityNeed :> StakeholderNeedCandidate {
     doc /* Need for engineering traceability, boundary visibility, and controlled scope. */
   }
@@ -97,7 +96,7 @@ package DE4SDV_MethodContext {
     doc /* Need for bounded degradation and availability indication. */
   }
 
-  requirement def RequirementCandidate :> SYSMODRequirementBase {
+  requirement def RequirementCandidate :> SYSMODRequirementBase, RequirementsManagementAttributeBase {
     doc /* Generic base for design-input requirement candidates before acceptance.
          * Specializes the SYSMOD requirement seam, inheriting obligation,
          * stability, and motivation metadata for requirement candidates.
