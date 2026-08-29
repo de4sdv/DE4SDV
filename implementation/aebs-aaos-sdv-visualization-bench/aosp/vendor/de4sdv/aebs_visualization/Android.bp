@@ -63,6 +63,8 @@ cc_binary {
     ],
     shared_libs: [
         "libbase",
+        "libsdvgatewayclient",
+        "libbinder_ndk",
         "liblog",
     ],
     include_dirs: ["external/protobuf/src", "external/protobuf/third_party/utf8_range", "external/abseil-cpp"],
@@ -157,10 +159,22 @@ java_test {
 cc_binary {
     name: "de4sdv_aebs010_pf004_publisher",
     srcs: ["preflight/pf004_publisher.cpp"],
+    static_libs: [
+        "de4sdv_aebs_visualization_proto_lite",
+        "libprotobuf-cpp-lite",
+        "absl_base_dynamic_annotations",
+        "absl_strings",
+        "absl_types_optional",
+        "absl_types_span",
+        "absl_log_absl_check",
+    ],
+    generated_headers: ["de4sdv_aebs_visualization_proto_header"],
     shared_libs: [
         "libsdvgatewayclient",
         "libbinder_ndk",
+        "liblog",
     ],
+    include_dirs: ["external/protobuf/src", "external/protobuf/third_party/utf8_range", "external/abseil-cpp"],
     cflags: ["-Wall", "-Wextra", "-Werror"],
     owner: "de4sdv",
 }

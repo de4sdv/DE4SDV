@@ -103,11 +103,14 @@ class SourceAdapter:
     # -- DE4SDV coordinator -------------------------------------------------
 
     def on_warning_request(self, msg: Any) -> None:
-        stamp_ns = _stamp_ns(getattr(msg, "stamp", None))
-        if stamp_ns <= 0:
-            return
+        receipt_ns = self._now_ns()
+        # The accepted 009B coordinator publishes std_msgs/Bool (no Header).
+        # Preserve live participation without changing that predecessor: when
+        # no source stamp exists, record the adapter receipt as the bounded
+        # execution timestamp and retain this limitation as a counterclaim.
+        stamp_ns = _stamp_ns(getattr(msg, "stamp", None)) or receipt_ns
         self._assembler.observe_warning_request(
-            SourceObservation(TOPIC_WARNING, {"source_timestamp_ns": stamp_ns}, self._now_ns()),
+            SourceObservation(TOPIC_WARNING, {"source_timestamp_ns": stamp_ns}, receipt_ns),
             bool(getattr(msg, "data", False)),
         )
 
@@ -123,11 +126,12 @@ class SourceAdapter:
         )
 
     def on_coordination_state(self, msg: Any) -> None:
-        stamp_ns = _stamp_ns(getattr(msg, "stamp", None))
-        if stamp_ns <= 0:
-            return
+        receipt_ns = self._now_ns()
+        # The accepted 009B lifecycle topic is std_msgs/String and therefore
+        # has no source stamp; use the bounded adapter receipt as above.
+        stamp_ns = _stamp_ns(getattr(msg, "stamp", None)) or receipt_ns
         self._assembler.observe_lifecycle_state(
-            SourceObservation(TOPIC_LIFECYCLE, {"source_timestamp_ns": stamp_ns}, self._now_ns()),
+            SourceObservation(TOPIC_LIFECYCLE, {"source_timestamp_ns": stamp_ns}, receipt_ns),
             str(getattr(msg, "data", "")),
         )
 
@@ -227,3 +231,52 @@ def encode_frame_json(frame: dict) -> bytes:
     testing and is never used as AAOS evidence.
     """
     return json.dumps(frame, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def encode_frame_protobuf(frame: dict) -> bytes:
+    """Encode one validated assembler frame with the authoritative wire schema.
+
+    ``aebs_visualization_pb2`` is generated from ``interface/
+    aebs_visualization.proto`` into the ROS package during the runtime build;
+    generated code is not maintained as a second source contract.
+    """
+    from . import aebs_visualization_pb2 as wire
+
+    message = wire.VisualizationFrame(
+        schema_major=frame["schema_major"],
+        schema_minor=frame["schema_minor"],
+        sequence=frame["sequence"],
+        frame_timestamp_ns=frame["frame_timestamp_ns"],
+        bridge_receipt_timestamp_ns=frame["bridge_receipt_timestamp_ns"],
+        source_identity=frame["source_identity"],
+    )
+    source_kinds = {
+        "nativeAutowareAEB": wire.SOURCE_KIND_NATIVE_AUTOWARE_AEB,
+        "de4sdvAebsCoordinator": wire.SOURCE_KIND_DE4SDV_AEBS_COORDINATOR,
+        "displayDerived": wire.SOURCE_KIND_DISPLAY_DERIVED,
+    }
+    for field_name in (
+        "rss_distance",
+        "native_intervention",
+        "target_range",
+        "target_bearing",
+        "de4sdv_warning_request",
+        "de4sdv_braking_request",
+        "de4sdv_lifecycle_state",
+    ):
+        value = frame.get(field_name)
+        if value is None:
+            continue
+        field = getattr(message, field_name)
+        field.source_kind = source_kinds[value["source_kind"]]
+        field.source_timestamp_ns = value["source_timestamp_ns"]
+        field.units = value["units"]
+        field.coordinate_frame = value["coordinate_frame"]
+        scalar = value["value"]
+        if type(scalar) is bool:
+            field.bool_value = scalar
+        elif isinstance(scalar, (int, float)):
+            field.numeric_value = float(scalar)
+        else:
+            field.enum_value = str(scalar)
+    return message.SerializeToString()

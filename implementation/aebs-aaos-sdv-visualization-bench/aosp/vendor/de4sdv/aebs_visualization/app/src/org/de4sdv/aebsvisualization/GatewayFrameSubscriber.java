@@ -6,8 +6,9 @@ import android.util.Log;
 import com.google.protobuf.Parser;
 
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import de4sdv.aebs.visualization.VisualizationFrame;
 import google.sdv.gateway.client.SdvGatewayClient;
@@ -32,10 +33,11 @@ final class GatewayFrameSubscriber {
 
     private static final String TAG = "AebsFrameSubscriber";
 
-    static final String PACKAGE_NAME = "de4sdv.aebs_visualization";
+    static final String PACKAGE_NAME = "org.de4sdv.aebsvisualization";
     static final String SERVICE_BUNDLE_NAME = "AebsVisualization";
     static final String TOPIC_NAME = "aebs-visualization-frame";
-    static final String MESSAGE_NAME = "VisualizationFrame";
+    static final String MESSAGE_NAME =
+            "de4sdv.aebs_visualization.v1.VisualizationFrame";
 
     /** Delivery callback: parsed frame + elapsed-received timestamp (ms). */
     interface FrameListener {
@@ -46,12 +48,15 @@ final class GatewayFrameSubscriber {
     interface StateListener {
         void onUnavailable();
 
+        void onInvalid();
+
         void onSubscriptionActive();
     }
 
     private SdvGatewayClient client;
     private Subscriber<VisualizationFrame> subscriber;
-    private final Executor executor = Executors.newSingleThreadExecutor();
+    private final ScheduledExecutorService executor =
+            Executors.newSingleThreadScheduledExecutor();
     private FrameListener frameListener;
     private StateListener stateListener;
     private boolean started;
@@ -114,6 +119,12 @@ final class GatewayFrameSubscriber {
             subscriber.registerOnMessagesAvailableListener(executor, this::onMessagesAvailable);
 
             Log.i(TAG, "subscribed to topic=" + TOPIC_NAME);
+            executor.scheduleWithFixedDelay(
+                    this::drainMessages,
+                    0L,
+                    100L,
+                    TimeUnit.MILLISECONDS);
+            Log.i(TAG, "message poller started period_ms=100");
             StateListener listener = stateListener;
             if (listener != null) {
                 listener.onSubscriptionActive();
@@ -129,18 +140,30 @@ final class GatewayFrameSubscriber {
     }
 
     private void onMessagesAvailable() {
+        Log.i(TAG, "onMessagesAvailable callback");
+        drainMessages();
+    }
+
+    private void drainMessages() {
         FrameListener listener = frameListener;
         if (listener == null || subscriber == null) {
             return;
         }
         try {
             List<VisualizationFrame> frames = subscriber.readNextMessages(16);
+            if (!frames.isEmpty()) {
+                Log.i(TAG, "readNextMessages count=" + frames.size());
+            }
             long now = android.os.SystemClock.elapsedRealtime();
             for (VisualizationFrame frame : frames) {
                 listener.onFrame(frame, now);
             }
         } catch (Throwable t) {
             Log.w(TAG, "frame read failed", t);
+            StateListener state = stateListener;
+            if (state != null) {
+                state.onInvalid();
+            }
         }
     }
 

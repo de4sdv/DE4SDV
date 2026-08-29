@@ -1,0 +1,13 @@
+segment_id: INC-AEBS-010-live-render-20260829T201728Z
+started_at: "2026-08-29T20:17:28Z"
+vm: de4sdv-aaos-build
+intent: >-
+  Execute one bounded fresh-boot sdv_ivi_cf segment with a publisher process
+  owned by the same durable supervisor as the guest, prove a real app-side
+  onGatewayFrame callback, and retain a non-unavailable AAOS center-display
+  screenshot before advancing to the vmB Phase 10 campaign.
+expected_duration_hours: 4
+estimated_compute_cost_eur: 3.64
+hard_stop: Stop the VM immediately after success, a material blocker, or four hours.
+claim_boundary: Bounded bench/simulation evidence only; no production safety-HMI claim.
+status: started

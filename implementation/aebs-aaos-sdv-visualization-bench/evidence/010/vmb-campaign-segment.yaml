@@ -1,0 +1,14 @@
+segment_id: INC-AEBS-010-vmb-009b-20260829T2107Z
+started_at: "2026-08-29T21:07:00Z"
+vm: de4sdv-ros2-autoware
+intent: >-
+  Execute the existing bounded 009B moving-target scenario, retain its native
+  Autoware AEB and DE4SDV coordinator evidence, and connect the read-only
+  visualization bridge to the already-running AAOS guest ingress path.
+expected_duration_hours: 2
+stop_condition: >-
+  Stop immediately after evidence retrieval and trace validation, or on an
+  unrecoverable runtime/authorization blocker.
+claim_boundary: >-
+  Simulation/bench observations only; no vehicle, production-safety,
+  certification, or braking-authority claim.

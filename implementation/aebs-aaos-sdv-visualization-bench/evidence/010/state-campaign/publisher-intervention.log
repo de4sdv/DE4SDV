@@ -1,0 +1,5 @@
+PF004 client_new ok
+PF004 initComms ok
+PF004 createPublication ok id=13 mode=intervention
+PF004 published 5 frames mode=intervention
+PF004 loop active mode=intervention

@@ -139,11 +139,15 @@ class FrameAssembler:
     # -- ingestion ---------------------------------------------------------
 
     def observe_rss_distance(self, observation: SourceObservation, value: Any) -> None:
+        # The native AEB node publishes a signed RSS stopping distance: during
+        # an active intervention the required stopping distance can legitimately
+        # exceed the object distance and the debug value stays positive, but the
+        # formula (ego_stopping + obj_braking + margin) is signed, so clamp
+        # physically meaningless negatives to zero while preserving the value's
+        # native provenance. NaN/inf remain hard rejections (fail closed).
         numeric = self._require_finite_number(value, "rss_distance")
-        if numeric < 0.0:
-            raise FrameError("rss_distance must be non-negative")
         self.state.rss_distance = _field_value(
-            numeric, "nativeAutowareAEB",
+            max(numeric, 0.0), "nativeAutowareAEB",
             self._require_positive_int(observation.payload.get("source_timestamp_ns"), "source_timestamp_ns"),
             "m", "base_link",
         )

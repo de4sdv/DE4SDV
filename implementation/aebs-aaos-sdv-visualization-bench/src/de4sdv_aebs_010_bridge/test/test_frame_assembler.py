@@ -294,6 +294,16 @@ def test_nonfinite_rss_rejected() -> None:
         )
 
 
+def test_negative_rss_clamped_to_zero() -> None:
+    """The native AEB debug value is signed; negatives clamp, not reject."""
+    assembler = make_assembler()
+    assembler.observe_rss_distance(
+        SourceObservation(RSS_TOPIC, {"source_timestamp_ns": 1}, 1), -3.5
+    )
+    assert assembler.state.rss_distance is not None
+    assert assembler.state.rss_distance["value"] == 0.0
+
+
 def test_unknown_lifecycle_state_rejected() -> None:
     assembler = make_assembler()
     with pytest.raises(FrameError):

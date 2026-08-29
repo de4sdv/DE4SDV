@@ -17,7 +17,7 @@ from tier4_debug_msgs.msg import Float32Stamped
 from autoware_control_msgs.msg import Control
 
 from .frame_assembler import FrameAssembler
-from .source_adapter import SourceAdapter, FrameServer, encode_frame_json
+from .source_adapter import SourceAdapter, FrameServer, encode_frame_protobuf
 
 
 class Aebs010BridgeNode(Node):
@@ -85,7 +85,7 @@ class Aebs010BridgeNode(Node):
     def _publish_frame(self) -> None:
         frame = self._assembler.assemble(self.get_clock().now().nanoseconds)
         try:
-            self._server.send_frame(encode_frame_json(frame))
+            self._server.send_frame(encode_frame_protobuf(frame))
         except (ConnectionError, OSError):
             pass  # no client connected; frames are dropped, not queued
 

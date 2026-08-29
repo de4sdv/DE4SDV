@@ -1,0 +1,38 @@
+--------- beginning of main
+08-29 21:06:50.960  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:51.458  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:51.464  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:51.464  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000005 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:51.959  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:51.959  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:51.959  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000006 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:52.459  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:52.460  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:52.460  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000007 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:52.959  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:52.959  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:52.960  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000008 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:53.459  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:53.460  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:53.460  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000009 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:53.959  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:53.960  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:53.960  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000010 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:54.459  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:54.460  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:54.460  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000011 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:54.960  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:54.960  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:54.960  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000012 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:55.460  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:55.460  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:55.461  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000013 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:55.960  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:55.961  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:55.961  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000014 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:56.460  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:56.461  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:56.461  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000015 intervention=false warning=false braking=false lifecycle=armed
+08-29 21:06:56.960  3876  3912 I AebsFrameSubscriber: onMessagesAvailable callback
+08-29 21:06:56.961  3876  3912 I AebsFrameSubscriber: readNextMessages count=1
+08-29 21:06:56.961  3876  3912 I MainActivity: onGatewayFrame: frame seq=1000016 intervention=false warning=false braking=false lifecycle=armed

@@ -55,6 +55,12 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onInvalid() {
+                runOnUiThread(() -> onDisposition(reducer.onInvalid(
+                        android.os.SystemClock.elapsedRealtime())));
+            }
+
+            @Override
             public void onSubscriptionActive() {
                 Log.i("MainActivity", "Gateway subscription active");
             }

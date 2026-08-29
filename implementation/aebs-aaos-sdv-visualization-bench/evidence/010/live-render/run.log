@@ -1,0 +1,8 @@
+/home/mrk/aosp/out/soong/.intermediates/system/software_defined_vehicle/samples/de4sdv_aebs_visualization/de4sdv_aebs010_pf004_publisher/android_x86_64_silvermont/de4sdv_aebs010_pf004_publisher: 1 file pushed, 0 skipped. 137.2 MB/s (294144 bytes in 0.002s)
+FIXED_TYPE_PUBLISHER_ACTIVE=2026-08-29T21:06:53Z
+REAL_CALLBACK_OBSERVED=2026-08-29T21:06:53Z
+[Warning] Multiple displays were found, but no display id was specified! Defaulting to the first display found, however this default is not guaranteed to be consistent across captures. A display id should be specified.
+A display ID can be specified with the [-d display-id] option.
+See "dumpsys SurfaceFlinger --display-id" for valid display IDs.
+/sdcard/aebs010-monitoring.png: 1 file pulled, 0 skipped. 0.9 MB/s (37648 bytes in 0.041s)
+MONITORING_EVIDENCE_CAPTURED=2026-08-29T21:06:57Z

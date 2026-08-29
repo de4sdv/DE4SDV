@@ -10,7 +10,7 @@
     and serves them on a new bounded length-delimited transport. Publishes no
     ROS topics and exposes no command path.
   </description>
-  <maintainer email="de4sdv@ example.invalid">DE4SDV maintainers</maintainer>
+  <maintainer email="maintainers@de4sdv.org">DE4SDV maintainers</maintainer>
   <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
