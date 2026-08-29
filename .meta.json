@@ -1,0 +1,302 @@
+{
+  "index": {
+    "AEBSAutowareLinuxLidarCamera": "model-based-product-line-engineering/product-models/aebs_autoware_linux_lidar_camera.sysml",
+    "DE4SDV_AEBSAutowareReferenceProduct": "model-based-product-line-engineering/product-models/aebs_autoware_reference_product.sysml",
+    "ApolloQNXQVMVariant": "model-based-product-line-engineering/product-models/apollo_qnx_qvm.sysml",
+    "AppleSiliconMacOSCandidate": "model-based-product-line-engineering/product-models/apple_silicon_macos_candidate.sysml",
+    "ExampleLinuxSCOREVariant": "model-based-product-line-engineering/product-models/example_linux_score.sysml",
+    "INCAEBS009AJetsonExecutionEnvironment": "model-based-product-line-engineering/product-models/inc_aebs_009a_jetson_execution_environment.sysml",
+    "MWAutowareAAOSSDVReference": "model-based-product-line-engineering/product-models/mw_autoware_aaos_sdv_reference.sysml",
+    "NXPZephyrVehicleTargetCandidate": "model-based-product-line-engineering/product-models/nxp_zephyr_vehicle_target_candidate.sysml",
+    "FixtureRoot": "tests/fixtures/sysml_viewer_model/textual-notation-of-model/packages/features/fixture/fixture_feature.sysml",
+    "FixtureShared": "tests/fixtures/sysml_viewer_model/textual-notation-of-model/packages/features/fixture/fixture_shared.sysml",
+    "COVESA_VSS": "textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml",
+    "DE4SDV_VSS_Extensions": "textual-notation-of-model/libraries/covesa-vss-sysmlv2/DE4SDV_VSS_Extensions.sysml",
+    "DE4SDV_AAOSSDVMiddlewareBoundary": "textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml",
+    "DE4SDV_ExecutionEnvironments": "textual-notation-of-model/packages/architecture/execution_environments.sysml",
+    "DE4SDV_ROS2Types": "textual-notation-of-model/packages/architecture/ros2_types.sysml",
+    "DE4SDV_SDVPlatformStack": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
+    "DE4SDV_VehicleSensingBoundary": "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml",
+    "DE4SDV_AEBS010VisualizationFraming": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_framing.sysml",
+    "DE4SDV_AEBS010VisualizationFunctionalArchitecture": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_functional_architecture.sysml",
+    "DE4SDV_AEBS010VisualizationLogicalArchitecture": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_logical_architecture.sysml",
+    "DE4SDV_AEBS010VisualizationNeedsRequirements": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_needs_requirements.sysml",
+    "DE4SDV_AEBS010VisualizationOperationalContext": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_operational_context.sysml",
+    "DE4SDV_AEBS010VisualizationPhysicalRealization": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_physical_realization.sysml",
+    "DE4SDV_AEBS010VisualizationVariabilityConfiguration": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_variability_configuration.sysml",
+    "DE4SDV_AEBS009HVerification": "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml",
+    "DE4SDV_AEBS009FVerification": "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml",
+    "DE4SDV_AEBS009BNominalEvidence": "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml",
+    "DE4SDV_AEBS009AExecutionEnvironment": "textual-notation-of-model/packages/features/aebs/aebs_execution_environment.sysml",
+    "DE4SDV_AEBSFunctionalBehavior": "textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml",
+    "DE4SDV_AEBSIncrementFraming": "textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml",
+    "DE4SDV_AEBSLogicalArchitecture": "textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml",
+    "DE4SDV_AEBSNeedsRequirements": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml",
+    "DE4SDV_AEBS009EVerification": "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml",
+    "DE4SDV_AEBSOperationalContext": "textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml",
+    "DE4SDV_AEBS009DVerification": "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
+    "DE4SDV_AEBS009CVerification": "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml",
+    "DE4SDV_AEBS009GVerification": "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml",
+    "DE4SDV_AEBSPhysicalSoftwareRealization": "textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml",
+    "DE4SDV_AEBS009IVerification": "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml",
+    "DE4SDV_AEBSSimulationDeployment": "textual-notation-of-model/packages/features/aebs/aebs_simulation_deployment.sysml",
+    "DE4SDV_MWFeatureClassification": "textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml",
+    "DE4SDV_MWFunctionalArchitecture": "textual-notation-of-model/packages/features/middleware/mw_functional_architecture.sysml",
+    "DE4SDV_MWIncrementFraming": "textual-notation-of-model/packages/features/middleware/mw_increment_framing.sysml",
+    "DE4SDV_MWLogicalArchitecture": "textual-notation-of-model/packages/features/middleware/mw_logical_architecture.sysml",
+    "DE4SDV_MWOperationalContext": "textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml",
+    "DE4SDV_MWPhysicalSoftwareRealization": "textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml",
+    "DE4SDV_MWRequirements": "textual-notation-of-model/packages/features/middleware/mw_requirements.sysml",
+    "DE4SDV_MWStakeholderNeeds": "textual-notation-of-model/packages/features/middleware/mw_stakeholder_needs.sysml",
+    "DE4SDV_MWVariabilityConfiguration": "textual-notation-of-model/packages/features/middleware/mw_variability_configuration.sysml",
+    "DE4SDV_MW010VerificationEvidence": "textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml",
+    "DE4SDV_MethodViewpoints": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+    "DE4SDV_MethodContext": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+    "DE4SDV_MethodProcess": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+    "DE4SDV_OperationalContext": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+    "DE4SDV_ProductLine": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+    "DE4SDV_Stakeholders": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml",
+    "DE4SDV_SYSMODAdapter": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml",
+    "SAF_Viewpoints": "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml",
+    "DE4SDV_ContextSpikeSnapshot": "textual-notation-of-model/snapshots/de4sdv-context-spike.sysml"
+  },
+  "created": "2026-08-29T14:14:52Z",
+  "checksum": {
+    "model-based-product-line-engineering/product-models/aebs_autoware_linux_lidar_camera.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "model-based-product-line-engineering/product-models/aebs_autoware_reference_product.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "model-based-product-line-engineering/product-models/apollo_qnx_qvm.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "model-based-product-line-engineering/product-models/apple_silicon_macos_candidate.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "model-based-product-line-engineering/product-models/example_linux_score.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "model-based-product-line-engineering/product-models/inc_aebs_009a_jetson_execution_environment.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "model-based-product-line-engineering/product-models/mw_autoware_aaos_sdv_reference.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "model-based-product-line-engineering/product-models/nxp_zephyr_vehicle_target_candidate.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "tests/fixtures/sysml_viewer_model/textual-notation-of-model/packages/features/fixture/fixture_feature.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "tests/fixtures/sysml_viewer_model/textual-notation-of-model/packages/features/fixture/fixture_shared.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/libraries/covesa-vss-sysmlv2/DE4SDV_VSS_Extensions.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/architecture/execution_environments.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/architecture/ros2_types.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_framing.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_functional_architecture.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_logical_architecture.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_needs_requirements.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_operational_context.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_physical_realization.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_variability_configuration.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_execution_environment.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/aebs/aebs_simulation_deployment.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_functional_architecture.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_increment_framing.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_logical_architecture.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_requirements.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_stakeholder_needs.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_variability_configuration.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "textual-notation-of-model/snapshots/de4sdv-context-spike.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    }
+  }
+}

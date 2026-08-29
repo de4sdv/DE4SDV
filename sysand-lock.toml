@@ -77,6 +77,28 @@ usages = [
 ]
 
 [[project]]
+publisher = "ode4hera"
+name = "Requirements Management"
+version = "2.0.1"
+exports = [
+    "RequirementsManagement",
+    "RequirementsManagement_AttributesExample",
+]
+identifiers = [
+    "pkg:sysand/ode4hera/requirements-management",
+]
+usages = [
+    "https://www.omg.org/spec/KerML/20250201/Data-Type-Library.kpar",
+    "https://www.omg.org/spec/KerML/20250201/Function-Library.kpar",
+    "https://www.omg.org/spec/KerML/20250201/Semantic-Library.kpar",
+    "https://www.omg.org/spec/SysML/20250201/Systems-Library.kpar",
+    "pkg:sysand/mbse4u/sysmod",
+]
+sources = [
+    { index_kpar = "https://sysand.com/index/ode4hera/requirements-management/2.0.1/project.kpar", kpar_size = 8798, kpar_digest = "bf4fa99b780a02c6498afd6912b18f70bb4321e04a306ecf474570a8cfdc2d68" },
+]
+
+[[project]]
 name = "SysML Analysis Library"
 version = "2.0.0"
 exports = [
@@ -240,6 +262,7 @@ usages = [
 ]
 
 [[project]]
+publisher = "sensmetry"
 name = "Syside Views"
 version = "0.10.3"
 exports = [
@@ -266,10 +289,73 @@ sources = [
 ]
 
 [[project]]
+publisher = "de4sdv"
 name = "de4sdv-model"
-version = "0.0.0"
+version = "0.1.1"
+exports = [
+    "AEBSAutowareLinuxLidarCamera",
+    "ApolloQNXQVMVariant",
+    "AppleSiliconMacOSCandidate",
+    "COVESA_VSS",
+    "DE4SDV_AAOSSDVMiddlewareBoundary",
+    "DE4SDV_AEBS009AExecutionEnvironment",
+    "DE4SDV_AEBS009BNominalEvidence",
+    "DE4SDV_AEBS009CVerification",
+    "DE4SDV_AEBS009DVerification",
+    "DE4SDV_AEBS009EVerification",
+    "DE4SDV_AEBS009FVerification",
+    "DE4SDV_AEBS009GVerification",
+    "DE4SDV_AEBS009HVerification",
+    "DE4SDV_AEBS009IVerification",
+    "DE4SDV_AEBS010VisualizationFraming",
+    "DE4SDV_AEBS010VisualizationFunctionalArchitecture",
+    "DE4SDV_AEBS010VisualizationLogicalArchitecture",
+    "DE4SDV_AEBS010VisualizationNeedsRequirements",
+    "DE4SDV_AEBS010VisualizationOperationalContext",
+    "DE4SDV_AEBS010VisualizationPhysicalRealization",
+    "DE4SDV_AEBS010VisualizationVariabilityConfiguration",
+    "DE4SDV_AEBSAutowareReferenceProduct",
+    "DE4SDV_AEBSFunctionalBehavior",
+    "DE4SDV_AEBSIncrementFraming",
+    "DE4SDV_AEBSLogicalArchitecture",
+    "DE4SDV_AEBSNeedsRequirements",
+    "DE4SDV_AEBSOperationalContext",
+    "DE4SDV_AEBSPhysicalSoftwareRealization",
+    "DE4SDV_AEBSSimulationDeployment",
+    "DE4SDV_ContextSpikeSnapshot",
+    "DE4SDV_ExecutionEnvironments",
+    "DE4SDV_MW010VerificationEvidence",
+    "DE4SDV_MWFeatureClassification",
+    "DE4SDV_MWFunctionalArchitecture",
+    "DE4SDV_MWIncrementFraming",
+    "DE4SDV_MWLogicalArchitecture",
+    "DE4SDV_MWOperationalContext",
+    "DE4SDV_MWPhysicalSoftwareRealization",
+    "DE4SDV_MWRequirements",
+    "DE4SDV_MWStakeholderNeeds",
+    "DE4SDV_MWVariabilityConfiguration",
+    "DE4SDV_MethodContext",
+    "DE4SDV_MethodProcess",
+    "DE4SDV_MethodViewpoints",
+    "DE4SDV_OperationalContext",
+    "DE4SDV_ProductLine",
+    "DE4SDV_ROS2Types",
+    "DE4SDV_SDVPlatformStack",
+    "DE4SDV_SYSMODAdapter",
+    "DE4SDV_Stakeholders",
+    "DE4SDV_VSS_Extensions",
+    "DE4SDV_VehicleSensingBoundary",
+    "ExampleLinuxSCOREVariant",
+    "FixtureRoot",
+    "FixtureShared",
+    "INCAEBS009AJetsonExecutionEnvironment",
+    "MWAutowareAAOSSDVReference",
+    "NXPZephyrVehicleTargetCandidate",
+    "SAF_Viewpoints",
+]
 usages = [
     "pkg:sysand/mbse4u/sysmod",
+    "pkg:sysand/ode4hera/requirements-management",
     "pkg:sysand/sensmetry/syside-views",
 ]
 sources = [
@@ -277,6 +363,7 @@ sources = [
 ]
 
 [[project]]
+publisher = "mbse4u"
 name = "sysmod"
 version = "5.1.1"
 exports = [

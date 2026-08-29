@@ -1,13 +1,16 @@
 /*
- * DE4SDV adapter boundary for the exact-pinned external SYSMOD package.
+ * DE4SDV adapter boundary for exact-pinned external requirements-management
+ * packages.
  *
- * Only this package imports the upstream SYSMOD namespace. DE4SDV model
- * packages specialize the DE4SDV-owned seam definitions below rather than
- * importing upstream definitions directly. This keeps package upgrades
- * reviewable and prevents the upstream Project/context chain from becoming a
- * second DE4SDV architecture root.
+ * Only this package imports upstream requirements-management namespaces.
+ * DE4SDV model packages specialize the DE4SDV-owned seam definitions below
+ * rather than importing upstream definitions directly. This keeps package
+ * upgrades reviewable and prevents upstream library structures from becoming
+ * a second DE4SDV method root.
  *
- * Dependency: pkg:sysand/mbse4u/sysmod =5.1.1
+ * Dependencies:
+ *   pkg:sysand/mbse4u/sysmod =5.1.1
+ *   pkg:sysand/ode4hera/requirements-management =2.0.1
  * Provenance: methodologies/sysmod-sysmlv2/upstream.md
  */
 
@@ -16,6 +19,8 @@ package DE4SDV_SYSMODAdapter {
   private import SYSMOD::ExtendedRequirement;
   private import SYSMOD::SystemUseCase;
   private import SYSMOD::ConstrainedOccurrence;
+  private import RequirementsManagement::NeedsRequirementsAttributes;
+  public import RequirementsManagement::ReqStatus;
 
   part def SYSMODStakeholderBase :> ExtendedStakeholder {
     doc /* Selected upstream stakeholder-metadata seam. Existing DE4SDV roles are not migrated by this definition. */
@@ -31,5 +36,18 @@ package DE4SDV_SYSMODAdapter {
 
   occurrence def SYSMODConstrainedOccurrenceBase :> ConstrainedOccurrence {
     doc /* Opt-in seam for occurrences whose lifecycle is governed by explicit preconditions and postconditions. */
+  }
+
+  requirement def RequirementsManagementAttributeBase :> NeedsRequirementsAttributes {
+    doc /*
+     * Selected upstream attribute seam from the ODE4HERA requirements-management
+     * library (NRM Chapter 15 attribute catalog). Specialized by DE4SDV method
+     * need and candidate definitions. Adopted scope per ADR 0009: rationale,
+     * source, status, and authoring-provenance attributes; ReqPriority and
+     * ReqImplementationStatus are intentionally not adopted at this time.
+     *
+     * ReqStatus is re-exported publicly so feature packages can assign
+     * `attribute :>> status = ReqStatus::...` through this seam.
+     */
   }
 }

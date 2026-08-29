@@ -25,7 +25,8 @@
   <rect x="312" y="94" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">MiddlewareIntegrationNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="94" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -44,7 +45,8 @@
   <rect x="312" y="254" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">PlatformDecouplingNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="254" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -62,7 +64,8 @@
   <rect x="312" y="394" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">ProductLineClassificationNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="394" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -80,7 +83,8 @@
   <rect x="312" y="534" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">SafetyPathIsolationNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="534" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -99,7 +103,8 @@
   <rect x="312" y="694" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">UpstreamEngagementNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="694" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -116,7 +121,8 @@
   <rect x="312" y="814" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">SecurityTrustBoundaryNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="814" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -134,7 +140,8 @@
   <rect x="312" y="954" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">EngineeringTraceabilityNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="954" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -152,7 +159,8 @@
   <rect x="312" y="1094" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">EngineeringTraceabilityNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="1094" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -169,7 +177,8 @@
   <rect x="312" y="1214" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="324" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="324" dy="0">VerificationPlanningNeed,</tspan>
-    <tspan x="324" dy="20">StakeholderNeedCandidate</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="672" y="1214" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="684" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">

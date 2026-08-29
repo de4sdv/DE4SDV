@@ -79,6 +79,14 @@ def _record_card(
         if stakeholders
         else ""
     )
+    attrs_html = ""
+    if r.rationale or r.source:
+        rows = ""
+        if r.rationale:
+            rows += f'<p class="req-attr"><span class="muted">rationale:</span> {esc(r.rationale)}</p>'
+        if r.source:
+            rows += f'<p class="req-attr"><span class="muted">source:</span> {esc(r.source)}</p>'
+        attrs_html = f'<div class="req-attrs">{rows}</div>'
     return f"""
 <article class="req-card card" id="req-{esc(rid)}" data-kind="{esc(r.kind)}" data-id="{esc(rid)}" data-search="{esc((rid + ' ' + r.name + ' ' + r.statement + ' ' + r.doc + ' ' + r.subject + ' ' + ' '.join(r.stakeholders)).lower())}">
   <div class="req-card-head">
@@ -90,6 +98,7 @@ def _record_card(
   {stakeholders_html}
   {statement_html}
   {doc_html}
+  {attrs_html}
   {trace_html}
   {mentions_html}
   <p class="req-source muted">{source_link}</p>
