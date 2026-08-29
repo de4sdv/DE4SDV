@@ -1,4 +1,35 @@
-# PF-004 status — CORRECTED diagnosis pending re-run
+# PF-004 status — PASSED (probe v4, runtime-verified)
+
+## Final result (2026-08-29, stock image, no manifest patch)
+
+```
+PF004 client_new ok
+PF004 initComms ok
+PF004 createPublication ok id=2
+PF004 published 5 frames
+```
+
+Server-side: certificate issued to
+`instance1:de4sdv.aebs_visualization.AebsVisualization/default`;
+`sdv_authz` reports **access granted by ACLs**.
+
+## Conventions discovered (runtime-verified)
+
+1. NDK Binder thread pool must be started before `ASDVGateway_Client_new`
+   (the v1 FAILED_PRECONDITION came from this, not the CA).
+2. Service bundle name must start `[A-Z]` → `AebsVisualization`.
+3. Service unit name must match `[a-z, 0-9, -]`, starting `[a-z]` →
+   `aebs-visualization-frame`.
+4. Authz ACL policy must live at
+   `/system/etc/sdv_authz_acls/<package>/<ServiceBundle>.textproto`
+   granting `de4sdv.aebs_visualization.*` write access to the
+   `VisualizationFrame` unit type.
+5. The CA VINTF-declaration theory is disproven: no manifest patch is
+   needed; the withdrawn upstream report stays withdrawn.
+
+---
+
+
 
 ## Status: report withdrawn, root cause misidentified in v1
 
