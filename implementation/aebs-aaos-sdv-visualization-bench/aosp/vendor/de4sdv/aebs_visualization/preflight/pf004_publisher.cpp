@@ -46,8 +46,8 @@ int main() {
 
   ASDVGateway_InitCommsParams_t init{};
   Fill("de4sdv.aebs_visualization", init.packageName, sizeof(init.packageName));
-  Fill("aebs_visualization", init.serviceBundleName, sizeof(init.serviceBundleName));
-  Fill("pf004", init.serviceInstanceName, sizeof(init.serviceInstanceName));
+  Fill("AebsVisualization", init.serviceBundleName, sizeof(init.serviceBundleName));
+  Fill("default", init.serviceInstanceName, sizeof(init.serviceInstanceName));
   if (ASDVGateway_Client_initComms(client, &init, &status) !=
       ASDVGateway_StatusCode_OK) {
     std::printf("PF004 initComms failed: %d %s\n",
@@ -57,10 +57,10 @@ int main() {
   std::printf("PF004 initComms ok\n");
 
   ASDVGateway_CreatePublicationParams_t params{};
-  Fill("aebs_visualization_frame", params.serviceUnitName, sizeof(params.serviceUnitName));
+  Fill("aebs-visualization-frame", params.serviceUnitName, sizeof(params.serviceUnitName));
   Fill("de4sdv.aebs_visualization", params.unitType.sdvPackageName,
        sizeof(params.unitType.sdvPackageName));
-  Fill("aebs_visualization", params.unitType.serviceBundleName,
+  Fill("AebsVisualization", params.unitType.serviceBundleName,
        sizeof(params.unitType.serviceBundleName));
   Fill("VisualizationFrame", params.unitType.unitTypeName,
        sizeof(params.unitType.unitTypeName));
