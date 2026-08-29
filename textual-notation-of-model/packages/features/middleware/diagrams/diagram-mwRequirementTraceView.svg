@@ -168,7 +168,7 @@
   <text x="675" y="1367" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
   <text x="675" y="1383" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqIsolateSafetyPath : MiddlewareSafetyPathIsolationRequirement</tspan></text>
   <text x="675" y="1401.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="36" y="1417" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-MW-006 draft safety-constraint requirement; architecture choice and containment criteria remain open per GAP-MW-013.</tspan></text>
+  <text x="36" y="1417" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-MW-006 draft safety-constraint requirement; architecture choice and containment criteria remain open per GAP-MW-029.</tspan></text>
   <text x="675" y="1435.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
   <text x="36" y="1451" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">memberProduct : ProductLineMemberProduct</tspan></text>
   <text x="675" y="1469.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
