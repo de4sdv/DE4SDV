@@ -31,7 +31,7 @@ package DE4SDV_AEBS009HVerification {
   requirement def EvidenceContract009H;
   requirement evidenceContract009HConfiguredBicycleTarget : EvidenceContract009H {
     subject bench : BicycleTargetBench009H;
-    require constraint { doc /* The bench shall bind the configured bicycle trajectory, geometry, timing, and exact bench identity. */ }
+    require constraint { doc /* The bench shall bind the configured bicycle trajectory, geometry, timing, and exact bench identity: crossing speed 4.0 m/s, a closed observation window of 2.0 s, and map-frame source observations no older than 0.5 s. */ }
   }
   requirement evidenceContract009HIndependentFootprintOutcome : EvidenceContract009H {
     subject bench : BicycleTargetBench009H;

@@ -87,8 +87,8 @@ requirement_quality_gate:
 verification_planning:
   status: planned_with_open_criteria
   ownership: System 2 verification and assurance workflow
-  note: Methods, criteria, and evidence status are planning attachments, not normative content of the System 1 product requirement
-    expressions.
+  note: Methods, criteria, and evidence status are planning attachments, not normative content of the System 1 product requirement expressions.
+  bounded_evidence_note: Records with a bounded_evidence field link the requirement to executed or implemented INC-AEBS-009 evidence-contract work. Increment statuses are owned by implementation/aebs-autoware-executable-bench/increments.yaml; evidence artifacts live under implementation/aebs-autoware-nominal-vehicle-target-bench/evidence/ and implementation/aebs-autoware-stationary-target-bench/evidence/. These are System 2 evidence-contract results only; no System 1 product requirement is verified or satisfied by them.
   records:
   - requirements:
     - REQ-AEBS-001
@@ -100,16 +100,19 @@ verification_planning:
     method: demonstration
     evidence_status: planned
     criterion_gap: Define warning conditions, timing, modality, and driver observability.
+    bounded_evidence: INC-AEBS-009B EC-AEBS-009B-01 observed replayable (implementation/aebs-autoware-nominal-vehicle-target-bench/evidence/009b/scenario-evidence.json).
   - requirements:
     - REQ-AEBS-003
     method: simulation
     evidence_status: planned
     criterion_gap: Define activation conditions, braking command expectations, and override exclusions.
+    bounded_evidence: INC-AEBS-009B EC-AEBS-009B-03/04/05 observed replayable (implementation/aebs-autoware-nominal-vehicle-target-bench/evidence/009b/scenario-evidence.json); INC-AEBS-009C partial native-intervention-to-MRM chain executed_replay_validated_pending_review (implementation/aebs-autoware-stationary-target-bench/evidence/009c/scenario-evidence.json).
   - requirements:
     - REQ-AEBS-004
     method: demonstration
     evidence_status: planned
     criterion_gap: Define allowed override inputs and the controlled override-response mapping.
+    bounded_evidence: INC-AEBS-009B EC-AEBS-009B-02 observed replayable (implementation/aebs-autoware-nominal-vehicle-target-bench/evidence/009b/scenario-evidence.json); INC-AEBS-009D six-profile conscious-override matrix executed_replay_validated_pending_review (implementation/aebs-autoware-nominal-vehicle-target-bench/evidence/009d/campaign-manifest.json).
   - requirements:
     - REQ-AEBS-005
     method: inspection
@@ -128,12 +131,14 @@ verification_planning:
     method: test
     evidence_status: gap
     criterion_gap: Define non-activation conditions, observation windows, tolerances, and false-reaction classification.
+    bounded_evidence: INC-AEBS-009E evidence contracts implemented with quantified bounds; execution pending (no evidence artifact).
   - requirements:
     - REQ-AEBS-009
     - REQ-AEBS-013
     method: test
     evidence_status: gap
     criterion_gap: Define input-health criteria, state ownership, transition timing, indication, and safe-operation response.
+    bounded_evidence: INC-AEBS-009F evidence contracts implemented with quantified bounds; execution pending (no evidence artifact).
   - requirements:
     - REQ-AEBS-010
     - REQ-AEBS-014
@@ -141,12 +146,14 @@ verification_planning:
     evidence_status: gap
     criterion_gap: Determine applicability and control pedestrian target definition, conditions, response, tolerances, and
       uncertainty.
+    bounded_evidence: INC-AEBS-009G and INC-AEBS-009I (pedestrian criterion) evidence contracts implemented with quantified bounds; execution pending (no evidence artifact).
   - requirements:
     - REQ-AEBS-011
     - REQ-AEBS-015
     method: test
     evidence_status: gap
     criterion_gap: Determine applicability and control bicycle target definition, conditions, response, tolerances, and uncertainty.
+    bounded_evidence: INC-AEBS-009H and INC-AEBS-009I (bicycle criterion) evidence contracts implemented with quantified bounds; execution pending (no evidence artifact).
 validation_scenarios:
 - id: VAL-AEBS-001
   validates_need: N-AEBS-001

@@ -279,6 +279,35 @@ claim_boundary:
   sysml_element: boundedBaselineDecision010
   status: accepted_bounded
 
+execution_records:
+  note: >-
+    Each retained evidence artifact below is a single recorded runtime run
+    (no repetition rule is claimed). Timestamps, hosts, and observations are
+    owned by the artifact; this index only records where the execution fact
+    lives. Independent automated replay of these records is not yet built:
+    current re-checks are repository tests plus manual review, tracked as a
+    next_action.
+  records:
+    - evidence_id: E-MW-011
+      artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml
+      recorded_at: "2026-08-20T19:45:32Z"
+      runs: single
+      producer: not_recorded_in_artifact
+    - evidence_id: E-MW-012
+      artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-012-adapter-path-campaign.yaml
+      started_at: "2026-08-21T06:06:58Z"
+      finished_at: "2026-08-21T06:07:02Z"
+      runs: single
+      producer: not_recorded_in_artifact
+    - evidence_id: E-MW-013
+      artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-013-autoware-consumer.yaml
+      recorded_at: "2026-08-21T15:53:00Z"
+      runs: single
+    - evidence_id: E-MW-014
+      artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-014-health-disposition.yaml
+      recorded_at: "2026-08-21T22:46:30Z"
+      runs: single
+
 supporting_implementation:
   status: observed_bounded
   evidence:
@@ -298,3 +327,4 @@ validation:
 next_actions:
   - preserve_residual_gaps_as_separately_scoped_work
   - frame_any_stakeholder_visible_autoware_to_aaos_visualization_as_a_new_increment
+  - add_automated_replay_records_for_retained_mw_evidence

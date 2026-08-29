@@ -42,7 +42,7 @@ package DE4SDV_AEBS009DVerification {
   }
   requirement evidenceContract009DOverrideFreshnessReplay : EvidenceContract009D {
     subject bench : OverrideMatrixBench009D;
-    require constraint { doc /* The bench shall replay source stamp, receipt time, value validity, exact diagnostic-source authorization, and the scenario-specific suppression, release, or degraded disposition. */ }
+    require constraint { doc /* The bench shall replay source stamp, receipt time, value validity, exact diagnostic-source authorization, and the scenario-specific suppression, release, or degraded disposition. A fresh sample is one with source-stamp-to-receipt age at most 0.2 s; suppression is evaluated within a closed window of 0.25 s; runtime-graph sampling gaps above 0.2 s fail the replay. */ }
   }
   requirement evidenceContract009DIndependentVerdict : EvidenceContract009D {
     subject bench : OverrideMatrixBench009D;
