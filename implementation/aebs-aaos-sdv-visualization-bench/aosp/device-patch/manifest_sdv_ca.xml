@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DE4SDV INC-AEBS-010 BENCH PATCH — pending upstream confirmation.
+
+  Declares the SDV Certificate Authority and Identity Agent binder services so
+  that libsdvgatewayclient's VINTF precondition (AServiceManager_isDeclared)
+  passes for native clients on sdv_ivi_cf.
+
+  Why this exists: sdv_sd_agent registers google.sdv.ca.ICertificateAuthority/default
+  (and the identity agent) via plain binder::add_service with no VINTF manifest
+  fragment, so libsdvgatewayclient's waitForCertificateAuthority precondition
+  fails with FAILED_PRECONDITION for every native client. Reported upstream;
+  this fragment is a bench-only workaround until the upstream fix lands.
+
+  This file is NOT part of the DE4SDV model baseline; it is retained as
+  evidence of the PF-004 fix path and must be removed if upstream ships its
+  own declaration.
+-->
+<manifest version="1.0" type="framework">
+    <hal max-level="7" format="aidl">
+        <name>google.sdv.ca.ICertificateAuthority</name>
+        <version>1</version>
+        <interface>
+            <name>ICertificateAuthority</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal max-level="7" format="aidl">
+        <name>google.sdv.identity.IIdentityAgent</name>
+        <version>1</version>
+        <interface>
+            <name>IIdentityAgent</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+</manifest>

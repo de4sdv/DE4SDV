@@ -4,37 +4,36 @@
 // (implementation/aebs-aaos-sdv-visualization-bench/src/de4sdv_aebs_010_bridge/
 // de4sdv_aebs_010_bridge/frame_assembler.py). Field semantics come from the
 // SysML model; this header adds none.
+//
+// Generated protobuf types live in ::de4sdv::aebs_visualization::v1 (the
+// proto package). Include "aebs_visualization.pb.h" before this header or
+// rely on the proto_lite static library exporting it.
 
 #pragma once
 
 #include <cstdint>
 #include <string>
 
-// Forward declarations of the generated protobuf types
-// (de4sdv.aebs_visualization.v1). Generated at build time from
-// implementation/aebs-aaos-sdv-visualization-bench/interface/aebs_visualization.proto.
-namespace de4sdv {
-namespace aebs_visualization {
-namespace v1 {
-class VisualizationFrame;
-class FieldValue;
-}  // namespace v1
+#include "aebs_visualization.pb.h"
 
-// Aliased for validator use; the .cc includes the generated header.
-namespace aebs_visualization {
-using v1::VisualizationFrame;
-using v1::FieldValue;
+namespace de4sdv_aebs010 {
 
 struct ValidationResult {
   bool accepted = false;
   std::string reason;
 };
 
-ValidationResult validate_frame(const VisualizationFrame& frame,
-                                uint64_t last_accepted_sequence,
-                                int64_t now_ns,
-                                int64_t max_future_skew_ns,
-                                int64_t stale_timeout_ns);
+// Validates one decoded frame against the wire contract:
+// schema major, monotonic sequence, timestamp bounds, numeric sanity.
+// last_accepted_sequence: highest sequence accepted so far (0 initially).
+// now_ns: sink-side clock at validation time.
+// max_future_skew_ns: allowed positive clock skew.
+// stale_timeout_ns: frames older than this are rejected as stale.
+ValidationResult validate_frame(
+    const de4sdv::aebs_visualization::v1::VisualizationFrame& frame,
+    uint64_t last_accepted_sequence,
+    int64_t now_ns,
+    int64_t max_future_skew_ns,
+    int64_t stale_timeout_ns);
 
-}  // namespace aebs_visualization
-}  // namespace de4sdv
+}  // namespace de4sdv_aebs010

@@ -10,31 +10,25 @@
 #include <cmath>
 #include <cstdint>
 
-namespace de4sdv::aebs_visualization {
+namespace de4sdv_aebs010 {
 
 namespace {
 constexpr uint32_t kSchemaMajor = 1;
 
-bool field_value_valid(const FieldValue& value) {
-  if (!value.has_value_case()) return false;
-  switch (value.value_case()) {
-    case FieldValue::kNumericValue:
-      return std::isfinite(value.numeric_value()) && value.numeric_value() >= 0.0;
-    case FieldValue::kBoolValue:
-    case FieldValue::kEnumValue:
-      return true;
-    case FieldValue::VALUE_NOT_SET:
-      return false;
+bool field_value_valid(const de4sdv::aebs_visualization::v1::FieldValue& value) {
+  if (value.has_numeric_value()) {
+    return std::isfinite(value.numeric_value()) && value.numeric_value() >= 0.0;
   }
-  return false;
+  return value.has_bool_value() || value.has_enum_value();
 }
 }  // namespace
 
-ValidationResult validate_frame(const VisualizationFrame& frame,
-                                uint64_t last_accepted_sequence,
-                                int64_t now_ns,
-                                int64_t max_future_skew_ns,
-                                int64_t stale_timeout_ns) {
+ValidationResult validate_frame(
+    const de4sdv::aebs_visualization::v1::VisualizationFrame& frame,
+    uint64_t last_accepted_sequence,
+    int64_t now_ns,
+    int64_t max_future_skew_ns,
+    int64_t stale_timeout_ns) {
   ValidationResult result;
   if (frame.schema_major() != kSchemaMajor) {
     result.reason = "unsupported schema major";
@@ -52,10 +46,11 @@ ValidationResult validate_frame(const VisualizationFrame& frame,
     result.reason = "frame timestamp older than stale timeout";
     return result;
   }
-  const FieldValue* numeric_fields[] = {
+  const de4sdv::aebs_visualization::v1::FieldValue* numeric_fields[] = {
       &frame.rss_distance(), &frame.target_range(), &frame.target_bearing()};
-  for (const FieldValue* value : numeric_fields) {
-    if (value->has_value_case() && !field_value_valid(*value)) {
+  for (const auto* value : numeric_fields) {
+    if ((value->has_numeric_value() || value->has_bool_value() || value->has_enum_value()) &&
+        !field_value_valid(*value)) {
       result.reason = "numeric field invalid";
       return result;
     }
@@ -65,4 +60,4 @@ ValidationResult validate_frame(const VisualizationFrame& frame,
   return result;
 }
 
-}  // namespace de4sdv::aebs_visualization
+}  // namespace de4sdv_aebs010

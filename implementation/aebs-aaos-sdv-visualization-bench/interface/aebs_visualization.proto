@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package de4sdv.aebs_visualization.v1;
 
+option optimize_for = LITE_RUNTIME;
+
 // DE4SDV INC-AEBS-010 AEBS visualization frame wire contract.
 //
 // Serialization only: the semantic authority for every field, its units, its

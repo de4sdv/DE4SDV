@@ -1,25 +1,50 @@
 // DE4SDV INC-AEBS-010 AOSP overlay modules.
 //
-// Proto: generated at build time from interface/aebs_visualization.proto
-// (repo source of truth; not vendored). Ingress: cc_binary + cc_test.
-// App: java_sdk_library-style android_app with platform certificate, consistent
-// with a system-privileged AAOS engineering visualization (not production HMI).
+// Notes for this AOSP release (all verified on the target tree):
+// - soong registers no `proto_library`/`cc_proto_library` module type; the
+//   wire contract is generated with two genrules over the host `aprotoc`
+//   tool (one exports the .cc into srcs, one the .h into generated_headers;
+//   soong rejects headers inside srcs).
+// - No `soong_namespace` block: a custom namespace hid all cc/app modules
+//   from product resolution ("unknown target").
+// - Sepolicy ships via a BOARD_SEPOLICY_DIRS make fragment, not a soong
+//   `sepolicy` property (unsupported here).
+// - The staged location is system/software_defined_vehicle/samples/
+//   de4sdv_aebs_visualization/, matching where the MW-010 DE4SDV modules
+//   live and where soong demonstrably instantiates modules.
 
-soong_namespace {
+genrule {
+    name: "de4sdv_aebs_visualization_proto_cc",
+    srcs: ["interface/aebs_visualization.proto"],
+    tools: ["aprotoc"],
+    cmd: "cp $(in) $(genDir)/aebs_visualization.proto && $(location aprotoc) --cpp_out=$(genDir) -I$(genDir) aebs_visualization.proto && mv $(genDir)/aebs_visualization.pb.h $(genDir)/discard.pb.h",
+    out: ["aebs_visualization.pb.cc"],
 }
 
-// ---------- shared protobuf ----------
+genrule {
+    name: "de4sdv_aebs_visualization_proto_header",
+    srcs: ["interface/aebs_visualization.proto"],
+    tools: ["aprotoc"],
+    cmd: "cp $(in) $(genDir)/aebs_visualization.proto && $(location aprotoc) --cpp_out=$(genDir) -I$(genDir) aebs_visualization.proto && mv $(genDir)/aebs_visualization.pb.cc $(genDir)/discard.pb.cc",
+    out: ["aebs_visualization.pb.h"],
+}
 
-proto_library {
-    name: "de4sdv_aebs_visualization_proto",
-    srcs: [
-        // Staged by scripts/stage_aosp_overlay.py from the repo interface dir.
-        "interface/aebs_visualization.proto",
+cc_library_static {
+    name: "de4sdv_aebs_visualization_proto_lite",
+    srcs: [":de4sdv_aebs_visualization_proto_cc"],
+    generated_headers: ["de4sdv_aebs_visualization_proto_header"],
+    export_generated_headers: ["de4sdv_aebs_visualization_proto_header"],
+    static_libs: [
+        "libprotobuf-cpp-lite",
+        "absl_base_dynamic_annotations",
+        "absl_strings",
+        "absl_types_optional",
+        "absl_types_span",
+        "absl_log_absl_check",
     ],
-    canonical_path_from_root: false,
+    cflags: ["-Wno-unused-parameter", "-DNDEBUG"],
+    owner: "de4sdv",
 }
-
-// ---------- native ingress ----------
 
 cc_binary {
     name: "de4sdv_aebs_ingress",
@@ -27,25 +52,25 @@ cc_binary {
         "ingress/main.cpp",
         "ingress/validator.cpp",
     ],
-    generated_headers: ["de4sdv_aebs_visualization_proto_gen"],
     static_libs: [
+        "de4sdv_aebs_visualization_proto_lite",
         "libprotobuf-cpp-lite",
-        "libgflags",
+        "absl_base_dynamic_annotations",
+        "absl_strings",
+        "absl_types_optional",
+        "absl_types_span",
+        "absl_log_absl_check",
     ],
     shared_libs: [
         "libbase",
         "liblog",
-        "libsdvgatewayclient",
     ],
-    include_dirs: ["vendor/de4sdv/aebs_visualization/ingress"],
+    include_dirs: ["external/protobuf/src", "external/protobuf/third_party/utf8_range", "external/abseil-cpp"],
+    local_include_dirs: ["ingress"],
     cflags: [
         "-Wall",
         "-Wextra",
         "-Werror",
-    ],
-    init_rc: ["ingress/de4sdv_aebs_ingress.rc"],
-    sepolicy: [
-        "sepolicy/de4sdv_aebs_ingress.te",
     ],
     owner: "de4sdv",
 }
@@ -56,24 +81,46 @@ cc_test {
         "ingress/validator.cpp",
         "ingress/tests/validator_test.cpp",
     ],
-    generated_headers: ["de4sdv_aebs_visualization_proto_gen"],
-    static_libs: ["libprotobuf-cpp-lite"],
+    static_libs: [
+        "de4sdv_aebs_visualization_proto_lite",
+        "libprotobuf-cpp-lite",
+        "absl_base_dynamic_annotations",
+        "absl_strings",
+        "absl_types_optional",
+        "absl_types_span",
+        "absl_log_absl_check",
+    ],
     shared_libs: ["liblog"],
+    include_dirs: ["external/protobuf/src", "external/protobuf/third_party/utf8_range", "external/abseil-cpp"],
+    local_include_dirs: ["ingress"],
     test_suites: ["device-tests"],
     owner: "de4sdv",
 }
 
-// ---------- Java center-display app ----------
+java_library {
+    name: "de4sdv_aebs_visualization_reducer",
+    srcs: ["app/src/org/de4sdv/aebsvisualization/VisualizationStateReducer.java"],
+    sdk_version: "system_current",
+    owner: "de4sdv",
+    static_libs: ["androidx.annotation_annotation"],
+}
 
 android_app {
     name: "De4sdvAebsVisualizationApp",
-    srcs: ["app/src/**/*.java"],
+    manifest: "app/AndroidManifest.xml",
+    srcs: [
+        "app/src/**/*.java",
+    ],
+    exclude_srcs: ["app/src/org/de4sdv/aebsvisualization/VisualizationStateReducer.java"],
+    static_libs: [
+        "de4sdv_aebs_visualization_reducer",
+        "androidx.annotation_annotation",
+    ],
     resource_dirs: ["app/res"],
     sdk_version: "system_current",
     certificate: "platform",
     privileged: true,
     owner: "de4sdv",
-    static_libs: ["androidx.annotation_annotation"],
     optimize: { enabled: false },
 }
 
@@ -81,9 +128,22 @@ java_test {
     name: "De4sdvAebsVisualizationReducerTest",
     srcs: ["app/tests/**/*.java"],
     static_libs: [
+        "de4sdv_aebs_visualization_reducer",
         "junit",
         "androidx.annotation_annotation",
     ],
     sdk_version: "system_current",
+    owner: "de4sdv",
+}
+
+// PF-004 preflight probe: publishes raw frames through the Data Tunnel.
+cc_binary {
+    name: "de4sdv_aebs010_pf004_publisher",
+    srcs: ["preflight/pf004_publisher.cpp"],
+    shared_libs: [
+        "libsdvgatewayclient",
+        "libbinder_ndk",
+    ],
+    cflags: ["-Wall", "-Wextra", "-Werror"],
     owner: "de4sdv",
 }
