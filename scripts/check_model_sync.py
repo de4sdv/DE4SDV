@@ -468,17 +468,164 @@ def check_ontology_kernel(errors: list[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Sync point 6: kernel-vocabulary registry coverage (reverse direction)
+# ---------------------------------------------------------------------------
+
+# Kernel packages whose declarations must be classified in a
+# ``kernel-vocabulary`` header block (ontology, kernel-internal, or native).
+KERNEL_DIR = ROOT / "textual-notation-of-model/packages/methods/de4sdv"
+
+# SysML declaration kinds the registry must classify. Deliberately explicit:
+# language constructs that appear as ``<kind> def`` in kernel files.
+_DECLARATION_KINDS = (
+    "part",
+    "requirement",
+    "item",
+    "enum",
+    "concern",
+    "viewpoint",
+    "use case",
+    "occurrence",
+    "port",
+    "metadata",
+    "allocation",
+    "action",
+    "calculation",
+    "analysis",
+    "state",
+)
+
+_DECLARATION_RE = re.compile(
+    r"\b("
+    + "|".join(re.escape(k) for k in _DECLARATION_KINDS)
+    + r") def ([A-Za-z][A-Za-z0-9_]*)"
+)
+
+_REGISTRY_BLOCK_RE = re.compile(
+    r"kernel-vocabulary:\s*(.*?)\*/", re.DOTALL
+)
+_REGISTRY_ENTRY_RE = re.compile(
+    r"^\s*\*\s*-\s+([A-Za-z][A-Za-z0-9_]*)\s*:\s*(ontology|kernel-internal)\b",
+    re.MULTILINE,
+)
+
+_REGISTRY_STATUSES = ("ontology", "kernel-internal")
+
+
+def _extract_kernel_registry(sysml_text: str) -> dict[str, str] | None:
+    """Extract the ``kernel-vocabulary:`` registry from a kernel file header.
+
+    Returns ``None`` when the file has no registry block. Registry entries map
+    declaration name -> status (``ontology`` or ``kernel-internal``).
+    """
+    match = _REGISTRY_BLOCK_RE.search(sysml_text)
+    if not match:
+        return None
+    return dict(_REGISTRY_ENTRY_RE.findall(match.group(1)))
+
+
+def check_kernel_vocabulary_registry(errors: list[str]) -> None:
+    """Sync point 6: every kernel declaration must be classified.
+
+    Reverse-direction counterpart of SP5: while SP5 verifies the ontology
+    points at existing declarations, SP6 verifies the kernel cannot grow a
+    declaration without an explicit decision recorded in its
+    ``kernel-vocabulary`` registry:
+
+    - ``ontology`` — the declaration is mapped in
+      approach/framework/ontology/de4sdv-basic-ontology.yaml;
+    - ``kernel-internal`` — deliberately not ontology vocabulary, with the
+      reason recorded in the registry entry.
+
+    Also verifies the cross-file consistency of the two directions: a
+    registry entry marked ``ontology`` must be referenced by the ontology
+    YAML (directly, or as a documented native/external concept).
+    """
+    if not KERNEL_DIR.is_dir():
+        errors.append(f"[SP6] kernel directory not found: {KERNEL_DIR}")
+        return
+
+    import yaml  # local import: PyYAML is a CI test dependency
+
+    ontology_classes: dict[str, dict] = {}
+    if ONTOLOGY_YAML.exists():
+        try:
+            doc = yaml.safe_load(_read(ONTOLOGY_YAML))
+            ontology_classes = doc.get("classes", {}) if isinstance(doc, dict) else {}
+        except yaml.YAMLError:
+            # SP5 already reports invalid YAML; avoid duplicate noise.
+            ontology_classes = {}
+
+    # Names the ontology covers: mapped kernel declarations plus the mapped
+    # kernel file's declarations for native classes' file references.
+    ontology_covered: set[str] = set()
+    for spec in ontology_classes.values():
+        if not isinstance(spec, dict):
+            continue
+        kernel = spec.get("kernel", {})
+        if isinstance(kernel, dict) and "declaration" in kernel:
+            declaration = kernel["declaration"]
+            # "part def X" -> the declared name
+            ontology_covered.add(declaration.split()[-1])
+
+    for sysml_path in sorted(KERNEL_DIR.glob("*.sysml")):
+        rel = sysml_path.relative_to(ROOT)
+        text = _read(sysml_path)
+        registry = _extract_kernel_registry(text)
+        if registry is None:
+            errors.append(
+                f"[SP6] {rel}: no kernel-vocabulary registry block in file header"
+            )
+            continue
+
+        code = _strip_comments(text)
+        declarations = [name for _, name in _DECLARATION_RE.findall(code)]
+
+        for name in declarations:
+            status = registry.get(name)
+            if status is None:
+                errors.append(
+                    f"[SP6] {rel}: declaration '{name}' is not classified in "
+                    f"the kernel-vocabulary registry (add '- {name}: ontology' "
+                    f"or '- {name}: kernel-internal (reason)')"
+                )
+            elif status not in _REGISTRY_STATUSES:
+                errors.append(
+                    f"[SP6] {rel}: declaration '{name}' has unknown registry "
+                    f"status '{status}' (expected one of "
+                    f"{', '.join(_REGISTRY_STATUSES)})"
+                )
+            elif status == "ontology" and name not in ontology_covered:
+                errors.append(
+                    f"[SP6] {rel}: declaration '{name}' is registered as "
+                    f"'ontology' but not mapped in "
+                    f"approach/framework/ontology/de4sdv-basic-ontology.yaml"
+                )
+
+        # Registry entries that name no actual declaration (stale after rename).
+        declared = set(declarations)
+        for name in registry:
+            if name not in declared:
+                errors.append(
+                    f"[SP6] {rel}: registry entry '{name}' does not match any "
+                    f"declaration in the file (stale entry after a rename or "
+                    f"removal?)"
+                )
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def run_all_checks() -> list[str]:
-    """Run all five sync-point checks and return a list of error strings."""
+    """Run all six sync-point checks and return a list of error strings."""
     errors: list[str] = []
     check_scenario_identities(errors)
     check_yaml_profiles(errors)
     check_dependency_targets(errors)
     check_verification_usages(errors)
     check_ontology_kernel(errors)
+    check_kernel_vocabulary_registry(errors)
     return errors
 
 

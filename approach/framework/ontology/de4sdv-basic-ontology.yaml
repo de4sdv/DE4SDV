@@ -43,6 +43,46 @@ classes:
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
       declaration: part def NeedsRequirementsIncrement
+  IncrementEngineeringQuestion:
+    definition: The engineering question that an increment answers.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def IncrementEngineeringQuestion
+  IncrementLifecycleDecision:
+    definition: A lifecycle decision that an increment supports (accepted, deferred, or invalidated).
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def IncrementLifecycleDecision
+  IncrementTraceabilityShell:
+    definition: The traceability structure connecting an increment to its sources and downstream artifacts.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def IncrementTraceabilityShell
+  MethodPhase:
+    definition: One of the 13 phases of the DE4SDV increment workflow.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+      declaration: enum def MethodPhase
+  SignalMappingDisposition:
+    definition: The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable).
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+      declaration: enum def SignalMappingDisposition
+  LogicalToSoftwareSignalMappingRecord:
+    definition: A control record for a logical or semantic information item crossing into a software, service, topic, API, or physical boundary; preserves trace and review obligations without claiming runtime interoperability.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+      declaration: item def LogicalToSoftwareSignalMappingRecord
+  SystemToSoftwareSignalMappingCandidate:
+    definition: A reusable non-claiming allocation relationship from a logical/function signal responsibility to a concrete software or adapter signal endpoint; the allocation alone never proves field identity or runtime interoperability.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+      declaration: allocation def SystemToSoftwareSignalMappingCandidate
+  IncrementSize:
+    definition: Size guidance for an increment (XS correction, S slice, M cross-viewpoint, L end-to-end baseline).
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+      declaration: enum def IncrementSize
   SystemLayer:
     definition: Coarse ASELCM-style layer used to frame DE4SDV increments and their environments.
     kernel:
@@ -67,6 +107,14 @@ classes:
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
       declaration: part def ProductLineFeatureCandidate
+  ProductLineCharacteristic:
+    definition: >-
+      The product-line classification base: a characteristic is a common
+      capability, a feature candidate, deferred scope, or a native SysML v2
+      variation choice.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def ProductLineCharacteristic
   CommonCapability:
     definition: >-
       A capability or characteristic present in all relevant member products;
@@ -217,6 +265,11 @@ classes:
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
       declaration: part def MissingRealizationRecord
+  BlockedRealizationBranchRecord:
+    definition: A record of a realization branch blocked by a source defect or gap.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def BlockedRealizationBranchRecord
   AssuranceClaim:
     definition: >-
       A claim about safety, security, compliance alignment, release readiness,

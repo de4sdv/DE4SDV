@@ -9,6 +9,27 @@
  * a variation marks the varying definition or usage, and its owned variant
  * usages enumerate allowed choices. Do not introduce a project-local
  * variation-point part definition in place of native SysML v2 variation semantics.
+ *
+ * kernel-vocabulary:
+ * Classification of every declaration below for the ontology sync gate
+ * (scripts/check_model_sync.py sync point 6). See
+ * de4sdv_method_context.sysml for the status definitions.
+ * Every new declaration must be classified here in the same commit.
+ *
+ * - ProductLine: ontology
+ * - SDVProductLine: kernel-internal (concrete product-line instance type;
+ *   the ontology covers the generic ProductLine concept)
+ * - ProductLineMemberProduct: ontology
+ * - ProductLineCharacteristic: ontology
+ * - CommonProductLineCapability: ontology
+ * - ProductLineFeatureCandidate: ontology
+ * - DeferredProductLineScope: ontology
+ * - ProductLineVariantChoice: kernel-internal (descriptive YAML/Markdown
+ *   vocabulary, deliberately not an accepted configuration choice)
+ * - DeferredVariantChoice: kernel-internal (descriptive vocabulary for
+ *   unresolved choices outside a concrete SysML variation body)
+ * - DeferredProductLineVariation: kernel-internal (generic deferred-choice
+ *   variation placeholder, not ontology vocabulary)
  */
 
 package DE4SDV_ProductLine {

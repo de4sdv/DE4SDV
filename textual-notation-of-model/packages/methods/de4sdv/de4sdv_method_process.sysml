@@ -11,6 +11,21 @@
  *
  * Source: methodologies/sysmod-sysmlv2/increment-workflow.md
  *         methodologies/sysmod-sysmlv2/process-mapping.md
+ *
+ * kernel-vocabulary:
+ * Classification of every declaration below for the ontology sync gate
+ * (scripts/check_model_sync.py sync point 6). See
+ * de4sdv_method_context.sysml for the status definitions.
+ * Every new declaration must be classified here in the same commit.
+ *
+ * - MethodPhase: ontology
+ * - SAFDomainMapping: kernel-internal (method-process assurance helper)
+ * - TraceLink: ontology
+ * - RequiredTraceChain: ontology
+ * - SignalMappingDisposition: ontology
+ * - LogicalToSoftwareSignalMappingRecord: ontology
+ * - SystemToSoftwareSignalMappingCandidate: ontology
+ * - IncrementSize: ontology
  */
 
 package DE4SDV_MethodProcess {

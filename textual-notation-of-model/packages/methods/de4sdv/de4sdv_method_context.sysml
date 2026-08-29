@@ -10,6 +10,62 @@
  * increment. DE4SDV intentionally does not introduce a generic ProjectContext
  * abstraction here; feature increments can compose problem statements,
  * stakeholders, and system context directly.
+ *
+ * kernel-vocabulary:
+ * Classification of every declaration below for the ontology sync gate
+ * (scripts/check_model_sync.py sync point 6):
+ *   ontology        — the declaration is DE4SDV method vocabulary and is
+ *                     mapped in approach/framework/ontology/de4sdv-basic-ontology.yaml
+ *   kernel-internal — deliberately not ontology vocabulary (framing helpers,
+ *                     concrete need/candidate types, method-stack elements);
+ *                     the reason is recorded after the status.
+ * Every new declaration must be classified here in the same commit.
+ *
+ * - EngineeringIncrement: ontology
+ * - FeatureIncrement: ontology
+ * - NeedsRequirementsIncrement: ontology
+ * - SystemLayer: ontology
+ * - System1SDVProductLine: kernel-internal (ASELCM System 1 framing role,
+ *   an increment-level role, not reusable semantic vocabulary)
+ * - System2EngineeringAndAssuranceSystem: kernel-internal (ASELCM System 2
+ *   framing role)
+ * - System3OpenSourceGovernanceEcosystem: kernel-internal (ASELCM System 3
+ *   framing role)
+ * - MethodStackElement: kernel-internal (method-stack framing helper)
+ * - SAFViewpointSelection: kernel-internal (method-stack element)
+ * - SYSMODMethodFlow: kernel-internal (method-stack element)
+ * - DE4SDVOntologyKernel: kernel-internal (method-stack element)
+ * - SysMLv2ModelExpression: kernel-internal (method-stack element)
+ * - VSSCandidateSignalCatalog: kernel-internal (method-stack element)
+ * - OperationalScopeBoundary: kernel-internal (framing helper)
+ * - InScopeItem: kernel-internal (framing helper)
+ * - OutOfScopeItem: kernel-internal (framing helper)
+ * - ProblemStatement: ontology
+ * - StakeholderNeedCandidate: ontology
+ * - ProductLineCommonCapabilityNeed: kernel-internal (concrete need type)
+ * - EngineeringTraceabilityNeed: kernel-internal (concrete need type)
+ * - ProductLineClassificationNeed: kernel-internal (concrete need type)
+ * - RegulatoryVisibilityNeed: kernel-internal (concrete need type)
+ * - VerificationPlanningNeed: kernel-internal (concrete need type)
+ * - ProductSafetyAvailabilityNeed: kernel-internal (concrete need type)
+ * - RequirementCandidate: ontology
+ * - FunctionalRequirementCandidate: kernel-internal (concrete candidate type)
+ * - SafetyConstraintRequirementCandidate: kernel-internal (concrete candidate type)
+ * - SecurityConstraintRequirementCandidate: kernel-internal (concrete candidate type)
+ * - ProductLineConstraintRequirementCandidate: kernel-internal (concrete candidate type)
+ * - TraceabilityConstraintRequirementCandidate: kernel-internal (concrete candidate type)
+ * - EvidenceContractTraceabilityRequirementCandidate: kernel-internal (concrete candidate type)
+ * - IncrementAssumption: ontology
+ * - IncrementGap: ontology
+ * - IncrementScope: kernel-internal (framing helper)
+ * - IncrementTraceabilityShell: ontology
+ * - IncrementEngineeringQuestion: ontology
+ * - IncrementLifecycleDecision: ontology
+ * - MissingRealizationRecord: ontology
+ * - BlockedRealizationBranchRecord: ontology
+ * - SourceContributionRecord: kernel-internal (realization-evidence helper)
+ * - SystemContext: kernel-internal (SYSMOD problem-statement pattern element,
+ *   consumed by feature slices directly)
  */
 
 package DE4SDV_MethodContext {

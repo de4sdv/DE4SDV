@@ -12,6 +12,31 @@
  * re-declares them as `part def` specializations of its own Stakeholder base
  * with identifier names. See methodologies/sysmod-sysmlv2/pilots/saf-source.yaml
  * for source provenance.
+ *
+ * kernel-vocabulary:
+ * Classification of every declaration below for the ontology sync gate
+ * (scripts/check_model_sync.py sync point 6). See
+ * de4sdv_method_context.sysml for the status definitions.
+ * Every new declaration must be classified here in the same commit.
+ *
+ * - PriorityKind: kernel-internal (stakeholder metadata attribute type)
+ * - StakeholderCategoryKind: kernel-internal (stakeholder metadata attribute type)
+ * - Stakeholder: ontology
+ * - RoadUser: kernel-internal (concrete stakeholder role)
+ * - VehicleOccupant: kernel-internal (concrete stakeholder role)
+ * - SystemsEngineer: kernel-internal (concrete stakeholder role)
+ * - ProductLineEngineer: kernel-internal (concrete stakeholder role)
+ * - ComplianceEngineer: kernel-internal (concrete stakeholder role)
+ * - VerificationEngineer: kernel-internal (concrete stakeholder role)
+ * - OpenSourceReviewer: kernel-internal (concrete stakeholder role)
+ * - SafetyExpert: kernel-internal (concrete stakeholder role)
+ * - SecurityExpert: kernel-internal (concrete stakeholder role)
+ * - SystemArchitect: kernel-internal (concrete stakeholder role)
+ * - SoftwareDeveloper: kernel-internal (concrete stakeholder role)
+ * - HardwareDeveloper: kernel-internal (concrete stakeholder role)
+ * - Maintainer: kernel-internal (concrete stakeholder role)
+ * - Supplier: kernel-internal (concrete stakeholder role)
+ * - ProjectManager: kernel-internal (concrete stakeholder role)
  */
 
 package DE4SDV_Stakeholders {

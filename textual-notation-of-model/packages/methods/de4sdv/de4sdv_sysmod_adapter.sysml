@@ -12,6 +12,20 @@
  *   pkg:sysand/mbse4u/sysmod =5.1.1
  *   pkg:sysand/ode4hera/requirements-management =2.0.1
  * Provenance: methodologies/sysmod-sysmlv2/upstream.md
+ *
+ * kernel-vocabulary:
+ * Classification of every declaration below for the ontology sync gate
+ * (scripts/check_model_sync.py sync point 6). See
+ * de4sdv_method_context.sysml for the status definitions. All declarations
+ * here are upstream seam adapters; the ontology references their downstream
+ * specializations, not the seams themselves.
+ * Every new declaration must be classified here in the same commit.
+ *
+ * - SYSMODStakeholderBase: kernel-internal (upstream seam adapter)
+ * - SYSMODRequirementBase: kernel-internal (upstream seam adapter)
+ * - SYSMODSystemUseCaseBase: kernel-internal (upstream seam adapter)
+ * - SYSMODConstrainedOccurrenceBase: kernel-internal (upstream seam adapter)
+ * - RequirementsManagementAttributeBase: kernel-internal (upstream seam adapter)
  */
 
 package DE4SDV_SYSMODAdapter {
