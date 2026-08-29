@@ -135,3 +135,12 @@ java_test {
     sdk_version: "system_current",
     owner: "de4sdv",
 }
+
+// PF-004 preflight probe: publishes raw frames through the Data Tunnel.
+cc_binary {
+    name: "de4sdv_aebs010_pf004_publisher",
+    srcs: ["preflight/pf004_publisher.cpp"],
+    shared_libs: ["libsdvgatewayclient"],
+    cflags: ["-Wall", "-Wextra", "-Werror"],
+    owner: "de4sdv",
+}
