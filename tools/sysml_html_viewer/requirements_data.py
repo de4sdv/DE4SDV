@@ -86,6 +86,8 @@ class RequirementRecord:
     subject_type: str
     stakeholders: list[str] = field(default_factory=list)
     mentions: list[str] = field(default_factory=list)  # other IDs referenced
+    rationale: str = ""    # structured `attribute :>> rationale` (ADR 0009)
+    source: str = ""       # structured `attribute :>> source` (ADR 0009)
     rel_path: str = ""
     line: int = 0
     anchor: str = ""       # src-N anchor on the file page
@@ -102,6 +104,8 @@ class RequirementRecord:
             "subject": self.subject,
             "stakeholders": self.stakeholders,
             "mentions": self.mentions,
+            "rationale": self.rationale,
+            "source": self.source,
             "file": self.rel_path,
             "line": self.line,
             "anchor": self.anchor,
@@ -138,6 +142,16 @@ def extract_requirements(mf: ModelFile) -> list[RequirementRecord]:
         doc = _clean_doc(docm.group(1)) if docm else ""
         idm = _ID_RE.search(doc)
         rid = idm.group(1) if idm else ""
+        # structured ODE4HERA/NRM attributes when present (ADR 0009)
+        attr_status = re.search(
+            r"attribute :>>\s*status\s*=\s*ReqStatus::(\w+)", block
+        )
+        attr_source = re.search(r'attribute :>>\s*source\s*=\s*"([^"]*)"', block)
+        attr_rationale = re.search(
+            r'attribute :>>\s*rationale\s*=\s*"([^"]*)"', block
+        )
+        rationale = attr_rationale.group(1) if attr_rationale else ""
+        source = attr_source.group(1) if attr_source else ""
         status = ""
         if idm:
             tail = doc[idm.end():].strip()
@@ -149,6 +163,9 @@ def extract_requirements(mf: ModelFile) -> list[RequirementRecord]:
                 status = status.split(";")[0].strip()
             else:
                 status = ""
+        if attr_status:
+            # structured status wins over doc-text heuristics
+            status = attr_status.group(1)
         stm = _STATEMENT_RE.search(block)
         statement = _clean_doc(stm.group(1)) if stm else ""
         subj = _SUBJECT_RE.search(block)
@@ -174,6 +191,8 @@ def extract_requirements(mf: ModelFile) -> list[RequirementRecord]:
                 subject_type=subject_type,
                 stakeholders=stakeholders,
                 mentions=mentions,
+                rationale=rationale,
+                source=source,
                 rel_path=mf.rel_path,
                 line=start,
                 anchor=f"src-{start}",

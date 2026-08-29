@@ -41,6 +41,9 @@ package DE4SDV_MWStakeholderNeeds {
             subject productLine : SDVProductLine;
             stakeholder platformEngineer : SystemsEngineer;
             require constraint statement { language "English" /* Platform engineers need the SDV product line to provide middleware integration connecting the ADAS application with a vehicle-level platform middleware for signal access, diagnostic access, lifecycle coordination, health monitoring, and update coordination. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "INC-MW-002 operational context and INC-MW-003 feature classification";
+            attribute :>> rationale = "ADAS application capability depends on signal, diagnostic, lifecycle, health, and update access through platform middleware.";
           }
 
           requirement needPlatformDecoupling : PlatformDecouplingNeed {
@@ -48,6 +51,9 @@ package DE4SDV_MWStakeholderNeeds {
             subject productLine : SDVProductLine;
             stakeholder platformEngineer : SystemsEngineer;
             require constraint statement { language "English" /* Platform engineers need the SDV product line to ensure the ADAS application is not coupled to a specific middleware implementation so that middleware selection remains a product-line feature choice. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "INC-MW-003 feature classification";
+            attribute :>> rationale = "Middleware selection must remain a product-line feature choice, not an application property.";
           }
 
           requirement needMiddlewareAsFeature : ProductLineClassificationNeed {
@@ -55,6 +61,9 @@ package DE4SDV_MWStakeholderNeeds {
             subject productLine : SDVProductLine;
             stakeholder productLineEngineer : ProductLineEngineer;
             require constraint statement { language "English" /* Product-line engineers need the SDV product line to treat middleware platform selection as a feature that distinguishes member products, with the adapter layer as a common capability derived from the application-middleware feature pair. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "INC-MW-003 feature classification";
+            attribute :>> rationale = "Adapter-layer commonality derives from the application-middleware feature pair.";
           }
 
           requirement needSafetyPathIsolation : SafetyPathIsolationNeed {
@@ -62,6 +71,9 @@ package DE4SDV_MWStakeholderNeeds {
             subject memberProduct : ProductLineMemberProduct;
             stakeholder safetyExpert : SafetyExpert;
             require constraint statement { language "English" /* Safety experts need each SDV product-line member product to ensure that the emergency intervention path is isolated from middleware failures, whether routed through a safety-certified middleware partition or via a direct vehicle-command path. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "INC-MW-002 operational context emergency-intervention scenario";
+            attribute :>> rationale = "Emergency intervention must survive middleware failure regardless of selected architecture; criteria open per GAP-MW-029.";
           }
         }
 
@@ -71,6 +83,9 @@ package DE4SDV_MWStakeholderNeeds {
             subject increment : NeedsRequirementsIncrement;
             stakeholder maintainer : Maintainer;
             require constraint statement { language "English" /* Maintainers need the DE4SDV middleware increment to engage upstream middleware maintainers before deeper integration, vendoring, or presenting borrowed methods as settled DE4SDV practice. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "DE4SDV governance policy on external methodology adoption";
+            attribute :>> rationale = "Upstream maintainers must be involved before deeper integration or vendoring.";
           }
 
           requirement needSecurityTrustBoundary : SecurityTrustBoundaryNeed {
@@ -78,12 +93,18 @@ package DE4SDV_MWStakeholderNeeds {
             subject increment : NeedsRequirementsIncrement;
             stakeholder securityExpert : SecurityExpert;
             require constraint statement { language "English" /* Security experts need the DE4SDV middleware increment to define the trust boundary that middleware service bindings must authenticate across before the ADAS application accepts service data or commands. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "Requirements QA gate review of the INC-MW-005 baseline";
+            attribute :>> rationale = "Service-binding authentication needs a defined trust boundary to authenticate across; details deferred per GAP-MW-012.";
           }
           requirement needTraceabilityToOperationalContext : EngineeringTraceabilityNeed {
             doc /* N-MW-006 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder systemsEngineer : SystemsEngineer;
             require constraint statement { language "English" /* Systems engineers need the DE4SDV middleware increment to maintain trace links from stakeholder needs to the operational context scenarios defined in INC-MW-002 and the feature classifications defined in INC-MW-003. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "DE4SDV method increment workflow";
+            attribute :>> rationale = "Needs must trace to the operational scenarios that justify them.";
           }
 
           requirement needExplicitEngineeringBoundary : EngineeringTraceabilityNeed {
@@ -91,6 +112,9 @@ package DE4SDV_MWStakeholderNeeds {
             subject increment : NeedsRequirementsIncrement;
             stakeholder systemsEngineer : SystemsEngineer;
             require constraint statement { language "English" /* Systems engineers need the DE4SDV middleware increment to keep its engineering boundary, assumptions, source constraints, and out-of-scope cases explicit while needs are derived. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "DE4SDV method increment workflow";
+            attribute :>> rationale = "Boundary, assumptions, and out-of-scope cases stay explicit while needs are derived.";
           }
 
           requirement needVVPlanningAttachment : VerificationPlanningNeed {
@@ -98,6 +122,9 @@ package DE4SDV_MWStakeholderNeeds {
             subject increment : NeedsRequirementsIncrement;
             stakeholder reviewer : OpenSourceReviewer;
             require constraint statement { language "English" /* Reviewers need the DE4SDV middleware increment to maintain a separate controlled V&V planning attachment for each stakeholder need without changing the product obligation. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "DE4SDV verification and assurance workflow";
+            attribute :>> rationale = "Per-need V&V planning attachments stay separate from product obligations.";
           }
         }
 
