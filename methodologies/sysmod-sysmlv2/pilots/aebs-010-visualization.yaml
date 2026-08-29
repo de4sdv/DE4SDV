@@ -162,6 +162,9 @@ requirement_ids:
   - REQ-AEBS-S2-009
   - REQ-AEBS-S2-010
   - REQ-AEBS-S2-011
+  - REQ-AEBS-S2-012
+  - REQ-AEBS-S2-013
+  - REQ-AEBS-S2-014
 
 requirement_derivation:
   - requirement: REQ-AEBS-S2-002
@@ -184,6 +187,12 @@ requirement_derivation:
     derived_from: [N-AEBS-009, N-AEBS-012]
   - requirement: REQ-AEBS-S2-011
     derived_from: [N-AEBS-012]
+  - requirement: REQ-AEBS-S2-012
+    derived_from: [N-AEBS-009]
+  - requirement: REQ-AEBS-S2-013
+    derived_from: [N-AEBS-009]
+  - requirement: REQ-AEBS-S2-014
+    derived_from: [N-AEBS-010]
 
 operational_scenario_ids:
   - SC-AEBS-010-01

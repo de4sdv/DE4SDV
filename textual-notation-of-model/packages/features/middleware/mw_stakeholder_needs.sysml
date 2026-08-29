@@ -29,6 +29,7 @@ package DE4SDV_MWStakeholderNeeds {
         requirement def PlatformDecouplingNeed :> StakeholderNeedCandidate;
         requirement def SafetyPathIsolationNeed :> StakeholderNeedCandidate;
         requirement def UpstreamEngagementNeed :> StakeholderNeedCandidate;
+        requirement def SecurityTrustBoundaryNeed :> StakeholderNeedCandidate;
 
         part incMW004 : NeedsRequirementsIncrement {
           doc /* INC-MW-004: middleware integration stakeholder needs. */
@@ -39,7 +40,7 @@ package DE4SDV_MWStakeholderNeeds {
             doc /* N-MW-001 draft System 1 need. */
             subject productLine : SDVProductLine;
             stakeholder platformEngineer : SystemsEngineer;
-            require constraint statement { language "English" /* Platform engineers need the SDV product line to provide middleware integration that enables signal access, diagnostic access, lifecycle coordination, health monitoring, and update coordination between an ADAS application and a vehicle-level platform middleware. */ }
+            require constraint statement { language "English" /* Platform engineers need the SDV product line to provide middleware integration connecting the ADAS application with a vehicle-level platform middleware for signal access, diagnostic access, lifecycle coordination, health monitoring, and update coordination. */ }
           }
 
           requirement needPlatformDecoupling : PlatformDecouplingNeed {
@@ -50,28 +51,34 @@ package DE4SDV_MWStakeholderNeeds {
           }
 
           requirement needMiddlewareAsFeature : ProductLineClassificationNeed {
-            doc /* N-MW-003 draft System 1 need. */
+            doc /* N-MW-003 draft System 1 need; derived requirements are owned by the PLE configuration increment INC-MW-009 rather than INC-MW-005. */
             subject productLine : SDVProductLine;
             stakeholder productLineEngineer : ProductLineEngineer;
             require constraint statement { language "English" /* Product-line engineers need the SDV product line to treat middleware platform selection as a feature that distinguishes member products, with the adapter layer as a common capability derived from the application-middleware feature pair. */ }
           }
 
           requirement needSafetyPathIsolation : SafetyPathIsolationNeed {
-            doc /* N-MW-004 draft System 1 need. */
+            doc /* N-MW-004 draft System 1 need; isolation and containment criteria remain open per GAP-MW-013. */
             subject memberProduct : ProductLineMemberProduct;
             stakeholder safetyExpert : SafetyExpert;
             require constraint statement { language "English" /* Safety experts need each SDV product-line member product to ensure that the emergency intervention path is isolated from middleware failures, whether routed through a safety-certified middleware partition or via a direct vehicle-command path. */ }
           }
-
-          requirement needUpstreamEngagement : UpstreamEngagementNeed {
-            doc /* N-MW-005 draft System 1 need. */
-            subject productLine : SDVProductLine;
-            stakeholder maintainer : Maintainer;
-            require constraint statement { language "English" /* Maintainers need the SDV product line to engage upstream middleware maintainers before deeper integration, vendoring, or presenting borrowed methods as settled DE4SDV practice. */ }
-          }
         }
 
         package System2EngineeringAssurance {
+          requirement needUpstreamEngagement : UpstreamEngagementNeed {
+            doc /* N-MW-005 draft System 2 need; moved from System 1 because upstream engagement is a DE4SDV project obligation, not a product-line capability. */
+            subject increment : NeedsRequirementsIncrement;
+            stakeholder maintainer : Maintainer;
+            require constraint statement { language "English" /* Maintainers need the DE4SDV middleware increment to engage upstream middleware maintainers before deeper integration, vendoring, or presenting borrowed methods as settled DE4SDV practice. */ }
+          }
+
+          requirement needSecurityTrustBoundary : SecurityTrustBoundaryNeed {
+            doc /* N-MW-009 draft System 2 need; parents REQ-MW-008, trust-boundary details remain deferred per GAP-MW-012. */
+            subject increment : NeedsRequirementsIncrement;
+            stakeholder securityExpert : SecurityExpert;
+            require constraint statement { language "English" /* Security experts need the DE4SDV middleware increment to define the trust boundary that middleware service bindings must authenticate across before the ADAS application accepts service data or commands. */ }
+          }
           requirement needTraceabilityToOperationalContext : EngineeringTraceabilityNeed {
             doc /* N-MW-006 draft System 2 need. */
             subject increment : NeedsRequirementsIncrement;
@@ -80,14 +87,14 @@ package DE4SDV_MWStakeholderNeeds {
           }
 
           requirement needExplicitEngineeringBoundary : EngineeringTraceabilityNeed {
-            doc /* N-MW-007 draft System 2 need. */
+            doc /* N-MW-007 draft System 2 need; satisfied by the increment framing and gap records rather than a derived requirement. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder systemsEngineer : SystemsEngineer;
             require constraint statement { language "English" /* Systems engineers need the DE4SDV middleware increment to keep its engineering boundary, assumptions, source constraints, and out-of-scope cases explicit while needs are derived. */ }
           }
 
           requirement needVVPlanningAttachment : VerificationPlanningNeed {
-            doc /* N-MW-008 draft System 2 need. */
+            doc /* N-MW-008 draft System 2 need; satisfied by the separate verification_planning attachment in the INC-MW-004 and INC-MW-005 artifacts rather than a derived requirement. */
             subject increment : NeedsRequirementsIncrement;
             stakeholder reviewer : OpenSourceReviewer;
             require constraint statement { language "English" /* Reviewers need the DE4SDV middleware increment to maintain a separate controlled V&V planning attachment for each stakeholder need without changing the product obligation. */ }
@@ -110,6 +117,15 @@ package DE4SDV_MWStakeholderNeeds {
            * GAP-MW-012: The security and trust boundary needs are not yet
            * derived. Deferred to a security-focused increment or
            * INC-MW-005.
+           */
+        }
+
+        part safetyPathIsolationCriteriaGap : DeferredProductLineScope {
+          doc /*
+           * GAP-MW-013: The isolation criteria and failure-containment
+           * expectations for the emergency intervention path remain
+           * undefined; the selected safety-path architecture is deferred
+           * to INC-MW-005.
            */
         }
 

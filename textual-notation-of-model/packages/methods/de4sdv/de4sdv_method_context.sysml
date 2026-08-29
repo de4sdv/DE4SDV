@@ -112,6 +112,10 @@ package DE4SDV_MethodContext {
     doc /* Candidate requirement for safety constraints and non-activation. */
   }
 
+  requirement def SecurityConstraintRequirementCandidate :> RequirementCandidate {
+    doc /* Candidate requirement for security and trust-boundary constraints. */
+  }
+
   requirement def ProductLineConstraintRequirementCandidate :> RequirementCandidate {
     doc /* Candidate requirement for product-line classification and variability constraints. */
   }

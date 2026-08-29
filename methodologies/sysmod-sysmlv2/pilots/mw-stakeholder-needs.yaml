@@ -38,11 +38,12 @@ need_ids:
     - N-MW-002: Platform decoupling (platform engineer)
     - N-MW-003: Middleware as feature (product-line engineer)
     - N-MW-004: Safety path isolation (safety expert)
-    - N-MW-005: Upstream engagement (maintainer)
   system2_engineering_assurance:
+    - N-MW-005: "Upstream engagement (maintainer) - moved from System 1: engagement is a DE4SDV project obligation, not a product-line capability"
     - N-MW-006: Traceability to operational context (systems engineer)
     - N-MW-007: Explicit engineering boundary (systems engineer)
     - N-MW-008: V&V planning attachment (reviewer)
+    - N-MW-009: "Security trust boundary (security expert) - parents REQ-MW-008 in INC-MW-005"
 
 out_of_scope:
   - Design-input requirements (INC-MW-005)

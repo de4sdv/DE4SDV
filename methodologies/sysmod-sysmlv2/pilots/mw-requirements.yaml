@@ -56,6 +56,26 @@ requirement_ids:
 gap_ids:
 - GAP-MW-011
 - GAP-MW-012
+- GAP-MW-013
+requirement_derivation:
+- requirement: REQ-MW-001
+  derived_from: [N-MW-001]
+- requirement: REQ-MW-002
+  derived_from: [N-MW-001]
+- requirement: REQ-MW-003
+  derived_from: [N-MW-001]
+- requirement: REQ-MW-004
+  derived_from: [N-MW-001]
+- requirement: REQ-MW-005
+  derived_from: [N-MW-001]
+- requirement: REQ-MW-006
+  derived_from: [N-MW-004]
+- requirement: REQ-MW-007
+  derived_from: [N-MW-002]
+- requirement: REQ-MW-008
+  derived_from: [N-MW-009]
+- requirement: REQ-MW-009
+  derived_from: [N-MW-006]
 verification_planning:
   status: planned_with_open_criteria
   ownership: System 2 verification and assurance workflow
