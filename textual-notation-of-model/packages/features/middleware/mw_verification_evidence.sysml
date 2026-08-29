@@ -417,6 +417,12 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   verification def VehicleStartupValidation010 {
+    doc /*
+     * Modeled as a verification case over System 2 acceptance criteria
+     * (SysML v2 provides no native validation-case keyword). Any validation
+     * claim against stakeholder needs, intended use, and intended users
+     * remains separately scoped and is not made by this case.
+     */
     subject verifiedBench : MiddlewareIntegrationVandVBench010;
     objective vehicleStartupObjective010 {
       verify acceptanceCriterion010VehicleStartup;
@@ -442,6 +448,12 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   verification def UpdateCoordinationValidation010 {
+    doc /*
+     * Modeled as a verification case over System 2 acceptance criteria
+     * (SysML v2 provides no native validation-case keyword). Any validation
+     * claim against stakeholder needs, intended use, and intended users
+     * remains separately scoped and is not made by this case.
+     */
     subject verifiedBench : MiddlewareIntegrationVandVBench010;
     objective updateCoordinationObjective010 {
       verify acceptanceCriterion010UpdateCoordination;
@@ -468,6 +480,12 @@ package DE4SDV_MW010VerificationEvidence {
   }
 
   verification def FaultDetectionValidation010 {
+    doc /*
+     * Modeled as a verification case over System 2 acceptance criteria
+     * (SysML v2 provides no native validation-case keyword). Any validation
+     * claim against stakeholder needs, intended use, and intended users
+     * remains separately scoped and is not made by this case.
+     */
     subject verifiedBench : MiddlewareIntegrationVandVBench010;
     objective faultDetectionObjective010 {
       verify acceptanceCriterion010FaultDetection;
