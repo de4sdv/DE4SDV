@@ -27,7 +27,8 @@
     <tspan x="364" dy="0">MiddlewareSignalAccessRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="94" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -46,7 +47,8 @@
     <tspan x="364" dy="0">MiddlewareDiagnosticAccessRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="214" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -65,7 +67,8 @@
     <tspan x="364" dy="0">MiddlewareLifecycleCoordinationRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="334" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -85,7 +88,8 @@
     <tspan x="364" dy="0">MiddlewareHealthMonitoringRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="474" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -105,7 +109,8 @@
     <tspan x="364" dy="0">MiddlewareUpdateCoordinationRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="614" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -125,7 +130,8 @@
     <tspan x="364" dy="0">MiddlewareSafetyPathIsolationRequirement,</tspan>
     <tspan x="364" dy="20">SafetyConstraintRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="754" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -147,7 +153,8 @@
     <tspan x="364" dy="0">MiddlewareServiceDiscoveryRequirement,</tspan>
     <tspan x="364" dy="20">FunctionalRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="934" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -166,7 +173,8 @@
     <tspan x="364" dy="0">MiddlewareServiceAuthenticationRequirement,</tspan>
     <tspan x="364" dy="20">SecurityConstraintRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="1054" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="1078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
@@ -185,7 +193,8 @@
     <tspan x="364" dy="0">MiddlewareBoundaryTraceabilityRequirement,</tspan>
     <tspan x="364" dy="20">TraceabilityConstraintRequirementCandidate,</tspan>
     <tspan x="364" dy="20">RequirementCandidate,</tspan>
-    <tspan x="364" dy="20">SYSMODRequirementBase</tspan>
+    <tspan x="364" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="364" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
   <rect x="712" y="1174" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="724" y="1198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
