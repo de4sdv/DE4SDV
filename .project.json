@@ -11,6 +11,10 @@
     {
       "resource": "pkg:sysand/mbse4u/sysmod",
       "versionConstraint": "=5.1.1"
+    },
+    {
+      "resource": "pkg:sysand/ode4hera/requirements-management",
+      "versionConstraint": "=2.0.1"
     }
   ]
 }

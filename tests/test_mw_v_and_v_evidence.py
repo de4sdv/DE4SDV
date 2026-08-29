@@ -4,31 +4,7 @@ from pathlib import Path
 
 import yaml
 
-
-def _strip_comments(text: str) -> str:
-    """Return text with doc/block and line comments removed."""
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-    text = re.sub(r"//[^\n]*", "", text)
-    return text
-
-
-def _extract_requirement_block(model_text: str, element_name: str) -> str | None:
-    """Return the full block of the named requirement usage, or None."""
-    match = re.search(
-        rf"\bre[^ ]* {re.escape(element_name)}\b[^{{]*\{{", model_text
-    )
-    if not match:
-        return None
-    start = match.end() - 1
-    depth = 1
-    for i in range(start + 1, len(model_text)):
-        if model_text[i] == "{":
-            depth += 1
-        elif model_text[i] == "}":
-            depth -= 1
-            if depth == 0:
-                return model_text[match.start() : i + 1]
-    return None
+from sysml_shapes import requirement_block, strip_comments
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -275,11 +251,11 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
         for criterion in criteria:
             element = criterion["sysml_element"]
             with self.subTest(criterion=criterion["id"], element=element):
-                block = _extract_requirement_block(self.model, element)
+                block = requirement_block(self.model, element)
                 self.assertIsNotNone(block, f"{element} not found in model")
                 assert block is not None  # for type checkers
                 self.assertIn("require constraint", block)
-                constraint_text = _strip_comments(block)
+                constraint_text = strip_comments(block)
                 self.assertGreater(len(constraint_text.strip()), 40)
 
     def test_evidence_ladder_preserves_claim_boundaries(self):

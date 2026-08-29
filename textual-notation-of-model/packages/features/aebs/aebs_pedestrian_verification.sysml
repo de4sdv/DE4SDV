@@ -31,7 +31,7 @@ package DE4SDV_AEBS009GVerification {
   requirement def EvidenceContract009G;
   requirement evidenceContract009GConfiguredPedestrianTarget : EvidenceContract009G {
     subject bench : PedestrianTargetBench009G;
-    require constraint { doc /* The bench shall bind the configured pedestrian trajectory, geometry, timing, and exact bench identity. */ }
+    require constraint { doc /* The bench shall bind the configured pedestrian trajectory, geometry, timing, and exact bench identity: crossing speed 1.5 m/s, a closed observation window of 2.0 s, and map-frame source observations no older than 0.5 s. */ }
   }
   requirement evidenceContract009GIndependentFootprintOutcome : EvidenceContract009G {
     subject bench : PedestrianTargetBench009G;

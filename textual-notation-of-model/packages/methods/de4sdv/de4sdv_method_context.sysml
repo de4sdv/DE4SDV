@@ -15,6 +15,15 @@
 package DE4SDV_MethodContext {
   private import DE4SDV_SYSMODAdapter::*;
 
+  /* Re-exported so feature packages can assign `attribute :>> status =
+   * ReqStatus::...` (ADR 0009) without importing the adapter directly. */
+  public import ReqStatus;
+
+  /* Re-exported so feature packages can assign `attribute :>>
+   * verificationStatus = VVStatus::...` (ADR 0009 amendment) without
+   * importing the adapter directly. */
+  public import VVStatus;
+
   part def EngineeringIncrement {
     doc /* Bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
   }
@@ -69,14 +78,13 @@ package DE4SDV_MethodContext {
     doc /* The problem that is to be solved by the system or increment. */
   }
 
-  requirement def StakeholderNeedCandidate {
-    doc /* Generic base for stakeholder needs before acceptance and quality gate. */
+  requirement def StakeholderNeedCandidate :> RequirementsManagementAttributeBase {
+    doc /* Generic base for stakeholder needs before acceptance and quality gate. Inherits the NRM Chapter 15 attribute set adopted via ADR 0009. */
   }
 
   requirement def ProductLineCommonCapabilityNeed :> StakeholderNeedCandidate {
     doc /* Need for a common product-line capability required across member products. */
   }
-
   requirement def EngineeringTraceabilityNeed :> StakeholderNeedCandidate {
     doc /* Need for engineering traceability, boundary visibility, and controlled scope. */
   }
@@ -97,7 +105,7 @@ package DE4SDV_MethodContext {
     doc /* Need for bounded degradation and availability indication. */
   }
 
-  requirement def RequirementCandidate :> SYSMODRequirementBase {
+  requirement def RequirementCandidate :> SYSMODRequirementBase, RequirementsManagementAttributeBase {
     doc /* Generic base for design-input requirement candidates before acceptance.
          * Specializes the SYSMOD requirement seam, inheriting obligation,
          * stability, and motivation metadata for requirement candidates.

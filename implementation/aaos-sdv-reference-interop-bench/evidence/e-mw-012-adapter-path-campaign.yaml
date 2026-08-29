@@ -1,7 +1,7 @@
 schema: de4sdv.executable-integration-evidence.v1
 mode: runtime
-started_at: 2026-08-21T06:06:58.840296+00:00
-finished_at: 2026-08-21T06:07:02.952648+00:00
+started_at: "2026-08-21T06:06:58.840296+00:00"
+finished_at: "2026-08-21T06:07:02.952648+00:00"
 speed_kmh: 36.0
 expected_mps: 10.0
 topic: /vehicle/status/velocity_status
@@ -36,7 +36,7 @@ gates:
 - gate: 7
   name: fault tests cover stale, invalid, provider loss, discovery failure
   outcome: pass
-  detail: fault tests: ingress rejects non-valid envelopes
+  detail: "fault tests: ingress rejects non-valid envelopes"
 - gate: 8
   name: reverse lifecycle/status path passes if bidirectional is claimed
   outcome: not_claimed

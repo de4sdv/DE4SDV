@@ -172,11 +172,14 @@ jobs:
           read -r -a model_paths <<< "${MODEL_PATHS}"
           SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
           SYSMOD_SOURCE=".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml"
+          REQMGMT_SOURCE=".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml"
           test -f "${SYSIDE_VIEWS_SOURCE}"
           test -f "${SYSMOD_SOURCE}"
+          test -f "${REQMGMT_SOURCE}"
           syside viz view "${model_paths[@]}" \
             --include "${SYSIDE_VIEWS_SOURCE}" \
             --include "${SYSMOD_SOURCE}" \
+            --include "${REQMGMT_SOURCE}" \
             --format svg \
             --output-dir diagrams \
             --exclude "textual-notation-of-model/snapshots/**"
@@ -226,13 +229,16 @@ jobs:
           read -r -a model_paths <<< "${MODEL_PATHS}"
           SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
           SYSMOD_SOURCE=".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml"
+          REQMGMT_SOURCE=".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml"
           test -f "${SYSIDE_VIEWS_SOURCE}"
           test -f "${SYSMOD_SOURCE}"
+          test -f "${REQMGMT_SOURCE}"
           export PYTHONHOME="${pythonLocation}"
           export PYTHONPATH="${pythonLocation}/lib/python3.12:${pythonLocation}/lib/python3.12/lib-dynload"
           syside table export "${model_paths[@]}" \
             --include "${SYSIDE_VIEWS_SOURCE}" \
             --include "${SYSMOD_SOURCE}" \
+            --include "${REQMGMT_SOURCE}" \
             --output-dir grid-csv
           python scripts/render_grid_csv.py grid-csv diagrams
           for csv in grid-csv/*.csv; do

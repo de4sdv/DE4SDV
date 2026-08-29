@@ -8,8 +8,8 @@ Checks four sync points using regex extraction from SysML textual notation:
 2. YAML profile names must match Python enum values.
 3. Dependency traces in verification files must target real requirements
    defined in ``aebs_needs_requirements.sysml``.
-4. Verification usage names must match the EXPECTED_USAGES dict in the test
-   suite.
+4. Verification usages in each verification file must resolve to a
+   ``verification def`` declared in the same file and must be performed.
 
 Exit code 0 on success, 1 on any mismatch.
 """
@@ -32,7 +32,6 @@ CONFIG_DIR = (
     / "implementation/aebs-autoware-nominal-vehicle-target-bench/config"
 )
 NEEDS_FILE = MODEL_DIR / "aebs_needs_requirements.sysml"
-TEST_USAGES_FILE = ROOT / "tests/test_aebs_009c_009i_verification_models.py"
 
 # Verification .sysml files to scan (all increments).
 VERIFICATION_SYSML_FILES = [
@@ -321,88 +320,45 @@ def check_dependency_targets(errors: list[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Sync point 4: Verification usage names ↔ EXPECTED_USAGES
+# Sync point 4: Verification usage ↔ def resolution and performance
 # ---------------------------------------------------------------------------
 
 _VERIFICATION_USAGE_RE = re.compile(
-    r"\bverification\s+(\w+)\s*:\s*\w+\s*\{"
+    r"\bverification\s+(\w+)\s*:\s*(\w+)\s*\{"
 )
-
-
-def _extract_expected_usages(test_text: str) -> dict[str, set[str]]:
-    """Parse the EXPECTED_USAGES dict from the test file."""
-    # Find the EXPECTED_USAGES = { ... } block.
-    match = re.search(
-        r"EXPECTED_USAGES\s*=\s*\{", test_text
-    )
-    if not match:
-        return {}
-    # Extract balanced braces.
-    start = match.end() - 1  # position of opening {
-    depth = 0
-    end = start
-    for i in range(start, len(test_text)):
-        if test_text[i] == "{":
-            depth += 1
-        elif test_text[i] == "}":
-            depth -= 1
-            if depth == 0:
-                end = i + 1
-                break
-    block = test_text[start:end]
-
-    result: dict[str, set[str]] = {}
-    # Match increment keys: "009C": { ... }
-    for inc_match in re.finditer(
-        r'"(\d+[A-Z])"\s*:\s*\{([^}]*)\}', block
-    ):
-        inc = inc_match.group(1)
-        body = inc_match.group(2)
-        names = set(re.findall(r'"(\w+)"', body))
-        result[inc] = names
-    return result
-
-
-# Map increment codes to verification .sysml filenames.
-_INCREMENT_TO_FILE: dict[str, str] = {
-    "009B": "aebs_evidence.sysml",
-    "009C": "aebs_partial_intervention_verification.sysml",
-    "009D": "aebs_override_verification.sysml",
-    "009E": "aebs_non_activation_verification.sysml",
-    "009F": "aebs_degraded_input_verification.sysml",
-    "009G": "aebs_pedestrian_verification.sysml",
-    "009H": "aebs_bicycle_verification.sysml",
-    "009I": "aebs_regulatory_criterion_verification.sysml",
-}
+_VERIFICATION_DEF_RE = re.compile(r"\bverification\s+def\s+(\w+)")
+_PERFORM_RE = re.compile(r"\bperform\s+(\w+)\s*;")
 
 
 def check_verification_usages(errors: list[str]) -> None:
-    """Sync point 4: verification usage names ↔ EXPECTED_USAGES in tests."""
-    expected = _extract_expected_usages(_read(TEST_USAGES_FILE))
-    if not expected:
-        errors.append(
-            f"[SP4] {TEST_USAGES_FILE.name}: could not parse EXPECTED_USAGES"
-        )
-        return
+    """Sync point 4: usages resolve to local defs and are performed.
 
-    for inc, expected_set in expected.items():
-        sysml_name = _INCREMENT_TO_FILE.get(inc)
-        if sysml_name is None:
-            errors.append(f"[SP4] increment {inc}: no SysML file mapping")
-            continue
+    Structural only: the exact set of usages per file is pinned by the
+    generated scenario manifest (``generate_scenario_manifest.py --check``),
+    so no hand-maintained expected-usages dict is needed here.
+    """
+    for sysml_name in VERIFICATION_SYSML_FILES:
         sysml_path = MODEL_DIR / sysml_name
         if not sysml_path.exists():
             errors.append(f"[SP4] {sysml_name}: file not found")
             continue
         code = _strip_comments(_read(sysml_path))
-        actual = set(_VERIFICATION_USAGE_RE.findall(code))
-        if actual != expected_set:
+        defs = set(_VERIFICATION_DEF_RE.findall(code))
+        usages = _VERIFICATION_USAGE_RE.findall(code)
+        unresolved = sorted(
+            {usage for usage, definition in usages if definition not in defs}
+        )
+        if unresolved:
             errors.append(
-                f"[SP4] {sysml_name} (inc {inc}): mismatch\n"
-                f"  Expected:  {sorted(expected_set)}\n"
-                f"  Actual:    {sorted(actual)}\n"
-                f"  Missing:   {sorted(expected_set - actual)}\n"
-                f"  Unexpected:{sorted(actual - expected_set)}"
+                f"[SP4] {sysml_name}: usages with no local verification def: "
+                f"{unresolved}"
+            )
+        performed = set(_PERFORM_RE.findall(code))
+        unperformed = sorted({usage for usage, _ in usages} - performed)
+        if unperformed:
+            errors.append(
+                f"[SP4] {sysml_name}: verification usages never performed: "
+                f"{unperformed}"
             )
 
 

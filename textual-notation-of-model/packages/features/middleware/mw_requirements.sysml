@@ -43,48 +43,72 @@ package DE4SDV_MWRequirements {
             doc /* REQ-MW-001 draft design-input requirement. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall provide the ADAS application access to the vehicle signals required by its selected operational use cases through the selected middleware integration boundary. */ }
+            attribute :>> status = ReqStatus::ReadyForReview;
+            attribute :>> source = "Derived from N-MW-001";
+            attribute :>> rationale = "Signal access is the core middleware integration service for the ADAS application.";
           }
 
           requirement reqProvideMiddlewareDiagnosticAccess : MiddlewareDiagnosticAccessRequirement {
             doc /* REQ-MW-002 draft design-input requirement. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall provide the ADAS application access to middleware and vehicle diagnostic status from which the health of the selected integration boundary can be determined. */ }
+            attribute :>> status = ReqStatus::ReadyForReview;
+            attribute :>> source = "Derived from N-MW-001";
+            attribute :>> rationale = "Boundary health determinations require diagnostic visibility.";
           }
 
           requirement reqCoordinateMiddlewareLifecycle : MiddlewareLifecycleCoordinationRequirement {
             doc /* REQ-MW-003 draft design-input requirement. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall coordinate middleware integration lifecycle state with the ADAS application so that startup, readiness, degraded operation, and shutdown transitions are observable at the integration boundary. */ }
+            attribute :>> status = ReqStatus::ReadyForReview;
+            attribute :>> source = "Derived from N-MW-001";
+            attribute :>> rationale = "Lifecycle transitions must be observable at the integration boundary.";
           }
 
           requirement reqMonitorMiddlewareHealth : MiddlewareHealthMonitoringRequirement {
             doc /* REQ-MW-004 draft design-input requirement. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall monitor the health of the selected middleware integration boundary and provide an observable indication when a required integration service is stale, missing, inconsistent, or unavailable. */ }
+            attribute :>> status = ReqStatus::ReadyForReview;
+            attribute :>> source = "Derived from N-MW-001";
+            attribute :>> rationale = "Degraded integration services must be detected and indicated.";
           }
 
           requirement reqCoordinateMiddlewareUpdates : MiddlewareUpdateCoordinationRequirement {
             doc /* REQ-MW-005 draft design-input requirement. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall coordinate middleware integration updates with the ADAS application lifecycle so that an update does not silently invalidate required signal, diagnostic, lifecycle, or health interfaces. */ }
+            attribute :>> status = ReqStatus::ReadyForReview;
+            attribute :>> source = "Derived from N-MW-001";
+            attribute :>> rationale = "Updates must not silently invalidate required interfaces.";
           }
 
           requirement reqIsolateSafetyPath : MiddlewareSafetyPathIsolationRequirement {
             doc /* REQ-MW-006 draft safety-constraint requirement; architecture choice and containment criteria remain open per GAP-MW-029. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall prevent a failure of the non-safety middleware integration path from causing an uncontrolled emergency intervention command, whether the selected realization uses a safety-certified middleware partition or a direct vehicle-command path. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "Derived from N-MW-004";
+            attribute :>> rationale = "Middleware failure must not cause uncontrolled emergency intervention; containment criteria open per GAP-MW-029.";
           }
 
           requirement reqProvideServiceDiscovery : MiddlewareServiceDiscoveryRequirement {
             doc /* REQ-MW-007 draft design-input requirement. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall discover and bind the middleware services required by the selected ADAS application integration configuration before those services are used. */ }
+            attribute :>> status = ReqStatus::ReadyForReview;
+            attribute :>> source = "Derived from N-MW-002";
+            attribute :>> rationale = "Services must be bound before use for decoupled integration.";
           }
 
           requirement reqAuthenticateServiceBinding : MiddlewareServiceAuthenticationRequirement {
             doc /* REQ-MW-008 draft security constraint derived from N-MW-009; trust-boundary details remain deferred per GAP-MW-012. */
             subject memberProduct : ProductLineMemberProduct;
             require constraint statement { language "English" /* Each SDV product-line member product shall authenticate a middleware service binding before accepting service data or commands across a trust boundary defined for the selected integration configuration. */ }
+            attribute :>> status = ReqStatus::InDevelopment;
+            attribute :>> source = "Derived from N-MW-009";
+            attribute :>> rationale = "Service data and commands across a trust boundary must be authenticated; boundary details deferred per GAP-MW-012.";
           }
         }
 
@@ -93,6 +117,9 @@ package DE4SDV_MWRequirements {
             doc /* REQ-MW-009 System 2 traceability requirement. */
             subject increment : NeedsRequirementsIncrement;
             require constraint statement { language "English" /* The DE4SDV middleware increment shall maintain trace links from each middleware requirement to its stakeholder need, operational-context source, feature/common-capability classification, unresolved gap, and planned verification record. */ }
+            attribute :>> status = ReqStatus::ReadyForReview;
+            attribute :>> source = "Derived from N-MW-006";
+            attribute :>> rationale = "Trace links are the increment's assurance backbone.";
           }
         }
 
