@@ -197,8 +197,8 @@ def _annotate_edges_with_verification(
     ``verify <source>;``. This helper finds that def and the
     ``verification <usage> : <def>`` that instantiates it.
 
-    Mirrors the braced-block style used in
-    :mod:`tests.test_aebs_009c_009i_verification_models`.
+    Uses the same braced-block extraction as
+    :mod:`tests.sysml_shapes`.
     """
     code_no_comments = _strip_comments(code)
 

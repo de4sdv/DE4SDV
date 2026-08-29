@@ -377,7 +377,6 @@ sysmlv2-api/syson-spike.md
 tests/fixtures/sysml_viewer_model/textual-notation-of-model/packages/features/fixture/diagrams/diagram-fixtureStructureView.svg
 tests/fixtures/sysml_viewer_model/textual-notation-of-model/packages/features/fixture/fixture_feature.sysml
 tests/fixtures/sysml_viewer_model/textual-notation-of-model/packages/features/fixture/fixture_shared.sysml
-tests/test_aebs_009b_verification_model.py
 tests/test_aebs_009c_009i_verification_models.py
 tests/test_aebs_009e_non_activation_matrix.py
 tests/test_aebs_009f_degraded_input_matrix.py
@@ -410,6 +409,8 @@ tests/test_sysmod_sysand_integration.py
 tests/test_validate_aebs_executable_bench.py
 tests/test_validate_aebs_vss_simulation_map.py
 tests/test_validate_sysml.py
+tests/test_verification_model_invariants.py
+tests/sysml_shapes.py
 textual-notation-of-model/README.md
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/.gitignore
 textual-notation-of-model/libraries/covesa-vss-sysmlv2/.meta.json
