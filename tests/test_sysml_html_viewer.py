@@ -748,6 +748,83 @@ def test_inline_svg_and_hover_json_in_page(tmp_path):
     assert re.search(r'src="\.\./\.\./\.\./\.\./\.\./assets/viewer\.js\?v=[0-9a-f]{10}"', html)
 
 
+def test_viewer_bootstrap_attaches_tree_resizer():
+    """Regression: page startup must run the shared viewer initializer.
+
+    The requirements-browser addition once bootstrapped only its guarded
+    initializer, leaving the tree divider (and every other shared viewer
+    interaction) without event listeners.
+    """
+    script = r"""
+const fs = require('fs');
+const documentListeners = {};
+
+function element() {
+  return {
+    style: {},
+    classList: {
+      add() {}, remove() {}, toggle() {}, contains() { return false; }
+    },
+    appendChild() {},
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    addEventListener(type, fn) {
+      this.listeners = this.listeners || {};
+      this.listeners[type] = fn;
+    },
+    getAttribute() { return null; },
+    setAttribute() {},
+    hasAttribute() { return false; },
+    closest() { return null; },
+    getBoundingClientRect() { return {left: 0, top: 0, width: 0, height: 0}; }
+  };
+}
+
+const resizer = element();
+const layout = element();
+layout.getBoundingClientRect = () => ({left: 0});
+
+global.document = {
+  readyState: 'complete',
+  body: element(),
+  documentElement: {style: {setProperty() {}}},
+  createElement: element,
+  createDocumentFragment: element,
+  createTextNode(text) { return {textContent: text}; },
+  querySelector(selector) { return selector === '.layout' ? layout : null; },
+  querySelectorAll() { return []; },
+  getElementById(id) { return id === 'treeResizer' ? resizer : null; },
+  addEventListener(type, fn) { documentListeners[type] = fn; },
+  removeEventListener() {}
+};
+global.window = {
+  innerWidth: 1440,
+  innerHeight: 900,
+  USES_INDEX: {},
+  localStorage: {getItem() { return null; }, setItem() {}},
+  addEventListener() {}
+};
+global.location = {hash: '', pathname: ''};
+global.sessionStorage = {getItem() { return null; }, removeItem() {}, setItem() {}};
+
+eval(fs.readFileSync(process.argv[1], 'utf8'));
+if (!resizer.listeners || !resizer.listeners.mousedown) {
+  throw new Error('tree resizer mousedown listener was not attached at startup');
+}
+resizer.listeners.mousedown({preventDefault() {}, clientX: 320});
+documentListeners.mousemove({clientX: 500});
+if (layout.style.gridTemplateColumns !== '500px 6px 1fr') {
+  throw new Error('tree width did not follow the dragged divider');
+}
+"""
+    result = subprocess.run(
+        ["node", "-e", script, str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_active_path_chain_stays_open(tmp_path):
     """Regression: the tree on a file page must keep the whole ancestor
     chain of the active file open (root > dirs > file), not just the root."""
