@@ -3,33 +3,42 @@ package org.de4sdv.aebsvisualization;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.widget.TextView;
+import android.util.Log;
 
 /**
  * DE4SDV AEBS 010 center-display activity.
  *
  * System 2 engineering visualization: renders the presentation disposition
- * emitted by {@link VisualizationStateReducer} plus the current frame's
- * per-field provenance badges. Display-derived presentation only — the app
+ * emitted by {@link VisualizationStateReducer} through the pure
+ * {@link SituationRenderModel}. Display-derived presentation only — the app
  * derives no AEBS decision and publishes nothing (REQ-AEBS-S2-005).
  *
- * The Gateway subscription is bound by the runtime lock (AO-AEBS-010-007/008)
- * using the documented SDV Gateway Java client; the subscription wiring is
- * finalized in the runtime segment on the bench (Phase 10), because service
- * unit descriptors must match the pinned ingress build.
+ * Layout contract (VISUALIZATION-CONTRACT.md): the forward-situation view
+ * carries scene geometry only; state progression, exact metrics, and data
+ * health live in the side panel and health chip so liveness can never be
+ * confused with risk geometry. The state color authority is the reducer;
+ * no renderer rule can recolor a state.
  */
 public class MainActivity extends Activity {
 
     private VisualizationStateReducer reducer;
-    private TextView dispositionView;
+    private ForwardSituationView situationView;
+    private TextView healthChip;
+    private TextView stateMonitoring;
+    private TextView stateWarning;
+    private TextView stateIntervention;
+    private TextView stateReleased;
+    private TextView metricTargetRange;
+    private TextView metricRssDistance;
+    private TextView metricFrameAge;
     private TextView provenanceView;
-    private SituationRadarView radarView;
     private HandlerThread tickerThread;
     private Handler tickerHandler;
     private long lastFrameElapsedMs;
+    private long lastFrameAgeMs = -1;
     private GatewayFrameSubscriber gatewaySubscriber;
 
     @Override
@@ -37,9 +46,16 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         reducer = new VisualizationStateReducer();
-        dispositionView = findViewById(R.id.disposition);
+        situationView = findViewById(R.id.situation_view);
+        healthChip = findViewById(R.id.health_chip);
+        stateMonitoring = findViewById(R.id.state_monitoring);
+        stateWarning = findViewById(R.id.state_warning);
+        stateIntervention = findViewById(R.id.state_intervention);
+        stateReleased = findViewById(R.id.state_released);
+        metricTargetRange = findViewById(R.id.metric_target_range);
+        metricRssDistance = findViewById(R.id.metric_rss_distance);
+        metricFrameAge = findViewById(R.id.metric_frame_age);
         provenanceView = findViewById(R.id.provenance);
-        radarView = findViewById(R.id.radar);
 
         tickerThread = new HandlerThread("aebs010-tick");
         tickerThread.start();
@@ -89,7 +105,7 @@ public class MainActivity extends Activity {
                 && frame.getDe4SdvLifecycleState().hasEnumValue()
                 ? frame.getDe4SdvLifecycleState().getEnumValue()
                 : "armed";
-        // Live perception fields for the situation radar (may be absent).
+        // Live perception fields for the situation view (may be absent).
         final Float targetRange = frame.hasTargetRange()
                 && frame.getTargetRange().hasNumericValue()
                 ? (float) frame.getTargetRange().getNumericValue() : null;
@@ -105,12 +121,18 @@ public class MainActivity extends Activity {
                 + " range=" + targetRange + " bearing=" + targetBearing
                 + " rss=" + rssDistance);
         runOnUiThread(() -> {
-            radarView.onFrame(targetRange, targetBearing, rssDistance, intervention);
+            lastFrameElapsedMs = android.os.SystemClock.elapsedRealtime();
+            sceneModel.setTarget(targetRange, targetBearing);
+            sceneModel.setRssDistance(rssDistance);
+            sceneModel.setFrameAgeMs(0); // fresh at receipt; ticker ages it
+            situationView.render(sceneModel.build());
+            renderMetrics(targetRange, rssDistance, 0);
             onFrame(new VisualizationStateReducer.FrameInput(
                     frame.getSequence(), intervention, warning, braking, lifecycle));
         });
     }
 
+    private final SituationRenderModel.Builder sceneModel = new SituationRenderModel.Builder();
 
     private void tick() {
         final long now = android.os.SystemClock.elapsedRealtime();
@@ -119,6 +141,10 @@ public class MainActivity extends Activity {
             onDisposition(reducer.onStale(now));
         }
         onDisposition(reducer.onTick(now));
+        // Age the health chip; geometry stays untouched by age (pure test 10).
+        if (lastFrameElapsedMs > 0) {
+            lastFrameAgeMs = now - lastFrameElapsedMs;
+        }
         tickerHandler.postDelayed(this::tick, 200);
     }
 
@@ -137,37 +163,67 @@ public class MainActivity extends Activity {
     }
 
     private void renderDisposition(VisualizationStateReducer.Disposition disposition) {
-        dispositionView.setText(VisualizationStateReducer.label(disposition));
-        // Fail-closed radar: no live data -> empty scope (no synthetic blip).
+        // Fail-closed scene: no live data -> empty scene (no synthetic marker).
+        sceneModel.setDisposition(disposition);
         if (disposition == VisualizationStateReducer.Disposition.STALE
                 || disposition == VisualizationStateReducer.Disposition.INVALID
                 || disposition == VisualizationStateReducer.Disposition.UNAVAILABLE) {
-            radarView.clear();
+            sceneModel.setTarget(null, null);
+            sceneModel.setRssDistance(null);
+            situationView.clearTrail();
         }
-        final int color;
-        switch (disposition) {
-            case WARNING:
-                color = Color.rgb(255, 165, 0);
-                break;
-            case INTERVENTION:
-                color = Color.rgb(204, 0, 0);
-                break;
-            case RELEASED:
-            case RESTORED:
-                color = Color.rgb(0, 153, 51);
-                break;
-            case STALE:
-            case INVALID:
-            case UNAVAILABLE:
-                color = Color.GRAY;
-                break;
-            case MONITORING:
-            default:
-                color = Color.rgb(0, 102, 204);
-                break;
+        SituationRenderModel model = sceneModel.build();
+        situationView.render(model);
+        renderStatePanel(disposition, model);
+        renderHealthChip(model);
+        provenanceView.setText(getString(R.string.provenance_chain));
+    }
+
+    private void renderStatePanel(VisualizationStateReducer.Disposition disposition,
+                                  SituationRenderModel model) {
+        // Panel color/icon authority is the model (reducer-driven only).
+        final int color = model.getStateColorRgb();
+        final String icon = model.getStateIconToken();
+        setActiveState(stateMonitoring,
+                VisualizationStateReducer.Disposition.MONITORING == disposition, color, icon);
+        setActiveState(stateWarning,
+                VisualizationStateReducer.Disposition.WARNING == disposition, color, icon);
+        setActiveState(stateIntervention,
+                VisualizationStateReducer.Disposition.INTERVENTION == disposition, color, icon);
+        setActiveState(stateReleased,
+                VisualizationStateReducer.Disposition.RELEASED == disposition, color, icon);
+    }
+
+    private void setActiveState(TextView view, boolean active, int color, String icon) {
+        if (active) {
+            // Color + icon + text: never color alone (contract §4).
+            view.setTextColor(color);
+            view.setText(icon + "  " + plainLabel(view));
+        } else {
+            view.setTextColor(Color.rgb(90, 100, 105));
         }
-        dispositionView.setTextColor(color);
-        provenanceView.setText(getString(R.string.provenance_footer));
+    }
+
+    private static String plainLabel(TextView view) {
+        // Strip the leading icon glyph from the string resource label.
+        String text = view.getText().toString();
+        int space = text.indexOf("  ");
+        return space >= 0 ? text.substring(space + 2) : text;
+    }
+
+    private void renderHealthChip(SituationRenderModel model) {
+        healthChip.setText("● " + model.getHealthLabel()
+                + " · 10 Hz · age " + model.getFrameAgeText());
+        healthChip.setTextColor(model.getHealthColorRgb());
+    }
+
+    private void renderMetrics(Float targetRange, Float rssDistance, long frameAgeMs) {
+        metricTargetRange.setText("Target range  "
+                + (targetRange != null ? String.format(java.util.Locale.US, "%.1f m", targetRange) : "—"));
+        metricRssDistance.setText("RSS distance  "
+                + (rssDistance != null ? String.format(java.util.Locale.US, "%.1f m", rssDistance) : "—"));
+        metricFrameAge.setText("Frame age  "
+                + (frameAgeMs >= 0 ? frameAgeMs + " ms" : "—"));
     }
 
     @Override

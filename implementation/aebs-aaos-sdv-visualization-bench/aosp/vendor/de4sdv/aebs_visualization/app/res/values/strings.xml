@@ -2,9 +2,18 @@
 <resources>
     <string name="app_name">DE4SDV AEBS Visualization</string>
     <string name="initial_disposition">unavailable</string>
-    <string name="provenance_footer">
-        Sources: AUTOWARE AEB (RSS, intervention) · DE4SDV AEBS (warning, braking, lifecycle) ·
-        target projection display-derived. Radar pulse reflects the live frame heartbeat; blip and
-        envelope are live frame data. Read-only instrumentation; issues no commands.
+    <string name="initial_health">○ UNAVAILABLE</string>
+    <string name="initial_target_range">Target range  —</string>
+    <string name="initial_rss_distance">RSS distance  —</string>
+    <string name="initial_frame_age">Frame age  —</string>
+    <string name="state_monitoring">○  monitoring</string>
+    <string name="state_warning">△  warning</string>
+    <string name="state_intervention">⬢  intervention</string>
+    <string name="state_released">✓  released</string>
+    <string name="provenance_chain">
+        SIMULATED POINT CLOUD → AUTOWARE AEB → ROS BRIDGE → SDV GATEWAY → AAOS
+    </string>
+    <string name="provenance_boundary">
+        Read-only engineering visualization · issues no vehicle commands
     </string>
 </resources>

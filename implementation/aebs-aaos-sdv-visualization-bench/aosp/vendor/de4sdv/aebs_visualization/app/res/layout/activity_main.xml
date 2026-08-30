@@ -1,39 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- DE4SDV AEBS 010 center-display layout: situation radar + disposition. -->
+<!-- DE4SDV AEBS center-display layout: forward situation view + state/metrics panel. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#FF101418">
 
-    <org.de4sdv.aebsvisualization.SituationRadarView
-        android:id="@+id/radar"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="0.62" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="0.38"
-        android:orientation="vertical"
-        android:gravity="center">
+        android:layout_weight="0.86"
+        android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/disposition"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="52sp"
-            android:textStyle="bold"
-            android:text="@string/initial_disposition" />
+        <org.de4sdv.aebsvisualization.ForwardSituationView
+            android:id="@+id/situation_view"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.68" />
 
-        <TextView
-            android:id="@+id/provenance"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="12dp"
-            android:textSize="13sp"
-            android:text="@string/provenance_footer" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.32"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <!-- Data-health chip: separate from scene geometry (contract §3.8). -->
+            <TextView
+                android:id="@+id/health_chip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:text="@string/initial_health" />
+
+            <!-- Four-stage state progression (contract §3.6). -->
+            <TextView
+                android:id="@+id/state_monitoring"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="26sp"
+                android:text="@string/state_monitoring" />
+
+            <TextView
+                android:id="@+id/state_warning"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="26sp"
+                android:text="@string/state_warning" />
+
+            <TextView
+                android:id="@+id/state_intervention"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="26sp"
+                android:text="@string/state_intervention" />
+
+            <TextView
+                android:id="@+id/state_released"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="26sp"
+                android:text="@string/state_released" />
+
+            <!-- Exact metric cards (contract §3.7). -->
+            <TextView
+                android:id="@+id/metric_target_range"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:textSize="24sp"
+                android:fontFeatureSettings="tnum"
+                android:text="@string/initial_target_range" />
+
+            <TextView
+                android:id="@+id/metric_rss_distance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textSize="24sp"
+                android:fontFeatureSettings="tnum"
+                android:text="@string/initial_rss_distance" />
+
+            <TextView
+                android:id="@+id/metric_frame_age"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textSize="20sp"
+                android:fontFeatureSettings="tnum"
+                android:text="@string/initial_frame_age" />
+        </LinearLayout>
     </LinearLayout>
+
+    <!-- Provenance ribbon (contract §6): two lines, readable at feed width. -->
+    <TextView
+        android:id="@+id/provenance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="13sp"
+        android:text="@string/provenance_chain" />
+
+    <TextView
+        android:id="@+id/disposition"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="15sp"
+        android:text="@string/provenance_boundary" />
 </LinearLayout>
