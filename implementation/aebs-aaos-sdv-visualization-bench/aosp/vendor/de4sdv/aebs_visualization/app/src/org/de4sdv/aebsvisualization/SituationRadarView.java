@@ -14,11 +14,13 @@ import android.view.View;
  * Renders the situation derived from the live VisualizationFrame fields:
  * target blip from target_range/target_bearing (native obstacle cloud,
  * projected by the bridge), safety-envelope arc from rss_distance (native
- * AEB stopping-distance metric), ego marker at bottom center. The rotating
- * sweep is a presentation animation with no data meaning and is labeled as
- * such in the provenance footer. No data, no blip: absent target fields
- * render an empty scope, never a synthetic target. Fails closed: the view
- * draws only what the last validated frame contained (REQ-AEBS-S2-005/006).
+ * AEB stopping-distance metric), ego marker at bottom center, and a
+ * frame-arrival pulse that visualizes the 10 Hz data heartbeat. No
+ * rotating-sweep animation: the source is an obstacle-segmentation
+ * pointcloud (full front-field, persistent tracking), not a scanning
+ * radar antenna. No data, no blip: absent target fields render an empty
+ * scope, never a synthetic target. Fails closed: the view draws only what
+ * the last validated frame contained (REQ-AEBS-S2-005/006).
  */
 public class SituationRadarView extends View {
 
@@ -27,7 +29,7 @@ public class SituationRadarView extends View {
 
     private final Paint scopePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint sweepPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint pulsePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint egoPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint targetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint trailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -39,7 +41,7 @@ public class SituationRadarView extends View {
     private Float targetBearingRad;
     private Float rssDistanceM;
     private boolean interventionActive;
-    private long sweepStartMs;
+    private long lastFrameMs;
 
     /** Small ring buffer of recent target positions for the motion trail. */
     private static final int TRAIL_MAX = 24;
@@ -71,9 +73,9 @@ public class SituationRadarView extends View {
         ringPaint.setStrokeWidth(2f);
         ringPaint.setColor(Color.rgb(0, 160, 90));
 
-        sweepPaint.setStyle(Paint.Style.STROKE);
-        sweepPaint.setStrokeWidth(4f);
-        sweepPaint.setColor(Color.argb(140, 0, 220, 130));
+        pulsePaint.setStyle(Paint.Style.STROKE);
+        pulsePaint.setStrokeWidth(6f);
+        pulsePaint.setColor(Color.argb(110, 0, 220, 130));
 
         egoPaint.setStyle(Paint.Style.FILL);
         egoPaint.setColor(Color.rgb(120, 200, 255));
@@ -106,9 +108,8 @@ public class SituationRadarView extends View {
                 && targetRangeM <= MAX_RANGE_M) {
             pushTrail();
         }
-        if (sweepStartMs == 0) {
-            sweepStartMs = android.os.SystemClock.elapsedRealtime();
-        }
+        // Frame heartbeat: drives the arrival pulse and schedules the redraw.
+        lastFrameMs = android.os.SystemClock.elapsedRealtime();
         invalidate();
     }
 
@@ -120,6 +121,7 @@ public class SituationRadarView extends View {
         interventionActive = false;
         trailCount = 0;
         trailHead = 0;
+        lastFrameMs = 0;
         invalidate();
     }
 
@@ -162,13 +164,18 @@ public class SituationRadarView extends View {
         canvas.drawLine(cx, cy, cx, cy - radius, ringPaint);
         canvas.drawLine(cx - radius, cy, cx + radius, cy, ringPaint);
 
-        // Presentation sweep (no data meaning; labeled in the footer).
-        final long now = android.os.SystemClock.elapsedRealtime();
-        final float sweepAngleDeg = ((now - sweepStartMs) / 12f) % 360f;
-        canvas.drawLine(cx, cy,
-                cx + radius * (float) Math.cos(Math.toRadians(sweepAngleDeg - 90)),
-                cy + radius * (float) Math.sin(Math.toRadians(sweepAngleDeg - 90)),
-                sweepPaint);
+        // Frame-arrival pulse (data-tied liveness): a short radial shimmer
+        // from the scope origin on each accepted frame. This is the 10 Hz
+        // frame heartbeat — when frames stop, the pulse stops, and the
+        // disposition goes stale/gray. No scanning-sweep animation: the
+        // source is an obstacle-segmentation pointcloud (full front-field,
+        // persistent tracking), not a rotating radar antenna.
+        final long sinceFrame = android.os.SystemClock.elapsedRealtime() - lastFrameMs;
+        if (sinceFrame >= 0 && sinceFrame < 180) {
+            final float pulseFrac = sinceFrame / 180f;
+            pulsePaint.setAlpha((int) (110 * (1f - pulseFrac)));
+            canvas.drawCircle(cx, cy, radius * (0.15f + 0.85f * pulseFrac), pulsePaint);
+        }
 
         // Motion trail (only real historical target positions).
         for (int i = 0; i < trailCount; i++) {
