@@ -48,30 +48,39 @@ Before proposing a completed change:
 
 ## Ontology and kernel-vocabulary alignment
 
-The repository keeps a semantic vocabulary contract between the SysML method
-kernel (`textual-notation-of-model/packages/methods/de4sdv/`) and the basic
-ontology (`approach/framework/ontology/de4sdv-basic-ontology.yaml`). CI
-enforces it mechanically through sync points 5 and 6 of
-`scripts/check_model_sync.py`; do not weaken or bypass these checks to make a
-change pass.
+The repository keeps a bidirectional ontology-kernel contract between the
+SysML method kernel (`textual-notation-of-model/packages/methods/de4sdv/`)
+and the basic ontology (`approach/framework/ontology/de4sdv-basic-ontology.yaml`).
+CI enforces it mechanically through the ontology-kernel contract check in
+`scripts/check_model_sync.py` (`[ONTOLOGY-KERNEL]` errors); do not weaken or
+bypass this check to make a change pass.
+
+The contract is the set equation:
+
+```text
+kernel declarations
+= ontology-mapped declarations
++ kernel_sync.exclusions (each with a reason)
+```
 
 When a change touches the method kernel or the ontology:
 
-- Every new declaration (`part def`, `requirement def`, `enum def`, and other
-  `def` kinds) in a kernel file must be classified in that file's
-  `kernel-vocabulary` registry header in the same commit: either
-  `- Name: ontology` (the concept is DE4SDV method vocabulary and must be
-  mapped in the ontology YAML with a `kernel` mapping) or
-  `- Name: kernel-internal (reason)` (deliberately not ontology vocabulary).
-- Renaming or removing a kernel declaration requires updating both the
-  file's registry and the ontology YAML in the same commit; stale entries
-  fail the gate.
+- Every new declaration (`part def`, `requirement def`, `enum def`, and every
+  other `def` kind) in a kernel file must be classified in the same commit:
+  either map it from an ontology class with a `kernel` mapping
+  (`file` + `declaration`) in
+  `approach/framework/ontology/de4sdv-basic-ontology.yaml`, or add it to
+  `kernel_sync.exclusions` with a non-empty reason (deliberately
+  kernel-internal). Unlisted declarations fail CI.
+- Renaming or removing a kernel declaration requires updating the ontology
+  YAML in the same commit; stale mappings and stale exclusions fail the gate.
+- Exclusions must stay inside the governed directory declared by
+  `kernel_sync.governed_directory` and must not overlap mapped declarations.
 - When a feature slice introduces a concept that is reusable method
   vocabulary (not feature-specific), propose moving it to the kernel and
-  classifying it as `ontology` instead of leaving a local duplicate.
-- Do not re-declare kernel class names (or close synonyms) as local
-  `part def`s inside feature slices; specialize or import the kernel
-  declarations instead.
+  mapping it from the ontology instead of leaving a local duplicate.
+- Do not re-declare ontology-mapped kernel names as local `def`s inside
+  feature slices; specialize or import the kernel declarations instead.
 
 ## SysML v2 textual notation validation
 
