@@ -24,5 +24,6 @@ Reviewers need the DE4SDV method process to be visible: phases, SAF domain mappi
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 - **Presentation note:** This is a dense review artifact; open the SVG at full size rather than reading it from the page thumbnail.
+- **Presentation note:** This render contains 6 anonymous «comment» boxes; the renderer does not attach them to the elements they annotate, so treat each comment as a section note for the declarations that follow it in the source file.
 
 ![methodProcessView](diagrams/diagram-methodProcessView.svg)

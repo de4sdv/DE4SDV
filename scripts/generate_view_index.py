@@ -327,9 +327,47 @@ def _presentation_notes(svg: Path, view_name: str) -> list[str]:
             "This is a dense review artifact; open the SVG at full size rather "
             "than reading it from the page thumbnail."
         )
+    statement_notes = _table_statement_notes(labels)
+    if statement_notes:
+        for note in statement_notes:
+            notes.append(note)
+    anonymous_comments = labels.count("«comment»")
+    if anonymous_comments >= 3:
+        notes.append(
+            f"This render contains {anonymous_comments} anonymous «comment» "
+            "boxes; the renderer does not attach them to the elements they "
+            "annotate, so treat each comment as a section note for the "
+            "declarations that follow it in the source file."
+        )
     known_note = KNOWN_PRESENTATION_NOTES.get(view_name)
     if known_note:
         notes.append(known_note)
+    return notes
+
+
+def _table_statement_notes(labels: list[str]) -> list[str]:
+    header = next(
+        (
+            index
+            for index in range(len(labels) - 2)
+            if labels[index : index + 3] == ["ID", "Name", "Statement"]
+        ),
+        None,
+    )
+    if header is None:
+        return []
+    rows = labels[header + 3 :]
+    statements = rows[2::3]
+    notes = []
+    if statements and all(
+        re.match(r"^(N-[A-Z]+-\d+|REQ-[A-Z0-9-]+|MW-\d+)\b", s or " ")
+        for s in statements
+    ):
+        notes.append(
+            "Every Statement cell shows a short status line rather than the "
+            "full need or requirement prose; the complete statements live in "
+            "the source file and the viewer tooltips."
+        )
     return notes
 
 

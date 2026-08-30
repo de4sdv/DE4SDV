@@ -6,6 +6,7 @@ from scripts.generate_view_index import (
     collect_views,
     parse_view_spec,
     render_markdown,
+    _table_statement_notes,
 )
 from scripts.check_committed_view_artifacts import check_committed_view_artifacts
 
@@ -127,6 +128,55 @@ def test_presentation_note_flags_svg_ellipsis(tmp_path: Path) -> None:
     markdown = render_markdown(folder)
 
     assert "truncates at least one compartment" in markdown
+
+
+def test_table_statement_note_reports_status_line_tables(tmp_path: Path) -> None:
+    labels = [
+        "ID",
+        "Name",
+        "Statement",
+        "needExample",
+        "StakeholderNeedCandidate, RequirementsManagementAttributeBase",
+        "N-AEBS-009 draft System 2 need.",
+        "reqExample",
+        "FunctionalRequirementCandidate, RequirementCandidate",
+        "REQ-AEBS-001 candidate.",
+    ]
+
+    notes = _table_statement_notes(labels)
+
+    assert notes == [
+        "Every Statement cell shows a short status line rather than the "
+        "full need or requirement prose; the complete statements live in "
+        "the source file and the viewer tooltips."
+    ]
+    assert _table_statement_notes(
+        ["ID", "Name", "Statement", "needExample", "StakeholderNeedCandidate", "Platform engineers need the SDV product line to provide middleware integration."]
+    ) == []
+
+
+def test_anonymous_comment_boxes_get_attachment_note(tmp_path: Path) -> None:
+    folder = tmp_path / "models"
+    diagrams = folder / "diagrams"
+    diagrams.mkdir(parents=True)
+    (folder / "model.sysml").write_text(
+        "view structureView { render asTreeDiagram; }", encoding="utf-8"
+    )
+    body = "".join(
+        f'<text>«comment»</text><text>Section note {index}</text>'
+        for index in range(4)
+    )
+    (diagrams / "diagram-structureView.svg").write_text(
+        f'<svg xmlns="http://www.w3.org/2000/svg">{body}</svg>',
+        encoding="utf-8",
+    )
+
+    markdown = render_markdown(folder)
+
+    assert (
+        "anonymous «comment» boxes" in markdown
+        and "does not attach them to the elements they annotate" in markdown
+    )
 
 
 def test_all_published_diagrams_match_current_view_sets() -> None:

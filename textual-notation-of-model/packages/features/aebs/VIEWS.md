@@ -115,6 +115,7 @@ Lists the stakeholder needs that justify the engineering visualization slice.
 - **Exposes:** `VisualizationNeeds::*`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
+- **Presentation note:** Every Statement cell shows a short status line rather than the full need or requirement prose; the complete statements live in the source file and the viewer tooltips.
 
 ![aebs010NeedsView](diagrams/diagram-table-aebs010NeedsView.svg)
 
@@ -428,6 +429,7 @@ Lists the stakeholder needs that frame the feature and its engineering obligatio
 - **Exposes:** `System1Product::*`, `System2EngineeringAssurance::*`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
+- **Presentation note:** Every Statement cell shows a short status line rather than the full need or requirement prose; the complete statements live in the source file and the viewer tooltips.
 
 ![aebsStakeholderNeedsView](diagrams/diagram-table-aebsStakeholderNeedsView.svg)
 
@@ -620,6 +622,7 @@ Catalogues the physical exchange types used at the modeled boundary.
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 - **Presentation note:** This is a dense review artifact; open the SVG at full size rather than reading it from the page thumbnail.
+- **Presentation note:** This render contains 9 anonymous «comment» boxes; the renderer does not attach them to the elements they annotate, so treat each comment as a section note for the declarations that follow it in the source file.
 
 ![aebsSimulationPhysicalExchangeTypeView](diagrams/diagram-aebsSimulationPhysicalExchangeTypeView.svg)
 
