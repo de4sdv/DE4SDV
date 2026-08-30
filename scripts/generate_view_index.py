@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Generate a markdown view inventory for a SysML v2 package folder.
+"""Generate a documented view inventory for a SysML v2 package folder.
 
 Scans every .sysml file under the given folder, extracts each declared
 `view` block (viewpoint, framed concern, expose targets, depth, render
-hint), and writes a human-readable index that maps each view to its
-source file and the rendered artifact name used by the privileged Syside
-validation workflow (`syside viz view`).
+hint), and writes a human-readable index that explains the view and maps it
+to the rendered artifact used by the privileged Syside validation workflow
+(`syside viz view`).
 
 Self-contained: no dependency on the view editor package, so it runs on
 any branch.
@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import sys
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -32,6 +33,141 @@ class ViewSpec:
     exposes: list[str] = field(default_factory=list)
     depth: str = ""
     render: str = ""
+    explanation: str = ""
+
+
+CONCERN_EXPLANATIONS = {
+    "conceptualFunctionMappingConcern": (
+        "Maps functional responsibilities to the conceptual system elements "
+        "that perform them."
+    ),
+    "conceptualInternalExchangeConcern": (
+        "Shows the typed exchanges between conceptual system elements and "
+        "their boundary interfaces."
+    ),
+    "conceptualStructureConcern": (
+        "Shows the conceptual system boundary, its responsibilities, and its "
+        "internal decomposition."
+    ),
+    "functionalBehaviorConcern": (
+        "Shows the functional actions and the behavior chain used to realize "
+        "the feature intent."
+    ),
+    "functionalInterfaceConcern": (
+        "Shows the functional boundary interfaces and the information items "
+        "they exchange."
+    ),
+    "physicalContextConcern": (
+        "Shows the physical system of interest together with the external "
+        "context used for this engineering slice."
+    ),
+    "physicalExchangeTypeConcern": (
+        "Catalogues the physical exchange types used at the modeled boundary."
+    ),
+    "physicalInterfaceConcern": (
+        "Shows the physical interfaces and typed items used by the selected "
+        "realization."
+    ),
+    "physicalLogicalItemMappingConcern": (
+        "Maps logical information items to the physical exchange items that "
+        "carry them."
+    ),
+    "physicalLogicalMappingConcern": (
+        "Maps logical responsibilities to the physical elements selected to "
+        "realize them."
+    ),
+    "physicalStructureConcern": (
+        "Shows the selected physical or software parts and their structural "
+        "decomposition."
+    ),
+    "requirementTraceConcern": (
+        "Shows the requirement set and its trace links to needs, behavior, or "
+        "architecture."
+    ),
+    "stakeholderNeedsConcern": (
+        "Lists the stakeholder needs that frame the feature and its engineering "
+        "obligations."
+    ),
+    "visualizationFunctionExchangeConcern": (
+        "Shows how visualization functions exchange observation and evidence "
+        "information."
+    ),
+    "visualizationFunctionMappingConcern": (
+        "Maps visualization requirements to the functions that address them."
+    ),
+    "visualizationFunctionStructureConcern": (
+        "Shows the functional decomposition of the engineering visualization "
+        "chain."
+    ),
+    "visualizationLogicalExchangeConcern": (
+        "Shows the typed exchanges between the logical visualization roles."
+    ),
+    "visualizationLogicalStructureConcern": (
+        "Shows the logical roles that collect, transport, present, and retain "
+        "visualization evidence."
+    ),
+    "visualizationNeedsConcern": (
+        "Lists the stakeholder needs that justify the engineering visualization "
+        "slice."
+    ),
+    "visualizationPhysicalExchangeConcern": (
+        "Shows the exchanges across the selected physical visualization "
+        "realization."
+    ),
+    "visualizationPhysicalStructureConcern": (
+        "Shows the deployed parts that implement the visualization evidence "
+        "chain."
+    ),
+    "visualizationProvenanceMappingConcern": (
+        "Maps logical visualization responsibilities to their selected physical "
+        "realization."
+    ),
+    "visualizationRequirementTraceConcern": (
+        "Shows how visualization requirements trace to needs and downstream "
+        "architecture."
+    ),
+}
+
+
+DIAGRAM_PUBLICATION_GAPS = {
+    "aebs010FramingView": (
+        "Withheld because the validated SVG contains only the view frame and "
+        "expose row; no model elements materialized."
+    ),
+    "aebs010FunctionInternalExchangeView": (
+        "Withheld because the validated SVG contains only the view frame and "
+        "expose rows; no exchange topology or endpoints materialized."
+    ),
+    "aebs010FunctionRequirementMappingView": (
+        "Withheld because the validated native grid export reported no rows or "
+        "columns. The model view remains authoritative, but the native diagram "
+        "frame is not a usable mapping matrix."
+    ),
+}
+
+
+KNOWN_PRESENTATION_NOTES = {
+    "aebs010ProductLineConfigurationView": (
+        "Long qualified labels overlap in the current SysIDE layout; use the "
+        "source and exposure list above for exact names."
+    ),
+    "aebs010ProductModelAssemblyView": (
+        "Long qualified labels overlap in the current SysIDE layout; use the "
+        "source and exposure list above for exact names."
+    ),
+    "aebsPhysicalLogicalMappingView": (
+        "The single-column grid is narrower than its title; the mapping cells "
+        "remain readable at full size."
+    ),
+    "mwProductLineConfigurationView": (
+        "Long qualified labels overlap in the current SysIDE layout; use the "
+        "source and exposure list above for exact names."
+    ),
+    "mwProductModelAssemblyView": (
+        "Long qualified labels overlap in the current SysIDE layout; use the "
+        "source and exposure list above for exact names."
+    ),
+}
 
 
 QUALIFIED_NAME = r"[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*"
@@ -51,6 +187,34 @@ def _strip_comments(text: str) -> str:
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
     text = re.sub(r"//[^\n]*", "", text)
     return text
+
+
+def _clean_doc(text: str) -> str:
+    lines = [re.sub(r"^\s*\*\s?", "", line).strip() for line in text.splitlines()]
+    return re.sub(r"\s+", " ", " ".join(lines)).strip()
+
+
+def _first_sentence(text: str) -> str:
+    match = re.match(r"(.+?[.!?])(?:\s|$)", text)
+    return match.group(1) if match else text
+
+
+def _concern_explanation(model_text: str, concern: str) -> str:
+    if concern:
+        match = re.search(
+            rf"\bconcern\s+{re.escape(concern)}\b[^{{]*\{{\s*"
+            r"doc\s*/\*(.*?)\*/",
+            model_text,
+            flags=re.S,
+        )
+        if match:
+            return _first_sentence(_clean_doc(match.group(1)))
+        if concern in CONCERN_EXPLANATIONS:
+            return CONCERN_EXPLANATIONS[concern]
+        words = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", concern)
+        words = re.sub(r"Concern$", "", words).lower().strip()
+        return f"Shows the model elements selected to address the {words} concern."
+    return "Shows the model elements selected by this view."
 
 
 def _find_block(text: str, decl: str, name: str) -> str | None:
@@ -91,6 +255,7 @@ def parse_view_spec(model_text: str, name: str) -> ViewSpec | None:
     render = RENDER_RE.search(block)
     if render:
         spec.render = render.group(1)
+    spec.explanation = _concern_explanation(model_text, spec.concern)
     return spec
 
 
@@ -118,21 +283,79 @@ def collect_views(folder: Path) -> list[tuple[Path, list[ViewSpec]]]:
     return out
 
 
+def _folder_title(folder: Path) -> str:
+    if folder.name == "aebs":
+        return "AEBS Views"
+    if folder.name == "de4sdv":
+        return "DE4SDV Method Views"
+    if folder.name == "product-models":
+        return "Product Model Views"
+    label = folder.name.replace("_", " ").replace("-", " ").title()
+    return f"{label} Views"
+
+
+def _count_label(count: int, singular: str) -> str:
+    suffix = "" if count == 1 else "s"
+    return f"{count} {singular}{suffix}"
+
+
+def _svg_labels(svg: Path) -> list[str]:
+    try:
+        root = ET.parse(svg).getroot()
+    except (OSError, ET.ParseError):
+        return []
+    labels = []
+    for element in root.iter():
+        if element.tag.rsplit("}", 1)[-1] != "text":
+            continue
+        label = re.sub(r"\s+", " ", "".join(element.itertext())).strip()
+        if label:
+            labels.append(label)
+    return labels
+
+
+def _presentation_notes(svg: Path, view_name: str) -> list[str]:
+    labels = _svg_labels(svg)
+    notes = []
+    if any(label in {"…", "..."} for label in labels):
+        notes.append(
+            "The current SVG truncates at least one compartment with an "
+            "ellipsis; use the linked source for the complete declaration."
+        )
+    if len(labels) >= 120:
+        notes.append(
+            "This is a dense review artifact; open the SVG at full size rather "
+            "than reading it from the page thumbnail."
+        )
+    known_note = KNOWN_PRESENTATION_NOTES.get(view_name)
+    if known_note:
+        notes.append(known_note)
+    return notes
+
+
 def render_markdown(folder: Path) -> str:
     collected = collect_views(folder)
     diagrams_dir = folder / "diagrams"
+    view_count = sum(len(views) for _, views in collected)
+    published_count = sum(
+        (diagrams_dir / artifact_filename(spec.name, spec.view_type)).is_file()
+        for _, views in collected
+        for spec in views
+    )
     lines = [
-        "# Middleware Views",
+        f"# {_folder_title(folder)}",
         "",
         "This index lists every SysML v2 `view` declared in the `.sysml` files of",
-        "this folder, with the diagram SysIDE renders from it (`syside viz view`,",
-        "run by the Privileged Syside Validation workflow). The SVGs live in",
-        "[`diagrams/`](diagrams/) beside the model files.",
+        "this first-level model area. Each entry explains the reviewer question in",
+        "plain language and embeds the committed diagram SysIDE renders from the",
+        "view (`syside viz view`, run by the Privileged Syside Validation workflow).",
+        "The SVGs live in [`diagrams/`](diagrams/) beside the model files.",
         "",
         "Generated by `scripts/generate_view_index.py` — do not edit by hand.",
         "",
-        f"**{len(collected)} files, "
-        f"{sum(len(v) for _, v in collected)} views.**",
+        f"**{_count_label(len(collected), 'file')}, "
+        f"{_count_label(view_count, 'view')}, "
+        f"{_count_label(published_count, 'published diagram')}.**",
         "",
     ]
     for path, views in collected:
@@ -140,6 +363,8 @@ def render_markdown(folder: Path) -> str:
         lines.append("")
         for spec in views:
             lines.append(f"### `{spec.name}`")
+            lines.append("")
+            lines.append(spec.explanation)
             lines.append("")
             lines.append(f"- **Source:** `{path.name}`")
             if spec.viewpoint:
@@ -162,8 +387,18 @@ def render_markdown(folder: Path) -> str:
             filename = artifact_filename(spec.name, spec.view_type)
             svg = diagrams_dir / filename
             if svg.exists():
+                lines.append("- **Diagram status:** Published from the committed SysIDE SVG.")
+                for note in _presentation_notes(svg, spec.name):
+                    lines.append(f"- **Presentation note:** {note}")
+                lines.append("")
                 lines.append(f"![{spec.name}](diagrams/{filename})")
             else:
+                gap = DIAGRAM_PUBLICATION_GAPS.get(spec.name)
+                if gap:
+                    lines.append(f"- **Diagram status:** {gap}")
+                else:
+                    lines.append("- **Diagram status:** Not yet published in this folder.")
+                lines.append("")
                 lines.append(f"_Diagram not present: `diagrams/{filename}` "
                              f"(regenerate via the Privileged Syside Validation workflow)._")
             lines.append("")

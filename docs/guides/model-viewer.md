@@ -7,15 +7,34 @@ documentation on the right, and every declared `view` with the diagram that
 SysIDE renders from it.
 
 It is a **viewer, not a modeler**. Nothing on these pages edits the model.
-Diagrams are the committed `syside viz` artifacts (`diagram-*.svg` beside the
-model files), so what you see is exactly what the privileged validation
-workflow rendered — never a re-render.
+Diagrams are the committed `syside viz` artifacts gathered in each first-level
+model area's `diagrams/` folder, so what you see is exactly what the privileged
+validation workflow rendered — never a re-render.
 
 ## The live website
 
 A live viewer is deployed at **<https://viewer.de4sdv.org>**, rebuilt from
 `main` and open pull requests by the deploy workflow. It is the public
 instance — what you see there is committed content only.
+
+## Repository diagram collections
+
+Each first-level model area that declares concrete views has a generated
+`VIEWS.md` landing page. It lists every view, explains the reviewer question in
+one sentence, records the source/viewpoint/concern/exposure metadata, and embeds
+the committed SVG when the render passed publication QA:
+
+- [architecture](../../textual-notation-of-model/packages/architecture/VIEWS.md)
+- [AEBS](../../textual-notation-of-model/packages/features/aebs/VIEWS.md)
+- [middleware](../../textual-notation-of-model/packages/features/middleware/VIEWS.md)
+- [DE4SDV method](../../textual-notation-of-model/packages/methods/de4sdv/VIEWS.md)
+- [product models](../../model-based-product-line-engineering/product-models/VIEWS.md)
+
+The landing page keeps a visible status entry when a diagram is withheld. Empty
+view frames, exposure-only renders, and empty table/matrix frames are not
+published as if they were usable diagrams. Dense or degraded-but-informative
+renders stay available with a presentation note and should be opened at full
+size.
 
 ## Run it locally (your own work)
 
