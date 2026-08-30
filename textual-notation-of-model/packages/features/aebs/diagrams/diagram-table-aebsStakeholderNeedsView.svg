@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="2434" viewBox="0 0 1080 2434" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="3454" viewBox="0 0 1080 3454" role="img" aria-labelledby="title description">
   <title id="title">AEBS stakeholder needs</title>
   <desc id="description">Lists stakeholder needs with their authoritative statements.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -18,396 +18,488 @@
   <text x="732" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="732" dy="0">Statement</tspan>
   </text>
-  <rect x="0" y="94" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="94" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needCommonAEBSCapability</tspan>
   </text>
-  <rect x="360" y="94" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="360" y="94" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="372" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">ProductLineCommonCapabilityNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="94" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="720" y="94" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="732" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-001 draft System 1 need.</tspan>
+    <tspan x="732" dy="0">Road users and vehicle occupants need the</tspan>
+    <tspan x="732" dy="20">SDV product line to define AEBS as a</tspan>
+    <tspan x="732" dy="20">common capability required across member</tspan>
+    <tspan x="732" dy="20">products to reduce forward rear-end in-</tspan>
+    <tspan x="732" dy="20">lane collision risk with a vehicle target</tspan>
+    <tspan x="732" dy="20">under defined operating conditions.</tspan>
   </text>
-  <rect x="0" y="174" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="234" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needPedestrianCollisionRiskReduction</tspan>
   </text>
-  <rect x="360" y="174" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="234" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">PedestrianCollisionRiskNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="174" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-006 draft System 1 need; source</tspan>
-    <tspan x="732" dy="20">identity is controlled and applicability</tspan>
-    <tspan x="732" dy="20">remains open.</tspan>
+  <rect x="720" y="234" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Pedestrians need the SDV product line to</tspan>
+    <tspan x="732" dy="20">provide a common AEBS capability that</tspan>
+    <tspan x="732" dy="20">reduces forward collision risk with a</tspan>
+    <tspan x="732" dy="20">pedestrian target under defined applicable</tspan>
+    <tspan x="732" dy="20">operating conditions.</tspan>
   </text>
-  <rect x="0" y="254" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="354" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needBicycleCollisionRiskReduction</tspan>
   </text>
-  <rect x="360" y="254" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="354" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">BicycleCollisionRiskNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="254" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-007 draft System 1 need; source</tspan>
-    <tspan x="732" dy="20">identity is controlled and applicability</tspan>
-    <tspan x="732" dy="20">remains open.</tspan>
+  <rect x="720" y="354" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Cyclists need the SDV product line to</tspan>
+    <tspan x="732" dy="20">provide a common AEBS capability that</tspan>
+    <tspan x="732" dy="20">reduces forward collision risk with a</tspan>
+    <tspan x="732" dy="20">bicycle target under defined applicable</tspan>
+    <tspan x="732" dy="20">operating conditions.</tspan>
   </text>
-  <rect x="0" y="334" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="474" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needBoundedDegradationAndAvailability</tspan>
   </text>
-  <rect x="360" y="334" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="474" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">ProductSafetyAvailabilityNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="334" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-008 draft System 1 safety and</tspan>
-    <tspan x="732" dy="20">availability need.</tspan>
+  <rect x="720" y="474" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Road users and vehicle occupants need each</tspan>
+    <tspan x="732" dy="20">SDV product-line member product to manage</tspan>
+    <tspan x="732" dy="20">AEBS degradation so that behavior remains</tspan>
+    <tspan x="732" dy="20">bounded and AEBS availability is apparent</tspan>
+    <tspan x="732" dy="20">when required inputs or AEBS functions are</tspan>
+    <tspan x="732" dy="20">not healthy.</tspan>
   </text>
-  <rect x="0" y="414" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="614" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needTrustworthyInterventionDecisions</tspan>
   </text>
-  <rect x="360" y="414" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="614" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">ProductSafetyAvailabilityNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="414" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-014 draft System 1 need; non-</tspan>
-    <tspan x="732" dy="20">activation and false-reaction parent</tspan>
-    <tspan x="732" dy="20">derived from N-AEBS-008 review findings.</tspan>
+  <rect x="720" y="614" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Road users and vehicle occupants need each</tspan>
+    <tspan x="732" dy="20">SDV product-line member product to keep</tspan>
+    <tspan x="732" dy="20">AEBS intervention decisions trustworthy so</tspan>
+    <tspan x="732" dy="20">that neither a collision warning nor</tspan>
+    <tspan x="732" dy="20">emergency braking occurs when AEBS</tspan>
+    <tspan x="732" dy="20">controlled non-activation criteria</tspan>
+    <tspan x="732" dy="20">determine that imminent collision risk is</tspan>
+    <tspan x="732" dy="20">absent under defined operating conditions.</tspan>
   </text>
-  <rect x="0" y="494" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="794" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqDetectForwardCollisionRisk</tspan>
   </text>
-  <rect x="360" y="494" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
-    <tspan x="372" dy="20">RequirementCandidate,</tspan>
-    <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
-    <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
-  </text>
-  <rect x="720" y="494" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-001 candidate.</tspan>
-  </text>
-  <rect x="0" y="594" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
-    <tspan x="12" dy="0">reqProvideCollisionWarning</tspan>
-  </text>
-  <rect x="360" y="594" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
-    <tspan x="372" dy="20">RequirementCandidate,</tspan>
-    <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
-    <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
-  </text>
-  <rect x="720" y="594" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-002 candidate.</tspan>
-  </text>
-  <rect x="0" y="694" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
-    <tspan x="12" dy="0">reqCommandEmergencyBraking</tspan>
-  </text>
-  <rect x="360" y="694" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
-    <tspan x="372" dy="20">RequirementCandidate,</tspan>
-    <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
-    <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
-  </text>
-  <rect x="720" y="694" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-003 candidate.</tspan>
-  </text>
-  <rect x="0" y="794" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
-    <tspan x="12" dy="0">reqAllowDriverOverride</tspan>
-  </text>
-  <rect x="360" y="794" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="360" y="794" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="372" y="818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="794" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="720" y="794" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="732" y="818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-004 draft; controlled override-</tspan>
-    <tspan x="732" dy="20">response mapping remains a blocker.</tspan>
+    <tspan x="732" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="732" dy="20">realize the common AEBS capability by</tspan>
+    <tspan x="732" dy="20">detecting imminent forward collision risk</tspan>
+    <tspan x="732" dy="20">with a vehicle target under defined</tspan>
+    <tspan x="732" dy="20">operating conditions.</tspan>
   </text>
-  <rect x="0" y="894" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="914" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqProvideCollisionWarning</tspan>
+  </text>
+  <rect x="360" y="914" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
+    <tspan x="372" dy="20">RequirementCandidate,</tspan>
+    <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="720" y="914" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="732" dy="20">realize the common AEBS capability by</tspan>
+    <tspan x="732" dy="20">providing a collision warning to the</tspan>
+    <tspan x="732" dy="20">driver when defined warning conditions are</tspan>
+    <tspan x="732" dy="20">met.</tspan>
+  </text>
+  <rect x="0" y="1034" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqCommandEmergencyBraking</tspan>
+  </text>
+  <rect x="360" y="1034" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="1058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
+    <tspan x="372" dy="20">RequirementCandidate,</tspan>
+    <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="720" y="1034" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="1058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="732" dy="20">realize the common AEBS capability by</tspan>
+    <tspan x="732" dy="20">commanding emergency braking when defined</tspan>
+    <tspan x="732" dy="20">activation conditions are met and no</tspan>
+    <tspan x="732" dy="20">overriding condition prevents</tspan>
+    <tspan x="732" dy="20">intervention.</tspan>
+  </text>
+  <rect x="0" y="1174" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqAllowDriverOverride</tspan>
+  </text>
+  <rect x="360" y="1174" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="1198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
+    <tspan x="372" dy="20">RequirementCandidate,</tspan>
+    <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
+    <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="720" y="1174" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="1198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">When a valid, fresh, and unambiguous</tspan>
+    <tspan x="732" dy="20">driver input is classified as a conscious</tspan>
+    <tspan x="732" dy="20">override under controlled override</tspan>
+    <tspan x="732" dy="20">criteria during AEBS intervention, each</tspan>
+    <tspan x="732" dy="20">SDV product-line member product shall</tspan>
+    <tspan x="732" dy="20">apply the intervention response selected</tspan>
+    <tspan x="732" dy="20">by the controlled override-response</tspan>
+    <tspan x="732" dy="20">mapping.</tspan>
+  </text>
+  <rect x="0" y="1354" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqDetectAEBSFailureCondition</tspan>
   </text>
-  <rect x="360" y="894" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="1354" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="1378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">SafetyConstraintRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="894" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-005 failure-detection draft</tspan>
-    <tspan x="732" dy="20">derived from N-AEBS-008; carries the</tspan>
-    <tspan x="732" dy="20">bounded-behavior envelope of N-AEBS-008</tspan>
-    <tspan x="732" dy="20">pending safe-operation criteria, see GAP-</tspan>
-    <tspan x="732" dy="20">AEBS-REQ-007.</tspan>
+  <rect x="720" y="1354" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="1378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Under controlled failure-detection</tspan>
+    <tspan x="732" dy="20">criteria, each SDV product-line member</tspan>
+    <tspan x="732" dy="20">product shall detect AEBS-related failure</tspan>
+    <tspan x="732" dy="20">conditions.</tspan>
   </text>
-  <rect x="0" y="1014" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1454" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqResistFalseReaction</tspan>
   </text>
-  <rect x="360" y="1014" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="1454" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="1478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">SafetyConstraintRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1014" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-008 warning-silence draft derived</tspan>
-    <tspan x="732" dy="20">from N-AEBS-014; criteria, window, and</tspan>
-    <tspan x="732" dy="20">tolerances remain gaps.</tspan>
+  <rect x="720" y="1454" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="1478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">When controlled non-activation criteria</tspan>
+    <tspan x="732" dy="20">determine that imminent forward collision</tspan>
+    <tspan x="732" dy="20">risk is absent under defined operating</tspan>
+    <tspan x="732" dy="20">conditions, each SDV product-line member</tspan>
+    <tspan x="732" dy="20">product shall not issue an AEBS collision</tspan>
+    <tspan x="732" dy="20">warning.</tspan>
   </text>
-  <rect x="0" y="1114" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1594" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqHandleDegradedUnavailableInputs</tspan>
   </text>
-  <rect x="360" y="1114" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="1594" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">SafetyConstraintRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1114" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-009 state-transition draft; state</tspan>
-    <tspan x="732" dy="20">mapping, ownership, and timing remain</tspan>
-    <tspan x="732" dy="20">gaps.</tspan>
+  <rect x="720" y="1594" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">When a required AEBS input is stale,</tspan>
+    <tspan x="732" dy="20">missing, malformed, inconsistent, or</tspan>
+    <tspan x="732" dy="20">unavailable under controlled input-health</tspan>
+    <tspan x="732" dy="20">criteria, each SDV product-line member</tspan>
+    <tspan x="732" dy="20">product shall enter the AEBS state</tspan>
+    <tspan x="732" dy="20">selected by the controlled degraded-state</tspan>
+    <tspan x="732" dy="20">mapping.</tspan>
   </text>
-  <rect x="0" y="1214" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1754" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqPedestrianTargetResponse</tspan>
   </text>
-  <rect x="360" y="1214" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="1754" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="1778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1214" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-010 pedestrian detection draft;</tspan>
-    <tspan x="732" dy="20">stable usage name retained for imports.</tspan>
+  <rect x="720" y="1754" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="1778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="732" dy="20">detect imminent forward collision risk</tspan>
+    <tspan x="732" dy="20">with a pedestrian target under defined</tspan>
+    <tspan x="732" dy="20">applicable pedestrian-target operating</tspan>
+    <tspan x="732" dy="20">conditions.</tspan>
   </text>
-  <rect x="0" y="1314" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1874" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqBicycleTargetResponse</tspan>
   </text>
-  <rect x="360" y="1314" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="1874" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1314" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-011 bicycle detection draft;</tspan>
-    <tspan x="732" dy="20">stable usage name retained for imports.</tspan>
+  <rect x="720" y="1874" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Each SDV product-line member product shall</tspan>
+    <tspan x="732" dy="20">detect imminent forward collision risk</tspan>
+    <tspan x="732" dy="20">with a bicycle target under defined</tspan>
+    <tspan x="732" dy="20">applicable bicycle-target operating</tspan>
+    <tspan x="732" dy="20">conditions.</tspan>
   </text>
-  <rect x="0" y="1414" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1994" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqResistFalseBrakingCommand</tspan>
   </text>
-  <rect x="360" y="1414" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="1994" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="2018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">SafetyConstraintRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1414" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-012 braking-silence draft derived</tspan>
-    <tspan x="732" dy="20">from N-AEBS-014.</tspan>
+  <rect x="720" y="1994" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="2018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">When controlled non-activation criteria</tspan>
+    <tspan x="732" dy="20">determine that imminent forward collision</tspan>
+    <tspan x="732" dy="20">risk is absent under defined operating</tspan>
+    <tspan x="732" dy="20">conditions, each SDV product-line member</tspan>
+    <tspan x="732" dy="20">product shall not command AEBS emergency</tspan>
+    <tspan x="732" dy="20">braking.</tspan>
   </text>
-  <rect x="0" y="1514" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="2134" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqIndicateDegradedUnavailableStatus</tspan>
   </text>
-  <rect x="360" y="1514" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="2134" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="2158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">SafetyConstraintRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1514" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-013 status-indication draft.</tspan>
+  <rect x="720" y="2134" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="2158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">When a required AEBS input is stale,</tspan>
+    <tspan x="732" dy="20">missing, malformed, inconsistent, or</tspan>
+    <tspan x="732" dy="20">unavailable under controlled input-health</tspan>
+    <tspan x="732" dy="20">criteria, each SDV product-line member</tspan>
+    <tspan x="732" dy="20">product shall provide the status</tspan>
+    <tspan x="732" dy="20">indication selected by the controlled</tspan>
+    <tspan x="732" dy="20">degraded-state indication mapping.</tspan>
   </text>
-  <rect x="0" y="1614" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="2294" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqPedestrianTargetControlledResponse</tspan>
   </text>
-  <rect x="360" y="1614" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="2294" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="2318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1614" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-014 pedestrian response draft;</tspan>
-    <tspan x="732" dy="20">specializes the braking-command response</tspan>
-    <tspan x="732" dy="20">family of REQ-AEBS-003 for classified</tspan>
-    <tspan x="732" dy="20">pedestrian-target risk.</tspan>
+  <rect x="720" y="2294" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="2318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Under defined applicable pedestrian-target</tspan>
+    <tspan x="732" dy="20">operating conditions, each SDV product-</tspan>
+    <tspan x="732" dy="20">line member product shall apply the</tspan>
+    <tspan x="732" dy="20">controlled AEBS response to classified</tspan>
+    <tspan x="732" dy="20">pedestrian-target collision risk.</tspan>
   </text>
-  <rect x="0" y="1714" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="2414" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqBicycleTargetControlledResponse</tspan>
   </text>
-  <rect x="360" y="1714" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="2414" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="2438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">FunctionalRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1714" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-015 bicycle response draft;</tspan>
-    <tspan x="732" dy="20">specializes the braking-command response</tspan>
-    <tspan x="732" dy="20">family of REQ-AEBS-003 for classified</tspan>
-    <tspan x="732" dy="20">bicycle-target risk.</tspan>
+  <rect x="720" y="2414" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="2438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Under defined applicable bicycle-target</tspan>
+    <tspan x="732" dy="20">operating conditions, each SDV product-</tspan>
+    <tspan x="732" dy="20">line member product shall apply the</tspan>
+    <tspan x="732" dy="20">controlled AEBS response to classified</tspan>
+    <tspan x="732" dy="20">bicycle-target collision risk.</tspan>
   </text>
-  <rect x="0" y="1814" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="2534" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needExplicitOperationalBoundary</tspan>
   </text>
-  <rect x="360" y="1814" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="2534" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">EngineeringTraceabilityNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1814" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-002 draft System 2 need.</tspan>
+  <rect x="720" y="2534" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Systems engineers need the DE4SDV AEBS</tspan>
+    <tspan x="732" dy="20">increment to keep its operational</tspan>
+    <tspan x="732" dy="20">boundary, assumptions, source constraints,</tspan>
+    <tspan x="732" dy="20">and out-of-scope cases explicit while</tspan>
+    <tspan x="732" dy="20">draft requirements are derived.</tspan>
   </text>
-  <rect x="0" y="1894" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="2654" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needProductLineClassification</tspan>
   </text>
-  <rect x="360" y="1894" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="2654" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="2678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">ProductLineClassificationNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1894" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-003 draft System 2 need.</tspan>
+  <rect x="720" y="2654" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="2678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Product-line engineers need the DE4SDV</tspan>
+    <tspan x="732" dy="20">AEBS increment to keep AEBS classified as</tspan>
+    <tspan x="732" dy="20">a common capability, with native SysML v2</tspan>
+    <tspan x="732" dy="20">variation and variant choices modeled</tspan>
+    <tspan x="732" dy="20">separately without weakening the System 1</tspan>
+    <tspan x="732" dy="20">capability.</tspan>
   </text>
-  <rect x="0" y="1974" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1998" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="2794" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needVisibleRegulatoryAssumptions</tspan>
   </text>
-  <rect x="360" y="1974" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="1998" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="2794" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="2818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">RegulatoryVisibilityNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="1974" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="1998" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-004 draft System 2 need.</tspan>
+  <rect x="720" y="2794" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="2818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Compliance engineers need the DE4SDV AEBS</tspan>
+    <tspan x="732" dy="20">increment to keep regulatory assumptions,</tspan>
+    <tspan x="732" dy="20">controlled source references, and open</tspan>
+    <tspan x="732" dy="20">applicability and interpretation gaps</tspan>
+    <tspan x="732" dy="20">visible without implying compliance or</tspan>
+    <tspan x="732" dy="20">type approval.</tspan>
   </text>
-  <rect x="0" y="2054" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="2078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="2934" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">needRequirementVVPlanning</tspan>
   </text>
-  <rect x="360" y="2054" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="2078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="2934" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="2958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">VerificationPlanningNeed,</tspan>
     <tspan x="372" dy="20">StakeholderNeedCandidate,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="2054" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="2078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">N-AEBS-005 draft System 2 need.</tspan>
+  <rect x="720" y="2934" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="2958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">Verification engineers need the DE4SDV</tspan>
+    <tspan x="732" dy="20">AEBS increment to maintain a separate</tspan>
+    <tspan x="732" dy="20">controlled V&amp;V planning attachment for</tspan>
+    <tspan x="732" dy="20">each draft AEBS requirement without</tspan>
+    <tspan x="732" dy="20">changing the product obligation.</tspan>
   </text>
-  <rect x="0" y="2134" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="2158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="3054" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqKeepProductLineClassificationExplicit</tspan>
   </text>
-  <rect x="360" y="2134" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="2158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="3054" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">ProductLineConstraintRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="2134" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="2158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-006 System 2 candidate.</tspan>
+  <rect x="720" y="3054" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">The DE4SDV AEBS increment shall keep</tspan>
+    <tspan x="732" dy="20">common-capability, feature, and native</tspan>
+    <tspan x="732" dy="20">SysML v2 variation and variant</tspan>
+    <tspan x="732" dy="20">classifications explicit for each AEBS</tspan>
+    <tspan x="732" dy="20">behavior or scope element in its model</tspan>
+    <tspan x="732" dy="20">baseline.</tspan>
   </text>
-  <rect x="0" y="2234" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="2258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="3194" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqTraceRequirementVVAndGaps</tspan>
   </text>
-  <rect x="360" y="2234" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="2258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="3194" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="3218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">TraceabilityConstraintRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="2234" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="2258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-007 System 2 candidate.</tspan>
+  <rect x="720" y="3194" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="3218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">The DE4SDV AEBS increment shall maintain</tspan>
+    <tspan x="732" dy="20">separate trace links from each draft AEBS</tspan>
+    <tspan x="732" dy="20">requirement to its source, stakeholder</tspan>
+    <tspan x="732" dy="20">need, unresolved gaps, validation</tspan>
+    <tspan x="732" dy="20">reference, and controlled V&amp;V planning</tspan>
+    <tspan x="732" dy="20">attachment.</tspan>
   </text>
-  <rect x="0" y="2334" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="3334" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">reqTraceEvidenceContractsToControlledBoundary</tspan>
   </text>
-  <rect x="360" y="2334" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="372" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="360" y="3334" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="372" dy="0">EvidenceContractTraceabilityRequirementCandidate,</tspan>
     <tspan x="372" dy="20">RequirementCandidate,</tspan>
     <tspan x="372" dy="20">SYSMODRequirementBase,</tspan>
     <tspan x="372" dy="20">RequirementsManagementAttributeBase</tspan>
   </text>
-  <rect x="720" y="2334" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="732" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="732" dy="0">REQ-AEBS-S2-001 System 2 evidence-contract</tspan>
-    <tspan x="732" dy="20">candidate derived only from N-AEBS-002.</tspan>
+  <rect x="720" y="3334" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="732" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="732" dy="0">The DE4SDV AEBS increment shall maintain</tspan>
+    <tspan x="732" dy="20">trace links from each AEBS evidence</tspan>
+    <tspan x="732" dy="20">contract to its controlled operational</tspan>
+    <tspan x="732" dy="20">boundary, assumptions, source constraints,</tspan>
+    <tspan x="732" dy="20">and exclusions.</tspan>
   </text>
 </svg>

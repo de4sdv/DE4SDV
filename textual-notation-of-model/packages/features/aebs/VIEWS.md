@@ -115,7 +115,6 @@ Lists the stakeholder needs that justify the engineering visualization slice.
 - **Exposes:** `VisualizationNeeds::*`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** Every Statement cell shows a short status line rather than the full need or requirement prose; the complete statements live in the source file and the viewer tooltips.
 
 ![aebs010NeedsView](diagrams/diagram-table-aebs010NeedsView.svg)
 
@@ -429,7 +428,6 @@ Lists the stakeholder needs that frame the feature and its engineering obligatio
 - **Exposes:** `System1Product::*`, `System2EngineeringAssurance::*`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** Every Statement cell shows a short status line rather than the full need or requirement prose; the complete statements live in the source file and the viewer tooltips.
 
 ![aebsStakeholderNeedsView](diagrams/diagram-table-aebsStakeholderNeedsView.svg)
 
