@@ -16,13 +16,92 @@ source_notes:
 
 kernel_sync:
   description: >-
-    Every class below carries a kernel mapping stating where its semantics
-    actually live: a SysML declaration in the method kernel (declaration),
-    a native SysML v2 construct (native), or an external/upstream artifact
-    (external). Sync point 5 of scripts/check_model_sync.py verifies that
-    each mapped declaration exists in the named file, so this vocabulary
-    cannot drift from the model unnoticed.
-  gate: scripts/check_model_sync.py (sync point 5)
+    The ontology-kernel contract is complete in both directions. Every class
+    below states where its semantics live: a SysML declaration, a native
+    SysML v2 construct, or an external/upstream artifact. Every declaration
+    in the governed method-kernel directory is either mapped by a class or
+    listed below as deliberately kernel-internal with a reason.
+  gate: scripts/check_model_sync.py (ontology-kernel contract)
+  governed_directory: textual-notation-of-model/packages/methods/de4sdv
+  exclusions:
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:
+      concern def ProductLineCapabilityClassificationConcern: method-specific concern type
+      concern def RegulatoryScopeWithoutComplianceClaimConcern: method-specific concern type
+      concern def IncrementBoundaryConcern: method-specific concern type
+      concern def MethodStackConcern: method-specific concern type
+      concern def ProductLineConfigurationConcern: method-specific concern type
+      concern def ProductModelAssemblyConcern: method-specific concern type
+      viewpoint def IncrementFramingViewpoint: method-specific viewpoint type
+      viewpoint def ProductLineClassificationViewpoint: method-specific viewpoint type
+      viewpoint def RegulatoryScopeViewpoint: method-specific viewpoint type
+      viewpoint def ProductLineConfigurationViewpoint: method-specific viewpoint type
+      viewpoint def ProductModelAssemblyViewpoint: method-specific viewpoint type
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:
+      part def System1SDVProductLine: ASELCM System 1 framing role, not reusable semantic vocabulary
+      part def System2EngineeringAndAssuranceSystem: ASELCM System 2 framing role
+      part def System3OpenSourceGovernanceEcosystem: ASELCM System 3 framing role
+      part def MethodStackElement: method-stack framing helper
+      part def SAFViewpointSelection: method-stack element
+      part def SYSMODMethodFlow: method-stack element
+      part def DE4SDVOntologyKernel: method-stack element
+      part def SysMLv2ModelExpression: method-stack element
+      part def VSSCandidateSignalCatalog: method-stack element
+      part def OperationalScopeBoundary: framing helper
+      part def InScopeItem: framing helper
+      part def OutOfScopeItem: framing helper
+      requirement def ProductLineCommonCapabilityNeed: concrete need type
+      requirement def EngineeringTraceabilityNeed: concrete need type
+      requirement def ProductLineClassificationNeed: concrete need type
+      requirement def RegulatoryVisibilityNeed: concrete need type
+      requirement def VerificationPlanningNeed: concrete need type
+      requirement def ProductSafetyAvailabilityNeed: concrete need type
+      requirement def FunctionalRequirementCandidate: concrete candidate type
+      requirement def SafetyConstraintRequirementCandidate: concrete candidate type
+      requirement def SecurityConstraintRequirementCandidate: concrete candidate type
+      requirement def ProductLineConstraintRequirementCandidate: concrete candidate type
+      requirement def TraceabilityConstraintRequirementCandidate: concrete candidate type
+      requirement def EvidenceContractTraceabilityRequirementCandidate: concrete candidate type
+      part def IncrementScope: framing helper
+      part def SourceContributionRecord: realization-evidence helper
+      part def SystemContext: SYSMOD problem-statement pattern element consumed by feature slices
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:
+      part def SAFDomainMapping: method-process assurance helper
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml:
+      part def OperationalEntity: operational-context entity base
+      part def SubjectVehicle: operational-context entity
+      part def Driver: operational-context entity
+      part def RoadEnvironment: operational-context entity
+      part def OperationalTarget: operational-context entity
+      part def VehicleTarget: operational-context entity
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:
+      part def SDVProductLine: concrete product-line type; the ontology covers ProductLine
+      part def ProductLineVariantChoice: descriptive vocabulary, not an accepted configuration choice
+      part def DeferredVariantChoice: descriptive vocabulary for unresolved choices
+      variation part def DeferredProductLineVariation: deferred-choice variation placeholder, not ontology vocabulary
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml:
+      enum def PriorityKind: stakeholder metadata attribute type
+      enum def StakeholderCategoryKind: stakeholder metadata attribute type
+      part def RoadUser: concrete stakeholder role
+      part def VehicleOccupant: concrete stakeholder role
+      part def SystemsEngineer: concrete stakeholder role
+      part def ProductLineEngineer: concrete stakeholder role
+      part def ComplianceEngineer: concrete stakeholder role
+      part def VerificationEngineer: concrete stakeholder role
+      part def OpenSourceReviewer: concrete stakeholder role
+      part def SafetyExpert: concrete stakeholder role
+      part def SecurityExpert: concrete stakeholder role
+      part def SystemArchitect: concrete stakeholder role
+      part def SoftwareDeveloper: concrete stakeholder role
+      part def HardwareDeveloper: concrete stakeholder role
+      part def Maintainer: concrete stakeholder role
+      part def Supplier: concrete stakeholder role
+      part def ProjectManager: concrete stakeholder role
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml:
+      part def SYSMODStakeholderBase: upstream seam adapter
+      requirement def SYSMODRequirementBase: upstream seam adapter
+      use case def SYSMODSystemUseCaseBase: upstream seam adapter
+      occurrence def SYSMODConstrainedOccurrenceBase: upstream seam adapter
+      requirement def RequirementsManagementAttributeBase: upstream seam adapter
 
 classes:
   EngineeringIncrement:

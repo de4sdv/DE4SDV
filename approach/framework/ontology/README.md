@@ -63,11 +63,20 @@ mapping stating where its semantics actually live:
   Bill-of-Features records, the ODE4HERA requirements-management library, or
   evidence registers).
 
-Sync point 5 of `scripts/check_model_sync.py` verifies every
-`file` + `declaration` mapping against the actual SysML text, so the ontology
-cannot silently drift from the model. The gate runs as part of
+The `kernel_sync` block makes the vocabulary contract bidirectional and
+complete:
+
+- `governed_directory` names the method-kernel directory whose declarations
+  are under contract;
+- `exclusions` lists every kernel declaration that is deliberately not
+  ontology vocabulary, each with a reason.
+
+The ontology-kernel contract check in `scripts/check_model_sync.py` enforces
+the set equation `kernel declarations = ontology-mapped declarations +
+exclusions` as exact `(file, declaration)` pairs, so the ontology cannot
+silently drift from the model in either direction. The gate runs as part of
 `python scripts/check_repo.py`, and its failure modes are covered by
-`tests/test_ontology_kernel_sync.py`.
+`tests/test_ontology_kernel_contract.py`.
 
 ### Terminology alignment
 

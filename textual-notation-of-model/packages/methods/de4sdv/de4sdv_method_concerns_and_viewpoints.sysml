@@ -15,27 +15,6 @@
  * of nested `DE4SDV::Methods::*` because the current SysIDE validation path
  * reports repeated top-level `DE4SDV` package declarations as shadowed rather
  * than namespace-merged across files.
- *
- * kernel-vocabulary:
- * Classification of every declaration below for the ontology sync gate
- * (scripts/check_model_sync.py sync point 6). See
- * de4sdv_method_context.sysml for the status definitions. The Concern and
- * Viewpoint classes of the ontology map to the native SysML v2 `concern def`
- * and `viewpoint def` constructs; the kernel declarations below are the
- * DE4SDV method-specific concern/viewpoint types, not the generic concepts.
- * Every new declaration must be classified here in the same commit.
- *
- * - ProductLineCapabilityClassificationConcern: kernel-internal (method-specific concern type)
- * - RegulatoryScopeWithoutComplianceClaimConcern: kernel-internal (method-specific concern type)
- * - IncrementBoundaryConcern: kernel-internal (method-specific concern type)
- * - MethodStackConcern: kernel-internal (method-specific concern type)
- * - ProductLineConfigurationConcern: kernel-internal (method-specific concern type)
- * - ProductModelAssemblyConcern: kernel-internal (method-specific concern type)
- * - IncrementFramingViewpoint: kernel-internal (method-specific viewpoint type)
- * - ProductLineClassificationViewpoint: kernel-internal (method-specific viewpoint type)
- * - RegulatoryScopeViewpoint: kernel-internal (method-specific viewpoint type)
- * - ProductLineConfigurationViewpoint: kernel-internal (method-specific viewpoint type)
- * - ProductModelAssemblyViewpoint: kernel-internal (method-specific viewpoint type)
  */
 
 package DE4SDV_MethodViewpoints {
