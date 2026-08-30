@@ -399,7 +399,11 @@ package DE4SDV_AEBSNeedsRequirements {
             attribute :>> featureToRender = CT::heritage;
           }
           view Statement :> columnViews {
-            attribute :>> featureToRender = CT::documentation;
+            attribute :>> featureToRender = CT::constraintLanguage {
+              attribute constraintName = "statement";
+              attribute constraintType = CL::ConT::required;
+              attribute constraintLanguage = "English";
+            }
             attribute :>> columnWidth = 360;
           }
         }
