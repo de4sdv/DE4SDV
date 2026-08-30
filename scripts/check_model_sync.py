@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Bidirectional consistency gate between SysML models and Python/YAML/test artifacts.
+"""Consistency gates between SysML models and Python/YAML/test artifacts.
 
-Checks four sync points using regex extraction from SysML textual notation:
+Checks repository contracts using text extraction from SysML textual notation:
 
 1. Scenario identity enums: SysML ``enum def ScenarioIdentity009X`` members
    (camelCase → snake_case) must match Python evaluator enum values.
@@ -10,6 +10,10 @@ Checks four sync points using regex extraction from SysML textual notation:
    defined in ``aebs_needs_requirements.sysml``.
 4. Verification usages in each verification file must resolve to a
    ``verification def`` declared in the same file and must be performed.
+5. The ontology-kernel contract must be complete in both directions: every
+   ontology mapping resolves, and every governed kernel declaration is either
+   mapped or explicitly excluded with a reason. Feature slices must not
+   re-declare mapped kernel vocabulary.
 
 Exit code 0 on success, 1 on any mismatch.
 """
@@ -379,8 +383,23 @@ def check_verification_usages(errors: list[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Sync point 5: Basic-ontology YAML ↔ method kernel declarations
+# Ontology ↔ method-kernel contract
 # ---------------------------------------------------------------------------
+
+_ONTOLOGY_KERNEL = "[ONTOLOGY-KERNEL]"
+FEATURES_DIR = ROOT / "textual-notation-of-model/packages/features"
+
+# Match any one- or two-word SysML ``... def Name`` declaration kind at the
+# start of a source line. This intentionally does not use a kind allowlist:
+# new valid forms such as ``attribute def`` or ``connection def`` must enter
+# the ontology-kernel inventory rather than silently escaping it.
+_SYSML_DEFINITION_RE = re.compile(
+    r"(?m)^[ \t]*"
+    r"(?:(?:public|private|protected)[ \t]+)?"
+    r"(?:abstract[ \t]+)?"
+    r"([A-Za-z]+(?:[ \t]+[A-Za-z]+)?)[ \t]+def[ \t]+"
+    r"([A-Za-z][A-Za-z0-9_]*)\b"
+)
 
 def _declaration_exists(sysml_text: str, declaration: str) -> bool:
     """Check that a declaration like 'part def X' or 'requirement def Y' exists.
@@ -394,8 +413,30 @@ def _declaration_exists(sysml_text: str, declaration: str) -> bool:
     return re.search(pattern, code) is not None
 
 
-def check_ontology_kernel(errors: list[str]) -> None:
-    """Sync point 5: ontology YAML kernel mappings ↔ actual SysML declarations.
+def _sysml_definitions(sysml_text: str) -> set[str]:
+    """Return normalized ``<kind> def <name>`` declarations from SysML code."""
+    code = _strip_comments(sysml_text)
+    return {
+        f"{' '.join(kind.split())} def {name}"
+        for kind, name in _SYSML_DEFINITION_RE.findall(code)
+    }
+
+
+def _is_within(relative_file: str, relative_directory: str) -> bool:
+    """Return whether one repository-relative path is inside a directory."""
+    file_path = Path(relative_file)
+    directory_path = Path(relative_directory)
+    return (
+        not file_path.is_absolute()
+        and not directory_path.is_absolute()
+        and ".." not in file_path.parts
+        and ".." not in directory_path.parts
+        and (file_path == directory_path or directory_path in file_path.parents)
+    )
+
+
+def check_ontology_kernel_contract(errors: list[str]) -> None:
+    """Validate the bidirectional ontology ↔ SysML method-kernel contract.
 
     Each ontology class must carry a ``kernel`` mapping stating where its
     semantics live:
@@ -406,65 +447,192 @@ def check_ontology_kernel(errors: list[str]) -> None:
       construct (no kernel declaration to check).
     - ``external:`` — the semantics live in an artifact outside the SysML
       model (feature catalogue, upstream library, evidence registers).
+
+    The YAML ``kernel_sync`` block defines one governed method-kernel
+    directory and explicit exclusions with reasons. Every declaration found
+    in that directory must be either mapped by an ontology class or excluded;
+    mappings and exclusions are compared as exact ``(file, declaration)``
+    pairs. Feature slices may specialize/import mapped vocabulary but must not
+    re-declare a mapped kernel name.
     """
     import yaml  # local import: PyYAML is a CI test dependency
 
     if not ONTOLOGY_YAML.exists():
-        errors.append(f"[SP5] {ONTOLOGY_YAML}: ontology YAML not found")
+        errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: ontology YAML not found")
         return
 
     try:
         doc = yaml.safe_load(_read(ONTOLOGY_YAML))
     except yaml.YAMLError as exc:
-        errors.append(f"[SP5] {ONTOLOGY_YAML}: invalid YAML: {exc}")
+        errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: invalid YAML: {exc}")
         return
 
     classes = doc.get("classes") if isinstance(doc, dict) else None
     if not isinstance(classes, dict) or not classes:
-        errors.append(f"[SP5] {ONTOLOGY_YAML}: no classes section")
+        errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: no classes section")
+        return
+
+    contract = doc.get("kernel_sync")
+    if not isinstance(contract, dict):
+        errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: no kernel_sync contract")
+        return
+    governed_directory = contract.get("governed_directory")
+    if not isinstance(governed_directory, str) or not governed_directory.strip():
+        errors.append(
+            f"{_ONTOLOGY_KERNEL} kernel_sync.governed_directory must be a "
+            f"repository-relative directory"
+        )
+        return
+    governed_directory = governed_directory.strip()
+    governed_path = ROOT / governed_directory
+    if (
+        Path(governed_directory).is_absolute()
+        or ".." in Path(governed_directory).parts
+        or not governed_path.is_dir()
+    ):
+        errors.append(
+            f"{_ONTOLOGY_KERNEL} governed kernel directory not found or unsafe: "
+            f"{governed_directory}"
+        )
+        return
+
+    raw_exclusions = contract.get("exclusions")
+    if not isinstance(raw_exclusions, dict):
+        errors.append(
+            f"{_ONTOLOGY_KERNEL} kernel_sync.exclusions must map files to "
+            f"excluded declarations and reasons"
+        )
         return
 
     # Load each kernel file once.
     file_cache: dict[str, str] = {}
+    mapped_pairs: set[tuple[str, str]] = set()
     for class_name, spec in classes.items():
         if not isinstance(spec, dict):
-            errors.append(f"[SP5] {class_name}: malformed class entry")
+            errors.append(f"{_ONTOLOGY_KERNEL} {class_name}: malformed class entry")
             continue
         kernel = spec.get("kernel")
         if not isinstance(kernel, dict):
             errors.append(
-                f"[SP5] {class_name}: missing kernel mapping "
+                f"{_ONTOLOGY_KERNEL} {class_name}: missing kernel mapping "
                 f"(file+declaration, native, or external)"
             )
             continue
-        if "file" in kernel or "declaration" in kernel:
+        has_declaration = "file" in kernel or "declaration" in kernel
+        has_native = "native" in kernel
+        has_external = "external" in kernel
+        if sum((has_declaration, has_native, has_external)) != 1:
+            errors.append(
+                f"{_ONTOLOGY_KERNEL} {class_name}: kernel mapping must use "
+                f"exactly one of file+declaration, native, or external"
+            )
+            continue
+        if has_declaration:
             rel_file = kernel.get("file")
             declaration = kernel.get("declaration")
-            if not rel_file or not declaration:
+            if (
+                not isinstance(rel_file, str)
+                or not rel_file.strip()
+                or not isinstance(declaration, str)
+                or not declaration.strip()
+            ):
                 errors.append(
-                    f"[SP5] {class_name}: kernel mapping needs both "
+                    f"{_ONTOLOGY_KERNEL} {class_name}: kernel mapping needs both "
                     f"file: and declaration: (got file={rel_file!r}, "
                     f"declaration={declaration!r})"
+                )
+                continue
+            rel_file = rel_file.strip()
+            declaration = declaration.strip()
+            if Path(rel_file).is_absolute() or ".." in Path(rel_file).parts:
+                errors.append(
+                    f"{_ONTOLOGY_KERNEL} {class_name}: kernel file must be "
+                    f"repository-relative: {rel_file}"
                 )
                 continue
             path = ROOT / rel_file
             if not path.exists():
                 errors.append(
-                    f"[SP5] {class_name}: kernel file not found: {rel_file}"
+                    f"{_ONTOLOGY_KERNEL} {class_name}: kernel file not found: "
+                    f"{rel_file}"
                 )
                 continue
             if rel_file not in file_cache:
                 file_cache[rel_file] = _read(path)
             if not _declaration_exists(file_cache[rel_file], declaration):
                 errors.append(
-                    f"[SP5] {class_name}: declaration '{declaration}' not "
+                    f"{_ONTOLOGY_KERNEL} {class_name}: declaration "
+                    f"'{declaration}' not "
                     f"found in {rel_file}"
                 )
-        elif "native" not in kernel and "external" not in kernel:
+            if _is_within(rel_file, governed_directory):
+                mapped_pairs.add((rel_file, declaration))
+
+    excluded_pairs: set[tuple[str, str]] = set()
+    for rel_file, declarations in raw_exclusions.items():
+        if not isinstance(rel_file, str) or not _is_within(
+            rel_file, governed_directory
+        ):
             errors.append(
-                f"[SP5] {class_name}: kernel mapping must use "
-                f"file+declaration, native, or external"
+                f"{_ONTOLOGY_KERNEL} exclusion file is outside the governed "
+                f"directory or unsafe: {rel_file!r}"
             )
+            continue
+        if not isinstance(declarations, dict):
+            errors.append(
+                f"{_ONTOLOGY_KERNEL} exclusions for {rel_file} must map "
+                f"declarations to reasons"
+            )
+            continue
+        for declaration, reason in declarations.items():
+            if not isinstance(declaration, str) or not declaration.strip():
+                errors.append(
+                    f"{_ONTOLOGY_KERNEL} {rel_file}: exclusion declaration "
+                    f"must be a non-empty string"
+                )
+                continue
+            if not isinstance(reason, str) or not reason.strip():
+                errors.append(
+                    f"{_ONTOLOGY_KERNEL} {rel_file}: exclusion "
+                    f"'{declaration}' needs a non-empty reason"
+                )
+                continue
+            excluded_pairs.add((rel_file, declaration.strip()))
+
+    actual_pairs: set[tuple[str, str]] = set()
+    for sysml_path in sorted(governed_path.rglob("*.sysml")):
+        rel_file = str(sysml_path.relative_to(ROOT))
+        for declaration in _sysml_definitions(_read(sysml_path)):
+            actual_pairs.add((rel_file, declaration))
+
+    for rel_file, declaration in sorted(actual_pairs - mapped_pairs - excluded_pairs):
+        errors.append(
+            f"{_ONTOLOGY_KERNEL} {rel_file}: declaration '{declaration}' is "
+            f"unclassified; map it from an ontology class or add it to "
+            f"kernel_sync.exclusions with a reason"
+        )
+    for rel_file, declaration in sorted(excluded_pairs - actual_pairs):
+        errors.append(
+            f"{_ONTOLOGY_KERNEL} {rel_file}: excluded declaration "
+            f"'{declaration}' does not exist (stale exclusion?)"
+        )
+    for rel_file, declaration in sorted(mapped_pairs & excluded_pairs):
+        errors.append(
+            f"{_ONTOLOGY_KERNEL} {rel_file}: declaration '{declaration}' is "
+            f"both ontology-mapped and excluded"
+        )
+
+    mapped_kernel_names = {declaration.split()[-1] for _, declaration in mapped_pairs}
+    if FEATURES_DIR.is_dir():
+        for sysml_path in sorted(FEATURES_DIR.rglob("*.sysml")):
+            for declaration in _sysml_definitions(_read(sysml_path)):
+                if declaration.split()[-1] in mapped_kernel_names:
+                    rel_file = sysml_path.relative_to(ROOT)
+                    errors.append(
+                        f"{_ONTOLOGY_KERNEL} {rel_file}: feature slice "
+                        f"re-declares mapped kernel name '{declaration.split()[-1]}'; "
+                        f"specialize or import the kernel declaration instead"
+                    )
 
 
 # ---------------------------------------------------------------------------
@@ -472,13 +640,13 @@ def check_ontology_kernel(errors: list[str]) -> None:
 # ---------------------------------------------------------------------------
 
 def run_all_checks() -> list[str]:
-    """Run all five sync-point checks and return a list of error strings."""
+    """Run all repository model-sync contracts and return error strings."""
     errors: list[str] = []
     check_scenario_identities(errors)
     check_yaml_profiles(errors)
     check_dependency_targets(errors)
     check_verification_usages(errors)
-    check_ontology_kernel(errors)
+    check_ontology_kernel_contract(errors)
     return errors
 
 
