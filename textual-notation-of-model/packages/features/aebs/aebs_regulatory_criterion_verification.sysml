@@ -57,27 +57,27 @@ package DE4SDV_AEBS009IVerification {
   requirement def EvidenceContract009I;
   requirement evidenceContract009ISourceIdentity : EvidenceContract009I {
     subject bench : RegulatoryCriterionBench009I;
-    require constraint { doc /* The bench shall bind controlled source E/ECE/TRANS/505/Rev.3/Add.151/Rev.2, original SHA-256 dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de, source metadata, criterion map, evaluator identity, and an explicit applicability disposition. */ }
+    require constraint statement { language "English" /* The bench shall bind controlled source E/ECE/TRANS/505/Rev.3/Add.151/Rev.2, original SHA-256 dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de, source metadata, criterion map, evaluator identity, and an explicit applicability disposition. */ }
   }
   requirement evidenceContract009IPedestrianApplicableCriterion : EvidenceContract009I {
     subject bench : RegulatoryCriterionBench009I;
-    require constraint { doc /* For the pedestrian scenario only, the bench shall preserve the selected pedestrian-target criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, and tested configuration without making an authority interpretation. */ }
+    require constraint statement { language "English" /* For the pedestrian scenario only, the bench shall preserve the selected pedestrian-target criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, and tested configuration without making an authority interpretation. */ }
   }
   requirement evidenceContract009IBicycleApplicableCriterion : EvidenceContract009I {
     subject bench : RegulatoryCriterionBench009I;
-    require constraint { doc /* For the bicycle scenario only, the bench shall preserve the selected bicycle-target criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, and tested configuration without making an authority interpretation. */ }
+    require constraint statement { language "English" /* For the bicycle scenario only, the bench shall preserve the selected bicycle-target criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, and tested configuration without making an authority interpretation. */ }
   }
   requirement evidenceContract009IMeasurementTrace : EvidenceContract009I {
     subject bench : RegulatoryCriterionBench009I;
-    require constraint { doc /* The bench shall trace each bounded result to replayable observations, processing steps, unit conversion, next-higher-speed selection, repeated-run evidence, and boundary decision. */ }
+    require constraint statement { language "English" /* The bench shall trace each bounded result to replayable observations, processing steps, unit conversion, next-higher-speed selection, repeated-run evidence, and boundary decision. */ }
   }
   requirement evidenceContract009IProvenance : EvidenceContract009I {
     subject bench : RegulatoryCriterionBench009I;
-    require constraint { doc /* The bench shall hash-bind source metadata, criterion mapping, tested configuration, runtime, evaluator, measurements, and retained artifacts. */ }
+    require constraint statement { language "English" /* The bench shall hash-bind source metadata, criterion mapping, tested configuration, runtime, evaluator, measurements, and retained artifacts. */ }
   }
   requirement evidenceContract009IConfigurationBoundedVerdict : EvidenceContract009I {
     subject bench : RegulatoryCriterionBench009I;
-    require constraint { doc /* The bench shall limit the verdict to one exact tested configuration. Missing applicability, prescribed conditions, target fidelity, uncertainty, repetitions, source control, or provenance shall be inconclusive or error. Compliance, certification, homologation, and type approval remain withheld. */ }
+    require constraint statement { language "English" /* The bench shall limit the verdict to one exact tested configuration. Missing applicability, prescribed conditions, target fidelity, uncertainty, repetitions, source control, or provenance shall be inconclusive or error. Compliance, certification, homologation, and type approval remain withheld. */ }
   }
 
   part pedestrianCriterionBench009I : RegulatoryCriterionBench009I {

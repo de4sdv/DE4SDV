@@ -129,7 +129,9 @@ def test_model_stated_bounds_live_inside_require_constraints():
     for model_file, _, _ in BOUND_CASES:
         text = _model_text(model_file)
         constraint_blocks = re.findall(
-            r"require constraint \{ doc /\* (.*?) \*/ \}", text, re.S
+            r"require constraint(?:\s+statement)?\s*\{[^}]*?/\*(.*?)\*/",
+            text,
+            re.S,
         )
         assert any(
             re.search(r"\d+\.\d+ s", block) for block in constraint_blocks

@@ -40,15 +40,15 @@ package DE4SDV_AEBS009EVerification {
   requirement def EvidenceContract009E;
   requirement evidenceContract009EClosedNonActivationScenario : EvidenceContract009E {
     subject bench : FalseReactionMatrixBench009E;
-    require constraint { doc /* The bench shall bind one closed scenario identity and a complete observation window: at least 4.0 s duration with no sample gap above 0.75 s and every required input no older than 0.5 s at window close. */ }
+    require constraint statement { language "English" /* The bench shall bind one closed scenario identity and a complete observation window: at least 4.0 s duration with no sample gap above 0.75 s and every required input no older than 0.5 s at window close. */ }
   }
   requirement evidenceContract009EWarningSilenceWindow : EvidenceContract009E {
     subject bench : FalseReactionMatrixBench009E;
-    require constraint { doc /* The bench shall establish warning silence only from a complete periodic window with fresh terminal coverage and no contradictory warning. */ }
+    require constraint statement { language "English" /* The bench shall establish warning silence only from a complete periodic window with fresh terminal coverage and no contradictory warning. */ }
   }
   requirement evidenceContract009EBrakingSilenceWindow : EvidenceContract009E {
     subject bench : FalseReactionMatrixBench009E;
-    require constraint { doc /* The bench shall establish braking silence only from complete command, required-input-health, and publisher-topology coverage with no contradictory command. */ }
+    require constraint statement { language "English" /* The bench shall establish braking silence only from complete command, required-input-health, and publisher-topology coverage with no contradictory command. */ }
   }
 
   part clearPathBench009E : FalseReactionMatrixBench009E {

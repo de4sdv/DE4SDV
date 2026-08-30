@@ -41,19 +41,19 @@ package DE4SDV_AEBS009FVerification {
   requirement def EvidenceContract009F;
   requirement evidenceContract009FClosedInputHealthScenario : EvidenceContract009F {
     subject bench : DegradedInputMatrixBench009F;
-    require constraint { doc /* The bench shall inject exactly one closed stale, missing, malformed, inconsistent, or unavailable input condition after any required healthy baseline. A degraded state is accepted only while its observation age stays within 0.2 s, detection is closed within a 0.25 s window, and runtime-graph sampling gaps stay at or below 0.2 s. */ }
+    require constraint statement { language "English" /* The bench shall inject exactly one closed stale, missing, malformed, inconsistent, or unavailable input condition after any required healthy baseline. A degraded state is accepted only while its observation age stays within 0.2 s, detection is closed within a 0.25 s window, and runtime-graph sampling gaps stay at or below 0.2 s. */ }
   }
   requirement evidenceContract009FStateOwnership : EvidenceContract009F {
     subject bench : DegradedInputMatrixBench009F;
-    require constraint { doc /* The bench shall retain producer identity, affected topic, source timing, and ordered degraded-state transition and ownership observations. */ }
+    require constraint statement { language "English" /* The bench shall retain producer identity, affected topic, source timing, and ordered degraded-state transition and ownership observations. */ }
   }
   requirement evidenceContract009FStatusIndication : EvidenceContract009F {
     subject bench : DegradedInputMatrixBench009F;
-    require constraint { doc /* The bench shall retain ordered AEBS status-indication observations for the bound input-health scenario. */ }
+    require constraint statement { language "English" /* The bench shall retain ordered AEBS status-indication observations for the bound input-health scenario. */ }
   }
   requirement evidenceContract009FObserverFailureIsNotPass : EvidenceContract009F {
     subject bench : DegradedInputMatrixBench009F;
-    require constraint { doc /* The bench shall map missing, contradictory, contaminated, or unobservable evidence to inconclusive or error, never pass. */ }
+    require constraint statement { language "English" /* The bench shall map missing, contradictory, contaminated, or unobservable evidence to inconclusive or error, never pass. */ }
   }
 
   part staleInputBench009F : DegradedInputMatrixBench009F {

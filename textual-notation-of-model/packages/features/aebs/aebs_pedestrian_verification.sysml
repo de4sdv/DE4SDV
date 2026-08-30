@@ -31,15 +31,15 @@ package DE4SDV_AEBS009GVerification {
   requirement def EvidenceContract009G;
   requirement evidenceContract009GConfiguredPedestrianTarget : EvidenceContract009G {
     subject bench : PedestrianTargetBench009G;
-    require constraint { doc /* The bench shall bind the configured pedestrian trajectory, geometry, timing, and exact bench identity: crossing speed 1.5 m/s, a closed observation window of 2.0 s, and map-frame source observations no older than 0.5 s. */ }
+    require constraint statement { language "English" /* The bench shall bind the configured pedestrian trajectory, geometry, timing, and exact bench identity: crossing speed 1.5 m/s, a closed observation window of 2.0 s, and map-frame source observations no older than 0.5 s. */ }
   }
   requirement evidenceContract009GIndependentFootprintOutcome : EvidenceContract009G {
     subject bench : PedestrianTargetBench009G;
-    require constraint { doc /* The bench shall reconstruct ego and pedestrian footprints independently from retained map-frame observations and reject missing or contradictory samples. */ }
+    require constraint statement { language "English" /* The bench shall reconstruct ego and pedestrian footprints independently from retained map-frame observations and reject missing or contradictory samples. */ }
   }
   requirement evidenceContract009GReplayableProvenance : EvidenceContract009G {
     subject bench : PedestrianTargetBench009G;
-    require constraint { doc /* The bench shall hash-bind scenario, runtime, evaluator, observation, map-runtime, and artifact identities for independent replay. */ }
+    require constraint statement { language "English" /* The bench shall hash-bind scenario, runtime, evaluator, observation, map-runtime, and artifact identities for independent replay. */ }
   }
 
   part pedestrianTargetBench009G : PedestrianTargetBench009G;
