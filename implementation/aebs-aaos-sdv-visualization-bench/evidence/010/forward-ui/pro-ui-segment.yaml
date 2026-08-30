@@ -1,0 +1,26 @@
+segment_id: INC-AEBS-010-pro-ui-live-20260830
+captured_at: "2026-08-30T23:30:00Z"
+environment:
+  cloud: "NEW account project-7ddd343e-32e9-4351-91b, single-VM bench"
+  guest: "sdv_ivi_cf dynamic adb port 6529"
+  app: "De4sdvAebsVisualizationApp schema_minor 1 (cluster + ego speed)"
+  bench: "Autoware pinned f603d875 + 009B scenario"
+recordings:
+  live-v12: "full arc monitoring→warning→intervention→released (pre-speed-card UI), pass_observed_chain"
+  live-v17: "professional UI braking→released with speed card 23 km/h + ego silhouette + cluster, pass_observed_chain"
+  live-v19: "long intervention window, pass_observed_chain"
+linkedin_cut: "linkedin-cut-pro.mp4 (56.6s): v12 arc (warning slow-mo labeled) → v17 professional braking → released"
+claims:
+  pro_ui_elements: observed_bounded
+    - "speed card km/h from live kinematic state (23 km/h verified on screen)"
+    - "car-shaped ego silhouette at labeled 2.5x fixture scale"
+    - "24-point cyan obstacle cluster (vehicle-shaped fixture target)"
+    - "state colors exclusively from reducer"
+bench_deviations:
+  - "SELinux permissive (diagnostic-only)"
+  - "ACL via disable-verity/remount (bench provisioning)"
+  - "fixture-injection timing prevented on-camera monitoring phase in v17/v19; monitoring/warning covered by v12 segment"
+known_limitations:
+  - "ego speed absent in v12-era frames (nested-twist bug, fixed in 64edca2)"
+  - "v12 UI lacks speed card; cut transitions between recordings are disclosed by on-screen labels"
+disposition: observed_bounded
