@@ -6,6 +6,7 @@
     <string name="initial_target_range">Target range  —</string>
     <string name="initial_rss_distance">RSS distance  —</string>
     <string name="initial_frame_age">Frame age  —</string>
+    <string name="initial_ego_speed">Ego speed  —</string>
     <string name="state_monitoring">monitoring</string>
     <string name="state_warning">warning</string>
     <string name="state_intervention">intervention</string>

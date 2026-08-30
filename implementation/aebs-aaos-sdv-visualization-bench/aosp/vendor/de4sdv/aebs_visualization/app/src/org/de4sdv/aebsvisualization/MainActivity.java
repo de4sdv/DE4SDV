@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
     private TextView stateReleased;
     private TextView metricTargetRange;
     private TextView metricRssDistance;
+    private TextView metricEgoSpeed;
     private TextView metricFrameAge;
     private TextView provenanceView;
     private HandlerThread tickerThread;
@@ -54,6 +55,7 @@ public class MainActivity extends Activity {
         stateReleased = findViewById(R.id.state_released);
         metricTargetRange = findViewById(R.id.metric_target_range);
         metricRssDistance = findViewById(R.id.metric_rss_distance);
+        metricEgoSpeed = findViewById(R.id.metric_ego_speed);
         metricFrameAge = findViewById(R.id.metric_frame_age);
         provenanceView = findViewById(R.id.provenance);
 
@@ -115,6 +117,20 @@ public class MainActivity extends Activity {
         final Float rssDistance = frame.hasRssDistance()
                 && frame.getRssDistance().hasNumericValue()
                 ? (float) frame.getRssDistance().getNumericValue() : null;
+        // schema_minor 1: cluster projection + ego speed (display-presentational).
+        final Float egoSpeed = frame.hasEgoSpeed()
+                && frame.getEgoSpeed().hasNumericValue()
+                ? (float) frame.getEgoSpeed().getNumericValue() : null;
+        final float[] targetPoints;
+        if (frame.getTargetPointsCount() > 0) {
+            targetPoints = new float[frame.getTargetPointsCount() * 2];
+            for (int i = 0; i < frame.getTargetPointsCount(); i++) {
+                targetPoints[i * 2] = frame.getTargetPoints(i).getForwardM();
+                targetPoints[i * 2 + 1] = frame.getTargetPoints(i).getLateralM();
+            }
+        } else {
+            targetPoints = null;
+        }
         Log.i("MainActivity", "onGatewayFrame: frame seq=" + frame.getSequence()
                 + " intervention=" + intervention + " warning=" + warning
                 + " braking=" + braking + " lifecycle=" + lifecycle
@@ -124,9 +140,11 @@ public class MainActivity extends Activity {
             lastFrameElapsedMs = android.os.SystemClock.elapsedRealtime();
             sceneModel.setTarget(targetRange, targetBearing);
             sceneModel.setRssDistance(rssDistance);
+            sceneModel.setEgoSpeed(egoSpeed);
+            sceneModel.setTargetPoints(targetPoints);
             sceneModel.setFrameAgeMs(0); // fresh at receipt; ticker ages it
             situationView.render(sceneModel.build());
-            renderMetrics(targetRange, rssDistance, 0);
+            renderMetrics(targetRange, rssDistance, 0, egoSpeed);
             onFrame(new VisualizationStateReducer.FrameInput(
                     frame.getSequence(), intervention, warning, braking, lifecycle));
         });
@@ -144,6 +162,9 @@ public class MainActivity extends Activity {
         // Age the health chip; geometry stays untouched by age (pure test 10).
         if (lastFrameElapsedMs > 0) {
             lastFrameAgeMs = now - lastFrameElapsedMs;
+            // Re-render chip + metric with the aged value (geometry unaffected).
+            final long age = lastFrameAgeMs;
+            runOnUiThread(() -> metricFrameAge.setText("Frame age  " + age + " ms"));
         }
         tickerHandler.postDelayed(this::tick, 200);
     }
@@ -217,11 +238,13 @@ public class MainActivity extends Activity {
         healthChip.setTextColor(model.getHealthColorRgb());
     }
 
-    private void renderMetrics(Float targetRange, Float rssDistance, long frameAgeMs) {
+    private void renderMetrics(Float targetRange, Float rssDistance, long frameAgeMs, Float egoSpeed) {
         metricTargetRange.setText("Target range  "
                 + (targetRange != null ? String.format(java.util.Locale.US, "%.1f m", targetRange) : "—"));
         metricRssDistance.setText("RSS distance  "
                 + (rssDistance != null ? String.format(java.util.Locale.US, "%.1f m", rssDistance) : "—"));
+        metricEgoSpeed.setText("Ego speed  "
+                + (egoSpeed != null ? String.format(java.util.Locale.US, "%.0f km/h", egoSpeed * 3.6f) : "—"));
         metricFrameAge.setText("Frame age  "
                 + (frameAgeMs >= 0 ? frameAgeMs + " ms" : "—"));
     }

@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
 SCHEMA_MAJOR = 1
-SCHEMA_MINOR = 0
+SCHEMA_MINOR = 1
 
 # Frame schema fields. The wire serialization (protobuf) encodes exactly
 # these; adding a field requires a schema-major bump or a documented minor.
@@ -33,6 +33,8 @@ FRAME_FIELDS = (
     "rss_distance",
     "target_range",
     "target_bearing",
+    "target_points",
+    "ego_speed",
     "native_intervention",
     "de4sdv_warning_request",
     "de4sdv_braking_request",
@@ -108,6 +110,8 @@ class FrameAssemblerState:
     rss_distance: dict[str, Any] | None = None
     target_range: dict[str, Any] | None = None
     target_bearing: dict[str, Any] | None = None
+    target_points: list[tuple[float, float]] | None = None
+    ego_speed: dict[str, Any] | None = None
     native_intervention: dict[str, Any] | None = None
     de4sdv_warning_request: dict[str, Any] | None = None
     de4sdv_braking_request: dict[str, Any] | None = None
@@ -166,6 +170,29 @@ class FrameAssembler:
             numeric_bearing, "displayDerived", stamp, "rad", "map",
         )
 
+    def observe_ego_speed(self, observation: SourceObservation, value: Any) -> None:
+        # Bench kinematic-state derived ego speed; display-presentational only.
+        numeric = self._require_finite_number(value, "ego_speed")
+        self.state.ego_speed = _field_value(
+            max(numeric, 0.0), "displayDerived",
+            self._require_positive_int(observation.payload.get("source_timestamp_ns"), "source_timestamp_ns"),
+            "m/s", "base_link",
+        )
+
+    def observe_target_points(self, observation: SourceObservation, points: Any) -> None:
+        # Downsampled filtered-obstacle cluster projection (bounded 24 points).
+        if not isinstance(points, list) or len(points) > 24:
+            raise FrameError("target_points must be a list of at most 24 points")
+        clean: list[tuple[float, float]] = []
+        for point in points:
+            if not isinstance(point, (tuple, list)) or len(point) != 2:
+                raise FrameError("each target point must be (forward_m, lateral_m)")
+            fwd, lat = float(point[0]), float(point[1])
+            if not math.isfinite(fwd) or not math.isfinite(lat):
+                raise FrameError("target point must be finite")
+            clean.append((fwd, lat))
+        self.state.target_points = clean
+
     def observe_native_intervention(self, observation: SourceObservation, diagnostic_name: str, level: str, message: str) -> None:
         expected = (
             diagnostic_name == "autonomous_emergency_braking: aeb_emergency_stop"
@@ -220,10 +247,11 @@ class FrameAssembler:
         }
         for name in (
             "rss_distance", "target_range", "target_bearing",
-            "native_intervention", "de4sdv_warning_request",
+            "ego_speed", "native_intervention", "de4sdv_warning_request",
             "de4sdv_braking_request", "de4sdv_lifecycle_state",
         ):
             frame[name] = getattr(self.state, name)
+        frame["target_points"] = list(self.state.target_points or [])
         self.state.last_sequence = frame["sequence"]
         self.state.last_frame_timestamp_ns = now_ns
         return frame

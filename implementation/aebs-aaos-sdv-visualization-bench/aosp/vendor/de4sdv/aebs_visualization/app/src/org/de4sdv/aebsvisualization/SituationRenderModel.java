@@ -48,6 +48,10 @@ public final class SituationRenderModel {
     private final String frameAgeText;
     private final String healthLabel;
     private final boolean trailVisible;
+    private final String egoSpeedText;
+    /** Flattened cluster points [f0,l0,f1,l1,...] in display units (0..1 scaled). */
+    private final float[] clusterPointsDisplay;
+    private final boolean clusterVisible;
 
     private SituationRenderModel(Builder b) {
         this.disposition = b.disposition;
@@ -61,6 +65,9 @@ public final class SituationRenderModel {
             this.rssBoundaryVisible = false;
             this.rssForwardNormalized = 0f;
             this.trailVisible = false;
+            this.egoSpeedText = "—";
+            this.clusterPointsDisplay = new float[0];
+            this.clusterVisible = false;
             this.targetRangeText = "—";
             this.rssDistanceText = "—";
         } else {
@@ -84,6 +91,20 @@ public final class SituationRenderModel {
                 this.rssForwardNormalized = 0f;
             }
             this.trailVisible = targetVisible; // trail only with live target
+            this.egoSpeedText = b.egoSpeed != null
+                    ? String.format(java.util.Locale.US, "%.0f", b.egoSpeed * 3.6f) : "—";
+            if (b.targetPoints != null && b.targetPoints.length >= 2) {
+                this.clusterPointsDisplay = new float[b.targetPoints.length];
+                for (int i = 0; i + 1 < b.targetPoints.length; i += 2) {
+                    this.clusterPointsDisplay[i] = clamp(b.targetPoints[i] / MAX_RANGE_M);
+                    this.clusterPointsDisplay[i + 1] =
+                            clampAbs(b.targetPoints[i + 1] / (MAX_RANGE_M / 2f));
+                }
+                this.clusterVisible = true;
+            } else {
+                this.clusterPointsDisplay = new float[0];
+                this.clusterVisible = false;
+            }
             this.targetRangeText = b.targetRange != null
                     ? formatMetres(b.targetRange) : "—";
             this.rssDistanceText = b.rssDistance != null
@@ -176,6 +197,21 @@ public final class SituationRenderModel {
         return trailVisible;
     }
 
+    /** Cluster projection visible (schema_minor 1 rich scene). */
+    public boolean isClusterVisible() {
+        return clusterVisible;
+    }
+
+    /** Flattened display-space cluster points [f0,l0,f1,l1,...]. */
+    public float[] getClusterPointsDisplay() {
+        return clusterPointsDisplay;
+    }
+
+    /** Ego speed in km/h, display-rounded; "—" when absent. */
+    public String getEgoSpeedText() {
+        return egoSpeedText;
+    }
+
     // -- metric text ------------------------------------------------------------
 
     public String getTargetRangeText() {
@@ -221,6 +257,10 @@ public final class SituationRenderModel {
         return Math.max(0f, Math.min(1f, v));
     }
 
+    private static float clampAbs(float v) {
+        return Math.max(-1f, Math.min(1f, v));
+    }
+
     private static String formatMetres(float v) {
         return String.format(java.util.Locale.US, "%.1f m", v);
     }
@@ -232,6 +272,9 @@ public final class SituationRenderModel {
         @Nullable private Float targetRange;
         @Nullable private Float targetBearing;
         @Nullable private Float rssDistance;
+        @Nullable private Float egoSpeed;
+        /** Bounded cluster projection: pairs of forward/lateral metres. */
+        @Nullable private float[] targetPoints;
         private long frameAgeMs = -1;
 
         public Builder setDisposition(VisualizationStateReducer.Disposition d) {
@@ -247,6 +290,16 @@ public final class SituationRenderModel {
 
         public Builder setRssDistance(@Nullable Float rssM) {
             this.rssDistance = rssM;
+            return this;
+        }
+
+        public Builder setEgoSpeed(@Nullable Float speedMps) {
+            this.egoSpeed = speedMps;
+            return this;
+        }
+
+        public Builder setTargetPoints(@Nullable float[] pointsFlattened) {
+            this.targetPoints = pointsFlattened;
             return this;
         }
 

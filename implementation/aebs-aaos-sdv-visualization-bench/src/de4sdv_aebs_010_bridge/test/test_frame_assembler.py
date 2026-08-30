@@ -81,6 +81,34 @@ def test_warning_braking_lifecycle_are_de4sdv_derived() -> None:
         assert frame[name]["source_kind"] == "de4sdvAebsCoordinator"
 
 
+def test_schema_minor1_fields_assemble() -> None:
+    assembler = FrameAssembler("de4sdv_aebs_010_bridge")
+    assembler.observe_rss_distance(
+        SourceObservation(RSS_TOPIC, {"source_timestamp_ns": 1_000_000_000}, 1_000_000_000), 12.5
+    )
+    assembler.observe_target_points(
+        SourceObservation(RSS_TOPIC, {"source_timestamp_ns": 1_000_000_000}, 1_000_000_000),
+        [(20.0, 0.0), (20.5, 0.8), (21.0, -0.8)],
+    )
+    assembler.observe_ego_speed(
+        SourceObservation(RSS_TOPIC, {"source_timestamp_ns": 1_000_000_000}, 1_000_000_000), 6.0
+    )
+    frame = assembler.assemble(1_000_000_000)
+    assert frame["schema_minor"] == 1
+    assert frame["target_points"] == [(20.0, 0.0), (20.5, 0.8), (21.0, -0.8)]
+    assert frame["ego_speed"]["value"] == 6.0
+    assert frame["ego_speed"]["units"] == "m/s"
+
+
+def test_target_points_reject_over_bound() -> None:
+    assembler = FrameAssembler("de4sdv_aebs_010_bridge")
+    with pytest.raises(FrameError):
+        assembler.observe_target_points(
+            SourceObservation(RSS_TOPIC, {"source_timestamp_ns": 1_000_000_000}, 1_000_000_000),
+            [(float(i), 0.0) for i in range(25)],
+        )
+
+
 def test_coordinator_object_distance_never_becomes_native_field() -> None:
     # The frame has no native field that could carry coordinator-derived
     # object distance; only the native RSS field exists with native provenance.
@@ -111,7 +139,7 @@ def test_sequence_increases_monotonically() -> None:
 def test_schema_version_is_recorded() -> None:
     frame = valid_source_frame()
     assert frame["schema_major"] == 1
-    assert frame["schema_minor"] == 0
+    assert frame["schema_minor"] == 1  # schema minor 1 since 2026-08-30
 
 
 # ---------------------------------------------------------------------------

@@ -4,34 +4,59 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
 /**
  * DE4SDV AEBS forward-situation view (display-derived presentation only).
  *
- * Renders a bounded top-down forward scene from the pure render model:
- * ego origin at bottom center, subdued distance ticks every 10 m up to
- * 60 m, the closest obstacle point from target_range/target_bearing
- * (native filtered obstacle cloud projected by the bridge), a labeled
- * horizontal RSS-distance boundary from the native AEB metric, and a
- * short trail of real historical target positions. No circles, sweep, or
- * expanding pulse: liveness lives in the separate health chip, never in
- * scene geometry. No data, no marker: absent target fields render an
- * empty scene, never a synthetic one. Fails closed: the view draws only
- * what the last validated frame contained (REQ-AEBS-S2-005/006).
+ * Professional automotive HMI styling (dark base #121212, rounded cards,
+ * cyan live accents) applied to the pure render model: car-shaped ego at the
+ * bottom (fixture footprint 3.74 m front / 1.03 m rear / 1.83 m width),
+ * the filtered obstacle cluster rendered as a bounded point cluster (the
+ * fixture target is vehicle-shaped: 4.2 x 1.8 m, so the cluster reads as a
+ * vehicle), the labeled RSS boundary, and subdued distance ticks every 10 m
+ * up to 60 m. No circles, sweep, pulse, invented lanes, or decorative road:
+ * every element is live frame data, labeled fixture geometry, or the static
+ * display scale (VISUALIZATION-CONTRACT.md). Fails closed: degraded
+ * dispositions clear the scene (REQ-AEBS-S2-005/006).
  */
 public class ForwardSituationView extends View {
 
-    private final Paint groundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** Display scale bound in metres (display-only, not a data bound). */
+    private static final float MAX_RANGE_M = SituationRenderModel.MAX_RANGE_M;
+
+    /** Ego footprint from the pinned scenario fixture (metres). */
+    private static final float EGO_FRONT_M = 3.74f;
+    private static final float EGO_REAR_M = 1.03f;
+    private static final float EGO_WIDTH_M = 1.83f;
+
+    // Design tokens (automotive dark HMI language).
+    private static final int COLOR_BASE = Color.rgb(18, 18, 18);
+    private static final int COLOR_CARD = Color.rgb(30, 30, 30);
+    private static final int COLOR_TICK = Color.rgb(45, 45, 45);
+    private static final int COLOR_TICK_LABEL = Color.rgb(85, 85, 85);
+    private static final int COLOR_EGO = Color.rgb(229, 229, 229);
+    private static final int COLOR_CLUSTER = Color.rgb(0, 229, 255); // cyan live accent
+    private static final int COLOR_RSS = Color.rgb(0, 229, 255);
+    private static final int COLOR_RSS_LABEL = Color.rgb(176, 176, 176);
+    private static final int COLOR_TRAIL = Color.argb(70, 0, 229, 255);
+
+    private final Paint basePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tickPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tickLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint cardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint egoPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint targetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint egoOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint clusterPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint clusterCorePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint trailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint rssPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint rssLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint targetLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint bannerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint bannerTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     /** Latest visual specification from the pure render model. */
     private SituationRenderModel model;
@@ -59,34 +84,49 @@ public class ForwardSituationView extends View {
     }
 
     private void init() {
-        groundPaint.setStyle(Paint.Style.FILL);
-        groundPaint.setColor(Color.rgb(10, 14, 12));
+        basePaint.setStyle(Paint.Style.FILL);
+        basePaint.setColor(COLOR_BASE);
 
         tickPaint.setStyle(Paint.Style.STROKE);
         tickPaint.setStrokeWidth(1.5f);
-        tickPaint.setColor(Color.rgb(40, 70, 55));
+        tickPaint.setColor(COLOR_TICK);
 
-        tickLabelPaint.setColor(Color.rgb(90, 140, 110));
-        tickLabelPaint.setTextSize(22f);
+        tickLabelPaint.setColor(COLOR_TICK_LABEL);
+        tickLabelPaint.setTextSize(20f);
+
+        cardPaint.setStyle(Paint.Style.FILL);
+        cardPaint.setColor(COLOR_CARD);
 
         egoPaint.setStyle(Paint.Style.FILL);
-        egoPaint.setColor(Color.rgb(120, 200, 255));
+        egoPaint.setColor(COLOR_EGO);
 
-        targetPaint.setStyle(Paint.Style.FILL);
-        targetPaint.setColor(Color.rgb(255, 190, 60));
+        egoOutlinePaint.setStyle(Paint.Style.STROKE);
+        egoOutlinePaint.setStrokeWidth(2f);
+        egoOutlinePaint.setColor(Color.argb(90, 229, 229, 229));
+
+        clusterPaint.setStyle(Paint.Style.FILL);
+        clusterPaint.setColor(COLOR_CLUSTER);
+
+        clusterCorePaint.setStyle(Paint.Style.FILL);
+        clusterCorePaint.setColor(Color.argb(120, 0, 229, 255));
 
         trailPaint.setStyle(Paint.Style.FILL);
-        trailPaint.setColor(Color.argb(70, 255, 190, 60));
+        trailPaint.setColor(COLOR_TRAIL);
 
         rssPaint.setStyle(Paint.Style.STROKE);
-        rssPaint.setStrokeWidth(6f);
-        rssPaint.setColor(Color.rgb(120, 200, 255));
+        rssPaint.setStrokeWidth(5f);
+        rssPaint.setColor(COLOR_RSS);
 
-        rssLabelPaint.setColor(Color.rgb(140, 200, 255));
-        rssLabelPaint.setTextSize(24f);
+        rssLabelPaint.setColor(COLOR_RSS_LABEL);
+        rssLabelPaint.setTextSize(20f);
 
-        targetLabelPaint.setColor(Color.rgb(255, 200, 90));
-        targetLabelPaint.setTextSize(24f);
+        bannerPaint.setStyle(Paint.Style.FILL);
+        bannerPaint.setColor(Color.argb(200, 30, 30, 30));
+        bannerPaint.setStrokeWidth(2f);
+        bannerPaint.setAntiAlias(true);
+
+        bannerTextPaint.setColor(Color.WHITE);
+        bannerTextPaint.setTextSize(22f);
     }
 
     /**
@@ -103,7 +143,7 @@ public class ForwardSituationView extends View {
         invalidate();
     }
 
-    /** Clears live geometry (degraded dispositions): empty scene, no marker. */
+    /** Clears live geometry (degraded dispositions): empty scene. */
     public void clearTrail() {
         trailCount = 0;
         trailHead = 0;
@@ -118,23 +158,28 @@ public class ForwardSituationView extends View {
         }
     }
 
-    /** Returns {originX, originY, usableHeight, usableHalfWidth}. */
+    /**
+     * Scene geometry. Ego REAR bumper sits at originY; the ego car shape is
+     * drawn to scale against the same metre-per-pixel factor as the range
+     * axis so the cluster, ego, and RSS boundary share one physical scale.
+     */
     private float[] sceneGeometry() {
         final float w = getWidth();
         final float h = getHeight();
         final float originX = w / 2f;
-        final float originY = h * 0.92f;
-        final float usableHeight = h * 0.80f;
-        final float usableHalfWidth = w * 0.42f;
-        return new float[]{originX, originY, usableHeight, usableHalfWidth};
+        final float originY = h * 0.90f;          // ego rear bumper
+        final float usableHeight = h * 0.74f;     // 0..60 m band above origin
+        final float usableHalfWidth = w * 0.44f;
+        final float metresPerPx = MAX_RANGE_M / usableHeight;
+        return new float[]{originX, originY, usableHeight, usableHalfWidth, metresPerPx};
     }
 
-    private float forwardToY(float[] g, float normalizedForward) {
-        return g[1] - normalizedForward * g[2];
+    private float forwardToY(float[] g, float metres) {
+        return g[1] - (metres / MAX_RANGE_M) * g[2];
     }
 
-    private float lateralToX(float[] g, float normalizedLateral) {
-        return g[0] + normalizedLateral * g[3];
+    private float lateralToX(float[] g, float metres) {
+        return g[0] + (metres / (MAX_RANGE_M / 2f)) * g[3];
     }
 
     @Override
@@ -143,30 +188,27 @@ public class ForwardSituationView extends View {
         final float w = getWidth();
         final float h = getHeight();
         final float[] g = sceneGeometry();
-        final float originX = g[0];
-        final float originY = g[1];
 
-        canvas.drawRect(0, 0, w, h, groundPaint);
+        canvas.drawRect(0, 0, w, h, basePaint);
 
-        // Subdued distance ticks every 10 m up to the 60 m display bound.
-        for (int m = 10; m <= (int) SituationRenderModel.MAX_RANGE_M; m += 10) {
-            final float y = forwardToY(g, m / SituationRenderModel.MAX_RANGE_M);
-            canvas.drawLine(originX - 14f, y, originX + 14f, y, tickPaint);
-            canvas.drawText(m + " m", originX + 20f, y + 7f, tickLabelPaint);
+        // Subdued distance ticks every 10 m up to the display bound.
+        for (int m = 10; m <= (int) MAX_RANGE_M; m += 10) {
+            final float y = forwardToY(g, m);
+            canvas.drawLine(g[0] - 12f, y, g[0] + 12f, y, tickPaint);
+            canvas.drawText(m + " m", g[0] + 18f, y + 6f, tickLabelPaint);
         }
 
         if (model == null) {
-            drawEgo(canvas, originX, originY);
+            drawEgo(canvas, g);
             return;
         }
 
-        // RSS boundary: one labeled horizontal line on the shared scale.
+        // RSS boundary: one labeled line on the shared scale.
         if (model.isRssBoundaryVisible()) {
-            final float rssY = forwardToY(g, model.getRssForwardNormalized());
+            final float rssY = forwardToY(g, model.getRssForwardNormalized() * MAX_RANGE_M);
             rssPaint.setColor(model.getStateColorRgb());
             canvas.drawLine(24f, rssY, w - 24f, rssY, rssPaint);
-            canvas.drawText("RSS " + model.getRssDistanceText(),
-                    28f, rssY - 10f, rssLabelPaint);
+            canvas.drawText("RSS " + model.getRssDistanceText(), 30f, rssY - 10f, rssLabelPaint);
         }
 
         // Trail: real historical target positions, oldest first.
@@ -175,27 +217,89 @@ public class ForwardSituationView extends View {
             final float alpha = 70f * (1f - (float) i / TRAIL_MAX);
             trailPaint.setAlpha((int) alpha);
             canvas.drawCircle(
-                    lateralToX(g, trailLx[idx]),
-                    forwardToY(g, trailFx[idx]),
+                    lateralToX(g, trailLx[idx] * (MAX_RANGE_M / 2f)),
+                    forwardToY(g, trailFx[idx] * MAX_RANGE_M),
                     6f, trailPaint);
         }
 
-        // Current closest obstacle point (only from real frame fields).
-        if (model.isTargetVisible()) {
-            final float tx = lateralToX(g, model.getTargetLateralNormalized());
-            final float ty = forwardToY(g, model.getTargetForwardNormalized());
-            canvas.drawCircle(tx, ty, 14f, targetPaint);
-            canvas.drawText("Closest obstacle point " + model.getTargetRangeText(),
-                    Math.min(tx + 20f, w - 380f), Math.max(ty - 18f, 30f),
-                    targetLabelPaint);
+        // Filtered obstacle cluster: bounded point projection (schema minor 1).
+        // Rendered as glowing cyan points over a soft core so the vehicle-
+        // shaped fixture target reads as a car-like silhouette.
+        if (model.isClusterVisible()) {
+            final float[] pts = model.getClusterPointsDisplay();
+            for (int i = 0; i + 1 < pts.length; i += 2) {
+                final float px = lateralToX(g, pts[i + 1] * (MAX_RANGE_M / 2f));
+                final float py = forwardToY(g, pts[i] * MAX_RANGE_M);
+                canvas.drawCircle(px, py, 11f, clusterCorePaint);
+                canvas.drawCircle(px, py, 5f, clusterPaint);
+            }
         }
 
-        // Ego/reference origin at the bottom center.
-        drawEgo(canvas, originX, originY);
+        // Closest-point marker + label (unchanged semantics).
+        if (model.isTargetVisible()) {
+            final float tx = lateralToX(g, model.getTargetLateralNormalized() * (MAX_RANGE_M / 2f));
+            final float ty = forwardToY(g, model.getTargetForwardNormalized() * MAX_RANGE_M);
+            canvas.drawCircle(tx, ty, 7f, clusterPaint);
+            String label = "Closest obstacle " + model.getTargetRangeText();
+            float labelX = Math.min(tx + 14f, w - 320f);
+            float labelY = Math.max(ty - 16f, 34f);
+            drawPillLabel(canvas, label, labelX, labelY);
+        }
+
+        // Ego: car-shaped to fixture scale (side view silhouette, centered).
+        drawEgo(canvas, g);
+
+        // Live speed banner (top-left card): ego speed from kinematic state.
+        if (model.getEgoSpeedText() != null && !"—".equals(model.getEgoSpeedText())) {
+            drawSpeedBanner(canvas, model.getEgoSpeedText());
+        }
     }
 
-    private void drawEgo(Canvas canvas, float originX, float originY) {
-        canvas.drawCircle(originX, originY, 9f, egoPaint);
-        canvas.drawText("ego", originX + 16f, originY + 7f, tickLabelPaint);
+    private void drawEgo(Canvas canvas, float[] g) {
+        final float mPerPx = g[4];
+        final float carFront = EGO_FRONT_M * mPerPx;   // px above origin
+        final float carRear = EGO_REAR_M * mPerPx;     // px below origin (clipped band)
+        final float carW = EGO_WIDTH_M * (g[3] * 2f / MAX_RANGE_M) * (MAX_RANGE_M / 2f) * 2f;
+        // width in px: metres * (px per metre on lateral axis)
+        final float carWpx = EGO_WIDTH_M * mPerPx * 2.2f; // slight visual emphasis
+
+        Path car = new Path();
+        float top = g[1] - carFront;
+        float bottom = g[1] + carRear * 0.4f;
+        float left = g[0] - carWpx / 2f;
+        float right = g[0] + carWpx / 2f;
+        RectF body = new RectF(left, top, right, bottom);
+        car.addRoundRect(body, 14f, 14f, Path.Direction.CW);
+        canvas.drawPath(car, egoPaint);
+        canvas.drawPath(car, egoOutlinePaint);
+        // Cabin hint: darker windshield band (fixture geometry, stylized).
+        Paint cabin = new Paint(Paint.ANTI_ALIAS_FLAG);
+        cabin.setStyle(Paint.Style.FILL);
+        cabin.setColor(Color.argb(70, 18, 18, 18));
+        RectF cabinRect = new RectF(left + carWpx * 0.14f, top + carFront * 0.28f,
+                right - carWpx * 0.14f, top + carFront * 0.52f);
+        canvas.drawRoundRect(cabinRect, 8f, 8f, cabin);
+    }
+
+    private void drawPillLabel(Canvas canvas, String text, float x, float y) {
+        float textW = bannerTextPaint.measureText(text);
+        RectF pill = new RectF(x - 8f, y - 30f, x + textW + 16f, y + 6f);
+        canvas.drawRoundRect(pill, 10f, 10f, bannerPaint);
+        canvas.drawText(text, x, y - 9f, bannerTextPaint);
+    }
+
+    private void drawSpeedBanner(Canvas canvas, String kmh) {
+        // Big glanceable speed readout (automotive HMI focal point).
+        Paint big = new Paint(Paint.ANTI_ALIAS_FLAG);
+        big.setColor(Color.WHITE);
+        big.setTextSize(74f);
+        big.setFakeBoldText(true);
+        Paint unit = new Paint(Paint.ANTI_ALIAS_FLAG);
+        unit.setColor(COLOR_RSS_LABEL);
+        unit.setTextSize(22f);
+        RectF card = new RectF(20f, 18f, 190f, 118f);
+        canvas.drawRoundRect(card, 16f, 16f, cardPaint);
+        canvas.drawText(kmh, 40f, 92f, big);
+        canvas.drawText("km/h", 44f, 112f, unit);
     }
 }

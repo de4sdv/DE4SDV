@@ -13,6 +13,7 @@ from rclpy.node import Node
 from std_msgs.msg import Bool, String
 from diagnostic_msgs.msg import DiagnosticArray
 from sensor_msgs.msg import PointCloud2
+from nav_msgs.msg import Odometry
 from tier4_debug_msgs.msg import Float32Stamped
 from autoware_control_msgs.msg import Control
 
@@ -45,6 +46,7 @@ class Aebs010BridgeNode(Node):
         # Read-only subscriptions to the pinned 009B bench sources.
         self.create_subscription(Float32Stamped, "/control/autonomous_emergency_braking/debug/rss_distance", self._on_rss, 1)
         self.create_subscription(PointCloud2, "/control/autonomous_emergency_braking/debug/obstacle_pointcloud", self._on_cloud, 1)
+        self.create_subscription(Odometry, "/localization/kinematic_state", self._on_odom, 1)
         self.create_subscription(DiagnosticArray, "/diagnostics", self._on_diagnostics, 10)
         self.create_subscription(Bool, "/de4sdv/aebs_009b/warning_request", self._on_warning, 1)
         self.create_subscription(Control, "/de4sdv/aebs_009b/emergency_braking_request", self._on_braking, 1)
@@ -60,6 +62,9 @@ class Aebs010BridgeNode(Node):
 
     def _on_cloud(self, msg: PointCloud2) -> None:
         self._adapter.on_obstacle_pointcloud(msg)
+
+    def _on_odom(self, msg: Odometry) -> None:
+        self._adapter.on_kinematic_state(msg)
 
     def _on_diagnostics(self, msg: DiagnosticArray) -> None:
         self._adapter.on_diagnostics(msg)

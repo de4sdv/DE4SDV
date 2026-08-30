@@ -147,3 +147,29 @@ Confirmed 2026-08-30: the forward-situation redesign is presentation-only.
   disposition enumeration.
 - Non-goal retained: no closing speed, TTC, lane geometry, FOV, target
   classification, or margin-to-intervention display fields.
+
+## 10. Schema minor 1 — professional scene elements (2026-08-30)
+
+SysML-first change (aebs_010_visualization_functional_architecture.sysml,
+item defs AEBSVisualizationFrame + TargetPointProjection; proto schema_minor
+0 -> 1). Display-presentational only; no new decision or state semantics:
+
+| Element | Source | Rendering | Non-claim |
+|---|---|---|---|
+| Target cluster | downsampled filtered obstacle cloud (<=24 pts, `target_points`) | cyan glowing point cluster; fixture target is vehicle-shaped (4.2x1.8 m) so the cluster reads as a vehicle | not object classification; not a rendered car body |
+| Ego car shape | scenario fixture footprint (3.74/1.03/1.83 m) | rounded-rect car silhouette at true range scale | stylized fixture geometry, not a vehicle model |
+| Ego speed | Autoware kinematic state -> `ego_speed` | big glanceable km/h banner (HMI focal point) + metric row | display-presentational; speed of the bench ego only |
+| Closest-obstacle pill | `target_range` | rounded dark pill label | same semantics as before |
+
+Fail-closed unchanged: degraded dispositions clear cluster, ego speed, and
+all live geometry.
+
+## 11. Display Safety positioning (2026-08-30)
+
+This app is System 2 instrumentation rendered on the AAOS IVI partition by a
+Java application. It is NOT a Display Safety artifact: production AEBS
+driver warnings would render through the High Availability Renderer with
+the safety-monitor toolchain on the safety-critical partition. The claim
+boundary stays: read-only engineering visualization, no safety telltale,
+no production readiness implied. Permissive-SELinux bench provisioning
+remains diagnostic-only.
