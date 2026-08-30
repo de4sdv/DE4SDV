@@ -141,15 +141,15 @@ public final class SituationRenderModel {
     /** State icon token for the panel (color is never the only cue). */
     public String getStateIconToken() {
         switch (disposition) {
-            case WARNING: return "triangle_alert";
-            case INTERVENTION: return "octagon_stop";
-            case RELEASED: return "check";
-            case RESTORED: return "reconnect";
-            case STALE: return "pause";
-            case INVALID: return "x_cross";
-            case UNAVAILABLE: return "circle_empty";
+            case WARNING: return "△";
+            case INTERVENTION: return "⬢";
+            case RELEASED: return "✓";
+            case RESTORED: return "↺";
+            case STALE: return "‖";
+            case INVALID: return "✕";
+            case UNAVAILABLE: return "○";
             case MONITORING:
-            default: return "eye";
+            default: return "◉";
         }
     }
 

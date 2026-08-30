@@ -71,8 +71,12 @@ class SourceAdapter:
         stamp_ns = _stamp_ns(getattr(msg, "header", None) and msg.header.stamp)
         if stamp_ns <= 0:
             stamp_ns = self._now_ns()
+        # nav_msgs/Odometry: twist is TwistWithCovariance with an INNER .twist (geometry Twist).
         twist = getattr(msg, "twist", None)
-        linear = getattr(twist, "linear", None) if twist is not None else None
+        inner = getattr(twist, "twist", None) if twist is not None else None
+        if inner is None:
+            inner = twist  # tolerate a bare geometry_msgs/Twist payload
+        linear = getattr(inner, "linear", None) if inner is not None else None
         speed = getattr(linear, "x", None) if linear is not None else None
         if speed is None:
             return

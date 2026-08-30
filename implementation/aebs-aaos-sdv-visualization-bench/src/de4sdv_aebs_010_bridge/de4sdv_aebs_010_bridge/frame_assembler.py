@@ -48,6 +48,7 @@ SOURCE_KINDS = ("nativeAutowareAEB", "de4sdvAebsCoordinator", "displayDerived")
 SUPPORTED_SOURCE_TOPICS = (
     "/control/autonomous_emergency_braking/debug/rss_distance",
     "/control/autonomous_emergency_braking/debug/obstacle_pointcloud",
+    "/localization/kinematic_state",
     "/diagnostics",
     "/de4sdv/aebs_009b/warning_request",
     "/de4sdv/aebs_009b/emergency_braking_request",

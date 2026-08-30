@@ -250,18 +250,21 @@ public class ForwardSituationView extends View {
         drawEgo(canvas, g);
 
         // Live speed banner (top-left card): ego speed from kinematic state.
-        if (model.getEgoSpeedText() != null && !"—".equals(model.getEgoSpeedText())) {
-            drawSpeedBanner(canvas, model.getEgoSpeedText());
-        }
+        // Draw unconditionally; show the em-dash when speed is absent (glanceable
+        // placeholder matches the metrics rows).
+        drawSpeedBanner(canvas, model.getEgoSpeedText());
     }
 
     private void drawEgo(Canvas canvas, float[] g) {
         final float mPerPx = g[4];
-        final float carFront = EGO_FRONT_M * mPerPx;   // px above origin
-        final float carRear = EGO_REAR_M * mPerPx;     // px below origin (clipped band)
-        final float carW = EGO_WIDTH_M * (g[3] * 2f / MAX_RANGE_M) * (MAX_RANGE_M / 2f) * 2f;
-        // width in px: metres * (px per metre on lateral axis)
-        final float carWpx = EGO_WIDTH_M * mPerPx * 2.2f; // slight visual emphasis
+        // Visual emphasis: fixture-true footprint renders ~50px (unreadable as a car on
+        // a 600px surface), so the silhouette is drawn at 2.5x the physical scale. Labeled
+        // fixture geometry (contract section 10); range scale of cluster/RSS is unchanged.
+        // Unit math: mPerPx is metres-per-pixel, so pixel size = metres / mPerPx.
+        final float emph = 2.5f;
+        final float carFront = (EGO_FRONT_M / mPerPx) * emph;
+        final float carRear = (EGO_REAR_M / mPerPx) * emph;
+        final float carWpx = (EGO_WIDTH_M / mPerPx) * emph * 1.4f;
 
         Path car = new Path();
         float top = g[1] - carFront;
@@ -297,9 +300,14 @@ public class ForwardSituationView extends View {
         Paint unit = new Paint(Paint.ANTI_ALIAS_FLAG);
         unit.setColor(COLOR_RSS_LABEL);
         unit.setTextSize(22f);
-        RectF card = new RectF(20f, 18f, 190f, 118f);
+        // Anchor inside the guaranteed-visible band: below any system header overlap
+        // and above the RSS/scene content. Position relative to the view's usable
+        // height so it lands consistently across window insets.
+        final float top = getHeight() * 0.06f + 56f;  // clear of status/header overlap
+        final float left = 20f;
+        RectF card = new RectF(left, top, left + 170f, top + 100f);
         canvas.drawRoundRect(card, 16f, 16f, cardPaint);
-        canvas.drawText(kmh, 40f, 92f, big);
-        canvas.drawText("km/h", 44f, 112f, unit);
+        canvas.drawText(kmh, left + 20f, top + 74f, big);
+        canvas.drawText("km/h", left + 24f, top + 94f, unit);
     }
 }

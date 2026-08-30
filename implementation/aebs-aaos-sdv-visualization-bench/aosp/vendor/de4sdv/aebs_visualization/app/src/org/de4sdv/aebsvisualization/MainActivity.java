@@ -132,6 +132,7 @@ public class MainActivity extends Activity {
             targetPoints = null;
         }
         Log.i("MainActivity", "onGatewayFrame: frame seq=" + frame.getSequence()
+                + " egoSpeed=" + egoSpeed + " pts=" + (targetPoints != null ? targetPoints.length / 2 : 0)
                 + " intervention=" + intervention + " warning=" + warning
                 + " braking=" + braking + " lifecycle=" + lifecycle
                 + " range=" + targetRange + " bearing=" + targetBearing
