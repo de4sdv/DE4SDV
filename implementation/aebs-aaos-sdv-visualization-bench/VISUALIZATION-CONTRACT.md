@@ -135,3 +135,15 @@ Read-only engineering visualization · issues no vehicle commands
   `deferred_not_proven` / `not_claimed`).
 - The visualization remains System 2 instrumentation; no product feature is
   added to any Bill-of-Features.
+
+## 9. Model-sync audit (plan Task 8)
+
+Confirmed 2026-08-30: the forward-situation redesign is presentation-only.
+- No `VisualizationFrame` field added/removed; proto untouched.
+- No `VisualizationPresentationMachine` or `VisualizationHealthKind`
+  semantic change; the reducer remains the sole disposition authority.
+- No new SysML requirements or architecture elements are needed: the
+  render model consumes only existing frame fields and the existing
+  disposition enumeration.
+- Non-goal retained: no closing speed, TTC, lane geometry, FOV, target
+  classification, or margin-to-intervention display fields.
