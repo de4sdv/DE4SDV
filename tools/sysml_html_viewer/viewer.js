@@ -426,6 +426,7 @@
     initSourceRefs();
     initUsesMenu();
     initTreeSearch();
+    initRequirements();
     flashTarget();
     highlightFromUses();
     window.addEventListener('hashchange', function () {
@@ -890,8 +891,8 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initRequirements);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    initRequirements();
+    init();
   }
 })();
