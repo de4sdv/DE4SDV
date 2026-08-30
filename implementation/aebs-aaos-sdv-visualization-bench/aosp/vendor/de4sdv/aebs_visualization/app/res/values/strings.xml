@@ -4,6 +4,7 @@
     <string name="initial_disposition">unavailable</string>
     <string name="provenance_footer">
         Sources: AUTOWARE AEB (RSS, intervention) · DE4SDV AEBS (warning, braking, lifecycle) ·
-        presentation derived on display. Read-only instrumentation; issues no commands.
+        target projection display-derived. Sweep is presentation only; blip and envelope are live
+        frame data. Read-only instrumentation; issues no commands.
     </string>
 </resources>

@@ -26,6 +26,7 @@ public class MainActivity extends Activity {
     private VisualizationStateReducer reducer;
     private TextView dispositionView;
     private TextView provenanceView;
+    private SituationRadarView radarView;
     private HandlerThread tickerThread;
     private Handler tickerHandler;
     private long lastFrameElapsedMs;
@@ -38,13 +39,13 @@ public class MainActivity extends Activity {
         reducer = new VisualizationStateReducer();
         dispositionView = findViewById(R.id.disposition);
         provenanceView = findViewById(R.id.provenance);
+        radarView = findViewById(R.id.radar);
 
         tickerThread = new HandlerThread("aebs010-tick");
         tickerThread.start();
         tickerHandler = new Handler(tickerThread.getLooper());
         tickerHandler.postDelayed(this::tick, 200);
         render();
-
         // Live Data Tunnel subscription (PF-004 proven path). Read-only.
         gatewaySubscriber = new GatewayFrameSubscriber();
         gatewaySubscriber.setListeners(this::onGatewayFrame, new GatewayFrameSubscriber.StateListener() {
@@ -88,11 +89,26 @@ public class MainActivity extends Activity {
                 && frame.getDe4SdvLifecycleState().hasEnumValue()
                 ? frame.getDe4SdvLifecycleState().getEnumValue()
                 : "armed";
+        // Live perception fields for the situation radar (may be absent).
+        final Float targetRange = frame.hasTargetRange()
+                && frame.getTargetRange().hasNumericValue()
+                ? (float) frame.getTargetRange().getNumericValue() : null;
+        final Float targetBearing = frame.hasTargetBearing()
+                && frame.getTargetBearing().hasNumericValue()
+                ? (float) frame.getTargetBearing().getNumericValue() : null;
+        final Float rssDistance = frame.hasRssDistance()
+                && frame.getRssDistance().hasNumericValue()
+                ? (float) frame.getRssDistance().getNumericValue() : null;
         Log.i("MainActivity", "onGatewayFrame: frame seq=" + frame.getSequence()
                 + " intervention=" + intervention + " warning=" + warning
-                + " braking=" + braking + " lifecycle=" + lifecycle);
-        runOnUiThread(() -> onFrame(new VisualizationStateReducer.FrameInput(
-                frame.getSequence(), intervention, warning, braking, lifecycle)));
+                + " braking=" + braking + " lifecycle=" + lifecycle
+                + " range=" + targetRange + " bearing=" + targetBearing
+                + " rss=" + rssDistance);
+        runOnUiThread(() -> {
+            radarView.onFrame(targetRange, targetBearing, rssDistance, intervention);
+            onFrame(new VisualizationStateReducer.FrameInput(
+                    frame.getSequence(), intervention, warning, braking, lifecycle));
+        });
     }
 
 
@@ -122,6 +138,12 @@ public class MainActivity extends Activity {
 
     private void renderDisposition(VisualizationStateReducer.Disposition disposition) {
         dispositionView.setText(VisualizationStateReducer.label(disposition));
+        // Fail-closed radar: no live data -> empty scope (no synthetic blip).
+        if (disposition == VisualizationStateReducer.Disposition.STALE
+                || disposition == VisualizationStateReducer.Disposition.INVALID
+                || disposition == VisualizationStateReducer.Disposition.UNAVAILABLE) {
+            radarView.clear();
+        }
         final int color;
         switch (disposition) {
             case WARNING:
