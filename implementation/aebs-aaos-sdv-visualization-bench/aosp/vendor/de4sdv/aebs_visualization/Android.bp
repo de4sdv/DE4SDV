@@ -107,6 +107,18 @@ java_library {
     static_libs: ["androidx.annotation_annotation"],
 }
 
+// Pure render model (presentation-only; unit-testable without Android).
+java_library {
+    name: "de4sdv_aebs_visualization_render_model",
+    srcs: ["app/src/org/de4sdv/aebsvisualization/SituationRenderModel.java"],
+    sdk_version: "system_current",
+    owner: "de4sdv",
+    static_libs: [
+        "de4sdv_aebs_visualization_reducer",
+        "androidx.annotation_annotation",
+    ],
+}
+
 
 // Java protobuf for the center-display app (aprotoc --java_out).
 java_library {
@@ -147,6 +159,7 @@ java_test {
     name: "De4sdvAebsVisualizationReducerTest",
     srcs: ["app/tests/**/*.java"],
     static_libs: [
+        "de4sdv_aebs_visualization_render_model",
         "de4sdv_aebs_visualization_reducer",
         "junit",
         "androidx.annotation_annotation",

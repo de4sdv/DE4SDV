@@ -69,11 +69,12 @@ public class SituationRenderModelTest {
         assertEquals(0.5f, m.getTargetForwardNormalized(), EPS);
         assertEquals(0.0f, m.getTargetLateralNormalized(), EPS);
 
-        // Bearing +90 deg (pi/2, left of +x axis) -> full lateral offset at that range.
+        // Bearing +90 deg (pi/2) points fully lateral (y-axis on the scope).
+        // Forward coordinate is range*cos(theta); lateral is range*sin(theta).
         SituationRenderModel left = model(VisualizationStateReducer.Disposition.MONITORING,
                 30f, (float) (Math.PI / 2), 15f);
-        assertEquals(1.0f, left.getTargetLateralNormalized(), EPS);
         assertEquals(0.0f, left.getTargetForwardNormalized(), EPS);
+        assertEquals(0.5f, left.getTargetLateralNormalized(), EPS);
     }
 
     @Test
