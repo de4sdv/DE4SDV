@@ -145,7 +145,7 @@ class TestStatementQualityGate(unittest.TestCase):
         model = _load_model()
         for record_id, fragment in self.STATEMENTS.items():
             block = re.search(
-                re.escape(record_id) + r".*?constraint\s*\{.*?\*/", model, re.S
+                re.escape(record_id) + r".*?constraint[^{]*\{.*?\*/", model, re.S
             )
             assert block is not None, record_id
             self.assertIn(fragment, block.group(0), record_id)

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1290" height="244" viewBox="0 0 1290 244" role="img" aria-labelledby="title description">
+  <title id="title">AEBS conceptual-to-simulation mapping</title>
+  <desc id="description">Maps conceptual system elements to simulation/deployment elements.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1290" height="84" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">AEBS conceptual-to-simulation mapping</text>
+  <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: conceptual system elements (part usages)   |   Columns →: simulation/deployment elements (part usages)</text>
+  <rect x="0" y="84" width="192" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0"></tspan>
+  </text>
+  <rect x="192" y="84" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0">aeb</tspan>
+  </text>
+  <rect x="302" y="84" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="314" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="314" dy="0">aggregator</tspan>
+  </text>
+  <rect x="412" y="84" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="424" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="424" dy="0">commandModeToOperationModeAvailabilityConverter</tspan>
+  </text>
+  <rect x="772" y="84" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="784" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="784" dy="0">mrmHandler</tspan>
+  </text>
+  <rect x="882" y="84" width="192" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="894" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="894" dy="0">emergencyStopOperator</tspan>
+  </text>
+  <rect x="1074" y="84" width="216" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1086" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="1086" dy="0">legacyVehicleCommandGate</tspan>
+  </text>
+  <rect x="0" y="124" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">stateAcquisition</tspan>
+  </text>
+  <rect x="192" y="124" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="195" y="127" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="247.0" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="247.0" dy="0">↗</tspan>
+  </text>
+  <rect x="302" y="124" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="314" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="314" dy="0"></tspan>
+  </text>
+  <rect x="412" y="124" width="360" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="424" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="424" dy="0"></tspan>
+  </text>
+  <rect x="772" y="124" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="784" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="784" dy="0"></tspan>
+  </text>
+  <rect x="882" y="124" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="894" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="894" dy="0"></tspan>
+  </text>
+  <rect x="1074" y="124" width="216" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1086" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1086" dy="0"></tspan>
+  </text>
+  <rect x="0" y="164" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">interventionDecision</tspan>
+  </text>
+  <rect x="192" y="164" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="195" y="167" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="247.0" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="247.0" dy="0">↗</tspan>
+  </text>
+  <rect x="302" y="164" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="314" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="314" dy="0"></tspan>
+  </text>
+  <rect x="412" y="164" width="360" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="424" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="424" dy="0"></tspan>
+  </text>
+  <rect x="772" y="164" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="784" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="784" dy="0"></tspan>
+  </text>
+  <rect x="882" y="164" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="894" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="894" dy="0"></tspan>
+  </text>
+  <rect x="1074" y="164" width="216" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1086" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1086" dy="0"></tspan>
+  </text>
+  <rect x="0" y="204" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">emergencyCoordination</tspan>
+  </text>
+  <rect x="192" y="204" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0"></tspan>
+  </text>
+  <rect x="302" y="204" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="305" y="207" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="357.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="357.0" dy="0">↗</tspan>
+  </text>
+  <rect x="412" y="204" width="360" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="415" y="207" width="354" height="34" rx="5" fill="#dff4e5"/>
+  <text x="592.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="592.0" dy="0">↗</tspan>
+  </text>
+  <rect x="772" y="204" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="775" y="207" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="827.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="827.0" dy="0">↗</tspan>
+  </text>
+  <rect x="882" y="204" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="885" y="207" width="186" height="34" rx="5" fill="#dff4e5"/>
+  <text x="978.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="978.0" dy="0">↗</tspan>
+  </text>
+  <rect x="1074" y="204" width="216" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="1077" y="207" width="210" height="34" rx="5" fill="#dff4e5"/>
+  <text x="1182.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="1182.0" dy="0">↗</tspan>
+  </text>
+</svg>

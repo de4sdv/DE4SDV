@@ -30,15 +30,15 @@ package DE4SDV_AEBS009CVerification {
   requirement def EvidenceContract009C;
   requirement evidenceContract009CExactNativeDiagnostic : EvidenceContract009C {
     subject bench : NativeInterventionBench009C;
-    require constraint { doc /* Replay shall observe the exact configured native AEB intervention diagnostic tuple. */ }
+    require constraint statement { language "English" /* Replay shall observe the exact configured native AEB intervention diagnostic tuple. */ }
   }
   requirement evidenceContract009CMRMGateChain : EvidenceContract009C {
     subject bench : NativeInterventionBench009C;
-    require constraint { doc /* Replay shall preserve ordered MRM transition, emergency-gate selection, and simulator-response observations with their source and collector stamps. */ }
+    require constraint statement { language "English" /* Replay shall preserve ordered MRM transition, emergency-gate selection, and simulator-response observations with their source and collector stamps. */ }
   }
   requirement evidenceContract009CFailClosedProvenance : EvidenceContract009C {
     subject bench : NativeInterventionBench009C;
-    require constraint { doc /* Missing, contradictory, identity-mismatched, or unreplayable evidence shall not produce a passing outcome. */ }
+    require constraint statement { language "English" /* Missing, contradictory, identity-mismatched, or unreplayable evidence shall not produce a passing outcome. */ }
   }
 
   part nativeInterventionBench009C : NativeInterventionBench009C;

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="318" height="484" viewBox="0 0 318 484" role="img" aria-labelledby="title description">
+  <title id="title">AEBS conceptual-to-physical mapping</title>
+  <desc id="description">Maps conceptual system elements to physical/software elements.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="318" height="84" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">AEBS conceptual-to-physical mapping</text>
+  <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: conceptual system elements (part usages)   |   Columns →: physical/software elements (part usages)</text>
+  <rect x="0" y="84" width="208" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0"></tspan>
+  </text>
+  <rect x="208" y="84" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="220" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="220" dy="0">aebNode</tspan>
+  </text>
+  <rect x="0" y="124" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">stateAcquisition</tspan>
+  </text>
+  <rect x="208" y="124" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="211" y="127" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="263.0" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="263.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="164" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">egoPathPrediction</tspan>
+  </text>
+  <rect x="208" y="164" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="211" y="167" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="263.0" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="263.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="204" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">targetProcessing</tspan>
+  </text>
+  <rect x="208" y="204" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="211" y="207" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="263.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="263.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="244" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">collisionRiskEvaluation</tspan>
+  </text>
+  <rect x="208" y="244" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="211" y="247" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="263.0" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="263.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="284" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">interventionDecision</tspan>
+  </text>
+  <rect x="208" y="284" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="211" y="287" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="263.0" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="263.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="324" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">warningManagement</tspan>
+  </text>
+  <rect x="208" y="324" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="220" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="220" dy="0"></tspan>
+  </text>
+  <rect x="0" y="364" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">emergencyCoordination</tspan>
+  </text>
+  <rect x="208" y="364" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="220" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="220" dy="0"></tspan>
+  </text>
+  <rect x="0" y="404" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">healthSupervision</tspan>
+  </text>
+  <rect x="208" y="404" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="211" y="407" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="263.0" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="263.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="444" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">evidenceRecording</tspan>
+  </text>
+  <rect x="208" y="444" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="211" y="447" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="263.0" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="263.0" dy="0">↗</tspan>
+  </text>
+</svg>

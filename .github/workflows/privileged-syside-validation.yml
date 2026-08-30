@@ -22,8 +22,10 @@ on:
       - "scripts/check_svg_view_materialization.py"
       - "scripts/check_committed_view_artifacts.py"
       - "scripts/generate_view_index.py"
-      - "textual-notation-of-model/packages/features/middleware/VIEWS.md"
-      - "textual-notation-of-model/packages/features/middleware/diagrams/**"
+      - "textual-notation-of-model/**/VIEWS.md"
+      - "textual-notation-of-model/**/diagrams/**"
+      - "model-based-product-line-engineering/product-models/VIEWS.md"
+      - "model-based-product-line-engineering/product-models/diagrams/**"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -41,8 +43,10 @@ on:
       - "scripts/check_svg_view_materialization.py"
       - "scripts/check_committed_view_artifacts.py"
       - "scripts/generate_view_index.py"
-      - "textual-notation-of-model/packages/features/middleware/VIEWS.md"
-      - "textual-notation-of-model/packages/features/middleware/diagrams/**"
+      - "textual-notation-of-model/**/VIEWS.md"
+      - "textual-notation-of-model/**/diagrams/**"
+      - "model-based-product-line-engineering/product-models/VIEWS.md"
+      - "model-based-product-line-engineering/product-models/diagrams/**"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -249,16 +253,33 @@ jobs:
             rm -f "diagrams/diagram-${view}.svg"
           done
 
-      - name: Check committed view index and diagrams
+      - name: Check published view collections
         if: steps.syside-secret.outputs.available == 'true'
         run: |
-          python scripts/generate_view_index.py \
+          view_folders=(
+            textual-notation-of-model/packages/architecture
+            textual-notation-of-model/packages/features/aebs
             textual-notation-of-model/packages/features/middleware
-          git diff --exit-code -- \
-            textual-notation-of-model/packages/features/middleware/VIEWS.md
-          python scripts/check_committed_view_artifacts.py \
-            textual-notation-of-model/packages/features/middleware \
-            diagrams
+            textual-notation-of-model/packages/methods/de4sdv
+            model-based-product-line-engineering/product-models
+          )
+          for folder in "${view_folders[@]}"; do
+            python scripts/generate_view_index.py "${folder}"
+            git diff --exit-code -- "${folder}/VIEWS.md"
+            extra_args=()
+            if [ "${folder}" = "textual-notation-of-model/packages/features/aebs" ]; then
+              extra_args+=(
+                --allow-missing
+                diagram-matrix-aebs010FunctionRequirementMappingView.svg
+                --allow-nonmaterialized
+                diagram-aebs010FramingView.svg
+                --allow-nonmaterialized
+                diagram-aebs010FunctionInternalExchangeView.svg
+              )
+            fi
+            python scripts/check_committed_view_artifacts.py \
+              "${folder}" diagrams "${extra_args[@]}"
+          done
 
       - name: Upload generated diagrams
         if: always()
