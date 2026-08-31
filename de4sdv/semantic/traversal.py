@@ -158,12 +158,15 @@ class SemanticTraversal:
         source_id: str,
         elements: list[dict[str, Any]],
     ) -> list[TraversalHop]:
-        """Reverse-traverse native RequirementVerificationMembership objects.
+        """Reverse-traverse native verification relationships.
 
-        Shape derived from the SysML v2 2025-02-01 API schema: a
-        RequirementVerificationMembership references the verified requirement
-        through ``verifiedRequirement``; the verification case is resolved
-        from the membership's owner.
+        Shapes derived from the SysML v2 2025-02-01 API schema:
+        - a ``RequirementVerificationMembership`` references the verified
+          requirement through ``verifiedRequirement`` and the verification
+          case through its owner; and
+        - a ``VerificationCaseUsage``/``VerificationCaseDefinition`` carries
+          the verified requirement references directly in its
+          ``verifiedRequirement`` property.
         """
         config = mapping.configuration
         membership_types = {
@@ -171,6 +174,9 @@ class SemanticTraversal:
             for item in config.get(
                 "membership_types", ["RequirementVerificationMembership"]
             )
+        }
+        element_types = {
+            str(item) for item in config.get("element_types", [])
         }
         reference_property = str(
             config.get("reference_property", "verifiedRequirement")
@@ -194,6 +200,11 @@ class SemanticTraversal:
                 verification = by_id.get(owner_id)
                 if verification is not None:
                     hops.append(self._hop(mapping, source, verification, membership))
+        for candidate in elements:
+            if str(candidate.get("@type")) not in element_types:
+                continue
+            if source_id in reference_ids(candidate.get(reference_property)):
+                hops.append(self._hop(mapping, source, candidate, candidate))
         return self._deduplicate(hops)
 
     def _property_reference_hops(

@@ -44,6 +44,10 @@ def test_ontology_declares_native_verification_membership_strategy() -> None:
     assert mapping.configuration["membership_types"] == [
         "RequirementVerificationMembership"
     ]
+    assert mapping.configuration["element_types"] == [
+        "VerificationCaseUsage",
+        "VerificationCaseDefinition",
+    ]
     assert mapping.configuration["reference_property"] == "verifiedRequirement"
     assert mapping.configuration["direction"] == "reverse"
 
@@ -108,6 +112,30 @@ def test_verification_membership_traversal_resolves_native_api_shape() -> None:
     assert hop.semantic_strength == "native-verification"
     assert hop.target["@id"] == "vc-1"
     assert hop.api_object["@id"] == "rvm-1"
+
+
+def test_verification_traversal_honors_usage_level_property_form() -> None:
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    evidence = {
+        "@id": "ev-1",
+        "@type": "RequirementUsage",
+        "declaredName": "evidenceContract009BFreshOverrideClear",
+    }
+    verification = {
+        "@id": "vc-1",
+        "@type": "VerificationCaseUsage",
+        "declaredName": "nominalMovingVehicleTargetVerification009B",
+        "verifiedRequirement": [{"@id": "ev-1"}],
+    }
+    hops = SemanticTraversal(_contract()).traverse(
+        "verifiedBy", evidence, [evidence, verification]
+    )
+    assert len(hops) == 1
+    hop = hops[0]
+    assert hop.target["@id"] == "vc-1"
+    assert hop.api_object["@id"] == "vc-1"
+    assert hop.semantic_strength == "native-verification"
 
 
 def test_subject_membership_ignores_memberships_of_other_owners() -> None:

@@ -445,6 +445,7 @@ relationships:
     sysml_mapping:
       strategy: verification-membership
       membership_types: [RequirementVerificationMembership]
+      element_types: [VerificationCaseUsage, VerificationCaseDefinition]
       reference_property: verifiedRequirement
       direction: reverse
       semantic_strength: native-verification
