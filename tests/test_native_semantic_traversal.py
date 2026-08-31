@@ -114,7 +114,9 @@ def test_verification_membership_traversal_resolves_native_api_shape() -> None:
     assert hop.api_object["@id"] == "rvm-1"
 
 
-def test_verification_traversal_honors_usage_level_property_form() -> None:
+def test_verification_traversal_resolves_objective_ownership_chain() -> None:
+    """Real imported shape: the evidence contract is owned by the verification
+    objective; traversal walks the membership owner chain to the case."""
     from de4sdv.semantic.traversal import SemanticTraversal
 
     evidence = {
@@ -124,12 +126,30 @@ def test_verification_traversal_honors_usage_level_property_form() -> None:
     }
     verification = {
         "@id": "vc-1",
-        "@type": "VerificationCaseUsage",
+        "@type": "VerificationCaseDefinition",
         "declaredName": "nominalMovingVehicleTargetVerification009B",
-        "verifiedRequirement": [{"@id": "ev-1"}],
+    }
+    objective_membership = {
+        "@id": "om-1",
+        "@type": "ObjectiveMembership",
+        "owningRelatedElement": {"@id": "vc-1"},
+        "memberElement": {"@id": "objective-1"},
+    }
+    objective = {
+        "@id": "objective-1",
+        "@type": "RequirementUsage",
+        "declaredName": "nominalEvidenceObjective",
+    }
+    evidence_membership = {
+        "@id": "fm-1",
+        "@type": "FeatureMembership",
+        "owningRelatedElement": {"@id": "objective-1"},
+        "memberElement": {"@id": "ev-1"},
     }
     hops = SemanticTraversal(_contract()).traverse(
-        "verifiedBy", evidence, [evidence, verification]
+        "verifiedBy",
+        evidence,
+        [evidence, verification, objective_membership, objective, evidence_membership],
     )
     assert len(hops) == 1
     hop = hops[0]

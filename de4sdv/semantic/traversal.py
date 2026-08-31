@@ -202,11 +202,32 @@ class SemanticTraversal:
                 verification = by_id.get(owner_id)
                 if verification is not None:
                     hops.append(self._hop(mapping, source, verification, membership))
-        for candidate in elements:
-            if str(candidate.get("@type")) not in element_types:
+        owner_chain_types = {
+            str(item)
+            for item in config.get(
+                "owner_membership_types",
+                ["FeatureMembership", "OwningMembership", "ObjectiveMembership"],
+            )
+        }
+        members_by_owner: dict[str, set[str]] = {}
+        for membership in elements:
+            if str(membership.get("@type")) not in owner_chain_types:
                 continue
-            if source_id in reference_ids(candidate.get(reference_property)):
-                hops.append(self._hop(mapping, source, candidate, candidate))
+            for member_ref in reference_ids(membership.get("memberElement")):
+                for owner_ref in reference_ids(
+                    membership.get("owningRelatedElement")
+                ):
+                    members_by_owner.setdefault(owner_ref, set()).add(member_ref)
+        verification_cases = {
+            candidate_id: candidate
+            for candidate in elements
+            if str(candidate.get("@type")) in element_types
+            and (candidate_id := element_id(candidate)) is not None
+        }
+        for case_id, case in verification_cases.items():
+            reached = self._reachable_members(case_id, members_by_owner)
+            if source_id in reached:
+                hops.append(self._hop(mapping, source, case, case))
         return self._deduplicate(hops)
 
     def _property_reference_hops(
@@ -243,6 +264,22 @@ class SemanticTraversal:
             target=target,
             api_object=api_object,
         )
+
+    @staticmethod
+    def _reachable_members(
+        start_id: str, members_by_owner: dict[str, set[str]]
+    ) -> set[str]:
+        """Collect member element IDs transitively owned by ``start_id``."""
+        reached: set[str] = set()
+        frontier = [start_id]
+        while frontier:
+            owner = frontier.pop()
+            for member_id in members_by_owner.get(owner, ()):  # noqa: B905
+                if member_id in reached:
+                    continue
+                reached.add(member_id)
+                frontier.append(member_id)
+        return reached
 
     @staticmethod
     def _deduplicate(hops: list[TraversalHop]) -> list[TraversalHop]:
