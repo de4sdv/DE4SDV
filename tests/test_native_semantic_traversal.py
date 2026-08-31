@@ -14,10 +14,46 @@ from pathlib import Path
 
 import pytest
 
-from tests.test_sysml_api_semantic import api_server as api_server_fixture  # noqa: F401
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Iterator
+
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class _ApiHandler(BaseHTTPRequestHandler):
+    response_map: dict[str, tuple[int, object, dict[str, str]]] = {}
+
+    def do_GET(self) -> None:  # noqa: N802 - stdlib callback name
+        status, payload, headers = self.response_map[self.path]
+        encoded = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        for name, value in headers.items():
+            self.send_header(name, value)
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def log_message(self, format: str, *args: object) -> None:
+        del format, args
+
+
+@pytest.fixture
+def api_server_fixture() -> Iterator[tuple[str, type[_ApiHandler]]]:
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _ApiHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = server.server_address[:2]
+        yield f"http://{host}:{port}", _ApiHandler
+    finally:
+        server.shutdown()
+        thread.join()
+        _ApiHandler.response_map = {}
 
 
 def _contract():
@@ -143,7 +179,7 @@ def test_verification_traversal_resolves_objective_ownership_chain() -> None:
     evidence_membership = {
         "@id": "fm-1",
         "@type": "FeatureMembership",
-        "ownedRelatedElement": [{"@id": "objective-1"}],
+        "owningRelatedElement": {"@id": "objective-1"},
         "ownedMemberElement": {"@id": "ev-1"},
     }
     hops = SemanticTraversal(_contract()).traverse(
