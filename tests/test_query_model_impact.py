@@ -24,9 +24,9 @@ SCRIPT = ROOT / "scripts" / "query_model_impact.py"
 # --- Requirement listing ---------------------------------------------------
 
 
-def test_list_requirements_returns_all_24_names():
+def test_list_requirements_returns_all_25_names():
     names = qmi.list_requirements()
-    assert len(names) == 24, f"expected 24 requirement/need names, got {len(names)}"
+    assert len(names) == 25, f"expected 25 requirement/need names, got {len(names)}"
 
 
 def test_list_requirements_contains_expected_names():

@@ -321,6 +321,15 @@ classes:
         Evidence registers and retained-evidence items referenced by
         verification slices (for example RetainedMiddlewareEvidence010)
         and bench evidence YAML records
+  EvidenceContract:
+    definition: >-
+      A requirement usage that defines the bounded observations, acceptance
+      boundary, and retained-evidence obligations for a verification case. An
+      evidence contract is planning vocabulary, not proof that a product
+      requirement is verified.
+    subClassOf: Requirement
+    kernel:
+      native: Requirement usages verified by SysML v2 verification cases in DE4SDV verification slices
   EvidenceStatus:
     definition: >-
       Lifecycle status for evidence and verification results. DE4SDV does not
@@ -417,6 +426,13 @@ relationships:
   realizedBy:
     domain: Requirement
     range: ArchitectureElement
+    sysml_mapping:
+      strategy: allocation
+      relationship_types: [AllocationUsage]
+      direction: outgoing
+      source_property: source
+      target_property: target
+      semantic_strength: allocation
   allocatedTo:
     domain: Function
     range: LogicalElement
@@ -426,6 +442,12 @@ relationships:
   verifiedBy:
     domain: Requirement
     range: VerificationCase
+    sysml_mapping:
+      strategy: verification
+      element_types: [VerificationCaseUsage]
+      reference_property: verifiedRequirement
+      direction: reverse
+      semantic_strength: native-verification
   usesVerificationMethod:
     domain: VerificationCase
     range: VerificationMethod
@@ -441,6 +463,9 @@ relationships:
   hasEvidence:
     domain: VerificationCase
     range: EvidenceArtifact
+    sysml_mapping:
+      strategy: external
+      semantic_strength: external-data-required
   hasEvidenceStatus:
     domain: EvidenceArtifact
     range: EvidenceStatus
@@ -456,6 +481,25 @@ relationships:
   appliesToMemberProduct:
     domain: FeatureConfiguration
     range: MemberProduct
+  hasSubject:
+    domain: Requirement
+    range: MemberProduct
+    sysml_mapping:
+      strategy: property-reference
+      owner_types: [RequirementUsage]
+      reference_property: subjectParameter
+      direction: outgoing
+      semantic_strength: native-reference
+  hasRelevantEvidenceContract:
+    domain: Requirement
+    range: EvidenceContract
+    sysml_mapping:
+      strategy: dependency
+      relationship_types: [Dependency]
+      direction: incoming
+      source_property: source
+      target_property: target
+      semantic_strength: relevance
   selectsFeature:
     domain: FeatureConfiguration
     range: Feature
