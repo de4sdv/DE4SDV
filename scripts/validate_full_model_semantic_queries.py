@@ -158,10 +158,38 @@ def run_queries(
         and edge["strategy"] == "verification-membership"
     ]
     if not verification_edges:
+        evidence_ids = {
+            edge["source"]
+            for edge in braking["edges"]
+            if edge["predicate"] == "hasRelevantEvidenceContract"
+        }
+        diagnostics = []
+        for element in repository.list_elements(
+            binding.sysml_project_id, binding.sysml_commit_id
+        ):
+            if element.get("@type") not in {
+                "RequirementVerificationMembership",
+                "VerificationCaseUsage",
+                "VerificationCaseDefinition",
+            }:
+                continue
+            refs = json.dumps(
+                {
+                    key: element.get(key)
+                    for key in ("verifiedRequirement", "owningRelatedElement", "owner")
+                    if element.get(key) is not None
+                },
+                sort_keys=True,
+            )
+            if str(refs) != "{}":
+                diagnostics.append(
+                    f"{element.get('@type')} {element.get('@id')} {refs}"
+                )
         raise RuntimeError(
             "imported reqCommandEmergencyBraking evidence contracts are not "
-            "linked to verification cases through native "
-            "RequirementVerificationMembership relationships"
+            "linked to verification cases through native relationships; "
+            f"evidence ids: {sorted(evidence_ids)}; diagnostics: "
+            + "; ".join(diagnostics[:40])
         )
     gap_categories = {gap["category"] for gap in braking["gaps"]}
     if "product-line" in gap_categories or "verification" in gap_categories:
