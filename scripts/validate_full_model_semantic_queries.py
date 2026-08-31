@@ -176,20 +176,50 @@ def run_queries(
             for element in all_elements
             if element.get("@type") == "RequirementVerificationMembership"
         ][:3]
-        referencing = []
+        by_id_all = {
+            candidate_id: element
+            for element in all_elements
+            if (candidate_id := element_id(element)) is not None
+        }
+        membership_links: dict[str, list[tuple[str, str]]] = {}
         for element in all_elements:
-            if element_id(element) in evidence_ids:
+            etype = str(element.get("@type"))
+            if not etype.endswith("Membership"):
                 continue
-            if _json_text(element).find(next(iter(evidence_ids))) != -1:
-                referencing.append(element)
+            for member_ref in reference_ids(element.get("memberElement")) + reference_ids(
+                element.get("ownedMemberElement")
+            ):
+                for owner_ref in (
+                    reference_ids(element.get("owningRelatedElement"))
+                    + reference_ids(element.get("owner"))
+                    + reference_ids(element.get("membershipOwningNamespace"))
+                    + reference_ids(element.get("owningNamespace"))
+                ):
+                    membership_links.setdefault(member_ref, []).append(
+                        (etype, owner_ref)
+                    )
+        chains = []
+        for evidence_id in sorted(evidence_ids):
+            frontier = [(evidence_id, 0)]
+            seen = {evidence_id}
+            while frontier and len(chains) < 12:
+                current, depth = frontier.pop(0)
+                if depth > 4:
+                    continue
+                for etype, owner_ref in membership_links.get(current, ()):
+                    owner = by_id_all.get(owner_ref, {})
+                    chains.append(
+                        f"{evidence_id[:8]} -{depth}-> {etype} -> {owner_ref[:8]} "
+                        f"{owner.get('@type')} {owner.get('declaredName')}"
+                    )
+                    if owner_ref not in seen:
+                        seen.add(owner_ref)
+                        frontier.append((owner_ref, depth + 1))
         raise RuntimeError(
             "imported reqCommandEmergencyBraking evidence contracts are not "
             "linked to verification cases through native relationships; "
-            f"evidence ids: {sorted(evidence_ids)}; referencing elements: "
-            + " || ".join(
-                json.dumps(item, sort_keys=True)
-                for item in referencing[:5]
-            )
+            f"evidence ids: {sorted(evidence_ids)}; owner chains: "
+            + " | ".join(chains[:12])
         )
     gap_categories = {gap["category"] for gap in braking["gaps"]}
     if "product-line" in gap_categories or "verification" in gap_categories:
