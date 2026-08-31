@@ -140,11 +140,11 @@ def _collect_reference_paths(
                 references=references,
             )
     elif isinstance(value, list):
-        for index, item in enumerate(value):
+        for item in value:
             _collect_reference_paths(
                 item,
                 source_id=source_id,
-                path=f"{path}[{index}]",
+                path=path,
                 known_ids=known_ids,
                 references=references,
             )

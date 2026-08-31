@@ -64,7 +64,8 @@ jobs:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
           test -n "$SYSIDE_LICENSE_KEY"
-          python -m pip install --disable-pip-version-check "syside==0.10.3"
+          python -m pip install --disable-pip-version-check \
+            "syside==0.10.3" "PyYAML==6.0.2" "pytest==8.4.2"
 
       - name: Export reviewed baseline with Syside
         env:
