@@ -100,7 +100,7 @@ def test_verification_membership_traversal_resolves_native_api_shape() -> None:
         "@id": "rvm-1",
         "@type": "RequirementVerificationMembership",
         "owningRelatedElement": {"@id": "vc-1"},
-        "verifiedRequirement": {"@id": "ev-1"},
+        "memberElement": {"@id": "ev-1"},
     }
     hops = SemanticTraversal(_contract()).traverse(
         "verifiedBy", evidence, [evidence, verification, verify_membership]
@@ -136,6 +136,34 @@ def test_verification_traversal_honors_usage_level_property_form() -> None:
     assert hop.target["@id"] == "vc-1"
     assert hop.api_object["@id"] == "vc-1"
     assert hop.semantic_strength == "native-verification"
+
+
+def test_verification_membership_traversal_honors_member_element_form() -> None:
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    evidence = {
+        "@id": "ev-1",
+        "@type": "RequirementUsage",
+        "declaredName": "evidenceContract009BFreshOverrideClear",
+    }
+    verification = {
+        "@id": "vc-1",
+        "@type": "VerificationCaseDefinition",
+        "declaredName": "nominalMovingVehicleTargetVerification009B",
+    }
+    membership = {
+        "@id": "rvm-1",
+        "@type": "RequirementVerificationMembership",
+        "owningRelatedElement": {"@id": "vc-1"},
+        "memberElement": {"@id": "ev-1"},
+    }
+    hops = SemanticTraversal(_contract()).traverse(
+        "verifiedBy", evidence, [evidence, verification, membership]
+    )
+    assert len(hops) == 1
+    hop = hops[0]
+    assert hop.target["@id"] == "vc-1"
+    assert hop.api_object["@id"] == "rvm-1"
 
 
 def test_subject_membership_ignores_memberships_of_other_owners() -> None:

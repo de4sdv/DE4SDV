@@ -162,8 +162,9 @@ class SemanticTraversal:
 
         Shapes derived from the SysML v2 2025-02-01 API schema:
         - a ``RequirementVerificationMembership`` references the verified
-          requirement through ``verifiedRequirement`` and the verification
-          case through its owner; and
+          requirement as its ``memberElement`` (a Membership's member) or
+          through ``verifiedRequirement``, with the verification case
+          resolved from its owner; and
         - a ``VerificationCaseUsage``/``VerificationCaseDefinition`` carries
           the verified requirement references directly in its
           ``verifiedRequirement`` property.
@@ -191,6 +192,7 @@ class SemanticTraversal:
             if str(membership.get("@type")) not in membership_types:
                 continue
             verified_ids = reference_ids(membership.get(reference_property))
+            verified_ids += reference_ids(membership.get("memberElement"))
             if source_id not in verified_ids:
                 continue
             owner_ids = reference_ids(membership.get("owningRelatedElement"))
