@@ -188,6 +188,17 @@ def test_verification_traversal_resolves_objective_ownership_chain() -> None:
         "owningRelatedElement": {"@id": "objective-1"},
         "memberElement": {"@id": "ev-1"},
     }
+    shadow = {
+        "@id": "shadow-1",
+        "@type": "RequirementUsage",
+        "declaredName": "evidenceContract009BFreshOverrideClear",
+    }
+    reference_subsetting = {
+        "@id": "rs-1",
+        "@type": "ReferenceSubsetting",
+        "owningRelatedElement": {"@id": "shadow-1"},
+        "referencedFeature": {"@id": "ev-1"},
+    }
     hops = SemanticTraversal(_contract()).traverse(
         "verifiedBy",
         evidence,
@@ -198,6 +209,8 @@ def test_verification_traversal_resolves_objective_ownership_chain() -> None:
             objective,
             evidence_membership,
             verify_membership,
+            shadow,
+            reference_subsetting,
         ],
     )
     assert len(hops) >= 1

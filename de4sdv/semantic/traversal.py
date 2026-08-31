@@ -225,6 +225,15 @@ class SemanticTraversal:
             for member_ref in member_refs:
                 for owner_ref in owner_refs:
                     members_by_owner.setdefault(owner_ref, set()).add(member_ref)
+        refsub_reverse: dict[str, set[str]] = {}
+        for element in elements:
+            if str(element.get("@type")) != "ReferenceSubsetting":
+                continue
+            for target_ref in reference_ids(element.get("referencedFeature")):
+                for shadow_ref in reference_ids(element.get("owningRelatedElement")):
+                    refsub_reverse.setdefault(target_ref, set()).add(shadow_ref)
+                for shadow_ref in reference_ids(element.get("owner")):
+                    refsub_reverse.setdefault(target_ref, set()).add(shadow_ref)
         verification_cases = {
             candidate_id: candidate
             for candidate in elements
@@ -234,6 +243,14 @@ class SemanticTraversal:
         for case_id, case in verification_cases.items():
             reached = self._reachable_members(case_id, members_by_owner)
             if source_id in reached:
+                hops.append(self._hop(mapping, source, case, case))
+                continue
+            reached_shadows = reached | {
+                shadow
+                for member_id in reached
+                for shadow in refsub_reverse.get(member_id, set())
+            }
+            if source_id in reached_shadows:
                 hops.append(self._hop(mapping, source, case, case))
         return self._deduplicate(hops)
 
