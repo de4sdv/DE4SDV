@@ -3,10 +3,9 @@
 
 Answers the question: *if I change requirement X, what is affected?*
 
-The tool scans all ``.sysml`` files in
-``textual-notation-of-model/packages/features/aebs/`` for SysML v2
-``dependency <name> from <source> to <target>`` relationships (which span
-two lines in the textual notation) and builds a reverse-impact graph.
+The default text backend preserves the existing repository-file query. The
+API backend performs the first-milestone semantic traversal against one exact
+Systems Modeling API project/commit bound to one Git revision.
 
 A reverse map ``target -> [(file, dependency_name, source)]`` lets a
 maintainer see every evidence contract and verification case that traces
@@ -31,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -38,6 +38,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 AEBS_DIR = ROOT / "textual-notation-of-model" / "packages" / "features" / "aebs"
 REQUIREMENTS_FILE = AEBS_DIR / "aebs_needs_requirements.sysml"
 
@@ -288,6 +290,50 @@ def query_impact(target: str, graph: Optional[Dict[str, List[DependencyEdge]]] =
     return ImpactReport(target=target, edges=list(graph.get(target, [])))
 
 
+def query_api_impact(
+    target: str,
+    *,
+    api_url: str,
+    binding_path: Path,
+    git_revision: str,
+    ontology_path: Path = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+) -> dict:
+    """Query one exact API revision through the ontology traversal layer."""
+    from de4sdv.semantic.api_binding import OntologyApiBinder
+    from de4sdv.semantic.impact import ImpactService
+    from de4sdv.semantic.kernel_contract import KernelContract
+    from de4sdv.semantic.traversal import SemanticTraversal
+    from de4sdv.sysml_api.client import ApiClient
+    from de4sdv.sysml_api.repository import SysMLRepository
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    binding = RevisionBinding.load(binding_path)
+    contract = KernelContract.load(ontology_path)
+    repository = SysMLRepository(ApiClient(api_url))
+    return ImpactService(
+        repository=repository,
+        binding=binding,
+        contract=contract,
+        binder=OntologyApiBinder(
+            contract,
+            repository,
+            project_id=binding.sysml_project_id,
+            commit_id=binding.sysml_commit_id,
+        ),
+        traversal=SemanticTraversal(contract),
+    ).impact(target, git_revision=git_revision)
+
+
+def current_git_revision() -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
 # --- CLI rendering ---------------------------------------------------------
 
 
@@ -318,6 +364,38 @@ def _render_text(report: ImpactReport) -> str:
     return "\n".join(lines).rstrip()
 
 
+def _render_api_text(report: dict) -> str:
+    revision = report["revision"]
+    root = report["root"]
+    lines = [
+        f"API semantic impact for: {root['qualified_name'] or root['declared_name']}",
+        f"  UUID: {root['element_id']}",
+        (
+            "  Revision: "
+            f"Git {revision['git_commit']} -> SysML "
+            f"{revision['sysml_project_id']}/{revision['sysml_commit_id']} "
+            f"({revision['binding_status']})"
+        ),
+    ]
+    for category in ("architecture", "verification", "evidence", "product-line"):
+        nodes = [node for node in report["nodes"] if node["category"] == category]
+        lines.append(f"  {category}: {len(nodes)}")
+        for node in nodes:
+            lines.append(
+                f"    - {node['qualified_name'] or node['declared_name']} "
+                f"[{node['element_id']}]"
+            )
+    if report["gaps"]:
+        lines.append("  Explicit gaps:")
+        for gap in report["gaps"]:
+            lines.append(f"    - {gap['category']}: {gap['reason']}")
+    lines.append(
+        "  Claim boundary: dependency links mean relevance, not verification, "
+        "satisfaction, or compliance."
+    )
+    return "\n".join(lines)
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description="Trace requirement -> verification cases -> evidence contracts."
@@ -341,6 +419,27 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--json",
         action="store_true",
         help="Emit JSON instead of human-readable text (for tooling integration).",
+    )
+    parser.add_argument(
+        "--backend",
+        choices=("text", "api"),
+        default="text",
+        help="Query repository text (default) or one bound SysML API revision.",
+    )
+    parser.add_argument("--api-url", default="http://127.0.0.1:9000")
+    parser.add_argument(
+        "--binding",
+        type=Path,
+        help="Revision-binding JSON required by the API backend.",
+    )
+    parser.add_argument(
+        "--git-revision",
+        help="Full Git SHA to compare with the API binding (default: current HEAD).",
+    )
+    parser.add_argument(
+        "--ontology",
+        type=Path,
+        default=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
     )
     args = parser.parse_args(argv)
 
@@ -368,6 +467,23 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if not args.target:
         parser.error("a target name is required unless --list-* is given")
+
+    if args.backend == "api":
+        if args.binding is None:
+            parser.error("--binding is required for --backend api")
+        api_report = query_api_impact(
+            args.target,
+            api_url=args.api_url,
+            binding_path=args.binding,
+            git_revision=args.git_revision or current_git_revision(),
+            ontology_path=args.ontology,
+        )
+        if args.json:
+            json.dump(api_report, sys.stdout, indent=2)
+            sys.stdout.write("\n")
+        else:
+            print(_render_api_text(api_report))
+        return 0
 
     report = query_impact(args.target)
     if args.json:
