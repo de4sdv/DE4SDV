@@ -27,6 +27,10 @@ class RevisionMismatchError(SysMLApiError):
     """The bound SysML commit is not known to represent the requested Git SHA."""
 
 
+class BaselineImportError(SysMLApiError):
+    """A production baseline import or exact readback verification failed."""
+
+
 class IdentityResolutionError(SysMLApiError):
     """An element identity could not be resolved safely."""
 

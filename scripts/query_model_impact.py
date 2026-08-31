@@ -3,9 +3,10 @@
 
 Answers the question: *if I change requirement X, what is affected?*
 
-The default text backend preserves the existing repository-file query. The
-API backend performs the first-milestone semantic traversal against one exact
-Systems Modeling API project/commit bound to one Git revision.
+The default text backend preserves the existing repository-file query. The API
+backend performs ontology-mapped semantic traversal against one exact Systems
+Modeling API project/commit bound to one Git revision. A validated full-model
+binding is the production source; the bounded fixture remains test infrastructure.
 
 A reverse map ``target -> [(file, dependency_name, source)]`` lets a
 maintainer see every evidence contract and verification case that traces

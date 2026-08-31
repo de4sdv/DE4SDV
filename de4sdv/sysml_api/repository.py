@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from .client import ApiClient
@@ -28,11 +28,19 @@ def reference_ids(value: object) -> list[str]:
     return [candidate for item in value if (candidate := element_id(item)) is not None]
 
 
-@dataclass(frozen=True)
+@dataclass
 class SysMLRepository:
-    """Read-only semantic access pinned by project and commit identifiers."""
+    """Read-only semantic access pinned by project and commit identifiers.
+
+    API commits are immutable, so element listings are memoized per
+    (project, commit) revision to avoid repeated full-model fetches within one
+    process.
+    """
 
     client: ApiClient
+    _element_cache: dict[tuple[str, str], list[dict[str, Any]]] = field(
+        default_factory=dict, repr=False, compare=False
+    )
 
     def get_project(self, project_id: str) -> dict[str, Any]:
         value = self.client.request("GET", f"/projects/{project_id}")
@@ -60,11 +68,14 @@ class SysMLRepository:
         return value
 
     def list_elements(self, project_id: str, commit_id: str) -> list[dict[str, Any]]:
-        path = f"/projects/{project_id}/commits/{commit_id}/elements"
-        values = self.client.get_all(path)
-        if not all(isinstance(value, dict) for value in values):
-            raise ApiError("GET", path, "element page contained a non-object value")
-        return values
+        cache_key = (project_id, commit_id)
+        if cache_key not in self._element_cache:
+            path = f"/projects/{project_id}/commits/{commit_id}/elements?page[size]=1000"
+            values = self.client.get_all(path)
+            if not all(isinstance(value, dict) for value in values):
+                raise ApiError("GET", path, "element page contained a non-object value")
+            self._element_cache[cache_key] = values
+        return self._element_cache[cache_key]
 
     def check_capabilities(self, project_id: str, commit_id: str) -> dict[str, Any]:
         """Exercise the read contract required by semantic impact queries."""

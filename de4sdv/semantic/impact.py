@@ -16,7 +16,7 @@ from .traversal import SemanticTraversal, TraversalHop
 
 @dataclass
 class ImpactService:
-    """Answer the bounded first-milestone requirement impact question."""
+    """Answer revision-bound requirement impact against fixture or full model."""
 
     repository: SysMLRepository
     binding: RevisionBinding
@@ -139,8 +139,8 @@ class ImpactService:
             {
                 "category": "evidence-artifact",
                 "reason": (
-                    "EvidenceArtifact is external in the ontology; this first API "
-                    "milestone reports API-resident evidence contracts only."
+                    "EvidenceArtifact is external in the ontology; this API query "
+                    "reports API-resident evidence contracts only."
                 ),
             }
         )
