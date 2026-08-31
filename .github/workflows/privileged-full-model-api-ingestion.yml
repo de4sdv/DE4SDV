@@ -1,0 +1,124 @@
+name: Privileged Full-Model API Ingestion
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/privileged-full-model-api-ingestion.yml"
+      - "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+      - "de4sdv/semantic/**"
+      - "de4sdv/sysml_api/**"
+      - "model-based-product-line-engineering/product-models/**/*.sysml"
+      - "scripts/export_sysml_api_baseline.py"
+      - "scripts/import_sysml_api_baseline.py"
+      - "tests/test_sysml_full_ingestion.py"
+      - "textual-notation-of-model/**/*.sysml"
+
+permissions:
+  contents: read
+
+jobs:
+  ingest-and-validate:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sysml2
+          POSTGRES_PASSWORD: mysecretpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sysml2"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+
+      - name: Install Sysand and pinned model dependencies
+        run: |
+          curl -fsSL https://sysand.com/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/sysand" sync
+
+      - name: Install official Syside Automator serializer
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          test -n "$SYSIDE_LICENSE_KEY"
+          python -m pip install --disable-pip-version-check "syside==0.10.3"
+
+      - name: Export reviewed baseline with Syside
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          python scripts/export_sysml_api_baseline.py \
+            --git-commit "$(git rev-parse HEAD)" \
+            --output /tmp/de4sdv-full-model-export.json
+
+      - name: Build pinned Systems Modeling API service
+        run: |
+          git clone --filter=blob:none https://github.com/Systems-Modeling/SysML-v2-API-Services.git /tmp/sysmlv2-api-services
+          git -C /tmp/sysmlv2-api-services checkout 0af711b14bbcea7b240bb0a3a65817ae68302092
+          curl -fsSL -o /tmp/sbt-launch.jar \
+            https://repo1.maven.org/maven2/org/scala-sbt/sbt-launch/1.2.8/sbt-launch-1.2.8.jar
+          (cd /tmp/sysmlv2-api-services && java -Xmx4g -jar /tmp/sbt-launch.jar stage)
+
+      - name: Start pinned Systems Modeling API service
+        run: |
+          /tmp/sysmlv2-api-services/target/universal/stage/bin/sysml-v2-api-services \
+            -J-Xmx4g \
+            -Dplay.server.http.port=9000 \
+            -Dplay.evolutions.db.default.autoApply=true \
+            -Dplay.http.secret.key=de4sdv-ci-full-model-ingestion \
+            > /tmp/sysml-api.log 2>&1 &
+          echo $! > /tmp/sysml-api.pid
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:9000/projects >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/sysml-api.log
+          exit 1
+
+      - name: Import and validate exact API revision
+        run: |
+          python scripts/import_sysml_api_baseline.py \
+            --api-url http://127.0.0.1:9000 \
+            --export /tmp/de4sdv-full-model-export.json \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --report /tmp/de4sdv-full-model-semantic-validation.json
+
+      - name: Run production-ingestion tests
+        run: |
+          python -m pytest tests/test_sysml_full_ingestion.py tests/test_sysml_api_semantic.py -q
+
+      - name: Upload exact-head ingestion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-model-api-ingestion-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            /tmp/de4sdv-full-model-binding.json
+            /tmp/de4sdv-full-model-semantic-validation.json
+            /tmp/sysml-api.log
