@@ -20,7 +20,7 @@ from de4sdv.semantic.impact import ImpactService
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.client import ApiClient
-from de4sdv.sysml_api.repository import SysMLRepository
+from de4sdv.sysml_api.repository import SysMLRepository, element_id
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 
@@ -44,6 +44,10 @@ QUERY_CASES = (
         "middleware service-binding security boundary",
     ),
 )
+
+
+def _json_text(value: object) -> str:
+    return json.dumps(value, sort_keys=True, default=str)
 
 
 def _git_head() -> str:
@@ -151,6 +155,12 @@ def run_queries(
             "imported reqCommandEmergencyBraking did not expose its native "
             "SubjectMembership product-line subject"
         )
+    evidence_ids = {
+        edge["source"]
+        for edge in braking["edges"]
+        if edge["predicate"] == "hasRelevantEvidenceContract"
+    }
+    evidence_id = next(iter(evidence_ids)) if evidence_ids else ""
     verification_edges = [
         edge
         for edge in braking["edges"]
@@ -158,38 +168,29 @@ def run_queries(
         and edge["strategy"] == "verification-membership"
     ]
     if not verification_edges:
-        evidence_ids = {
-            edge["source"]
-            for edge in braking["edges"]
-            if edge["predicate"] == "hasRelevantEvidenceContract"
-        }
-        diagnostics = []
-        for element in repository.list_elements(
+        all_elements = repository.list_elements(
             binding.sysml_project_id, binding.sysml_commit_id
-        ):
-            if element.get("@type") not in {
-                "RequirementVerificationMembership",
-                "VerificationCaseUsage",
-                "VerificationCaseDefinition",
-            }:
+        )
+        rvm_samples = [
+            element
+            for element in all_elements
+            if element.get("@type") == "RequirementVerificationMembership"
+        ][:3]
+        referencing = []
+        for element in all_elements:
+            if element_id(element) in evidence_ids:
                 continue
-            refs = json.dumps(
-                {
-                    key: element.get(key)
-                    for key in ("verifiedRequirement", "owningRelatedElement", "owner")
-                    if element.get(key) is not None
-                },
-                sort_keys=True,
-            )
-            if str(refs) != "{}":
-                diagnostics.append(
-                    f"{element.get('@type')} {element.get('@id')} {refs}"
+            if evidence_id in _json_text(element):
+                referencing.append(
+                    f"{element.get('@type')} {element.get('@id')}"
                 )
         raise RuntimeError(
             "imported reqCommandEmergencyBraking evidence contracts are not "
             "linked to verification cases through native relationships; "
-            f"evidence ids: {sorted(evidence_ids)}; diagnostics: "
-            + "; ".join(diagnostics[:40])
+            f"evidence ids: {sorted(evidence_ids)}; rvm samples: "
+            + "; ".join(json.dumps(item, sort_keys=True) for item in rvm_samples)
+            + "; elements referencing evidence id "
+            + f"{evidence_id}: {sorted(set(referencing))[:30]}"
         )
     gap_categories = {gap["category"] for gap in braking["gaps"]}
     if "product-line" in gap_categories or "verification" in gap_categories:
