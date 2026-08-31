@@ -140,6 +140,35 @@ def run_queries(
             "imported reqCommandEmergencyBraking did not retain its three modeled "
             "evidence-contract relevance links"
         )
+    subject_edges = [
+        edge
+        for edge in braking["edges"]
+        if edge["predicate"] == "hasSubject"
+        and edge["strategy"] == "subject-membership"
+    ]
+    if not subject_edges:
+        raise RuntimeError(
+            "imported reqCommandEmergencyBraking did not expose its native "
+            "SubjectMembership product-line subject"
+        )
+    verification_edges = [
+        edge
+        for edge in braking["edges"]
+        if edge["predicate"] == "verifiedBy"
+        and edge["strategy"] == "verification-membership"
+    ]
+    if not verification_edges:
+        raise RuntimeError(
+            "imported reqCommandEmergencyBraking evidence contracts are not "
+            "linked to verification cases through native "
+            "RequirementVerificationMembership relationships"
+        )
+    gap_categories = {gap["category"] for gap in braking["gaps"]}
+    if "product-line" in gap_categories or "verification" in gap_categories:
+        raise RuntimeError(
+            "native subject/verification relationships resolved but were still "
+            "reported as gaps: " + ", ".join(sorted(gap_categories))
+        )
     root_ids = {result["impact"]["root"]["element_id"] for result in results}
     if len(root_ids) != len(results):
         raise RuntimeError("semantic query cases did not resolve to distinct API UUIDs")

@@ -43,6 +43,12 @@ class SemanticTraversal:
             return []
         if mapping.strategy in {"dependency", "allocation"}:
             return self._relationship_hops(mapping, source, source_id, elements, by_id)
+        if mapping.strategy == "subject-membership":
+            return self._subject_membership_hops(mapping, source, source_id, elements)
+        if mapping.strategy == "verification-membership":
+            return self._verification_membership_hops(
+                mapping, source, source_id, elements
+            )
         if mapping.strategy == "verification":
             return self._reverse_reference_hops(
                 mapping, source, source_id, elements
@@ -103,6 +109,91 @@ class SemanticTraversal:
             if (not allowed_types or str(candidate.get("@type")) in allowed_types)
             and source_id in reference_ids(candidate.get(reference_property))
         ]
+        return self._deduplicate(hops)
+
+    def _subject_membership_hops(
+        self,
+        mapping: RelationshipMapping,
+        source: dict[str, Any],
+        source_id: str,
+        elements: list[dict[str, Any]],
+    ) -> list[TraversalHop]:
+        """Traverse native SubjectMembership objects owned by the requirement.
+
+        Shape derived from the SysML v2 2025-02-01 API schema: a
+        SubjectMembership references its subject through ``memberElement`` and
+        its owner through ``owningRelatedElement``.
+        """
+        config = mapping.configuration
+        membership_types = {
+            str(item)
+            for item in config.get("membership_types", ["SubjectMembership"])
+        }
+        member_property = str(config.get("member_property", "memberElement"))
+        owner_types = {str(item) for item in config.get("owner_types", [])}
+        if owner_types and str(source.get("@type")) not in owner_types:
+            return []
+        by_id = {
+            candidate_id: item
+            for item in elements
+            if (candidate_id := element_id(item)) is not None
+        }
+        hops: list[TraversalHop] = []
+        for membership in elements:
+            if str(membership.get("@type")) not in membership_types:
+                continue
+            owners = reference_ids(membership.get("owningRelatedElement"))
+            if source_id not in owners:
+                continue
+            for member_id in reference_ids(membership.get(member_property)):
+                target = by_id.get(member_id)
+                if target is not None:
+                    hops.append(self._hop(mapping, source, target, membership))
+        return self._deduplicate(hops)
+
+    def _verification_membership_hops(
+        self,
+        mapping: RelationshipMapping,
+        source: dict[str, Any],
+        source_id: str,
+        elements: list[dict[str, Any]],
+    ) -> list[TraversalHop]:
+        """Reverse-traverse native RequirementVerificationMembership objects.
+
+        Shape derived from the SysML v2 2025-02-01 API schema: a
+        RequirementVerificationMembership references the verified requirement
+        through ``verifiedRequirement``; the verification case is resolved
+        from the membership's owner.
+        """
+        config = mapping.configuration
+        membership_types = {
+            str(item)
+            for item in config.get(
+                "membership_types", ["RequirementVerificationMembership"]
+            )
+        }
+        reference_property = str(
+            config.get("reference_property", "verifiedRequirement")
+        )
+        by_id = {
+            candidate_id: item
+            for item in elements
+            if (candidate_id := element_id(item)) is not None
+        }
+        hops: list[TraversalHop] = []
+        for membership in elements:
+            if str(membership.get("@type")) not in membership_types:
+                continue
+            verified_ids = reference_ids(membership.get(reference_property))
+            if source_id not in verified_ids:
+                continue
+            owner_ids = reference_ids(membership.get("owningRelatedElement"))
+            owner_ids += reference_ids(membership.get("owner"))
+            owner_ids += reference_ids(membership.get("owningType"))
+            for owner_id in owner_ids:
+                verification = by_id.get(owner_id)
+                if verification is not None:
+                    hops.append(self._hop(mapping, source, verification, membership))
         return self._deduplicate(hops)
 
     def _property_reference_hops(

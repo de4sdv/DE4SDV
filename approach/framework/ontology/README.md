@@ -97,3 +97,27 @@ Superseded: the concepts previously listed here as draft candidates
 `EvidenceBaseline`, and others) now exist as concrete kernel declarations or
 kernel mappings in `de4sdv-basic-ontology.yaml`. See the `kernel_sync`
 section of that file for the current class-to-declaration mapping.
+
+
+## Executable SysML traversal mappings
+
+Relationships may declare an executable `sysml_mapping` block. Strategies are
+bound to the native SysML v2 API representation of the reviewed model:
+
+- `dependency` — `Dependency` objects with `source`/`target` references;
+  semantic strength `relevance`.
+- `allocation` — `AllocationUsage` objects; semantic strength `allocation`.
+- `subject-membership` — native `SubjectMembership` objects owned by a
+  requirement usage, referencing the product-line subject through
+  `memberElement`; semantic strength `native-reference`.
+- `verification-membership` — native `RequirementVerificationMembership`
+  objects referencing the verified requirement through `verifiedRequirement`;
+  the verification case is resolved from the membership owner; semantic
+  strength `native-verification`.
+- `external` — the authoritative object lives outside the SysML API baseline.
+
+These mappings are the explicit contract between DE4SDV concepts and SysML
+semantics. Traversal uses only these declared strategies; there is no
+name-based or heuristic inference. The bounded test fixture keeps its own
+simplified shapes for deterministic tests and does not define production
+semantics.
