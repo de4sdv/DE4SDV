@@ -198,6 +198,28 @@ def run_queries(
                     membership_links.setdefault(member_ref, []).append(
                         (etype, owner_ref)
                     )
+        rvm_total = sum(
+            1 for e in all_elements if e.get("@type") == "RequirementVerificationMembership"
+        )
+        rvm_with_member = sum(
+            1
+            for e in all_elements
+            if e.get("@type") == "RequirementVerificationMembership"
+            and reference_ids(e.get("memberElement"))
+        )
+        vcu_verified = sum(
+            1
+            for e in all_elements
+            if e.get("@type") in {"VerificationCaseUsage", "VerificationCaseDefinition"}
+            and reference_ids(e.get("verifiedRequirement"))
+        )
+        objective_memberships = sum(
+            1 for e in all_elements if e.get("@type") == "ObjectiveMembership"
+        )
+        chains.append(
+            f"GLOBAL rvm_total={rvm_total} rvm_with_member={rvm_with_member} "
+            f"vcu_nonempty_verified={vcu_verified} objective_memberships={objective_memberships}"
+        )
         chains = []
         for evidence_id in sorted(evidence_ids):
             frontier = [(evidence_id, 0)]
