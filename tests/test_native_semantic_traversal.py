@@ -150,9 +150,30 @@ def test_verification_membership_traversal_resolves_native_api_shape() -> None:
     assert hop.api_object["@id"] == "rvm-1"
 
 
+def _verification_chain_elements() -> tuple[dict, dict, dict]:
+    return (
+        {
+            "@id": "vc-1",
+            "@type": "VerificationCaseDefinition",
+            "declaredName": "nominalMovingVehicleTargetVerification009B",
+        },
+        {
+            "@id": "objective-1",
+            "@type": "RequirementUsage",
+            "declaredName": "nominalEvidenceObjective",
+        },
+        {
+            "@id": "om-1",
+            "@type": "ObjectiveMembership",
+            "owningRelatedElement": {"@id": "vc-1"},
+            "memberElement": {"@id": "objective-1"},
+        },
+    )
+
+
 def test_verification_traversal_resolves_objective_ownership_chain() -> None:
-    """Real imported shape: the evidence contract is owned by the verification
-    objective; traversal walks the membership owner chain to the case."""
+    """Real imported shape: an RVM anchored under the objective verifies the
+    contract; traversal walks the membership owner chain to the case."""
     from de4sdv.semantic.traversal import SemanticTraversal
 
     evidence = {
@@ -160,62 +181,93 @@ def test_verification_traversal_resolves_objective_ownership_chain() -> None:
         "@type": "RequirementUsage",
         "declaredName": "evidenceContract009BFreshOverrideClear",
     }
-    verification = {
-        "@id": "vc-1",
-        "@type": "VerificationCaseDefinition",
-        "declaredName": "nominalMovingVehicleTargetVerification009B",
-    }
-    objective_membership = {
-        "@id": "om-1",
-        "@type": "ObjectiveMembership",
-        "owningRelatedElement": {"@id": "vc-1"},
-        "memberElement": {"@id": "objective-1"},
-    }
-    objective = {
-        "@id": "objective-1",
+    verification, _objective, objective_membership = _verification_chain_elements()
+    elements = [
+        evidence,
+        verification,
+        _objective,
+        objective_membership,
+        {
+            "@id": "rvm-obj-1",
+            "@type": "RequirementVerificationMembership",
+            "owningRelatedElement": {"@id": "objective-1"},
+            "memberElement": {"@id": "ev-1"},
+        },
+    ]
+    hops = SemanticTraversal(_contract()).traverse(
+        "verifiedBy", evidence, elements
+    )
+    assert len(hops) >= 1
+    hop = next(h for h in hops if h.target["@id"] == "vc-1")
+    assert hop.semantic_strength == "native-verification"
+
+
+def test_verification_traversal_rejects_containment_without_rvm() -> None:
+    """Negative regression: a RequirementUsage structurally owned below a
+    VerificationCase with NO RequirementVerificationMembership must yield no
+    verifiedBy hop — containment alone is not native verification semantics."""
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    evidence = {
+        "@id": "ev-1",
         "@type": "RequirementUsage",
-        "declaredName": "nominalEvidenceObjective",
+        "declaredName": "someContractOwnedBelowVerification",
     }
-    evidence_membership = {
-        "@id": "fm-1",
-        "@type": "FeatureMembership",
-        "owningRelatedElement": {"@id": "objective-1"},
-        "ownedMemberElement": {"@id": "ev-1"},
+    verification, _objective, objective_membership = _verification_chain_elements()
+    elements = [
+        evidence,
+        verification,
+        _objective,
+        objective_membership,
+        {
+            "@id": "fm-1",
+            "@type": "FeatureMembership",
+            "owningRelatedElement": {"@id": "objective-1"},
+            "ownedMemberElement": {"@id": "ev-1"},
+        },
+    ]
+    assert SemanticTraversal(_contract()).traverse("verifiedBy", evidence, elements) == []
+
+
+def test_verification_traversal_resolves_shadow_only_reference_subsetting() -> None:
+    """Shadow-only shape: the ownership/RVM path reaches only the shadow
+    reference usage; the queried source is the referenced original. The
+    ReferenceSubsetting is the only semantic bridge."""
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    declared = {
+        "@id": "ev-1",
+        "@type": "RequirementUsage",
+        "declaredName": "evidenceContract009BFreshOverrideClear",
     }
-    verify_membership = {
-        "@id": "rvm-obj-1",
-        "@type": "RequirementVerificationMembership",
-        "owningRelatedElement": {"@id": "objective-1"},
-        "memberElement": {"@id": "ev-1"},
-    }
+    verification, _objective, objective_membership = _verification_chain_elements()
     shadow = {
         "@id": "shadow-1",
         "@type": "RequirementUsage",
         "declaredName": "evidenceContract009BFreshOverrideClear",
     }
-    reference_subsetting = {
-        "@id": "rs-1",
-        "@type": "ReferenceSubsetting",
-        "owningRelatedElement": {"@id": "shadow-1"},
-        "referencedFeature": {"@id": "ev-1"},
-    }
-    hops = SemanticTraversal(_contract()).traverse(
-        "verifiedBy",
-        evidence,
-        [
-            evidence,
-            verification,
-            objective_membership,
-            objective,
-            evidence_membership,
-            verify_membership,
-            shadow,
-            reference_subsetting,
-        ],
-    )
+    elements = [
+        declared,
+        verification,
+        _objective,
+        objective_membership,
+        {
+            "@id": "rvm-obj-1",
+            "@type": "RequirementVerificationMembership",
+            "owningRelatedElement": {"@id": "objective-1"},
+            "memberElement": {"@id": "shadow-1"},
+        },
+        shadow,
+        {
+            "@id": "rs-1",
+            "@type": "ReferenceSubsetting",
+            "owningRelatedElement": {"@id": "shadow-1"},
+            "referencedFeature": {"@id": "ev-1"},
+        },
+    ]
+    hops = SemanticTraversal(_contract()).traverse("verifiedBy", declared, elements)
     assert len(hops) >= 1
     hop = next(h for h in hops if h.target["@id"] == "vc-1")
-    assert hop.api_object["@id"] == "vc-1"
     assert hop.semantic_strength == "native-verification"
 
 
@@ -303,7 +355,6 @@ def test_impact_service_reports_native_edges_against_real_shapes(
     from de4sdv.sysml_api.client import ApiClient
     from de4sdv.sysml_api.repository import SysMLRepository
     from de4sdv.sysml_api.revisions import RevisionBinding
-    from tests.test_sysml_api_semantic import _ApiHandler, api_server  # noqa: F401
 
     ref = lambda value: {"@id": value}
     elements = [

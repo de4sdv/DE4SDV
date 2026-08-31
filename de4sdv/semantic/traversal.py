@@ -161,13 +161,19 @@ class SemanticTraversal:
         """Reverse-traverse native verification relationships.
 
         Shapes derived from the SysML v2 2025-02-01 API schema:
+
         - a ``RequirementVerificationMembership`` references the verified
           requirement as its ``memberElement`` (a Membership's member) or
-          through ``verifiedRequirement``, with the verification case
-          resolved from its owner; and
+          through ``verifiedRequirement``, with the verification case resolved
+          from its owner; and
         - a ``VerificationCaseUsage``/``VerificationCaseDefinition`` carries
-          the verified requirement references directly in its
-          ``verifiedRequirement`` property.
+          verified requirement references directly in ``verifiedRequirement``.
+
+        A verifiedBy hop additionally requires the queried requirement to
+        participate in the native verification path. A ReferenceSubsetting
+        bridges a serialized reference usage (the "shadow") to the declared
+        requirement when the shadow, not the declaration, is the RVM member.
+        Containment ancestry without an RVM never qualifies (fail closed).
         """
         config = mapping.configuration
         membership_types = {
@@ -187,21 +193,32 @@ class SemanticTraversal:
             for item in elements
             if (candidate_id := element_id(item)) is not None
         }
-        hops: list[TraversalHop] = []
-        for membership in elements:
-            if str(membership.get("@type")) not in membership_types:
+
+        def anchors_of(membership: dict[str, Any]) -> set[str]:
+            return set(
+                reference_ids(membership.get(reference_property))
+                + reference_ids(membership.get("memberElement"))
+            )
+
+        def _owners_of(membership: dict[str, Any]) -> list[str]:
+            return reference_ids(membership.get("owningRelatedElement")) + (
+                reference_ids(membership.get("owner"))
+                + reference_ids(membership.get("owningType"))
+            )
+
+        # ReferenceSubsetting reverse index: declared requirement -> shadow
+        # reference usage.
+        refsub_reverse: dict[str, set[str]] = {}
+        for element in elements:
+            if str(element.get("@type")) != "ReferenceSubsetting":
                 continue
-            verified_ids = reference_ids(membership.get(reference_property))
-            verified_ids += reference_ids(membership.get("memberElement"))
-            if source_id not in verified_ids:
-                continue
-            owner_ids = reference_ids(membership.get("owningRelatedElement"))
-            owner_ids += reference_ids(membership.get("owner"))
-            owner_ids += reference_ids(membership.get("owningType"))
-            for owner_id in owner_ids:
-                verification = by_id.get(owner_id)
-                if verification is not None:
-                    hops.append(self._hop(mapping, source, verification, membership))
+            for target_ref in reference_ids(element.get("referencedFeature")):
+                for shadow_ref in reference_ids(
+                    element.get("owningRelatedElement")
+                ) + reference_ids(element.get("owner")):
+                    refsub_reverse.setdefault(target_ref, set()).add(shadow_ref)
+
+        # Membership edges for upward owner walking (containment chain).
         owner_chain_types = {
             str(item)
             for item in config.get(
@@ -209,49 +226,44 @@ class SemanticTraversal:
                 ["FeatureMembership", "OwningMembership", "ObjectiveMembership"],
             )
         }
-        members_by_owner: dict[str, set[str]] = {}
+        _owners_index: dict[str, set[str]] = {}
         for membership in elements:
             if str(membership.get("@type")) not in owner_chain_types:
                 continue
-            member_refs = (
+            for member_ref in (
                 reference_ids(membership.get("memberElement"))
                 + reference_ids(membership.get("ownedMemberElement"))
-            )
-            owner_refs = (
-                reference_ids(membership.get("owningRelatedElement"))
-                + reference_ids(membership.get("owner"))
-                + reference_ids(membership.get("membershipOwningNamespace"))
-            )
-            for member_ref in member_refs:
-                for owner_ref in owner_refs:
-                    members_by_owner.setdefault(owner_ref, set()).add(member_ref)
-        refsub_reverse: dict[str, set[str]] = {}
-        for element in elements:
-            if str(element.get("@type")) != "ReferenceSubsetting":
+            ):
+                for owner_ref in (
+                    reference_ids(membership.get("owningRelatedElement"))
+                    + reference_ids(membership.get("owner"))
+                    + reference_ids(membership.get("membershipOwningNamespace"))
+                ):
+                    _owners_index.setdefault(member_ref, set()).add(owner_ref)
+
+        # Start points: the declared requirement and, when a shadow reference
+        # usage subsettings it, the shadow (so upward walking can proceed).
+        starts: set[str] = {source_id} | refsub_reverse.get(source_id, set())
+
+        hops: list[TraversalHop] = []
+        for membership in elements:
+            if str(membership.get("@type")) not in membership_types:
                 continue
-            for target_ref in reference_ids(element.get("referencedFeature")):
-                for shadow_ref in reference_ids(element.get("owningRelatedElement")):
-                    refsub_reverse.setdefault(target_ref, set()).add(shadow_ref)
-                for shadow_ref in reference_ids(element.get("owner")):
-                    refsub_reverse.setdefault(target_ref, set()).add(shadow_ref)
-        verification_cases = {
-            candidate_id: candidate
-            for candidate in elements
-            if str(candidate.get("@type")) in element_types
-            and (candidate_id := element_id(candidate)) is not None
-        }
-        for case_id, case in verification_cases.items():
-            reached = self._reachable_members(case_id, members_by_owner)
-            if source_id in reached:
-                hops.append(self._hop(mapping, source, case, case))
+            # Fail-closed: the RVM must anchor on the requirement itself or on
+            # a shadow that ReferenceSubsetting ties to it.
+            if not (anchors_of(membership) & starts):
                 continue
-            reached_shadows = reached | {
-                shadow
-                for member_id in reached
-                for shadow in refsub_reverse.get(member_id, set())
-            }
-            if source_id in reached_shadows:
-                hops.append(self._hop(mapping, source, case, case))
+            # Walk owners upward from the RVM; stop at the first case.
+            frontier = list(_owners_of(membership))
+            seen = set(frontier)
+            while frontier:
+                current = frontier.pop()
+                case = by_id.get(current)
+                if case is not None and str(case.get("@type")) in element_types:
+                    hops.append(self._hop(mapping, source, case, membership))
+                    break
+                frontier.extend(_owners_index.get(current, set()) - seen)
+                seen |= _owners_index.get(current, set())
         return self._deduplicate(hops)
 
     def _property_reference_hops(
@@ -288,6 +300,26 @@ class SemanticTraversal:
             target=target,
             api_object=api_object,
         )
+
+    @staticmethod
+    def _reachable_members_multi(
+        starts: set[str], members_by_owner: dict[str, set[str]]
+    ) -> set[str]:
+        """Collect member IDs transitively owned by any of ``starts``.
+
+        Walks the ownership direction (owner -> member), so every reached
+        element is genuinely below an anchored verification membership.
+        """
+        reached: set[str] = set()
+        frontier = list(starts)
+        while frontier:
+            owner = frontier.pop()
+            for member_id in members_by_owner.get(owner, ()):  # noqa: B905
+                if member_id in reached:
+                    continue
+                reached.add(member_id)
+                frontier.append(member_id)
+        return reached
 
     @staticmethod
     def _reachable_members(
