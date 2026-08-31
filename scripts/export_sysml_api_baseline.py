@@ -85,7 +85,7 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
         source_documents=source_documents,
     )
     artifact = bundle.to_dict()
-    artifact["source_manifest"] = [source.__dict__ for source in manifest.sources]
+    artifact["source_manifest"] = list(manifest.to_dicts())
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
         json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8"

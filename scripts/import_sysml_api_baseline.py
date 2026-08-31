@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
 
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.validation import validate_ontology_bindings
-from de4sdv.sysml_api.baseline import BaselineExportBundle
+from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
 from de4sdv.sysml_api.repository import SysMLRepository
@@ -50,6 +50,7 @@ def run_import(
         raise RuntimeError(
             f"baseline export is stale: artifact={bundle.git_commit}, checked-out HEAD={head}"
         )
+    bundle.require_current_sources(BaselineManifest.discover(ROOT))
     client = ApiClient(api_url, timeout=600.0)
     imported = import_baseline(
         client,
@@ -72,6 +73,8 @@ def run_import(
         "element_count": imported.element_count,
         "internal_reference_count": imported.internal_reference_count,
         "external_reference_count": len(bundle.external_references),
+        "source_manifest": list(bundle.source_manifest),
+        "external_references": list(bundle.external_references),
         "ontology": ontology.to_dict(),
     }
     _write_json(report_path, report)

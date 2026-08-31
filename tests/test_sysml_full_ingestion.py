@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -128,12 +129,47 @@ def test_export_bundle_round_trips_as_a_versioned_artifact(tmp_path: Path) -> No
             ]
         },
     )
+    bundle = replace(
+        bundle,
+        source_manifest=(
+            {
+                "path": "a.sysml",
+                "authority": "reviewed",
+                "sha256": "b" * 64,
+                "size": 10,
+            },
+        ),
+    )
     path = tmp_path / "baseline-export.json"
 
     bundle.write(path)
     loaded = BaselineExportBundle.load(path)
 
     assert loaded == bundle
+    assert loaded.source_manifest[0]["authority"] == "reviewed"
+
+
+def test_export_bundle_refuses_a_stale_source_manifest() -> None:
+    from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
+
+    bundle = BaselineExportBundle(
+        git_commit="a" * 40,
+        elements={},
+        element_sources={},
+        external_references=(),
+        source_manifest=(
+            {
+                "path": "a.sysml",
+                "authority": "reviewed",
+                "sha256": "a" * 64,
+                "size": 1,
+            },
+        ),
+    )
+    current = BaselineManifest.discover(ROOT)
+
+    with pytest.raises(ValueError, match="source manifest is stale"):
+        bundle.require_current_sources(current)
 
 
 def test_production_commit_payload_preserves_exported_uuids_as_data_identities() -> None:

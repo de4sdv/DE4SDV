@@ -49,6 +49,17 @@ class BaselineManifest:
             entries.append(_source(repository_root, relative, "pinned-dependency"))
         return cls(tuple(entries))
 
+    def to_dicts(self) -> tuple[dict[str, Any], ...]:
+        return tuple(
+            {
+                "path": source.path,
+                "authority": source.authority,
+                "sha256": source.sha256,
+                "size": source.size,
+            }
+            for source in self.sources
+        )
+
 
 @dataclass(frozen=True)
 class BaselineExportBundle:
@@ -56,6 +67,11 @@ class BaselineExportBundle:
     elements: dict[str, dict[str, Any]]
     element_sources: dict[str, str]
     external_references: tuple[dict[str, str], ...]
+    source_manifest: tuple[dict[str, Any], ...] = ()
+
+    def require_current_sources(self, current: BaselineManifest) -> None:
+        if self.source_manifest != current.to_dicts():
+            raise ValueError("baseline export source manifest is stale or incomplete")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -64,6 +80,7 @@ class BaselineExportBundle:
             "elements": [self.elements[element_id] for element_id in sorted(self.elements)],
             "element_sources": self.element_sources,
             "external_references": list(self.external_references),
+            "source_manifest": list(self.source_manifest),
         }
 
     @classmethod
@@ -84,6 +101,7 @@ class BaselineExportBundle:
             raise ValueError("baseline export contains missing or duplicate element IDs")
         sources = value.get("element_sources")
         external = value.get("external_references")
+        source_manifest = value.get("source_manifest", [])
         if not isinstance(sources, dict) or not all(
             isinstance(key, str) and isinstance(path, str)
             for key, path in sources.items()
@@ -95,11 +113,16 @@ class BaselineExportBundle:
             isinstance(reference, dict) for reference in external
         ):
             raise ValueError("baseline export external_references must be a list")
+        if not isinstance(source_manifest, list) or not all(
+            isinstance(source, dict) for source in source_manifest
+        ):
+            raise ValueError("baseline export source_manifest must be a list")
         return cls(
             git_commit=str(value.get("git_commit", "")),
             elements=elements,
             element_sources=dict(sources),
             external_references=tuple(external),
+            source_manifest=tuple(source_manifest),
         )
 
     @classmethod

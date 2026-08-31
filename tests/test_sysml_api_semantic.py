@@ -72,7 +72,7 @@ def test_repository_returns_api_relationship_objects_for_exact_revision(
 
     base_url, handler = api_server
     handler.response_map = {
-        "/projects/project-1/commits/commit-1/elements": (
+        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
             200,
             [
                 {"@id": "req-1", "@type": "RequirementUsage", "declaredName": "reqX"},
@@ -115,7 +115,7 @@ def test_repository_capability_check_exercises_required_read_contract(
             {"@id": "commit-1", "@type": "Commit"},
             {},
         ),
-        "/projects/project-1/commits/commit-1/elements": (
+        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
             200,
             [
                 {"@id": "req-1", "@type": "RequirementUsage"},
@@ -202,7 +202,7 @@ def test_ontology_requirement_binds_through_exact_kernel_mapping_to_api_uuid(
 
     base_url, handler = api_server
     handler.response_map = {
-        "/projects/project-1/commits/commit-1/elements": (
+        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
             200,
             [
                 {
@@ -350,7 +350,7 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
     ]
     base_url, handler = api_server
     handler.response_map = {
-        "/projects/project-1/commits/commit-1/elements": (200, elements, {})
+        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (200, elements, {})
     }
     contract = KernelContract.load(
         ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"

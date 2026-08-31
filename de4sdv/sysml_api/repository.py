@@ -60,7 +60,7 @@ class SysMLRepository:
         return value
 
     def list_elements(self, project_id: str, commit_id: str) -> list[dict[str, Any]]:
-        path = f"/projects/{project_id}/commits/{commit_id}/elements"
+        path = f"/projects/{project_id}/commits/{commit_id}/elements?page[size]=1000"
         values = self.client.get_all(path)
         if not all(isinstance(value, dict) for value in values):
             raise ApiError("GET", path, "element page contained a non-object value")
