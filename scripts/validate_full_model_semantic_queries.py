@@ -20,7 +20,7 @@ from de4sdv.semantic.impact import ImpactService
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.client import ApiClient
-from de4sdv.sysml_api.repository import SysMLRepository, element_id
+from de4sdv.sysml_api.repository import SysMLRepository, reference_ids, element_id
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 
