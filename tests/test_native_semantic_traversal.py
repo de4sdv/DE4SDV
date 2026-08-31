@@ -182,10 +182,23 @@ def test_verification_traversal_resolves_objective_ownership_chain() -> None:
         "owningRelatedElement": {"@id": "objective-1"},
         "ownedMemberElement": {"@id": "ev-1"},
     }
+    verify_membership = {
+        "@id": "rvm-obj-1",
+        "@type": "RequirementVerificationMembership",
+        "owningRelatedElement": {"@id": "objective-1"},
+        "memberElement": {"@id": "ev-1"},
+    }
     hops = SemanticTraversal(_contract()).traverse(
         "verifiedBy",
         evidence,
-        [evidence, verification, objective_membership, objective, evidence_membership],
+        [
+            evidence,
+            verification,
+            objective_membership,
+            objective,
+            evidence_membership,
+            verify_membership,
+        ],
     )
     assert len(hops) == 1
     hop = hops[0]

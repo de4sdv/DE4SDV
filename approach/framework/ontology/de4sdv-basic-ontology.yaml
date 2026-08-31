@@ -446,7 +446,8 @@ relationships:
       strategy: verification-membership
       membership_types: [RequirementVerificationMembership]
       element_types: [VerificationCaseUsage, VerificationCaseDefinition]
-      owner_membership_types: [FeatureMembership, OwningMembership, ObjectiveMembership]
+      owner_membership_types:
+        [FeatureMembership, OwningMembership, ObjectiveMembership, RequirementVerificationMembership]
       reference_property: verifiedRequirement
       direction: reverse
       semantic_strength: native-verification

@@ -156,7 +156,7 @@ def run_queries(
             "SubjectMembership product-line subject"
         )
     evidence_ids = {
-        edge["source"]
+        edge["target"]
         for edge in braking["edges"]
         if edge["predicate"] == "hasRelevantEvidenceContract"
     }
