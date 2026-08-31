@@ -198,6 +198,23 @@ def run_queries(
                     membership_links.setdefault(member_ref, []).append(
                         (etype, owner_ref)
                     )
+        chains = []
+        for evidence_id in sorted(evidence_ids):
+            frontier = [(evidence_id, 0)]
+            seen = {evidence_id}
+            while frontier and len(chains) < 12:
+                current, depth = frontier.pop(0)
+                if depth > 4:
+                    continue
+                for etype, owner_ref in membership_links.get(current, ()):
+                    owner = by_id_all.get(owner_ref, {})
+                    chains.append(
+                        f"{evidence_id[:8]} -{depth}-> {etype} -> {owner_ref[:8]} "
+                        f"{owner.get('@type')} {owner.get('declaredName')}"
+                    )
+                    if owner_ref not in seen:
+                        seen.add(owner_ref)
+                        frontier.append((owner_ref, depth + 1))
         rvm_total = sum(
             1 for e in all_elements if e.get("@type") == "RequirementVerificationMembership"
         )
@@ -216,30 +233,11 @@ def run_queries(
         objective_memberships = sum(
             1 for e in all_elements if e.get("@type") == "ObjectiveMembership"
         )
-        chains.append(
-            f"GLOBAL rvm_total={rvm_total} rvm_with_member={rvm_with_member} "
-            f"vcu_nonempty_verified={vcu_verified} objective_memberships={objective_memberships}"
-        )
-        chains = []
-        for evidence_id in sorted(evidence_ids):
-            frontier = [(evidence_id, 0)]
-            seen = {evidence_id}
-            while frontier and len(chains) < 12:
-                current, depth = frontier.pop(0)
-                if depth > 4:
-                    continue
-                for etype, owner_ref in membership_links.get(current, ()):
-                    owner = by_id_all.get(owner_ref, {})
-                    chains.append(
-                        f"{evidence_id[:8]} -{depth}-> {etype} -> {owner_ref[:8]} "
-                        f"{owner.get('@type')} {owner.get('declaredName')}"
-                    )
-                    if owner_ref not in seen:
-                        seen.add(owner_ref)
-                        frontier.append((owner_ref, depth + 1))
         raise RuntimeError(
             "imported reqCommandEmergencyBraking evidence contracts are not "
             "linked to verification cases through native relationships; "
+            f"GLOBAL rvm_total={rvm_total} rvm_with_member={rvm_with_member} "
+            f"vcu_nonempty_verified={vcu_verified} objective_memberships={objective_memberships}; "
             f"evidence ids: {sorted(evidence_ids)}; owner chains: "
             + " | ".join(chains[:12])
         )
