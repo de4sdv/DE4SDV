@@ -59,8 +59,8 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
 
     source_documents: dict[str, list[dict[str, object]]] = {}
     for document in model.user_docs:
-        source_path = _relative_document_path(document.url)
         with document.lock() as locked:
+            source_path = _relative_document_path(locked.url)
             serialized = syside.json.dumps(
                 locked.root_node,
                 syside.SerializationOptions.minimal(),

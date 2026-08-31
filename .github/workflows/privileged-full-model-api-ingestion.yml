@@ -11,6 +11,7 @@ on:
       - "model-based-product-line-engineering/product-models/**/*.sysml"
       - "scripts/export_sysml_api_baseline.py"
       - "scripts/import_sysml_api_baseline.py"
+      - "scripts/validate_full_model_semantic_queries.py"
       - "tests/test_sysml_full_ingestion.py"
       - "textual-notation-of-model/**/*.sysml"
 
@@ -107,6 +108,14 @@ jobs:
             --binding /tmp/de4sdv-full-model-binding.json \
             --report /tmp/de4sdv-full-model-semantic-validation.json
 
+      - name: Exercise three production semantic concerns
+        run: |
+          python scripts/validate_full_model_semantic_queries.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
+            --output /tmp/de4sdv-full-model-semantic-query-coverage.json
+
       - name: Run production-ingestion tests
         run: |
           python -m pytest tests/test_sysml_full_ingestion.py tests/test_sysml_api_semantic.py -q
@@ -121,4 +130,5 @@ jobs:
           path: |
             /tmp/de4sdv-full-model-binding.json
             /tmp/de4sdv-full-model-semantic-validation.json
+            /tmp/de4sdv-full-model-semantic-query-coverage.json
             /tmp/sysml-api.log

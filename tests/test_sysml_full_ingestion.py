@@ -283,3 +283,15 @@ def test_ontology_validation_reports_all_binding_categories_explicitly() -> None
     assert by_class["AcceptanceCriterion"].status == "ambiguous"
     assert by_class["EngineeringIncrement"].status == "unresolved"
     assert sum(report.summary.values()) == len(contract.classes)
+
+
+def test_full_model_query_matrix_covers_three_distinct_model_concerns() -> None:
+    from scripts.validate_full_model_semantic_queries import QUERY_CASES
+
+    assert len(QUERY_CASES) >= 3
+    assert len({case.concern for case in QUERY_CASES}) >= 3
+    assert {case.identifier for case in QUERY_CASES} >= {
+        "reqCommandEmergencyBraking",
+        "reqProvideMiddlewareSignalAccess",
+        "reqAuthenticateServiceBinding",
+    }
