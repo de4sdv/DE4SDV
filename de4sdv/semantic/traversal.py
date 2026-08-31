@@ -213,10 +213,17 @@ class SemanticTraversal:
         for membership in elements:
             if str(membership.get("@type")) not in owner_chain_types:
                 continue
-            for member_ref in reference_ids(membership.get("memberElement")):
-                for owner_ref in reference_ids(
-                    membership.get("owningRelatedElement")
-                ):
+            member_refs = (
+                reference_ids(membership.get("memberElement"))
+                + reference_ids(membership.get("ownedMemberElement"))
+            )
+            owner_refs = (
+                reference_ids(membership.get("owningRelatedElement"))
+                + reference_ids(membership.get("owner"))
+                + reference_ids(membership.get("membershipOwningNamespace"))
+            )
+            for member_ref in member_refs:
+                for owner_ref in owner_refs:
                     members_by_owner.setdefault(owner_ref, set()).add(member_ref)
         verification_cases = {
             candidate_id: candidate

@@ -143,8 +143,8 @@ def test_verification_traversal_resolves_objective_ownership_chain() -> None:
     evidence_membership = {
         "@id": "fm-1",
         "@type": "FeatureMembership",
-        "owningRelatedElement": {"@id": "objective-1"},
-        "memberElement": {"@id": "ev-1"},
+        "ownedRelatedElement": [{"@id": "objective-1"}],
+        "ownedMemberElement": {"@id": "ev-1"},
     }
     hops = SemanticTraversal(_contract()).traverse(
         "verifiedBy",
