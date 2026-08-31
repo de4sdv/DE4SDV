@@ -180,17 +180,16 @@ def run_queries(
         for element in all_elements:
             if element_id(element) in evidence_ids:
                 continue
-            if evidence_id in _json_text(element):
-                referencing.append(
-                    f"{element.get('@type')} {element.get('@id')}"
-                )
+            if _json_text(element).find(next(iter(evidence_ids))) != -1:
+                referencing.append(element)
         raise RuntimeError(
             "imported reqCommandEmergencyBraking evidence contracts are not "
             "linked to verification cases through native relationships; "
-            f"evidence ids: {sorted(evidence_ids)}; rvm samples: "
-            + "; ".join(json.dumps(item, sort_keys=True) for item in rvm_samples)
-            + "; elements referencing evidence id "
-            + f"{evidence_id}: {sorted(set(referencing))[:30]}"
+            f"evidence ids: {sorted(evidence_ids)}; referencing elements: "
+            + " || ".join(
+                json.dumps(item, sort_keys=True)
+                for item in referencing[:5]
+            )
         )
     gap_categories = {gap["category"] for gap in braking["gaps"]}
     if "product-line" in gap_categories or "verification" in gap_categories:
