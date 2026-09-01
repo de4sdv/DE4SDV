@@ -39,13 +39,14 @@ class SemanticQueryService:
         default_factory=dict, init=False, repr=False
     )
 
-    def _revision(self) -> dict[str, str]:
+    def _revision(self) -> dict[str, Any]:
         return {
             "git_commit": self.binding.git_commit,
             "sysml_project_id": self.binding.sysml_project_id,
             "sysml_commit_id": self.binding.sysml_commit_id,
             "binding_status": self.binding.status(self.expected_git_revision),
             "scope": self.binding.scope,
+            "ontology": self.binding.ontology.to_dict(),
         }
 
     def _provenance(self) -> list[dict[str, str]]:
@@ -63,13 +64,18 @@ class SemanticQueryService:
             },
             {
                 "authority": "authoritative",
-                "source": str(self.contract.source),
+                "source": (
+                    f"git://{self.binding.git_repository}/{self.binding.git_commit}/"
+                    f"{self.binding.ontology.path}"
+                ),
+                "sha256": self.binding.ontology.sha256,
             },
             {"authority": "derived", "source": "de4sdv.semantic.query"},
         ]
 
     def _require_valid_revision(self) -> None:
         self.binding.require_current(self.expected_git_revision)
+        self.binding.require_ontology(self.contract.identity)
 
     def _elements(self) -> list[dict[str, Any]]:
         self._require_valid_revision()
@@ -135,12 +141,21 @@ class SemanticQueryService:
     def model_status(self) -> dict[str, Any]:
         """Report whether this runtime can make an exact current-baseline claim."""
         status = self.binding.status(self.expected_git_revision)
-        current = status == "synchronized" and self.binding.scope == "full-model"
+        ontology_current = self.contract.identity == self.binding.ontology
+        current = (
+            status == "synchronized"
+            and self.binding.scope == "full-model"
+            and ontology_current
+        )
         reasons: list[str] = []
         if status != "synchronized":
             reasons.append(f"binding status is {status}")
         if self.binding.scope != "full-model":
             reasons.append(f"binding scope is {self.binding.scope}, not full-model")
+        if not ontology_current:
+            reasons.append(
+                "ontology contract does not match the identity recorded in the binding"
+            )
         gaps: list[dict[str, str]] = [
             {"category": "runtime-binding", "reason": reason} for reason in reasons
         ]

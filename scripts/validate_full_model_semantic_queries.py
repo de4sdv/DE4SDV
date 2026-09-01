@@ -86,6 +86,11 @@ def run_queries(
     contract = KernelContract.load(
         ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
     )
+    binding.require_ontology(contract.identity)
+    if semantic_report.get("ontology_identity") != binding.ontology.to_dict():
+        raise RuntimeError(
+            "semantic report ontology identity does not match the validated binding"
+        )
     service = ImpactService(
         repository=repository,
         binding=binding,

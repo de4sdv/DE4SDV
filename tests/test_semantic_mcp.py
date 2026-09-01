@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -9,6 +10,14 @@ from typing import Any
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+ONTOLOGY_PATH = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+
+
+def ontology_identity(path: Path = ONTOLOGY_PATH) -> dict[str, str]:
+    return {
+        "path": ONTOLOGY_PATH.relative_to(ROOT).as_posix(),
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
 
 
 class FixtureRepository:
@@ -146,6 +155,7 @@ def semantic_service():
             "import_tool_version": "fixture/1",
             "semantic_validation": "passed",
             "scope": "fixture",
+            "ontology": ontology_identity(),
         }
     )
     binder = OntologyApiBinder(
@@ -184,6 +194,7 @@ def test_model_status_does_not_present_fixture_as_current_baseline(semantic_serv
         "sysml_commit_id": "commit-1",
         "binding_status": "synchronized",
         "scope": "fixture",
+        "ontology": ontology_identity(),
     }
     assert result["element_count"] is None
     assert result["gaps"] == [
@@ -204,6 +215,37 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     assert result["current_baseline"] is True
     assert result["element_count"] == 9
     assert result["gaps"] == []
+
+
+def test_model_status_and_queries_fail_closed_for_stale_ontology_identity(
+    semantic_service,
+) -> None:
+    from dataclasses import replace
+
+    from de4sdv.sysml_api.errors import RevisionMismatchError
+    from de4sdv.sysml_api.revisions import OntologyIdentity
+
+    semantic_service.binding = replace(
+        semantic_service.binding,
+        scope="full-model",
+        ontology=OntologyIdentity(
+            path=semantic_service.binding.ontology.path,
+            sha256="b" * 64,
+        ),
+    )
+
+    status = semantic_service.model_status()
+    assert status["current_baseline"] is False
+    assert status["gaps"] == [
+        {
+            "category": "runtime-binding",
+            "reason": (
+                "ontology contract does not match the identity recorded in the binding"
+            ),
+        }
+    ]
+    with pytest.raises(RevisionMismatchError, match="ontology contract"):
+        semantic_service.resolve_element("req-1")
 
 
 def test_model_status_reports_api_unavailability_as_runtime_gap(
@@ -279,6 +321,11 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     assert coverage["verification_cases"][0]["element_id"] == "verification-1"
     assert coverage["gaps"] == []
     assert coverage["revision"]["sysml_commit_id"] == "commit-1"
+    assert coverage["revision"]["ontology"] == ontology_identity()
+    assert any(
+        entry.get("sha256") == ontology_identity()["sha256"]
+        for entry in coverage["provenance"]
+    )
 
 
 def test_verification_coverage_is_partial_when_one_evidence_contract_has_no_case(
@@ -399,6 +446,7 @@ def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
                 "import_tool_version": "fixture/1",
                 "semantic_validation": "passed",
                 "scope": "fixture",
+                "ontology": ontology_identity(),
             }
         ),
         encoding="utf-8",
@@ -413,6 +461,59 @@ def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
 
     assert service.model_status()["current_baseline"] is False
     assert service.model_status()["gaps"][0]["category"] == "runtime-binding"
+
+
+def test_runtime_refuses_binding_with_different_ontology_contract(
+    tmp_path: Path,
+) -> None:
+    from de4sdv.semantic.runtime import build_semantic_runtime
+    from de4sdv.sysml_api.errors import RevisionMismatchError
+
+    altered_ontology = tmp_path / "de4sdv-basic-ontology.yaml"
+    altered_ontology.write_bytes(ONTOLOGY_PATH.read_bytes() + b"\n# altered contract\n")
+    binding = tmp_path / "binding.json"
+    binding.write_text(
+        json.dumps(
+            {
+                "git_repository": "de4sdv/DE4SDV",
+                "git_commit": "a" * 40,
+                "sysml_project_id": "project-1",
+                "sysml_commit_id": "commit-1",
+                "import_timestamp": "2026-09-01T00:00:00Z",
+                "import_tool_version": "fixture/1",
+                "semantic_validation": "passed",
+                "scope": "full-model",
+                "ontology": ontology_identity(),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RevisionMismatchError, match="ontology contract"):
+        build_semantic_runtime(
+            api_url="http://127.0.0.1:9",
+            binding_path=binding,
+            expected_git_revision="a" * 40,
+            ontology_path=altered_ontology,
+        )
+
+
+def test_revision_binding_requires_explicit_ontology_identity() -> None:
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    with pytest.raises(ValueError, match="ontology"):
+        RevisionBinding.from_dict(
+            {
+                "git_repository": "de4sdv/DE4SDV",
+                "git_commit": "a" * 40,
+                "sysml_project_id": "project-1",
+                "sysml_commit_id": "commit-1",
+                "import_timestamp": "2026-09-01T00:00:00Z",
+                "import_tool_version": "fixture/1",
+                "semantic_validation": "passed",
+                "scope": "fixture",
+            }
+        )
 
 
 def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
@@ -434,6 +535,7 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
                 "import_tool_version": "fixture/1",
                 "semantic_validation": "passed",
                 "scope": "fixture",
+                "ontology": ontology_identity(),
             }
         ),
         encoding="utf-8",
@@ -492,6 +594,7 @@ def test_privileged_result_validator_requires_exact_revision_and_native_edges() 
         "sysml_commit_id": "commit-1",
         "binding_status": "synchronized",
         "scope": "full-model",
+        "ontology": ontology_identity(),
     }
     results = {
         "model_status": {"current_baseline": True, "read_only": True, "revision": revision},

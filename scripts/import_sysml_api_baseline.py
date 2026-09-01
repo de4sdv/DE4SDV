@@ -76,6 +76,7 @@ def run_import(
         "source_manifest": list(bundle.source_manifest),
         "external_references": list(bundle.external_references),
         "ontology": ontology.to_dict(),
+        "ontology_identity": contract.identity.to_dict(),
     }
     _write_json(report_path, report)
     if not ontology.passed:
@@ -91,6 +92,7 @@ def run_import(
         import_timestamp=datetime.now(timezone.utc).isoformat(),
         import_tool_version="de4sdv-full-model-import/1+official-syside-json",
         semantic_validation="passed",
+        ontology=contract.identity,
         scope="full-model",
     )
     _write_json(binding_path, binding.to_dict())

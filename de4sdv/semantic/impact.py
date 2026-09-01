@@ -26,6 +26,7 @@ class ImpactService:
 
     def impact(self, identifier: str, *, git_revision: str) -> dict[str, Any]:
         self.binding.require_current(git_revision)
+        self.binding.require_ontology(self.contract.identity)
         project_id = self.binding.sysml_project_id
         commit_id = self.binding.sysml_commit_id
         elements = self.repository.list_elements(project_id, commit_id)
@@ -159,6 +160,7 @@ class ImpactService:
                 "sysml_commit_id": commit_id,
                 "binding_status": "synchronized",
                 "scope": self.binding.scope,
+                "ontology": self.binding.ontology.to_dict(),
             },
             "root": {**root_node, "resolution_level": resolution.level},
             "ontology_bindings": {
@@ -189,7 +191,11 @@ class ImpactService:
                 },
                 {
                     "authority": "authoritative",
-                    "source": str(self.contract.source),
+                    "source": (
+                        f"git://{self.binding.git_repository}/{self.binding.git_commit}/"
+                        f"{self.binding.ontology.path}"
+                    ),
+                    "sha256": self.binding.ontology.sha256,
                 },
                 {
                     "authority": "derived",

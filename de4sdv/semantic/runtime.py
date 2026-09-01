@@ -33,6 +33,7 @@ def build_semantic_runtime(
     """
     binding = RevisionBinding.load(binding_path)
     contract = KernelContract.load(ontology_path)
+    binding.require_ontology(contract.identity)
     repository = SysMLRepository(ApiClient(api_url, timeout=api_timeout))
     binder = OntologyApiBinder(
         contract,

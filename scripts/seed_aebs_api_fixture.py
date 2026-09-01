@@ -22,7 +22,7 @@ from de4sdv.sysml_api.fixture import (
     commit_payload,
 )
 from de4sdv.sysml_api.repository import element_id, reference_ids
-from de4sdv.sysml_api.revisions import RevisionBinding
+from de4sdv.sysml_api.revisions import OntologyIdentity, RevisionBinding
 
 
 def semantic_key(element: dict[str, Any]) -> tuple[str, str]:
@@ -258,6 +258,10 @@ def main() -> int:
         import_timestamp=datetime.now(timezone.utc).isoformat(),
         import_tool_version="de4sdv-aebs-api-fixture/1",
         semantic_validation="passed",
+        ontology=OntologyIdentity.from_file(
+            ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+            repository_root=ROOT,
+        ),
         scope="AEBS impact pilot fixture",
     )
     args.binding.parent.mkdir(parents=True, exist_ok=True)

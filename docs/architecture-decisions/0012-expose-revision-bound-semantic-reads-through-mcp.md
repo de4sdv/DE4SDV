@@ -26,7 +26,7 @@ The runtime chain is:
 SysML API service URL
   + validated full-model revision binding
   + expected Git SHA
-  + ontology/kernel contract
+  + ontology/kernel contract path and SHA-256
   -> existing repository, binder, traversal, and impact services
   -> compact semantic query service
   -> read-only MCP protocol adapter
@@ -64,17 +64,31 @@ Every semantic operation requires:
 
 - a binding whose semantic validation status is `passed`;
 - an expected full Git SHA equal to the binding's Git SHA;
+- the executed ontology contract's repository path and SHA-256 to equal the
+  immutable ontology identity recorded in the binding;
 - the exact bound SysML project and commit to be readable; and
 - identity resolution to produce one unambiguous API object.
 
-A stale, unvalidated, missing, or ambiguous runtime fails closed. A validated,
-revision-bound fixture may answer deterministic test queries, but
+A stale, unvalidated, ontology-mismatched, missing, or ambiguous runtime fails
+closed. The complete semantic authority tuple is:
+
+```text
+Git revision
+  + SysML API project/commit
+  + ontology contract repository path/SHA-256
+```
+
+The full-model import records the ontology identity in the binding only after
+ontology-to-API validation passes. Runtime startup recomputes the identity from
+the contract bytes being executed and refuses a mismatch before creating the
+semantic service or MCP server. A validated, revision-bound fixture may answer
+deterministic test queries with an explicit fixture ontology identity, but
 `model_status` reports it as not current and every result retains
 `scope: fixture`. Only `scope: full-model` can make a current-baseline claim.
 
 Results retain:
 
-- Git SHA, API project UUID, and API commit UUID;
+- Git SHA, API project UUID, API commit UUID, and ontology path/SHA-256;
 - element and relationship-object UUIDs;
 - `sysml://` provenance URIs;
 - ontology predicates and traversal strategies;
@@ -103,9 +117,12 @@ privileged full-model workflow imports the exact reviewed model, starts the MCP
 server, calls all seven tools through an MCP client, and retains the structured
 result as exact-head evidence.
 
-A real Hermes proof uses the same stdio command and binding. The proof must
-retain the tool results and revision tuple; a prose answer without tool-backed
-identities is not sufficient evidence.
+A real Hermes proof uses the same stdio command and binding. Hermes connection,
+tool discovery/invocation, deterministic MCP execution, and a completed agent
+answer are separate evidence claims. A client timeout after real tool invocation
+must not be reported as a successful final natural-language answer. Any retained
+answer must include the complete semantic authority tuple; prose without
+tool-backed identities is not sufficient evidence.
 
 ## Consequences
 

@@ -141,10 +141,14 @@ Equivalent environment variables are available for stdio clients:
 - `DE4SDV_REVISION_BINDING`; and
 - `DE4SDV_EXPECTED_GIT_SHA`.
 
-The server refuses semantic operations if the binding is stale, unvalidated,
-not full-model, or does not match the expected Git SHA. Results preserve the
-Git/API revision tuple, exact element and relationship UUIDs, ontology
-predicates, semantic strengths, provenance URIs, and explicit gaps.
+The server recomputes the ontology contract identity from its repository path
+and SHA-256 at startup. It refuses semantic operations if that identity differs
+from the validated binding, or if the binding is stale, unvalidated, or does
+not match the expected Git SHA. A fixture-scoped binding remains usable for
+deterministic queries but can never claim the current full-model baseline.
+Results preserve the complete Git/API/ontology authority tuple, exact element
+and relationship UUIDs, ontology predicates, semantic strengths, provenance
+URIs, and explicit gaps.
 
 Hermes can register the server as its first client without creating a Hermes
 dependency in DE4SDV:
@@ -173,6 +177,10 @@ The privileged full-model workflow additionally calls all seven tools through
 an MCP client against the exact imported API commit and retains
 `de4sdv-semantic-mcp-validation.json`. That artifact is the authoritative
 full-model protocol proof; a fixture result is not a current-baseline claim.
+Hermes connection and tool invocation prove client interoperability, not a
+completed agent answer. If a local client attempt times out during cold
+full-model retrieval, it must be reported as a timeout rather than a successful
+natural-language answer.
 
 ## Production full-model ingestion
 
@@ -207,7 +215,11 @@ the commit payload and listed explicitly in the export and semantic report.
 The ontology report classifies every ontology class as `mapped`, `native`,
 `external`, `unresolved`, or `ambiguous`. `mapped` requires one API UUID matching
 the mapped source file, declaration name, and API metatype. `unresolved` and
-`ambiguous` block a passed revision binding.
+`ambiguous` block a passed revision binding. Only after this validation passes
+does the importer write a binding containing the ontology contract's repository
+path and SHA-256. The resulting semantic authority is the exact Git revision,
+SysML API project/commit, and ontology contract identity together; none of the
+three may be substituted independently at runtime.
 
 The privileged full-model workflow performs these stages against the exact
 reviewed head, runs semantic queries across distinct concerns, and publishes the
@@ -285,3 +297,5 @@ must not be used as the primary runtime source.
 - An ambiguous identity is an error, not a best-effort match.
 - A stale or unvalidated revision binding cannot be presented as the current
   reviewed baseline.
+- A binding and SysML API revision cannot be combined with a different or dirty
+  ontology contract and presented as the bound semantic authority.

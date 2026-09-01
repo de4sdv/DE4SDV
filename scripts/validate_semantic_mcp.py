@@ -31,7 +31,7 @@ TOOL_NAMES = {
 
 
 def validate_semantic_results(
-    results: dict[str, dict[str, Any]], *, expected_revision: dict[str, str]
+    results: dict[str, dict[str, Any]], *, expected_revision: dict[str, Any]
 ) -> None:
     """Fail closed unless the MCP proof retains exact native semantics."""
     missing = TOOL_NAMES - results.keys()
@@ -90,6 +90,7 @@ async def run_mcp_validation(
         "sysml_commit_id": binding.sysml_commit_id,
         "binding_status": "synchronized",
         "scope": "full-model",
+        "ontology": binding.ontology.to_dict(),
     }
     params = StdioServerParameters(
         command=sys.executable,
