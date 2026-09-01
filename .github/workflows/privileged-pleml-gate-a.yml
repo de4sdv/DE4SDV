@@ -43,6 +43,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Verify exact PLEML pin
         run: |
@@ -134,7 +135,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pleml-gate-a-${{ github.sha }}
+          name: pleml-gate-a-${{ github.event.pull_request.head.sha || github.sha }}
           if-no-files-found: warn
           retention-days: 30
           path: |
