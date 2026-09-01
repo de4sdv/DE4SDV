@@ -28,6 +28,23 @@ from tools.pleml_gate_a import (
 )
 
 
+def _reference_paths(value: object, path: str = "") -> list[dict[str, str]]:
+    references: list[dict[str, str]] = []
+    if isinstance(value, dict):
+        if "@id" in value and "@type" not in value:
+            target = value.get("@id")
+            if isinstance(target, str):
+                references.append({"property_path": path, "target_uuid": target})
+            return references
+        for key, item in value.items():
+            child_path = f"{path}.{key}" if path else key
+            references.extend(_reference_paths(item, child_path))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            references.extend(_reference_paths(item, f"{path}[{index}]"))
+    return references
+
+
 def _unique_named_id(
     elements: list[dict[str, Any]], name: str, metatypes: set[str]
 ) -> str:
@@ -224,6 +241,31 @@ def run_gate_a(
         git_commit=binding.git_commit,
     )
 
+    elements_by_id = {
+        candidate_id: item
+        for item in elements
+        if (candidate_id := element_id(item)) is not None
+    }
+    trace_ids = set(configs.values()) | {nominal_rules, ambiguous_rules}
+    for outcome in outcomes.values():
+        trace_ids.update(outcome.selected_feature_ids)
+        trace_ids.update(outcome.constraint_ids)
+        trace_ids.update(outcome.rule_ids)
+        if outcome.adapter_id is not None:
+            trace_ids.add(outcome.adapter_id)
+    api_shapes_by_uuid = {}
+    for trace_id in sorted(trace_ids):
+        item = elements_by_id.get(trace_id)
+        if item is None:
+            raise RuntimeError(f"outcome provenance lost API UUID {trace_id}")
+        api_shapes_by_uuid[trace_id] = {
+            "metatype": item.get("@type"),
+            "name": item.get("declaredName") or item.get("name"),
+            "source": bundle.element_sources.get(trace_id),
+            "property_keys": sorted(item),
+            "reference_paths": _reference_paths(item),
+        }
+
     report: dict[str, Any] = {
         "schema": "de4sdv-pleml-gate-a-evidence/v1",
         "source_identity": expected_identity,
@@ -233,6 +275,7 @@ def run_gate_a(
         "api_capabilities": capabilities,
         "observability_matrix": list(matrix),
         "outcomes": {name: asdict(outcome) for name, outcome in outcomes.items()},
+        "api_shapes_by_uuid": api_shapes_by_uuid,
         "projection": {
             "path": str(projection_path),
             "adapter_qualified_name": adapter_name,
@@ -282,6 +325,36 @@ def run_gate_a(
             "necessary": False,
             "reason": "The narrow SysML extension represents and exposes the realization rule.",
         },
+        "serializer_api_losses": [],
+        "semantic_execution_gaps": [
+            {
+                "concept": "PLEML XORConstraint",
+                "gap": (
+                    "The official serializer preserves the constraint definition, "
+                    "expression tree, redefinition, owner, and excluded-feature UUID, "
+                    "but the API service and current DE4SDV repository do not execute "
+                    "the expression. The spike evaluator therefore executes the "
+                    "modeled xorFeatures relation by identity. The pinned expression's "
+                    "range/index behavior remains a suspected upstream question."
+                ),
+            },
+            {
+                "concept": "native constraint expression",
+                "gap": (
+                    "The implies/and expression tree is observable, but no general "
+                    "SysML expression interpreter exists in the DE4SDV semantic path."
+                ),
+            },
+            {
+                "concept": "inherited lifecycle defaults",
+                "gap": (
+                    "Explicit bindingTime overrides and the PLEML default are "
+                    "observable by UUID, but inherited/default resolution requires "
+                    "semantic traversal rather than a direct property on each feature."
+                ),
+            },
+        ],
+        "gate_a_disposition": "CONDITIONAL PASS",
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(

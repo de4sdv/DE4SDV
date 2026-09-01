@@ -134,9 +134,9 @@ def _rule_set(
 def _pleml_xor_constraint(
     elements: list[dict[str, Any]], constraint_id: str, owner_id: str, excluded_id: str
 ) -> None:
-    base = _element("pleml-xor-features", "ConstraintUsage", "xorFeatures")
-    definition = _element("pleml-xor-def", "ConstraintDefinition", "XorConstraint")
-    actual = _element(constraint_id, "ConstraintUsage")
+    base = _element("pleml-xor-features", "AssertConstraintUsage", "xorFeatures")
+    definition = _element("pleml-xor-def", "ConstraintDefinition", "XORConstraint")
+    actual = _element(constraint_id, "AssertConstraintUsage")
     redef_id = f"redefinition-{constraint_id}"
     elements.extend(
         [

@@ -317,11 +317,11 @@ class GateAModel:
                     )
                 )
 
-        xor_definitions = self._named_ids("XorConstraint", "ConstraintDefinition")
+        xor_definitions = self._named_ids("XORConstraint", "ConstraintDefinition")
         if len(xor_definitions) > 1:
-            raise UnsupportedSemanticShape("multiple PLEML XorConstraint definitions")
+            raise UnsupportedSemanticShape("multiple PLEML XORConstraint definitions")
         if xor_definitions:
-            base_ids = set(self._typed_usage_ids("XorConstraint", "ConstraintDefinition"))
+            base_ids = set(self._typed_usage_ids("XORConstraint", "ConstraintDefinition"))
             base_ids = {
                 base_id
                 for base_id in base_ids
@@ -333,7 +333,7 @@ class GateAModel:
                 )
             base_id = next(iter(base_ids))
             for candidate_id, candidate in self.by_id.items():
-                if candidate.get("@type") != "ConstraintUsage":
+                if candidate.get("@type") != "AssertConstraintUsage":
                     continue
                 redefinitions = self._owned_relationships(candidate_id, "Redefinition")
                 if not any(
