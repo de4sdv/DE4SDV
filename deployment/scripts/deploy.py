@@ -210,6 +210,18 @@ def compose(*args: str, repo: Path) -> None:
     )
 
 
+def stop_public_proxy(repo: Path) -> None:
+    """Stop the public proxy BEFORE any import/mutation touches the stack.
+
+    Redeploy failure mode being prevented: while postgres/API are rebuilt
+    and the import runs, a still-running Caddy could serve a partially
+    imported project while deployment-status.json still describes the
+    previous baseline. The proxy only comes back after the new status file
+    is published (see main's ordered sequence).
+    """
+    compose("stop", "caddy", repo=repo)
+
+
 def api_base_url_from_docker() -> str:
     """Resolve the API container's internal IP from the host.
 
@@ -385,6 +397,13 @@ def main() -> int:
 
         validate_repo_head(args.repo, evidence["git_commit"])
         print("exact Git checkout verified at the bundle SHA")
+
+        # Fail-closed redeploy sequence: the public proxy is stopped FIRST
+        # and only started again after the new deployment-status.json has
+        # been published. If any stage below fails, Caddy stays down and no
+        # partially validated baseline is publicly reachable.
+        stop_public_proxy(args.repo)
+        print("public proxy stopped for the import window")
 
         compose("up", "-d", "--build", "postgres", "sysml2-api", repo=args.repo)
         print("API repository is up; importing the validated export")

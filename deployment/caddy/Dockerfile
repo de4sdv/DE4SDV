@@ -39,4 +39,4 @@ RUN set -eux; \
     caddy list-modules | grep -q 'rate_limit'
 
 LABEL org.opencontainers.image.title="DE4SDV public proxy Caddy" \
-      org.opencontainers.image.description="Caddy 2.8.4 + caddy-ratelimit @5625512f for the DE4SDV experimental read-only API"
+      org.opencontainers.image.description="Caddy 2.8.4 + caddy-ratelimit @b8d8c9a9 for the DE4SDV experimental read-only API"

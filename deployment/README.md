@@ -75,8 +75,8 @@ that revision predates the deployment implementation.
      `sysml-api.de4sdv.org. IN A <SERVER-IPv4>`
    - As root on the server:
      `ACME_EMAIL=<email> bash deployment/scripts/provision-server.sh`
-   - Set GitHub secrets `DEPLOY_SSH_KEY`, `DEPLOY_SSH_HOST`, `DEPLOY_SSH_USER`
-     (environment `sysml-api-production`).
+   - Set GitHub secrets `DEPLOY_SSH_KEY`, `DEPLOY_SSH_HOST`, `DEPLOY_SSH_USER`,
+     and `DEPLOY_SSH_KNOWN_HOSTS` (environment `sysml-api-production`).
 4. Run `Deploy Public SysML API` (manual `workflow_dispatch`) with that exact
    main SHA. The workflow independently verifies the privileged run metadata
    (workflow file, `success`, `head_sha` equality, unambiguous selection),
@@ -95,12 +95,42 @@ that revision predates the deployment implementation.
 
 ## Availability guarantee (honest wording)
 
-This is a single-host compose stack without a blue/green switch. Deployment
-brings up the API containers and runs the import before the proxy is (re)exposed;
-a redeploy restarts the stack and therefore causes an interruption. A failed
-deployment refuses before the proxy stage and leaves the service in a
-well-defined state, but it does NOT guarantee the previously served version
-stays untouched. Treat deployments as short planned maintenance windows.
+This is a single-host compose stack without a blue/green switch. Every
+deployment (including a redeploy) follows this fail-closed sequence:
+
+```text
+stop public Caddy
+  -> start/restart postgres + sysml2-api
+  -> import exact validated export
+  -> deployment-specific semantic validation
+  -> write deployment-status.json
+  -> start Caddy
+```
+
+Caddy is stopped FIRST and is only started again after the new
+deployment-status.json has been published. If the import or validation
+fails, Caddy stays stopped: a partially validated baseline is never publicly
+reachable, and a stale status document is never served. The cost is downtime
+for the import window; treat deployments as short planned maintenance
+windows. This downtime is an explicitly accepted property of the
+single-host design, not an accidental gap.
+
+## SSH host-key verification (out of band)
+
+The workflow does NOT trust `ssh-keyscan`. The host key must be established
+out of band by the repository owner:
+
+1. After first boot, log in via the Hetzner console (or the first SSH attempt
+   from a trusted machine) and read the host's public keys:
+   `for f in /etc/ssh/ssh_host_*_key.pub; do ssh-keyscan -t ed25519,rsa <host> 2>/dev/null | head; done`
+   or simpler: from your trusted machine run `ssh-keyscan -H <host>` ONCE,
+   visually verify the fingerprint against the Hetzner console/recovery
+   view, and store the lines.
+2. Put those lines into the `DEPLOY_SSH_KNOWN_HOSTS` secret.
+3. The workflow writes them verbatim to `known_hosts` and connects with
+   `StrictHostKeyChecking=yes`: any mismatch aborts the deployment.
+4. Re-verify the key after any server rebuild/recreation and update the
+   secret.
 
 ## Restart persistence and stale data
 
@@ -116,11 +146,12 @@ stays untouched. Treat deployments as short planned maintenance windows.
 
 - DB password and Play secret: generated on the host, stored in
   `${DEPLOY_DIR}/sysml2-api.env` (0600), never in git, never in images.
-- GitHub side: only `DEPLOY_SSH_KEY` / `DEPLOY_SSH_HOST` / `DEPLOY_SSH_USER`
-  secrets are needed; the SSH key is written 0600, never printed, and deleted
-  after every run; the host key is pinned into `known_hosts` via
-  `ssh-keyscan -H` before first use. The Syside license never touches the
-  deployment host (exports are produced in the privileged GitHub workflow).
+- GitHub side: `DEPLOY_SSH_KEY` / `DEPLOY_SSH_HOST` / `DEPLOY_SSH_USER` /
+  `DEPLOY_SSH_KNOWN_HOSTS` secrets are needed; the SSH key is written 0600,
+  never printed, and deleted after every run; the host key comes from the
+  out-of-band `DEPLOY_SSH_KNOWN_HOSTS` secret (see above), never from
+  dynamic discovery. The Syside license never touches the deployment host
+  (exports are produced in the privileged GitHub workflow).
 - The status document contains no secrets and no internal paths.
 
 ## Known limitations

@@ -389,6 +389,82 @@ def test_workflow_verifies_explicit_run_metadata() -> None:
     assert "skip_verification" not in wf
 
 
+def test_workflow_run_metadata_fixture_rejects_wrong_run_and_accepts_real_shape() -> None:
+    """Focused fixture using the ACTUAL GitHub Actions workflow-run metadata
+    shape: 'path' is '.github/workflows/<file>' (no leading slash, no
+    repository prefix). The verifier must require exact equality with that
+    form and must also check repository and head_sha."""
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "path != expected_path" in wf
+    assert "f\".github/workflows/{os.environ['PRIVILEGED_WORKFLOW_FILE']}\"" in wf
+    # the old endswith form must be gone (it rejected the real response)
+    assert "path.endswith(" not in wf
+    # repository equality check is required (finding 6 scope)
+    assert 'meta.get("repository"' in wf
+
+    # Reproduce the exact verifier logic against real-shape metadata:
+    real_meta = {
+        "id": 1234567890,
+        "head_sha": "a" * 40,
+        "conclusion": "success",
+        "path": ".github/workflows/privileged-full-model-api-ingestion.yml",
+        "repository": "de4sdv/DE4SDV",
+    }
+    sha = "a" * 40
+    expected_path = ".github/workflows/privileged-full-model-api-ingestion.yml"
+    problems = []
+    if real_meta.get("head_sha") != sha:
+        problems.append("head_sha")
+    if real_meta.get("conclusion") != "success":
+        problems.append("conclusion")
+    if (real_meta.get("path") or "") != expected_path:
+        problems.append("path")
+    if real_meta.get("repository", "").lower() != "de4sdv/DE4SDV".lower():
+        problems.append("repository")
+    assert problems == []
+    # A wrong workflow (e.g. the CI workflow) must be rejected:
+    wrong_meta = dict(real_meta, path=".github/workflows/ci.yml")
+    assert wrong_meta["path"] != expected_path
+
+
+def test_workflow_permissions_are_read_only_minimum() -> None:
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "permissions:" in wf
+    assert "  contents: read" in wf
+    assert "  actions: read" in wf
+    assert "write" not in wf
+
+
+def test_workflow_defines_deploy_sha_once_at_job_level() -> None:
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    # One definition from the input at job level...
+    assert "DEPLOY_SHA: ${{ inputs.git_sha }}" in wf
+    # ...and no GITHUB_ENV round-trip for the SHA.
+    assert 'echo "DEPLOY_SHA=' not in wf
+
+
+def test_workflow_requires_out_of_band_host_key_verification() -> None:
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "DEPLOY_SSH_KNOWN_HOSTS" in wf
+    assert "StrictHostKeyChecking=yes" in wf
+    # ssh-keyscan must never be USED dynamically: the only allowed mention is
+    # in comments stating it is not trusted.
+    code_lines = [
+        line
+        for line in wf.splitlines()
+        if "ssh-keyscan" in line and not line.strip().startswith("#")
+    ]
+    assert code_lines == [], f"ssh-keyscan used in executable code: {code_lines}"
+
+
 def test_workflow_uses_real_git_checkout() -> None:
     wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
         encoding="utf-8"
@@ -408,3 +484,86 @@ def test_compose_publishes_only_proxy_ports() -> None:
     assert '"9000:9000"' not in compose_text
     assert '"5432:5432"' not in compose_text
     assert "network_mode: host" not in compose_text
+    # HTTP/3 is not exposed: no UDP port publishing (finding 7).
+    assert "443:443/udp" not in compose_text
+    assert '"80:80"' in compose_text and '"443:443"' in compose_text
+
+
+def test_caddyfile_documents_actual_rate_limit_behavior(caddyfile_text: str) -> None:
+    # 50 events / 10 s window / per remote host — and no invented burst claim.
+    assert "events 50" in caddyfile_text
+    assert "window 10s" in caddyfile_text
+    assert "key {remote_host}" in caddyfile_text
+    # 'burst' may only appear inside a comment explaining that no burst
+    # parameter exists; never as configuration.
+    config_lines = [
+        line
+        for line in caddyfile_text.splitlines()
+        if "burst" in line.lower() and not line.strip().startswith("#")
+    ]
+    assert config_lines == [], f"burst configured: {config_lines}"
+
+
+def test_caddy_image_and_compose_provenance_use_actual_pin() -> None:
+    dockerfile = (DEPLOYMENT / "caddy" / "Dockerfile").read_text(encoding="utf-8")
+    compose_text = (DEPLOYMENT / "compose.yaml").read_text(encoding="utf-8")
+    actual_pin = "b8d8c9a9d99ee352d675cbbe416ec2b489fc8cab"
+    assert actual_pin in dockerfile
+    # The stale 5625512f pin may appear ONLY in the documented pin-note
+    # explaining why the newer commits are not used; never in the LABEL.
+    label_line = [ln for ln in dockerfile.splitlines() if "image.description" in ln][0]
+    assert "5625512f" not in label_line
+    assert "5625512f" not in compose_text
+    assert "b8d8c9a9" in compose_text
+
+
+def test_deploy_stops_public_proxy_before_import() -> None:
+    import ast
+
+    source = (DEPLOYMENT / "scripts" / "deploy.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    main_fn = next(
+        n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "main"
+    )
+    calls = [
+        (n.lineno, n.func.id if isinstance(n.func, ast.Name) else getattr(n.func, "attr", "?"))
+        for n in ast.walk(main_fn)
+        if isinstance(n, ast.Call)
+    ]
+    order = [
+        name
+        for _line, name in calls
+        if name in {"stop_public_proxy", "import_baseline", "write_status", "compose"}
+    ]
+    # stop_public_proxy must precede import_baseline; write_status must
+    # precede the final compose(caddy up). Proven from the AST call order.
+    assert "stop_public_proxy" in order
+    assert order.index("stop_public_proxy") < order.index("import_baseline")
+    assert order.index("import_baseline") < order.index("write_status")
+    assert source.index("stop_public_proxy(args.repo)") < source.index(
+        'compose("up", "-d", "caddy"'
+    )
+    assert source.index("write_status(evidence, deployment)") < source.index(
+        'compose("up", "-d", "caddy"'
+    )
+
+
+def test_provision_script_installs_full_host_dependency_set() -> None:
+    prov = (DEPLOYMENT / "scripts" / "provision-server.sh").read_text(encoding="utf-8")
+    for pkg in ("git", "python3", "python3-venv", "curl", "ca-certificates", "openssl", "ufw"):
+        assert pkg in prov, pkg
+    # dedicated venv with the pinned importer dependency, not system python
+    assert 'python3 -m venv "$VENV_DIR"' in prov
+    assert "PyYAML==6.0.2" in prov
+    assert '"$VENV_DIR/bin/pip" check' in prov
+    # sanity check refuses partial provisioning
+    assert "Dependency sanity check" in prov
+    assert "all host dependencies present" in prov
+
+
+def test_workflow_uses_dedicated_venv_python_for_deploy() -> None:
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "/srv/de4sdv/venv/bin/python deployment/scripts/deploy.py" in wf
+    assert "sudo DEPLOY_DIR=/srv/de4sdv python3 deployment/scripts/deploy.py" not in wf

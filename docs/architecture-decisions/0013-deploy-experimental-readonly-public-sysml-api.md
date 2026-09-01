@@ -50,12 +50,18 @@ PostgreSQL 16 (container, no published ports)
 ```
 
 Only the proxy publishes ports (80/443). The API and database are reachable
-solely on the internal compose network; host firewall allows 22/80/443 only.
+solely on the internal compose network; host firewall allows 22/80/443 tcp
+only. HTTP/3 over UDP/443 is deliberately NOT exposed — it adds surface
+without being required for this experimental API, and keeps the firewall
+rule set minimal.
 
 ### Read-only enforcement
 
-- POST/PUT/PATCH/DELETE are rejected at the proxy with 405 before any byte
-  reaches the API service. OPTIONS is allowed for CORS-preflight/Discovery.
+- The proxy enforces a POSITIVE method allowlist: only GET, HEAD, and OPTIONS
+  reach the API service. POST/PUT/PATCH/DELETE and every unknown or extension
+  method are rejected at the proxy with 405 before any byte reaches the API.
+- Public rate limiting is exactly 50 events per 10 s sliding window keyed per
+  remote host (caddy-ratelimit pinned revision; no separate burst parameter).
 - The API container exposes no ports to the host or Internet; ingestion into
   the database happens server-side through the validated importer path
   (ADR 0011), never through the public interface.
@@ -100,11 +106,27 @@ that run's artifact bundle, and the host-side deploy script fails closed unless:
 On any mismatch the deployment is refused before the proxy stage. This is a
 single-host stack without a blue/green switch: a redeploy restarts the stack
 and causes an interruption; the guarantee is "refused before exposure", not
-"running service untouched". A machine-readable `/deployment-status.json`
-(served by the proxy) publishes the served Git SHA, the deployment-specific
-project/commit UUIDs, ontology digest, deployment timestamp, element count,
-and experimental/read-only status — with no secrets and no internal
-filesystem paths.
+"running service untouched".
+
+Redeploy fail-closed sequence (explicitly accepted downtime):
+
+```text
+stop public Caddy
+  -> start/restart postgres + sysml2-api
+  -> import exact validated export
+  -> deployment-specific semantic validation
+  -> write deployment-status.json
+  -> start Caddy
+```
+
+If the import or validation fails, Caddy remains stopped: no partially
+validated baseline can become publicly reachable while
+deployment-status.json still describes a previous baseline.
+
+A machine-readable `/deployment-status.json` (served by the proxy) publishes
+the served Git SHA, the deployment-specific project/commit UUIDs, ontology
+digest, deployment timestamp, element count, and experimental/read-only
+status — with no secrets and no internal filesystem paths.
 
 ### Restart safety and pins
 

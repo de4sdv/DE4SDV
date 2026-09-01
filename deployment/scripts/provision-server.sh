@@ -2,11 +2,15 @@
 # One-time server provisioning for sysml-api.de4sdv.org (Hetzner Ubuntu 24.04).
 #
 # Run ON THE SERVER as root:
-#   bash deployment/scripts/provision-server.sh
+#   ACME_EMAIL=you@example.org bash deployment/scripts/provision-server.sh
 #
-# Idempotent: safe to re-run. Installs Docker, the compose network stack,
-# and creates the secret env file. It does NOT start the stack (that is
-# deploy.py's job, after a validated baseline import) and does NOT touch DNS.
+# Idempotent: safe to re-run. Installs every host-side dependency the
+# deployment needs, creates a dedicated deployment virtualenv with the exact
+# pinned Python dependencies required by the existing DE4SDV importer
+# (no system-Python mutation, no full dev environment), sets up Docker + the
+# compose network stack, and creates the secret env file. It does NOT start
+# the stack (that is deploy.py's job, after a validated baseline import) and
+# does NOT touch DNS.
 set -euo pipefail
 
 if [[ $EUID -ne 0 ]]; then
@@ -15,7 +19,16 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 DEPLOY_DIR=${DEPLOY_DIR:-/srv/de4sdv}
+VENV_DIR="$DEPLOY_DIR/venv"
 ENV_FILE="$DEPLOY_DIR/sysml2-api.env"
+
+echo "==> Installing host packages"
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get install -y -qq \
+  ca-certificates curl git \
+  python3 python3-venv \
+  openssl ufw jq unzip
 
 echo "==> Installing Docker Engine + compose plugin"
 if ! command -v docker >/dev/null; then
@@ -27,6 +40,31 @@ echo "==> Creating $DEPLOY_DIR"
 install -d -m 0750 "$DEPLOY_DIR"
 install -d -m 0750 "$DEPLOY_DIR/status"
 install -d -m 0750 "$DEPLOY_DIR/artifacts"
+
+echo "==> Creating dedicated deployment virtualenv at $VENV_DIR"
+# Ubuntu 24.04 ships Python 3.12; the DE4SDV importer targets the same
+# runtime family used by the privileged workflow.
+python3 -m venv "$VENV_DIR"
+"$VENV_DIR/bin/pip" install --no-input --upgrade pip >/dev/null
+# Exact pinned dependencies required by the existing importer
+# (scripts/import_sysml_api_baseline.py) — nothing beyond that scope:
+#   PyYAML       ontology contract loading (pinned by the privileged workflow)
+"$VENV_DIR/bin/pip" install --no-input "PyYAML==6.0.2"
+
+echo "==> Dependency sanity check"
+"$VENV_DIR/bin/python" - <<'PY'
+import sys
+assert sys.version_info >= (3, 12), f"python too old: {sys.version}"
+import yaml  # noqa: F401  (PyYAML==6.0.2 must import)
+print("python", sys.version.split()[0], "+ PyYAML OK")
+PY
+"$VENV_DIR/bin/pip" check
+command -v git >/dev/null
+command -v docker >/dev/null
+command -v ufw >/dev/null
+command -v jq >/dev/null
+command -v openssl >/dev/null
+echo "all host dependencies present"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "==> Generating secret env file $ENV_FILE"
@@ -46,7 +84,7 @@ else
   echo "==> $ENV_FILE already exists; keeping existing secrets"
 fi
 
-echo "==> Firewall (ufw): allow 22/80/443 only"
+echo "==> Firewall (ufw): allow 22/80/443 tcp only (no UDP; HTTP/3 disabled)"
 if command -v ufw >/dev/null; then
   ufw --force reset >/dev/null
   ufw default deny incoming
@@ -61,4 +99,6 @@ else
   exit 1
 fi
 
-echo "==> Provisioning complete. Next: run deployment/scripts/deploy.py from CI or locally."
+echo "==> Provisioning complete. Deploy with:"
+echo "    sudo DEPLOY_DIR=$DEPLOY_DIR $VENV_DIR/bin/python deployment/scripts/deploy.py \\"
+echo "         --bundle-dir $DEPLOY_DIR/artifacts/incoming --repo $DEPLOY_DIR/DE4SDV"
