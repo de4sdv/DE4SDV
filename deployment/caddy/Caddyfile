@@ -1,0 +1,85 @@
+# DE4SDV Experimental Read-Only Systems Modeling API — public reverse proxy.
+#
+# Internet -> Caddy (HTTPS, read-only) -> sysml2-api (container network only)
+#   -> PostgreSQL (container network only).
+#
+# Security properties enforced here:
+#   - Automatic TLS via Let's Encrypt (no manual cert handling).
+#   - STRICT method allowlist: only GET, HEAD, and OPTIONS reach the API.
+#     Every other method — POST, PUT, PATCH, DELETE, and any unknown or
+#     extension method — is rejected at the proxy with 405 before any bytes
+#     touch the API service. The handlers are wrapped in an explicit `route`
+#     block so the 405 rule is evaluated before the reverse proxy (Caddy's
+#     directive sorter otherwise orders respond AFTER proxy).
+#   - The API and PostgreSQL are only reachable on the internal Docker
+#     network; no host ports are published for them.
+#   - Public rate limiting (caddy-ratelimit, built into the image; see
+#     deployment/caddy/Dockerfile for the pinned module revision) and
+#     request-size limits.
+#
+# The upstream pilot implementation does define POST endpoints (projects,
+# commits). The proxy intentionally disables ALL mutation operations for the
+# public surface; ingestion happens server-side through the validated
+# importer path (ADR 0011/0013), never through the public interface.
+{
+	email {$ACME_EMAIL}
+}
+
+sysml-api.de4sdv.org {
+	encode zstd gzip
+
+	route {
+		header {
+			Strict-Transport-Security "max-age=31536000; includeSubDomains"
+			X-Content-Type-Options "nosniff"
+			X-Frame-Options "DENY"
+			Referrer-Policy "no-referrer"
+			-Server
+		}
+
+		# Positive allowlist: GET/HEAD/OPTIONS pass; everything else — known
+		# mutations (POST/PUT/PATCH/DELETE), unknown and extension methods —
+		# is rejected 405 at the proxy.
+		@allowed_methods method GET HEAD OPTIONS
+		@rejected_methods not method GET HEAD OPTIONS
+		respond @rejected_methods 405 {
+			close
+		}
+
+		# Public rate limiting (caddy-ratelimit @b8d8c9a9): exactly 50 events
+		# per 10 s sliding window, keyed per remote host. There is no separate
+		# burst parameter in this module version; exceeding the window budget
+		# fails fast with HTTP 429.
+		rate_limit {
+			zone static {
+				key {remote_host}
+				events 50
+				window 10s
+			}
+		}
+
+		# Cap request bodies (the API is read-only; uploads are invalid).
+		request_body {
+			max_size 1MB
+		}
+
+		# Small machine-readable deployment-status document, served directly
+		# by the proxy from the runtime status directory (mounted read-only
+		# from ${DEPLOY_DIR}/status by compose). Generated at deploy time by
+		# deployment/scripts/deploy.py; contains no secrets or internal paths.
+		handle /deployment-status.json {
+			root * /srv/de4sdv-status
+			file_server
+		}
+
+		handle {
+			reverse_proxy sysml2-api:9000 {
+				health_uri /projects
+				health_interval 30s
+				health_timeout 10s
+				header_up X-Forwarded-Proto {scheme}
+				header_up Host {upstream_hostport}
+			}
+		}
+	}
+}

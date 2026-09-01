@@ -118,6 +118,10 @@ for the full-model import and validation decision.
 See [ADR 0012](../docs/architecture-decisions/0012-expose-revision-bound-semantic-reads-through-mcp.md)
 for the read-only MCP protocol boundary and agent-independent tool contract.
 
+See [ADR 0013](../docs/architecture-decisions/0013-deploy-experimental-readonly-public-sysml-api.md)
+and [`../deployment/`](../deployment/) for the experimental read-only public
+deployment of this API at `sysml-api.de4sdv.org`.
+
 ## Read-only semantic MCP
 
 The MCP server is a thin stdio adapter over the existing semantic services. It

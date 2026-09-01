@@ -1,0 +1,107 @@
+# DE4SDV Experimental Read-Only Systems Modeling API — deployment stack.
+#
+# Topology (ADR 0013):
+#
+#   Internet --HTTPS--> caddy (80/443 published) --> sysml2-api (internal) --> postgres (internal)
+#
+# Only caddy publishes ports (80/tcp and 443/tcp; HTTP/3 over UDP is NOT
+# exposed — not required for this experimental API, keeps the firewall rule
+# set minimal).
+# The API and PostgreSQL are reachable solely on the internal Docker
+# network; neither is exposed to the host or Internet.
+#
+# Images:
+#   caddy      built from deployment/caddy/Dockerfile (Caddy 2.8.4 +
+#              caddy-ratelimit @b8d8c9a9; both base stages digest-pinned)
+#   postgres   postgres:16-alpine, digest-pinned
+#              sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+#   sysml2-api built from deployment/sysml2-api/Dockerfile
+#              (upstream Systems-Modeling/SysML-v2-API-Services @0af711b1,
+#               the exact revision used by the privileged DE4SDV workflow;
+#               builder/runtime bases digest-pinned)
+#
+# Runtime status: ${DEPLOY_DIR}/status on the host is mounted read-only into
+# caddy as /srv/de4sdv-status. deploy.py writes deployment-status.json there
+# after a fully validated import; nothing in the repository is mounted.
+#
+# Secrets come from ${DEPLOY_DIR}/sysml2-api.env (root-readable only), created
+# by deployment/scripts/provision-server.sh. Nothing secret lives in git.
+
+name: de4sdv-sysml-api
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    # No ports published: PostgreSQL is unreachable from outside the compose
+    # network. pg_isready without -h defaults to the local unix socket inside
+    # the container, which is what we want for the healthcheck.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  sysml2-api:
+    # Built from the pinned Dockerfile in this repository.
+    # container_name is pinned so the host-side deploy script can resolve
+    # the API address deterministically via `docker inspect sysml2-api`.
+    container_name: sysml2-api
+    build:
+      context: ..
+      dockerfile: deployment/sysml2-api/Dockerfile
+    image: de4sdv/sysml2-api:pinned
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      PLAY_HTTP_SECRET_KEY: ${PLAY_HTTP_SECRET_KEY}
+    # No ports published: the API is reachable only via the proxy network.
+    expose:
+      - "9000"
+    networks:
+      - internal
+
+  caddy:
+    build:
+      context: .
+      dockerfile: caddy/Dockerfile
+    image: de4sdv/caddy-ratelimit:2.8.4
+    restart: unless-stopped
+    depends_on:
+      - sysml2-api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - ${DEPLOY_DIR}/status:/srv/de4sdv-status:ro
+    networks:
+      - internal
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge
