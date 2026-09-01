@@ -26,8 +26,10 @@ def build_semantic_runtime(
     """Assemble the existing API-first semantic architecture for one revision.
 
     The function creates no model copy and performs no writes. Binding validity,
-    full-model scope, and expected-Git equality are enforced by every semantic
-    operation through :class:`SemanticQueryService`.
+    expected-Git equality, and the exact full-model or fixture scope are
+    enforced by every semantic operation through
+    :class:`SemanticQueryService`; only a validated full-model binding can make
+    a current-baseline claim.
     """
     binding = RevisionBinding.load(binding_path)
     contract = KernelContract.load(ontology_path)

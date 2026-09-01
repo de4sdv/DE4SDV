@@ -63,14 +63,14 @@ There is no raw API tool in the normal agent surface.
 Every semantic operation requires:
 
 - a binding whose semantic validation status is `passed`;
-- `scope: full-model`;
 - an expected full Git SHA equal to the binding's Git SHA;
 - the exact bound SysML project and commit to be readable; and
 - identity resolution to produce one unambiguous API object.
 
-A stale, unvalidated, fixture-scoped, missing, or ambiguous runtime fails
-closed. `model_status` may report why a current-baseline claim is unavailable;
-it does not promote that runtime to current.
+A stale, unvalidated, missing, or ambiguous runtime fails closed. A validated,
+revision-bound fixture may answer deterministic test queries, but
+`model_status` reports it as not current and every result retains
+`scope: fixture`. Only `scope: full-model` can make a current-baseline claim.
 
 Results retain:
 

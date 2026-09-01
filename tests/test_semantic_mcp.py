@@ -145,7 +145,7 @@ def semantic_service():
             "import_timestamp": "2026-09-01T00:00:00Z",
             "import_tool_version": "fixture/1",
             "semantic_validation": "passed",
-            "scope": "full-model",
+            "scope": "fixture",
         }
     )
     binder = OntologyApiBinder(
@@ -173,25 +173,47 @@ def semantic_service():
     )
 
 
-def test_model_status_reports_exact_validated_full_model_binding(semantic_service) -> None:
+def test_model_status_does_not_present_fixture_as_current_baseline(semantic_service) -> None:
     result = semantic_service.model_status()
 
-    assert result["current_baseline"] is True
+    assert result["current_baseline"] is False
     assert result["read_only"] is True
     assert result["revision"] == {
         "git_commit": "a" * 40,
         "sysml_project_id": "project-1",
         "sysml_commit_id": "commit-1",
         "binding_status": "synchronized",
-        "scope": "full-model",
+        "scope": "fixture",
     }
+    assert result["element_count"] is None
+    assert result["gaps"] == [
+        {
+            "category": "runtime-binding",
+            "reason": "binding scope is fixture, not full-model",
+        }
+    ]
+
+
+def test_model_status_reports_exact_validated_full_model_binding(semantic_service) -> None:
+    from dataclasses import replace
+
+    semantic_service.binding = replace(semantic_service.binding, scope="full-model")
+
+    result = semantic_service.model_status()
+
+    assert result["current_baseline"] is True
     assert result["element_count"] == 9
+    assert result["gaps"] == []
 
 
 def test_model_status_reports_api_unavailability_as_runtime_gap(
     semantic_service, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from dataclasses import replace
+
     from de4sdv.sysml_api.errors import ApiError
+
+    semantic_service.binding = replace(semantic_service.binding, scope="full-model")
 
     def unavailable(project_id: str, commit_id: str) -> list[dict[str, Any]]:
         del project_id, commit_id
@@ -295,9 +317,7 @@ def test_verification_coverage_is_partial_when_one_evidence_contract_has_no_case
     assert coverage["gaps"][0]["category"] == "verification"
 
 
-def test_semantic_queries_refuse_stale_or_non_full_model_bindings(semantic_service) -> None:
-    from dataclasses import replace
-
+def test_semantic_queries_refuse_stale_but_allow_explicit_fixture_scope(semantic_service) -> None:
     from de4sdv.sysml_api.errors import RevisionMismatchError
 
     semantic_service.expected_git_revision = "b" * 40
@@ -305,9 +325,8 @@ def test_semantic_queries_refuse_stale_or_non_full_model_bindings(semantic_servi
         semantic_service.resolve_element("req-1")
 
     semantic_service.expected_git_revision = "a" * 40
-    semantic_service.binding = replace(semantic_service.binding, scope="fixture")
-    with pytest.raises(RevisionMismatchError, match="full-model"):
-        semantic_service.impact("req-1")
+    result = semantic_service.impact("req-1")
+    assert result["revision"]["scope"] == "fixture"
 
 
 def test_ambiguous_identity_fails_closed(semantic_service) -> None:
@@ -379,7 +398,7 @@ def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
                 "import_timestamp": "2026-09-01T00:00:00Z",
                 "import_tool_version": "fixture/1",
                 "semantic_validation": "passed",
-                "scope": "full-model",
+                "scope": "fixture",
             }
         ),
         encoding="utf-8",
@@ -414,7 +433,7 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
                 "import_timestamp": "2026-09-01T00:00:00Z",
                 "import_tool_version": "fixture/1",
                 "semantic_validation": "passed",
-                "scope": "full-model",
+                "scope": "fixture",
             }
         ),
         encoding="utf-8",
@@ -457,6 +476,9 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
                     result.structuredContent["revision"]["sysml_commit_id"]
                     == "commit-1"
                 )
+                status = await session.call_tool("model_status", {})
+                assert status.structuredContent["current_baseline"] is False
+                assert status.structuredContent["revision"]["scope"] == "fixture"
 
     anyio.run(exercise)
 

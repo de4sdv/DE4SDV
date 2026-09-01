@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from de4sdv.sysml_api.errors import ApiError, RevisionMismatchError
+from de4sdv.sysml_api.errors import ApiError
 from de4sdv.sysml_api.identity import IdentityResolution, resolve_identity
 from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_ids
 from de4sdv.sysml_api.revisions import RevisionBinding
@@ -68,16 +68,11 @@ class SemanticQueryService:
             {"authority": "derived", "source": "de4sdv.semantic.query"},
         ]
 
-    def _require_current_full_model(self) -> None:
+    def _require_valid_revision(self) -> None:
         self.binding.require_current(self.expected_git_revision)
-        if self.binding.scope != "full-model":
-            raise RevisionMismatchError(
-                "semantic current-baseline claim requires a validated full-model "
-                f"binding, got scope {self.binding.scope!r}"
-            )
 
     def _elements(self) -> list[dict[str, Any]]:
-        self._require_current_full_model()
+        self._require_valid_revision()
         if self._element_cache is None:
             self._element_cache = self.repository.list_elements(
                 self.binding.sysml_project_id, self.binding.sysml_commit_id
