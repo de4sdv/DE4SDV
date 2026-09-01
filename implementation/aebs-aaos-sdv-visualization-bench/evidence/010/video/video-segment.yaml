@@ -1,0 +1,21 @@
+segment_id: INC-AEBS-010-video-20260830
+recorded_at: "2026-08-30T04:10:00Z"
+guest: sdv_ivi_cf Cuttlefish (de4sdv-aaos-build VM)
+source_video: raw-recording-full.mp4 (170s continuous adb screenrecord, 1080x600 h264)
+observed_sequence:
+  - "0.0s monitoring (blue) — live frames from Autoware 009B bench via ROS bridge + Gateway"
+  - "12.5s warning (orange) — coordinator warning request"
+  - "13.5s intervention (red) — native AEB braking; target blip inside red envelope"
+  - "16.0s released (green) — verified stop; braking latched then released"
+  - "remainder: released/verified-stop steady state with live frames at ~10 Hz"
+delivery_cut: inc-aebs-010-live-visualization.mp4
+  - title card (3s) + slow-motion transition (8-20s @ 0.5x) + aftermath (14s) + end card (3s)
+  - total 51.75s, h264 yuv420p, 1080x600
+claims:
+  visualization_live_chain: observed_bounded
+  scenario_safety_outcome: pass_observed_chain (observer verdict this run)
+bench_deviations:
+  - SELinux set permissive on guest (diagnostic-only; production must remain enforcing)
+  - ACL policy injected via remounted /system (bench provisioning; production uses signed policy)
+  - inter-VM path replaced by adb-reverse TCP route (bounded bench route)
+disposition: observed_bounded

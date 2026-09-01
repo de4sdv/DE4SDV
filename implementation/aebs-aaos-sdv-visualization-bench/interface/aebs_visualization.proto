@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package de4sdv.aebs_visualization.v1;
 
+option java_package = "de4sdv.aebs.visualization";
+option java_multiple_files = true;
+
 option optimize_for = LITE_RUNTIME;
 
 // DE4SDV INC-AEBS-010 AEBS visualization frame wire contract.
@@ -16,6 +19,12 @@ option optimize_for = LITE_RUNTIME;
 //
 // Wire format: length-delimited (4-byte little-endian prefix) on a NEW
 // bounded transport port; the INC-MW-010 port is not reused.
+//
+// schema_minor 1 (2026-08-30, presentation-richness minor):
+//   + target_points (downsampled filtered-obstacle cluster projection)
+//   + ego_speed (Autoware kinematic-state derived ego speed)
+// Both are display-presentational projections of bench sources; they carry
+// no new decision semantics and no new state authority.
 
 enum SourceKind {
   SOURCE_KIND_UNSPECIFIED = 0;
@@ -36,10 +45,17 @@ message FieldValue {
   }
 }
 
+// One projected point of the filtered obstacle cluster (downsampled by the
+// bridge; bounded to 24 points per frame).
+message TargetPoint {
+  float forward_m = 1;              // metres ahead of ego origin (base_link +x)
+  float lateral_m = 2;              // metres left of ego centerline (base_link +y)
+}
+
 message VisualizationFrame {
   // Schema identity. A major bump breaks wire compatibility.
   uint32 schema_major = 1;          // fixed 1
-  uint32 schema_minor = 2;          // fixed 0
+  uint32 schema_minor = 2;          // 1 since 2026-08-30
   uint64 sequence = 3;              // monotonically increasing per source
   int64 frame_timestamp_ns = 4;     // source-side frame stamp
   int64 bridge_receipt_timestamp_ns = 5; // adapter-side receipt stamp
@@ -52,6 +68,14 @@ message VisualizationFrame {
   // Display-derived projection of the native filtered obstacle cloud.
   FieldValue target_range = 9;      // [m]
   FieldValue target_bearing = 10;   // [rad]
+
+  // schema_minor 1: downsampled cluster projection for scene rendering.
+  // Same displayDerived provenance as target_range; bounded 0..24 points.
+  repeated TargetPoint target_points = 14;
+
+  // schema_minor 1: ego speed from the bench kinematic state (Autoware
+  // odometry source). Display-presentational only.
+  FieldValue ego_speed = 15;        // [m/s]
 
   // DE4SDV AEBS coordinator fields (SOURCE_KIND_DE4SDV_AEBS_COORDINATOR).
   FieldValue de4sdv_warning_request = 11;

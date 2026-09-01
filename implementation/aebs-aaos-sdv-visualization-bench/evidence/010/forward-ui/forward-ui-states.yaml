@@ -1,0 +1,27 @@
+segment_id: INC-AEBS-010-forward-ui-states-20260830
+captured_at: "2026-08-30T17:30:00Z"
+environment:
+  cloud: "NEW account project-7ddd343e-32e9-4351-91b (migrated disk image de4sdv-aosp-vma-20260830)"
+  vm: "de4sdv-aaos-build n2-standard-16 europe-west4-a (--enable-nested-virtualization)"
+  guest: "sdv_ivi_cf cvd instance, dynamic adb port 6525"
+  app: "De4sdvAebsVisualizationApp (ForwardSituationView + SituationRenderModel rebuild)"
+  frame_source: "de4sdv_aebs010_pf004_publisher -l --mode <m> --sequence-base <b>"
+  sequence_bases: "1e6/2e6/3e6/4e6 monotonic to avoid duplicate-sequence fail-closed lock"
+claims:
+  ui_states_render: observed_bounded
+  states_verified:
+    - "monitoring: blue active row (pixel-verified)"
+    - "warning: orange active row (pixel-verified)"
+    - "intervention: red active row (pixel-verified)"
+    - "released: green active row (pixel-verified)"
+    - "stale: gray rows + STALE health chip (pixel-verified)"
+  state_color_authority: "reducer via SituationRenderModel (no geometry-driven state)"
+  scene_geometry: "forward view with 10m ticks, ego origin; no radar/circles/sweep/pulse"
+bench_deviations:
+  - "SELinux permissive on guest (diagnostic-only)"
+  - "ACL policy via disable-verity/remount (bench provisioning)"
+  - "frame source is PF-004 deterministic publisher (NOT live Autoware 009B data)"
+notes:
+  - "stills froze between app updates in earlier attempts; monotonic sequence bases removed the INVALID lock"
+  - "provenance ribbon present in view hierarchy; legibility enlarged (commit 92a64f1)"
+disposition: observed_bounded

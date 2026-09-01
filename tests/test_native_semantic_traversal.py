@@ -418,6 +418,7 @@ def test_impact_service_reports_native_edges_against_real_shapes(
             "import_tool_version": "test",
             "semantic_validation": "passed",
             "scope": "full-model",
+            "ontology": _contract().identity.to_dict(),
         }
     )
     contract = _contract()

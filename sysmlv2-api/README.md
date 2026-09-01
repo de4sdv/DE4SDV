@@ -115,6 +115,73 @@ for the revision, identity, authority, and claim-boundary decisions.
 See [ADR 0011](../docs/architecture-decisions/0011-import-reviewed-sysml-baseline-into-api.md)
 for the full-model import and validation decision.
 
+See [ADR 0012](../docs/architecture-decisions/0012-expose-revision-bound-semantic-reads-through-mcp.md)
+for the read-only MCP protocol boundary and agent-independent tool contract.
+
+## Read-only semantic MCP
+
+The MCP server is a thin stdio adapter over the existing semantic services. It
+does not query repository text, interpret names, hold a second model copy, or
+expose model writes. Its seven tools are `model_status`, `resolve_element`,
+`inspect_element`, `semantic_neighbors`, `impact`, `trace`, and
+`verification_coverage`.
+
+The runtime contract is explicit:
+
+```bash
+python scripts/semantic_mcp_server.py \
+  --api-url http://127.0.0.1:9000 \
+  --binding /path/to/validated-full-model-binding.json \
+  --expected-git-revision "$(git rev-parse HEAD)"
+```
+
+Equivalent environment variables are available for stdio clients:
+
+- `DE4SDV_SYSML_API_URL`;
+- `DE4SDV_REVISION_BINDING`; and
+- `DE4SDV_EXPECTED_GIT_SHA`.
+
+The server recomputes the ontology contract identity from its repository path
+and SHA-256 at startup. It refuses semantic operations if that identity differs
+from the validated binding, or if the binding is stale, unvalidated, or does
+not match the expected Git SHA. A fixture-scoped binding remains usable for
+deterministic queries but can never claim the current full-model baseline.
+Results preserve the complete Git/API/ontology authority tuple, exact element
+and relationship UUIDs, ontology predicates, semantic strengths, provenance
+URIs, and explicit gaps.
+
+Hermes can register the server as its first client without creating a Hermes
+dependency in DE4SDV:
+
+```bash
+hermes mcp add de4sdv-semantic \
+  --command python \
+  --args scripts/semantic_mcp_server.py \
+    --api-url http://127.0.0.1:9000 \
+    --binding /path/to/validated-full-model-binding.json \
+    --expected-git-revision "$(git rev-parse HEAD)"
+
+hermes mcp test de4sdv-semantic
+```
+
+Another MCP-capable client can launch the same command and discover the same
+tool schemas. No Hermes-specific code is imported by the server.
+
+Deterministic protocol validation uses the bounded fixture:
+
+```bash
+python -m pytest tests/test_semantic_mcp.py -q
+```
+
+The privileged full-model workflow additionally calls all seven tools through
+an MCP client against the exact imported API commit and retains
+`de4sdv-semantic-mcp-validation.json`. That artifact is the authoritative
+full-model protocol proof; a fixture result is not a current-baseline claim.
+Hermes connection and tool invocation prove client interoperability, not a
+completed agent answer. If a local client attempt times out during cold
+full-model retrieval, it must be reported as a timeout rather than a successful
+natural-language answer.
+
 ## Production full-model ingestion
 
 The primary runtime source is a validated import of the reviewed SysML baseline,
@@ -148,7 +215,11 @@ the commit payload and listed explicitly in the export and semantic report.
 The ontology report classifies every ontology class as `mapped`, `native`,
 `external`, `unresolved`, or `ambiguous`. `mapped` requires one API UUID matching
 the mapped source file, declaration name, and API metatype. `unresolved` and
-`ambiguous` block a passed revision binding.
+`ambiguous` block a passed revision binding. Only after this validation passes
+does the importer write a binding containing the ontology contract's repository
+path and SHA-256. The resulting semantic authority is the exact Git revision,
+SysML API project/commit, and ontology contract identity together; none of the
+three may be substituted independently at runtime.
 
 The privileged full-model workflow performs these stages against the exact
 reviewed head, runs semantic queries across distinct concerns, and publishes the
@@ -226,3 +297,5 @@ must not be used as the primary runtime source.
 - An ambiguous identity is an error, not a best-effort match.
 - A stale or unvalidated revision binding cannot be presented as the current
   reviewed baseline.
+- A binding and SysML API revision cannot be combined with a different or dirty
+  ontology contract and presented as the bound semantic authority.

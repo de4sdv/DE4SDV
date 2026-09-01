@@ -11,6 +11,15 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def ontology_identity() -> dict[str, str]:
+    from de4sdv.sysml_api.revisions import OntologyIdentity
+
+    return OntologyIdentity.from_file(
+        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        repository_root=ROOT,
+    ).to_dict()
+
+
 class _ApiHandler(BaseHTTPRequestHandler):
     response_map: dict[str, tuple[int, object, dict[str, str]]] = {}
 
@@ -150,6 +159,7 @@ def test_revision_binding_refuses_current_baseline_claim_when_git_is_stale() -> 
             "import_timestamp": "2026-08-31T00:00:00Z",
             "import_tool_version": "de4sdv-semantic-fixture/1",
             "semantic_validation": "passed",
+            "ontology": ontology_identity(),
         }
     )
 
@@ -392,6 +402,7 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "import_tool_version": "de4sdv-semantic-fixture/1",
             "semantic_validation": "passed",
             "scope": "AEBS impact pilot",
+            "ontology": contract.identity.to_dict(),
         }
     )
     service = ImpactService(

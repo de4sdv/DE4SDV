@@ -63,6 +63,8 @@ cc_binary {
     ],
     shared_libs: [
         "libbase",
+        "libsdvgatewayclient",
+        "libbinder_ndk",
         "liblog",
     ],
     include_dirs: ["external/protobuf/src", "external/protobuf/third_party/utf8_range", "external/abseil-cpp"],
@@ -105,19 +107,48 @@ java_library {
     static_libs: ["androidx.annotation_annotation"],
 }
 
-android_app {
-    name: "De4sdvAebsVisualizationApp",
-    manifest: "app/AndroidManifest.xml",
-    srcs: [
-        "app/src/**/*.java",
-    ],
-    exclude_srcs: ["app/src/org/de4sdv/aebsvisualization/VisualizationStateReducer.java"],
+// Pure render model (presentation-only; unit-testable without Android).
+java_library {
+    name: "de4sdv_aebs_visualization_render_model",
+    srcs: ["app/src/org/de4sdv/aebsvisualization/SituationRenderModel.java"],
+    sdk_version: "system_current",
+    owner: "de4sdv",
     static_libs: [
         "de4sdv_aebs_visualization_reducer",
         "androidx.annotation_annotation",
     ],
-    resource_dirs: ["app/res"],
+}
+
+
+// Java protobuf for the center-display app (aprotoc --java_out).
+java_library {
+    name: "de4sdv_aebs_visualization_proto_java",
+    srcs: ["interface/aebs_visualization.proto"],
+    proto: {
+        type: "lite",
+    },
     sdk_version: "system_current",
+    owner: "de4sdv",
+}
+
+android_app {
+    name: "De4sdvAebsVisualizationApp",
+    manifest: "app/AndroidManifest.xml",
+    srcs: ["app/src/**/*.java"],
+    vendor: true,
+    uses_libs: ["libsdvgatewayclient-java-sdk"],
+    static_libs: [
+        "de4sdv_aebs_visualization_proto_java",
+        "de4sdv_aebs_visualization_reducer",
+        "grpc-java-core-android",
+        "grpc-java-okhttp-client-lite",
+        "libprotobuf-java-lite",
+        "guava",
+        "androidx.annotation_annotation",
+    ],
+    exclude_srcs: ["app/src/org/de4sdv/aebsvisualization/VisualizationStateReducer.java"],
+    resource_dirs: ["app/res"],
+    sdk_version: "module_current",
     certificate: "platform",
     privileged: true,
     owner: "de4sdv",
@@ -128,6 +159,7 @@ java_test {
     name: "De4sdvAebsVisualizationReducerTest",
     srcs: ["app/tests/**/*.java"],
     static_libs: [
+        "de4sdv_aebs_visualization_render_model",
         "de4sdv_aebs_visualization_reducer",
         "junit",
         "androidx.annotation_annotation",
@@ -140,10 +172,22 @@ java_test {
 cc_binary {
     name: "de4sdv_aebs010_pf004_publisher",
     srcs: ["preflight/pf004_publisher.cpp"],
+    static_libs: [
+        "de4sdv_aebs_visualization_proto_lite",
+        "libprotobuf-cpp-lite",
+        "absl_base_dynamic_annotations",
+        "absl_strings",
+        "absl_types_optional",
+        "absl_types_span",
+        "absl_log_absl_check",
+    ],
+    generated_headers: ["de4sdv_aebs_visualization_proto_header"],
     shared_libs: [
         "libsdvgatewayclient",
         "libbinder_ndk",
+        "liblog",
     ],
+    include_dirs: ["external/protobuf/src", "external/protobuf/third_party/utf8_range", "external/abseil-cpp"],
     cflags: ["-Wall", "-Wextra", "-Werror"],
     owner: "de4sdv",
 }

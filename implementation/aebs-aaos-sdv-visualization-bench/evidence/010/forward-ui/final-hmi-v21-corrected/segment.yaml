@@ -1,0 +1,52 @@
+segment: INC-AEBS-010 final corrected-generation lifecycle evidence
+capture_date_utc: 2026-09-01
+worktree: /tmp/de4sdv-aebs010-e
+branch: feat/aebs010-evidence-campaign
+head_at_capture: 4d8dc1b4cb9ce984e31db74ac25165816c91eab6
+uncommitted_correction: true
+correction_note: >-
+  Everything here is from ONE uninterrupted screenrecord take of the corrected
+  final UI generation. No state was spliced, no slow motion is used as
+  evidence, no older-generation footage is included.
+observed:
+  data_path: >-
+    Autoware AEB bench (pinned f603d8759c92fb2f423f1544844e13086d79ad09) ->
+    ROS bridge frame assembler 10 Hz -> TCP frame server :4721 -> adb reverse ->
+    native ingress on AAOS guest -> Gateway Data Tunnel topic
+    aebs-visualization-frame (schema v1.1) -> app onGatewayFrame callbacks.
+    1090 consecutive app-side frames, sequence span 22891-23980, zero gaps.
+  hmi: >-
+    No obstacle-distance vs RSS/braking-threshold numeric pair displayed.
+    Scene shows filtered obstacle points (max 24 during scenario), ego speed,
+    distance ticks, dominant four-state card (text + color + glyph), secondary
+    health chip, read-only boundary text.
+  fail_closed: >-
+    No braking-without-intervention frame outside release semantics;
+    released_verified_stop frame at ego speed 0.0 m/s; staleness bound expired
+    obstacle geometry after cloud silence.
+lifecycle:
+  monitoring: 0.0s to about 10.0s (lifecycle=armed)
+  warning: about 10.0s to 11.5s (warning=true, pts=24, braking=false)
+  intervention: about 11.5s to 14.0s (braking_latched, reducer braking=true)
+  released: about 14.0s onward (released_verified_stop, ego speed 0.0)
+observer:
+  terminal_reason: pass_observed_chain
+  command_exit: 0
+  observations: 1597
+  accepted_events: 27
+  errors: 0
+  release_relation: release_while_native_diagnostic_retained
+  minimum_footprint_separation_m: 3.59
+  initial_ttc_s: 3.60
+  warning_lead_s: 1.44
+  scenario_safety_outcome: deferred_not_proven
+limitations:
+  - Screenrecord captures display 0 only (1080x600 center display).
+  - RELEASED persists for the rest of the take because the scenario ends there;
+    the ego does not re-accelerate, so no post-release re-approach is shown.
+  - Bridge and bench journal slices are host-side correlation logs; no pcap.
+  - Title and end cards in final-cut-v2.mp4 are editing frames, not app
+    output; the 20 s middle section is untouched real-time guest capture
+    (raw-continuous.mp4, approved, unmodified). final-cut-v2 replaces the
+    earlier final-cut.mp4 whose title card rendered broken/cropped text;
+    only the editing cards and re-encode changed, not the captured take.

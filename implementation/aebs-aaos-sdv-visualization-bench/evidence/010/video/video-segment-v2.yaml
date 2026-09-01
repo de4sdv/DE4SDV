@@ -1,0 +1,26 @@
+segment_id: INC-AEBS-010-video-v2-20260830
+recorded_at: "2026-08-30T05:51:00Z"
+guest: sdv_ivi_cf Cuttlefish (de4sdv-aaos-build VM)
+source_video: raw-recording-v2-no-sweep.mp4 (170s continuous adb screenrecord, 1080x600 h264)
+change_vs_v1: >-
+  Rotating radar sweep REMOVED: it depicted a scanning-antenna radar while
+  the sensor source is an obstacle-segmentation pointcloud (full front-field,
+  persistent tracking) — the animation misrepresented detection semantics.
+  Added a frame-arrival pulse ring driven by the last accepted frame
+  (10 Hz heartbeat). When frames stop, the pulse stops — liveness is itself
+  fail-closed. Footer text updated to match.
+observed_sequence:
+  - "0.0s monitoring (blue) — live frames from Autoware 009B bench via ROS bridge + Gateway"
+  - "13.0s warning (orange) — coordinator warning request"
+  - "14.0s intervention (red) — native AEB braking; target blip at 12 o'clock inside red envelope"
+  - "17.0s released (green) — verified stop"
+  - "remainder: released/verified-stop steady state with live frames at ~10 Hz"
+delivery_cut: inc-aebs-010-live-visualization-v2-no-sweep.mp4 (51.6s)
+claims:
+  visualization_live_chain: observed_bounded
+  scenario_safety_outcome: pass_observed_chain (observer verdict this run)
+bench_deviations:
+  - SELinux set permissive on guest (diagnostic-only; production must remain enforcing)
+  - ACL policy provisioned via disable-verity/remount (bench provisioning; production uses signed policy)
+  - inter-VM path replaced by adb-reverse TCP route (bounded bench route)
+disposition: observed_bounded

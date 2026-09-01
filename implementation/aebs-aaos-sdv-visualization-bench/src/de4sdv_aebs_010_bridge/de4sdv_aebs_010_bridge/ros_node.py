@@ -13,11 +13,12 @@ from rclpy.node import Node
 from std_msgs.msg import Bool, String
 from diagnostic_msgs.msg import DiagnosticArray
 from sensor_msgs.msg import PointCloud2
+from nav_msgs.msg import Odometry
 from tier4_debug_msgs.msg import Float32Stamped
 from autoware_control_msgs.msg import Control
 
 from .frame_assembler import FrameAssembler
-from .source_adapter import SourceAdapter, FrameServer, encode_frame_json
+from .source_adapter import SourceAdapter, FrameServer, encode_frame_protobuf
 
 
 class Aebs010BridgeNode(Node):
@@ -45,6 +46,7 @@ class Aebs010BridgeNode(Node):
         # Read-only subscriptions to the pinned 009B bench sources.
         self.create_subscription(Float32Stamped, "/control/autonomous_emergency_braking/debug/rss_distance", self._on_rss, 1)
         self.create_subscription(PointCloud2, "/control/autonomous_emergency_braking/debug/obstacle_pointcloud", self._on_cloud, 1)
+        self.create_subscription(Odometry, "/localization/kinematic_state", self._on_odom, 1)
         self.create_subscription(DiagnosticArray, "/diagnostics", self._on_diagnostics, 10)
         self.create_subscription(Bool, "/de4sdv/aebs_009b/warning_request", self._on_warning, 1)
         self.create_subscription(Control, "/de4sdv/aebs_009b/emergency_braking_request", self._on_braking, 1)
@@ -61,6 +63,9 @@ class Aebs010BridgeNode(Node):
     def _on_cloud(self, msg: PointCloud2) -> None:
         self._adapter.on_obstacle_pointcloud(msg)
 
+    def _on_odom(self, msg: Odometry) -> None:
+        self._adapter.on_kinematic_state(msg)
+
     def _on_diagnostics(self, msg: DiagnosticArray) -> None:
         self._adapter.on_diagnostics(msg)
 
@@ -75,6 +80,8 @@ class Aebs010BridgeNode(Node):
 
     # -- frame output -------------------------------------------------------
 
+    OBSTACLE_PROJECTION_MAX_AGE_NS = 500_000_000
+
     def _accept_loop(self) -> None:
         while True:
             try:
@@ -83,9 +90,14 @@ class Aebs010BridgeNode(Node):
                 return
 
     def _publish_frame(self) -> None:
-        frame = self._assembler.assemble(self.get_clock().now().nanoseconds)
+        now_ns = self.get_clock().now().nanoseconds
+        self._adapter.expire_obstacle_projection(
+            now_ns=now_ns,
+            max_age_ns=self.OBSTACLE_PROJECTION_MAX_AGE_NS,
+        )
+        frame = self._assembler.assemble(now_ns)
         try:
-            self._server.send_frame(encode_frame_json(frame))
+            self._server.send_frame(encode_frame_protobuf(frame))
         except (ConnectionError, OSError):
             pass  # no client connected; frames are dropped, not queued
 

@@ -1,0 +1,23 @@
+segment_id: INC-AEBS-010-live-v9-full-arc-20260830
+captured_at: "2026-08-30T20:12:00Z"
+environment:
+  cloud: "NEW account project-7ddd343e-32e9-4351-91b"
+  vm: "de4sdv-aaos-build n2-standard-16 europe-west4-a single-VM bench"
+  guest: "sdv_ivi_cf cvd fresh boot, dynamic adb port 6526"
+  app: "De4sdvAebsVisualizationApp (ForwardSituationView UI)"
+  bench: "Autoware @ pinned f603d875 + 009B scenario (rebuilt on new account)"
+  observer_verdict: "pass_observed_chain"
+observed_sequence:
+  - "0-25s monitoring (blue): live bench frames, no target (range=null)"
+  - "25.0s warning (orange): target injected at ~20.5m, coordinator warning request"
+  - "26.0s intervention (red): AEB braking, target 12.0m, RSS 9.0m"
+  - "28.5s released (green): verified stop, target 6.6m, RSS 9.1m"
+claims:
+  live_full_arc: observed_bounded
+  live_frame_values: observed_bounded (range/RSS visible per state)
+  scenario_outcome: pass_observed_chain (observer)
+bench_deviations:
+  - "SELinux permissive on guest (diagnostic-only)"
+  - "ACL policy via disable-verity/remount (bench provisioning)"
+  - "observer script timeout 55s; recording 85s; single-VM adb-reverse transport"
+disposition: observed_bounded
