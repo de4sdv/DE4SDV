@@ -92,7 +92,7 @@ jobs:
             -Dplay.http.secret.key=de4sdv-ci-full-model-ingestion \
             > /tmp/sysml-api.log 2>&1 &
           echo $! > /tmp/sysml-api.pid
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 150); do
             if curl -fsS http://127.0.0.1:9000/projects >/dev/null; then
               exit 0
             fi

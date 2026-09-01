@@ -104,7 +104,10 @@ class ImpactService:
             gaps.append(
                 {
                     "category": "product-line",
-                    "reason": "The requirement has no API subjectParameter member-product reference.",
+                    "reason": (
+                        "The requirement has no native SubjectMembership "
+                        "member-product reference in the bound API revision."
+                    ),
                 }
             )
 
@@ -131,7 +134,10 @@ class ImpactService:
             gaps.append(
                 {
                     "category": "verification",
-                    "reason": "No VerificationCaseUsage references the affected evidence contracts.",
+                    "reason": (
+                        "No native RequirementVerificationMembership links a "
+                        "verification case to the affected evidence contracts."
+                    ),
                 }
             )
 

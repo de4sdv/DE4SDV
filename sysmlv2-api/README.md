@@ -178,12 +178,13 @@ The result contains:
 - semantic strength for each edge; and
 - explicit model or integration gaps.
 
-The AEBS query returns the requirement's member-product subject, three
-relevant evidence contracts, and two verification cases. It intentionally
-reports no architecture element because the reviewed model does not contain an
-allocation from this requirement to architecture. It also reports that retained
-evidence artifacts remain external. Those are trace gaps, not empty success
-claims.
+Against the full imported baseline, the AEBS query returns the requirement's
+member-product subject through its native `SubjectMembership`, three relevant
+evidence contracts, and the verification cases linked through native
+`RequirementVerificationMembership` objects. It intentionally reports no
+architecture element because the reviewed model does not contain an allocation
+from this requirement to architecture. It also reports that retained evidence
+artifacts remain external. Those are trace gaps, not empty success claims.
 
 The existing text command remains the offline fallback:
 

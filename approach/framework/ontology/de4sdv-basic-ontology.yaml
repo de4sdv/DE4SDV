@@ -443,8 +443,11 @@ relationships:
     domain: Requirement
     range: VerificationCase
     sysml_mapping:
-      strategy: verification
-      element_types: [VerificationCaseUsage]
+      strategy: verification-membership
+      membership_types: [RequirementVerificationMembership]
+      element_types: [VerificationCaseUsage, VerificationCaseDefinition]
+      owner_membership_types:
+        [FeatureMembership, OwningMembership, ObjectiveMembership, RequirementVerificationMembership]
       reference_property: verifiedRequirement
       direction: reverse
       semantic_strength: native-verification
@@ -485,10 +488,10 @@ relationships:
     domain: Requirement
     range: MemberProduct
     sysml_mapping:
-      strategy: property-reference
+      strategy: subject-membership
       owner_types: [RequirementUsage]
-      reference_property: subjectParameter
-      direction: outgoing
+      membership_types: [SubjectMembership]
+      member_property: memberElement
       semantic_strength: native-reference
   hasRelevantEvidenceContract:
     domain: Requirement

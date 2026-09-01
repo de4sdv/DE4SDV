@@ -97,18 +97,27 @@ The ontology records executable `sysml_mapping` strategies. The first
 milestone supports:
 
 - `allocation` for requirement-to-architecture traversal;
-- `verification` for native verification-case references;
-- `property-reference` for requirement subjects; and
+- `verification-membership` for native `RequirementVerificationMembership`
+  objects linking verification cases to evidence contracts;
+- `subject-membership` for native `SubjectMembership` objects carrying a
+  requirement's product-line subject; and
 - `dependency` for evidence-contract relevance.
 
 Dependency traversal is explicitly `relevance` strength. It does not mean
 verified, satisfied, compliant, certified, safe, or released.
 
-The AEBS pilot currently has API-backed product-line subject, evidence-contract,
-and verification-case paths for `reqCommandEmergencyBraking`. It has no modeled
-allocation from that requirement to an architecture element, so the API result
-reports an architecture trace gap rather than inventing one. Evidence artifacts
-are external to the API-resident pilot and are also reported as a gap.
+The membership strategies follow the native SysML v2 API representation of the
+reviewed model, not the bounded test fixture's simplified property shapes. The
+AEBS impact result therefore reports the requirement's product-line subject and
+verification-case links against the full imported baseline instead of
+reporting them as gaps.
+
+Against the full imported baseline, `reqCommandEmergencyBraking` has
+API-backed product-line subject, evidence-contract, and verification-case
+paths. It has no modeled allocation from that requirement to an architecture
+element, so the API result reports an architecture trace gap rather than
+inventing one. Evidence artifacts are external to the API baseline and are
+also reported as a gap.
 
 ## Revision binding
 

@@ -20,7 +20,7 @@ from de4sdv.semantic.impact import ImpactService
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.client import ApiClient
-from de4sdv.sysml_api.repository import SysMLRepository
+from de4sdv.sysml_api.repository import SysMLRepository, reference_ids, element_id
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 
@@ -44,6 +44,10 @@ QUERY_CASES = (
         "middleware service-binding security boundary",
     ),
 )
+
+
+def _json_text(value: object) -> str:
+    return json.dumps(value, sort_keys=True, default=str)
 
 
 def _git_head() -> str:
@@ -140,6 +144,44 @@ def run_queries(
             "imported reqCommandEmergencyBraking did not retain its three modeled "
             "evidence-contract relevance links"
         )
+    subject_edges = [
+        edge
+        for edge in braking["edges"]
+        if edge["predicate"] == "hasSubject"
+        and edge["strategy"] == "subject-membership"
+    ]
+    if not subject_edges:
+        raise RuntimeError(
+            "imported reqCommandEmergencyBraking did not expose its native "
+            "SubjectMembership product-line subject"
+        )
+    evidence_ids = {
+        edge["target"]
+        for edge in braking["edges"]
+        if edge["predicate"] == "hasRelevantEvidenceContract"
+    }
+    verification_edges = [
+        edge
+        for edge in braking["edges"]
+        if edge["predicate"] == "verifiedBy"
+        and edge["strategy"] == "verification-membership"
+    ]
+    gap_categories = {gap["category"] for gap in braking["gaps"]}
+    if "product-line" in gap_categories:
+        raise RuntimeError(
+            "native subject membership resolved but was still reported as a gap"
+        )
+    if not verification_edges:
+        # The pinned exporter (Syside 0.10.3) does not serialize `verify`
+        # statements from AEBS verification objectives as
+        # RequirementVerificationMembership objects; until upstream resolves
+        # that, the AEBS verification path is reported as an explicit gap
+        # instead of being inferred by name.
+        print(
+            "NOTE: verification-case links for the AEBS evidence contracts are "
+            "not present in the serialized model; reported as an explicit gap."
+        )
+
     root_ids = {result["impact"]["root"]["element_id"] for result in results}
     if len(root_ids) != len(results):
         raise RuntimeError("semantic query cases did not resolve to distinct API UUIDs")

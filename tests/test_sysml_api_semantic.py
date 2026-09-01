@@ -237,11 +237,16 @@ def test_first_milestone_relationships_define_machine_traversal_strategies() -> 
     )
 
     assert contract.relationship_mapping("realizedBy").strategy == "allocation"
-    assert contract.relationship_mapping("verifiedBy").strategy == "verification"
+    assert (
+        contract.relationship_mapping("verifiedBy").strategy
+        == "verification-membership"
+    )
     relevance = contract.relationship_mapping("hasRelevantEvidenceContract")
     assert relevance.strategy == "dependency"
     assert relevance.semantic_strength == "relevance"
-    assert contract.relationship_mapping("hasSubject").strategy == "property-reference"
+    assert (
+        contract.relationship_mapping("hasSubject").strategy == "subject-membership"
+    )
 
 
 def test_allocation_strategy_traverses_native_api_relationship_object() -> None:
@@ -296,7 +301,12 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "@type": "RequirementUsage",
             "declaredName": "reqCommandEmergencyBraking",
             "qualifiedName": "DE4SDV_AEBSNeedsRequirements::reqCommandEmergencyBraking",
-            "subjectParameter": ref("member-product"),
+        },
+        {
+            "@id": "subject-membership",
+            "@type": "SubjectMembership",
+            "owningRelatedElement": {"@id": "req-braking"},
+            "memberElement": {"@id": "member-product"},
         },
         {
             "@id": "member-product",
@@ -339,13 +349,29 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "@id": "verify-009b",
             "@type": "VerificationCaseUsage",
             "declaredName": "nominalMovingVehicleTargetVerification009B",
-            "verifiedRequirement": [ref("ev-override"), ref("ev-braking")],
+        },
+        {
+            "@id": "rvm-override",
+            "@type": "RequirementVerificationMembership",
+            "owningRelatedElement": {"@id": "verify-009b"},
+            "verifiedRequirement": {"@id": "ev-override"},
+        },
+        {
+            "@id": "rvm-braking",
+            "@type": "RequirementVerificationMembership",
+            "owningRelatedElement": {"@id": "verify-009b"},
+            "verifiedRequirement": {"@id": "ev-braking"},
         },
         {
             "@id": "verify-009c",
             "@type": "VerificationCaseUsage",
             "declaredName": "nativeInterventionToMRMVerification009C",
-            "verifiedRequirement": [ref("ev-mrm")],
+        },
+        {
+            "@id": "rvm-mrm",
+            "@type": "RequirementVerificationMembership",
+            "owningRelatedElement": {"@id": "verify-009c"},
+            "verifiedRequirement": {"@id": "ev-mrm"},
         },
     ]
     base_url, handler = api_server
@@ -400,8 +426,8 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
     assert any(gap["category"] == "architecture" for gap in result["gaps"])
     assert {edge["strategy"] for edge in result["edges"]} >= {
         "dependency",
-        "verification",
-        "property-reference",
+        "verification-membership",
+        "subject-membership",
     }
     assert all(edge["api_object_id"] for edge in result["edges"])
     assert result["provenance"]
