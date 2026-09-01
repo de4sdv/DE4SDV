@@ -65,6 +65,16 @@ solely on the internal compose network; host firewall allows 22/80/443 only.
 
 ### Baseline identity and fail-closed deployment
 
+A fresh deployment always imports the validated privileged export into the
+deployment's own API repository through the existing DE4SDV importer. The
+deployment repository generates its own Project/Commit UUIDs; the privileged
+CI run's ephemeral UUIDs are never copied. The deployment binding and the
+public status tuple carry the deployment-specific identities together with
+the same Git SHA, export digest, and ontology identity validated by the
+privileged run. Immutable evidence (element count, internal reference count,
+source-document count) must match between the privileged report and the
+deployment import; a mismatch refuses the deployment.
+
 A deployment is only valid when the complete ADR 0012 semantic authority tuple
 holds for the served state:
 
@@ -84,14 +94,17 @@ that run's artifact bundle, and the host-side deploy script fails closed unless:
   bindings and its recorded export digest matches the bundle bytes;
 - the binding is `passed`/`full-model` with an exact ontology identity;
 - the MCP validation artifact records the same complete tuple;
-- the API actually serves the bound project/commit before the proxy is
-  (re)pointed at it.
+- the deployment import completes with a clean ontology summary before the
+  proxy is (re)pointed at it.
 
-On any mismatch the running service is left untouched and the deployment is
-refused. A machine-readable `/deployment-status.json` (served by the proxy)
-publishes the served Git SHA, project/commit UUIDs, ontology digest, deployment
-timestamp, element count, and experimental/read-only status — with no secrets
-and no internal filesystem paths.
+On any mismatch the deployment is refused before the proxy stage. This is a
+single-host stack without a blue/green switch: a redeploy restarts the stack
+and causes an interruption; the guarantee is "refused before exposure", not
+"running service untouched". A machine-readable `/deployment-status.json`
+(served by the proxy) publishes the served Git SHA, the deployment-specific
+project/commit UUIDs, ontology digest, deployment timestamp, element count,
+and experimental/read-only status — with no secrets and no internal
+filesystem paths.
 
 ### Restart safety and pins
 
@@ -107,8 +120,14 @@ Pins (exact, verified at build time):
 
 - Systems-Modeling/SysML-v2-API-Services `0af711b1` — the same revision the
   privileged workflow stages;
-- `eclipse-temurin:11-jre-jammy` by digest;
+- `eclipse-temurin:11-jdk-jammy` (builder) and `eclipse-temurin:11-jre-jammy`
+  (runtime) by digest;
 - `postgres:16-alpine` by digest;
+- Caddy: digest-pinned `caddy:2.8.4-builder-alpine` / `caddy:2.8.4-alpine`
+  stages built with xcaddy and `github.com/mholt/caddy-ratelimit` pinned to
+  `b8d8c9a9d99ee352d675cbbe416ec2b489fc8cab` (stock Caddy images lack the
+  `rate_limit` directive; see `deployment/caddy/Dockerfile` for the pin
+  rationale);
 - sbt-launch 1.2.8 by SHA-256.
 
 ### Known limitation (documented, not solved here)

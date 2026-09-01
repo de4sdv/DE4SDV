@@ -4,19 +4,26 @@
 #
 #   Internet --HTTPS--> caddy (80/443 published) --> sysml2-api (internal) --> postgres (internal)
 #
-# Only caddy publishes ports. The API and PostgreSQL are reachable solely on
-# the internal Docker network; neither is exposed to the host or Internet.
-# The API itself has no published port even on localhost — the privileged
-# ingestion path runs inside the compose network when needed.
+# Only caddy publishes ports (80/tcp and 443/tcp; 443/udp HTTP/3 is enabled
+# and covered by the same ufw 443 allow rule — one port, two protocols).
+# The API and PostgreSQL are reachable solely on the internal Docker
+# network; neither is exposed to the host or Internet.
 #
-# Pins (exact digests; fail closed on drift):
-#   caddy     caddy:2.8.4-alpine            sha256:<see .env.example comment>
-#   postgres  postgres:16-alpine            sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+# Images:
+#   caddy      built from deployment/caddy/Dockerfile (Caddy 2.8.4 +
+#              caddy-ratelimit @5625512f; both base stages digest-pinned)
+#   postgres   postgres:16-alpine, digest-pinned
+#              sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
 #   sysml2-api built from deployment/sysml2-api/Dockerfile
-#             (upstream Systems-Modeling/SysML-v2-API-Services @0af711b1,
-#              the exact revision used by the privileged DE4SDV workflow)
+#              (upstream Systems-Modeling/SysML-v2-API-Services @0af711b1,
+#               the exact revision used by the privileged DE4SDV workflow;
+#               builder/runtime bases digest-pinned)
 #
-# Secrets come from /srv/de4sdv/sysml2-api.env (root-readable only), created
+# Runtime status: ${DEPLOY_DIR}/status on the host is mounted read-only into
+# caddy as /srv/de4sdv-status. deploy.py writes deployment-status.json there
+# after a fully validated import; nothing in the repository is mounted.
+#
+# Secrets come from ${DEPLOY_DIR}/sysml2-api.env (root-readable only), created
 # by deployment/scripts/provision-server.sh. Nothing secret lives in git.
 
 name: de4sdv-sysml-api
@@ -69,7 +76,10 @@ services:
       - internal
 
   caddy:
-    image: caddy:2.8.4-alpine
+    build:
+      context: .
+      dockerfile: caddy/Dockerfile
+    image: de4sdv/caddy-ratelimit:2.8.4
     restart: unless-stopped
     depends_on:
       - sysml2-api
@@ -80,10 +90,10 @@ services:
     environment:
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
-      - ../deployment/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-      - ../deployment/status:/srv/de4sdv-status:ro
+      - ${DEPLOY_DIR}/status:/srv/de4sdv-status:ro
     networks:
       - internal
 

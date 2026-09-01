@@ -4,19 +4,20 @@
 Proves, from OUTSIDE the server, that:
   - HTTPS works with a valid certificate;
   - GET/HEAD work and OPTIONS is answered;
-  - POST/PUT/PATCH/DELETE are rejected (405) at the proxy boundary;
-  - the served project/commit matches the deployment-status tuple;
-  - a known element (reqCommandEmergencyBraking) is retrievable by UUID
-    through the standard element path;
-  - pagination works for the 56k+ element model;
-  - the machine-readable deployment-status document is present and honest.
+  - the proxy enforces a strict method allowlist: POST/PUT/PATCH/DELETE AND
+    at least one otherwise-unlisted nonstandard method are rejected 405;
+  - the machine-readable deployment-status document is present and honest;
+  - the deployment-specific project/commit from the status tuple is served;
+  - the known element reqCommandEmergencyBraking is retrievable by its API
+    UUID through the standard element path;
+  - full-model pagination exceeds 50,000 elements.
 
 Exits nonzero on any failure. Read-only: the script never sends a mutation
 payload beyond the method probes (which carry no body and must be rejected).
 
 Usage:
   python3 verify_public_api.py [--base-url https://sysml-api.de4sdv.org] \
-      [--json OUT.json]
+      [--json OUT.json] [--skip-full-pagination]
 """
 from __future__ import annotations
 
@@ -25,13 +26,16 @@ import json
 import ssl
 import sys
 import time
-import uuid
 from pathlib import Path
 from typing import Any
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 
 KNOWN_ELEMENT_NAME = "reqCommandEmergencyBraking"
+MUTATION_METHODS = ("POST", "PUT", "PATCH", "DELETE")
+# A deliberately nonstandard/extension method: if the proxy used a deny-list,
+# an unknown verb like this could slip through to the upstream API.
+NONSTANDARD_METHOD = "BREW"
 
 
 class VerificationError(RuntimeError):
@@ -67,18 +71,17 @@ def check_tls(base_url: str) -> None:
         require(response.status in (200, 404), f"TLS handshake/first response failed: {response.status}")
 
 
-def check_read_only(base_url: str) -> dict[str, int]:
+def check_method_allowlist(base_url: str) -> dict[str, int]:
+    """Positive allowlist contract: only GET/HEAD/OPTIONS may pass."""
     verdicts: dict[str, int] = {}
-    for method in ("POST", "PUT", "PATCH", "DELETE"):
+    for method in (*MUTATION_METHODS, NONSTANDARD_METHOD):
         status, _headers, _body = fetch(f"{base_url}/projects", method=method)
-        require(
-            status in (403, 405),
-            f"{method} was not rejected by the proxy (HTTP {status})",
-        )
+        require(status == 405, f"{method} was not rejected 405 by the proxy (HTTP {status})")
         verdicts[method] = status
-    status, _headers, _body = fetch(f"{base_url}/projects", method="OPTIONS")
-    verdicts["OPTIONS"] = status
-    require(status < 500, f"OPTIONS answered with {status}")
+    for method in ("GET", "HEAD", "OPTIONS"):
+        status, _headers, _body = fetch(f"{base_url}/projects", method=method)
+        require(status < 500, f"allowed method {method} answered {status}")
+        verdicts[method] = status
     return verdicts
 
 
@@ -114,33 +117,15 @@ def check_model(base_url: str, status_doc: dict[str, Any]) -> dict[str, Any]:
     page1 = fetch_json(elements_url)
     require(isinstance(page1, list) and len(page1) > 0, "element page 1 is empty")
 
-    known = None
-    for element in page1:
-        if element.get("declaredName") == KNOWN_ELEMENT_NAME:
-            known = element
-            break
     result: dict[str, Any] = {"project": project_id, "commit": commit_id}
-
-    # Resolve the known element by paging (Link-header rel=next handled below
-    # by check_pagination); locate its UUID for the identity-path probe.
-    if known is not None:
-        element_id = known["@id"]
-        element = fetch_json(
-            f"{base_url}/projects/{project_id}/commits/{commit_id}/elements/{element_id}"
-        )
-        require(
-            element.get("declaredName") == KNOWN_ELEMENT_NAME,
-            "known element did not round-trip through its API identity",
-        )
-        result["known_element_id"] = element_id
     return result
 
 
-def check_pagination(base_url: str, project_id: str, commit_id: str) -> int:
-    """Follow rel=next Link headers and count elements; also probes /elements/{id}."""
-    url: str | None = (
-        f"{base_url}/projects/{project_id}/commits/{commit_id}/elements"
-    )
+def check_pagination_and_known_element(
+    base_url: str, project_id: str, commit_id: str
+) -> int:
+    """Follow rel=next Link headers; prove pagination and the known element."""
+    url: str | None = f"{base_url}/projects/{project_id}/commits/{commit_id}/elements"
     total = 0
     pages = 0
     known_id: str | None = None
@@ -180,12 +165,15 @@ def main() -> int:
     args = parser.parse_args()
     base = args.base_url.rstrip("/")
 
-    report: dict[str, Any] = {"base_url": base, "checked_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    report: dict[str, Any] = {
+        "base_url": base,
+        "checked_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
     try:
         check_tls(base)
         report["https"] = True
 
-        report["mutation_rejections"] = check_read_only(base)
+        report["method_allowlist"] = check_method_allowlist(base)
 
         status_doc = check_status_document(base)
         report["status_document"] = status_doc
@@ -194,7 +182,7 @@ def main() -> int:
         report["model"] = model
 
         if not args.skip_full_pagination:
-            total = check_pagination(base, model["project"], model["commit"])
+            total = check_pagination_and_known_element(base, model["project"], model["commit"])
             report["paginated_elements"] = total
 
         report["verdict"] = "pass"
