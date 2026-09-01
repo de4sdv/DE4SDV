@@ -170,6 +170,8 @@ jobs:
           unzip -q bundle.zip -d /tmp/bundle
           ls -la /tmp/bundle
           echo "BUNDLE_DIR=/tmp/bundle" >> "$GITHUB_ENV"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Set up SSH (out-of-band verified host key; key never printed)
         run: |
