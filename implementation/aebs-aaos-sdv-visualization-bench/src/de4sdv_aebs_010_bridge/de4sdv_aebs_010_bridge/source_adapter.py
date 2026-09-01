@@ -62,7 +62,7 @@ class SourceAdapter:
     def __init__(self, assembler: FrameAssembler, now_ns) -> None:  # noqa: ANN001 - callable
         self._assembler = assembler
         self._now_ns = now_ns
-        self._last_cloud_projection: tuple[float, float] | None = None
+        self._last_cloud_receipt_ns: int | None = None
 
     # -- native AEB ---------------------------------------------------------
 
@@ -95,22 +95,47 @@ class SourceAdapter:
         )
 
     def on_obstacle_pointcloud(self, msg: Any) -> None:
-        stamp_ns = _stamp_ns(getattr(msg, "header", None) and msg.header.stamp)
-        if stamp_ns <= 0:
+        header = getattr(msg, "header", None)
+        stamp_ns = _stamp_ns(header and header.stamp)
+        # The pinned AEB collision geometry is evaluated in base_link. Reject
+        # another/empty frame instead of mislabeling the display projection.
+        coordinate_frame = str(getattr(header, "frame_id", "") or "")
+        if stamp_ns <= 0 or coordinate_frame != "base_link":
             return
         projection = project_closest_point_range_bearing(msg)
         if projection is None:
             return
         range_m, bearing_rad = projection
+        receipt_ns = self._now_ns()
+        self._last_cloud_receipt_ns = receipt_ns
         self._assembler.observe_obstacle_projection(
-            SourceObservation(TOPIC_CLOUD, {"source_timestamp_ns": stamp_ns}, self._now_ns()),
+            SourceObservation(
+                TOPIC_CLOUD,
+                {"source_timestamp_ns": stamp_ns, "coordinate_frame": coordinate_frame},
+                receipt_ns,
+            ),
             range_m, bearing_rad,
         )
         points = downsample_cluster_points(msg, max_points=24)
         self._assembler.observe_target_points(
-            SourceObservation(TOPIC_CLOUD, {"source_timestamp_ns": stamp_ns}, self._now_ns()),
+            SourceObservation(
+                TOPIC_CLOUD,
+                {"source_timestamp_ns": stamp_ns, "coordinate_frame": coordinate_frame},
+                receipt_ns,
+            ),
             points,
         )
+
+    def expire_obstacle_projection(self, *, now_ns: int, max_age_ns: int) -> None:
+        """Fail closed when the filtered obstacle-cloud source stops updating."""
+        if max_age_ns <= 0:
+            raise ValueError("max_age_ns must be positive")
+        if (
+            self._last_cloud_receipt_ns is not None
+            and now_ns - self._last_cloud_receipt_ns > max_age_ns
+        ):
+            self._assembler.clear_obstacle_projection()
+            self._last_cloud_receipt_ns = None
 
     def on_diagnostics(self, msg: Any) -> None:
         stamp_ns = _stamp_ns(getattr(msg, "header", None) and msg.header.stamp)

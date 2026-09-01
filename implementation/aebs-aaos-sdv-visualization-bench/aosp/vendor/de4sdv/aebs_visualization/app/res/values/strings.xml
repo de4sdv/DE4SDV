@@ -3,14 +3,14 @@
     <string name="app_name">DE4SDV AEBS Visualization</string>
     <string name="initial_disposition">unavailable</string>
     <string name="initial_health">○ UNAVAILABLE</string>
-    <string name="initial_target_range">Target range  —</string>
-    <string name="initial_rss_distance">RSS distance  —</string>
+    <string name="initial_obstacle_points">Filtered obstacle points  —</string>
+    <string name="decision_distance_boundary">AEB decision distances not visualized</string>
     <string name="initial_frame_age">Frame age  —</string>
     <string name="initial_ego_speed">Ego speed  —</string>
-    <string name="state_monitoring">monitoring</string>
-    <string name="state_warning">warning</string>
-    <string name="state_intervention">intervention</string>
-    <string name="state_released">released</string>
+    <string name="state_monitoring">MONITORING</string>
+    <string name="state_warning">WARNING</string>
+    <string name="state_intervention">INTERVENTION</string>
+    <string name="state_released">RELEASED</string>
     <string name="provenance_chain">
         SIMULATED POINT CLOUD → AUTOWARE AEB → ROS BRIDGE → SDV GATEWAY → AAOS
     </string>

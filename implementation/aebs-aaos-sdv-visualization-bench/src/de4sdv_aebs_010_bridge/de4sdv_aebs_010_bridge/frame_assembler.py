@@ -164,11 +164,14 @@ class FrameAssembler:
         if numeric_range < 0.0:
             raise FrameError("target_range must be non-negative")
         stamp = self._require_positive_int(observation.payload.get("source_timestamp_ns"), "source_timestamp_ns")
+        coordinate_frame = observation.payload.get("coordinate_frame")
+        if coordinate_frame != "base_link":
+            raise FrameError("obstacle projection coordinate_frame must be base_link")
         self.state.target_range = _field_value(
-            numeric_range, "displayDerived", stamp, "m", "map",
+            numeric_range, "displayDerived", stamp, "m", coordinate_frame,
         )
         self.state.target_bearing = _field_value(
-            numeric_bearing, "displayDerived", stamp, "rad", "map",
+            numeric_bearing, "displayDerived", stamp, "rad", coordinate_frame,
         )
 
     def observe_ego_speed(self, observation: SourceObservation, value: Any) -> None:
@@ -193,6 +196,12 @@ class FrameAssembler:
                 raise FrameError("target point must be finite")
             clean.append((fwd, lat))
         self.state.target_points = clean
+
+    def clear_obstacle_projection(self) -> None:
+        """Clear cloud-derived presentation facts when that source goes stale."""
+        self.state.target_range = None
+        self.state.target_bearing = None
+        self.state.target_points = None
 
     def observe_native_intervention(self, observation: SourceObservation, diagnostic_name: str, level: str, message: str) -> None:
         expected = (

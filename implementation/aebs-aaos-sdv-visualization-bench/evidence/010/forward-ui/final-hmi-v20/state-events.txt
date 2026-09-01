@@ -1,0 +1,4 @@
+MONITORING=1788188933.304  5872  5900 I MainActivity: onGatewayFrame: frame seq=2177 egoSpeed=6.5625486 pts=0 intervention=false warning=false braking=false lifecycle=armed range=null bearing=null rss=null
+WARNING=1788188941.008  5872  5900 I MainActivity: onGatewayFrame: frame seq=2254 egoSpeed=6.5625486 pts=24 intervention=false warning=true braking=false lifecycle=armed range=22.937302 bearing=0.0 rss=14.326395
+INTERVENTION=1788188942.009  5872  5900 I MainActivity: onGatewayFrame: frame seq=2264 egoSpeed=6.5625486 pts=24 intervention=false warning=true braking=true lifecycle=braking_latched range=17.527855 bearing=0.0 rss=14.376715
+RELEASED=1788188944.504  5872  5900 I MainActivity: onGatewayFrame: frame seq=2289 egoSpeed=0.0 pts=24 intervention=false warning=false braking=true lifecycle=released_verified_stop range=10.186862 bearing=0.0 rss=1.4526553

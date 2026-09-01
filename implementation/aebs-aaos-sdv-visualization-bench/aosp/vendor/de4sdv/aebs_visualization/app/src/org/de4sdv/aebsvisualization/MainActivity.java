@@ -2,9 +2,11 @@ package org.de4sdv.aebsvisualization;
 
 import android.app.Activity;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.view.View;
 import android.widget.TextView;
 import android.util.Log;
 
@@ -17,7 +19,7 @@ import android.util.Log;
  * derives no AEBS decision and publishes nothing (REQ-AEBS-S2-005).
  *
  * Layout contract (VISUALIZATION-CONTRACT.md): the forward-situation view
- * carries scene geometry only; state progression, exact metrics, and data
+ * carries filtered point geometry only; state progression, engineering status, and data
  * health live in the side panel and health chip so liveness can never be
  * confused with risk geometry. The state color authority is the reducer;
  * no renderer rule can recolor a state.
@@ -27,12 +29,13 @@ public class MainActivity extends Activity {
     private VisualizationStateReducer reducer;
     private ForwardSituationView situationView;
     private TextView healthChip;
+    private TextView stateCurrent;
     private TextView stateMonitoring;
     private TextView stateWarning;
     private TextView stateIntervention;
     private TextView stateReleased;
-    private TextView metricTargetRange;
-    private TextView metricRssDistance;
+    private TextView metricObstaclePoints;
+    private TextView metricDecisionDistance;
     private TextView metricEgoSpeed;
     private TextView metricFrameAge;
     private TextView provenanceView;
@@ -46,15 +49,26 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        final View root = findViewById(R.id.root);
+        root.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(
+                    insets.getSystemWindowInsetLeft(),
+                    insets.getSystemWindowInsetTop(),
+                    insets.getSystemWindowInsetRight(),
+                    insets.getSystemWindowInsetBottom());
+            return insets;
+        });
+        root.requestApplyInsets();
         reducer = new VisualizationStateReducer();
         situationView = findViewById(R.id.situation_view);
         healthChip = findViewById(R.id.health_chip);
+        stateCurrent = findViewById(R.id.state_current);
         stateMonitoring = findViewById(R.id.state_monitoring);
         stateWarning = findViewById(R.id.state_warning);
         stateIntervention = findViewById(R.id.state_intervention);
         stateReleased = findViewById(R.id.state_released);
-        metricTargetRange = findViewById(R.id.metric_target_range);
-        metricRssDistance = findViewById(R.id.metric_rss_distance);
+        metricObstaclePoints = findViewById(R.id.metric_obstacle_points);
+        metricDecisionDistance = findViewById(R.id.metric_decision_distance);
         metricEgoSpeed = findViewById(R.id.metric_ego_speed);
         metricFrameAge = findViewById(R.id.metric_frame_age);
         provenanceView = findViewById(R.id.provenance);
@@ -145,7 +159,7 @@ public class MainActivity extends Activity {
             sceneModel.setTargetPoints(targetPoints);
             sceneModel.setFrameAgeMs(0); // fresh at receipt; ticker ages it
             situationView.render(sceneModel.build());
-            renderMetrics(targetRange, rssDistance, 0, egoSpeed);
+            renderMetrics(frame.getTargetPointsCount(), 0, egoSpeed);
             onFrame(new VisualizationStateReducer.FrameInput(
                     frame.getSequence(), intervention, warning, braking, lifecycle));
         });
@@ -206,6 +220,9 @@ public class MainActivity extends Activity {
         // Panel color/icon authority is the model (reducer-driven only).
         final int color = model.getStateColorRgb();
         final String icon = model.getStateIconToken();
+        stateCurrent.setText(icon + "  "
+                + model.getStateLabel().toUpperCase(java.util.Locale.US));
+        stateCurrent.setTextColor(color);
         setActiveState(stateMonitoring,
                 VisualizationStateReducer.Disposition.MONITORING == disposition, color, icon);
         setActiveState(stateWarning,
@@ -223,7 +240,23 @@ public class MainActivity extends Activity {
             view.setText(icon + "  " + plainLabel(view));
         } else {
             view.setTextColor(Color.rgb(90, 100, 105));
+            view.setText("○  " + plainLabel(view));
         }
+        view.setBackground(stateRowBackground(color, active));
+    }
+
+    private GradientDrawable stateRowBackground(int color, boolean active) {
+        GradientDrawable background = new GradientDrawable();
+        background.setShape(GradientDrawable.RECTANGLE);
+        background.setColor(active
+                ? Color.argb(42, Color.red(color), Color.green(color), Color.blue(color))
+                : Color.TRANSPARENT);
+        final float density = getResources().getDisplayMetrics().density;
+        background.setCornerRadius(8f * density);
+        if (active) {
+            background.setStroke(Math.max(1, (int) density), color);
+        }
+        return background;
     }
 
     private static String plainLabel(TextView view) {
@@ -239,11 +272,10 @@ public class MainActivity extends Activity {
         healthChip.setTextColor(model.getHealthColorRgb());
     }
 
-    private void renderMetrics(Float targetRange, Float rssDistance, long frameAgeMs, Float egoSpeed) {
-        metricTargetRange.setText("Target range  "
-                + (targetRange != null ? String.format(java.util.Locale.US, "%.1f m", targetRange) : "—"));
-        metricRssDistance.setText("RSS distance  "
-                + (rssDistance != null ? String.format(java.util.Locale.US, "%.1f m", rssDistance) : "—"));
+    private void renderMetrics(int targetPointCount, long frameAgeMs, Float egoSpeed) {
+        metricObstaclePoints.setText("Filtered obstacle points  "
+                + (targetPointCount > 0 ? Integer.toString(targetPointCount) : "—"));
+        metricDecisionDistance.setText("AEB decision distances not visualized");
         metricEgoSpeed.setText("Ego speed  "
                 + (egoSpeed != null ? String.format(java.util.Locale.US, "%.0f km/h", egoSpeed * 3.6f) : "—"));
         metricFrameAge.setText("Frame age  "

@@ -36,7 +36,11 @@ def valid_source_frame() -> dict:
         12.5,
     )
     assembler.observe_obstacle_projection(
-        SourceObservation(CLOUD_TOPIC, {"source_timestamp_ns": 1_000_000_000}, 1_000_000_100),
+        SourceObservation(
+            CLOUD_TOPIC,
+            {"source_timestamp_ns": 1_000_000_000, "coordinate_frame": "base_link"},
+            1_000_000_100,
+        ),
         10.0, 0.02,
     )
     assembler.observe_native_intervention(

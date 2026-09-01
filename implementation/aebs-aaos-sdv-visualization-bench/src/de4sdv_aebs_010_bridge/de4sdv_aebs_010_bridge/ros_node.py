@@ -80,6 +80,8 @@ class Aebs010BridgeNode(Node):
 
     # -- frame output -------------------------------------------------------
 
+    OBSTACLE_PROJECTION_MAX_AGE_NS = 500_000_000
+
     def _accept_loop(self) -> None:
         while True:
             try:
@@ -88,7 +90,12 @@ class Aebs010BridgeNode(Node):
                 return
 
     def _publish_frame(self) -> None:
-        frame = self._assembler.assemble(self.get_clock().now().nanoseconds)
+        now_ns = self.get_clock().now().nanoseconds
+        self._adapter.expire_obstacle_projection(
+            now_ns=now_ns,
+            max_age_ns=self.OBSTACLE_PROJECTION_MAX_AGE_NS,
+        )
+        frame = self._assembler.assemble(now_ns)
         try:
             self._server.send_frame(encode_frame_protobuf(frame))
         except (ConnectionError, OSError):

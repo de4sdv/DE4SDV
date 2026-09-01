@@ -1,0 +1,2 @@
+Aug 31 15:08:55 de4sdv-aaos-build systemd[1008]: Started /home/mrk/aebs010_observer.sh.
+Aug 31 15:09:04 de4sdv-aaos-build systemd[1008]: final-hmi-observer-v3.service: Consumed 3.126s CPU time.

@@ -1,95 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- DE4SDV AEBS center-display layout: forward situation view + state/metrics panel. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:fitsSystemWindows="true"
     android:background="#FF101418">
 
     <LinearLayout
         android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:background="#FF161B20">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="AEBS FORWARD SITUATION"
+            android:textColor="#FFF2F5F7"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:id="@+id/health_chip"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:background="@drawable/health_chip_background"
+            android:textColor="#FF8B949E"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="@string/initial_health" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="0.86"
+        android:layout_weight="1"
         android:orientation="horizontal">
 
         <org.de4sdv.aebsvisualization.ForwardSituationView
             android:id="@+id/situation_view"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.68" />
+            android:layout_weight="0.69" />
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.32"
+            android:layout_weight="0.31"
             android:orientation="vertical"
-            android:gravity="center_vertical"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp">
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="8dp"
+            android:padding="16dp"
+            android:background="@drawable/state_panel_background">
 
-            <!-- Data-health chip: separate from scene geometry (contract §3.8). -->
             <TextView
-                android:id="@+id/health_chip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="20sp"
+                android:text="CURRENT AEBS STATE"
+                android:textColor="#FF8B949E"
+                android:textSize="12sp"
                 android:textStyle="bold"
-                android:text="@string/initial_health" />
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:id="@+id/state_current"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="6dp"
+                android:text="○  UNAVAILABLE"
+                android:textColor="#FF8B949E"
+                android:textSize="32sp"
+                android:textStyle="bold" />
 
             <!-- Four-stage state progression (contract §3.6). -->
             <TextView
                 android:id="@+id/state_monitoring"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="26sp"
+                android:layout_marginBottom="2dp"
+                android:padding="3dp"
+                android:textColor="#FF5A6469"
+                android:textSize="18sp"
                 android:text="@string/state_monitoring" />
 
             <TextView
                 android:id="@+id/state_warning"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="26sp"
+                android:layout_marginBottom="2dp"
+                android:padding="3dp"
+                android:textColor="#FF5A6469"
+                android:textSize="18sp"
                 android:text="@string/state_warning" />
 
             <TextView
                 android:id="@+id/state_intervention"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="26sp"
+                android:layout_marginBottom="2dp"
+                android:padding="3dp"
+                android:textColor="#FF5A6469"
+                android:textSize="18sp"
                 android:text="@string/state_intervention" />
 
             <TextView
                 android:id="@+id/state_released"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="26sp"
+                android:padding="3dp"
+                android:textColor="#FF5A6469"
+                android:textSize="18sp"
                 android:text="@string/state_released" />
 
-            <!-- Exact metric cards (contract §3.7). -->
-            <TextView
-                android:id="@+id/metric_target_range"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:textSize="24sp"
-                android:fontFeatureSettings="tnum"
-                android:text="@string/initial_target_range" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="#FF343A40" />
 
             <TextView
-                android:id="@+id/metric_rss_distance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ENGINEERING STATUS"
+                android:textColor="#FF8B949E"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:id="@+id/metric_obstacle_points"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#FFF2F5F7"
+                android:textSize="20sp"
+                android:fontFeatureSettings="tnum"
+                android:text="@string/initial_obstacle_points" />
+
+            <TextView
+                android:id="@+id/metric_decision_distance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:textSize="24sp"
+                android:textColor="#FFF2F5F7"
+                android:textSize="18sp"
                 android:fontFeatureSettings="tnum"
-                android:text="@string/initial_rss_distance" />
+                android:text="@string/decision_distance_boundary" />
 
             <TextView
                 android:id="@+id/metric_ego_speed"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:textSize="24sp"
+                android:textColor="#FFF2F5F7"
+                android:textSize="20sp"
                 android:fontFeatureSettings="tnum"
                 android:text="@string/initial_ego_speed" />
 
@@ -98,28 +175,39 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:textSize="20sp"
+                android:textColor="#FF8B949E"
+                android:textSize="14sp"
                 android:fontFeatureSettings="tnum"
                 android:text="@string/initial_frame_age" />
         </LinearLayout>
     </LinearLayout>
 
     <!-- Provenance ribbon (contract §6): two lines, readable at feed width. -->
-    <TextView
-        android:id="@+id/provenance"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="66dp"
+        android:orientation="vertical"
         android:gravity="center"
-        android:paddingTop="6dp"
-        android:textSize="15sp"
-        android:text="@string/provenance_chain" />
+        android:background="#FF161B20">
 
-    <TextView
-        android:id="@+id/disposition"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:paddingBottom="8dp"
-        android:textSize="14sp"
-        android:text="@string/provenance_boundary" />
+        <TextView
+            android:id="@+id/provenance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#FFB9C1C7"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="@string/provenance_chain" />
+
+        <TextView
+            android:id="@+id/disposition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginTop="2dp"
+            android:textColor="#FF8B949E"
+            android:textSize="15sp"
+            android:text="@string/provenance_boundary" />
+    </LinearLayout>
 </LinearLayout>

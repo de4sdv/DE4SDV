@@ -15,9 +15,8 @@ import android.view.View;
  * Professional automotive HMI styling (dark base #121212, rounded cards,
  * cyan live accents) applied to the pure render model: car-shaped ego at the
  * bottom (fixture footprint 3.74 m front / 1.03 m rear / 1.83 m width),
- * the filtered obstacle cluster rendered as a bounded point cluster (the
- * fixture target is vehicle-shaped: 4.2 x 1.8 m, so the cluster reads as a
- * vehicle), the labeled RSS boundary, and subdued distance ticks every 10 m
+ * the filtered obstacle cloud rendered as a bounded point cluster, and
+ * subdued distance ticks every 10 m
  * up to 60 m. No circles, sweep, pulse, invented lanes, or decorative road:
  * every element is live frame data, labeled fixture geometry, or the static
  * display scale (VISUALIZATION-CONTRACT.md). Fails closed: degraded
@@ -40,7 +39,6 @@ public class ForwardSituationView extends View {
     private static final int COLOR_TICK_LABEL = Color.rgb(85, 85, 85);
     private static final int COLOR_EGO = Color.rgb(229, 229, 229);
     private static final int COLOR_CLUSTER = Color.rgb(0, 229, 255); // cyan live accent
-    private static final int COLOR_RSS = Color.rgb(0, 229, 255);
     private static final int COLOR_RSS_LABEL = Color.rgb(176, 176, 176);
     private static final int COLOR_TRAIL = Color.argb(70, 0, 229, 255);
 
@@ -53,8 +51,7 @@ public class ForwardSituationView extends View {
     private final Paint clusterPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint clusterCorePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint trailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint rssPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint rssLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
     private final Paint bannerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint bannerTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -113,12 +110,6 @@ public class ForwardSituationView extends View {
         trailPaint.setStyle(Paint.Style.FILL);
         trailPaint.setColor(COLOR_TRAIL);
 
-        rssPaint.setStyle(Paint.Style.STROKE);
-        rssPaint.setStrokeWidth(5f);
-        rssPaint.setColor(COLOR_RSS);
-
-        rssLabelPaint.setColor(COLOR_RSS_LABEL);
-        rssLabelPaint.setTextSize(20f);
 
         bannerPaint.setStyle(Paint.Style.FILL);
         bannerPaint.setColor(Color.argb(200, 30, 30, 30));
@@ -161,7 +152,7 @@ public class ForwardSituationView extends View {
     /**
      * Scene geometry. Ego REAR bumper sits at originY; the ego car shape is
      * drawn to scale against the same metre-per-pixel factor as the range
-     * axis so the cluster, ego, and RSS boundary share one physical scale.
+     * axis used by the filtered obstacle points.
      */
     private float[] sceneGeometry() {
         final float w = getWidth();
@@ -203,28 +194,9 @@ public class ForwardSituationView extends View {
             return;
         }
 
-        // RSS boundary: one labeled line on the shared scale.
-        if (model.isRssBoundaryVisible()) {
-            final float rssY = forwardToY(g, model.getRssForwardNormalized() * MAX_RANGE_M);
-            rssPaint.setColor(model.getStateColorRgb());
-            canvas.drawLine(24f, rssY, w - 24f, rssY, rssPaint);
-            canvas.drawText("RSS " + model.getRssDistanceText(), 30f, rssY - 10f, rssLabelPaint);
-        }
-
-        // Trail: real historical target positions, oldest first.
-        for (int i = 0; i < trailCount; i++) {
-            final int idx = (trailHead - 1 - i + TRAIL_MAX * 2) % TRAIL_MAX;
-            final float alpha = 70f * (1f - (float) i / TRAIL_MAX);
-            trailPaint.setAlpha((int) alpha);
-            canvas.drawCircle(
-                    lateralToX(g, trailLx[idx] * (MAX_RANGE_M / 2f)),
-                    forwardToY(g, trailFx[idx] * MAX_RANGE_M),
-                    6f, trailPaint);
-        }
-
         // Filtered obstacle cluster: bounded point projection (schema minor 1).
-        // Rendered as glowing cyan points over a soft core so the vehicle-
-        // shaped fixture target reads as a car-like silhouette.
+        // Rendered as cyan points only; no object classification or AEB
+        // decision-distance semantics are implied.
         if (model.isClusterVisible()) {
             final float[] pts = model.getClusterPointsDisplay();
             for (int i = 0; i + 1 < pts.length; i += 2) {
@@ -235,16 +207,6 @@ public class ForwardSituationView extends View {
             }
         }
 
-        // Closest-point marker + label (unchanged semantics).
-        if (model.isTargetVisible()) {
-            final float tx = lateralToX(g, model.getTargetLateralNormalized() * (MAX_RANGE_M / 2f));
-            final float ty = forwardToY(g, model.getTargetForwardNormalized() * MAX_RANGE_M);
-            canvas.drawCircle(tx, ty, 7f, clusterPaint);
-            String label = "Closest obstacle " + model.getTargetRangeText();
-            float labelX = Math.min(tx + 14f, w - 320f);
-            float labelY = Math.max(ty - 16f, 34f);
-            drawPillLabel(canvas, label, labelX, labelY);
-        }
 
         // Ego: car-shaped to fixture scale (side view silhouette, centered).
         drawEgo(canvas, g);
@@ -282,14 +244,14 @@ public class ForwardSituationView extends View {
         RectF cabinRect = new RectF(left + carWpx * 0.14f, top + carFront * 0.28f,
                 right - carWpx * 0.14f, top + carFront * 0.52f);
         canvas.drawRoundRect(cabinRect, 8f, 8f, cabin);
+        Paint egoLabel = new Paint(Paint.ANTI_ALIAS_FLAG);
+        egoLabel.setColor(COLOR_BASE);
+        egoLabel.setTextSize(19f);
+        egoLabel.setFakeBoldText(true);
+        egoLabel.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText("EGO", g[0], bottom - 14f, egoLabel);
     }
 
-    private void drawPillLabel(Canvas canvas, String text, float x, float y) {
-        float textW = bannerTextPaint.measureText(text);
-        RectF pill = new RectF(x - 8f, y - 30f, x + textW + 16f, y + 6f);
-        canvas.drawRoundRect(pill, 10f, 10f, bannerPaint);
-        canvas.drawText(text, x, y - 9f, bannerTextPaint);
-    }
 
     private void drawSpeedBanner(Canvas canvas, String kmh) {
         // Big glanceable speed readout (automotive HMI focal point).
@@ -300,10 +262,10 @@ public class ForwardSituationView extends View {
         Paint unit = new Paint(Paint.ANTI_ALIAS_FLAG);
         unit.setColor(COLOR_RSS_LABEL);
         unit.setTextSize(22f);
-        // Anchor inside the guaranteed-visible band: below any system header overlap
-        // and above the RSS/scene content. Position relative to the view's usable
-        // height so it lands consistently across window insets.
-        final float top = getHeight() * 0.06f + 56f;  // clear of status/header overlap
+        // Root WindowInsets padding guarantees this view starts inside the usable
+        // application bounds. Keep the card local to the scene instead of applying
+        // a guessed duplicate system-header offset.
+        final float top = 18f;
         final float left = 20f;
         RectF card = new RectF(left, top, left + 170f, top + 100f);
         canvas.drawRoundRect(card, 16f, 16f, cardPaint);

@@ -4,6 +4,7 @@
 
     <application
         android:label="@string/app_name"
+        android:theme="@android:style/Theme.Material.NoActionBar"
         android:allowBackup="false">
         <uses-library android:name="libsdvgatewayclient-java-sdk" android:required="true" />
         <activity

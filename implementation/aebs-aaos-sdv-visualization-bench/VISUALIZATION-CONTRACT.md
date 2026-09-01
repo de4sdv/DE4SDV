@@ -20,7 +20,7 @@ explainable in one sentence to a non-engineer.
   publishes nothing, and issues no command (REQ-AEBS-S2-005).
 - The presentation disposition is decided **only** by
   `VisualizationStateReducer` from accepted `VisualizationFrame` facts.
-- Display geometry (positions, boundaries, trails) never feeds the reducer.
+- Display geometry never feeds the reducer.
   No visual intersection, contact, or overlap can trigger or influence state.
 - The wire contract (`interface/aebs_visualization.proto`) and the SysML item
   definitions remain the semantic authority. This contract adds **no** new
@@ -30,15 +30,14 @@ explainable in one sentence to a non-engineer.
 
 | # | Visual element | Source (frame field) | Provenance | Rendering rule | State authority | Non-claim |
 |---|---|---|---|---|---|---|
-| 1 | Ego origin marker | none (display coordinate origin) | display | fixed at bottom center of the forward view; small blue dot | none | not a rendered vehicle body; not vehicle pose |
-| 2 | Closest obstacle point | `target_range` (m), `target_bearing` (rad) | `displayDerived` (projected from the native filtered obstacle point cloud) | orange dot, position = bounded top-down projection; hidden when fields absent or `> MAX_RANGE_M` (60 m) | none | not target classification; not perception accuracy; not "the vehicle" |
-| 3 | Obstacle history trail | prior accepted `target_range`/`target_bearing` values | `displayDerived` | ≤ 12 small faded dots, oldest first; cleared on degraded disposition | none | not object trajectory prediction |
-| 4 | RSS boundary | `rss_distance` (m) | `nativeAutowareAEB` | one horizontal line across the forward view at the shared range scale; labeled `RSS distance` | none | does not trigger intervention; not a safety envelope of the vehicle |
-| 5 | Distance ticks | display scale only | display | subdued marks every 10 m up to 60 m | none | not sensor range/FOV |
-| 6 | State progression panel | `VisualizationStateReducer.Disposition` | derived | `MONITORING → WARNING → INTERVENTION → RELEASED`; active state gets color **and** icon **and** text; inactive states subdued | reducer exclusively | no geometry input; no display-derived decision |
-| 7 | Metric cards | latest `target_range`, `rss_distance`, frame age | mixed per field | exact numeric text; `—` when absent; cleared on degraded dispositions | none | not averages/smoothed/interpolated values |
-| 8 | Data-health chip | frame receipt age; subscriber state | display | small chip in header (`● LIVE · 10 Hz · age N ms`); opacity pulse allowed; **must not** enter scene geometry | watchdog/reducer fail-closed states | not risk; not heartbeat of any physical system |
-| 9 | Provenance ribbon | static text | display | two lines at bottom (see §6) | none | the ribbon itself makes no safety claim |
+| 1 | Ego reference silhouette | pinned fixture dimensions at the display coordinate origin | display | fixed at bottom center and labeled `EGO`; visually emphasized but not used as a measurement scale | none | not live vehicle pose; not a production vehicle rendering |
+| 2 | Filtered obstacle cluster | `target_points` | `displayDerived` | bounded cyan point projection in `base_link`; hidden when absent or degraded | none | no object classification, confidence, authoritative object distance, or physical extent claim |
+| 3 | Retained distance telemetry | `target_range`, `target_bearing`, `rss_distance` | mixed per field | retained in the wire and evidence logs but not rendered in the public HMI | none | the display-derived cloud-point range and native RSS calculation are not an aligned decision pair and must not be presented as a comparable pair |
+| 4 | Distance ticks | display scale only | display | subdued marks every 10 m up to 60 m | none | not sensor range/FOV and not the native AEB path-distance axis |
+| 5 | State progression panel | `VisualizationStateReducer.Disposition` | derived | dominant current-state heading plus `MONITORING → WARNING → INTERVENTION → RELEASED`; active state gets color **and** icon **and** text; inactive states subdued | reducer exclusively | no geometry input; no display-derived decision |
+| 6 | Engineering-status rows | `target_points` count, `ego_speed`, frame age | mixed per field | point count, speed and age; explicit `AEB decision distances not visualized` boundary | none | no implied distance comparison or decision reconstruction |
+| 7 | Data-health chip | frame receipt age; subscriber state | display | small chip in header (`● LIVE · 10 Hz · age N ms`); opacity pulse allowed; **must not** enter scene geometry | watchdog/reducer fail-closed states | not risk; not heartbeat of any physical system |
+| 8 | Provenance ribbon | static text | display | two lines at bottom (see §6) | none | the ribbon itself makes no safety claim |
 
 **Removed by this contract** (was in v1/v2, must not return):
 - rotating radar sweep (wrong sensor metaphor: source is an obstacle-segmentation
@@ -49,6 +48,9 @@ explainable in one sentence to a non-engineer.
   the vehicle; replaced by the labeled boundary line);
 - renderer rule `rss_distance < 15 m → red` (a display threshold that competed
   with the reducer's intervention transition);
+- closest-point distance pill and RSS reference line (the former was Euclidean
+  range from `base_link` to one cloud point; the latter is compared by native
+  Autoware against a different path-longitudinal front-clearance quantity);
 - radar terminology in user-facing strings.
 
 ## 4. State-to-color mapping (single authority: the reducer)
@@ -79,20 +81,22 @@ Rules:
 Display scale: `MAX_RANGE_M = 60.0` (display bound, not a data bound).
 
 ```
-normalized(r)  = clamp(r / 60, 0, 1)
-forward_y(r)   = origin_y − normalized(r) × usable_height
-lateral_x(r,θ) = origin_x + sin(θ) × normalized(r) × usable_half_width
-rss_y(d)       = origin_y − normalized(d) × usable_height
+normalized(r) = clamp(r / 60, 0, 1)
+forward_y(x)  = origin_y − normalized(x) × usable_height
+lateral_x(y)  = origin_x + y/(60/2) × usable_half_width
 ```
 
 - Bearing convention: CCW-positive from +x (base_link), matching the bridge
   projection; screen up = forward, so screen angle = −θ.
-- Target dot hidden when `target_range` is null or `> 60 m` (same rule as the
-  current renderer; unchanged behavior).
-- RSS boundary hidden when `rss_distance` is null.
+- Cluster points use their filtered-cloud `base_link` forward/lateral
+  coordinates. The bridge retains `target_range`/`target_bearing` for evidence
+  compatibility, but the public HMI does not render those scalars.
+- `rss_distance` remains native evidence telemetry. The public HMI does not
+  render it as a line or numeric metric because the frame carries no atomically
+  aligned native `ObjectData.distance_to_object` partner.
 - All geometry updates are stepwise from accepted frames. **No interpolation,
   no smoothing, no prediction** of target or RSS positions.
-- Degraded dispositions (`stale`/`invalid`/`unavailable`) clear items 2, 3, 4
+- Degraded dispositions (`stale`/`invalid`/`unavailable`) clear live geometry
   immediately (fail closed), per the existing `radarView.clear()` pathway,
   renamed to the new view.
 
@@ -112,15 +116,15 @@ Read-only engineering visualization · issues no vehicle commands
 ## 7. Acceptance checks (map to plan §5 Definition of Done)
 
 1. No concentric pulse, sweep, or radar terminology in the human-facing UI.
-2. Target, RSS boundary, state, and liveness occupy distinct visual regions.
-3. Orange marker labeled "closest obstacle point" (on-screen or in the
-   metric card header).
-4. Warning cannot render as red intervention; envelope color cannot diverge
-   from reducer state.
+2. Filtered obstacle points, state, speed, and liveness occupy distinct visual regions.
+3. Point geometry is identified as filtered obstacle points without a
+   classification glyph or authoritative-distance label.
+4. Warning cannot render as red intervention.
 5. Geometry cannot trigger or influence the reducer (enforced by code review
    + pure tests: render model takes disposition as input, never outputs it).
-6. Missing/stale/invalid/unavailable clears target, trail, and RSS geometry.
-7. Exact numeric target range and RSS distance visible.
+6. Missing/stale/invalid/unavailable clears the cluster and live speed.
+7. The public HMI renders neither `target_range` nor `rss_distance` and states
+   that AEB decision distances are not visualized.
 8. Simulated-pointcloud boundary visible in every public frame.
 9. Color is not the sole state cue.
 10. No unsupported object classification, sensor FOV, lane, or vehicle geometry.
@@ -156,15 +160,79 @@ item defs AEBSVisualizationFrame + TargetPointProjection; proto schema_minor
 
 | Element | Source | Rendering | Non-claim |
 |---|---|---|---|
-| Target cluster | downsampled filtered obstacle cloud (<=24 pts, `target_points`) | cyan glowing point cluster; fixture target is vehicle-shaped (4.2x1.8 m) so the cluster reads as a vehicle | not object classification; not a rendered car body |
-| Ego car shape | scenario fixture footprint (3.74/1.03/1.83 m) | rounded-rect car silhouette at true range scale | stylized fixture geometry, not a vehicle model |
+| Target cluster | downsampled filtered obstacle cloud (<=24 pts, `target_points`) | cyan point cluster with no classification glyph | not object classification; not a rendered car body |
+| Ego car shape | scenario fixture footprint (3.74/1.03/1.83 m) | labeled rounded-rect reference silhouette, visually emphasized 2.5x for feed-size legibility | stylized fixture reference, not live pose or a vehicle model |
 | Ego speed | Autoware kinematic state -> `ego_speed` | big glanceable km/h banner (HMI focal point) + metric row | display-presentational; speed of the bench ego only |
-| Closest-obstacle pill | `target_range` | rounded dark pill label | same semantics as before |
+
 
 Fail-closed unchanged: degraded dispositions clear cluster, ego speed, and
 all live geometry.
 
-## 11. Display Safety positioning (2026-08-30)
+## 11. Distance-semantic audit (2026-08-31)
+
+The pinned Autoware implementation does **not** compare `rss_distance` with
+the bridge's `target_range`:
+
+- `target_range` is `hypot(x, y)` to the closest finite positive-x point in
+  the native filtered obstacle debug cloud. It is display-derived, Euclidean,
+  and referenced to `base_link`.
+- Native `ObjectData.distance_to_object` is the absolute path-signed arc
+  length to the selected object point minus the ego longitudinal offset. For
+  forward travel this is a path-longitudinal clearance from the ego front.
+- Native `rss_distance` is response distance + ego braking distance + signed
+  object braking contribution + longitudinal margin. Native collision logic
+  compares `ObjectData.distance_to_object <= rss_distance`.
+- The diagnostic `Distance` and `RSS` values are the native comparable pair,
+  but they are collision-data diagnostics with retention behavior and are not
+  carried as an aligned pair by schema 1.1.
+
+Additional native semantics confirmed by the pinned-commit audit and relevant
+to the observed RELEASED presentation:
+
+- `~/debug/rss_distance` is published **only inside `hasCollision()`** and is
+  a signed float32 (it can legitimately go negative for fast receding
+  objects; the bridge clamps negatives to 0). It is not published when AEB is
+  inactive, the ego is stationary, no candidate exists, or speed estimation
+  fails — absence of messages is not "no object", and the last value lingers.
+- Release on the bench is **purely temporal**: the native collision record is
+  retained for `collision_keeping_sec` (3.0 s, measured from the object
+  stamp) and the diagnostic flips to `OK "[AEB]: No Collision"` on expiry
+  with no re-evaluation of distance or object presence. The DE4SDV
+  coordinator additionally latches `braking_latched` until verified standstill
+  and then reports `released_verified_stop`. A viewer can therefore observe
+  RELEASED while the obstacle remains physically present — this is correct
+  latched behaviour, not a distance contradiction, and displaying a distance
+  pair during that window would still mislead.
+
+The frame assembler samples the latest independently received cloud, RSS,
+odometry, diagnostic, and coordinator values at 10 Hz. It preserves scalar
+source timestamps but enforces no cross-field skew bound; target-point source
+time is not carried in schema 1.1. Therefore `target_range` and `rss_distance`
+must not be presented as a comparable pair. Both remain in the wire/evidence
+record for traceability; neither appears as public decision-distance geometry
+or text.
+
+Corroborated by the end-to-end data audit of the final-hmi-v20 evidence: the
+displayed `target_range` decayed 11.38 → 0.002 m while the ego re-accelerated
+into the (still present) fixture target after RELEASED, with the sampled
+`rss_distance` rising to 15.42 m — and `de4sdv_braking_request` held
+`active=true` through seq 2731 under `released_verified_stop` because the
+coordinator's sample-hold keeps the last braking sample while nominal control
+is republished. Every displayed value was individually correct; the
+presentation as a comparable pair was the defect, which this contract and the
+public HMI now prohibit.
+
+Forensic binding of the same evidence (observer monotonic clock ↔ app epoch
+via offset 1788183800.963 s): native ERROR diagnostics span 5141.04–5143.04;
+`braking_latched` 5141.04–5143.49; `released_verified_stop` from 5143.55; the
+app's INTERVENTION display latched the native diagnostic within ~3 ms. All
+443 post-release frames carried `braking=true` (sample-hold), 394/481
+target-bearing frames held an unchanged range value across polls, and the
+closest-point range reached 0.002 m at 6.94 m/s — the ego physically passed
+the simulated fixture point, a display-geometry fact that is not an AEBS
+decision and must not be rendered as one.
+
+## 12. Display Safety positioning (2026-08-30)
 
 This app is System 2 instrumentation rendered on the AAOS IVI partition by a
 Java application. It is NOT a Display Safety artifact: production AEBS
