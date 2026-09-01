@@ -92,9 +92,9 @@ class _ScopeGraph:
                 "Membership",
             }:
                 continue
-            self._relationship_scope_source(relationship)
             if element_id(relationship.get("owningRelatedElement")) != owner_id:
                 continue
+            self._relationship_scope_source(relationship)
             member_id = element_id(
                 relationship.get("memberElement")
                 or relationship.get("ownedRelatedElement")
@@ -109,12 +109,12 @@ class _ScopeGraph:
         for relationship in self.elements:
             if relationship.get("@type") != "FeatureTyping":
                 continue
-            self._relationship_scope_source(relationship)
             typed = element_id(
                 relationship.get("typedFeature") or relationship.get("specific")
             )
             if typed != usage_id:
                 continue
+            self._relationship_scope_source(relationship)
             target = element_id(relationship.get("type") or relationship.get("general"))
             if target:
                 self.require(target)
@@ -134,13 +134,13 @@ class _ScopeGraph:
         for relationship in self.elements:
             if relationship.get("@type") != "Dependency":
                 continue
-            self._relationship_scope_source(relationship)
             source_ids = set(
                 reference_ids(relationship.get("source"))
                 + reference_ids(relationship.get("client"))
             )
             if source_id not in source_ids:
                 continue
+            self._relationship_scope_source(relationship)
             target_ids = set(
                 reference_ids(relationship.get("target"))
                 + reference_ids(relationship.get("supplier"))
@@ -173,12 +173,12 @@ class _ScopeGraph:
         for relationship in self.elements:
             if relationship.get("@type") != "Subsetting":
                 continue
-            self._relationship_scope_source(relationship)
             general = element_id(
                 relationship.get("subsettedFeature") or relationship.get("general")
             )
             if general != variation_id:
                 continue
+            self._relationship_scope_source(relationship)
             specific = element_id(
                 relationship.get("subsettingFeature") or relationship.get("specific")
             )
