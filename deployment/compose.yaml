@@ -44,6 +44,9 @@ services:
 
   sysml2-api:
     # Built from the pinned Dockerfile in this repository.
+    # container_name is pinned so the host-side deploy script can resolve
+    # the API address deterministically via `docker inspect sysml2-api`.
+    container_name: sysml2-api
     build:
       context: ..
       dockerfile: deployment/sysml2-api/Dockerfile

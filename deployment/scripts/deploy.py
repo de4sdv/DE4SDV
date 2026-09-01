@@ -182,7 +182,7 @@ def api_base_url_from_docker() -> str:
                 "inspect",
                 "-f",
                 "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}",
-                "de4sdv-sysml2-api-1",
+                "sysml2-api",
             ],
             text=True,
         ).split()
@@ -267,7 +267,15 @@ def compose(*args: str, cwd: Path) -> None:
     env = dict(os.environ)
     env["DEPLOY_DIR"] = "/srv/de4sdv"
     subprocess.run(
-        ["docker", "compose", "--env-file", "/srv/de4sdv/sysml2-api.env", *args],
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(cwd / "deployment" / "compose.yaml"),
+            "--env-file",
+            "/srv/de4sdv/sysml2-api.env",
+            *args,
+        ],
         cwd=cwd,
         env=env,
         check=True,
