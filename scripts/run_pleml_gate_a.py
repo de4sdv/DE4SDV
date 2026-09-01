@@ -19,7 +19,7 @@ from de4sdv.sysml_api.baseline import BaselineExportBundle
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
 from de4sdv.sysml_api.repository import SysMLRepository, element_id
-from de4sdv.sysml_api.revisions import RevisionBinding
+from de4sdv.sysml_api.revisions import OntologyIdentity, RevisionBinding
 from tools.pleml_gate_a import (
     GateAModel,
     DerivationOutcome,
@@ -170,6 +170,13 @@ def run_gate_a(
     client = ApiClient(api_url)
     imported = import_baseline(client, bundle, project_name="DE4SDV PLEML Gate A")
     imported_at = datetime.now(timezone.utc).isoformat()
+    # The ontology contract is repository engineering data, not spike logic:
+    # bind the exact ontology file identity like the full-model import does.
+    ontology_path = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+    if not ontology_path.is_file():
+        raise RuntimeError(
+            f"Gate A ontology contract is missing: {ontology_path.name}"
+        )
     binding = RevisionBinding(
         git_repository=current_identity.git_repository,
         git_commit=bundle.git_commit,
@@ -178,6 +185,9 @@ def run_gate_a(
         import_timestamp=imported_at,
         import_tool_version="de4sdv-pleml-gate-a/v1",
         semantic_validation="passed",
+        ontology=OntologyIdentity.from_file(
+            ontology_path, repository_root=ROOT
+        ),
         scope="fixture",
     )
     binding.require_current(current_identity.git_commit)
