@@ -45,6 +45,14 @@ from .generate import (
     _local_branches,
     _materialize,
 )
+from .layout_sidecar import (
+    LAYOUT_DIRNAME,
+    delete_layout,
+    is_stale,
+    load_layout,
+    save_layout,
+    sha256_text,
+)
 
 
 @dataclass
@@ -154,12 +162,14 @@ class ViewerServer(ThreadingHTTPServer):
         out_dir: Path,
         roots: list[str],
         prs: bool,
+        editable: bool = False,
     ):
         super().__init__(addr, functools.partial(_Handler, directory=str(out_dir)))
         self.repo_root = repo_root
         self.out_dir = out_dir
         self.roots = roots
         self.prs = prs
+        self.editable = editable
         self.registry: dict[str, Target] = {}
         self.registry_at = 0.0
         self.build_locks: dict[str, threading.Lock] = {}
@@ -233,11 +243,18 @@ class ViewerServer(ThreadingHTTPServer):
             try:
                 for p in base.rglob("*.sysml"):
                     newest = max(newest, p.stat().st_mtime)
+                # saved diagram-layout sidecars participate in staleness so a
+                # layout save re-renders the affected pages on the next request
+                for p in base.rglob(f"{LAYOUT_DIRNAME}/*.layout.json"):
+                    newest = max(newest, p.stat().st_mtime)
             except OSError:
                 continue
         return newest
 
     def _worktree_stale(self) -> bool:
+        if self.editable:
+            newest = max(self._newest_model_time(), self._tool_code_time())
+            return self._site_stale(self.out_dir / "index.html", newest)
         return self._site_stale(self.out_dir / "index.html", self._newest_model_time())
 
     def _ref_stale(self, ref_dir: Path) -> bool:
@@ -265,6 +282,7 @@ class ViewerServer(ThreadingHTTPServer):
                     self.repo_root, self.out_dir, self.roots,
                     options=[("index.html", work_label, True, "", True)],
                     current="index.html",
+                    editable=self.editable,
                 ) != 0:
                     return False
             except Exception:
@@ -322,16 +340,21 @@ class ViewerServer(ThreadingHTTPServer):
 
 
 _MARKER = b"<script>window.__DE4SDV_VIEWER_SERVER__=true;</script>"
+_EDITOR_MARKER = b"<script>window.__DE4SDV_EDITOR__=true;</script>"
 
 
 class _Handler(SimpleHTTPRequestHandler):
-    """Static file serving + the /_refs manifest + on-demand ref builds."""
+    """Static file serving + the /_refs manifest + on-demand ref builds +
+    the diagram-layout save API (``/diagram-layout/<svg-rel-path>``)."""
 
     def do_GET(self) -> None:
         server = cast(ViewerServer, self.server)
         path = urlsplit(self.path).path
         if path == "/_refs":
             self._send_json(server.manifest())
+            return
+        if path.startswith("/diagram-layout/"):
+            self._serve_layout_get(server, path)
             return
         if path.endswith(".html"):
             # pick up working-tree model changes before serving pages
@@ -354,6 +377,111 @@ class _Handler(SimpleHTTPRequestHandler):
                 return
         super().do_GET()
 
+    # -- layout sidecar API -------------------------------------------------
+
+    def _layout_svg_path(self, server: ViewerServer, path: str) -> Path | None:
+        """/diagram-layout/<repo-relative svg path> -> Path, or None when the
+        path escapes the repository or the file is not a committed diagram."""
+        rel = urlsplit(path).path[len("/diagram-layout/"):]
+        svg = (server.repo_root / rel).resolve()
+        try:
+            svg.relative_to(server.repo_root.resolve())
+        except ValueError:
+            return None
+        if (
+            not svg.is_file()
+            or svg.suffix != ".svg"
+            or LAYOUT_DIRNAME in svg.parts
+            or "diagrams" not in svg.parts
+        ):
+            return None
+        return svg
+
+    def _serve_layout_get(self, server: ViewerServer, path: str) -> None:
+        svg = self._layout_svg_path(server, path)
+        if svg is None:
+            self.send_error(404, "no such committed diagram")
+            return
+        svg_text = svg.read_text(encoding="utf-8")
+        record = load_layout(svg)
+        base = sha256_text(
+            re.sub(r"^<\?xml[^>]*\?>", "", svg_text).lstrip()
+        )
+        if record is None:
+            self._send_json({"svg": str(svg.relative_to(server.repo_root)), "base": base, "layout": None})
+            return
+        stale = is_stale(record, re.sub(r"^<\?xml[^>]*\?>", "", svg_text).lstrip())
+        self._send_json({
+            "svg": str(svg.relative_to(server.repo_root)),
+            "base": base,
+            "stale": stale,
+            "layout": record["layout"],
+            "saved_at": record.get("saved_at", ""),
+        })
+
+    def do_PUT(self) -> None:
+        server = cast(ViewerServer, self.server)
+        path = urlsplit(self.path).path
+        if not path.startswith("/diagram-layout/"):
+            self.send_error(404)
+            return
+        if not server.editable:
+            self.send_error(403, "layout editing is off (start the editor server)")
+            return
+        svg = self._layout_svg_path(server, path)
+        if svg is None:
+            self.send_error(404, "no such committed diagram")
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > 2_000_000:
+            self.send_error(413, "layout payload too large")
+            return
+        try:
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            self.send_error(400, "invalid JSON body")
+            return
+        base = body.get("base")
+        layout = body.get("layout")
+        original = body.get("original") or {}
+        if not isinstance(base, str) or not base:
+            self.send_error(400, "missing 'base' (the diagram hash you edited)")
+            return
+        committed = re.sub(r"^<\?xml[^>]*\?>", "", svg.read_text(encoding="utf-8")).lstrip()
+        current = sha256_text(committed)
+        if base != current:
+            self._send_json({
+                "error": "stale-base",
+                "message": "The committed diagram changed since you loaded it.",
+                "current_base": current,
+            }, status=409)
+            return
+        try:
+            record = save_layout(svg, base, layout, original)
+        except ValueError as exc:
+            self._send_json({"error": "invalid-layout", "message": str(exc)}, status=400)
+            return
+        except FileNotFoundError:
+            self.send_error(404, "diagram gone")
+            return
+        self._send_json({"ok": True, "saved_at": record.get("saved_at", "")})
+
+    def do_DELETE(self) -> None:
+        server = cast(ViewerServer, self.server)
+        path = urlsplit(self.path).path
+        if not path.startswith("/diagram-layout/"):
+            self.send_error(404)
+            return
+        if not server.editable:
+            self.send_error(403, "layout editing is off (start the editor server)")
+            return
+        svg = self._layout_svg_path(server, path)
+        if svg is None:
+            self.send_error(404, "no such committed diagram")
+            return
+        removed = delete_layout(svg)
+        self._send_json({"ok": True, "removed": removed})
+
     def _serve_file_no_cache(self, fs_path: Path) -> None:
         try:
             body = fs_path.read_bytes()
@@ -370,16 +498,18 @@ class _Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def _serve_marked_html(self, fs_path: Path) -> None:
-        """Serve an HTML page stamped with the server marker so the picker
-        JS knows the dynamic revision list is available."""
+        """Serve an HTML page stamped with the server marker (and the editor
+        marker when editing is on) so the page JS knows which mode is
+        active."""
         try:
             body = fs_path.read_bytes()
         except OSError:
             self.send_error(404, "File not found")
             return
         head = body.find(b"</head>")
+        markers = _MARKER + (_EDITOR_MARKER if self.server.editable else b"")  # type: ignore[attr-defined]
         if head != -1:
-            body = body[:head] + _MARKER + body[head:]
+            body = body[:head] + markers + body[head:]
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -387,9 +517,9 @@ class _Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_json(self, data: dict) -> None:
+    def _send_json(self, data: dict, status: int = 200) -> None:
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self.send_response(200)
+        self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
@@ -407,9 +537,11 @@ def make_server(
     host: str = "127.0.0.1",
     port: int = 8787,
     prs: bool = True,
+    editable: bool = False,
 ) -> ViewerServer:
     """Create (not yet started) the viewer server; ensures the working-tree
-    site exists first."""
+    site exists first. With ``editable=True`` the working-tree site is built
+    with diagram-layout payloads and the layout save API is enabled."""
     repo_root = Path(repo_root).resolve()
     out_dir = Path(out_dir).resolve()
     roots = roots or DEFAULT_ROOTS
@@ -420,8 +552,9 @@ def make_server(
             repo_root, out_dir, roots,
             options=[("index.html", work_label, True, "", True)],
             current="index.html",
+            editable=editable,
         )
-    return ViewerServer((host, port), repo_root, out_dir, roots, prs)
+    return ViewerServer((host, port), repo_root, out_dir, roots, prs, editable)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -431,6 +564,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--host", default="127.0.0.1", help="bind address")
     parser.add_argument("--port", type=int, default=8787, help="bind port")
     parser.add_argument("--no-prs", action="store_true", help="skip GitHub PR refs")
+    parser.add_argument(
+        "--edit-layout", action="store_true",
+        help="enable the diagram layout editor (Edit layout buttons + save API)",
+    )
     args = parser.parse_args(argv)
 
     repo = Path(args.repo).resolve()
@@ -440,9 +577,13 @@ def main(argv: list[str] | None = None) -> int:
     server = make_server(
         repo, Path(args.out).resolve(),
         host=args.host, port=args.port, prs=not args.no_prs,
+        editable=args.edit_layout,
     )
     url = f"http://{args.host}:{server.server_address[1]}/"
     print(f"Serving the DE4SDV model viewer at {url}")
+    if args.edit_layout:
+        print("Diagram layout editing is ON: diagrams carry an Edit layout")
+        print("button; saved layouts go to <diagrams>/.de4sdv-diagrams/.")
     print("Pick any branch or PR in the Revision picker — the first view of")
     print("a ref generates it on demand (a few seconds), then it is cached.")
     try:

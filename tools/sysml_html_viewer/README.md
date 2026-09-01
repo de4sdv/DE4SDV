@@ -107,6 +107,30 @@ Switching to a revision that is not built yet shows a progress overlay
 ("Building revision …") while the server generates it; already-built
 revisions switch instantly.
 
+## Diagram layout editor (local, sidecar-based)
+
+```bash
+python -m tools.sysml_html_viewer.serve --repo . --port 8787 --edit-layout
+```
+
+With `--edit-layout`, every inlined committed diagram gains an **Edit
+layout** button. It opens a layout editor over the diagram: drag labels,
+drag boxes (body = move, edges = resize — compartment separators, inner
+labels and port symbols follow proportionally), drag connection lines, pan
+and Ctrl+wheel zoom, Ctrl/Cmd+Z undo, and **Save layout**.
+
+The save writes a layout **sidecar** next to the diagram
+(`<…>/diagrams/.de4sdv-diagrams/<diagram>.svg.layout.json`), never the
+committed SVG or the model. At render time the viewer applies the sidecar on
+the fly; the committed SysIDE artifacts stay the single rendering authority
+and ref sites / viewer.de4sdv.org render committed content only.
+
+Freshness fails closed: each sidecar records the committed diagram's hash. A
+re-rendered diagram makes the sidecar stale (notice + unchanged render
+instead of a half-applied layout). A sidecar can be committed to a branch
+and reviewed like any other change; the full user guide is rendered at
+`layout-editor.html` (source: `docs/guides/diagram-layout-editor.md`).
+
 ## Publishing for collaborators
 
 The published site shows **committed content only** — no local working

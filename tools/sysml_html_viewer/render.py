@@ -182,6 +182,7 @@ def _page_shell(
     filters: str = "",
     asset_stamp: str = "",
     uses_rel: str = "",
+    editor_rel: str = "",
 ) -> str:
     crumbs = " / ".join(
         f'<a href="{esc(href)}">{esc(label)}</a>' for label, href in breadcrumbs
@@ -195,6 +196,19 @@ def _page_shell(
     uses_tag = (
         f'<script src="{esc(uses_rel)}"></script>' if uses_rel else ""
     )
+    editor_tags = ""
+    if editor_rel:
+        base = editor_rel[:-3] if editor_rel.endswith(".js") else editor_rel
+        editor_tags = (
+            f'<link rel="stylesheet" href="{esc(base)}.css">'
+            f'<script src="{esc(base)}.js"></script>'
+        )
+        header_links = (
+            f'  <a class="site-chat" href="{esc(search_prefix + "layout-editor.html")}">Layout</a>\n'
+            f"  {picker}\n"
+        )
+    else:
+        header_links = f"  {picker}\n"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -218,7 +232,7 @@ def _page_shell(
   <a class="site-chat" href="{esc(search_prefix + 'help.html')}">Help</a>
   <a class="site-chat" href="{esc(search_prefix + 'elements.html')}">Elements</a>
   <a class="site-chat" href="{esc(search_prefix + 'requirements.html')}">Needs &amp; Reqs</a>
-  {picker}
+  {header_links}
 </header>
 <div class="layout">
   <nav class="tree-pane" aria-label="Model navigation">
@@ -241,6 +255,7 @@ def _page_shell(
   </main>
 </div>
 <script src="{esc(js_rel)}"></script>
+{editor_tags}
 </body>
 </html>
 """
@@ -659,6 +674,7 @@ def _render_view_block(
     anchor_counter: dict[str, int],
     blob_base: str = "",
     external_ref: bool = False,
+    layout_ctx: dict | None = None,
 ) -> str:
     anchor = make_anchor(anchor_counter, v.name)
     artifact = artifact_filename(v.name, v.view_type)
@@ -676,24 +692,67 @@ def _render_view_block(
             svg_rel = repo_prefix + (Path(mf.rel_path).parent / "diagrams" / artifact).as_posix()
         svg_markup = _inline_svg(svg_abs)
         if svg_markup:
+            layout_status = None
+            layout_meta = None
+            if layout_ctx is not None:
+                svg_markup, layout_status, layout_meta = layout_ctx["loader"](
+                    svg_abs, svg_markup
+                )
             svg_info_json = _svg_hover_json(svg_markup, v, mf, member_index, prefix)
             raw_link = (
                 f' <a href="{esc(svg_rel)}" target="_blank" rel="noopener">open raw SVG</a>.'
                 if svg_rel
                 else "."
             )
+            stale_html = ""
+            if layout_status and layout_status.get("stale"):
+                stale_html = (
+                    '<div class="diagram-layout-stale"><strong>Saved layout is '
+                    "stale.</strong> The committed diagram changed after the layout "
+                    "was saved, so it is not applied. Reset it or re-save from the "
+                    "layout editor.</div>"
+                )
+            skipped_html = ""
+            if layout_status and layout_status.get("skipped"):
+                n = len(layout_status["skipped"])
+                skipped_html = (
+                    f'<p class="muted diagram-layout-note">{n} saved layout op(s) '
+                    "could not be applied (the diagram geometry changed since the "
+                    "layout was saved).</p>"
+                )
+            edit_btn = (
+                '<button type="button" class="diagram-edit-btn" hidden '
+                'title="Edit the diagram layout (local layout sidecar)">'
+                "Edit layout</button>"
+                if layout_meta
+                else ""
+            )
+            layout_json = ""
+            if layout_meta:
+                layout_json = (
+                    '<script type="application/json" class="diagram-layout" '
+                    f'data-for="{esc(anchor)}">'
+                    + json.dumps(layout_meta, sort_keys=True, ensure_ascii=False).replace(
+                        "</", "<\\/"
+                    )
+                    + "</script>"
+                )
             diagram_html = (
                 f'<div class="diagram-frame interactive" data-view="{esc(anchor)}">'
                 f'<div class="diagram-toolbar">'
                 f'<span class="diagram-toolbar-file">{esc(artifact)}</span>'
+                f"{edit_btn}"
                 f'<button type="button" class="diagram-fs-btn" '
                 f'title="Fullscreen (Esc to close)">&#x26F6; Fullscreen</button>'
                 f"</div>"
+                f"{stale_html}"
                 f'<div class="diagram-scroll">{svg_markup}</div>'
                 f"</div>"
                 f'<p class="muted">Hover a model element for details{raw_link}</p>'
+                f"{skipped_html}"
                 f'<script type="application/json" class="diagram-info" '
                 f'data-for="{esc(anchor)}">{svg_info_json}</script>'
+                f"{layout_json}"
             )
         else:
             diagram_html = _diagram_missing(artifact, svg_rel)
@@ -764,12 +823,13 @@ def render_file_page(
     search_prefix: str = "",
     filters: str = "",
     asset_stamp: str = "",
+    layout_ctx: dict | None = None,
 ) -> str:
     anchor_counter: dict[str, int] = {}
     views_html = "".join(
         _render_view_block(
             v, mf, repo_prefix, prefix, member_index, anchor_counter,
-            blob_base, external_ref,
+            blob_base, external_ref, layout_ctx,
         )
         for v in mf.views
     )
@@ -804,4 +864,5 @@ def render_file_page(
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
         picker=picker, search_prefix=search_prefix, filters=filters,
         asset_stamp=asset_stamp, uses_rel=prefix + "assets/uses-index.js",
+        editor_rel=(prefix + "assets/editor_layout") if layout_ctx else "",
     )

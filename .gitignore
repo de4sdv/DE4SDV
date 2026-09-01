@@ -45,3 +45,8 @@ implementation/*/evidence/**/profiles/*/scenario-evidence.validated-superseded.j
 implementation/*/evidence/**/profiles/*/runs/**/SUPERSEDED.md
 # Generated static model viewer site
 build/
+
+# Diagram layout sidecars — local working-tree state by default. A sidecar
+# is only committed when its author deliberately `git add -f`s it to propose
+# an arrangement (see docs/guides/diagram-layout-editor.md).
+.de4sdv-diagrams/

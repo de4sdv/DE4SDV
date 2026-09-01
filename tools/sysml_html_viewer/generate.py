@@ -537,6 +537,17 @@ def _elements_html(repo_root: Path) -> str:
     )
 
 
+def _layout_editor_html(repo_root: Path) -> str:
+    """The diagram layout editor guide (docs/guides/diagram-layout-editor.md)."""
+    return _docs_page_html(
+        repo_root,
+        "docs/guides/diagram-layout-editor.md",
+        "DE4SDV Model Viewer — Diagram Layout Editor",
+        "No layout editor guide found. It lives in the "
+        "repository at <code>docs/guides/diagram-layout-editor.md</code>.",
+    )
+
+
 def _render_help_md(text: str, link_path: str = "") -> str:
     """Convert the help markdown subset to HTML body content.
 
@@ -781,8 +792,15 @@ def _build_site(
     options: list[tuple[str, str, bool, str, bool]] | None = None,
     current: str = "index.html",
     external_ref: bool = False,
+    editable: bool = False,
 ) -> int:
-    """Build one complete viewer site from the files under repo_root."""
+    """Build one complete viewer site from the files under repo_root.
+
+    ``editable=True`` marks every inlined committed diagram with an
+    (initially hidden) Edit-layout button and embeds the per-diagram layout
+    payload; the editor script reveals the buttons only when the page is
+    served by the local editor server (``window.__DE4SDV_EDITOR__``).
+    """
     files = load_model(repo_root, roots)
     if not files:
         print("No .sysml files found under the given roots.", file=sys.stderr)
@@ -792,6 +810,12 @@ def _build_site(
     _annotate_tree(tree)
     stats = count_stats(files)
     filters_html = _filter_html(tree, files)
+
+    layout_ctx = None
+    if editable:
+        from .layout_sidecar import diagram_layout_context
+
+        layout_ctx = diagram_layout_context(repo_root)
 
     diagrams = sum(
         1
@@ -814,6 +838,13 @@ def _build_site(
     shutil.copyfile(css_src, assets_dir / "viewer.css")
     js_src = Path(__file__).parent / "viewer.js"
     shutil.copyfile(js_src, assets_dir / "viewer.js")
+    if editable:
+        shutil.copyfile(
+            Path(__file__).parent / "editor_layout.js", assets_dir / "editor_layout.js"
+        )
+        shutil.copyfile(
+            Path(__file__).parent / "editor.css", assets_dir / "editor.css"
+        )
 
     # reverse index: declaration -> views whose diagram shows it
     uses_index = _uses_index(files, build_member_index(files))
@@ -827,9 +858,11 @@ def _build_site(
     # content stamp so browsers never serve stale assets (file:// caching)
     import hashlib
 
-    stamp = hashlib.sha1(
-        css_src.read_bytes() + js_src.read_bytes() + uses_js.encode("utf-8")
-    ).hexdigest()[:10]
+    stamp_src = css_src.read_bytes() + js_src.read_bytes() + uses_js.encode("utf-8")
+    if editable:
+        stamp_src += (Path(__file__).parent / "editor_layout.js").read_bytes()
+        stamp_src += (Path(__file__).parent / "editor.css").read_bytes()
+    stamp = hashlib.sha1(stamp_src).hexdigest()[:10]
 
     if options is None:
         options = [("index.html", "working tree", True, "", True)]
@@ -848,6 +881,9 @@ def _build_site(
     )
     (out_dir / "help.html").write_text(_help_html(repo_root), encoding="utf-8")
     (out_dir / "elements.html").write_text(_elements_html(repo_root), encoding="utf-8")
+    (out_dir / "layout-editor.html").write_text(
+        _layout_editor_html(repo_root), encoding="utf-8"
+    )
 
     # requirements browser page (site root, tree + filters, one card per record)
     from .requirements_data import collect_requirement_records
@@ -922,6 +958,7 @@ def _build_site(
                 prefix,
                 filters_html,
                 stamp,
+                layout_ctx,
             ),
             encoding="utf-8",
         )
@@ -943,6 +980,7 @@ def generate(
     refs: str | None = None,
     prs: bool = True,
     public: bool = False,
+    editable: bool = False,
 ) -> int:
     """Build the working tree at the site root plus one sub-site per ref.
 
@@ -1003,6 +1041,7 @@ def generate(
     rc = _build_site(
         repo_root, out_dir, roots,
         blob_base=blob_base, options=options, current="index.html",
+        editable=editable,
     )
     if rc != 0:
         return rc
