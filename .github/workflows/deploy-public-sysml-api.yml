@@ -128,8 +128,20 @@ jobs:
           path = (meta.get("path") or "")
           if path != expected_path:
               problems.append(f"workflow path {path!r} != {expected_path!r}")
-          if meta.get("repository", "").lower() != os.environ["GITHUB_REPOSITORY"].lower():
-              problems.append(f"repository {meta.get('repository')!r} != {os.environ['GITHUB_REPOSITORY']!r}")
+          # GitHub returns `repository` as an OBJECT (with full_name), not a
+          # string. Require the object and its exact full_name; fail closed
+          # if either is missing.
+          repository = meta.get("repository")
+          if not isinstance(repository, dict):
+              problems.append(f"repository is not an object: {repository!r}")
+          else:
+              full_name = repository.get("full_name")
+              if not isinstance(full_name, str) or not full_name:
+                  problems.append("repository.full_name is missing")
+              elif full_name.lower() != os.environ["GITHUB_REPOSITORY"].lower():
+                  problems.append(
+                      f"repository.full_name {full_name!r} != {os.environ['GITHUB_REPOSITORY']!r}"
+                  )
           if problems:
               print("Privileged run verification FAILED:", *problems, sep="\n  - ", file=sys.stderr)
               sys.exit(1)

@@ -392,8 +392,10 @@ def test_workflow_verifies_explicit_run_metadata() -> None:
 def test_workflow_run_metadata_fixture_rejects_wrong_run_and_accepts_real_shape() -> None:
     """Focused fixture using the ACTUAL GitHub Actions workflow-run metadata
     shape: 'path' is '.github/workflows/<file>' (no leading slash, no
-    repository prefix). The verifier must require exact equality with that
-    form and must also check repository and head_sha."""
+    repository prefix) and 'repository' is a nested OBJECT whose 'full_name'
+    is 'owner/repo'. The verifier must require exact workflow-path equality,
+    check repository.full_name against the expected repository, and fail
+    closed on missing repository/full_name."""
     wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
         encoding="utf-8"
     )
@@ -401,32 +403,79 @@ def test_workflow_run_metadata_fixture_rejects_wrong_run_and_accepts_real_shape(
     assert "f\".github/workflows/{os.environ['PRIVILEGED_WORKFLOW_FILE']}\"" in wf
     # the old endswith form must be gone (it rejected the real response)
     assert "path.endswith(" not in wf
-    # repository equality check is required (finding 6 scope)
-    assert 'meta.get("repository"' in wf
+    # repository must be treated as an object with full_name
+    assert "not isinstance(repository, dict)" in wf
+    assert 'repository.get("full_name")' in wf
+    # the old string-shape check must be gone
+    assert 'meta.get("repository", "").lower()' not in wf
 
-    # Reproduce the exact verifier logic against real-shape metadata:
+    # ---- Reproduce the exact verifier logic against real-shape metadata ----
+    def run_verifier(meta: dict, expected_repo: str = "de4sdv/DE4SDV") -> list[str]:
+        sha = "a" * 40
+        expected_path = ".github/workflows/privileged-full-model-api-ingestion.yml"
+        problems = []
+        if meta.get("head_sha") != sha:
+            problems.append(f"head_sha {meta.get('head_sha')} != requested {sha}")
+        if meta.get("conclusion") != "success":
+            problems.append(f"conclusion is {meta.get('conclusion')}, not success")
+        path = (meta.get("path") or "")
+        if path != expected_path:
+            problems.append(f"workflow path {path!r} != {expected_path!r}")
+        repository = meta.get("repository")
+        if not isinstance(repository, dict):
+            problems.append(f"repository is not an object: {repository!r}")
+        else:
+            full_name = repository.get("full_name")
+            if not isinstance(full_name, str) or not full_name:
+                problems.append("repository.full_name is missing")
+            elif full_name.lower() != expected_repo.lower():
+                problems.append(
+                    f"repository.full_name {full_name!r} != {expected_repo!r}"
+                )
+        return problems
+
+    # Real GitHub workflow-run response shape (repository is a nested object):
     real_meta = {
         "id": 1234567890,
         "head_sha": "a" * 40,
         "conclusion": "success",
         "path": ".github/workflows/privileged-full-model-api-ingestion.yml",
-        "repository": "de4sdv/DE4SDV",
+        "repository": {
+            "id": 900000000,
+            "name": "DE4SDV",
+            "full_name": "de4sdv/DE4SDV",
+            "private": False,
+        },
     }
-    sha = "a" * 40
-    expected_path = ".github/workflows/privileged-full-model-api-ingestion.yml"
-    problems = []
-    if real_meta.get("head_sha") != sha:
-        problems.append("head_sha")
-    if real_meta.get("conclusion") != "success":
-        problems.append("conclusion")
-    if (real_meta.get("path") or "") != expected_path:
-        problems.append("path")
-    if real_meta.get("repository", "").lower() != "de4sdv/DE4SDV".lower():
-        problems.append("repository")
-    assert problems == []
-    # A wrong workflow (e.g. the CI workflow) must be rejected:
-    wrong_meta = dict(real_meta, path=".github/workflows/ci.yml")
-    assert wrong_meta["path"] != expected_path
+    assert run_verifier(real_meta) == []
+
+    # Negative: repository object missing entirely.
+    missing_repo = {k: v for k, v in real_meta.items() if k != "repository"}
+    assert any("repository is not an object" in p for p in run_verifier(missing_repo))
+    # repository as a plain string (the old wrong assumption) must also fail.
+    assert any(
+        "repository is not an object" in p
+        for p in run_verifier(dict(real_meta, repository="de4sdv/DE4SDV"))
+    )
+    # Negative: full_name missing.
+    assert any(
+        "full_name is missing" in p
+        for p in run_verifier(dict(real_meta, repository={"id": 1, "name": "DE4SDV"}))
+    )
+    # Negative: wrong full_name.
+    assert any(
+        "repository.full_name" in p
+        for p in run_verifier(dict(real_meta, repository={"full_name": "attacker/DE4SDV"}))
+    )
+    # Negative: wrong workflow path must still be rejected.
+    assert any(
+        "workflow path" in p
+        for p in run_verifier(dict(real_meta, path=".github/workflows/ci.yml"))
+    )
+    # Negative: wrong head_sha must still be rejected.
+    assert any(
+        "head_sha" in p for p in run_verifier(dict(real_meta, head_sha="b" * 40))
+    )
 
 
 def test_workflow_permissions_are_read_only_minimum() -> None:
