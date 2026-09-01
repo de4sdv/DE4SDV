@@ -35,6 +35,9 @@ class SemanticQueryService:
     _element_cache: list[dict[str, Any]] | None = field(
         default=None, init=False, repr=False
     )
+    _impact_cache: dict[str, dict[str, Any]] = field(
+        default_factory=dict, init=False, repr=False
+    )
 
     def _revision(self) -> dict[str, str]:
         return {
@@ -279,10 +282,15 @@ class SemanticQueryService:
         }
 
     def impact(self, identifier: str) -> dict[str, Any]:
-        self._require_current_full_model()
-        return self.impact_service.impact(
-            identifier, git_revision=self.expected_git_revision
-        )
+        resolution, _ = self._resolve(identifier)
+        root_id = element_id(resolution.element)
+        if root_id is None:
+            raise ValueError("impact root has no API UUID")
+        if root_id not in self._impact_cache:
+            self._impact_cache[root_id] = self.impact_service.impact(
+                root_id, git_revision=self.expected_git_revision
+            )
+        return self._impact_cache[root_id]
 
     def trace(
         self, source_identifier: str, target_identifier: str, *, max_depth: int = 4
