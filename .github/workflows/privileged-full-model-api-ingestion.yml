@@ -11,7 +11,11 @@ on:
       - "model-based-product-line-engineering/product-models/**/*.sysml"
       - "scripts/export_sysml_api_baseline.py"
       - "scripts/import_sysml_api_baseline.py"
+      - "scripts/semantic_mcp_server.py"
+      - "scripts/validate_semantic_mcp.py"
       - "scripts/validate_full_model_semantic_queries.py"
+      - "requirements-mcp.txt"
+      - "tests/test_semantic_mcp.py"
       - "tests/test_sysml_full_ingestion.py"
       - "textual-notation-of-model/**/*.sysml"
 
@@ -24,7 +28,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     services:
       postgres:
         image: postgres:16
@@ -65,7 +69,8 @@ jobs:
         run: |
           test -n "$SYSIDE_LICENSE_KEY"
           python -m pip install --disable-pip-version-check \
-            "syside==0.10.3" "PyYAML==6.0.2" "pytest==8.4.2"
+            "syside==0.10.3" "PyYAML==6.0.2" "pytest==8.4.2" \
+            -r requirements-mcp.txt
 
       - name: Export reviewed baseline with Syside
         env:
@@ -117,9 +122,20 @@ jobs:
             --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
             --output /tmp/de4sdv-full-model-semantic-query-coverage.json
 
+      - name: Exercise read-only semantic MCP tools
+        run: |
+          python scripts/validate_semantic_mcp.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --expected-git-revision "$(git rev-parse HEAD)" \
+            --output /tmp/de4sdv-semantic-mcp-validation.json
+
       - name: Run production-ingestion tests
         run: |
-          python -m pytest tests/test_sysml_full_ingestion.py tests/test_sysml_api_semantic.py -q
+          python -m pytest \
+            tests/test_sysml_full_ingestion.py \
+            tests/test_sysml_api_semantic.py \
+            tests/test_semantic_mcp.py -q
 
       - name: Upload exact-head ingestion evidence
         if: always()
@@ -132,4 +148,6 @@ jobs:
             /tmp/de4sdv-full-model-binding.json
             /tmp/de4sdv-full-model-semantic-validation.json
             /tmp/de4sdv-full-model-semantic-query-coverage.json
+            /tmp/de4sdv-semantic-mcp-validation.json
+            /tmp/de4sdv-full-model-export.json
             /tmp/sysml-api.log

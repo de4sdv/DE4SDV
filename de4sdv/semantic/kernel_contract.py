@@ -8,6 +8,11 @@ from typing import Any
 
 import yaml
 
+from de4sdv.sysml_api.revisions import OntologyIdentity
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
 
 @dataclass(frozen=True)
 class KernelFileMapping:
@@ -39,6 +44,7 @@ class RelationshipMapping:
 @dataclass(frozen=True)
 class KernelContract:
     source: Path
+    identity: OntologyIdentity
     governed_directory: str
     exclusions: dict[str, dict[str, str]]
     classes: dict[str, dict[str, Any]]
@@ -64,7 +70,14 @@ class KernelContract:
             raise ValueError("ontology classes must be a non-empty mapping")
         if not isinstance(relationships, dict):
             raise ValueError("ontology relationships must be a mapping")
-        return cls(path, governed, exclusions, classes, relationships)
+        return cls(
+            path,
+            OntologyIdentity.from_file(path, repository_root=ROOT),
+            governed,
+            exclusions,
+            classes,
+            relationships,
+        )
 
     def mapping(self, ontology_class: str) -> KernelMapping:
         try:
