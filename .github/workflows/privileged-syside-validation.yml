@@ -10,11 +10,12 @@ on:
       model_paths:
         description: "Space-separated model files or directories to validate together"
         required: true
-        default: "textual-notation-of-model model-based-product-line-engineering/product-models"
+        default: "textual-notation-of-model model-based-product-line-engineering/product-models model-based-product-line-engineering/scoping"
   pull_request:
     paths:
       - "textual-notation-of-model/**/*.sysml"
       - "model-based-product-line-engineering/product-models/**/*.sysml"
+      - "model-based-product-line-engineering/scoping/**/*.sysml"
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
@@ -36,6 +37,7 @@ on:
     paths:
       - "textual-notation-of-model/**/*.sysml"
       - "model-based-product-line-engineering/product-models/**/*.sysml"
+      - "model-based-product-line-engineering/scoping/**/*.sysml"
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
@@ -67,7 +69,7 @@ jobs:
       )
     runs-on: ubuntu-latest
     env:
-      MODEL_PATHS: ${{ inputs.model_paths || 'textual-notation-of-model model-based-product-line-engineering/product-models' }}
+      MODEL_PATHS: ${{ inputs.model_paths || 'textual-notation-of-model model-based-product-line-engineering/product-models model-based-product-line-engineering/scoping' }}
     steps:
       - name: Checkout reviewed ref
         uses: actions/checkout@v4
