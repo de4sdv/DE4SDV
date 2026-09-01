@@ -31,8 +31,13 @@ public class VisualizationStateReducerTest {
         reducer.onFrame(frame(1, false, false, false, "armed"), T0);
         assertEquals(VisualizationStateReducer.Disposition.UNAVAILABLE, reducer.disposition());
         reducer.onFrame(frame(2, false, false, false, "armed"), T0 + 10);
-        reducer.onFrame(frame(3, false, false, false, "armed"), T0 + 20);
-        assertEquals(VisualizationStateReducer.Disposition.MONITORING, reducer.disposition());
+        // Third consecutive frame exits UNAVAILABLE into the transient RESTORED
+        // indication (SysML VisualizationPresentationMachine); MONITORING comes
+        // after the RESTORED hold expires via onTick.
+        assertEquals(VisualizationStateReducer.Disposition.RESTORED,
+                reducer.onFrame(frame(3, false, false, false, "armed"), T0 + 20));
+        assertEquals(VisualizationStateReducer.Disposition.MONITORING,
+                reducer.onTick(T0 + 20 + 2_000 + 1));
     }
 
     @Test

@@ -1,0 +1,55 @@
+segment_id: INC-AEBS-010-final-hmi-continuous-20260831
+captured_at: "2026-08-31T15:08:52Z"
+environment:
+  cloud: "project-7ddd343e-32e9-4351-91b, single-VM nested-virtualization bench"
+  guest: "sdv_ivi_cf, dynamic adb port 6529, physical display 1080x600"
+  app: "De4sdvAebsVisualizationApp final-hmi-v20, schema_minor 1"
+  bench: "pinned Autoware f603d875 + 009B moving-target scenario"
+recordings:
+  raw:
+    file: "final-hmi-v20/live-v20-final-hmi-continuous.mp4"
+    duration_s: 55.1202
+    dimensions: "1080x600"
+    ui_generation: final-hmi-v20
+    continuous_take: true
+  final_cut:
+    file: "linkedin-cut-pro.mp4"
+    duration_s: 16.6
+    dimensions: "1080x600"
+    construction: "one unbroken 0.0-12.6 s segment from the raw take, followed by a separate 4.0 s end card"
+    mixed_ui_generations: false
+observed_lifecycle:
+  monitoring: "1788188933.304; 24 km/h; no target facts"
+  warning: "1788188941.008; 24 target points; range 22.94 m; threshold 14.33 m"
+  intervention: "1788188942.009; braking request true; range 17.53 m; threshold 14.38 m"
+  released: "1788188944.504; released_verified_stop; ego speed 0.0 m/s"
+observer:
+  activation_authority: "scenario_observer was the sole target-activation authority"
+  disposition: pass_observed_chain
+  raw: "final-hmi-v20/observer-raw.json"
+  correlated_app_frames: "final-hmi-v20/app-frame.log"
+  state_extract: "final-hmi-v20/state-events.txt"
+presentation_semantics:
+  rss_distance_field: "unchanged wire/provenance field"
+  human_label: "AEB braking threshold"
+  reference_geometry: "stable light-gray line; never colored from reducer disposition"
+  state_authority: "VisualizationStateReducer only; text, shape and color"
+  point_cluster: "obstacle points only; no object classification"
+claims:
+  - "One final UI generation visibly covers MONITORING → WARNING → INTERVENTION → RELEASED."
+  - "The speed card, ego reference, obstacle points, range, threshold, state, health and provenance remain present whenever their accepted frame facts are available."
+  - "The AAOS screenshot and raw recording were captured from the real 1080x600 Cuttlefish display."
+  - "The application remains read-only engineering instrumentation and issues no vehicle commands."
+bench_deviations:
+  - "SELinux permissive on the diagnostic guest."
+  - "ACL policy provisioned on the bench system image."
+  - "The observer proves the bounded scenario chain; it does not make a safety, compliance or physical brake-performance claim."
+supersession:
+  - "linkedin-cut-pro.mp4 now contains only final-hmi-v20 footage; the prior mixed-generation cut was replaced."
+  - "live-v17-pro-ui.mp4, live-v19-pro-ui.mp4 and live-v9-full-arc.mp4 remain historical development evidence and are not the final showcase."
+known_limitations:
+  - "The obstacle remains an unclassified simulated point cluster."
+  - "The raw take continues after RELEASED; the final cut removes only the idle tail and performs no state substitution or slow motion."
+  - "No audio is generated or claimed."
+checksums: "final-hmi-v20/SHA256SUMS"
+disposition: observed_bounded

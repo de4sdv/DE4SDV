@@ -26,6 +26,7 @@ from .frame_assembler import (
 
 TOPIC_RSS = "/control/autonomous_emergency_braking/debug/rss_distance"
 TOPIC_CLOUD = "/control/autonomous_emergency_braking/debug/obstacle_pointcloud"
+TOPIC_ODOM = "/localization/kinematic_state"
 TOPIC_DIAGNOSTICS = "/diagnostics"
 TOPIC_WARNING = "/de4sdv/aebs_009b/warning_request"
 TOPIC_BRAKING = "/de4sdv/aebs_009b/emergency_braking_request"
@@ -61,9 +62,28 @@ class SourceAdapter:
     def __init__(self, assembler: FrameAssembler, now_ns) -> None:  # noqa: ANN001 - callable
         self._assembler = assembler
         self._now_ns = now_ns
-        self._last_cloud_projection: tuple[float, float] | None = None
+        self._last_cloud_receipt_ns: int | None = None
 
     # -- native AEB ---------------------------------------------------------
+
+    def on_kinematic_state(self, msg: Any) -> None:
+        # Bench kinematic state (Odometry). Speed = |twist linear x| (base_link).
+        stamp_ns = _stamp_ns(getattr(msg, "header", None) and msg.header.stamp)
+        if stamp_ns <= 0:
+            stamp_ns = self._now_ns()
+        # nav_msgs/Odometry: twist is TwistWithCovariance with an INNER .twist (geometry Twist).
+        twist = getattr(msg, "twist", None)
+        inner = getattr(twist, "twist", None) if twist is not None else None
+        if inner is None:
+            inner = twist  # tolerate a bare geometry_msgs/Twist payload
+        linear = getattr(inner, "linear", None) if inner is not None else None
+        speed = getattr(linear, "x", None) if linear is not None else None
+        if speed is None:
+            return
+        self._assembler.observe_ego_speed(
+            SourceObservation(TOPIC_ODOM, {"source_timestamp_ns": stamp_ns}, self._now_ns()),
+            abs(float(speed)),
+        )
 
     def on_rss_distance(self, msg: Any) -> None:
         stamp_ns = _stamp_ns(getattr(msg, "stamp", None))
@@ -75,17 +95,47 @@ class SourceAdapter:
         )
 
     def on_obstacle_pointcloud(self, msg: Any) -> None:
-        stamp_ns = _stamp_ns(getattr(msg, "header", None) and msg.header.stamp)
-        if stamp_ns <= 0:
+        header = getattr(msg, "header", None)
+        stamp_ns = _stamp_ns(header and header.stamp)
+        # The pinned AEB collision geometry is evaluated in base_link. Reject
+        # another/empty frame instead of mislabeling the display projection.
+        coordinate_frame = str(getattr(header, "frame_id", "") or "")
+        if stamp_ns <= 0 or coordinate_frame != "base_link":
             return
         projection = project_closest_point_range_bearing(msg)
         if projection is None:
             return
         range_m, bearing_rad = projection
+        receipt_ns = self._now_ns()
+        self._last_cloud_receipt_ns = receipt_ns
         self._assembler.observe_obstacle_projection(
-            SourceObservation(TOPIC_CLOUD, {"source_timestamp_ns": stamp_ns}, self._now_ns()),
+            SourceObservation(
+                TOPIC_CLOUD,
+                {"source_timestamp_ns": stamp_ns, "coordinate_frame": coordinate_frame},
+                receipt_ns,
+            ),
             range_m, bearing_rad,
         )
+        points = downsample_cluster_points(msg, max_points=24)
+        self._assembler.observe_target_points(
+            SourceObservation(
+                TOPIC_CLOUD,
+                {"source_timestamp_ns": stamp_ns, "coordinate_frame": coordinate_frame},
+                receipt_ns,
+            ),
+            points,
+        )
+
+    def expire_obstacle_projection(self, *, now_ns: int, max_age_ns: int) -> None:
+        """Fail closed when the filtered obstacle-cloud source stops updating."""
+        if max_age_ns <= 0:
+            raise ValueError("max_age_ns must be positive")
+        if (
+            self._last_cloud_receipt_ns is not None
+            and now_ns - self._last_cloud_receipt_ns > max_age_ns
+        ):
+            self._assembler.clear_obstacle_projection()
+            self._last_cloud_receipt_ns = None
 
     def on_diagnostics(self, msg: Any) -> None:
         stamp_ns = _stamp_ns(getattr(msg, "header", None) and msg.header.stamp)
@@ -103,11 +153,14 @@ class SourceAdapter:
     # -- DE4SDV coordinator -------------------------------------------------
 
     def on_warning_request(self, msg: Any) -> None:
-        stamp_ns = _stamp_ns(getattr(msg, "stamp", None))
-        if stamp_ns <= 0:
-            return
+        receipt_ns = self._now_ns()
+        # The accepted 009B coordinator publishes std_msgs/Bool (no Header).
+        # Preserve live participation without changing that predecessor: when
+        # no source stamp exists, record the adapter receipt as the bounded
+        # execution timestamp and retain this limitation as a counterclaim.
+        stamp_ns = _stamp_ns(getattr(msg, "stamp", None)) or receipt_ns
         self._assembler.observe_warning_request(
-            SourceObservation(TOPIC_WARNING, {"source_timestamp_ns": stamp_ns}, self._now_ns()),
+            SourceObservation(TOPIC_WARNING, {"source_timestamp_ns": stamp_ns}, receipt_ns),
             bool(getattr(msg, "data", False)),
         )
 
@@ -123,11 +176,12 @@ class SourceAdapter:
         )
 
     def on_coordination_state(self, msg: Any) -> None:
-        stamp_ns = _stamp_ns(getattr(msg, "stamp", None))
-        if stamp_ns <= 0:
-            return
+        receipt_ns = self._now_ns()
+        # The accepted 009B lifecycle topic is std_msgs/String and therefore
+        # has no source stamp; use the bounded adapter receipt as above.
+        stamp_ns = _stamp_ns(getattr(msg, "stamp", None)) or receipt_ns
         self._assembler.observe_lifecycle_state(
-            SourceObservation(TOPIC_LIFECYCLE, {"source_timestamp_ns": stamp_ns}, self._now_ns()),
+            SourceObservation(TOPIC_LIFECYCLE, {"source_timestamp_ns": stamp_ns}, receipt_ns),
             str(getattr(msg, "data", "")),
         )
 
@@ -167,6 +221,40 @@ def project_closest_point_range_bearing(msg: Any) -> tuple[float, float] | None:
             if best is None or range_m < best[0]:
                 best = (range_m, math.atan2(y, x))
     return best
+
+
+def downsample_cluster_points(msg: Any, max_points: int = 24) -> list[tuple[float, float]]:
+    """Downsample the filtered cloud to bounded (forward, lateral) points.
+
+    Deterministic grid-stride selection over finite positive-x points so the
+    rendered cluster shape is stable frame to frame. Pure, like the closest-
+    point projection.
+    """
+    fields = getattr(msg, "fields", None) or []
+    x_field = next((f for f in fields if getattr(f, "name", "") == "x"), None)
+    y_field = next((f for f in fields if getattr(f, "name", "") == "y"), None)
+    point_step = int(getattr(msg, "point_step", 0) or 0)
+    if x_field is None or y_field is None or point_step <= 0:
+        return []
+    import math
+    import struct
+
+    endian = ">" if getattr(msg, "is_bigendian", False) else "<"
+    raw = bytes(getattr(msg, "data", b"") or b"")
+    pts: list[tuple[float, float]] = []
+    for offset in range(0, len(raw) - point_step + 1, point_step):
+        try:
+            x = struct.unpack_from(endian + "f", raw, offset + x_field.offset)[0]
+            y = struct.unpack_from(endian + "f", raw, offset + y_field.offset)[0]
+        except struct.error:
+            break
+        if math.isfinite(x) and math.isfinite(y) and x > 0.0:
+            pts.append((x, y))
+    if not pts:
+        return []
+    pts.sort()
+    stride = max(1, len(pts) // max_points)
+    return pts[::stride][:max_points]
 
 
 class FrameServer:
@@ -227,3 +315,57 @@ def encode_frame_json(frame: dict) -> bytes:
     testing and is never used as AAOS evidence.
     """
     return json.dumps(frame, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def encode_frame_protobuf(frame: dict) -> bytes:
+    """Encode one validated assembler frame with the authoritative wire schema.
+
+    ``aebs_visualization_pb2`` is generated from ``interface/
+    aebs_visualization.proto`` into the ROS package during the runtime build;
+    generated code is not maintained as a second source contract.
+    """
+    from . import aebs_visualization_pb2 as wire
+
+    message = wire.VisualizationFrame(
+        schema_major=frame["schema_major"],
+        schema_minor=frame["schema_minor"],
+        sequence=frame["sequence"],
+        frame_timestamp_ns=frame["frame_timestamp_ns"],
+        bridge_receipt_timestamp_ns=frame["bridge_receipt_timestamp_ns"],
+        source_identity=frame["source_identity"],
+    )
+    source_kinds = {
+        "nativeAutowareAEB": wire.SOURCE_KIND_NATIVE_AUTOWARE_AEB,
+        "de4sdvAebsCoordinator": wire.SOURCE_KIND_DE4SDV_AEBS_COORDINATOR,
+        "displayDerived": wire.SOURCE_KIND_DISPLAY_DERIVED,
+    }
+    for field_name in (
+        "rss_distance",
+        "native_intervention",
+        "target_range",
+        "target_bearing",
+        "ego_speed",
+        "de4sdv_warning_request",
+        "de4sdv_braking_request",
+        "de4sdv_lifecycle_state",
+    ):
+        value = frame.get(field_name)
+        if value is None:
+            continue
+        field = getattr(message, field_name)
+        field.source_kind = source_kinds[value["source_kind"]]
+        field.source_timestamp_ns = value["source_timestamp_ns"]
+        field.units = value["units"]
+        field.coordinate_frame = value["coordinate_frame"]
+        scalar = value["value"]
+        if type(scalar) is bool:
+            field.bool_value = scalar
+        elif isinstance(scalar, (int, float)):
+            field.numeric_value = float(scalar)
+        else:
+            field.enum_value = str(scalar)
+    for point in frame.get("target_points") or []:
+        tp = message.target_points.add()
+        tp.forward_m = float(point[0])
+        tp.lateral_m = float(point[1])
+    return message.SerializeToString()

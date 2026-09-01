@@ -55,6 +55,12 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     attribute coordinateFrame;
   }
 
+  item def TargetPointProjection {
+    doc /* One downsampled projected point of the filtered obstacle cluster. */
+    attribute forwardM : ScalarValues::Real;
+    attribute lateralM : ScalarValues::Real;
+  }
+
   item def AEBSVisualizationFrame {
     doc /*
      * Semantic visualization frame. SysML owns these field semantics; a later
@@ -69,6 +75,8 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     item rssDistance : VisualizationFieldValue;
     item targetRange : VisualizationFieldValue;
     item targetBearing : VisualizationFieldValue;
+    item targetPoints : TargetPointProjection[0..24];
+    item egoSpeed : VisualizationFieldValue;
     item nativeIntervention : VisualizationFieldValue;
     item de4sdvWarningRequest : VisualizationFieldValue;
     item de4sdvBrakingRequest : VisualizationFieldValue;

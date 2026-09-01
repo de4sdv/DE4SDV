@@ -2,8 +2,19 @@
 <resources>
     <string name="app_name">DE4SDV AEBS Visualization</string>
     <string name="initial_disposition">unavailable</string>
-    <string name="provenance_footer">
-        Sources: AUTOWARE AEB (RSS, intervention) · DE4SDV AEBS (warning, braking, lifecycle) ·
-        presentation derived on display. Read-only instrumentation; issues no commands.
+    <string name="initial_health">○ UNAVAILABLE</string>
+    <string name="initial_obstacle_points">Filtered obstacle points  —</string>
+    <string name="decision_distance_boundary">AEB decision distances not visualized</string>
+    <string name="initial_frame_age">Frame age  —</string>
+    <string name="initial_ego_speed">Ego speed  —</string>
+    <string name="state_monitoring">MONITORING</string>
+    <string name="state_warning">WARNING</string>
+    <string name="state_intervention">INTERVENTION</string>
+    <string name="state_released">RELEASED</string>
+    <string name="provenance_chain">
+        SIMULATED POINT CLOUD → AUTOWARE AEB → ROS BRIDGE → SDV GATEWAY → AAOS
+    </string>
+    <string name="provenance_boundary">
+        Read-only engineering visualization · issues no vehicle commands
     </string>
 </resources>

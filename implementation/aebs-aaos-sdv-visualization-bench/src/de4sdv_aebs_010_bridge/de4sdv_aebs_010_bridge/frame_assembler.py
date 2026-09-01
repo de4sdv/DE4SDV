@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
 SCHEMA_MAJOR = 1
-SCHEMA_MINOR = 0
+SCHEMA_MINOR = 1
 
 # Frame schema fields. The wire serialization (protobuf) encodes exactly
 # these; adding a field requires a schema-major bump or a documented minor.
@@ -33,6 +33,8 @@ FRAME_FIELDS = (
     "rss_distance",
     "target_range",
     "target_bearing",
+    "target_points",
+    "ego_speed",
     "native_intervention",
     "de4sdv_warning_request",
     "de4sdv_braking_request",
@@ -46,6 +48,7 @@ SOURCE_KINDS = ("nativeAutowareAEB", "de4sdvAebsCoordinator", "displayDerived")
 SUPPORTED_SOURCE_TOPICS = (
     "/control/autonomous_emergency_braking/debug/rss_distance",
     "/control/autonomous_emergency_braking/debug/obstacle_pointcloud",
+    "/localization/kinematic_state",
     "/diagnostics",
     "/de4sdv/aebs_009b/warning_request",
     "/de4sdv/aebs_009b/emergency_braking_request",
@@ -108,6 +111,8 @@ class FrameAssemblerState:
     rss_distance: dict[str, Any] | None = None
     target_range: dict[str, Any] | None = None
     target_bearing: dict[str, Any] | None = None
+    target_points: list[tuple[float, float]] | None = None
+    ego_speed: dict[str, Any] | None = None
     native_intervention: dict[str, Any] | None = None
     de4sdv_warning_request: dict[str, Any] | None = None
     de4sdv_braking_request: dict[str, Any] | None = None
@@ -139,11 +144,15 @@ class FrameAssembler:
     # -- ingestion ---------------------------------------------------------
 
     def observe_rss_distance(self, observation: SourceObservation, value: Any) -> None:
+        # The native AEB node publishes a signed RSS stopping distance: during
+        # an active intervention the required stopping distance can legitimately
+        # exceed the object distance and the debug value stays positive, but the
+        # formula (ego_stopping + obj_braking + margin) is signed, so clamp
+        # physically meaningless negatives to zero while preserving the value's
+        # native provenance. NaN/inf remain hard rejections (fail closed).
         numeric = self._require_finite_number(value, "rss_distance")
-        if numeric < 0.0:
-            raise FrameError("rss_distance must be non-negative")
         self.state.rss_distance = _field_value(
-            numeric, "nativeAutowareAEB",
+            max(numeric, 0.0), "nativeAutowareAEB",
             self._require_positive_int(observation.payload.get("source_timestamp_ns"), "source_timestamp_ns"),
             "m", "base_link",
         )
@@ -155,12 +164,44 @@ class FrameAssembler:
         if numeric_range < 0.0:
             raise FrameError("target_range must be non-negative")
         stamp = self._require_positive_int(observation.payload.get("source_timestamp_ns"), "source_timestamp_ns")
+        coordinate_frame = observation.payload.get("coordinate_frame")
+        if coordinate_frame != "base_link":
+            raise FrameError("obstacle projection coordinate_frame must be base_link")
         self.state.target_range = _field_value(
-            numeric_range, "displayDerived", stamp, "m", "map",
+            numeric_range, "displayDerived", stamp, "m", coordinate_frame,
         )
         self.state.target_bearing = _field_value(
-            numeric_bearing, "displayDerived", stamp, "rad", "map",
+            numeric_bearing, "displayDerived", stamp, "rad", coordinate_frame,
         )
+
+    def observe_ego_speed(self, observation: SourceObservation, value: Any) -> None:
+        # Bench kinematic-state derived ego speed; display-presentational only.
+        numeric = self._require_finite_number(value, "ego_speed")
+        self.state.ego_speed = _field_value(
+            max(numeric, 0.0), "displayDerived",
+            self._require_positive_int(observation.payload.get("source_timestamp_ns"), "source_timestamp_ns"),
+            "m/s", "base_link",
+        )
+
+    def observe_target_points(self, observation: SourceObservation, points: Any) -> None:
+        # Downsampled filtered-obstacle cluster projection (bounded 24 points).
+        if not isinstance(points, list) or len(points) > 24:
+            raise FrameError("target_points must be a list of at most 24 points")
+        clean: list[tuple[float, float]] = []
+        for point in points:
+            if not isinstance(point, (tuple, list)) or len(point) != 2:
+                raise FrameError("each target point must be (forward_m, lateral_m)")
+            fwd, lat = float(point[0]), float(point[1])
+            if not math.isfinite(fwd) or not math.isfinite(lat):
+                raise FrameError("target point must be finite")
+            clean.append((fwd, lat))
+        self.state.target_points = clean
+
+    def clear_obstacle_projection(self) -> None:
+        """Clear cloud-derived presentation facts when that source goes stale."""
+        self.state.target_range = None
+        self.state.target_bearing = None
+        self.state.target_points = None
 
     def observe_native_intervention(self, observation: SourceObservation, diagnostic_name: str, level: str, message: str) -> None:
         expected = (
@@ -216,10 +257,11 @@ class FrameAssembler:
         }
         for name in (
             "rss_distance", "target_range", "target_bearing",
-            "native_intervention", "de4sdv_warning_request",
+            "ego_speed", "native_intervention", "de4sdv_warning_request",
             "de4sdv_braking_request", "de4sdv_lifecycle_state",
         ):
             frame[name] = getattr(self.state, name)
+        frame["target_points"] = list(self.state.target_points or [])
         self.state.last_sequence = frame["sequence"]
         self.state.last_frame_timestamp_ns = now_ns
         return frame

@@ -1,0 +1,30 @@
+segment_id: INC-AEBS-010-vmb-live-20260829T2337Z
+started_at: "2026-08-29T23:37:00Z"
+vm_pair: de4sdv-aaos-build + de4sdv-ros2-autoware
+intent: >-
+  One bounded segment with the real 009B Autoware bench running on vmB and the
+  AAOS visualization app on the Cuttlefish guest, connected end to end through
+  the read-only ROS bridge, an explicitly bounded vmA-host TCP proxy, and the
+  SDV Gateway Data Tunnel.
+transport_chain:
+  - vmB: de4sdv_aebs_010_bridge (read-only ROS subscriptions; outbound frame server tcp/4721)
+  - vmA host: userspace TCP proxy 192.168.97.1:4721 -> ssh-tunnel:14721 -> vmB bridge (bounded bench route; no inbound path to ROS)
+  - guest: de4sdv_aebs_ingress (native; validates frames, republishes via Gateway Data Tunnel)
+  - topic: aebs-visualization-frame (de4sdv.aebs_visualization.v1.VisualizationFrame)
+  - app: org.de4sdv.aebsvisualization (GatewayFrameSubscriber, ~10 Hz callbacks)
+observed:
+  - disposition monitoring rendered from live Autoware-sourced frames (live-monitoring.png/xml)
+  - disposition intervention rendered after the 009B scenario observer triggered target injection (live-intervention.png/xml)
+  - disposition stale rendered after the vmB frame stream ended; fail-closed without input (live-stale.xml)
+  - app-tagged logcat evidence: AebsFrameSubscriber onMessagesAvailable / readNextMessages, MainActivity onGatewayFrame seq=N intervention=... warning=... braking=... lifecycle=...
+  - vmB observer raw capture retained (vmb-observer-raw.json); one run verdict was
+    fail_scenario (required normal-path negative gate command not observed in that
+    run window) while the AAOS transport/render chain worked; scenario-level claims
+    are deferred to the observer-criterion disposition, not asserted here.
+claims:
+  transport_and_render: observed_bounded
+  scenario_safety_outcome: deferred_not_proven
+bench_deviations:
+  - ingress future-skew bound relaxed to 10 min for unsynchronized bench clocks; production requirement remains 100 ms (AO-AEBS-010-005)
+  - vmA-host TCP proxy is a bounded bench route replacing the unavailable inter-VM path; production deployment must not use it
+disposition: observed_bounded

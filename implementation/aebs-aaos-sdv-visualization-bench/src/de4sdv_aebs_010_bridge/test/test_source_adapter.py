@@ -59,11 +59,12 @@ def test_pointcloud_projection_is_display_derived() -> None:
         point_step=8,
         is_bigendian=False,
         data=points,
-        header=types.SimpleNamespace(stamp=Stamp(sec=1, nanosec=0)),
+        header=types.SimpleNamespace(stamp=Stamp(sec=1, nanosec=0), frame_id="base_link"),
     )
     adapter.on_obstacle_pointcloud(cloud)
     assert assembler.state.target_range["value"] == pytest.approx(8.003904, abs=1e-4)
     assert assembler.state.target_range["source_kind"] == "displayDerived"
+    assert assembler.state.target_range["coordinate_frame"] == "base_link"
     assert assembler.state.target_bearing["source_kind"] == "displayDerived"
 
 
@@ -73,10 +74,30 @@ def test_pointcloud_without_positive_point_is_skipped() -> None:
         fields=[types.SimpleNamespace(name="x", offset=0), types.SimpleNamespace(name="y", offset=4)],
         point_step=8, is_bigendian=False,
         data=struct.pack("<2f", -5.0, 0.0),
-        header=types.SimpleNamespace(stamp=Stamp(sec=1, nanosec=0)),
+        header=types.SimpleNamespace(stamp=Stamp(sec=1, nanosec=0), frame_id="base_link"),
     )
     adapter.on_obstacle_pointcloud(cloud)
     assert assembler.state.target_range is None
+
+
+def test_stale_obstacle_projection_is_cleared_fail_closed() -> None:
+    adapter, assembler = make_adapter()
+    points = struct.pack("<2f", 8.0, 0.0)
+    cloud = types.SimpleNamespace(
+        fields=[types.SimpleNamespace(name="x", offset=0), types.SimpleNamespace(name="y", offset=4)],
+        point_step=8,
+        is_bigendian=False,
+        data=points,
+        header=types.SimpleNamespace(stamp=Stamp(sec=1, nanosec=0), frame_id="base_link"),
+    )
+    adapter.on_obstacle_pointcloud(cloud)
+    assert assembler.state.target_points
+
+    adapter.expire_obstacle_projection(now_ns=NOW[0] + 500_000_001, max_age_ns=500_000_000)
+
+    assert assembler.state.target_range is None
+    assert assembler.state.target_bearing is None
+    assert assembler.state.target_points is None
 
 
 def test_exact_intervention_diagnostic_matches() -> None:
@@ -138,10 +159,10 @@ def test_frame_server_length_delimited_send() -> None:
     thread = threading.Thread(target=client, daemon=True)
     thread.start()
     conn = server.serve_once()
-    thread.join(timeout=2)
 
     payload = encode_frame_json({"sequence": 1})
     server.send_frame(payload)
+    thread.join(timeout=2)
     server.close()
 
     length = struct.unpack("<I", received[0][:4])[0]
