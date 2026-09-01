@@ -213,6 +213,35 @@ public class SituationRenderModelTest {
     }
 
     // ------------------------------------------------------------------
+    // Fixture-true ego scale (contract §13.1, follow-up to merged #164)
+    // ------------------------------------------------------------------
+
+    @Test
+    public void egoFootprintMatchesPinnedFixtureDimensions() {
+        // The pinned 009B fixture footprint, in metres. If either side of the
+        // scene renders the ego larger than this, visual contact with the
+        // obstacle cloud becomes possible where the metric geometry has none.
+        assertEquals(3.74f, SituationRenderModel.EGO_FRONT_M, EPS);
+        assertEquals(1.03f, SituationRenderModel.EGO_REAR_M, EPS);
+        assertEquals(1.83f, SituationRenderModel.EGO_WIDTH_M, EPS);
+    }
+
+    @Test
+    public void egoFootprintIsFarSmallerThanNominalInterventionDistance() {
+        // Presentation-scale guard: at the nominal warning/intervention
+        // distances the fixture-true ego is tiny relative to the gap to the
+        // obstacle. If the renderer multiplied the footprint (as the merged
+        // #164 generation did at 2.5x), a ~20 m apparent gap shrinks below
+        // the true separation and reads as contact during INTERVENTION.
+        float footprintSpanM = SituationRenderModel.EGO_FRONT_M + SituationRenderModel.EGO_REAR_M;
+        assertTrue(footprintSpanM < 5.0f);
+        // At the observed minimum footprint separation (3.59 m, PR #164
+        // evidence) an enlarged ego would overlap the obstacle; the true one
+        // cannot span it.
+        assertTrue(SituationRenderModel.EGO_FRONT_M < 3.59f);
+    }
+
+    // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
 

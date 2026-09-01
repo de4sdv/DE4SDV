@@ -26,6 +26,17 @@ public final class SituationRenderModel {
     /** Display scale bound in metres (display-only, not a data bound). */
     public static final float MAX_RANGE_M = 60.0f;
 
+    /**
+     * Ego footprint from the pinned scenario fixture (metres). Public so the
+     * fixture-true scale contract is unit-testable on the JVM: the renderer
+     * must draw the ego at exactly these dimensions on the shared isotropic
+     * scene scale — presentation-only enlargement is prohibited
+     * (VISUALIZATION-CONTRACT.md §13.1).
+     */
+    public static final float EGO_FRONT_M = 3.74f;
+    public static final float EGO_REAR_M = 1.03f;
+    public static final float EGO_WIDTH_M = 1.83f;
+
     /** Stale threshold for the health chip (matches AO-AEBS-010-005 bound). */
     public static final long STALE_HEALTH_MS = 1_000L;
 

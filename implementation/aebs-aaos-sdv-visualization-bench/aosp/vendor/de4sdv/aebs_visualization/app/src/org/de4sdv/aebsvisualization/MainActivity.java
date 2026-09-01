@@ -35,7 +35,8 @@ public class MainActivity extends Activity {
     private TextView stateIntervention;
     private TextView stateReleased;
     private TextView metricObstaclePoints;
-    private TextView metricDecisionDistance;
+    private TextView metricDisplayedObstacleRange;
+    private TextView metricDisplayedObstacleRangeClarification;
     private TextView metricEgoSpeed;
     private TextView metricFrameAge;
     private TextView provenanceView;
@@ -68,7 +69,9 @@ public class MainActivity extends Activity {
         stateIntervention = findViewById(R.id.state_intervention);
         stateReleased = findViewById(R.id.state_released);
         metricObstaclePoints = findViewById(R.id.metric_obstacle_points);
-        metricDecisionDistance = findViewById(R.id.metric_decision_distance);
+        metricDisplayedObstacleRange = findViewById(R.id.metric_displayed_obstacle_range);
+        metricDisplayedObstacleRangeClarification =
+                findViewById(R.id.metric_displayed_obstacle_range_clarification);
         metricEgoSpeed = findViewById(R.id.metric_ego_speed);
         metricFrameAge = findViewById(R.id.metric_frame_age);
         provenanceView = findViewById(R.id.provenance);
@@ -159,7 +162,7 @@ public class MainActivity extends Activity {
             sceneModel.setTargetPoints(targetPoints);
             sceneModel.setFrameAgeMs(0); // fresh at receipt; ticker ages it
             situationView.render(sceneModel.build());
-            renderMetrics(frame.getTargetPointsCount(), 0, egoSpeed);
+            renderMetrics(frame.getTargetPointsCount(), targetRange, egoSpeed);
             onFrame(new VisualizationStateReducer.FrameInput(
                     frame.getSequence(), intervention, warning, braking, lifecycle));
         });
@@ -207,6 +210,11 @@ public class MainActivity extends Activity {
             sceneModel.setTarget(null, null);
             sceneModel.setRssDistance(null);
             situationView.clearTrail();
+            // Fail-closed panel: the display-derived obstacle range comes from
+            // the same filtered cloud as the scene geometry, so it clears with
+            // it. Never compare it against rss_distance.
+            metricDisplayedObstacleRange.setText(getString(R.string.initial_displayed_obstacle_range));
+            metricDisplayedObstacleRangeClarification.setVisibility(View.VISIBLE);
         }
         SituationRenderModel model = sceneModel.build();
         situationView.render(model);
@@ -272,14 +280,22 @@ public class MainActivity extends Activity {
         healthChip.setTextColor(model.getHealthColorRgb());
     }
 
-    private void renderMetrics(int targetPointCount, long frameAgeMs, Float egoSpeed) {
+    private void renderMetrics(int targetPointCount, Float targetRange, Float egoSpeed) {
         metricObstaclePoints.setText("Filtered obstacle points  "
                 + (targetPointCount > 0 ? Integer.toString(targetPointCount) : "—"));
-        metricDecisionDistance.setText("AEB decision distances not visualized");
+        // Diagnostic only: the closest projected point of the filtered
+        // obstacle cloud (display-derived). NOT a native Autoware AEB/RSS
+        // decision distance and never compared with rss_distance; cleared on
+        // stale/invalid/unavailable with the rest of the live geometry.
+        metricDisplayedObstacleRange.setText("Displayed obstacle range  "
+                + (targetRange != null && targetRange >= 0f
+                        ? String.format(java.util.Locale.US, "%.1f m", targetRange) : "—"));
+        metricDisplayedObstacleRangeClarification.setText(
+                getString(R.string.displayed_obstacle_range_clarification));
         metricEgoSpeed.setText("Ego speed  "
                 + (egoSpeed != null ? String.format(java.util.Locale.US, "%.0f km/h", egoSpeed * 3.6f) : "—"));
-        metricFrameAge.setText("Frame age  "
-                + (frameAgeMs >= 0 ? frameAgeMs + " ms" : "—"));
+        // Fresh at receipt; the ticker re-renders the aged value separately.
+        metricFrameAge.setText("Frame age  0 ms");
     }
 
     @Override

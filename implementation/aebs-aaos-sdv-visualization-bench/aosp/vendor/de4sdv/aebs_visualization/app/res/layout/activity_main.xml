@@ -151,14 +151,23 @@
                 android:text="@string/initial_obstacle_points" />
 
             <TextView
-                android:id="@+id/metric_decision_distance"
+                android:id="@+id/metric_displayed_obstacle_range"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:textColor="#FFF2F5F7"
-                android:textSize="18sp"
+                android:textSize="20sp"
                 android:fontFeatureSettings="tnum"
-                android:text="@string/decision_distance_boundary" />
+                android:text="@string/initial_displayed_obstacle_range" />
+
+            <TextView
+                android:id="@+id/metric_displayed_obstacle_range_clarification"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:textColor="#FF8B949E"
+                android:textSize="14sp"
+                android:text="@string/displayed_obstacle_range_clarification" />
 
             <TextView
                 android:id="@+id/metric_ego_speed"

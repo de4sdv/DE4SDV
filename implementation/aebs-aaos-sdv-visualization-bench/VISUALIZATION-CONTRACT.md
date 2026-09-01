@@ -241,3 +241,81 @@ the safety-monitor toolchain on the safety-critical partition. The claim
 boundary stays: read-only engineering visualization, no safety telltale,
 no production readiness implied. Permissive-SELinux bench provisioning
 remains diagnostic-only.
+
+## 13. Presentation-scale and diagnostic-range contract (2026-09-01)
+
+Follow-up to merged PR #164. After merge, the recorded HMI showed the cyan
+obstacle cluster visually touching the ego silhouette during INTERVENTION
+even though the fixture geometry never brings them into contact. Root cause:
+the ego silhouette was drawn at 2.5x (plus a lateral 1.4x) its fixture
+footprint while the obstacle cloud used the true scene scale, and the point
+glow radius extended apparent contact beyond the projected points. Rules
+below are binding and testable (`tests/test_aebs_010_hmi_presentation_contract.py`,
+`SituationRenderModelTest`).
+
+### 13.1 One scene scale
+
+- All geometry sharing the metric scene — ego footprint, filtered obstacle
+  points, range ticks — uses ONE consistent metre-per-pixel scale (one
+  consistent metre-per-pixel scale across the whole scene), isotropic
+  in both axes (`ForwardSituationView.sceneGeometry()`).
+- The ego footprint is drawn at the TRUE fixture dimensions (front 3.74 m,
+  rear 1.03 m, width 1.83 m) with no presentation-only enlargement relative
+  to obstacle geometry. At 1080×600 the fixture-true silhouette is a few
+  pixels wide; it is stylized (bright core plus a soft low-alpha emphasis
+  halo whose radius never exceeds the footprint span) but its represented
+  physical dimensions are never enlarged for readability.
+- Visual overlap must never be introduced by unequal scaling: if ego and
+  obstacle pixels touch, the underlying metric geometry — not the renderer —
+  brought them there. Renderer-side overlap or contact carries no AEBS
+  decision semantics; collision decisions remain System 1 output.
+
+### 13.2 Point glow is decoration
+
+- Cluster point rendering uses a small core (3.5 px) plus a subtler glow
+  (6 px); both radii are constants in the view, smaller than the spacing of
+  the projected geometry they decorate.
+- The glow is visual decoration only and does not represent physical extent:
+  point-rendering size is never usable as an object-size or contact measure.
+
+### 13.3 EGO label placement
+
+- The `EGO` label is drawn BELOW the ego silhouette with a fixed clearance
+  (5 px) between the silhouette boundary and the glyphs, so anti-aliasing at
+  1080×600 can no longer blend the text into the vehicle edge or the
+  background. The footprint is never enlarged to fit the label.
+
+### 13.4 Displayed obstacle range (diagnostic only)
+
+- The engineering-status panel shows `Displayed obstacle range` — the
+  closest finite forward point projected from Autoware's filtered obstacle
+  point cloud (`target_range`, display-derived), in metres with one decimal
+  (`13.4 m`), with the smaller clarification line `filtered point cloud`.
+- It is a diagnostic echo of the displayed cloud geometry. It is NOT a
+  native Autoware AEB decision distance (see §11: the native comparable pair
+  is `ObjectData.distance_to_object` vs `rss_distance`, which schema 1.1
+  does not carry as an aligned pair).
+- It is never compared against `rss_distance`, never shown beside a
+  braking/RSS threshold, and never feeds state or reducer logic.
+- It clears on stale/invalid/unavailable with the rest of the live geometry
+  (fail closed, same block as the scene clearing).
+- The former `AEB decision distances not visualized` boundary row is
+  removed: the HMI displays only available engineering information and does
+  not add unavailable internal concepts. The distinction between the
+  display-derived range and native decision semantics remains documented
+  here and in the evidence record; native AEB decision metrics remain
+  intentionally not shown in the HMI.
+
+### 13.5 Semantic boundaries (unchanged)
+
+- cyan geometry = display-derived filtered obstacle cloud;
+- displayed obstacle range = closest projected point derived from that cloud;
+- ego speed = Autoware kinematic state;
+- AEBS state = authoritative reducer/coordinator input;
+- native Autoware AEB/RSS decision distances are not reconstructed by the HMI;
+- visualization remains read-only and issues no vehicle commands.
+
+Still prohibited (§3 removed list stands): radar sweep, RSS reference
+geometry, braking-threshold visualization, target-range/RSS comparison,
+renderer-side thresholds, invented object classification, lane/FOV
+geometry, collision semantics.
