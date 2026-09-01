@@ -1,0 +1,228 @@
+schema: de4sdv.aebs-010-visualization-evidence.v0
+id: INC-AEBS-010
+name: AEBS visualization Phase 10 — verification, validation, and evidence
+status: evidence_recorded_bounded
+type: VerificationAndValidationEvidenceIncrement
+parent_increment: INC-AEBS-010
+owner: DE4SDV maintainers
+
+purpose: >-
+  Index the retained verification evidence, bounded verdicts, open gaps, and
+  claim-boundary semantics for the System 2 read-only AEBS visualization test
+  system. SysML owns the acceptance and closure semantics
+  (aebs_010_visualization_verification_evidence.sysml); this file records
+  status, evidence locations, and execution facts only.
+
+engineering_question: >-
+  What retained evidence demonstrates that the read-only visualization
+  instrumentation observed the live pinned-Autoware chain into the AAOS guest,
+  rendered the reducer-driven four-state arc, preserved the display-derived
+  versus native decision-semantics separation, and degraded fail-closed — and
+  which claims stay deferred or not claimed?
+
+lifecycle_decision_supported: >-
+  Index the bounded Phase 10 evidence owned by the SysML slice without
+  promoting restoration, live-degradation, inter-VM, production, safety, or
+  certification scope.
+
+phase10_claim:
+  id: CLM-AEBS-S2-001
+  sysml_element: s2VisualizationInstrumentationClaim
+  status: bounded_instrumentation_claim
+  scenario_safety_outcome: deferred_not_proven
+  evidence:
+    - id: E-AEBS-S2-001
+      artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log
+      status: observed_bounded
+    - id: E-AEBS-S2-002
+      artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4
+      status: observed_bounded
+    - id: E-AEBS-S2-003
+      artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png
+      status: observed_bounded
+    - id: E-AEBS-S2-004
+      artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-warning.png
+      status: observed_bounded
+    - id: E-AEBS-S2-005
+      artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
+      status: observed_bounded
+    - id: E-AEBS-S2-006
+      artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/stale.png
+      status: observed_bounded_fixture_path
+  deferred_items:
+    - id: AC-AEBS-S2-007
+      status: deferred_not_proven
+    - id: GAP-AEBS-010-006
+      status: open
+    - id: GAP-AEBS-010-007
+      status: open
+    - id: GAP-AEBS-010-008
+      status: open
+
+scope:
+  in_scope:
+    - source-to-screen chain correlation on the live pinned-Autoware bench
+    - reducer-driven lifecycle arc in one uninterrupted take
+    - read-only boundary and no-vehicle-command evidence
+    - display-derived versus native decision-semantics separation
+    - fail-closed staleness suppression of display-derived geometry
+    - fixture-path degraded-state rendering (PF-004 publisher)
+    - planned restoration behavior (no retained evidence yet)
+    - ArgumentationAssuranceViewpoint
+  out_of_scope:
+    - AEBS braking authority, hazard control, or any safety argument
+    - certification, compliance, homologation, or type approval
+    - production HMI or member-product behavior change
+    - inter-VM transport without the bounded adb-reverse bench route
+    - signed-policy enforcement (bench guest stays permissive)
+    - post-release re-approach scenarios
+
+verification_cases:
+  - id: VC-AEBS-S2-001
+    name: Live chain correlation
+    scenario: liveChainCorrelation
+    requirement_ids: [REQ-AEBS-S2-011]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-AEBS-S2-001
+    current_evidence:
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log
+    status: pass_bounded_verification
+  - id: VC-AEBS-S2-002
+    name: Lifecycle arc in one continuous take
+    scenario: lifecycleArc
+    requirement_ids: [REQ-AEBS-S2-010]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-AEBS-S2-002
+    current_evidence:
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
+    status: pass_bounded_verification
+  - id: VC-AEBS-S2-003
+    name: Read-only boundary
+    scenario: readOnlyBoundary
+    requirement_ids: [REQ-AEBS-S2-005]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-AEBS-S2-003
+    current_evidence:
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png
+    status: pass_bounded_verification
+  - id: VC-AEBS-S2-004
+    name: Display-derived versus native separation
+    scenario: provenanceSeparation
+    requirement_ids: [REQ-AEBS-S2-014]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-AEBS-S2-004
+    current_evidence:
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-warning.png
+    status: pass_bounded_verification
+  - id: VC-AEBS-S2-005
+    name: Fail-closed staleness suppression
+    scenario: failClosedStaleness
+    requirement_ids: [REQ-AEBS-S2-006]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-AEBS-S2-005
+    current_evidence:
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log
+    status: pass_bounded_verification
+  - id: VC-AEBS-S2-006
+    name: Degraded-state rendering (fixture path)
+    scenario: degradedStateRendering
+    requirement_ids: [REQ-AEBS-S2-007]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-AEBS-S2-006
+    current_evidence:
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/stale.png
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/unavailable.png
+      - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/invalid.png
+    status: pass_bounded_verification_fixture_path
+  - id: VC-AEBS-S2-007
+    name: Restoration behavior after failure disposition
+    scenario: restorationBehavior
+    requirement_ids: [REQ-AEBS-S2-009]
+    methods: [test, analyze]
+    acceptance_criterion: AC-AEBS-S2-007
+    status: deferred_not_proven
+
+acceptance_criteria:
+  - id: AC-AEBS-S2-001
+    status: pass_bounded_verification
+    sysml_element: acceptanceCriterionS2ChainCorrelation
+    evidence: E-AEBS-S2-001 (1090 callbacks, seq 22891-23980, zero gaps)
+  - id: AC-AEBS-S2-002
+    status: pass_bounded_verification
+    sysml_element: acceptanceCriterionS2LifecycleArc
+    evidence: E-AEBS-S2-002 (one take, verified stop)
+  - id: AC-AEBS-S2-003
+    status: pass_bounded_verification
+    sysml_element: acceptanceCriterionS2ReadOnlyBoundary
+    evidence: E-AEBS-S2-003
+  - id: AC-AEBS-S2-004
+    status: pass_bounded_verification
+    sysml_element: acceptanceCriterionS2ProvenanceSeparation
+    evidence: E-AEBS-S2-004
+  - id: AC-AEBS-S2-005
+    status: pass_bounded_verification
+    sysml_element: acceptanceCriterionS2FailClosedStaleness
+    evidence: E-AEBS-S2-005 (geometry expired after cloud silence)
+  - id: AC-AEBS-S2-006
+    status: pass_bounded_verification_fixture_path
+    sysml_element: acceptanceCriterionS2DegradedRendering
+    evidence: E-AEBS-S2-006 (PF-004 deterministic publisher, not live Autoware)
+  - id: AC-AEBS-S2-007
+    status: deferred_not_proven
+    sysml_element: acceptanceCriterionS2Restoration
+    evidence: no scenario executed
+  - id: AC-AEBS-S2-008
+    status: pass_bounded_verification
+    sysml_element: acceptanceCriterionS2EvidenceIntegrity
+    evidence: E-AEBS-S2-001 bound identities + observer
+
+evidence_ladder:
+  - layer: repository_and_sysml
+    status: required
+    claim: structural traceability and licensed SysML validity
+  - layer: unit_and_contract_tests
+    status: observed_bounded
+    claim: presentation-contract guards, bridge non-interference, sink-side validation
+    artifacts:
+      - tests/test_aebs_010_hmi_presentation_contract.py
+      - implementation/aebs-aaos-sdv-visualization-bench/src/de4sdv_aebs_010_bridge/test
+  - layer: target_runtime_interoperability
+    status: observed_bounded
+    claim: >-
+      live pinned-Autoware chain into the AAOS guest via the bounded bench
+      route (TCP :4721 + adb reverse), Gateway Data Tunnel, and app callbacks
+    artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
+    scope: read-only observation chain; no vehicle command; bench deviations documented
+  - layer: degraded_state_validation
+    status: observed_bounded_fixture_path
+    claim: fixture-path degraded-state rendering only (PF-004 deterministic publisher)
+    artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign
+    blockers: [GAP-AEBS-010-007]
+
+runtime_evidence_gaps:
+  - id: GAP-AEBS-010-006
+    model_element: gap010RestorationUnexercisedS2
+    owner: successor_increment
+    status: open_exercisable_via_deterministic_publisher
+  - id: GAP-AEBS-010-007
+    model_element: gap010LiveDegradationUnprovenS2
+    owner: successor_increment
+    status: open_live_degradation_unobserved
+  - id: GAP-AEBS-010-008
+    model_element: gap010InterVmRouteDeferredS2
+    owner: successor_increment
+    status: open_bench_route_only
+
+trace_ids:
+- verificationTestArticleTrace
+- verificationPhysicalSystemTrace
+- chainEvidenceToPhysicalSystemTrace
+- lifecycleEvidenceToPhysicalSystemTrace
+- provenanceEvidenceToSourceProvenanceTrace
+
+model_artifacts:
+  sysml: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_verification_evidence.sysml
+  configured_test_article: implementation/aebs-aaos-sdv-visualization-bench/config/test-article.yaml
+  evidence_index: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/VIDEO-EVIDENCE-DISPOSITION.md
