@@ -294,6 +294,27 @@
       svg.addEventListener(t, swallow, true);
     });
 
+    /* remove the viewer's transparent 12px hover hit-overlays for the edit
+     * session. They sit ON TOP of the real shapes, so mousedown targets the
+     * clone (with the COMMITTED geometry in its points/d attrs) instead of
+     * the moved element — every drag then computes a huge bogus delta and
+     * drags unrelated merged companions. The overlays exist only to make
+     * tooltip hovering comfortable, which edit mode suppresses anyway. */
+    var savedOverlays = [];
+    Array.prototype.forEach.call(
+      svg.querySelectorAll('.conn-hit-overlay'),
+      function (hit) {
+        savedOverlays.push({ node: hit, next: hit.nextSibling, parent: hit.parentNode });
+        hit.parentNode.removeChild(hit);
+      }
+    );
+    /* also strip the viewer's .conn-hit / .box-hit class additions so the
+     * real shapes are visually/behaviorally plain during editing */
+    Array.prototype.forEach.call(
+      svg.querySelectorAll('.conn-hit, .box-hit'),
+      function (el) { el.classList.remove('conn-hit', 'box-hit'); }
+    );
+
     /* neutralize the responsive downscale so screen px == user units at zoom 1 */
     var canvas = meta.canvas && meta.canvas.cur ? meta.canvas.cur : null;
     var unitW = canvas ? canvas[0] : parseFloat(svg.getAttribute('width')) || 800;
@@ -395,38 +416,155 @@
               Math.max.apply(null, xs), Math.max.apply(null, ys)];
     }
 
-    /* ---- companion snapshot + apply (box drags) --------------------------
-     * Companions are captured ONCE at drag start (positions as they are at
-     * that moment) and every frame maps THOSE positions into the new box
-     * geometry — never the live DOM (which would compound each frame).
+    /* ---- attachment map (computed once at editor open) -------------------
+     * Which connector endpoint belongs to which arrowhead/box is a property
+     * of the COMMITTED diagram, so it is decided once, globally, with
+     * one-to-one matching — never per-drag with a loose radius (a loose
+     * radius is what merged neighboring relationships into one drag).
      *
-     * Attachment rule (matches SysIDE rendering): a connector endpoint
-     * stretches with the boundary when the endpoint itself sits on it OR
-     * when an arrowhead that sits on the boundary is within GAP_TOL of the
-     * endpoint (SysIDE draws the glyph on the edge and the line a few px
-     * short). Arrowheads keep rotate/scale; endpoints keep their gap. */
-    var GAP_TOL = 24;
+     * Procedure: every arrowhead claims its nearest connector endpoint
+     * (any distance — SysIDE's arrow-to-tip gap ranges from ~1px to ~14px
+     * across views); each claimed endpoint inherits the arrowhead's box
+     * attachment. Connectors whose endpoint sits ON a box boundary (within
+     * 1px) attach to that box directly. One-to-one: an endpoint or
+     * arrowhead is claimed at most once. */
+    var attach = { endpointToArrow: {}, endpointToBox: {} };  /* "ci:eidx" -> key */
 
-    function collectCompanions(from) {
-      function onBoundary(x, y) {
-        return rectContains(from, x, y, 0.5);
+    (function buildAttachmentMap() {
+      var connInfos = [];
+      Array.prototype.forEach.call(svg.querySelectorAll('polyline'), function (pl) {
+        var raw = pl.getAttribute('points') || '';
+        var pts = parsePoints(raw);
+        if (!pts.length) return;
+        var key = state.resolveConnectorKey(raw);
+        if (!key) return;
+        connInfos.push({ node: pl, key: key, pts: pts });
+      });
+      var boxRects = state.curBoxMap();
+      function boxKeyAt(x, y) {
+        var best = null, bestKey = null;
+        Object.keys(boxRects).forEach(function (k) {
+          var r = boxRects[k];
+          if (x >= r[0] - 1 && x <= r[2] + 1 && y >= r[1] - 1 && y <= r[3] + 1) {
+            var area = (r[2] - r[0]) * (r[3] - r[1]);
+            if (best === null || area < best) { best = area; bestKey = k; }
+          }
+        });
+        return bestKey;
       }
-      /* arrows that will move (inside / on the old boundary) */
-      var arrows = [];
+      var arrowInfos = [];
       Array.prototype.forEach.call(svg.querySelectorAll('g'), function (g) {
         if (!g.getAttribute || !g.getAttribute('transform')) return;
         var mm = /translate\((-?[\d.]+),(-?[\d.]+)\)/.exec(g.getAttribute('transform'));
         if (!mm || g.getAttribute('fill') !== '#1A1A1A') return;
         var ax = parseFloat(mm[1]), ay = parseFloat(mm[2]);
-        if (!onBoundary(ax, ay)) return;
         var key = state.resolveArrowKey(textKey(ax, ay));
         if (!key) return;
-        arrows.push({
-          node: g, key: key, start: [ax, ay],
+        /* find the arrowhead's nearest endpoint across ALL connectors */
+        var best = null;
+        connInfos.forEach(function (ci, ciIdx) {
+          [0, ci.pts.length - 1].forEach(function (eidx) {
+            var d = Math.hypot(ci.pts[eidx][0] - ax, ci.pts[eidx][1] - ay);
+            if (!best || d < best.d) best = { d: d, ciIdx: ciIdx, eidx: eidx };
+          });
+        });
+        if (best) arrowInfos.push({ node: g, key: key, at: [ax, ay], best: best });
+      });
+      /* one-to-one: sort arrow claims by distance, greedily assign */
+      arrowInfos.slice().sort(function (a, b) { return a.best.d - b.best.d; })
+        .forEach(function (a) {
+          var ck = connInfos[a.best.ciIdx].key;
+          var ek = a.best.ciIdx + ':' + a.best.eidx;
+          if (attach.endpointToArrow[ek] !== undefined) return;
+          attach.endpointToArrow[ek] = a.key;
+          var end = connInfos[a.best.ciIdx].pts[a.best.eidx];
+          var bk = boxKeyAt(a.at[0], a.at[1]);   /* the box the ARROW touches */
+          if (bk) attach.endpointToBox[ek] = bk;
+        });
+      /* direct boundary attachment for unclaimed endpoints */
+      connInfos.forEach(function (ci, ciIdx) {
+        [0, ci.pts.length - 1].forEach(function (eidx) {
+          var ek = ciIdx + ':' + eidx;
+          if (attach.endpointToBox[ek] !== undefined) return;
+          var bk = boxKeyAt(ci.pts[eidx][0], ci.pts[eidx][1]);
+          if (bk) attach.endpointToBox[ek] = bk;
+        });
+      });
+      /* index helpers for drag time */
+      attach.connIndex = {};
+      connInfos.forEach(function (ci, ciIdx) { attach.connIndex[ci.key] = ciIdx; });
+      attach.pts = {};
+      connInfos.forEach(function (ci) { attach.pts[ci.key] = ci.pts; });
+    })();
+
+    function endpointArrowKey(connKey, eidx) {
+      var ciIdx = attach.connIndex[connKey];
+      if (ciIdx === undefined) return null;
+      return attach.endpointToArrow[ciIdx + ':' + eidx] || null;
+    }
+
+    function endpointBoxKey(connKey, eidx) {
+      var ciIdx = attach.connIndex[connKey];
+      if (ciIdx === undefined) return null;
+      return attach.endpointToBox[ciIdx + ':' + eidx] || null;
+    }
+
+    /* ---- companion snapshot + apply (box drags) --------------------------
+     * Companions are captured ONCE at drag start and every frame maps THOSE
+     * positions into the new box geometry (never the live DOM). What moves:
+     * labels anchored in the box, port glyphs fully inside, connectors with
+     * an endpoint attached to this box (endpoint + its arrowhead stretch,
+     * keeping the committed gap), arrowheads inside/on the box. */
+    function collectCompanions(from, draggedKey) {
+      function onBoundary(x, y) {
+        return rectContains(from, x, y, 0.5);
+      }
+      var items = [];
+      var arrowKeys = {};
+      /* connectors attached to THIS box stretch; endpoint + arrow follow */
+      Array.prototype.forEach.call(svg.querySelectorAll('polyline'), function (pl) {
+        var raw = pl.getAttribute('points') || '';
+        var pts = parsePoints(raw);
+        if (!pts.length) return;
+        var key = state.resolveConnectorKey(raw);
+        if (!key) return;
+        var ciIdx = attach.connIndex[key];
+        if (ciIdx === undefined) return;
+        var stretch = [];
+        [0, pts.length - 1].forEach(function (eidx) {
+          var ek = ciIdx + ':' + eidx;
+          if (attach.endpointToBox[ek] === draggedKey) stretch.push(eidx);
+        });
+        var moves = stretch.length > 0;
+        if (!moves) {
+          /* fully-inside separators move as companions too */
+          moves = pts.every(function (q) { return onBoundary(q[0], q[1]); });
+        }
+        if (!moves) return;
+        stretch.forEach(function (eidx) {
+          var ak = endpointArrowKey(key, eidx);
+          if (ak) arrowKeys[ak] = true;
+        });
+        items.push({
+          kind: 'connectors', node: pl, key: key, start: pts, stretch: stretch,
+          prevOp: (state.connectors.filter(function (s) { return s.find === key; })[0] || {}).op || null
+        });
+      });
+      /* arrowheads: inside/on the box, or attached to a stretching endpoint */
+      Array.prototype.forEach.call(svg.querySelectorAll('g'), function (g) {
+        if (!g.getAttribute || !g.getAttribute('transform')) return;
+        var mm = /translate\((-?[\d.]+),(-?[\d.]+)\)/.exec(g.getAttribute('transform'));
+        if (!mm || g.getAttribute('fill') !== '#1A1A1A') return;
+        var ax = parseFloat(mm[1]), ay = parseFloat(mm[2]);
+        var key = state.resolveArrowKey(textKey(ax, ay));
+        if (!key) return;
+        var owned = arrowKeys[key];
+        if (!owned && !onBoundary(ax, ay)) return;
+        items.push({
+          kind: 'arrows', node: g, key: key, start: [ax, ay],
           prevOp: (state.arrows.filter(function (s) { return s.find === key; })[0] || {}).op || null
         });
       });
-      var items = [];
       /* labels anchored inside the old box */
       Array.prototype.forEach.call(svg.querySelectorAll('text'), function (t) {
         var x = parseFloat(t.getAttribute('x'));
@@ -437,26 +575,6 @@
         items.push({
           kind: 'text', node: t, key: key, start: [x, y],
           prevOp: (state.text.filter(function (s) { return s.find === key; })[0] || {}).op || null
-        });
-      });
-      /* polylines: fully inside move; an endpoint near the boundary or near
-       * a moving arrowhead stretches */
-      Array.prototype.forEach.call(svg.querySelectorAll('polyline'), function (pl) {
-        var raw = pl.getAttribute('points') || '';
-        var pts = parsePoints(raw);
-        if (!pts.length) return;
-        var key = state.resolveConnectorKey(raw);
-        if (!key) return;
-        var anyMoves = pts.some(function (q) {
-          return onBoundary(q[0], q[1]) ||
-            arrows.some(function (a) {
-              return Math.hypot(a.start[0] - q[0], a.start[1] - q[1]) < GAP_TOL;
-            });
-        });
-        if (!anyMoves) return;
-        items.push({
-          kind: 'connectors', node: pl, key: key, start: pts,
-          prevOp: (state.connectors.filter(function (s) { return s.find === key; })[0] || {}).op || null
         });
       });
       /* port glyphs (white sub-paths) fully inside */
@@ -473,44 +591,29 @@
           prevOp: (state.boxes.filter(function (s) { return s.find === key; })[0] || {}).op || null
         });
       });
-      arrows.forEach(function (a) {
-        items.push({ kind: 'arrows', node: a.node, key: a.key, start: a.start, prevOp: a.prevOp });
-      });
       return items;
     }
 
-    /* map snapshot companions from the start box geometry into the new one */
     function applyCompanions(items, from, to) {
       var sx = from[2] !== from[0] ? (to[2] - to[0]) / (from[2] - from[0]) : 1;
       var sy = from[3] !== from[1] ? (to[3] - to[1]) / (from[3] - from[1]) : 1;
       function mapPt(x, y) {
         return [to[0] + (x - from[0]) * sx, to[1] + (y - from[1]) * sy];
       }
-      function onBoundary(x, y) {
-        return rectContains(from, x, y, 0.5);
-      }
-      var movingArrows = items.filter(function (it) { return it.kind === 'arrows'; });
       items.forEach(function (it) {
         if (it.kind === 'text') {
           var np = mapPt(it.start[0], it.start[1]);
           liveTextNode(it.node, np[0], np[1]);
           record('text', it.node, it.key, { x: np[0], y: np[1] }, it.prevOp);
         } else if (it.kind === 'connectors') {
-          var npts = it.start.map(function (q) {
-            if (onBoundary(q[0], q[1]) ||
-                movingArrows.some(function (a) {
-                  return Math.hypot(a.start[0] - q[0], a.start[1] - q[1]) < GAP_TOL;
-                })) {
-              return mapPt(q[0], q[1]);
-            }
-            return q;
+          var npts = it.start.map(function (q, i) {
+            return it.stretch.indexOf(i) !== -1 ? mapPt(q[0], q[1]) : q;
           });
           livePolyline(it.node, npts);
           record('connectors', it.node, it.key, { points: npts }, it.prevOp);
         } else if (it.kind === 'boxes') {
           var nd = rebuildPath(it.start, mapPt);
-          var npts2 = pathPoints(nd);
-          var bb = bboxOf(npts2);
+          var bb = bboxOf(pathPoints(nd));
           livePath(it.node, nd);
           record('boxes', it.node, it.key, {
             x1: bb[0], y1: bb[1], x2: bb[2], y2: bb[3]
@@ -523,29 +626,25 @@
       });
     }
 
-    /* ---- connector drag: arrowheads glued to the ends --------------------
-     * At mousedown, attach the arrowhead glyph nearest each end (within
-     * GAP_TOL; SysIDE offsets it a few px). Per frame each attached arrow
-     * translates by the SAME delta its end moved, preserving the gap. */
-    function attachArrows(orig) {
+    /* ---- connector drag: attached arrowheads follow their end -----------
+     * dragArrows is fixed at mousedown from the attachment map. */
+    function dragArrowsFor(connKey, orig) {
       var out = [];
-      Array.prototype.forEach.call(svg.querySelectorAll('g'), function (g) {
-        if (!g.getAttribute || !g.getAttribute('transform')) return;
-        var mm = /translate\((-?[\d.]+),(-?[\d.]+)\)/.exec(g.getAttribute('transform'));
-        if (!mm || g.getAttribute('fill') !== '#1A1A1A') return;
-        var ax = parseFloat(mm[1]), ay = parseFloat(mm[2]);
-        var near = null;
-        [0, orig.length - 1].forEach(function (idx) {
-          var end = orig[idx];
-          var d = Math.hypot(ax - end[0], ay - end[1]);
-          if (d < GAP_TOL && (!near || d < near.d)) near = { d: d, endIdx: idx };
+      [0, orig.length - 1].forEach(function (eidx) {
+        var ak = endpointArrowKey(connKey, eidx);
+        if (!ak) return;
+        var g = Array.prototype.find.call(svg.querySelectorAll('g'), function (el) {
+          if (!el.getAttribute || !el.getAttribute('transform')) return false;
+          var mm = /translate\((-?[\d.]+),(-?[\d.]+)\)/.exec(el.getAttribute('transform'));
+          if (!mm || el.getAttribute('fill') !== '#1A1A1A') return false;
+          return state.resolveArrowKey(textKey(parseFloat(mm[1]), parseFloat(mm[2]))) === ak;
         });
-        if (!near) return;
-        var key = state.resolveArrowKey(textKey(ax, ay));
-        if (!key) return;
+        if (!g) return;
+        var mm = /translate\((-?[\d.]+),(-?[\d.]+)\)/.exec(g.getAttribute('transform'));
+        var prevOp = (state.arrows.filter(function (s) { return s.find === ak; })[0] || {}).op || null;
         out.push({
-          node: g, key: key, start: [ax, ay], endIdx: near.endIdx,
-          prevOp: (state.arrows.filter(function (s) { return s.find === key; })[0] || {}).op || null
+          node: g, key: ak, endIdx: eidx,
+          start: [parseFloat(mm[1]), parseFloat(mm[2])], prevOp: prevOp
         });
       });
       return out;
@@ -613,9 +712,8 @@
       var orig = cur.slice();
       var selfState = state.boxes.filter(function (s) { return s.find === key; })[0];
       var prevOp = selfState ? selfState.op : null;
-      /* companions captured ONCE: labels/separators/glyphs inside, connector
-       * ends on (or near, via arrowheads) the boundary */
-      var companions = collectCompanions(orig);
+      /* companions captured ONCE: attachment map decides what follows */
+      var companions = collectCompanions(orig, key);
       function mv(e) {
         var q = svgPoint(e);
         var dx = q[0] - start[0], dy = q[1] - start[1];
@@ -659,10 +757,9 @@
       var selfState = state.connectors.filter(function (s) { return s.find === key; })[0];
       var prevOp = selfState ? selfState.op : null;
 
-      /* arrowheads attached at mousedown: each glyph nearest an end (within
-       * GAP_TOL) moves with that end, preserving the SysIDE gap */
-      var i_end = { 0: 0, 1: orig.length - 1 };
-      var dragArrows = attachArrows(orig);
+      /* arrowheads attached at mousedown (from the attachment map) follow
+       * their end, preserving the committed SysIDE gap */
+      var dragArrows = dragArrowsFor(key, orig);
 
       function mv(e) {
         var q = svgPoint(e);
@@ -673,7 +770,7 @@
         /* arrowheads attached at mousedown follow their end, keeping the
          * SysIDE gap (same delta as the end itself) */
         dragArrows.forEach(function (a) {
-          var ei = i_end[a.endIdx];
+          var ei = a.endIdx;
           var na = [a.start[0] + (n[ei][0] - orig[ei][0]),
                     a.start[1] + (n[ei][1] - orig[ei][1])];
           liveArrow(a.node, na[0], na[1]);
@@ -780,6 +877,14 @@
     function close() {
       suppressed.forEach(function (t) {
         svg.removeEventListener(t, swallow, true);
+      });
+      /* restore the viewer's hover hit-overlays exactly where they were */
+      savedOverlays.forEach(function (s) {
+        if (s.next && s.next.parentNode === s.parent) {
+          s.parent.insertBefore(s.node, s.next);
+        } else {
+          s.parent.appendChild(s.node);
+        }
       });
       ed.parentNode.removeChild(ed);
       frame.classList.remove('layout-editing');
