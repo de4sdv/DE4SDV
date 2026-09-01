@@ -17,6 +17,8 @@ ROOT = Path(__file__).parents[1]
 PILOTS = [
     ROOT / "methodologies/sysmod-sysmlv2/pilots/mw-v-and-v-evidence.yaml",
     ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml",
+    ROOT
+    / "methodologies/sysmod-sysmlv2/pilots/aebs-010-visualization-evidence.yaml",
 ]
 
 
@@ -39,6 +41,15 @@ def _referenced_evidence(data, paths):
     return paths
 
 
+PILOT_EVIDENCE_SUFFIXES = {".yaml", ".yml", ".json"}
+
+
+def _is_machine_evaluable(rel: str) -> bool:
+    """Only structured artifacts are parse-gated; logs/media are raw records."""
+    suffix = rel.rsplit(".", 1)[-1].lower() if "." in rel else ""
+    return f".{suffix}" in PILOT_EVIDENCE_SUFFIXES
+
+
 def test_every_referenced_evidence_artifact_parses_and_exists():
     seen = set()
     for pilot in PILOTS:
@@ -51,6 +62,8 @@ def test_every_referenced_evidence_artifact_parses_and_exists():
     for rel in sorted(seen):
         path = ROOT / rel
         assert path.is_file(), f"missing evidence artifact: {rel}"
+        if not _is_machine_evaluable(rel):
+            continue
         try:
             yaml.safe_load(path.read_text(encoding="utf-8"))
         except yaml.YAMLError as exc:  # pragma: no cover - message context

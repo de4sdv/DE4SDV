@@ -198,7 +198,8 @@ evidence_ladder:
   - layer: degraded_state_validation
     status: observed_bounded_fixture_path
     claim: fixture-path degraded-state rendering only (PF-004 deterministic publisher)
-    artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign
+    artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/stale.png
+    artifact_directory: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign
     blockers: [GAP-AEBS-010-007]
 
 runtime_evidence_gaps:
