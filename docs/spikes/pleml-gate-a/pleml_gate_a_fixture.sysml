@@ -28,6 +28,14 @@ package GateAPLEMLFixture {
             #feature occurrence remoteDiagnostics[0..1] default null {
                 attribute :>> bindingTime = LifeCycleKind::Production;
             }
+
+            doc /* At-least-one / multi-select group probe. sensorSuite owns
+                 * radar and camera as independent features; sensorSuite[1..*]
+                 * requires at least one selected member and permits many.
+                 * upper = * models the unbounded upper bound. */
+            #feature occurrence sensorSuite[1..*];
+            #feature occurrence radar[0..1] :> sensorSuite default null;
+            #feature occurrence camera[0..1] :> sensorSuite default null;
         }
 
         #featureConfiguration occurrence validAutowareAndroid
@@ -69,6 +77,30 @@ package GateAPLEMLFixture {
             #feature occurrence :>> middleware[1] = (eclipseSCORE);
             #feature occurrence :>> eclipseSCORE[1];
             #feature occurrence :>> diagnostics[1];
+        }
+
+        #featureConfiguration occurrence validBothSensors
+            :> gateAFeatureTree, featureConfigurations {
+            doc /* Multi-select proof: both sensorSuite members resolve. */
+            #feature occurrence :>> sensorSuite[1..*] = (radar, camera);
+            #feature occurrence :>> radar[1];
+            #feature occurrence :>> camera[1];
+        }
+
+        #featureConfiguration occurrence validOneSensor
+            :> gateAFeatureTree, featureConfigurations {
+            doc /* At-least-one proof: exactly one sensorSuite member resolves. */
+            #feature occurrence :>> sensorSuite[1..*] = (radar);
+            #feature occurrence :>> radar[1];
+        }
+
+        #featureConfiguration occurrence invalidNoSensor
+            :> gateAFeatureTree, featureConfigurations {
+            doc /* At-least-one violation probe: the group resolves with no
+                 * member. The Gate A evaluator treats empty group resolution
+                 * as configuration-invalid; complete cardinality validation
+                 * remains production evaluator work. */
+            #feature occurrence :>> sensorSuite[1..*];
         }
     }
 
@@ -155,6 +187,13 @@ package GateAPLEMLFixture {
 
     occurrence gateAProject {
         #featureModel occurrence gateAFeatureModel : GateAFeatureModel;
+
+        doc /* gateACommonCoreAsset sits outside the feature tree and outside
+             * every configuration. That placement alone does not classify it
+             * as common: real common/variable portfolio classification and its
+             * SysML representation are established in Gate C from the real
+             * scope baseline. Gate A proves only the "common capability
+             * outside feature tree" evidence concept. */
         part gateACommonCoreAsset : GateACommonCoreCapability;
         part gateASharedAssets : GateASharedAssets;
 

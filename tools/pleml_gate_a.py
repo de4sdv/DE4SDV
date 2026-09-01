@@ -87,49 +87,553 @@ def gate_a_source_identity(
 def build_observability_matrix(
     elements: Iterable[dict[str, Any]], element_sources: dict[str, str]
 ) -> tuple[dict[str, object], ...]:
-    """Describe exact official-API shapes for the bounded Gate A concepts.
+    """Prove concept-specific semantic adequacy over official API objects.
+
+    Every concept row must show, not merely assert: expected API metatype and
+    form; UUID identity; the ownership/membership path; the endpoint and
+    reference UUIDs it depends on; required semantic values (such as actual
+    multiplicity bounds); and source provenance. A row fails closed when any
+    required semantic is missing or ambiguous.
 
     The query predicates are fixture schema anchors, never product-line label
-    inference.  Each matching row records actual UUIDs, metatypes, property
-    keys, source paths, and every direct reference property path.
+    inference.
     """
 
     values = tuple(elements)
-    queries: tuple[tuple[str, Any], ...] = (
-        ("Feature model", lambda e: _named(e, "GateAFeatureModel")),
-        ("Feature tree", lambda e: _named(e, "gateAFeatureTree")),
-        ("Feature", lambda e: _named(e, "autoware")),
+    by_id: dict[str, dict[str, Any]] = {}
+    for element in values:
+        element_id = _ref_id(element)
+        if element_id:
+            by_id[element_id] = element
+
+    def owned_member_ids(owner_id: str) -> list[str]:
+        ids = []
+        for membership in values:
+            if membership.get("@type") not in {
+                "FeatureMembership",
+                "OwningMembership",
+                "Membership",
+            }:
+                continue
+            if _ref_id(membership.get("owningRelatedElement")) != owner_id:
+                continue
+            member_id = _ref_id(
+                membership.get("memberElement")
+                or membership.get("ownedRelatedElement")
+            )
+            if member_id:
+                ids.append(member_id)
+        return ids
+
+    def multiplicity_of(feature_id: str) -> tuple[int | None, int | None]:
+        """Resolve actual [lower..upper] values owned by a feature usage.
+
+        lower defaults to 1, upper to 1 (SysML v2 Feature defaults). The
+        unbounded upper bound is serialized as LiteralInfinity.
+        """
+
+        lower: int | None = 1
+        upper: int | None = 1
+        found_range = False
+        for relationship in values:
+            if relationship.get("@type") not in {
+                "OwningMembership",
+                "FeatureMembership",
+                "Membership",
+            }:
+                continue
+            if _ref_id(relationship.get("owningRelatedElement")) != feature_id:
+                continue
+            member_id = _ref_id(
+                relationship.get("memberElement")
+                or relationship.get("ownedRelatedElement")
+            )
+            if not member_id:
+                continue
+            member = by_id.get(member_id)
+            if not member or member.get("@type") != "MultiplicityRange":
+                continue
+            found_range = True
+            for bound_relationship in values:
+                if bound_relationship.get("@type") != "OwningMembership":
+                    continue
+                if (
+                    _ref_id(bound_relationship.get("owningRelatedElement"))
+                    != member_id
+                ):
+                    continue
+                bound_id = _ref_id(
+                    bound_relationship.get("memberElement")
+                    or bound_relationship.get("ownedRelatedElement")
+                )
+                if not bound_id:
+                    continue
+                bound = by_id.get(bound_id)
+                if not bound:
+                    continue
+                if bound.get("@type") == "LiteralInteger":
+                    value = bound.get("value")
+                    if not isinstance(value, int):
+                        raise UnsupportedSemanticShape(
+                            f"multiplicity bound of {feature_id} lacks an integer value"
+                        )
+                    # Sequential bound assignment: first literal sets lower
+                    # (and a single-literal [N..N] range's upper too); each
+                    # subsequent literal refines the upper bound.
+                    lower = value
+                    upper = value
+                elif bound.get("@type") == "LiteralInfinity":
+                    upper = None
+        if not found_range:
+            return (1, 1)
+        return (lower, upper)
+
+    def ownership_path(element_id: str, limit: int = 32) -> list[dict[str, str]]:
+        path: list[dict[str, str]] = []
+        current_id: str | None = element_id
+        visited: set[str] = set()
+        while current_id is not None and current_id not in visited and len(path) < limit:
+            visited.add(current_id)
+            element = by_id.get(current_id)
+            if element is None:
+                break
+            owning_id = _ref_id(element.get("owningRelationship"))
+            if not owning_id:
+                break
+            relationship = by_id.get(owning_id)
+            if relationship is None:
+                break
+            path.append(
+                {
+                    "via_relationship_uuid": owning_id,
+                    "via_relationship_type": relationship.get("@type", ""),
+                    "owner_uuid": _ref_id(
+                        relationship.get("owningRelatedElement")
+                    )
+                    or "",
+                }
+            )
+            current_id = _ref_id(relationship.get("owningRelatedElement"))
+        return path
+
+    # concept name -> (anchor predicate, optional semantic verifier). The
+    # verifier receives the matched anchor elements and the resolved element
+    # graph and must raise UnsupportedSemanticShape on any missing or
+    # ambiguous required semantic. It returns concept-specific proof entries
+    # merged into the row.
+    queries: tuple[tuple[str, Any, Any], ...] = (
+        ("Feature model", lambda e: _named(e, "GateAFeatureModel"), None),
+        ("Feature tree", lambda e: _named(e, "gateAFeatureTree"), None),
+        ("Feature", lambda e: _named(e, "autoware"), None),
         (
             "Parent/child membership",
             lambda e: e.get("@type") == "FeatureMembership"
             and e.get("memberName") == "autoware",
+            None,
         ),
-        ("Lower/upper multiplicity", lambda e: e.get("@type") == "MultiplicityRange"),
-        ("Lifecycle metadata", lambda e: _named(e, "bindingTime")),
-        ("Feature configuration", lambda e: _named(e, "validAutowareAndroid")),
+        (
+            "Exact-one multiplicity",
+            lambda e: _named(e, "application"),
+            None,
+        ),
+        (
+            "Optional multiplicity",
+            lambda e: _named(e, "remoteDiagnostics"),
+            None,
+        ),
+        (
+            "At-least-one/multi-select group",
+            lambda e: _named(e, "sensorSuite"),
+            None,
+        ),
+        (
+            "Group member (radar)",
+            lambda e: _named(e, "radar"),
+            None,
+        ),
+        (
+            "Group member (camera)",
+            lambda e: _named(e, "camera"),
+            None,
+        ),
+        (
+            "Group multi-select resolution",
+            lambda e: _named(e, "validBothSensors"),
+            None,
+        ),
+        (
+            "Group at-least-one resolution",
+            lambda e: _named(e, "validOneSensor"),
+            None,
+        ),
+        ("Lifecycle metadata", lambda e: _named(e, "bindingTime"), None),
+        ("Feature configuration", lambda e: _named(e, "validAutowareAndroid"), None),
         (
             "Selected feature relationship",
             lambda e: e.get("@type") == "Redefinition"
             and _ref_id(e.get("redefinedFeature")) is not None,
+            None,
         ),
-        ("Requires relationship", lambda e: _named(e, "requiresFeatures")),
-        ("Incompatibility constraint", lambda e: _named(e, "xorFeatures")),
-        ("FeatureBinding", lambda e: _named(e, "gateASimpleFeatureBinding")),
-        ("Native variation", lambda e: _named(e, "gateAAdapterVariation")),
+        ("Requires relationship", lambda e: _named(e, "requiresFeatures"), None),
+        ("Incompatibility constraint", lambda e: _named(e, "xorFeatures"), None),
+        ("FeatureBinding", lambda e: _named(e, "gateASimpleFeatureBinding"), None),
+        ("Native variation", lambda e: _named(e, "gateAAdapterVariation"), None),
         (
             "Owned variant",
             lambda e: e.get("@type") == "VariantMembership"
             and e.get("memberName") == "autowareToAAOSSDV",
+            None,
         ),
-        ("Common classification", lambda e: _named(e, "gateACommonCoreAsset")),
+        (
+            "Common capability outside feature tree",
+            lambda e: _named(e, "gateACommonCoreAsset"),
+            None,
+        ),
         (
             "Native constraint expression probe",
             lambda e: _named(e, "NativeAdapterImplicationProbe"),
+            None,
         ),
-        ("Adapter realization rule", lambda e: _named(e, "autowareAndroidRule")),
+        ("Adapter realization rule", lambda e: _named(e, "autowareAndroidRule"), None),
     )
+
+    # Semantic expectations verified against the resolved graph, independent
+    # of which anchor element matched. Each entry: (concept, checker). A
+    # checker raises UnsupportedSemanticShape when required semantics are
+    # missing or ambiguous.
+    def _check_multiplicity(
+        name: str, expected_lower: int | None, expected_upper: int | None
+    ) -> None:
+        element = _tree_feature(name)
+        element_id = _ref_id(element)
+        if not element_id:
+            raise UnsupportedSemanticShape(f"{name} feature has no UUID")
+        lower, upper = multiplicity_of(element_id)
+        if (lower, upper) != (expected_lower, expected_upper):
+            raise UnsupportedSemanticShape(
+                f"{name} multiplicity is [{lower}..{upper}], "
+                f"expected [{expected_lower}..{expected_upper}]"
+            )
+        if not ownership_path(element_id):
+            raise UnsupportedSemanticShape(f"{name} has no ownership path")
+
+    def _tree_feature(name: str) -> dict[str, Any]:
+        """Find a feature usage owned directly by the feature tree.
+
+        Feature names recur on configuration selection children and constraint
+        parameters, so tree ownership scopes the identity lookup.
+        """
+
+        tree = [e for e in values if _named(e, "gateAFeatureTree")]
+        if len(tree) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one gateAFeatureTree, found {len(tree)}"
+            )
+        tree_id = _ref_id(tree[0])
+        if not tree_id:
+            raise UnsupportedSemanticShape("gateAFeatureTree has no UUID")
+        usage_types = {"OccurrenceUsage", "PartUsage", "AttributeUsage"}
+        matches = []
+        for member_id in owned_member_ids(tree_id):
+            member = by_id.get(member_id)
+            if not member or member.get("@type") not in usage_types:
+                continue
+            if _named(member, name):
+                matches.append(member)
+        if len(matches) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one tree feature named {name}, found {len(matches)}"
+            )
+        return matches[0]
+
+    def _check_group_members() -> None:
+        suite = _tree_feature("sensorSuite")
+        suite_id = _ref_id(suite)
+        if not suite_id:
+            raise UnsupportedSemanticShape("sensorSuite feature has no UUID")
+        usage_types = {"OccurrenceUsage", "PartUsage", "AttributeUsage"}
+        member_ids = {
+            member_id
+            for member_id in owned_member_ids(suite_id)
+            if (member := by_id.get(member_id))
+            and member.get("@type") in usage_types
+        }
+        for member_name in ("radar", "camera"):
+            member = _tree_feature(member_name)
+            member_id = _ref_id(member)
+            if not member_id:
+                raise UnsupportedSemanticShape(f"{member_name} has no UUID")
+            # Group membership is expressed as Subsetting (radar :>
+            # sensorSuite), not tree ownership; verify the specialization
+            # relationship by UUID.
+            specializations = {
+                _ref_id(item.get("subsettedFeature") or item.get("general"))
+                for item in values
+                if item.get("@type") in {"Subsetting", "Redefinition"}
+                and _ref_id(
+                    item.get("subsettingFeature") or item.get("specific")
+                )
+                == member_id
+            }
+            specializations.discard(None)
+            if suite_id not in specializations:
+                raise UnsupportedSemanticShape(
+                    f"{member_name} does not specialize sensorSuite by UUID"
+                )
+            member_ids.discard(member_id)
+        # radar/camera each declare their own [0..1] ranges as owned parts;
+        # nothing else may own membership under the group beyond those two.
+        if member_ids:
+            raise UnsupportedSemanticShape(
+                f"sensorSuite has unexpected owned members: {sorted(member_ids)}"
+            )
+
+    def _check_group_resolution(config_name: str, expected_members: tuple[str, ...]) -> None:
+        configs = [e for e in values if _named(e, config_name)]
+        if len(configs) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one {config_name}, found {len(configs)}"
+            )
+        config_id = _ref_id(configs[0])
+        if not config_id:
+            raise UnsupportedSemanticShape(f"{config_name} has no UUID")
+        selections: dict[str, set[str]] = {}
+        for child_id in owned_member_ids(config_id):
+            child = by_id.get(child_id)
+            if not child:
+                continue
+            redefinition_targets = {
+                _ref_id(item.get("redefinedFeature") or item.get("general"))
+                for item in values
+                if item.get("@type") == "Redefinition"
+                and _ref_id(item.get("owningRelatedElement")) == child_id
+            }
+            redefinition_targets.discard(None)
+            if not redefinition_targets:
+                continue
+            if len(redefinition_targets) != 1:
+                raise UnsupportedSemanticShape(
+                    f"{config_name} selection {child_id} has ambiguous targets"
+                )
+            target_id = next(iter(redefinition_targets))
+            target = by_id.get(target_id or "")
+            target_name = (
+                target.get("declaredName") or target.get("name")
+                if target
+                else None
+            )
+            if target_name:
+                selections.setdefault(target_name, set()).add(target_id or "")
+        for member_name in expected_members:
+            if member_name not in selections:
+                raise UnsupportedSemanticShape(
+                    f"{config_name} does not resolve required group member "
+                    f"{member_name}"
+                )
+        if "sensorSuite" not in selections:
+            raise UnsupportedSemanticShape(
+                f"{config_name} does not resolve the sensorSuite group"
+            )
+
+    def _check_incompatibility_shape() -> None:
+        base = [e for e in values if _named(e, "xorFeatures")]
+        if len(base) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one xorFeatures base usage, found {len(base)}"
+            )
+        base_id = _ref_id(base[0])
+        if not base_id:
+            raise UnsupportedSemanticShape("xorFeatures base usage has no UUID")
+        redefinitions = [
+            e
+            for e in values
+            if e.get("@type") == "Redefinition"
+            and _ref_id(e.get("redefinedFeature") or e.get("general")) == base_id
+        ]
+        if len(redefinitions) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one xorFeatures redefinition, found "
+                f"{len(redefinitions)}"
+            )
+        actual_id = _ref_id(redefinitions[0].get("redefiningFeature") or redefinitions[0].get("specific"))
+        actual = by_id.get(actual_id or "")
+        if not actual or actual.get("@type") != "AssertConstraintUsage":
+            raise UnsupportedSemanticShape(
+                "xorFeatures redefinition is not an AssertConstraintUsage"
+            )
+        excluded = [
+            _ref_id(role.get("memberElement"))
+            for role in values
+            if role.get("@type") == "Membership"
+            and _ref_id(role.get("owningRelatedElement"))
+            in {
+                _ref_id(value.get("memberElement") or value.get("ownedRelatedElement"))
+                for value in values
+                if value.get("@type") == "FeatureValue"
+                and _ref_id(value.get("owningRelatedElement")) == actual_id
+            }
+        ]
+        excluded_ids = {item for item in excluded if item}
+        if len(excluded_ids) != 1:
+            raise UnsupportedSemanticShape(
+                f"xorFeatures constraint must reference exactly one excluded "
+                f"feature UUID, found {len(excluded_ids)}"
+            )
+        excluded_element = by_id.get(next(iter(excluded_ids)))
+        if not excluded_element or not _named(excluded_element, "androidSDV"):
+            raise UnsupportedSemanticShape(
+                "xorFeatures excluded feature is not the fixture's androidSDV"
+            )
+
+    def _check_requires_shape() -> None:
+        base = [e for e in values if _named(e, "requiresFeatures")]
+        if len(base) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one requiresFeatures base usage, found {len(base)}"
+            )
+        base_id = _ref_id(base[0])
+        if not base_id:
+            raise UnsupportedSemanticShape("requiresFeatures base usage has no UUID")
+        redefinitions = [
+            e
+            for e in values
+            if e.get("@type") == "Redefinition"
+            and _ref_id(e.get("redefinedFeature") or e.get("general")) == base_id
+        ]
+        if len(redefinitions) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one requiresFeatures redefinition, found "
+                f"{len(redefinitions)}"
+            )
+        actual_id = _ref_id(
+            redefinitions[0].get("redefiningFeature") or redefinitions[0].get("specific")
+        )
+        actual = by_id.get(actual_id or "")
+        if not actual or actual.get("@type") != "AssertConstraintUsage":
+            raise UnsupportedSemanticShape(
+                "requiresFeatures redefinition is not an AssertConstraintUsage"
+            )
+
+    def _check_binding_endpoints() -> None:
+        bindings = [e for e in values if _named(e, "gateASimpleFeatureBinding")]
+        if len(bindings) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one FeatureBinding dependency, found {len(bindings)}"
+            )
+        binding = bindings[0]
+        if binding.get("@type") != "Dependency":
+            raise UnsupportedSemanticShape(
+                f"FeatureBinding serialized as {binding.get('@type')}, expected Dependency"
+            )
+        for role in ("source", "client"):
+            refs = _reference_paths(binding)
+            targets = {
+                item["target_uuid"]
+                for item in refs
+                if item["property_path"] == role
+            }
+            if len(targets) != 1:
+                raise UnsupportedSemanticShape(
+                    f"FeatureBinding {role} endpoint missing or ambiguous"
+                )
+        for role in ("target", "supplier"):
+            targets = {
+                item["target_uuid"]
+                for item in _reference_paths(binding)
+                if item["property_path"] == role
+            }
+            if len(targets) != 1:
+                raise UnsupportedSemanticShape(
+                    f"FeatureBinding {role} endpoint missing or ambiguous"
+                )
+        source_targets = {
+            item["target_uuid"]
+            for item in _reference_paths(binding)
+            if item["property_path"] in ("source", "client")
+        }
+        target_targets = {
+            item["target_uuid"]
+            for item in _reference_paths(binding)
+            if item["property_path"] in ("target", "supplier")
+        }
+        source_element = by_id.get(next(iter(source_targets)))
+        target_element = by_id.get(next(iter(target_targets)))
+        if not source_element or not _named(source_element, "gateASimpleBoundAsset"):
+            raise UnsupportedSemanticShape(
+                "FeatureBinding source endpoint is not gateASimpleBoundAsset"
+            )
+        if not target_element or not _named(target_element, "autoware"):
+            raise UnsupportedSemanticShape(
+                "FeatureBinding target endpoint is not the autoware feature"
+            )
+
+    def _check_variant_membership() -> None:
+        memberships = [
+            e
+            for e in values
+            if e.get("@type") == "VariantMembership"
+            and e.get("memberName") == "autowareToAAOSSDV"
+        ]
+        if len(memberships) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one autowareToAAOSSDV VariantMembership, "
+                f"found {len(memberships)}"
+            )
+        member_id = _ref_id(memberships[0].get("memberElement"))
+        member = by_id.get(member_id or "")
+        if not member or not _named(member, "autowareToAAOSSDV"):
+            raise UnsupportedSemanticShape(
+                "VariantMembership memberElement is not autowareToAAOSSDV"
+            )
+        variation = [
+            e for e in values if _named(e, "gateAAdapterVariation")
+        ]
+        if len(variation) != 1:
+            raise UnsupportedSemanticShape("adapter variation anchor missing")
+        variation_id = _ref_id(variation[0])
+        variant_member_ids = {
+            _ref_id(item.get("memberElement"))
+            for item in values
+            if item.get("@type") == "VariantMembership"
+            and _ref_id(item.get("owningRelatedElement")) == variation_id
+        }
+        if member_id not in variant_member_ids:
+            raise UnsupportedSemanticShape(
+                "autowareToAAOSSDV is not a variant of gateAAdapterVariation"
+            )
+
+    semantic_checks: tuple[tuple[str, Any], ...] = (
+        ("Exact-one multiplicity", lambda: _check_multiplicity("application", 1, 1)),
+        ("Optional multiplicity", lambda: _check_multiplicity("remoteDiagnostics", 0, 1)),
+        (
+            "At-least-one/multi-select group",
+            lambda: _check_multiplicity("sensorSuite", 1, None),
+        ),
+        (
+            "Group member (radar)",
+            lambda: _check_multiplicity("radar", 0, 1),
+        ),
+        ("Group member (camera)", lambda: _check_multiplicity("camera", 0, 1)),
+        (
+            "At-least-one/multi-select group",
+            _check_group_members,
+        ),
+        (
+            "Group multi-select resolution",
+            lambda: _check_group_resolution("validBothSensors", ("radar", "camera")),
+        ),
+        (
+            "Group at-least-one resolution",
+            lambda: _check_group_resolution("validOneSensor", ("radar",)),
+        ),
+        ("Incompatibility constraint", _check_incompatibility_shape),
+        ("Requires relationship", _check_requires_shape),
+        ("FeatureBinding", _check_binding_endpoints),
+        ("Owned variant", _check_variant_membership),
+    )
+
     rows = []
-    for concept, predicate in queries:
+    for concept, predicate, _ in queries:
         matches = [element for element in values if predicate(element)]
         if not matches:
             raise UnsupportedSemanticShape(
@@ -141,6 +645,7 @@ def build_observability_matrix(
             element_id = _ref_id(element)
             if not element_id:
                 raise UnsupportedSemanticShape(f"{concept} anchor has no UUID")
+            lower, upper = multiplicity_of(element_id)
             evidence.append(
                 {
                     "uuid": element_id,
@@ -148,17 +653,66 @@ def build_observability_matrix(
                     "name": element.get("declaredName") or element.get("name"),
                     "property_keys": sorted(element),
                     "reference_paths": _reference_paths(element),
+                    "ownership_path": ownership_path(element_id),
+                    "resolved_multiplicity": {
+                        "lower": lower,
+                        "upper": upper,
+                        "upper_unbounded": upper is None,
+                    },
                     "source": element_sources.get(element_id),
                 }
             )
+        object_observable = bool(evidence)
+        provenance_retained = all(item["source"] for item in evidence)
         rows.append(
             {
                 "concept": concept,
-                "api_only_consumption_adequate": all(item["source"] for item in evidence),
+                "object_observable": object_observable,
+                "semantic_properties_retained": None,
+                "provenance_retained": provenance_retained,
+                "api_only_consumption_adequate": None,
+                "exact_gap": ""
+                if provenance_retained
+                else "source provenance missing",
                 "evidence": evidence,
-                "exact_gap": "" if all(item["source"] for item in evidence) else "source provenance missing",
             }
         )
+
+    # Run the fail-closed semantic checks; a failing check marks its concept
+    # row as not adequate with the exact gap recorded. A concept may have
+    # multiple checks; any failure marks the row inadequate, so apply results
+    # in two passes (collect, then commit) to avoid ordering effects.
+    by_concept = {row["concept"]: row for row in rows}
+    check_results: dict[str, tuple[bool, str]] = {}
+    for check_concept, checker in semantic_checks:
+        try:
+            checker()
+        except UnsupportedSemanticShape as exc:
+            prior_passed, prior_gap = check_results.get(check_concept, (True, ""))
+            check_results[check_concept] = (False, prior_gap or str(exc))
+        else:
+            check_results.setdefault(check_concept, (True, ""))
+    for check_concept, (passed, gap) in check_results.items():
+        row = by_concept.get(check_concept)
+        if row is None:
+            continue
+        if passed:
+            row["semantic_properties_retained"] = True
+            row["api_only_consumption_adequate"] = row["provenance_retained"]
+        else:
+            row["semantic_properties_retained"] = False
+            row["api_only_consumption_adequate"] = False
+            row["exact_gap"] = gap
+
+    for row in rows:
+        if row["api_only_consumption_adequate"] is None:
+            row["api_only_consumption_adequate"] = False
+            if not row["exact_gap"]:
+                row["exact_gap"] = (
+                    "no concept-specific semantic check proven this row adequate"
+                )
+        if row["semantic_properties_retained"] is None:
+            row["semantic_properties_retained"] = False
     return tuple(rows)
 
 
@@ -238,6 +792,138 @@ class GateAModel:
             rule_ids=(rule_id,),
             adapter_id=adapter_id,
         )
+
+    def group_resolutions(self, configuration_id: str) -> dict[str, tuple[str, ...]]:
+        """Resolve at-least-one/multi-select feature groups for a configuration.
+
+        Returns each group's selected member UUIDs. Fails closed when a
+        group's lower bound (at-least-one) is violated. The empty-group case
+        surfaces as an invalidating group rather than a silent pass.
+        """
+
+        configuration = self._require(configuration_id)
+        selected = self.selected_feature_ids(configuration_id)
+        resolutions: dict[str, tuple[str, ...]] = {}
+        for group_id in self._group_ids():
+            group = self._require(group_id)
+            lower, upper = self._multiplicity(group_id)
+            members = sorted(selected & set(self._group_member_ids(group_id)))
+            if len(members) < lower:
+                raise UnsupportedSemanticShape(
+                    f"group {group_id} selects {len(members)} members, "
+                    f"violating its [{lower}..{'*' if upper is None else upper}] "
+                    f"at-least-one bound in configuration {configuration_id}"
+                )
+            if upper is not None and len(members) > upper:
+                raise UnsupportedSemanticShape(
+                    f"group {group_id} selects {len(members)} members, "
+                    f"exceeding its [{lower}..{upper}] bound in configuration "
+                    f"{configuration_id}"
+                )
+            resolutions[str(group.get("declaredName") or group.get("name"))] = tuple(
+                members
+            )
+        return resolutions
+
+    def _group_ids(self) -> tuple[str, ...]:
+        """Group features have an unbounded upper multiplicity ([N..*])."""
+
+        groups = []
+        for element_id, element in self.by_id.items():
+            if element.get("@type") not in {"OccurrenceUsage", "PartUsage"}:
+                continue
+            lower, upper = self._multiplicity(element_id)
+            if upper is None and lower >= 1:
+                groups.append(element_id)
+        return tuple(sorted(groups))
+
+    def _group_member_ids(self, group_id: str) -> set[str]:
+        """Members of a feature group specialize it via Subsetting.
+
+        ``#feature occurrence radar[0..1] :> sensorSuite`` serializes as a
+        Subsetting (or its Redefinition subclass) whose general/subsetted
+        feature is the group and whose specific/subsetting feature is the
+        member.
+        """
+
+        members: set[str] = set()
+        for relationship in self.elements:
+            if relationship.get("@type") not in {"Subsetting", "Redefinition"}:
+                continue
+            general_id = _ref_id(
+                relationship.get("subsettedFeature") or relationship.get("general")
+            )
+            if general_id != group_id:
+                continue
+            specific_id = _ref_id(
+                relationship.get("subsettingFeature") or relationship.get("specific")
+            )
+            if not specific_id:
+                raise UnsupportedSemanticShape(
+                    f"Subsetting {relationship.get('@id')} has no member feature UUID"
+                )
+            member = self.by_id.get(specific_id)
+            if member and member.get("@type") in {
+                "OccurrenceUsage",
+                "PartUsage",
+                "AttributeUsage",
+            }:
+                members.add(specific_id)
+        return members
+
+    def _multiplicity(self, element_id: str) -> tuple[int, int | None]:
+        lower: int = 1
+        upper: int | None = 1
+        found_range = False
+        for relationship in self.elements:
+            if relationship.get("@type") not in {
+                "OwningMembership",
+                "FeatureMembership",
+                "Membership",
+            }:
+                continue
+            if _ref_id(relationship.get("owningRelatedElement")) != element_id:
+                continue
+            member_id = _ref_id(
+                relationship.get("memberElement")
+                or relationship.get("ownedRelatedElement")
+            )
+            if not member_id:
+                continue
+            member = self.by_id.get(member_id)
+            if not member or member.get("@type") != "MultiplicityRange":
+                continue
+            found_range = True
+            for bound_relationship in self.elements:
+                if bound_relationship.get("@type") != "OwningMembership":
+                    continue
+                if (
+                    _ref_id(bound_relationship.get("owningRelatedElement"))
+                    != member_id
+                ):
+                    continue
+                bound_id = _ref_id(
+                    bound_relationship.get("memberElement")
+                    or bound_relationship.get("ownedRelatedElement")
+                )
+                if not bound_id:
+                    continue
+                bound = self.by_id.get(bound_id)
+                if not bound:
+                    continue
+                if bound.get("@type") == "LiteralInteger":
+                    value = bound.get("value")
+                    if not isinstance(value, int):
+                        raise UnsupportedSemanticShape(
+                            f"multiplicity bound of {element_id} lacks an integer value"
+                        )
+                    lower = value
+                    upper = value
+                elif bound.get("@type") == "LiteralInfinity":
+                    upper = None
+        if not found_range:
+            return (1, 1)
+        return (lower, upper)
 
     def selected_feature_ids(self, configuration_id: str) -> frozenset[str]:
         configuration = self._require(configuration_id)

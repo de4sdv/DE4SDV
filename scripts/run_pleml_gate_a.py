@@ -204,6 +204,9 @@ def run_gate_a(
             "validAutowareNoMiddleware",
             "forbiddenApolloAndroid",
             "missingOpenpilotSCORE",
+            "validBothSensors",
+            "validOneSensor",
+            "invalidNoSensor",
         )
     }
     nominal_rules = _unique_named_id(
@@ -229,6 +232,22 @@ def run_gate_a(
             configs["validAutowareAndroid"], rule_set_id=ambiguous_rules
         ),
     }
+    group_resolutions = {
+        "at-least-one": model.group_resolutions(configs["validOneSensor"]),
+        "multi-select": model.group_resolutions(configs["validBothSensors"]),
+    }
+    try:
+        model.group_resolutions(configs["invalidNoSensor"])
+    except UnsupportedSemanticShape as exc:
+        group_empty_result: dict[str, Any] = {
+            "status": "configuration-invalid",
+            "derivation_attempted": False,
+            "reason": str(exc),
+        }
+    else:
+        raise RuntimeError(
+            "empty at-least-one group resolution unexpectedly passed"
+        )
     expected_statuses = {
         "adapter-required-exactly-one": "derivation-complete",
         "valid-no-adapter": "derivation-complete",
@@ -292,6 +311,21 @@ def run_gate_a(
         "api_capabilities": capabilities,
         "observability_matrix": list(matrix),
         "outcomes": serialize_outcomes(outcomes),
+        "group_resolutions": group_resolutions,
+        "group_empty_result": group_empty_result,
+        "validity_claim": (
+            "Gate A proves the validity-versus-derivation phase boundary using "
+            "modeled incompatibility semantics. Complete feature-configuration "
+            "validity evaluation (cardinality, requiresFeatures propagation, "
+            "lifecycle completeness) remains production evaluator work."
+        ),
+        "common_classification_claim": (
+            "Evidence concept: common capability outside feature tree. Real "
+            "common/variable portfolio classification and its SysML "
+            "representation are established in Gate C from the real scope "
+            "baseline; commonality is not inferred from the object name or "
+            "from absence of a feature binding."
+        ),
         "api_shapes_by_uuid": api_shapes_by_uuid,
         "projection": {
             "path": str(projection_path),
@@ -368,6 +402,26 @@ def run_gate_a(
                     "Explicit bindingTime overrides and the PLEML default are "
                     "observable by UUID, but inherited/default resolution requires "
                     "semantic traversal rather than a direct property on each feature."
+                ),
+            },
+            {
+                "concept": "requiresFeatures evaluation",
+                "gap": (
+                    "The requiresFeatures constraint shape is proven observable "
+                    "by UUID (AssertConstraintUsage redefinition of the PLEML "
+                    "base usage), but the spike evaluator does not execute "
+                    "requires propagation; complete validity evaluation remains "
+                    "production evaluator work."
+                ),
+            },
+            {
+                "concept": "group cardinality validation",
+                "gap": (
+                    "The spike evaluator resolves at-least-one/multi-select "
+                    "group membership and fails closed on the empty-group case "
+                    "by identity, but complete lower/upper cardinality "
+                    "validation across arbitrary group shapes remains "
+                    "production evaluator work."
                 ),
             },
         ],
