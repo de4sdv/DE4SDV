@@ -128,9 +128,70 @@ def build_observability_matrix(
     def multiplicity_of(feature_id: str) -> tuple[int | None, int | None]:
         """Resolve actual [lower..upper] values owned by a feature usage.
 
+        Handles both observed official-serializer shapes: direct literal
+        bounds owned by the ``MultiplicityRange`` and a range
+        ``OperatorExpression`` whose parameters carry the bound literals.
         lower defaults to 1, upper to 1 (SysML v2 Feature defaults). The
         unbounded upper bound is serialized as LiteralInfinity.
         """
+
+        def resolve_bound(bound: dict[str, Any]) -> tuple[bool, int | None]:
+            if bound.get("@type") == "LiteralInfinity":
+                return (True, None)
+            value = bound.get("value")
+            if not isinstance(value, int):
+                raise UnsupportedSemanticShape(
+                    f"multiplicity bound of {feature_id} lacks an integer value"
+                )
+            return (False, value)
+
+        def range_operator_bounds(operator_id: str) -> list[tuple[bool, int | None]]:
+            bounds: list[tuple[bool, int | None]] = []
+            for parameter_membership in values:
+                if parameter_membership.get("@type") != "ParameterMembership":
+                    continue
+                if (
+                    _ref_id(parameter_membership.get("owningRelatedElement"))
+                    != operator_id
+                ):
+                    continue
+                parameter_id = _ref_id(
+                    parameter_membership.get("memberElement")
+                    or parameter_membership.get("ownedRelatedElement")
+                )
+                if not parameter_id:
+                    raise UnsupportedSemanticShape(
+                        f"range operator of {feature_id} has a null parameter"
+                    )
+                value_expressions = [
+                    _ref_id(
+                        item.get("memberElement")
+                        or item.get("ownedRelatedElement")
+                    )
+                    for item in values
+                    if item.get("@type") == "FeatureValue"
+                    and _ref_id(item.get("owningRelatedElement")) == parameter_id
+                ]
+                value_expressions = [item for item in value_expressions if item]
+                if len(value_expressions) != 1:
+                    raise UnsupportedSemanticShape(
+                        f"range parameter of {feature_id} has "
+                        f"{len(value_expressions)} value expressions"
+                    )
+                expression = by_id.get(value_expressions[0])
+                if not expression or expression.get("@type") not in (
+                    "LiteralInteger",
+                    "LiteralInfinity",
+                ):
+                    raise UnsupportedSemanticShape(
+                        f"range parameter of {feature_id} is not a bound literal"
+                    )
+                bounds.append(resolve_bound(expression))
+            if not bounds:
+                raise UnsupportedSemanticShape(
+                    f"range operator of {feature_id} carries no bound parameters"
+                )
+            return bounds
 
         lower: int | None = 1
         upper: int | None = 1
@@ -154,6 +215,7 @@ def build_observability_matrix(
             if not member or member.get("@type") != "MultiplicityRange":
                 continue
             found_range = True
+            bound_values: list[tuple[bool, int | None]] = []
             for bound_relationship in values:
                 if bound_relationship.get("@type") != "OwningMembership":
                     continue
@@ -171,19 +233,28 @@ def build_observability_matrix(
                 bound = by_id.get(bound_id)
                 if not bound:
                     continue
-                if bound.get("@type") == "LiteralInteger":
-                    value = bound.get("value")
-                    if not isinstance(value, int):
+                if bound.get("@type") in ("LiteralInteger", "LiteralInfinity"):
+                    bound_values.append(resolve_bound(bound))
+                elif bound.get("@type") == "OperatorExpression":
+                    bound_values.extend(range_operator_bounds(bound_id))
+            if not bound_values:
+                raise UnsupportedSemanticShape(
+                    f"multiplicity range of {feature_id} carries no bound values"
+                )
+            for index, (is_infinity, value) in enumerate(bound_values):
+                if is_infinity:
+                    if index == 0:
                         raise UnsupportedSemanticShape(
-                            f"multiplicity bound of {feature_id} lacks an integer value"
+                            f"multiplicity of {feature_id} has an unbounded lower bound"
                         )
-                    # Sequential bound assignment: first literal sets lower
-                    # (and a single-literal [N..N] range's upper too); each
-                    # subsequent literal refines the upper bound.
-                    lower = value
-                    upper = value
-                elif bound.get("@type") == "LiteralInfinity":
                     upper = None
+                else:
+                    assert value is not None
+                    if index == 0:
+                        lower = value
+                        upper = value
+                    else:
+                        upper = value
         if not found_range:
             return (1, 1)
         return (lower, upper)
@@ -826,11 +897,29 @@ class GateAModel:
         return resolutions
 
     def _group_ids(self) -> tuple[str, ...]:
-        """Group features have an unbounded upper multiplicity ([N..*])."""
+        """Group features have an unbounded upper multiplicity ([N..*]).
 
+        Restricted to usages owned by the fixture feature tree so PLEML's own
+        unbounded containers (featureConfigurations, featureTrees,
+        featureModels) are never mistaken for feature groups.
+        """
+
+        tree_ids = {
+            element_id
+            for element_id, element in self.by_id.items()
+            if _named(element, "gateAFeatureTree")
+        }
         groups = []
         for element_id, element in self.by_id.items():
             if element.get("@type") not in {"OccurrenceUsage", "PartUsage"}:
+                continue
+            owner_ids = {
+                _ref_id(item.get("owningRelatedElement"))
+                for item in self.elements
+                if item.get("@type") == "FeatureMembership"
+                and _ref_id(item.get("memberElement")) == element_id
+            }
+            if not owner_ids & tree_ids:
                 continue
             lower, upper = self._multiplicity(element_id)
             if upper is None and lower >= 1:
@@ -872,6 +961,19 @@ class GateAModel:
         return members
 
     def _multiplicity(self, element_id: str) -> tuple[int, int | None]:
+        """Resolve a usage's [lower..upper] bounds from its owned range.
+
+        The official serializer emits two observed range shapes:
+
+        - direct bounds: ``MultiplicityRange`` owning ``LiteralInteger`` /
+          ``LiteralInfinity`` children (the single-literal ``[N..N]`` case);
+        - a range operator: ``MultiplicityRange`` owning an
+          ``OperatorExpression`` (``..``) whose parameters carry the bound
+          literals through ``FeatureValue`` expressions.
+
+        Both are resolved here; anything else fails closed.
+        """
+
         lower: int = 1
         upper: int | None = 1
         found_range = False
@@ -894,6 +996,7 @@ class GateAModel:
             if not member or member.get("@type") != "MultiplicityRange":
                 continue
             found_range = True
+            bound_values: list[tuple[bool, int | None]] = []
             for bound_relationship in self.elements:
                 if bound_relationship.get("@type") != "OwningMembership":
                     continue
@@ -911,19 +1014,92 @@ class GateAModel:
                 bound = self.by_id.get(bound_id)
                 if not bound:
                     continue
-                if bound.get("@type") == "LiteralInteger":
-                    value = bound.get("value")
-                    if not isinstance(value, int):
+                if bound.get("@type") in ("LiteralInteger", "LiteralInfinity"):
+                    bound_values.append(self._bound_value(element_id, bound))
+                elif bound.get("@type") == "OperatorExpression":
+                    bound_values.extend(
+                        self._range_operator_bounds(element_id, bound_id)
+                    )
+            if not bound_values:
+                raise UnsupportedSemanticShape(
+                    f"multiplicity range of {element_id} carries no bound values"
+                )
+            for index, (is_infinity, value) in enumerate(bound_values):
+                if is_infinity:
+                    if index == 0:
                         raise UnsupportedSemanticShape(
-                            f"multiplicity bound of {element_id} lacks an integer value"
+                            f"multiplicity of {element_id} has an unbounded lower bound"
                         )
-                    lower = value
-                    upper = value
-                elif bound.get("@type") == "LiteralInfinity":
                     upper = None
+                else:
+                    assert value is not None
+                    if index == 0:
+                        lower = value
+                        upper = value
+                    else:
+                        upper = value
         if not found_range:
             return (1, 1)
         return (lower, upper)
+
+    def _bound_value(
+        self, element_id: str, bound: dict[str, Any]
+    ) -> tuple[bool, int | None]:
+        if bound.get("@type") == "LiteralInfinity":
+            return (True, None)
+        value = bound.get("value")
+        if not isinstance(value, int):
+            raise UnsupportedSemanticShape(
+                f"multiplicity bound of {element_id} lacks an integer value"
+            )
+        return (False, value)
+
+    def _range_operator_bounds(
+        self, element_id: str, operator_id: str
+    ) -> list[tuple[bool, int | None]]:
+        bounds: list[tuple[bool, int | None]] = []
+        for parameter_membership in self.elements:
+            if parameter_membership.get("@type") != "ParameterMembership":
+                continue
+            if (
+                _ref_id(parameter_membership.get("owningRelatedElement"))
+                != operator_id
+            ):
+                continue
+            parameter_id = _ref_id(
+                parameter_membership.get("memberElement")
+                or parameter_membership.get("ownedRelatedElement")
+            )
+            if not parameter_id:
+                raise UnsupportedSemanticShape(
+                    f"range operator of {element_id} has a null parameter"
+                )
+            value_expressions = [
+                _ref_id(item.get("memberElement") or item.get("ownedRelatedElement"))
+                for item in self.elements
+                if item.get("@type") == "FeatureValue"
+                and _ref_id(item.get("owningRelatedElement")) == parameter_id
+            ]
+            value_expressions = [item for item in value_expressions if item]
+            if len(value_expressions) != 1:
+                raise UnsupportedSemanticShape(
+                    f"range parameter of {element_id} has "
+                    f"{len(value_expressions)} value expressions"
+                )
+            expression = self.by_id.get(value_expressions[0])
+            if not expression or expression.get("@type") not in (
+                "LiteralInteger",
+                "LiteralInfinity",
+            ):
+                raise UnsupportedSemanticShape(
+                    f"range parameter of {element_id} is not a bound literal"
+                )
+            bounds.append(self._bound_value(element_id, expression))
+        if not bounds:
+            raise UnsupportedSemanticShape(
+                f"range operator of {element_id} carries no bound parameters"
+            )
+        return bounds
 
     def selected_feature_ids(self, configuration_id: str) -> frozenset[str]:
         configuration = self._require(configuration_id)

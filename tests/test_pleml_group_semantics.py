@@ -319,7 +319,9 @@ def test_group_multiplicity_semantics_are_proven_not_assumed() -> None:
     matrix = _matrix(elements)
     row = matrix["At-least-one/multi-select group"]
     assert row["api_only_consumption_adequate"] is False
-    assert "sensorSuite multiplicity is [2..2]" in row["exact_gap"]
+    # Replacing the group's LiteralInfinity with LiteralInteger(2) must be
+    # detected: resolved [1..2] vs expected [1..unbounded].
+    assert "sensorSuite multiplicity is [1..2]" in row["exact_gap"]
 
 
 def test_group_membership_check_fails_on_missing_member_link() -> None:
