@@ -1,0 +1,2 @@
+# Agent-protocol runtime and deterministic stdio client validation.
+mcp==1.28.1
