@@ -36,6 +36,7 @@ import time
 from pathlib import Path
 
 from .layout_apply import apply_layout, parse_path_points
+from .layout_apply import _ARROW_G_RE  # identity scheme shared with the applier
 
 LAYOUT_DIRNAME = ".de4sdv-diagrams"
 LAYOUT_VERSION = 1
@@ -98,7 +99,7 @@ def validate_layout(layout: object) -> list[str]:
     ops = layout.get("ops")
     if not isinstance(ops, list):
         return ["layout.ops must be a list"]
-    allowed_kinds = {"text", "boxes", "connectors", "lines", "paths", "svg"}
+    allowed_kinds = {"text", "boxes", "connectors", "lines", "paths", "svg", "arrows"}
     for i, step in enumerate(ops):
         if not isinstance(step, dict):
             errors.append(f"ops[{i}] must be an object")
@@ -134,6 +135,12 @@ def validate_layout(layout: object) -> list[str]:
             fs = _norm_num(op.get("font-size"))
             if fs is not None and fs <= 0:
                 errors.append(f"ops[{i}].op.font-size must be > 0")
+        elif kind == "arrows":
+            if not isinstance(op, dict):
+                errors.append(f"ops[{i}].op must be an object")
+                continue
+            if _norm_num(op.get("x")) is None or _norm_num(op.get("y")) is None:
+                errors.append(f"ops[{i}].op needs numeric x and y")
         elif kind == "boxes":
             if _validate_bbox(op) is None:
                 errors.append(f"ops[{i}].op needs numeric x1,y1,x2,y2")
@@ -292,7 +299,17 @@ def _geom_maps(svg_text: str) -> dict:
         pts = parse_path_points(d)
         if pts and len(pts) >= 2:
             paths.setdefault(d, d)
-    return {"text": texts, "boxes": boxes, "connectors": connectors, "paths": paths}
+    arrows: dict[str, list[float]] = {}
+    for m in _ARROW_G_RE.finditer(svg_text):
+        x, y = float(m.group(1)), float(m.group(2))
+        arrows.setdefault(f"{x:g},{y:g}", [x, y])
+    return {
+        "text": texts,
+        "boxes": boxes,
+        "connectors": connectors,
+        "paths": paths,
+        "arrows": arrows,
+    }
 
 
 def _canvas(svg_text: str) -> list[float]:

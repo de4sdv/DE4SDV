@@ -256,6 +256,8 @@ def apply_layout(svg_text: str, layout: dict) -> tuple[str, list[str]]:
                 _apply_line(ctx, key, op)
             elif kind == "paths":
                 _apply_path(ctx, key, op)
+            elif kind == "arrows":
+                _apply_arrow(ctx, key, op)
         except Exception as exc:  # never break the page over an op
             ctx.errors.append(f"{kind}[{key[:24]}…]: {exc}")
     return ctx.svg_text, ctx.errors
@@ -371,6 +373,10 @@ def _find_box(ctx: _Ctx, key: str) -> tuple[str, Box] | None:
 
 
 def _apply_box(ctx: _Ctx, key: str, op: dict) -> None:
+    """Rewrite one element box to its new geometry. Companions (labels,
+    separators, port glyphs, attached connector ends, arrowheads) are moved
+    by their OWN explicit ops — the client records them, this applier never
+    infers them (single source of truth, exactly reproducible)."""
     found = _find_box(ctx, key)
     if found is None:
         ctx.errors.append(f"box {key[:24]}…: not found (stale?)")
@@ -389,97 +395,6 @@ def _apply_box(ctx: _Ctx, key: str, op: dict) -> None:
     new_d = build_box_path(new) if rounded else build_rect_path(new)
     if not ctx.replace_once(f'd="{old_d}"', f'd="{new_d}"'):
         ctx.errors.append(f"box {key[:24]}…: path text vanished mid-apply")
-        return
-    # move companions: separator polylines / labels / port glyphs inside the
-    # old box, proportionally mapped into the new geometry
-    sx = new.w / old.w if old.w else 1.0
-    sy = new.h / old.h if old.h else 1.0
-
-    def in_box(x: float, y: float) -> bool:
-        return old.x1 <= x <= old.x2 and old.y1 <= y <= old.y2
-
-    def map_pt(x: float, y: float) -> tuple[float, float]:
-        return (new.x1 + (x - old.x1) * sx, new.y1 + (y - old.y1) * sy)
-
-    _move_companions(ctx, old, in_box, map_pt, exclude_d=new_d)
-
-
-def _move_companions(
-    ctx: _Ctx,
-    box: Box,
-    in_box,
-    map_pt,
-    exclude_d: str,
-) -> None:
-    """Move polylines/lines/paths/texts that sit inside ``box`` by mapping
-    each of their points through ``map_pt``. Polygons fully inside move as a
-    unit; boundary-crossing geometry is left alone (a connector into the box
-    keeps its endpoint at the old edge — re-route it explicitly)."""
-    # polylines (separators) fully inside
-    for m in list(re.finditer(
-        r'<polyline\b[^>]*\bpoints="([^"]+)"[^>]*>', ctx.svg_text
-    )):
-        raw = m.group(0)
-        if "conn-hit-overlay" in raw:
-            continue
-        pts = _parse_points(m.group(1))
-        if not pts:
-            continue
-        if all(in_box(x, y) for x, y in pts):
-            ctx.replace_once(raw, raw.replace(
-                f'points="{m.group(1)}"',
-                f'points="{polyline_str([map_pt(x, y) for x, y in pts])}"',
-            ))
-    # plain lines fully inside
-    for m in list(re.finditer(
-        r'<line\b[^>]*\bx1="' + _NUM_ATTR + r'"[^>]*\by1="' + _NUM_ATTR + r'"'
-        r'[^>]*\bx2="' + _NUM_ATTR + r'"[^>]*\by2="' + _NUM_ATTR + r'"[^>]*/?>',
-        ctx.svg_text,
-    )):
-        raw = m.group(0)
-        x1, y1, x2, y2 = (float(m.group(i)) for i in (1, 2, 3, 4))
-        if in_box(x1, y1) and in_box(x2, y2):
-            n = raw
-            for attr, (px, py) in (
-                ("x1", map_pt(x1, y1)), ("y1", map_pt(x1, y1)),
-                ("x2", map_pt(x2, y2)), ("y2", map_pt(x2, y2)),
-            ):
-                pass
-            # build by axis: x1/x2 share map x of their points, y likewise
-            x1n, y1n = map_pt(x1, y1)
-            x2n, y2n = map_pt(x2, y2)
-            n = _set_attr(n, "x1", fmt(x1n))
-            n = _set_attr(n, "y1", fmt(y1n))
-            n = _set_attr(n, "x2", fmt(x2n))
-            n = _set_attr(n, "y2", fmt(y2n))
-            ctx.replace_once(raw, n)
-    # white sub-paths (port glyphs) fully inside
-    for m in list(re.finditer(
-        r'<path\b[^>]*\bd="([^"]+)"[^>]*\bfill="#FFFFFF"[^>]*/?>',
-        ctx.svg_text,
-    )):
-        raw = m.group(0)
-        d = m.group(1)
-        if d == exclude_d:
-            continue
-        pts = parse_path_points(d)
-        if not pts:
-            continue
-        if all(in_box(x, y) for x, y in pts):
-            new_d = rebuild_path(d, lambda x, y: map_pt(x, y))
-            if new_d and new_d != d:
-                ctx.replace_once(f'd="{d}"', f'd="{new_d}"')
-    # texts whose anchor point is inside
-    for m in list(_TEXT_TAG_RE.finditer(ctx.svg_text)):
-        old = m.group(0)
-        x, y = float(m.group(2)), float(m.group(3))
-        if not in_box(x, y):
-            continue
-        nx, ny = map_pt(x, y)
-        attrs = _set_attr(m.group(1), "x", fmt(nx))
-        attrs = _set_attr(attrs, "y", fmt(ny))
-        new = f'{attrs} x="{fmt(nx)}" y="{fmt(ny)}"{m.group(4)}{m.group(5)}{m.group(6)}'
-        ctx.replace_once(old, new)
 
 
 def _parse_points(raw: str) -> list[tuple[float, float]]:
@@ -495,6 +410,33 @@ def _apply_connector(ctx: _Ctx, key: str, op: dict) -> None:
     flat = " ".join(f"{fmt(p[0])},{fmt(p[1])}" for p in pts)
     if not ctx.replace_once(f'points="{key}"', f'points="{flat}"'):
         ctx.errors.append(f"connector {key[:24]}…: not found (stale?)")
+
+
+# SysIDE arrowheads: `<g transform="translate(x,y) rotate(a) scale(s) …"
+# fill="#1A1A1A">` groups placed at the line end. Layout ops move them by
+# rewriting the translate(x,y) prefix.
+_ARROW_G_RE = re.compile(
+    r'<g\b[^>]*?\btransform="translate\((-?[\d.]+),(-?[\d.]+)\)[^"]*"\s*'
+    r'fill="#1A1A1A"'
+)
+
+
+def _apply_arrow(ctx: _Ctx, key: str, op: dict) -> None:
+    kx, ky = (float(v) for v in key.split(","))
+    nx = float(op.get("x", kx))
+    ny = float(op.get("y", ky))
+    found = None
+    for m in _ARROW_G_RE.finditer(ctx.svg_text):
+        if f"{float(m.group(1)):g},{float(m.group(2)):g}" == f"{kx:g},{ky:g}":
+            found = m
+            break
+    if found is None:
+        ctx.errors.append(f"arrow {key}: not found (stale?)")
+        return
+    old = found.group(0)
+    old_tr = f"translate({fmt(float(found.group(1)))},{fmt(float(found.group(2)))})"
+    new_tr = f"translate({fmt(nx)},{fmt(ny)})"
+    ctx.replace_once(old, old.replace(old_tr, new_tr, 1))
 
 
 def _apply_line(ctx: _Ctx, key: str, op: dict) -> None:

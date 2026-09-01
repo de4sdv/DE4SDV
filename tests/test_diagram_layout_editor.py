@@ -120,19 +120,37 @@ def test_text_font_size_rewrite(committed):
     assert 'font-size="14"' in new
 
 
-def test_box_resize_moves_companions(committed):
-    # boxPart box: M 30,160 H 130 ... -> 24..136 x 160..196 (rounded box)
+def test_box_resize_is_explicit_ops_only(committed):
+    """The applier never infers companions: a boxes op rewrites ONLY the box
+    path. Labels/separators/connectors are moved by their own ops (the
+    client records them) — no hidden coupling in the server."""
     key = "24,160,136,196"
     layout = {"ops": [
         {"kind": "boxes", "find": key, "op": {"x1": 60, "y1": 160, "x2": 200, "y2": 240}},
     ]}
     new, notes = layout_apply.apply_layout(committed, layout)
     assert notes == []
-    # regenerated rounded header (radius 6): starts at x1+6
+    assert "M 66,160" in new          # regenerated rounded header
+    # the box owner label did NOT move (no companion inference server-side)
+    assert 'x="45"' in new
+    assert 'x="86.25"' not in new
+
+
+def test_box_plus_companion_ops_apply_together(committed):
+    """The full client-produced op set: box + its label move via separate
+    ops and apply together, reproducing the drag preview exactly."""
+    key = "24,160,136,196"
+    # label at (45,178) inside the box moves proportionally like the client
+    # does (translate part): x 45+(60-24)=81, y 178+(160-160)=178
+    layout = {"ops": [
+        {"kind": "boxes", "find": key,
+         "op": {"x1": 60, "y1": 160, "x2": 200, "y2": 240}},
+        {"kind": "text", "find": "45,178", "op": {"x": 81, "y": 178}},
+    ]}
+    new, notes = layout_apply.apply_layout(committed, layout)
+    assert notes == []
     assert "M 66,160" in new
-    # the box owner label (45,178 -> inside old box) moves proportionally:
-    # x: 60 + (45-24)*(140/112) = 86.25, y: 160 + (178-160)*(80/36) = 200
-    assert 'x="86.25"' in new and 'y="200"' in new
+    assert 'x="81"' in new
 
 
 def test_connector_reroute(committed):
@@ -197,8 +215,9 @@ def test_apply_is_pure(committed):
 
 
 def test_real_model_box_resize_end_to_end():
-    """The committed AEBS structure view: resize the big part box and verify
-    the regenerated rounded-box geometry + moved separators."""
+    """The committed AEBS structure view: a boxes op rewrites the rounded
+    box exactly; companions move via their own ops (verified by the arrows
+    + connector ops below)."""
     real = REPO_ROOT / (
         "textual-notation-of-model/packages/features/aebs/diagrams/"
         "diagram-aebsSystemStructureView.svg"
@@ -211,13 +230,39 @@ def test_real_model_box_resize_end_to_end():
     layout = {"ops": [
         {"kind": "boxes", "find": "28,368,343,709",
          "op": {"x1": 100, "y1": 380, "x2": 500, "y2": 760}},
+        # a separator inside the old box, moved by its own op (client does
+        # this automatically during the drag)
+        {"kind": "connectors", "find": "28,404 343,404",
+         "op": {"points": [[100, 420.12], [500, 420.12]]}},
+        # label 'subject' row inside the box, moved by its own op
+        {"kind": "text", "find": "36,430", "op": {"x": 110.16, "y": 449.09}},
     ]}
     new, notes = layout_apply.apply_layout(text, layout)
     assert notes == []
     assert "M 106,380" in new
-    # separator 28,404 343,404 was inside; proportional map: y 368->380,
-    # scale 380/341 -> 420.12
     assert 'points="100,420.12 500,420.12"' in new
+    assert 'x="110.16"' in new
+
+
+def test_real_model_arrow_op_end_to_end():
+    """Arrowheads are separate <g translate rotate> groups in exchange views;
+    an arrows op rewrites the translate prefix and keeps the rotation."""
+    real = REPO_ROOT / (
+        "textual-notation-of-model/packages/features/aebs/diagrams/"
+        "diagram-aebs010LogicalInternalExchangeView.svg"
+    )
+    if not real.is_file():
+        pytest.skip("real model checkout not present")
+    import re
+
+    text = re.sub(r"^<\?xml[^>]*\?>", "", real.read_text(encoding="utf-8")).lstrip()
+    layout = {"ops": [
+        {"kind": "arrows", "find": "306,585", "op": {"x": 360, "y": 610}},
+    ]}
+    new, notes = layout_apply.apply_layout(text, layout)
+    assert notes == []
+    assert 'translate(360,610) rotate(-180) scale(0.75)' in new
+    assert 'translate(306,585)' not in new
 
 
 # ---------------------------------------------------------------------------
