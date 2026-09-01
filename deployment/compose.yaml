@@ -1,0 +1,94 @@
+# DE4SDV Experimental Read-Only Systems Modeling API — deployment stack.
+#
+# Topology (ADR 0013):
+#
+#   Internet --HTTPS--> caddy (80/443 published) --> sysml2-api (internal) --> postgres (internal)
+#
+# Only caddy publishes ports. The API and PostgreSQL are reachable solely on
+# the internal Docker network; neither is exposed to the host or Internet.
+# The API itself has no published port even on localhost — the privileged
+# ingestion path runs inside the compose network when needed.
+#
+# Pins (exact digests; fail closed on drift):
+#   caddy     caddy:2.8.4-alpine            sha256:<see .env.example comment>
+#   postgres  postgres:16-alpine            sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+#   sysml2-api built from deployment/sysml2-api/Dockerfile
+#             (upstream Systems-Modeling/SysML-v2-API-Services @0af711b1,
+#              the exact revision used by the privileged DE4SDV workflow)
+#
+# Secrets come from /srv/de4sdv/sysml2-api.env (root-readable only), created
+# by deployment/scripts/provision-server.sh. Nothing secret lives in git.
+
+name: de4sdv-sysml-api
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    # No ports published: PostgreSQL is unreachable from outside the compose
+    # network. pg_isready without -h defaults to the local unix socket inside
+    # the container, which is what we want for the healthcheck.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  sysml2-api:
+    # Built from the pinned Dockerfile in this repository.
+    build:
+      context: ..
+      dockerfile: deployment/sysml2-api/Dockerfile
+    image: de4sdv/sysml2-api:pinned
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      PLAY_HTTP_SECRET_KEY: ${PLAY_HTTP_SECRET_KEY}
+    # No ports published: the API is reachable only via the proxy network.
+    expose:
+      - "9000"
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    depends_on:
+      - sysml2-api
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ../deployment/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - ../deployment/status:/srv/de4sdv-status:ro
+    networks:
+      - internal
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge

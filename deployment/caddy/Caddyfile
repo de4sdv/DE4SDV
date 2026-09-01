@@ -1,0 +1,72 @@
+# DE4SDV Experimental Read-Only Systems Modeling API — public reverse proxy.
+#
+# Internet -> Caddy (HTTPS, read-only) -> sysml2-api (localhost, container
+# network only) -> PostgreSQL (container network only).
+#
+# Security properties enforced here:
+#   - Automatic TLS via Let's Encrypt (on-demand, no manual cert handling).
+#   - Only GET/HEAD/OPTIONS reach the API; POST/PUT/PATCH/DELETE are rejected
+#     at the proxy with 405 before any bytes touch the API service.
+#   - The API and PostgreSQL are only reachable on the internal Docker
+#     network; no host ports are published for them.
+#   - Public rate limiting and request-size limits.
+#
+# The upstream pilot implementation does define POST endpoints (projects,
+# commits). The proxy intentionally disables ALL mutation operations for the
+# public surface; ingestion happens server-side through the validated
+# importer path (ADR 0011/0013), never through the public interface.
+{
+	email {$ACME_EMAIL}
+}
+
+sysml-api.de4sdv.org {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# Reject all mutation methods at the proxy, before the API sees them.
+	@mutations method POST PUT PATCH DELETE
+	respond @mutations 405 {
+		close
+	}
+
+	# Public rate limiting: 50 requests / 10 s per client IP with a burst of
+	# 100 (caddy-ratelimit). Enough for browsing the model and Swagger;
+	# hostile scraping fails fast.
+	rate_limit {
+		zone static {
+			key {remote_host}
+			events 50
+			window 10s
+		}
+	}
+
+	# Cap request bodies (the API is read-only; uploads are invalid).
+	request_body {
+		max_size 1MB
+	}
+
+	# Small machine-readable deployment-status document, served directly by
+	# the proxy. Generated at deploy time by deployment/scripts/deploy.py;
+	# contains no secrets or internal paths.
+	handle /deployment-status.json {
+		root * /srv/de4sdv-status
+		file_server
+	}
+
+	handle {
+		reverse_proxy sysml2-api:9000 {
+			health_uri /projects
+			health_interval 30s
+			health_timeout 10s
+			header_up X-Forwarded-Proto {scheme}
+			header_up Host {upstream_hostport}
+		}
+	}
+}

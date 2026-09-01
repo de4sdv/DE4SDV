@@ -1,0 +1,155 @@
+# DE4SDV Public Deployment Pipeline — GitHub Actions.
+#
+# Manually triggered (workflow_dispatch). Deploys ONE exact Git revision to
+# sysml-api.de4sdv.org by:
+#
+#   1. checking out the dispatch ref and validating it equals the input SHA;
+#   2. building and starting the pinned stack on the deployment host over SSH;
+#   3. transferring the validated full-model bundle (export, binding, reports)
+#      produced by the privileged full-model workflow for the SAME SHA;
+#   4. running the fail-closed deploy.py on the host;
+#   5. running the external public verification script.
+#
+# Fail-closed rules:
+#   - refuses to deploy if any privileged artifact is missing/stale/mismatched;
+#   - refuses PR heads: the ref must be main or an exact SHA on main;
+#   - refuses to run without the SSH key secret (never prints it).
+#
+# Prerequisites (one-time, set by the repository owner):
+#   Secrets:
+#     DEPLOY_SSH_KEY         private key allowed to SSH to the host (deploy user)
+#     DEPLOY_SSH_HOST        e.g. sysml-api.de4sdv.org (once DNS exists) or the IP
+#     DEPLOY_SSH_USER        deploy user on the host
+#   Environments:
+#     sysml-api-production   (manual approval gate recommended)
+#   The privileged run for the same SHA must exist; its artifact ID is passed
+#   as an input, or the latest successful run for that SHA is used.
+
+name: Deploy Public SysML API
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_sha:
+        description: Exact DE4SDV Git SHA to deploy (must have a green privileged full-model run)
+        required: true
+      artifact_run_id:
+        description: Privileged Full-Model API Ingestion run ID for that SHA (optional; auto-detected when empty)
+        required: false
+      skip_verification:
+        description: Skip post-deploy public verification (not recommended)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sysml-api-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: sysml-api-production
+    timeout-minutes: 60
+    steps:
+      - name: Check out deployment repository at the exact SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_sha }}
+          fetch-depth: 0
+
+      - name: Validate deployment ref (fail closed on PR heads)
+        run: |
+          set -euo pipefail
+          DEPLOY_SHA="${{ inputs.git_sha }}"
+          case "$DEPLOY_SHA" in
+            [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
+            *) echo "git_sha must be a full 40-hex SHA" >&2; exit 1 ;;
+          esac
+          MERGED=$(git branch -r --contains "$DEPLOY_SHA" origin/main | wc -l)
+          if [[ "$MERGED" -eq 0 ]]; then
+            echo "Refusing: $DEPLOY_SHA is not on origin/main" >&2
+            exit 1
+          fi
+          echo "DEPLOY_SHA=$DEPLOY_SHA" >> "$GITHUB_ENV"
+
+      - name: Locate privileged artifact for the exact SHA
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ inputs.artifact_run_id }}"
+          if [[ -z "$RUN_ID" ]]; then
+            RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/privileged-full-model-api-ingestion.yml/runs?status=success&per_page=100" \
+              --jq ".workflow_runs[] | select(.head_sha==\"$DEPLOY_SHA\") | .id" | head -1)
+          fi
+          if [[ -z "$RUN_ID" ]]; then
+            echo "No successful privileged full-model run found for $DEPLOY_SHA" >&2
+            exit 1
+          fi
+          echo "PRIVILEGED_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Download validated full-model bundle
+        run: |
+          set -euo pipefail
+          gh api "repos/${{ github.repository }}/actions/runs/$PRIVILEGED_RUN_ID/artifacts" > artifacts.json
+          ARTIFACT_ID=$(python3 - <<'PY'
+          import json
+          arts=json.load(open('artifacts.json'))['artifacts']
+          matches=[a for a in arts if a['name'].startswith('full-model-api-ingestion-') and not a['expired']]
+          assert len(matches)==1, matches
+          print(matches[0]['id'])
+          PY
+          )
+          gh api "repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip" > bundle.zip
+          mkdir -p /tmp/bundle
+          unzip -q bundle.zip -d /tmp/bundle
+          ls -la /tmp/bundle
+          echo "BUNDLE_DIR=/tmp/bundle" >> "$GITHUB_ENV"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Set up SSH key (never printed)
+        run: |
+          set -euo pipefail
+          install -m 600 /dev/null /tmp/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
+          SSH_HOST="${{ secrets.DEPLOY_SSH_HOST }}"
+          SSH_USER="${{ secrets.DEPLOY_SSH_USER }}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i /tmp/deploy_key -o BatchMode=yes "$SSH_USER@$SSH_HOST" 'echo SSH_OK'
+
+      - name: Push repository bundle to the host
+        run: |
+          set -euo pipefail
+          SSH_HOST="${{ secrets.DEPLOY_SSH_HOST }}"
+          SSH_USER="${{ secrets.DEPLOY_SSH_USER }}"
+          tar -cf - --exclude=.git . | ssh -i /tmp/deploy_key -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
+            'sudo mkdir -p /srv/de4sdv/DE4SDV && sudo chown -R $(whoami) /srv/de4sdv/DE4SDV && tar -xf - -C /srv/de4sdv/DE4SDV'
+          ssh -i /tmp/deploy_key -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
+            "cd /srv/de4sdv/DE4SDV && git init -q 2>/dev/null || true; git rev-parse HEAD"
+
+      - name: Transfer validated bundle and run fail-closed deploy
+        run: |
+          set -euo pipefail
+          SSH_HOST="${{ secrets.DEPLOY_SSH_HOST }}"
+          SSH_USER="${{ secrets.DEPLOY_SSH_USER }}"
+          ssh -i /tmp/deploy_key -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
+            'sudo mkdir -p /srv/de4sdv/artifacts/incoming && sudo chown -R $(whoami) /srv/de4sdv/artifacts'
+          scp -i /tmp/deploy_key -o BatchMode=yes /tmp/bundle/* "$SSH_USER@$SSH_HOST:/srv/de4sdv/artifacts/incoming/"
+          ssh -i /tmp/deploy_key -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
+            'cd /srv/de4sdv/DE4SDV && sudo python3 deployment/scripts/deploy.py --bundle-dir /srv/de4sdv/artifacts/incoming --repo /srv/de4sdv/DE4SDV'
+
+      - name: Post-deploy public verification
+        if: ${{ !inputs.skip_verification }}
+        run: |
+          set -euo pipefail
+          python3 deployment/scripts/verify_public_api.py --json /tmp/verify.json
+          cat /tmp/verify.json
+
+      - name: Remove SSH key material
+        if: always()
+        run: rm -f /tmp/deploy_key

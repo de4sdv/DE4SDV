@@ -1,0 +1,6 @@
+{
+  "service": "DE4SDV Experimental Read-Only Systems Modeling API",
+  "status": "not-deployed",
+  "read_only": true,
+  "note": "Placeholder; the live file on the deployment server is generated at deploy time by deployment/scripts/deploy.py and always reflects the currently served validated baseline."
+}
