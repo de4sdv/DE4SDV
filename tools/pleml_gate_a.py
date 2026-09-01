@@ -84,6 +84,40 @@ def gate_a_source_identity(
     )
 
 
+def _resolve_bounds(
+    feature_id: str, bound_values: list[tuple[bool, int | None]]
+) -> tuple[int | None, int | None]:
+    """Derive [lower..upper] from bound values without trusting param order.
+
+    The official serializer does not guarantee that ParameterMembership order
+    matches textual bound order (real evidence: ``[1..*]`` serialized with the
+    LiteralInfinity parameter before the LiteralInteger 1). The derivation is
+    therefore order-independent:
+
+    - one integer bound ``N``: ``[N..N]``;
+    - one LiteralInfinity: ``[0..*]``;
+    - integer(s) + LiteralInfinity (2 bounds): lower = the integer, upper
+      unbounded;
+    - two integers: lower = min, upper = max (SysML requires lower <= upper);
+    - anything else: fail closed.
+    """
+
+    integers = [value for is_inf, value in bound_values if not is_inf and value is not None]
+    infinities = sum(1 for is_inf, _ in bound_values if is_inf)
+    if len(bound_values) == 1:
+        if infinities:
+            return (0, None)
+        assert integers
+        return (integers[0], integers[0])
+    if len(bound_values) == 2 and infinities == 1:
+        return (integers[0], None)
+    if len(bound_values) == 2 and not infinities:
+        return (min(integers), max(integers))
+    raise UnsupportedSemanticShape(
+        f"multiplicity range of {feature_id} has an ambiguous bound set: {bound_values}"
+    )
+
+
 def build_observability_matrix(
     elements: Iterable[dict[str, Any]], element_sources: dict[str, str]
 ) -> tuple[dict[str, object], ...]:
@@ -241,20 +275,7 @@ def build_observability_matrix(
                 raise UnsupportedSemanticShape(
                     f"multiplicity range of {feature_id} carries no bound values"
                 )
-            for index, (is_infinity, value) in enumerate(bound_values):
-                if is_infinity:
-                    if index == 0:
-                        raise UnsupportedSemanticShape(
-                            f"multiplicity of {feature_id} has an unbounded lower bound"
-                        )
-                    upper = None
-                else:
-                    assert value is not None
-                    if index == 0:
-                        lower = value
-                        upper = value
-                    else:
-                        upper = value
+            lower, upper = _resolve_bounds(feature_id, bound_values)
         if not found_range:
             return (1, 1)
         return (lower, upper)
@@ -506,84 +527,125 @@ def build_observability_matrix(
                 f"{config_name} does not resolve the sensorSuite group"
             )
 
-    def _check_incompatibility_shape() -> None:
-        base = [e for e in values if _named(e, "xorFeatures")]
-        if len(base) != 1:
+    def _constraint_chain(base_name: str) -> tuple[str, str]:
+        """Resolve (base UUID, redefining UUID) for a PLEML constraint usage.
+
+        The pinned PLEML library declares the base usage; the fixture's
+        ``assert constraint :>> <name>`` serializes a second usage carrying the
+        same name (the redefining one). The pair is therefore resolved by
+        source provenance and verified through the Redefinition relationship,
+        never by name alone.
+        """
+
+        base_matches = [
+            e
+            for e in values
+            if _named(e, base_name)
+            and element_sources.get(_ref_id(e) or "") == "external/pleml/PLEML/PLEML.sysml"
+        ]
+        actual_matches = [
+            e
+            for e in values
+            if _named(e, base_name)
+            and element_sources.get(_ref_id(e) or "") == "docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml"
+        ]
+        if len(base_matches) != 1:
             raise UnsupportedSemanticShape(
-                f"expected exactly one xorFeatures base usage, found {len(base)}"
+                f"expected exactly one {base_name} base usage in the pinned "
+                f"PLEML source, found {len(base_matches)}"
             )
-        base_id = _ref_id(base[0])
-        if not base_id:
-            raise UnsupportedSemanticShape("xorFeatures base usage has no UUID")
+        if len(actual_matches) != 1:
+            raise UnsupportedSemanticShape(
+                f"expected exactly one {base_name} redefining usage in the "
+                f"fixture, found {len(actual_matches)}"
+            )
+        base_id = _ref_id(base_matches[0])
+        actual_id = _ref_id(actual_matches[0])
+        if not base_id or not actual_id:
+            raise UnsupportedSemanticShape(
+                f"{base_name} constraint chain has a null UUID"
+            )
         redefinitions = [
             e
             for e in values
             if e.get("@type") == "Redefinition"
             and _ref_id(e.get("redefinedFeature") or e.get("general")) == base_id
+            and _ref_id(e.get("redefiningFeature") or e.get("specific")) == actual_id
         ]
         if len(redefinitions) != 1:
             raise UnsupportedSemanticShape(
-                f"expected exactly one xorFeatures redefinition, found "
-                f"{len(redefinitions)}"
+                f"expected exactly one Redefinition linking {base_name} base "
+                f"to the fixture usage, found {len(redefinitions)}"
             )
-        actual_id = _ref_id(redefinitions[0].get("redefiningFeature") or redefinitions[0].get("specific"))
-        actual = by_id.get(actual_id or "")
+        actual = by_id.get(actual_id)
         if not actual or actual.get("@type") != "AssertConstraintUsage":
             raise UnsupportedSemanticShape(
-                "xorFeatures redefinition is not an AssertConstraintUsage"
+                f"{base_name} fixture usage is not an AssertConstraintUsage"
             )
-        excluded = [
-            _ref_id(role.get("memberElement"))
-            for role in values
-            if role.get("@type") == "Membership"
-            and _ref_id(role.get("owningRelatedElement"))
-            in {
-                _ref_id(value.get("memberElement") or value.get("ownedRelatedElement"))
-                for value in values
-                if value.get("@type") == "FeatureValue"
-                and _ref_id(value.get("owningRelatedElement")) == actual_id
-            }
+        return base_id, actual_id
+
+    def _role_target(owner_id: str, role_name: str) -> str:
+        """Resolve a named role's UUID through the observed reference chain.
+
+        Chain (real-serializer evidence): owning membership named
+        ``role_name`` -> role usage -> ``FeatureValue`` ->
+        ``FeatureReferenceExpression`` -> ``Membership`` -> target feature.
+        """
+
+        role_ids = [
+            _ref_id(m.get("memberElement") or m.get("ownedRelatedElement"))
+            for m in values
+            if m.get("@type")
+            in ("FeatureMembership", "OwningMembership", "Membership")
+            and m.get("memberName") == role_name
+            and _ref_id(m.get("owningRelatedElement")) == owner_id
         ]
-        excluded_ids = {item for item in excluded if item}
-        if len(excluded_ids) != 1:
+        role_ids = [item for item in role_ids if item]
+        if len(role_ids) != 1:
             raise UnsupportedSemanticShape(
-                f"xorFeatures constraint must reference exactly one excluded "
-                f"feature UUID, found {len(excluded_ids)}"
+                f"{owner_id} has {len(role_ids)} {role_name} role usages"
             )
-        excluded_element = by_id.get(next(iter(excluded_ids)))
+        role_id = role_ids[0]
+        value_ids = [
+            _ref_id(item.get("memberElement") or item.get("ownedRelatedElement"))
+            for item in values
+            if item.get("@type") == "FeatureValue"
+            and _ref_id(item.get("owningRelatedElement")) == role_id
+        ]
+        value_ids = [item for item in value_ids if item]
+        if len(value_ids) != 1:
+            raise UnsupportedSemanticShape(
+                f"{owner_id}.{role_name} has {len(value_ids)} value expressions"
+            )
+        expression = by_id.get(value_ids[0])
+        if not expression or expression.get("@type") != "FeatureReferenceExpression":
+            raise UnsupportedSemanticShape(
+                f"{owner_id}.{role_name} is not a feature reference expression"
+            )
+        targets = [
+            _ref_id(m.get("memberElement"))
+            for m in values
+            if m.get("@type") == "Membership"
+            and _ref_id(m.get("owningRelatedElement")) == value_ids[0]
+        ]
+        targets = [item for item in targets if item]
+        if len(targets) != 1:
+            raise UnsupportedSemanticShape(
+                f"{owner_id}.{role_name} reference has {len(targets)} targets"
+            )
+        return targets[0]
+
+    def _check_incompatibility_shape() -> None:
+        base_id, actual_id = _constraint_chain("xorFeatures")
+        excluded_id = _role_target(actual_id, "excluded")
+        excluded_element = by_id.get(excluded_id)
         if not excluded_element or not _named(excluded_element, "androidSDV"):
             raise UnsupportedSemanticShape(
                 "xorFeatures excluded feature is not the fixture's androidSDV"
             )
 
     def _check_requires_shape() -> None:
-        base = [e for e in values if _named(e, "requiresFeatures")]
-        if len(base) != 1:
-            raise UnsupportedSemanticShape(
-                f"expected exactly one requiresFeatures base usage, found {len(base)}"
-            )
-        base_id = _ref_id(base[0])
-        if not base_id:
-            raise UnsupportedSemanticShape("requiresFeatures base usage has no UUID")
-        redefinitions = [
-            e
-            for e in values
-            if e.get("@type") == "Redefinition"
-            and _ref_id(e.get("redefinedFeature") or e.get("general")) == base_id
-        ]
-        if len(redefinitions) != 1:
-            raise UnsupportedSemanticShape(
-                f"expected exactly one requiresFeatures redefinition, found "
-                f"{len(redefinitions)}"
-            )
-        actual_id = _ref_id(
-            redefinitions[0].get("redefiningFeature") or redefinitions[0].get("specific")
-        )
-        actual = by_id.get(actual_id or "")
-        if not actual or actual.get("@type") != "AssertConstraintUsage":
-            raise UnsupportedSemanticShape(
-                "requiresFeatures redefinition is not an AssertConstraintUsage"
-            )
+        _constraint_chain("requiresFeatures")
 
     def _check_binding_endpoints() -> None:
         bindings = [e for e in values if _named(e, "gateASimpleFeatureBinding")]
@@ -596,37 +658,26 @@ def build_observability_matrix(
             raise UnsupportedSemanticShape(
                 f"FeatureBinding serialized as {binding.get('@type')}, expected Dependency"
             )
-        for role in ("source", "client"):
-            refs = _reference_paths(binding)
-            targets = {
-                item["target_uuid"]
-                for item in refs
-                if item["property_path"] == role
-            }
-            if len(targets) != 1:
-                raise UnsupportedSemanticShape(
-                    f"FeatureBinding {role} endpoint missing or ambiguous"
-                )
-        for role in ("target", "supplier"):
-            targets = {
+
+        def role_targets(role: str) -> set[str]:
+            # Reference paths carry the list index (e.g. "source[0]"); match
+            # on the property base name.
+            return {
                 item["target_uuid"]
                 for item in _reference_paths(binding)
-                if item["property_path"] == role
+                if item["property_path"].split("[")[0] == role
             }
-            if len(targets) != 1:
-                raise UnsupportedSemanticShape(
-                    f"FeatureBinding {role} endpoint missing or ambiguous"
-                )
-        source_targets = {
-            item["target_uuid"]
-            for item in _reference_paths(binding)
-            if item["property_path"] in ("source", "client")
-        }
-        target_targets = {
-            item["target_uuid"]
-            for item in _reference_paths(binding)
-            if item["property_path"] in ("target", "supplier")
-        }
+
+        source_targets = role_targets("source") | role_targets("client")
+        target_targets = role_targets("target") | role_targets("supplier")
+        if len(source_targets) != 1:
+            raise UnsupportedSemanticShape(
+                f"FeatureBinding source endpoint missing or ambiguous: {source_targets}"
+            )
+        if len(target_targets) != 1:
+            raise UnsupportedSemanticShape(
+                f"FeatureBinding target endpoint missing or ambiguous: {target_targets}"
+            )
         source_element = by_id.get(next(iter(source_targets)))
         target_element = by_id.get(next(iter(target_targets)))
         if not source_element or not _named(source_element, "gateASimpleBoundAsset"):
@@ -1024,20 +1075,9 @@ class GateAModel:
                 raise UnsupportedSemanticShape(
                     f"multiplicity range of {element_id} carries no bound values"
                 )
-            for index, (is_infinity, value) in enumerate(bound_values):
-                if is_infinity:
-                    if index == 0:
-                        raise UnsupportedSemanticShape(
-                            f"multiplicity of {element_id} has an unbounded lower bound"
-                        )
-                    upper = None
-                else:
-                    assert value is not None
-                    if index == 0:
-                        lower = value
-                        upper = value
-                    else:
-                        upper = value
+            resolved_lower, resolved_upper = _resolve_bounds(element_id, bound_values)
+            lower = resolved_lower if resolved_lower is not None else 0
+            upper = resolved_upper
         if not found_range:
             return (1, 1)
         return (lower, upper)

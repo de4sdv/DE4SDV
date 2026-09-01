@@ -45,6 +45,46 @@ Configuration validity is evaluated before realization. A PLEML
 `xorFeatures` incompatibility stops derivation. A valid configuration then
 resolves to exactly one rule, no rule, or multiple rules.
 
+## At-least-one / multi-select group
+
+The feature tree includes a `sensorSuite[1..*]` group whose members `radar`
+and `camera` are independent optional features specializing the group. Three
+configurations prove the semantics through the API path:
+
+- `validBothSensors`: both members resolve (multi-select);
+- `validOneSensor`: exactly one member resolves (at-least-one);
+- `invalidNoSensor`: no member resolves; the evaluator fails closed with
+  `configuration-invalid` semantics and no derivation attempt.
+
+Group membership is resolved through Subsetting relationships by UUID, and
+multiplicity bounds are resolved from both observed official-serializer range
+shapes (direct literal bounds and the `..` operator expression whose
+parameters carry the bound literals). Bound order is derived
+order-independently because the serializer does not guarantee that
+parameter order matches textual bound order.
+
+## Observability matrix: adequacy vs. observability
+
+Every matrix row records the full API shape evidence: metatype, UUID,
+ownership path, reference paths with endpoint UUIDs, resolved multiplicity
+bounds, and source provenance. Adequacy is a stronger claim than existence:
+
+- **object observable** — the concept's API element exists with provenance;
+- **semantically adequate** — a concept-specific fail-closed check proves the
+  required semantics (endpoint UUIDs, membership paths, multiplicity values,
+  redefinition chains) on the exact serialized graph.
+
+Rows without a dedicated semantic check are marked `GAP` with
+"no concept-specific semantic check proven this row adequate"; they are
+observable but not yet semantically proven. Concepts with dedicated checks:
+exact-one and optional multiplicity, the at-least-one/multi-select group
+(identity, membership, multiplicity, and both resolution configurations),
+the `requiresFeatures` and `xorFeatures` constraint chains (source-scoped
+base usage, fixture redefinition, excluded-feature UUID), `FeatureBinding`
+dependency endpoints, and variant membership. Real common/variable portfolio
+classification is Gate C work; the fixture only demonstrates the "common
+capability outside feature tree" evidence concept.
+
 ## Evidence
 
 The `Privileged PLEML Gate A Evidence` workflow performs the licensed path and
