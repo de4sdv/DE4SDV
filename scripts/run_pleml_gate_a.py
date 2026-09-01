@@ -22,6 +22,7 @@ from de4sdv.sysml_api.repository import SysMLRepository, element_id
 from de4sdv.sysml_api.revisions import RevisionBinding
 from tools.pleml_gate_a import (
     GateAModel,
+    DerivationOutcome,
     UnsupportedSemanticShape,
     build_observability_matrix,
     gate_a_source_identity,
@@ -119,6 +120,22 @@ def _write_projection(
 """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def serialize_outcomes(
+    outcomes: dict[str, DerivationOutcome],
+) -> dict[str, dict[str, Any]]:
+    """JSON-safe outcome records; frozensets become sorted UUID lists."""
+
+    serialized: dict[str, dict[str, Any]] = {}
+    for name, outcome in outcomes.items():
+        if not isinstance(outcome, DerivationOutcome):
+            raise TypeError(f"expected DerivationOutcome for {name}")
+        serialized[name] = {
+            **asdict(outcome),
+            "selected_feature_ids": sorted(outcome.selected_feature_ids),
+        }
+    return serialized
 
 
 def run_gate_a(
@@ -274,7 +291,7 @@ def run_gate_a(
         "api_import": asdict(imported),
         "api_capabilities": capabilities,
         "observability_matrix": list(matrix),
-        "outcomes": {name: asdict(outcome) for name, outcome in outcomes.items()},
+        "outcomes": serialize_outcomes(outcomes),
         "api_shapes_by_uuid": api_shapes_by_uuid,
         "projection": {
             "path": str(projection_path),
