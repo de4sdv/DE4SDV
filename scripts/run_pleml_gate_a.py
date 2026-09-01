@@ -1,0 +1,327 @@
+#!/usr/bin/env python3
+"""Import, query, evaluate, and report the revision-bound Gate A spike."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import asdict
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from de4sdv.sysml_api.baseline import BaselineExportBundle
+from de4sdv.sysml_api.client import ApiClient
+from de4sdv.sysml_api.ingestion import import_baseline
+from de4sdv.sysml_api.repository import SysMLRepository, element_id
+from de4sdv.sysml_api.revisions import RevisionBinding
+from tools.pleml_gate_a import (
+    GateAModel,
+    UnsupportedSemanticShape,
+    build_observability_matrix,
+    gate_a_source_identity,
+)
+
+
+def _unique_named_id(
+    elements: list[dict[str, Any]], name: str, metatypes: set[str]
+) -> str:
+    matches = [
+        element_id(item)
+        for item in elements
+        if item.get("@type") in metatypes
+        and (item.get("declaredName") or item.get("name")) == name
+    ]
+    matches = [item for item in matches if item]
+    if len(matches) != 1:
+        raise UnsupportedSemanticShape(
+            f"expected one {sorted(metatypes)} named {name}, found {len(matches)}"
+        )
+    return matches[0]
+
+
+def _qualified_name(elements: list[dict[str, Any]], target_id: str) -> str:
+    by_id = {element_id(item): item for item in elements}
+    names: list[str] = []
+    current_id: str | None = target_id
+    visited: set[str] = set()
+    while current_id is not None and current_id not in visited:
+        visited.add(current_id)
+        current = by_id.get(current_id)
+        if current is None:
+            raise UnsupportedSemanticShape(
+                f"qualified-name traversal lost API UUID {current_id}"
+            )
+        name = current.get("declaredName") or current.get("name")
+        if isinstance(name, str) and name:
+            names.append(name)
+        owning = current.get("owningRelationship")
+        owning_id = element_id(owning)
+        if owning_id is None:
+            break
+        relationship = by_id.get(owning_id)
+        if relationship is None:
+            raise UnsupportedSemanticShape(
+                f"qualified-name traversal lost ownership UUID {owning_id}"
+            )
+        current_id = element_id(relationship.get("owningRelatedElement"))
+    qualified = "::".join(reversed(names))
+    if not qualified:
+        raise UnsupportedSemanticShape(f"API UUID {target_id} has no qualified name")
+    return qualified
+
+
+def _write_projection(
+    path: Path,
+    *,
+    adapter_qualified_name: str,
+    adapter_id: str,
+    rule_id: str,
+    configuration_id: str,
+    sysml_commit_id: str,
+    git_commit: str,
+) -> None:
+    content = f"""package GateAResolvedProjection {{
+    private import GateAPLEMLFixture::*;
+
+    doc /* Synthetic Gate A projection only.
+         * Git commit: {git_commit}
+         * SysML API commit: {sysml_commit_id}
+         * configuration UUID: {configuration_id}
+         * realization-rule UUID: {rule_id}
+         * adapter-variant UUID: {adapter_id}
+         */
+
+    part gateADerivedAdapter :> {adapter_qualified_name};
+}}
+"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
+def run_gate_a(
+    *,
+    api_url: str,
+    export_path: Path,
+    report_path: Path,
+    binding_path: Path,
+    projection_path: Path,
+) -> dict[str, Any]:
+    raw = json.loads(export_path.read_text(encoding="utf-8"))
+    exported_identity = raw.get("gate_a_identity")
+    if not isinstance(exported_identity, dict):
+        raise RuntimeError("Gate A export lacks exact source identity")
+    current_identity = gate_a_source_identity(ROOT)
+    expected_identity = {
+        "scope": current_identity.scope,
+        "git_repository": current_identity.git_repository,
+        "git_commit": current_identity.git_commit,
+        "pleml_commit": current_identity.pleml_commit,
+        "serializer": "Syside official minimal JSON",
+    }
+    if exported_identity != expected_identity:
+        raise RuntimeError(
+            f"Gate A export identity mismatch: expected {expected_identity}, "
+            f"got {exported_identity}"
+        )
+    bundle = BaselineExportBundle.from_dict(raw)
+    if bundle.source_manifest != current_identity.source_manifest:
+        raise RuntimeError("Gate A export source manifest is stale or incomplete")
+
+    client = ApiClient(api_url)
+    imported = import_baseline(client, bundle, project_name="DE4SDV PLEML Gate A")
+    imported_at = datetime.now(timezone.utc).isoformat()
+    binding = RevisionBinding(
+        git_repository=current_identity.git_repository,
+        git_commit=bundle.git_commit,
+        sysml_project_id=imported.project_id,
+        sysml_commit_id=imported.commit_id,
+        import_timestamp=imported_at,
+        import_tool_version="de4sdv-pleml-gate-a/v1",
+        semantic_validation="passed",
+        scope="fixture",
+    )
+    binding.require_current(current_identity.git_commit)
+    binding_path.parent.mkdir(parents=True, exist_ok=True)
+    binding_path.write_text(
+        json.dumps(binding.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    repository = SysMLRepository(client)
+    capabilities = repository.check_capabilities(
+        binding.sysml_project_id, binding.sysml_commit_id
+    )
+    elements = repository.list_elements(
+        binding.sysml_project_id, binding.sysml_commit_id
+    )
+    matrix = build_observability_matrix(elements, bundle.element_sources)
+    model = GateAModel(elements)
+
+    configs = {
+        name: _unique_named_id(elements, name, {"OccurrenceUsage"})
+        for name in (
+            "validAutowareAndroid",
+            "validAutowareNoMiddleware",
+            "forbiddenApolloAndroid",
+            "missingOpenpilotSCORE",
+        )
+    }
+    nominal_rules = _unique_named_id(
+        elements, "nominalAdapterRules", {"OccurrenceUsage"}
+    )
+    ambiguous_rules = _unique_named_id(
+        elements, "ambiguousAdapterRules", {"OccurrenceUsage"}
+    )
+    outcomes = {
+        "adapter-required-exactly-one": model.evaluate(
+            configs["validAutowareAndroid"], rule_set_id=nominal_rules
+        ),
+        "valid-no-adapter": model.evaluate(
+            configs["validAutowareNoMiddleware"], rule_set_id=nominal_rules
+        ),
+        "configuration-invalid": model.evaluate(
+            configs["forbiddenApolloAndroid"], rule_set_id=nominal_rules
+        ),
+        "derivation-incomplete": model.evaluate(
+            configs["missingOpenpilotSCORE"], rule_set_id=nominal_rules
+        ),
+        "derivation-ambiguous": model.evaluate(
+            configs["validAutowareAndroid"], rule_set_id=ambiguous_rules
+        ),
+    }
+    expected_statuses = {
+        "adapter-required-exactly-one": "derivation-complete",
+        "valid-no-adapter": "derivation-complete",
+        "configuration-invalid": "configuration-invalid",
+        "derivation-incomplete": "derivation-incomplete",
+        "derivation-ambiguous": "derivation-ambiguous",
+    }
+    actual_statuses = {name: outcome.status for name, outcome in outcomes.items()}
+    if actual_statuses != expected_statuses:
+        raise RuntimeError(
+            f"Gate A semantic outcomes differ: expected={expected_statuses}, "
+            f"actual={actual_statuses}"
+        )
+    if outcomes["valid-no-adapter"].adapter_id is not None:
+        raise RuntimeError("explicit no-adapter rule unexpectedly selected an adapter")
+    resolved = outcomes["adapter-required-exactly-one"]
+    if resolved.adapter_id is None or len(resolved.rule_ids) != 1:
+        raise RuntimeError("exactly-one adapter outcome lacks UUID trace")
+    adapter_name = _qualified_name(elements, resolved.adapter_id)
+    _write_projection(
+        projection_path,
+        adapter_qualified_name=adapter_name,
+        adapter_id=resolved.adapter_id,
+        rule_id=resolved.rule_ids[0],
+        configuration_id=resolved.configuration_id,
+        sysml_commit_id=binding.sysml_commit_id,
+        git_commit=binding.git_commit,
+    )
+
+    report: dict[str, Any] = {
+        "schema": "de4sdv-pleml-gate-a-evidence/v1",
+        "source_identity": expected_identity,
+        "source_manifest": list(current_identity.source_manifest),
+        "revision_binding": binding.to_dict(),
+        "api_import": asdict(imported),
+        "api_capabilities": capabilities,
+        "observability_matrix": list(matrix),
+        "outcomes": {name: asdict(outcome) for name, outcome in outcomes.items()},
+        "projection": {
+            "path": str(projection_path),
+            "adapter_qualified_name": adapter_name,
+            "configuration_uuid": resolved.configuration_id,
+            "rule_uuid": resolved.rule_ids[0],
+            "adapter_uuid": resolved.adapter_id,
+        },
+        "representation_attempts": [
+            {
+                "order": 1,
+                "representation": "pinned PLEML FeatureBinding",
+                "selected": False,
+                "reason": (
+                    "FeatureBinding exposes one dependency source/target mapping but "
+                    "does not encode the required application AND middleware condition; "
+                    "multiple bindings are not interpreted as conjunction."
+                ),
+            },
+            {
+                "order": 2,
+                "representation": "native SysML constraint expression",
+                "selected": False,
+                "reason": (
+                    "The expression probe is retained for exact serializer/API-shape "
+                    "evidence, but a reusable realization table would require binding "
+                    "configuration state into each constraint and an expression "
+                    "interpreter outside the existing semantic repository."
+                ),
+            },
+            {
+                "order": 3,
+                "representation": "narrow DE4SDV AdapterRealizationRule occurrence",
+                "selected": True,
+                "reason": (
+                    "Three governed typed-reference roles survive as UUID-backed "
+                    "FeatureValue/FeatureReferenceExpression paths. Both condition "
+                    "roles are required and matched conjunctively; resultingAdapter is "
+                    "optional only to model an explicit no-adapter result."
+                ),
+            },
+        ],
+        "source_fallback": {
+            "necessary": False,
+            "reason": "All evaluated engineering references were consumed from API objects.",
+        },
+        "external_manifest": {
+            "necessary": False,
+            "reason": "The narrow SysML extension represents and exposes the realization rule.",
+        },
+    }
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return report
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--api-url", required=True)
+    parser.add_argument("--export", type=Path, required=True)
+    parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--binding", type=Path, required=True)
+    parser.add_argument("--projection", type=Path, required=True)
+    args = parser.parse_args()
+    report = run_gate_a(
+        api_url=args.api_url,
+        export_path=args.export,
+        report_path=args.report,
+        binding_path=args.binding,
+        projection_path=args.projection,
+    )
+    print(
+        json.dumps(
+            {
+                "source_identity": report["source_identity"],
+                "revision_binding": report["revision_binding"],
+                "outcomes": {
+                    name: value["status"] for name, value in report["outcomes"].items()
+                },
+                "report": str(args.report),
+                "projection": str(args.projection),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

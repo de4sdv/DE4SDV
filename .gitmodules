@@ -1,0 +1,3 @@
+[submodule "external/pleml"]
+	path = external/pleml
+	url = https://github.com/MBSE4U/PLEML.git
