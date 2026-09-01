@@ -217,7 +217,7 @@ class ViewerServer(ThreadingHTTPServer):
         """
         tools_dir = Path(__file__).resolve().parent
         newest = 0.0
-        for pattern in ("*.py", "viewer.js", "viewer.css"):
+        for pattern in ("*.py", "*.js", "*.css"):
             for p in tools_dir.glob(pattern):
                 try:
                     newest = max(newest, p.stat().st_mtime)
