@@ -8,76 +8,76 @@ package DE4SDV_AEBS009HVerification {
   private import Views::*;
 
 
-  enum def EvidenceOutcome009H {
+  enum def BicycleEvidenceOutcome {
     passBoundedTargetResponse;
     failConfiguredOutcome;
     inconclusiveCoverage;
     errorEvidence;
   }
-  item def Retained009HObservationSet;
-  item def Replayed009HEvaluation {
-    attribute outcome : EvidenceOutcome009H;
+  item def BicycleObservationSet;
+  item def BicycleEvaluation {
+    attribute outcome : BicycleEvidenceOutcome;
   }
-  calc def Map009HOutcomeToVerdict {
-    in outcome : EvidenceOutcome009H;
+  calc def MapBicycleOutcomeToVerdict {
+    in outcome : BicycleEvidenceOutcome;
     return verdict : VerdictKind =
-      if outcome == EvidenceOutcome009H::passBoundedTargetResponse? VerdictKind::pass
-      else if outcome == EvidenceOutcome009H::failConfiguredOutcome? VerdictKind::fail
-      else if outcome == EvidenceOutcome009H::errorEvidence? VerdictKind::error
+      if outcome == BicycleEvidenceOutcome::passBoundedTargetResponse? VerdictKind::pass
+      else if outcome == BicycleEvidenceOutcome::failConfiguredOutcome? VerdictKind::fail
+      else if outcome == BicycleEvidenceOutcome::errorEvidence? VerdictKind::error
       else VerdictKind::inconclusive;
   }
 
-  part def BicycleTargetBench009H;
-  requirement def EvidenceContract009H;
-  requirement evidenceContract009HConfiguredBicycleTarget : EvidenceContract009H {
-    subject bench : BicycleTargetBench009H;
+  part def BicycleTargetBench;
+  requirement def BicycleEvidenceContract;
+  requirement evidenceContractConfiguredBicycleTarget : BicycleEvidenceContract {
+    subject bench : BicycleTargetBench;
     require constraint statement { language "English" /* The bench shall bind the configured bicycle trajectory, geometry, timing, and exact bench identity: crossing speed 4.0 m/s, a closed observation window of 2.0 s, and map-frame source observations no older than 0.5 s. */ }
   }
-  requirement evidenceContract009HIndependentFootprintOutcome : EvidenceContract009H {
-    subject bench : BicycleTargetBench009H;
+  requirement evidenceContractIndependentFootprintOutcome : BicycleEvidenceContract {
+    subject bench : BicycleTargetBench;
     require constraint statement { language "English" /* The bench shall reconstruct ego and bicycle footprints independently from retained map-frame observations and reject missing or contradictory samples. */ }
   }
-  requirement evidenceContract009HReplayableProvenance : EvidenceContract009H {
-    subject bench : BicycleTargetBench009H;
+  requirement evidenceContractReplayableProvenance : BicycleEvidenceContract {
+    subject bench : BicycleTargetBench;
     require constraint statement { language "English" /* The bench shall hash-bind scenario, runtime, evaluator, observation, map-runtime, and artifact identities for independent replay. */ }
   }
 
-  part bicycleTargetBench009H : BicycleTargetBench009H;
-  verification def BicycleTargetVerification009H {
-    subject verifiedBench : BicycleTargetBench009H;
-    objective evidenceObjective009H {
-      verify evidenceContract009HConfiguredBicycleTarget;
-      verify evidenceContract009HIndependentFootprintOutcome;
-      verify evidenceContract009HReplayableProvenance;
+  part bicycleTargetBench : BicycleTargetBench;
+  verification def BicycleTargetVerification {
+    subject verifiedBench : BicycleTargetBench;
+    objective evidenceObjective {
+      verify evidenceContractConfiguredBicycleTarget;
+      verify evidenceContractIndependentFootprintOutcome;
+      verify evidenceContractReplayableProvenance;
     }
     action collectData {
       @VerificationMethod{ kind = test; }
-      out item retainedObservations : Retained009HObservationSet;
+      out item retainedObservations : BicycleObservationSet;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in item retainedObservations : Retained009HObservationSet = collectData.retainedObservations;
-      out item replayedEvaluation : Replayed009HEvaluation;
+      in item retainedObservations : BicycleObservationSet = collectData.retainedObservations;
+      out item replayedEvaluation : BicycleEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : Replayed009HEvaluation = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map009HOutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : BicycleEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapBicycleOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification bicycleTargetVerification009H : BicycleTargetVerification009H {
+  verification bicycleTargetVerification : BicycleTargetVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> bicycleTargetBench009H;
+    subject verifiedBench :> bicycleTargetBench;
   }
-  part verificationSystem009H {
-    perform bicycleTargetVerification009H;
+  part verificationSystem {
+    perform bicycleTargetVerification;
   }
 
   dependency bicycleConfigurationRelevantToBicycleDetectionCandidate
-    from evidenceContract009HConfiguredBicycleTarget to reqBicycleTargetResponse;
+    from evidenceContractConfiguredBicycleTarget to reqBicycleTargetResponse;
   dependency bicycleOutcomeRelevantToBicycleResponseCandidate
-    from evidenceContract009HIndependentFootprintOutcome to reqBicycleTargetControlledResponse;
+    from evidenceContractIndependentFootprintOutcome to reqBicycleTargetControlledResponse;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
@@ -89,7 +89,7 @@ package DE4SDV_AEBS009HVerification {
     doc /* Evidence-based assurance claims and their supporting argumentation. */
   }
 
-  view aebs009HVerificationAssuranceView {
+  view aebsBicycleVerificationAssuranceView {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }

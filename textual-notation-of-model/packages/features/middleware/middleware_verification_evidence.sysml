@@ -33,7 +33,7 @@ package DE4SDV_Middleware010VerificationEvidence {
     doc /* INC-MW-010: middleware verification, validation, and evidence. */
   }
 
-  enum def ScenarioIdentity010 {
+  enum def MiddlewareScenarioIdentity {
     signalTranslation;
     lifecycleCoordination;
     healthForwarding;
@@ -42,7 +42,7 @@ package DE4SDV_Middleware010VerificationEvidence {
     faultDetection;
   }
 
-  enum def EvidenceOutcome010 {
+  enum def MiddlewareEvidenceOutcome {
     passBoundedVerification;
     passBoundedValidation;
     failObservedBehavior;
@@ -51,7 +51,7 @@ package DE4SDV_Middleware010VerificationEvidence {
     errorEvidence;
   }
 
-  enum def EvidenceDisposition010 {
+  enum def MiddlewareEvidenceDisposition {
     planned;
     observedBounded;
     partial;
@@ -60,7 +60,7 @@ package DE4SDV_Middleware010VerificationEvidence {
     rejected;
   }
 
-  item def VehicleSpeedTranslationObservation010 {
+  item def VehicleSpeedTranslationObservation {
     attribute inputSpeedKmh : Real;
     attribute expectedVelocityMps : Real;
     attribute observedVelocityMps : Real;
@@ -69,134 +69,134 @@ package DE4SDV_Middleware010VerificationEvidence {
     attribute independentObservation : Boolean;
   }
 
-  item def LifecycleObservation010 {
+  item def MiddlewareLifecycleObservation {
     attribute stateName : String;
     attribute predecessorState : String;
     attribute successorState : String;
     attribute transitionObserved : Boolean;
   }
 
-  item def HealthObservation010 {
+  item def MiddlewareHealthObservation {
     attribute healthState : String;
     attribute sourceFresh : Boolean;
     attribute forwarded : Boolean;
     attribute faultIdentity : String;
   }
 
-  item def RetainedMiddlewareEvidence010 {
+  item def RetainedMiddlewareEvidence {
     attribute configurationIdentity : String;
     attribute executionEnvironmentIdentity : String;
     attribute contractIdentity : String;
     attribute rawObservationArtifact : String;
     attribute independentObserverIdentity : String;
-    attribute disposition : EvidenceDisposition010;
+    attribute disposition : MiddlewareEvidenceDisposition;
     attribute claimBoundary : String;
   }
 
-  item def ReplayedMiddlewareEvaluation010 {
-    attribute scenario : ScenarioIdentity010;
-    attribute outcome : EvidenceOutcome010;
+  item def ReplayedMiddlewareEvaluation {
+    attribute scenario : MiddlewareScenarioIdentity;
+    attribute outcome : MiddlewareEvidenceOutcome;
     attribute acceptanceSummary : String;
   }
 
-  calc def Map010OutcomeToVerdict {
-    in outcome : EvidenceOutcome010;
+  calc def MapEvidenceOutcomeToVerdict {
+    in outcome : MiddlewareEvidenceOutcome;
     return verdict : VerdictKind =
-      if outcome == EvidenceOutcome010::passBoundedVerification? VerdictKind::pass
-      else if outcome == EvidenceOutcome010::passBoundedValidation? VerdictKind::pass
-      else if outcome == EvidenceOutcome010::failObservedBehavior? VerdictKind::fail
-      else if outcome == EvidenceOutcome010::errorEvidence? VerdictKind::error
+      if outcome == MiddlewareEvidenceOutcome::passBoundedVerification? VerdictKind::pass
+      else if outcome == MiddlewareEvidenceOutcome::passBoundedValidation? VerdictKind::pass
+      else if outcome == MiddlewareEvidenceOutcome::failObservedBehavior? VerdictKind::fail
+      else if outcome == MiddlewareEvidenceOutcome::errorEvidence? VerdictKind::error
       else VerdictKind::inconclusive;
   }
 
-  part def MiddlewareIntegrationVandVBench010 {
+  part def MiddlewareIntegrationVandVBench {
     doc /*
      * System 1 is the configured member under evaluation. System 2 is the
      * engineering/build/test environment and is not a product selection.
      */
     part system1MemberProduct : MiddlewareAutowareAAOSSDVConfiguredMember;
     part system2TestEnvironment : AOSPAAOSBuildRuntimeEnvironment;
-    attribute scenario : ScenarioIdentity010;
+    attribute scenario : MiddlewareScenarioIdentity;
   }
 
-  part signalTranslationBench010 : MiddlewareIntegrationVandVBench010 {
-    attribute :>> scenario = ScenarioIdentity010::signalTranslation;
+  part signalTranslationBench010 : MiddlewareIntegrationVandVBench {
+    attribute :>> scenario = MiddlewareScenarioIdentity::signalTranslation;
   }
 
-  part lifecycleCoordinationBench010 : MiddlewareIntegrationVandVBench010 {
-    attribute :>> scenario = ScenarioIdentity010::lifecycleCoordination;
+  part lifecycleCoordinationBench010 : MiddlewareIntegrationVandVBench {
+    attribute :>> scenario = MiddlewareScenarioIdentity::lifecycleCoordination;
   }
 
-  part healthForwardingBench010 : MiddlewareIntegrationVandVBench010 {
-    attribute :>> scenario = ScenarioIdentity010::healthForwarding;
+  part healthForwardingBench010 : MiddlewareIntegrationVandVBench {
+    attribute :>> scenario = MiddlewareScenarioIdentity::healthForwarding;
   }
 
-  part vehicleStartupBench010 : MiddlewareIntegrationVandVBench010 {
-    attribute :>> scenario = ScenarioIdentity010::vehicleStartup;
+  part vehicleStartupBench010 : MiddlewareIntegrationVandVBench {
+    attribute :>> scenario = MiddlewareScenarioIdentity::vehicleStartup;
   }
 
-  part updateCoordinationBench010 : MiddlewareIntegrationVandVBench010 {
-    attribute :>> scenario = ScenarioIdentity010::updateCoordination;
+  part updateCoordinationBench010 : MiddlewareIntegrationVandVBench {
+    attribute :>> scenario = MiddlewareScenarioIdentity::updateCoordination;
   }
 
-  part faultDetectionBench010 : MiddlewareIntegrationVandVBench010 {
-    attribute :>> scenario = ScenarioIdentity010::faultDetection;
+  part faultDetectionBench010 : MiddlewareIntegrationVandVBench {
+    attribute :>> scenario = MiddlewareScenarioIdentity::faultDetection;
   }
 
-  requirement def MiddlewareAcceptanceCriterion010
+  requirement def MiddlewareAcceptanceCriterion
     :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement acceptanceCriterion010SignalTranslation : MiddlewareAcceptanceCriterion010 {
+  requirement acceptanceCriterion010SignalTranslation : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-01; bounded verification of the selected Vehicle.Speed slice. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
       doc /* The selected contract shall preserve Vehicle.Speed [km/h] semantics, map 36 km/h to 10 m/s and 72 km/h to 20 m/s through division by 3.6, reject invalid/non-finite samples, and expose the resulting VelocityReport field to an independent observer. */
     }
   }
 
-  requirement acceptanceCriterion010LifecycleCoordination : MiddlewareAcceptanceCriterion010 {
+  requirement acceptanceCriterion010LifecycleCoordination : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-02; bounded verification of integration lifecycle behavior. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
       doc /* The integration boundary shall make startup, initializing, operational, degraded, and shutdown behavior observable, preserve the declared transition ordering, and prevent use before required binding/readiness. */
     }
   }
 
-  requirement acceptanceCriterion010HealthForwarding : MiddlewareAcceptanceCriterion010 {
+  requirement acceptanceCriterion010HealthForwarding : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-03; bounded verification of health forwarding. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
       doc /* Missing, stale, inconsistent, or unavailable provider/transport/consumer health shall produce an observable degraded or unavailable disposition and shall be forwarded to the application boundary without being relabeled as healthy. */
     }
   }
 
-  requirement acceptanceCriterion010VehicleStartup : MiddlewareAcceptanceCriterion010 {
+  requirement acceptanceCriterion010VehicleStartup : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-04; validation of vehicle/application startup. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
       doc /* A configured member startup scenario shall prove provider registration, service discovery/binding, transport readiness, adapter readiness, and ROS 2 consumer readiness in causal order before the signal is accepted. */
     }
   }
 
-  requirement acceptanceCriterion010UpdateCoordination : MiddlewareAcceptanceCriterion010 {
+  requirement acceptanceCriterion010UpdateCoordination : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-05; validation of integration update behavior. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
       doc /* An update/OTA scenario shall retain pre-update and post-update identities and observations and shall detect, rather than silently accept, loss or incompatible change of the required signal, lifecycle, health, discovery, or consumer contracts. */
     }
   }
 
-  requirement acceptanceCriterion010FaultDetection : MiddlewareAcceptanceCriterion010 {
+  requirement acceptanceCriterion010FaultDetection : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-06; validation of fault detection and containment. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
       doc /* Provider, binding, discovery, transport, adapter, and consumer faults shall be detected and classified at the integration boundary; non-safety middleware failure shall not create an uncontrolled emergency intervention command. */
     }
   }
 
-  requirement acceptanceCriterion010EvidenceIndependence : MiddlewareAcceptanceCriterion010 {
+  requirement acceptanceCriterion010EvidenceIndependence : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-07; evidence integrity and claim-boundary criterion. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
       doc /* Every retained verdict shall bind the configured member, execution environment, contract identities, raw observations, and independent observer evidence. Missing target-runtime evidence shall be inconclusive or blocked, never a runtime pass. */
     }
@@ -228,7 +228,7 @@ package DE4SDV_Middleware010VerificationEvidence {
      */
   }
 
-  part runtimeCampaignEvidence011 : RetainedMiddlewareEvidence010 {
+  part runtimeCampaignEvidence011 : RetainedMiddlewareEvidence {
     doc /*
      * E-MW-011. Retained runtime campaign evidence (2026-08-20) for the
      * configured member's modeled two-VM campaign deployment:
@@ -250,11 +250,11 @@ package DE4SDV_Middleware010VerificationEvidence {
     attribute :>> contractIdentity = "de4sdv.reference.vehicle_speed.VehicleSpeed -> autoware_vehicle_msgs/msg/VelocityReport";
     attribute :>> rawObservationArtifact = "implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-011-runtime-campaign.yaml";
     attribute :>> independentObserverIdentity = "de4sdv_velocity_report_independent_observer (vmB)";
-    attribute :>> disposition = EvidenceDisposition010::observedBounded;
+    attribute :>> disposition = MiddlewareEvidenceDisposition::observedBounded;
     attribute :>> claimBoundary = "Campaign-chain runtime evidence on the two-VM deployment; not adapter-chain, lifecycle/update, safety, or certification evidence.";
   }
 
-  part runtimeAdapterPathEvidence012 : RetainedMiddlewareEvidence010 {
+  part runtimeAdapterPathEvidence012 : RetainedMiddlewareEvidence {
     doc /*
      * E-MW-012. Retained direct adapter-path campaign evidence for the same
      * configured member. The AAOS provider and observer service bundles,
@@ -267,11 +267,11 @@ package DE4SDV_Middleware010VerificationEvidence {
     attribute :>> contractIdentity = "de4sdv.reference.vehicle_speed.VehicleSpeed -> autoware_vehicle_msgs/msg/VelocityReport";
     attribute :>> rawObservationArtifact = "implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-012-adapter-path-campaign.yaml";
     attribute :>> independentObserverIdentity = "de4sdv_velocity_report_independent_observer (vmB)";
-    attribute :>> disposition = EvidenceDisposition010::observedBounded;
+    attribute :>> disposition = MiddlewareEvidenceDisposition::observedBounded;
     attribute :>> claimBoundary = "Direct campaign adapter path only; not bidirectional, production-deployment, lifecycle/update, safety, or certification evidence.";
   }
 
-  part runtimeAutowareConsumerEvidence013 : RetainedMiddlewareEvidence010 {
+  part runtimeAutowareConsumerEvidence013 : RetainedMiddlewareEvidence {
     doc /*
      * E-MW-013. A real autoware_vehicle_velocity_converter instance consumed
      * /vehicle/status/velocity_status and produced
@@ -284,11 +284,11 @@ package DE4SDV_Middleware010VerificationEvidence {
     attribute :>> contractIdentity = "autoware_vehicle_msgs/msg/VelocityReport -> geometry_msgs/msg/TwistWithCovarianceStamped";
     attribute :>> rawObservationArtifact = "implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-013-autoware-consumer.yaml";
     attribute :>> independentObserverIdentity = "autoware_vehicle_velocity_converter output observation (vmB)";
-    attribute :>> disposition = EvidenceDisposition010::observedBounded;
+    attribute :>> disposition = MiddlewareEvidenceDisposition::observedBounded;
     attribute :>> claimBoundary = "One real Autoware consumer and its converted output; not localization, planning, perception, control, safety, or certification evidence.";
   }
 
-  part runtimeHealthDispositionEvidence014 : RetainedMiddlewareEvidence010 {
+  part runtimeHealthDispositionEvidence014 : RetainedMiddlewareEvidence {
     doc /*
      * E-MW-014. Provider loss produced an observable degraded=stale
      * disposition after the five-second freshness bound; provider restoration
@@ -300,7 +300,7 @@ package DE4SDV_Middleware010VerificationEvidence {
     attribute :>> contractIdentity = "/vehicle/status/velocity_status provider-loss health disposition";
     attribute :>> rawObservationArtifact = "implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-014-health-disposition.yaml";
     attribute :>> independentObserverIdentity = "retained VM-B bridge log and health-topic observation";
-    attribute :>> disposition = EvidenceDisposition010::observedBounded;
+    attribute :>> disposition = MiddlewareEvidenceDisposition::observedBounded;
     attribute :>> claimBoundary = "Provider-loss degraded/restored disposition only; not complete lifecycle ordering, update/OTA, reverse-path, safety, or certification evidence.";
   }
 
@@ -344,86 +344,86 @@ package DE4SDV_Middleware010VerificationEvidence {
     doc /* GAP-MW-028: Target-runtime lifecycle, update/OTA, health, and fault evidence was unavailable. Fault subset observed (E-MW-011 gate 7: ingress rejects non-valid envelopes); health disposition now observed (E-MW-014: degraded=stale within 5s of provider loss, restored=healthy on resume — AC-MW-010-03 satisfied); lifecycle/update/OTA and reverse path remain open (gate 8 not claimed). */
   }
 
-  verification def SignalTranslationVerification010 {
-    subject verifiedBench : MiddlewareIntegrationVandVBench010;
+  verification def SignalTranslationVerification {
+    subject verifiedBench : MiddlewareIntegrationVandVBench;
     objective signalTranslationObjective010 {
       verify acceptanceCriterion010SignalTranslation;
       verify acceptanceCriterion010EvidenceIndependence;
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedMiddlewareEvidence010;
+      out item retainedEvidence : RetainedMiddlewareEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity010 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedMiddlewareEvidence010 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedMiddlewareEvaluation010;
+      in scenarioIdentity : MiddlewareScenarioIdentity = verifiedBench.scenario;
+      in item retainedEvidence : RetainedMiddlewareEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedMiddlewareEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedMiddlewareEvaluation010 = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map010OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedMiddlewareEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapEvidenceOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def LifecycleCoordinationVerification010 {
-    subject verifiedBench : MiddlewareIntegrationVandVBench010;
+  verification def LifecycleCoordinationVerification {
+    subject verifiedBench : MiddlewareIntegrationVandVBench;
     objective lifecycleCoordinationObjective010 {
       verify acceptanceCriterion010LifecycleCoordination;
       verify acceptanceCriterion010EvidenceIndependence;
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedMiddlewareEvidence010;
+      out item retainedEvidence : RetainedMiddlewareEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity010 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedMiddlewareEvidence010 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedMiddlewareEvaluation010;
+      in scenarioIdentity : MiddlewareScenarioIdentity = verifiedBench.scenario;
+      in item retainedEvidence : RetainedMiddlewareEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedMiddlewareEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedMiddlewareEvaluation010 = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map010OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedMiddlewareEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapEvidenceOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def HealthForwardingVerification010 {
-    subject verifiedBench : MiddlewareIntegrationVandVBench010;
+  verification def HealthForwardingVerification {
+    subject verifiedBench : MiddlewareIntegrationVandVBench;
     objective healthForwardingObjective010 {
       verify acceptanceCriterion010HealthForwarding;
       verify acceptanceCriterion010EvidenceIndependence;
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedMiddlewareEvidence010;
+      out item retainedEvidence : RetainedMiddlewareEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity010 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedMiddlewareEvidence010 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedMiddlewareEvaluation010;
+      in scenarioIdentity : MiddlewareScenarioIdentity = verifiedBench.scenario;
+      in item retainedEvidence : RetainedMiddlewareEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedMiddlewareEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedMiddlewareEvaluation010 = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map010OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedMiddlewareEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapEvidenceOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def VehicleStartupValidation010 {
+  verification def VehicleStartupValidation {
     doc /*
      * Modeled as a verification case over System 2 acceptance criteria
      * (SysML v2 provides no native validation-case keyword). Any validation
      * claim against stakeholder needs, intended use, and intended users
      * remains separately scoped and is not made by this case.
      */
-    subject verifiedBench : MiddlewareIntegrationVandVBench010;
+    subject verifiedBench : MiddlewareIntegrationVandVBench;
     objective vehicleStartupObjective010 {
       verify acceptanceCriterion010VehicleStartup;
       verify acceptanceCriterion010LifecycleCoordination;
@@ -431,30 +431,30 @@ package DE4SDV_Middleware010VerificationEvidence {
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedMiddlewareEvidence010;
+      out item retainedEvidence : RetainedMiddlewareEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity010 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedMiddlewareEvidence010 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedMiddlewareEvaluation010;
+      in scenarioIdentity : MiddlewareScenarioIdentity = verifiedBench.scenario;
+      in item retainedEvidence : RetainedMiddlewareEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedMiddlewareEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedMiddlewareEvaluation010 = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map010OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedMiddlewareEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapEvidenceOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def UpdateCoordinationValidation010 {
+  verification def UpdateCoordinationValidation {
     doc /*
      * Modeled as a verification case over System 2 acceptance criteria
      * (SysML v2 provides no native validation-case keyword). Any validation
      * claim against stakeholder needs, intended use, and intended users
      * remains separately scoped and is not made by this case.
      */
-    subject verifiedBench : MiddlewareIntegrationVandVBench010;
+    subject verifiedBench : MiddlewareIntegrationVandVBench;
     objective updateCoordinationObjective010 {
       verify acceptanceCriterion010UpdateCoordination;
       verify acceptanceCriterion010LifecycleCoordination;
@@ -463,30 +463,30 @@ package DE4SDV_Middleware010VerificationEvidence {
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedMiddlewareEvidence010;
+      out item retainedEvidence : RetainedMiddlewareEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity010 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedMiddlewareEvidence010 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedMiddlewareEvaluation010;
+      in scenarioIdentity : MiddlewareScenarioIdentity = verifiedBench.scenario;
+      in item retainedEvidence : RetainedMiddlewareEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedMiddlewareEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedMiddlewareEvaluation010 = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map010OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedMiddlewareEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapEvidenceOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def FaultDetectionValidation010 {
+  verification def FaultDetectionValidation {
     doc /*
      * Modeled as a verification case over System 2 acceptance criteria
      * (SysML v2 provides no native validation-case keyword). Any validation
      * claim against stakeholder needs, intended use, and intended users
      * remains separately scoped and is not made by this case.
      */
-    subject verifiedBench : MiddlewareIntegrationVandVBench010;
+    subject verifiedBench : MiddlewareIntegrationVandVBench;
     objective faultDetectionObjective010 {
       verify acceptanceCriterion010FaultDetection;
       verify acceptanceCriterion010HealthForwarding;
@@ -494,48 +494,48 @@ package DE4SDV_Middleware010VerificationEvidence {
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedMiddlewareEvidence010;
+      out item retainedEvidence : RetainedMiddlewareEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity010 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedMiddlewareEvidence010 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedMiddlewareEvaluation010;
+      in scenarioIdentity : MiddlewareScenarioIdentity = verifiedBench.scenario;
+      in item retainedEvidence : RetainedMiddlewareEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedMiddlewareEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedMiddlewareEvaluation010 = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map010OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedMiddlewareEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapEvidenceOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification signalTranslationVerification010 : SignalTranslationVerification010 {
+  verification signalTranslationVerification010 : SignalTranslationVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> signalTranslationBench010;
   }
 
-  verification lifecycleCoordinationVerification010 : LifecycleCoordinationVerification010 {
+  verification lifecycleCoordinationVerification010 : LifecycleCoordinationVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> lifecycleCoordinationBench010;
   }
 
-  verification healthForwardingVerification010 : HealthForwardingVerification010 {
+  verification healthForwardingVerification010 : HealthForwardingVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> healthForwardingBench010;
   }
 
-  verification vehicleStartupValidation010 : VehicleStartupValidation010 {
+  verification vehicleStartupValidation010 : VehicleStartupValidation {
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> vehicleStartupBench010;
   }
 
-  verification updateCoordinationValidation010 : UpdateCoordinationValidation010 {
+  verification updateCoordinationValidation010 : UpdateCoordinationValidation {
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> updateCoordinationBench010;
   }
 
-  verification faultDetectionValidation010 : FaultDetectionValidation010 {
+  verification faultDetectionValidation010 : FaultDetectionValidation {
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> faultDetectionBench010;
   }
@@ -630,16 +630,16 @@ package DE4SDV_Middleware010VerificationEvidence {
    * never upgrades a verdict to pass.
    */
 
-  requirement def MiddlewareClaim010
+  requirement def MiddlewareClaim
     :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement def MiddlewareArgument010
+  requirement def MiddlewareAssuranceArgument
     :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement def MiddlewareCounterClaim010
+  requirement def MiddlewareCounterClaim
     :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement mw010ReferenceContractClaim : MiddlewareClaim010 {
+  requirement mw010ReferenceContractClaim : MiddlewareClaim {
     doc /*
      * CLM-MW-010-01: for MW-CONFIG-001 on the retained two-VM execution
      * environment, the forward Vehicle.Speed slice was observed from the AAOS
@@ -648,7 +648,7 @@ package DE4SDV_Middleware010VerificationEvidence {
      * envelopes were rejected and provider loss/restoration produced explicit
      * degraded/restored health dispositions.
      */
-    subject claimSubject : MiddlewareIntegrationVandVBench010;
+    subject claimSubject : MiddlewareIntegrationVandVBench;
     require constraint {
       doc /*
        * The claim requires retained E-MW-011 through E-MW-014 evidence bound to
@@ -660,54 +660,54 @@ package DE4SDV_Middleware010VerificationEvidence {
     }
   }
 
-  requirement signalTranslationArgument010 : MiddlewareArgument010 {
+  requirement signalTranslationArgument010 : MiddlewareAssuranceArgument {
     doc /* AGT-MW-010-01: argues that AC-MW-010-01 (bounded signal translation semantics) is satisfied within the accepted claim boundary. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement lifecycleCoordinationArgument010 : MiddlewareArgument010 {
+  requirement lifecycleCoordinationArgument010 : MiddlewareAssuranceArgument {
     doc /* AGT-MW-010-02: records the AC-MW-010-02 verification branch; complete lifecycle transition ordering is deferred and does not support the accepted claim. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement healthForwardingArgument010 : MiddlewareArgument010 {
+  requirement healthForwardingArgument010 : MiddlewareAssuranceArgument {
     doc /* AGT-MW-010-03: argues that AC-MW-010-03 (provider-loss health disposition without relabeling) is satisfied within the accepted claim boundary. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement vehicleStartupArgument010 : MiddlewareArgument010 {
+  requirement vehicleStartupArgument010 : MiddlewareAssuranceArgument {
     doc /* AGT-MW-010-04: argues that AC-MW-010-04 (bounded provider, registration, and discovery startup observations) is satisfied within the accepted claim boundary. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement updateCoordinationArgument010 : MiddlewareArgument010 {
+  requirement updateCoordinationArgument010 : MiddlewareAssuranceArgument {
     doc /* AGT-MW-010-05: records the AC-MW-010-05 verification branch; update/OTA contract preservation is deferred and does not support the accepted claim. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement faultDetectionArgument010 : MiddlewareArgument010 {
+  requirement faultDetectionArgument010 : MiddlewareAssuranceArgument {
     doc /* AGT-MW-010-06: argues that AC-MW-010-06 (invalid-envelope rejection) is satisfied within the accepted claim boundary. */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement counterClaim010ProviderBinding : MiddlewareCounterClaim010 {
+  requirement counterClaim010ProviderBinding : MiddlewareCounterClaim {
     doc /* CCM-MW-010-01: bounds the claim for GAP-MW-025 scope (production adapter-chain provider binding; campaign-chain provider observed by E-MW-011). */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement counterClaim010CrossDomainTransport : MiddlewareCounterClaim010 {
+  requirement counterClaim010CrossDomainTransport : MiddlewareCounterClaim {
     doc /* CCM-MW-010-02: bounds the claim for GAP-MW-026 scope (production adapter-chain Android/KVM-to-Linux/ROS 2 transport; campaign-chain transport observed by E-MW-011). */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement counterClaim010IndependentObservation : MiddlewareCounterClaim010 {
+  requirement counterClaim010IndependentObservation : MiddlewareCounterClaim {
     doc /* CCM-MW-010-03: bounds the claim for GAP-MW-027 scope (full Autoware stack provenance; real consumer node observed by E-MW-013). */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
-  requirement counterClaim010LifecycleUpdateFault : MiddlewareCounterClaim010 {
+  requirement counterClaim010LifecycleUpdateFault : MiddlewareCounterClaim {
     doc /* CCM-MW-010-04: bounds the claim for GAP-MW-028 scope (lifecycle, update/OTA, reverse path; fault rejection observed by E-MW-011 gate 7, health disposition observed by E-MW-014). */
-    subject bench : MiddlewareIntegrationVandVBench010;
+    subject bench : MiddlewareIntegrationVandVBench;
   }
 
   dependency claimSupportedBySignalArgument

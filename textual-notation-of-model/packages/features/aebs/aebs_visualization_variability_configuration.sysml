@@ -24,10 +24,6 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
   private import DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::*;
   private import Views::*;
 
-  part incAEBS010Configuration : VisualizationIncrement {
-    doc /* INC-AEBS-010 Phase 9 slice owner for the configured test article. */
-  }
-
   part def AEBSAutowareAAOSSDVVisualizationTestArticle :> MiddlewareAutowareAAOSSDVConfiguredMember {
     doc /*
      * Instrumented specialization of the accepted MW-CONFIG-001 reference

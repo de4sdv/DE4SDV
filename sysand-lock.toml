@@ -298,7 +298,7 @@ exports = [
     "AppleSiliconMacOSCandidate",
     "COVESA_VSS",
     "DE4SDV_AAOSSDVMiddlewareBoundary",
-    "DE4SDV_AEBS009AExecutionEnvironment",
+    "DE4SDV_AEBSExecutionEnvironment",
     "DE4SDV_AEBS009BNominalEvidence",
     "DE4SDV_AEBS009CVerification",
     "DE4SDV_AEBS009DVerification",

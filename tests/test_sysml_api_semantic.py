@@ -332,9 +332,9 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
                 "qualifiedName": f"DE4SDV_AEBSEvidence::{name}",
             }
             for evidence_id, name in (
-                ("ev-override", "evidenceContract009BFreshOverrideClear"),
-                ("ev-braking", "evidenceContract009BNominalBrakingPath"),
-                ("ev-mrm", "evidenceContract009CMRMGateChain"),
+                ("ev-override", "evidenceContractFreshOverrideClear"),
+                ("ev-braking", "evidenceContractNominalBrakingPath"),
+                ("ev-mrm", "evidenceContractMRMGateChain"),
             )
         ],
         {
@@ -358,7 +358,7 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
         {
             "@id": "verify-009b",
             "@type": "VerificationCaseUsage",
-            "declaredName": "nominalMovingVehicleTargetVerification009B",
+            "declaredName": "nominalMovingVehicleTargetVerification",
         },
         {
             "@id": "rvm-override",
@@ -375,7 +375,7 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
         {
             "@id": "verify-009c",
             "@type": "VerificationCaseUsage",
-            "declaredName": "nativeInterventionToMRMVerification009C",
+            "declaredName": "nativeInterventionToMRMVerification",
         },
         {
             "@id": "rvm-mrm",
@@ -468,8 +468,8 @@ def test_aebs_api_fixture_reuses_pr36_payload_pattern_for_known_model_slice() ->
 
     assert by_name["RequirementCandidate"]["@type"] == "RequirementDefinition"
     assert by_name["reqCommandEmergencyBraking"]["@type"] == "RequirementUsage"
-    assert by_name["evidenceContract009BFreshOverrideClear"]["@type"] == "RequirementUsage"
-    assert by_name["nominalMovingVehicleTargetVerification009B"]["@type"] == "VerificationCaseUsage"
+    assert by_name["evidenceContractFreshOverrideClear"]["@type"] == "RequirementUsage"
+    assert by_name["nominalMovingVehicleTargetVerification"]["@type"] == "VerificationCaseUsage"
     assert sum(
         element["@type"] == "Dependency" for element in fixture.elements.values()
     ) == 3

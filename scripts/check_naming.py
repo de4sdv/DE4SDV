@@ -128,6 +128,7 @@ _EXEMPT_DOC_FILES = {
     "docs/naming/naming-conventions.md",
     "docs/naming/migration-manifest.md",
     "docs/naming/naming-qa-report.md",
+    "docs/naming/model-organization-audit.md",
 }
 
 # Suffixes inside the governed surface. Python is intentionally excluded:

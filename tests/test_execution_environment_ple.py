@@ -179,7 +179,7 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
         self.assertIn("INCAEBS009AJetsonExecutionEnvironment", model)
         self.assertIn("NVIDIA Jetson Orin Nano Engineering", model)
         self.assertIn("Reference Developer Kit Super", model)
-        self.assertIn("dependency historical009ARuntimeEvidence", model)
+        self.assertIn("dependency historicalRuntimeEvidence", model)
         self.assertIn("dependency maintainedHostIdentity", model)
         self.assertIn("runtime-lock.yaml", model)
         self.assertIn("container-identity.json", model)
