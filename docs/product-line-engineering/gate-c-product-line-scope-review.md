@@ -28,9 +28,9 @@ The previous blocking conditions are discharged:
 
 | Previous blocker | Discharge |
 |---|---|
-| No accepted portfolio authority | ADR 0013 records the reviewed decision, and the SysML scope model types the governed portfolio. |
-| AAOS-integrated status appeared both `draft` and `accepted` | Those statements remain historical local increment/configuration lifecycle evidence. ADR 0013 and the scope model now govern planned-member portfolio membership specifically. |
-| Standalone membership was implied only by reference-product prose | ADR 0013 and the scope model explicitly establish the standalone reference member as planned. |
+| No accepted portfolio authority | ADR 0014 records the reviewed decision, and the SysML scope model types the governed portfolio. |
+| AAOS-integrated status appeared both `draft` and `accepted` | Those statements remain historical local increment/configuration lifecycle evidence. ADR 0014 and the scope model now govern planned-member portfolio membership specifically. |
+| Standalone membership was implied only by reference-product prose | ADR 0014 and the scope model explicitly establish the standalone reference member as planned. |
 
 Product-line portfolio membership status and local increment and implementation status are
 different concepts. The scope decision does not claim that either member is
