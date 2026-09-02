@@ -531,6 +531,29 @@ def test_workflow_uses_real_git_checkout() -> None:
     assert "--exclude=.git" not in wf
 
 
+def test_workflow_recreates_the_deployment_checkout_unconditionally() -> None:
+    """A previous run's Git config must never control the next deployment.
+
+    Runs 33660870062 and 33663783815 both took the existing-checkout branch
+    and failed at ``git fetch origin`` with an interactive GitHub credential
+    challenge.  Retrying could not self-heal because the persisted checkout
+    and its repository-local configuration were reused unchanged.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    checkout_step = wf.split("- name: Create exact Git checkout on the host", 1)[1]
+    checkout_step = checkout_step.split(
+        "- name: Materialize pinned Sysand dependencies on the host", 1
+    )[0]
+
+    assert 'REPO_URL="https://github.com/de4sdv/DE4SDV.git"' in checkout_step
+    assert 'sudo rm -rf "$REPO_DIR"' in checkout_step
+    assert 'git clone "$REPO_URL" "$REPO_DIR"' in checkout_step
+    assert 'if [[ -d "$REPO_DIR/.git" ]]' not in checkout_step
+    assert 'git -C "$REPO_DIR" fetch' not in checkout_step
+
+
 def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     """The deploy host must reproduce the privileged source manifest exactly.
 
