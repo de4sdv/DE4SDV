@@ -25,6 +25,7 @@ from .aebs_coordination_core import (
     braking_authorized_for_disposition,
     classify_override_source,
     next_warning_state,
+    warning_on_intervention_diagnostic,
 )
 
 _DIAGNOSTIC_NAME = "autonomous_emergency_braking: aeb_emergency_stop"
@@ -158,6 +159,21 @@ class AebsCoordinator(Node):
                 )
                 self._publish_override_evaluation(
                     "intervention", diagnostic_source_stamp=diagnostic_stamp
+                )
+            # Race-robust warning evaluation: a native intervention diagnostic may
+            # arrive between two 20 Hz _publish ticks. If the warning condition
+            # already holds from the latest observed geometry (distance + RSS),
+            # latch it against the PRE-diagnostic latch state so a genuinely
+            # existing warning is not permanently lost to the transition.
+            # Semantics preserved: warning still requires real geometry + real RSS
+            # + the coordinator margin; no warning is fabricated without inputs.
+            if intervention:
+                self._warning = warning_on_intervention_diagnostic(
+                    self._warning,
+                    self._latch.state,
+                    self._rss_m,
+                    self._distance_m,
+                    self.warning_margin_m,
                 )
             self._latch.observe_diagnostic(intervention, braking_authorized)
             return

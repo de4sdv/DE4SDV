@@ -141,3 +141,32 @@ def next_warning_state(
         latch_state == "armed"
         and warning_requested(point_distance_m, rss_distance_m, warning_margin_m)
     )
+
+
+def warning_on_intervention_diagnostic(
+    current_warning: bool,
+    latch_state: str,
+    rss_distance_m: float | None,
+    point_distance_m: float | None,
+    warning_margin_m: float,
+) -> bool:
+    """Evaluate the warning condition at the instant a native intervention
+    diagnostic is received, using the PRE-diagnostic latch state.
+
+    A native intervention diagnostic may arrive between two publish ticks. If
+    the warning condition already holds from the latest observed geometry
+    (point distance + RSS), latching it against the pre-diagnostic state keeps
+    a genuinely existing warning from being permanently lost to the
+    ``braking_latched`` transition. Semantics preserved: the warning still
+    requires real geometry and real RSS through :func:`next_warning_state`; no
+    warning is fabricated when geometry inputs are absent.
+    """
+    if rss_distance_m is None or point_distance_m is None:
+        return current_warning
+    return next_warning_state(
+        current_warning,
+        latch_state,
+        point_distance_m,
+        rss_distance_m,
+        warning_margin_m,
+    )
