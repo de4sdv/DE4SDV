@@ -570,11 +570,15 @@ def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     # pip console scripts bake the absolute interpreter path into their
     # shebangs: installing into a .tmp dir and mv-ing it afterwards leaves
     # every script with a stale shebang ("bad interpreter", deploy run
-    # 33608232967, exit 127). Installation must happen directly at the final
-    # version-specific path — no .tmp build-and-move pattern.
+    # 33608232967, exit 127). The venv is recreated unconditionally at the
+    # final version-specific path — no reuse gate (deploy run 33608232967
+    # left a broken-but-executable sysand that a -x check would have
+    # silently reused), and no .tmp build-and-move pattern.
+    assert "if [[ ! -x \"$SYSAND_DIR/bin/sysand\" ]]" not in wf
     assert "SYSAND_DIR.tmp" not in wf
-    assert 'rm -rf "$SYSAND_DIR"\n            python3 -m venv "$SYSAND_DIR"' in wf
     assert 'mv "$SYSAND_DIR.tmp"' not in wf
+    assert 'rm -rf "$SYSAND_DIR"\n          python3 -m venv "$SYSAND_DIR"' in wf
+    assert 'python3 -m venv "$SYSAND_DIR"' in wf
     assert "sysand sync" in wf
     # It operates inside the exact Git checkout and requires the lockfile.
     assert "cd \"$REPO_DIR\"" in wf
