@@ -226,6 +226,49 @@ jobs:
           echo "exact checkout verified: $HEAD"
           REMOTE
 
+      - name: Materialize pinned Sysand dependencies on the host
+        run: |
+          set -euo pipefail
+          SSH_HOST="${{ secrets.DEPLOY_SSH_HOST }}"
+          SSH_USER="${{ secrets.DEPLOY_SSH_USER }}"
+          # The reviewed baseline manifest (de4sdv/sysml_api/baseline.py) pins
+          # three external Sysand dependency sources that live under the
+          # gitignored .sysand/ directory. The privileged workflow materializes
+          # them with `sysand sync` from the committed sysand-lock.toml; the
+          # deploy host must reproduce that exact state at the exact SHA or the
+          # importer correctly fails closed on a stale/incomplete source
+          # manifest. Same lockfile + same kpar checksum verification => same
+          # bytes; the manifest hash comparison in the importer proves it.
+          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          REPO_DIR=/srv/de4sdv/DE4SDV
+          cd "$REPO_DIR"
+          if [[ ! -f sysand-lock.toml ]]; then
+            echo "sysand-lock.toml missing at the deployed SHA" >&2
+            exit 1
+          fi
+          # Pinned sysand client (same version family as the privileged
+          # workflow); isolated venv, no host-wide installation.
+          SYSAND_DIR=/srv/de4sdv/sysand
+          if [[ ! -x "$SYSAND_DIR/bin/sysand" ]]; then
+            rm -rf "$SYSAND_DIR.tmp"
+            python3 -m venv "$SYSAND_DIR.tmp"
+            "$SYSAND_DIR.tmp/bin/pip" install --no-input "sysand==0.2.1" >/dev/null
+            rm -rf "$SYSAND_DIR"
+            mv "$SYSAND_DIR.tmp" "$SYSAND_DIR"
+          fi
+          SYSAND="$SYSAND_DIR/bin/sysand"
+          "$SYSAND" --version
+          # sync verifies each resolved package against the lockfile's kpar
+          # checksums and fails closed on a mismatch.
+          "$SYSAND" sync
+          test -f .sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml
+          test -f .sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml
+          test -f .sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml
+          echo "pinned Sysand dependencies materialized at $(git rev-parse HEAD)"
+          REMOTE
+
       - name: Transfer validated bundle and run fail-closed deploy
         run: |
           set -euo pipefail
