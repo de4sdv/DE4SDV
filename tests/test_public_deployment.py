@@ -554,8 +554,10 @@ def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     assert 'SYSAND_DIR="/srv/de4sdv/sysand-$SYSAND_VERSION"' in wf
     assert '"sysand==$SYSAND_VERSION"' in wf
     # Fresh installs verify the installed package version before being
-    # promoted; existing installs re-verify the client version on every run.
-    assert "pip show sysand | grep -q \"Version: $SYSAND_VERSION\"" in wf
+    # promoted (buffered to avoid the grep -q SIGPIPE false negative);
+    # existing installs re-verify the client version on every run.
+    assert 'SYSAND_SHOW=$("$SYSAND_DIR.tmp/bin/python" -m pip show sysand)' in wf
+    assert 'grep -q "Version: $SYSAND_VERSION"' in wf
     assert 'grep -qx "sysand $SYSAND_VERSION"' in wf
     assert "deploy host sysand is not exactly $SYSAND_VERSION" in wf
     # The unpinned shared-directory form must be gone.

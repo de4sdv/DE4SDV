@@ -259,7 +259,12 @@ jobs:
             rm -rf "$SYSAND_DIR.tmp"
             python3 -m venv "$SYSAND_DIR.tmp"
             "$SYSAND_DIR.tmp/bin/pip" install --no-input "sysand==$SYSAND_VERSION" >/dev/null
-            "$SYSAND_DIR.tmp/bin/python" -m pip show sysand | grep -q "Version: $SYSAND_VERSION" || {
+            # Buffer pip show first: piping it straight into `grep -q` makes
+            # grep exit early on the first match, python receives SIGPIPE and
+            # the pipeline fails under pipefail even when the version matched
+            # (observed as BrokenPipeError + false negative on the deploy host).
+            SYSAND_SHOW=$("$SYSAND_DIR.tmp/bin/python" -m pip show sysand)
+            echo "$SYSAND_SHOW" | grep -q "Version: $SYSAND_VERSION" || {
               echo "sysand client install did not produce the pinned version" >&2
               exit 1
             }
