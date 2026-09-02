@@ -19,22 +19,6 @@
 # standalone calibration.
 # INC-AEBS-009A loaded and launched this configuration for endpoint readiness;
 # stationary-target behavior and calibration remain unexecuted.
-# INC-AEBS-009D derivation addition: use_object_velocity_calculation changes from
-# true to false. The native estimator derives object speed from collision-point
-# displacement between consecutive AEB cycles (calcObjectSpeedFromHistory in the
-# pinned upstream node.hpp), which is context-sensitive: in the 2026-09-02 v22
-# run it produced a constant wrong estimate (object_speed_mps=-4.17 against a
-# target receding at +1.0 m/s), inflating rss_distance_m to 23.45 at a 20.0 m
-# bumper gap and triggering native intervention at first sight. The same
-# geometry under v21 (spawn at a different map region) yielded +2.45 m/s and a
-# 13.7 m RSS, i.e. the estimator output depends on the ego spawn location's
-# surrounding pointcloud, not on the scenario itself. Treating the surrogate as
-# a static obstacle (velocity 0.0) removes the nondeterministic term: RSS then
-# depends only on ego kinematics, making the warning-lead contract (>= 0.8 s)
-# reproducible. The moving-target claim then rests on the coordinator geometry,
-# the 009B ego-speed trajectory, and the deterministic RSS schedule, not on a
-# fragile perception velocity estimate. Prototype fixture setting, not a
-# product requirement (see scenario non_claims).
 /**:
   ros__parameters:
     # Ego path calculation
@@ -44,7 +28,7 @@
     limit_imu_path_length: true
     use_pointcloud_data: true
     use_predicted_object_data: false
-    use_object_velocity_calculation: false
+    use_object_velocity_calculation: true
     check_autoware_state: true
     imu_path_lat_dev_threshold: 1.75
     min_generated_imu_path_length: 15.0
