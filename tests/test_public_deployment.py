@@ -567,6 +567,14 @@ def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     assert '"$SYSAND" --version | grep' not in wf
     # The unpinned shared-directory form must be gone.
     assert "SYSAND_DIR=/srv/de4sdv/sysand\n" not in wf
+    # pip console scripts bake the absolute interpreter path into their
+    # shebangs: installing into a .tmp dir and mv-ing it afterwards leaves
+    # every script with a stale shebang ("bad interpreter", deploy run
+    # 33608232967, exit 127). Installation must happen directly at the final
+    # version-specific path — no .tmp build-and-move pattern.
+    assert "SYSAND_DIR.tmp" not in wf
+    assert 'rm -rf "$SYSAND_DIR"\n            python3 -m venv "$SYSAND_DIR"' in wf
+    assert 'mv "$SYSAND_DIR.tmp"' not in wf
     assert "sysand sync" in wf
     # It operates inside the exact Git checkout and requires the lockfile.
     assert "cd \"$REPO_DIR\"" in wf

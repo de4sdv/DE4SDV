@@ -248,36 +248,39 @@ jobs:
             echo "sysand-lock.toml missing at the deployed SHA" >&2
             exit 1
           fi
-          # Pinned sysand client (same version as the privileged workflow);
-          # isolated version-specific venv, no host-wide installation. The
-          # venv directory encodes the exact version, so a pre-existing or
-          # corrupted environment at any other version is never silently
-          # reused: every deployment runs exactly sysand==0.2.1 or fails.
           SYSAND_VERSION=0.2.1
           SYSAND_DIR="/srv/de4sdv/sysand-$SYSAND_VERSION"
           if [[ ! -x "$SYSAND_DIR/bin/sysand" ]]; then
-            rm -rf "$SYSAND_DIR.tmp"
-            python3 -m venv "$SYSAND_DIR.tmp"
-            "$SYSAND_DIR.tmp/bin/pip" install --no-input "sysand==$SYSAND_VERSION" >/dev/null
+            # Install directly at the final version-specific path. pip bakes
+            # the absolute interpreter path into console-script shebangs, so
+            # building in a .tmp dir and mv-ing it afterwards leaves every
+            # script with a stale shebang ("bad interpreter: No such file or
+            # directory", deploy run 33608232967, exit 127). venv creation is
+            # idempotent per path; there is no other consumer of this dir, so
+            # direct installation keeps the atomicity loss acceptable while
+            # the exact-version checks below still fail closed on any partial
+            # or wrong-version state.
+            rm -rf "$SYSAND_DIR"
+            python3 -m venv "$SYSAND_DIR"
+            "$SYSAND_DIR/bin/pip" install --no-input "sysand==$SYSAND_VERSION" >/dev/null
             # Exact scalar version comparison via importlib.metadata: no
             # pipefail/SIGPIPE mechanics (grep -q early-exit broke this
             # pipeline live on the deploy host, deploy run 33601227223) and
             # no substring matching (a grep for "Version: 0.2.1" would also
             # match 0.2.10).
             ACTUAL_SYSAND_VERSION=$(
-              "$SYSAND_DIR.tmp/bin/python" -c \
+              "$SYSAND_DIR/bin/python" -c \
                 'import importlib.metadata; print(importlib.metadata.version("sysand"))'
             )
             if [[ "$ACTUAL_SYSAND_VERSION" != "$SYSAND_VERSION" ]]; then
               echo "sysand client install did not produce the pinned version" >&2
               exit 1
             fi
-            rm -rf "$SYSAND_DIR"
-            mv "$SYSAND_DIR.tmp" "$SYSAND_DIR"
           fi
           SYSAND="$SYSAND_DIR/bin/sysand"
           # Every-run exact scalar comparison of the CLI banner: no pipe into
-          # grep (pipefail/SIGPIPE-free), no substring matching.
+          # grep (pipefail/SIGPIPE-free), no substring matching. Also proves
+          # the console script actually executes (stale shebangs fail here).
           ACTUAL_SYSAND_CLI_VERSION=$("$SYSAND" --version)
           if [[ "$ACTUAL_SYSAND_CLI_VERSION" != "sysand $SYSAND_VERSION" ]]; then
             echo "deploy host sysand is not exactly $SYSAND_VERSION" >&2
