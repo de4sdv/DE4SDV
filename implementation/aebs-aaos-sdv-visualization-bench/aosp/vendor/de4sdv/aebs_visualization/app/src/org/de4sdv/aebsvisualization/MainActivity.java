@@ -38,12 +38,10 @@ public class MainActivity extends Activity {
     private TextView metricDisplayedObstacleRange;
     private TextView metricDisplayedObstacleRangeClarification;
     private TextView metricEgoSpeed;
-    private TextView metricFrameAge;
     private TextView provenanceView;
     private HandlerThread tickerThread;
     private Handler tickerHandler;
     private long lastFrameElapsedMs;
-    private long lastFrameAgeMs = -1;
     private GatewayFrameSubscriber gatewaySubscriber;
 
     @Override
@@ -73,7 +71,6 @@ public class MainActivity extends Activity {
         metricDisplayedObstacleRangeClarification =
                 findViewById(R.id.metric_displayed_obstacle_range_clarification);
         metricEgoSpeed = findViewById(R.id.metric_ego_speed);
-        metricFrameAge = findViewById(R.id.metric_frame_age);
         provenanceView = findViewById(R.id.provenance);
 
         tickerThread = new HandlerThread("aebs010-tick");
@@ -177,13 +174,8 @@ public class MainActivity extends Activity {
             onDisposition(reducer.onStale(now));
         }
         onDisposition(reducer.onTick(now));
-        // Age the health chip; geometry stays untouched by age (pure test 10).
-        if (lastFrameElapsedMs > 0) {
-            lastFrameAgeMs = now - lastFrameElapsedMs;
-            // Re-render chip + metric with the aged value (geometry unaffected).
-            final long age = lastFrameAgeMs;
-            runOnUiThread(() -> metricFrameAge.setText("Frame age  " + age + " ms"));
-        }
+        // Age display removed (review feedback): staleness detection above is
+        // unchanged; nothing age-derived is rendered anymore.
         tickerHandler.postDelayed(this::tick, 200);
     }
 
@@ -275,8 +267,9 @@ public class MainActivity extends Activity {
     }
 
     private void renderHealthChip(SituationRenderModel model) {
-        healthChip.setText("● " + model.getHealthLabel()
-                + " · 10 Hz · age " + model.getFrameAgeText());
+        // Age display removed (review feedback): chip shows health state only.
+        // STALE detection is unchanged — it is reducer/watchdog logic, not text.
+        healthChip.setText("● " + model.getHealthLabel() + " · 10 Hz");
         healthChip.setTextColor(model.getHealthColorRgb());
     }
 
@@ -294,8 +287,8 @@ public class MainActivity extends Activity {
                 getString(R.string.displayed_obstacle_range_clarification));
         metricEgoSpeed.setText("Ego speed  "
                 + (egoSpeed != null ? String.format(java.util.Locale.US, "%.0f km/h", egoSpeed * 3.6f) : "—"));
-        // Fresh at receipt; the ticker re-renders the aged value separately.
-        metricFrameAge.setText("Frame age  0 ms");
+        // Frame-age metric row removed (review feedback): age remains internal
+        // staleness logic only; nothing age-derived is rendered.
     }
 
     @Override

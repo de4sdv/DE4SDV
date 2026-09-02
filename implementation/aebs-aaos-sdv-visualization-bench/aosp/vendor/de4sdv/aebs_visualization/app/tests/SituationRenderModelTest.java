@@ -145,17 +145,28 @@ public class SituationRenderModelTest {
     }
 
     // ------------------------------------------------------------------
-    // Frame age is health text only, never geometry (rule: liveness separate)
+    // Frame age drives health label only, is never rendered (rule: liveness
+    // separate; review feedback: no age display anywhere)
     // ------------------------------------------------------------------
 
     @Test
-    public void frameAgeFormatsWithoutChangingGeometry() {
+    public void frameAgeDoesNotAppearInAnyRenderedText() {
         SituationRenderModel withAge = model(VisualizationStateReducer.Disposition.MONITORING,
                 30f, 0f, 15f, 42);
         SituationRenderModel noAge = model(VisualizationStateReducer.Disposition.MONITORING,
                 30f, 0f, 15f, -1);
-        assertEquals("42 ms", withAge.getFrameAgeText());
-        assertEquals("—", noAge.getFrameAgeText());
+        // No public String getter exposes an age value:
+        for (java.lang.reflect.Method method : SituationRenderModel.class.getMethods()) {
+            if (method.getReturnType() == String.class && method.getParameterCount() == 0) {
+                try {
+                    String value = (String) method.invoke(withAge);
+                    assertFalse("age text must not be exposed: " + method.getName(),
+                            value != null && value.matches(".*\\d+\\s*ms.*"));
+                } catch (IllegalAccessException | java.lang.reflect.InvocationTargetException ignored) {
+                    // Non-plain getters (e.g. toString variants) are not render surfaces.
+                }
+            }
+        }
         // Geometry identical regardless of frame age:
         assertEquals(withAge.getTargetForwardNormalized(), noAge.getTargetForwardNormalized(), EPS);
         assertEquals(withAge.getRssForwardNormalized(), noAge.getRssForwardNormalized(), EPS);

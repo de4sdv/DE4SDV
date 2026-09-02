@@ -178,16 +178,6 @@
                 android:textSize="20sp"
                 android:fontFeatureSettings="tnum"
                 android:text="@string/initial_ego_speed" />
-
-            <TextView
-                android:id="@+id/metric_frame_age"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="#FF8B949E"
-                android:textSize="14sp"
-                android:fontFeatureSettings="tnum"
-                android:text="@string/initial_frame_age" />
         </LinearLayout>
     </LinearLayout>
 

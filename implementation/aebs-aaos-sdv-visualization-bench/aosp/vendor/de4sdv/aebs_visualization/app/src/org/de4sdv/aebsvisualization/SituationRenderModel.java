@@ -18,7 +18,8 @@ import androidx.annotation.Nullable;
  * - RSS boundary: native Autoware metric on the shared range scale; never
  *   triggers or influences state.
  * - Degraded dispositions (stale/invalid/unavailable) clear all live geometry.
- * - Frame age is health text only; it never enters geometry.
+ * - Frame age is internal staleness input only; it never enters geometry and
+ *   is never rendered.
  * - The model NEVER outputs a Disposition (enforced by reflection test).
  */
 public final class SituationRenderModel {
@@ -56,7 +57,6 @@ public final class SituationRenderModel {
     private final float rssForwardNormalized;
     private final String targetRangeText;
     private final String rssDistanceText;
-    private final String frameAgeText;
     private final String healthLabel;
     private final boolean trailVisible;
     private final String egoSpeedText;
@@ -122,7 +122,8 @@ public final class SituationRenderModel {
                     ? formatMetres(b.rssDistance) : "—";
         }
 
-        this.frameAgeText = b.frameAgeMs >= 0 ? (b.frameAgeMs + " ms") : "—";
+        // Age display removed (review feedback): frameAgeMs stays as the
+        // internal staleness input for healthLabel; no age text is formatted.
         this.healthLabel = (b.frameAgeMs >= 0 && b.frameAgeMs > STALE_HEALTH_MS)
                 ? "STALE" : healthLabelFor(disposition);
     }
@@ -231,10 +232,6 @@ public final class SituationRenderModel {
 
     public String getRssDistanceText() {
         return rssDistanceText;
-    }
-
-    public String getFrameAgeText() {
-        return frameAgeText;
     }
 
     /** Health chip label: LIVE/STALE/INVALID/UNAVAILABLE/RESTORED. */
