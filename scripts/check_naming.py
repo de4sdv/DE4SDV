@@ -9,9 +9,29 @@ naming convention (docs/naming/naming-conventions.md):
 - registered identifier prefixes and subject namespaces for ID-shaped tokens;
 - known generator output naming consistency for view diagrams.
 
-Everything ambiguous is exempted explicitly (with reasons) rather than
-guessed. This checker never inspects upstream/vendor assets, retained
-evidence, historical records, or deliberate fixtures.
+Governed textual surface (documented in naming-conventions.md section 11):
+
+- .sysml under the model roots — comment/doc/string content is scrubbed
+  (SysML prose is not a governed identifier surface); code tokens are governed.
+- .yaml/.yml under the governed areas — scanned RAW: identifiers inside
+  normal scalar values, including quoted values, are governed data.
+- .md — fenced code blocks are illustrative examples and are stripped;
+  inline and prose text is governed.
+
+Python sources are deliberately NOT token-scanned: they are executable
+realizations whose literals include regex fragments and test fixtures that
+are not governed identities (tests also deliberately contain invalid
+examples). Governed identities in Python are covered by the migration guard
+tests, not by this checker. This narrowing is normative documentation, not a
+silent omission.
+
+Named exclusions (never scanned): upstream/vendored libraries, snapshots,
+synthetic fixtures, generated diagrams, retained-evidence directories,
+immutable ADR history, and retained raw bench-evidence JSON records.
+
+This checker validates syntax against the registries only. It does not and
+cannot know whether an ID is "new" or "legacy" — provenance rules (e.g. no
+new MW-based families) are review policy, not automated enforcement.
 """
 
 from __future__ import annotations
@@ -44,6 +64,75 @@ _EXEMPT_SYSML_PATH_PARTS = {
     "fixture",  # synthetic test fixture models
 }
 
+# ---------------------------------------------------------------------------
+# Governed textual surface for identifier scanning
+# (naming-conventions.md section 11 — kept identical to the documentation)
+# ---------------------------------------------------------------------------
+
+GOVERNED_TEXT_AREAS = (
+    "textual-notation-of-model/packages",
+    "methodologies/sysmod-sysmlv2",
+    "approach",
+    "model-based-product-line-engineering",
+    "implementation",
+    "configuration-management",
+    "continuous-homologation",
+    "compliance",
+    "devsecops",
+    "simulation",
+    "sysmlv2-api",
+    "docs",
+)
+
+# Named exclusions from identifier scanning, each with a reason:
+_EXEMPT_ID_PATH_PARTS = {
+    "libraries",  # upstream/vendored Sysand libraries
+    "snapshots",  # historical spike snapshots
+    "fixture",  # synthetic fixture model area
+    "fixtures",  # deliberate test-fixture locations
+    "diagrams",  # generated SVG artifacts (names checked separately)
+    "__pycache__",
+}
+_EXEMPT_PATH_PREFIXES = (
+    # Retained evidence: historical records bound to evidence IDs.
+    "implementation/aebs-aaos-sdv-visualization-bench/evidence/",
+    "implementation/aaos-sdv-reference-interop-bench/evidence/",
+    "implementation/aebs-autoware-nominal-vehicle-target-bench/evidence/",
+    "implementation/aebs-autoware-stationary-target-bench/evidence/",
+    # Immutable decision history (naming-conventions.md section 10).
+    "docs/architecture-decisions/",
+)
+# Retained machine records whose token shapes are bench tooling, not DE4SDV IDs.
+_EXEMPT_FILES = {
+    "scenario-evidence.json",
+    "run-metadata.json",
+}
+
+# Placeholder example artifacts (Status: draft/example, TBD rows): their IDs
+# are illustrative template shapes, not governed records.
+_EXAMPLE_TEMPLATE_FILES = {
+    "compliance/safety/hazard-analysis-template.md",
+    "compliance/security/threat-model-template.md",
+    "continuous-homologation/evidence-register.md",
+}
+
+# Naming-authority docs quote unregistered forms as counterexamples and
+# registry examples; their prose would otherwise self-flag. All three
+# naming docs are exempt from token scanning — enforcement applies to the
+# rest of the governed surface.
+_EXEMPT_DOC_FILES = {
+    "docs/naming/naming-conventions.md",
+    "docs/naming/migration-manifest.md",
+    "docs/naming/naming-qa-report.md",
+}
+
+# Suffixes inside the governed surface. Python is intentionally excluded:
+# governed IDs in Python are guarded by migration tests, and string scanning
+# of Python produces regex-fragment false positives (naming-conventions.md
+# section 11 documents this narrowing).
+_GOVERNED_SUFFIXES = {".sysml", ".yaml", ".yml", ".md"}
+
+# ---------------------------------------------------------------------------
 # Identifier registry (docs/naming/naming-conventions.md section 5).
 #
 # STRICT_PREFIXES: `<TYPE>-<SUBJECT>-<SEQ>` trace IDs; the subject segment is
@@ -67,16 +156,22 @@ STRICT_PREFIXES = {
 # not syntax-validated (no false positives on legitimate names).
 FREE_FORM_PREFIXES = {
     "AO",  # acceptance objective (increment pilot index)
+    "AGT",  # assurance argument (middleware evidence slice)
     "ASM",  # assumption (pilot index)
     "ACT",  # actor (pilot index)
     "ALT",  # realization alternative (pilot index)
     "BLK",  # physical element block (pilot index)
+    "C",  # common capability node (feature model)
     "CAP",  # capability (pilot index)
     "CC",  # common capability (pilot index)
+    "CCM",  # counter-claim (assurance argumentation)
     "CLS",  # classification record (pilot index)
+    "CLM",  # claim (assurance argumentation)
+    "D",  # derived asset (feature model)
     "DEC",  # decision record (pilot index)
     "DEF",  # deferral (pilot index)
     "EC",  # evidence criterion (pilot index)
+    "F",  # feature node (feature model)
     "FEAT",  # feature (pilot index)
     "FUNC",  # function (pilot index)
     "ITEM",  # information item (pilot index)
@@ -84,6 +179,7 @@ FREE_FORM_PREFIXES = {
     "LPORT",  # logical port (pilot index)
     "MAP",  # signal mapping record (pilot index)
     "MODEL",  # model artifact index entry (pilot index)
+    "PL",  # product line (feature-model root)
     "PORT",  # port (pilot index)
     "PROBE",  # realization-readiness probe (pilot index)
     "PF",  # bench preflight check
@@ -95,12 +191,15 @@ FREE_FORM_PREFIXES = {
     "STK",  # stakeholder index entry (pilot index)
     "STORY",  # operational story (pilot index)
     "VAL",  # validation scenario (pilot index)
+    "VM",  # campaign bench virtual-machine host label
+    "H",  # hazard (compliance safety template form)
+    "T",  # threat (compliance security template form)
     "VP",  # viewpoint selection (pilot index)
     "VSS",  # VSS source/simulation mapping record
     "DE4SDV",  # DE4SDV project artifact reference (e.g. DE4SDV-VSS-EXT)
     "SYSML",  # external spec anchor (e.g. SYSML-V2-RELEASE-3f895b7)
     "SAF",  # external SAF anchor (e.g. SAF-CONCEPTUAL-DOMAIN)
-    "UNECE",  # external regulation anchor (e.g. UNECE-R152)
+    "UNECE",  # external regulation anchor (e.g. SRC-UNECE-R152 rest segment)
 }
 
 # External names that merely look like IDs (upstream projects/specs/tools).
@@ -112,33 +211,45 @@ _EXTERNAL_ID_NAMES = {
     "SYSML-V2-SPEC-7",
     "MBSE4U-SYSMOD-PROBLEM-STATEMENT",
     "COVESA-VSS-VEHICLE-SPEED",
+    # Technical vocabulary, not governed identifiers:
+    "SHA-256",  # hash algorithm name (provenance records)
+    "SHA-1",  # hash algorithm name (provenance records)
 }
 
 # Subject-first configuration identities (`<SUBJECT>-CONFIG-<SEQ>`); see
 # naming-conventions.md section 5. `<SUBJECT>-` here is a registered subject
 # namespace, so the generic strict-prefix scan would misread them.
 _CONFIG_IDENTITY = re.compile(
-    r"(?<![A-Z-])(AEBS|MW)-CONFIG-[0-9]+(?:-[0-9]+)?\b"
+    r"(?<![A-Za-z0-9-])(AEBS|MW)-CONFIG-[0-9]+(?:-[0-9]+)?\b"
 )
 
 # Subject-namespace registry (docs/naming/naming-conventions.md section 6).
+# `UNECE` is the subject of SRC-UNECE-R152 (TYPE=SRC, SUBJECT=UNECE, REST=R152).
 REGISTERED_SUBJECTS = {
     "AEBS",
     "MW",  # legacy registered code; canonical spelling is `middleware`
     "UNECE",
-    "R152",  # UNECE R152 anchor uses SRC-UNECE-R152 form
 }
 
-# ID-shaped token: PREFIX-SUBJECT(-...). The lookbehind prevents matching the
-# tail of a longer ID (e.g. MW-010-02 inside AC-MW-010-02, SDV-… inside
-# DE4SDV-…).
-_ID_TOKEN = re.compile(r"(?<![A-Za-z0-9-])([A-Z]{1,6})-([A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)")
+# ID-shaped token: PREFIX-SUBJECT(-...). Governed IDs are all-caps tokens
+# whose subject segment (a) runs 3+ letters (AEBS, MW, UNKNOWN, PLATFORM,
+# AEBS-010-…), (b) contains a digit (H-001, PF-004, AEBS-009B-01), or
+# (c) is exactly 2 letters followed by another -segment (AC-MW-010-02,
+# EVID-MW-011). Single-letter prose ranges (A-Z), mixed-case prose
+# (SERVER-IPv4, AI-Ready), SPDX headers, and single-suffix bench labels
+# (VM-A) stay outside the grammar by construction. The lookbehind prevents
+# matching the tail of a longer ID (e.g. MW-010-02 inside AC-MW-010-02).
+_ID_TOKEN = re.compile(
+    r"(?<![A-Za-z0-9-])"
+    r"([A-Z][A-Z0-9]{0,5})-"
+    r"((?:[A-Z]{3,}[A-Z0-9]*(?:-[A-Z0-9]*)*"
+    r"|[A-Z]{2}(?:-[A-Z0-9]+)+"
+    r"|[A-Z]{0,2}[0-9][A-Z0-9-]*))"
+)
 
-# Files whose ID tokens are exempt (bench tooling / retained evidence).
-_ID_EXEMPT_FILE_PARTS = {
-    "scenario-evidence.json",
-    "run-metadata.json",
-}
+# Markdown fenced code blocks: illustrative examples, outside enforcement
+# (naming-conventions.md section 11). Inline code and prose stay governed.
+_MD_FENCE = re.compile(r"```.*?```", re.DOTALL)
 
 # Canonical concern filename: no embedded increment numbers.
 _CONCERN_NUMBER = re.compile(r"_?0\d\d(_|\.sysml$)")
@@ -188,6 +299,118 @@ def _is_exempt_sysml(path: Path) -> bool:
     return bool(parts & _EXEMPT_SYSML_PATH_PARTS)
 
 
+def _is_exempt_from_id_scan(path: Path) -> bool:
+    parts = set(path.parts)
+    if parts & _EXEMPT_SYSML_PATH_PARTS:
+        return True
+    rel = path.relative_to(ROOT).as_posix()
+    if path.name in _EXEMPT_FILES:
+        return True
+    if rel in _EXAMPLE_TEMPLATE_FILES or rel in _EXEMPT_DOC_FILES:
+        return True
+    if rel == "docs/plans/2026-07-27-aebs-009c-009i.md":
+        # Historical implementation-plan record; its title has used the
+        # subjectless INC form verbatim since PR #68. History is not rewritten.
+        return True
+    if any(part in _EXEMPT_ID_PATH_PARTS for part in parts):
+        return True
+    return any(rel.startswith(prefix) for prefix in _EXEMPT_PATH_PREFIXES)
+
+
+# Technical tokens that merely look like ID-shaped but are external
+# vocabulary or URL fragments (never governed identifiers). The URL-pattern
+# guard strips GitHub line-anchor suffixes such as `#L743-L754` before
+# scanning. Extend deliberately, never silently — see naming-conventions.md
+# section 5.
+_URL_LINE_ANCHOR = re.compile(r"#L\d+(?:-L\d+)?")
+
+
+def _prepare_text_for_suffix(text: str, suffix: str) -> str:
+    """Artifact-aware preparation before ID scanning.
+
+    - SysML: comments, doc blocks, and quoted strings are scrubbed (SysML
+      prose is not a governed identifier surface; code tokens are).
+    - Markdown: fenced code blocks are illustrative examples and are
+      stripped; inline and prose text stays governed.
+    - YAML (and everything else): returned raw — quoted scalar values ARE
+      governed identifiers.
+    """
+    if suffix == ".sysml":
+        text = _check_repo._scrub_comments_and_strings(text)
+    elif suffix == ".md":
+        text = _MD_FENCE.sub(" ", text)
+    text = _URL_LINE_ANCHOR.sub(" ", text)
+    text = _CONFIG_IDENTITY.sub("", text)
+    for name in _EXTERNAL_ID_NAMES:
+        text = text.replace(name, "")
+    return text
+
+
+def check_identifier_tokens_in_prepared(
+    prepared_text: str, display_path: str
+) -> list[str]:
+    """Validate ID-shaped tokens in already-prepared text.
+
+    Public seam: behavioral tests call this with fixture text to prove the
+    observable checker behavior (registry enforcement), not regex internals.
+    """
+    errors: list[str] = []
+    for match in _ID_TOKEN.finditer(prepared_text):
+        prefix, rest = match.group(1), match.group(2)
+        if prefix in FREE_FORM_PREFIXES:
+            continue
+        if prefix not in STRICT_PREFIXES:
+            errors.append(
+                f"unregistered identifier prefix '{prefix}-' in {display_path}"
+            )
+            continue
+        subject = rest.split("-", 1)[0]
+        if subject not in REGISTERED_SUBJECTS:
+            errors.append(
+                f"unregistered identifier subject '{subject}' in {display_path}"
+            )
+    return errors
+
+
+def check_identifier_tokens_in_text(
+    text: str, display_path: str, suffix: str
+) -> list[str]:
+    """Prepare and validate one artifact's text (public behavioral seam)."""
+    prepared = _prepare_text_for_suffix(text, suffix=suffix)
+    return check_identifier_tokens_in_prepared(prepared, display_path=display_path)
+
+
+def _iter_governed_text_files():
+    for area in GOVERNED_TEXT_AREAS:
+        base = ROOT / area
+        if not base.is_dir():
+            continue
+        for path in sorted(base.rglob("*")):
+            if not path.is_file() or path.suffix not in _GOVERNED_SUFFIXES:
+                continue
+            if _is_exempt_from_id_scan(path):
+                continue
+            yield path
+
+
+def check_identifier_tokens() -> list[str]:
+    """ID-shaped tokens in the governed textual surface must be registered.
+
+    Artifact-aware preparation: SysML comments/strings scrubbed, YAML raw
+    (quoted scalars governed), Markdown fenced examples stripped.
+    """
+    errors: list[str] = []
+    for path in _iter_governed_text_files():
+        text = path.read_text(errors="replace")
+        prepared = _prepare_text_for_suffix(text, suffix=path.suffix)
+        errors.extend(
+            check_identifier_tokens_in_prepared(
+                prepared, display_path=str(path.relative_to(ROOT))
+            )
+        )
+    return errors
+
+
 def check_sysml_filenames() -> tuple[list[str], list[str]]:
     """Project-owned SysML filenames must be lower_snake_case and canonical.
 
@@ -222,50 +445,6 @@ def check_sysml_filenames() -> tuple[list[str], list[str]]:
                     f"(naming-conventions.md section 7): {path.relative_to(ROOT)}"
                 )
     return errors, batch2_pending
-
-
-def check_identifier_tokens() -> list[str]:
-    """ID-shaped tokens in tracked text must use registered prefixes/subjects."""
-    errors: list[str] = []
-    scan_roots = [
-        ROOT / "textual-notation-of-model/packages",
-        ROOT / "methodologies/sysmod-sysmlv2",
-        ROOT / "tests",
-        ROOT / "docs/naming",
-    ]
-    for root in scan_roots:
-        if not root.is_dir():
-            continue
-        for path in sorted(root.rglob("*")):
-            if not path.is_file() or path.suffix not in {
-                ".sysml", ".yaml", ".yml", ".py", ".md"
-            }:
-                continue
-            if _is_exempt_sysml(path) or path.name in _ID_EXEMPT_FILE_PARTS:
-                continue
-            text = _check_repo._scrub_comments_and_strings(path.read_text())
-            # _scrub_comments_and_strings is SysML-aware; for other files it
-            # still removes quoted spans, which is the safe direction here.
-            text = _CONFIG_IDENTITY.sub("", text)
-            for name in _EXTERNAL_ID_NAMES:
-                text = text.replace(name, "")
-            for match in _ID_TOKEN.finditer(text):
-                prefix, rest = match.group(1), match.group(2)
-                if prefix in FREE_FORM_PREFIXES:
-                    continue
-                if prefix not in STRICT_PREFIXES:
-                    errors.append(
-                        f"unregistered identifier prefix '{prefix}-' in "
-                        f"{path.relative_to(ROOT)}"
-                    )
-                    continue
-                subject = rest.split("-", 1)[0]
-                if subject not in REGISTERED_SUBJECTS:
-                    errors.append(
-                        f"unregistered identifier subject '{subject}' in "
-                        f"{path.relative_to(ROOT)}"
-                    )
-    return errors
 
 
 def check_view_diagram_names() -> list[str]:

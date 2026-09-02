@@ -200,7 +200,7 @@ evidence_ladder:
     claim: bounded invalid-envelope rejection and provider-loss degraded/restored health disposition
     artifact: implementation/aaos-sdv-reference-interop-bench/evidence/e-mw-014-health-disposition.yaml
     blockers: [GAP-MW-028]
-    scope: fault rejection (gate 7) and health disposition (E-MW-014, AC-03) observed; complete lifecycle ordering and update/OTA are deferred, and the reverse path remains not claimed (gate 8)
+    scope: fault rejection (gate 7) and health disposition (E-MW-014, AC-MW-010-03) observed; complete lifecycle ordering and update/OTA are deferred, and the reverse path remains not claimed (gate 8)
 
 cloud_readiness:
   purpose: >-

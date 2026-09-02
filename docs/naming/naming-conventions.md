@@ -170,6 +170,16 @@ are not syntax-validated.
 | `REAL` | Realization record | pilot index | `REAL-MW-DIRECT-001` |
 | `SCN` | Bench scenario identity | bench tooling / pilots | `SCN-AEBS-009D-STALE` |
 | `SET` | Needs/requirements set | pilot index | `SET-AEBS-S1-NEEDS` |
+| `C` | Common capability node | feature model | `C-CAPABILITY-AEBS-VEHICLE-TARGET` |
+| `D` | Derived asset | feature model | `D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER` |
+| `F` | Feature node | feature model | `F-PLATFORM-STACK` |
+| `PL` | Product line | feature-model root | `PL-DE4SDV` |
+| `CLM` | Claim (assurance argumentation) | middleware evidence slice + guide | `CLM-MW-010-01` |
+| `AGT` | Assurance argument (argumentation) | middleware evidence slice + guide | `AGT-MW-010-01` |
+| `CCM` | Counter-claim (argumentation) | middleware evidence slice + guide | `CCM-MW-010-01` |
+| `VM` | Campaign bench virtual-machine host label | bench docs/code | `VM-A`, `VM-B` |
+| `H` | Hazard (compliance safety) | hazard analysis artifacts | `H-001` |
+| `T` | Threat (compliance security) | threat model artifacts | `T-001` |
 | `SRC` | External source anchor | model + pilots | `SRC-UNECE-R152` |
 | `STK` | Stakeholder index entry | pilot index | `STK-PRODUCT-LINE-ENGINEER` |
 | `STORY` | Operational story | pilot index | `STORY-AEBS-VEHICLE-TARGET-001` |
@@ -199,13 +209,13 @@ exempt list deliberately, never silently.
 
 Unregistered prefixes or subjects fail `scripts/check_naming.py`.
 
-## 6. Subject-namespace registry
+# Subject-namespace registry
 
 | Code | Meaning | Scope notes |
 |---|---|---|
 | `AEBS` | Autonomous Emergency Braking System | System 1 AEBS product-line subject; includes the AEBS visualization System 2 test system |
-| `MW` | Middleware | Legacy registered code for the middleware integration subject; canonical spelling `middleware` in filenames/packages; `MW` remains valid only inside trace IDs created before this convention |
-| `UNECE-R152` | UNECE regulation anchor | Used only with the `SRC-` prefix |
+| `MW` | Middleware | Legacy registered code for the middleware integration subject; canonical spelling `middleware` in filenames/packages; `MW` remains valid inside trace IDs created before this convention. The checker validates `MW`-subject IDs **syntactically only**; it cannot know whether an ID is new or historical, so the rule "do not start new MW-based families" is **review policy**, not automated enforcement. |
+| `UNECE` | UNECE regulation anchor | Subject of the `SRC-UNECE-R152` form (`TYPE=SRC`, `SUBJECT=UNECE`, remainder `R152` is the free-form rest segment, not a subject) |
 
 New subjects (e.g. a future `PER` perception subject) must be added here in
 the same commit that first uses them.
@@ -309,16 +319,64 @@ Historical ADRs, retained evidence, baseline registers, and merged-PR
 descriptions preserve the terminology of their revision; history is not
 rewritten.
 
-## 11. Enforcement
+## 11. Enforcement — governed textual surface
 
 `scripts/check_naming.py` (wired into `scripts/check_repo.py`) validates the
 objective rules: project-owned SysML filename shape, unexplained
 increment-number patterns in canonical concern filenames, the abbreviation
 policy for new names, registered identifier prefixes and subject namespaces,
-and stale generated-diagram filenames. It explicitly exempts upstream/vendor
-assets (`.sysand/`, `tests/fixtures/`, `experiments/`), externally stable
-identifiers, historical records, retained-evidence filenames bound to
-evidence IDs, and artifacts under documented scheduled migration.
+and stale generated-diagram filenames.
+
+### Governed textual surface (identifier scanning)
+
+Identifier scanning covers the project-owned text artifacts where governed
+IDs actually live — `.sysml`, `.yaml`/`.yml`, and `.md` under:
+
+`textual-notation-of-model/packages`, `methodologies/sysmod-sysmlv2`,
+`approach/`, `model-based-product-line-engineering/`, `implementation/`,
+`configuration-management/`, `continuous-homologation/`, `compliance/`,
+`devsecops/`, `simulation/`, `sysmlv2-api/`, `docs/`.
+
+Artifact-aware rules (small and explicit, no heuristic parser):
+
+- **SysML**: comments, doc blocks, and quoted strings are scrubbed before
+  scanning — SysML prose is not a governed identifier surface; code tokens
+  are. Governed IDs appear in YAML/MD companions, not SysML prose.
+- **YAML**: scanned raw — identifiers inside normal scalar values, including
+  quoted values, are governed data (`requirement_id: "REQ-AEBS-001"` is
+  checked).
+- **Markdown**: fenced code blocks are illustrative examples and are
+  stripped; inline and prose text stays governed.
+
+**Deliberately not token-scanned (normative narrowing):**
+
+- **Python sources** (`*.py`) — executable realizations whose string
+  literals include regex fragments and test fixtures; tests deliberately
+  contain invalid examples. Governed identities appearing in Python are
+  covered by the migration guard tests instead. This is documented policy,
+  not an omission.
+- **Named path exemptions**: upstream/vendored libraries
+  (`**/libraries/`), historical snapshots (`**/snapshots/`), synthetic
+  fixtures (`**/fixture/`, `**/fixtures/`), generated diagrams
+  (`**/diagrams/`), retained-evidence directories
+  (`implementation/*/evidence/`), immutable ADR history
+  (`docs/architecture-decisions/`), retained raw bench-evidence JSON
+  (`scenario-evidence.json`, `run-metadata.json`), placeholder example
+  templates (the `draft/example` hazard/threat/evidence-register
+  templates), the historical 009C–009I implementation-plan record, and the
+  naming QA/manifest docs (which quote unregistered forms as
+  counterexamples). The conventions doc itself stays fully governed.
+- **Non-governed look-alikes**: hash-algorithm names (`SHA-256`, `SHA-1`),
+  GitHub line anchors (`#L743-L754`), charset fragments, mixed-case prose
+  (`SERVER-IPv4`, `AI-Ready`), and external project names (`S-CORE`,
+  `SAF-SysMLV2`, …) are outside the grammar by construction or by the named
+  external list.
+
+**What the checker cannot do (honest boundary):** it validates syntax
+against the registries only. It cannot know whether an ID is "new" or
+"legacy", so provenance rules — e.g. "do not start new MW-based families"
+or "use `EVID`, not `E`, for new evidence IDs" — are **review policy**,
+stated here and checked by human review, not automated enforcement.
 
 Violations are fixed by migration with an explicit old → new mapping in the
 migration manifest — never by weakening the checker.
