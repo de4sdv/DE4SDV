@@ -80,8 +80,10 @@ that revision predates the deployment implementation.
 4. Run `Deploy Public SysML API` (manual `workflow_dispatch`) with that exact
    main SHA. The workflow independently verifies the privileged run metadata
    (workflow file, `success`, `head_sha` equality, unambiguous selection),
-   creates a real exact Git checkout on the host, transfers the bundle, and
-   runs `deploy.py` — which imports the validated export into the
+   creates and verifies a Git bundle from the runner's canonical exact-SHA
+   checkout, transfers it through the pinned SSH channel, clones it into a
+   real exact Git checkout on the host, transfers the validated ingestion
+   bundle, and runs `deploy.py` — which imports the validated export into the
    deployment's own API repository, requires 0 unresolved / 0 ambiguous
    ontology mappings, writes the deployment-specific binding, and only then
    exposes the proxy.
@@ -139,8 +141,12 @@ out of band by the repository owner:
   model. Schema creation happens once; committed model data is never dropped.
 - Each deployment stages its bundle into a freshly recreated
   `/srv/de4sdv/artifacts/incoming` (previous artifacts removed first) and the
-  host checkout is `git reset --hard` + `git clean -ffd` at the exact SHA, so
-  no stale files or artifacts from previous deployments can leak in.
+  host checkout is freshly cloned from the checksum-verified Git bundle,
+  `git reset --hard` + `git clean -ffd` at the exact SHA, so no stale files or
+  artifacts from previous deployments can leak in. The host does not fetch
+  source from GitHub; this avoids making production correctness depend on
+  anonymous Git smart-HTTP behavior while retaining a real Git checkout and
+  the canonical repository URL as `origin`.
 
 ## Secrets hygiene
 
