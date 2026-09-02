@@ -25,7 +25,7 @@ Every increment produces one or more **packages** (files) that live under
 - `architecture/` — platform-stack and execution-environment definitions
   shared across features.
 - `features/aebs/` and `features/middleware/` — the feature pilots; one
-  file per increment slice (`mw_requirements.sysml`, `aebs_logical_architecture.sysml`,
+  file per increment slice (`middleware_requirements.sysml`, `aebs_logical_architecture.sysml`,
   ...).
 
 Packages import only what they need (`private import`) and define their own
@@ -64,7 +64,7 @@ concern argumentationAssuranceConcern : ArgumentationAssuranceConcern {
   stakeholder verificationEngineer : VerificationEngineer;
 }
 
-view mw010VerificationAssuranceView {
+view middlewareVerificationAssuranceView {
   viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
     frame argumentationAssuranceConcern;
   }
@@ -114,7 +114,7 @@ requirement reqMonitorMiddlewareHealth : MiddlewareHealthMonitoringRequirement {
   product-line-constraint, traceability-constraint, and
   evidence-contract-traceability requirements, so reviewers can see the
   *kind* of obligation at a glance.
-- Stakeholder **needs** stay in their own slice (`mw_stakeholder_needs.sysml`,
+- Stakeholder **needs** stay in their own slice (`middleware_stakeholder_needs.sysml`,
   `aebs-needs-requirements` docs) — needs are not requirements.
 
 **Why:** separating needs from requirements, and typing the requirement
@@ -129,7 +129,7 @@ vocabulary:
 
 ```sysml
 part def MiddlewareIntegrationVandVBench010 {
-  part system1MemberProduct : MWAutowareAAOSSDVConfiguredMember;
+  part system1MemberProduct : MiddlewareAutowareAAOSSDVConfiguredMember;
   part system2TestEnvironment : AOSPAAOSBuildRuntimeEnvironment;
   attribute scenario : ScenarioIdentity010;
 }
@@ -163,12 +163,12 @@ attribute changing. Interfaces are checkable by tools and humans alike.
 Product-line slices assemble **configured members** from shared assets:
 
 ```sysml
-part def MWAutowareAAOSSDVConfiguredMember :> ProductLineMemberProduct {
-  part platformStack : MWAutowareAAOSSDVReference;
+part def MiddlewareAutowareAAOSSDVConfiguredMember :> ProductLineMemberProduct {
+  part platformStack : MiddlewareAutowareAAOSSDVReference;
   part middlewareBoundary : MiddlewarePhysicalSoftwareBoundary;
 }
 
-part configuredMember : MWAutowareAAOSSDVConfiguredMember {
+part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
   doc /* MW-CONFIG-001. Configuration evidence only. ... */
 }
 ```
@@ -191,7 +191,7 @@ part configuredMember : MWAutowareAAOSSDVConfiguredMember {
 
 ## Verification, evidence, and verdicts
 
-The verification/evidence slices (`mw_verification_evidence.sysml`,
+The verification/evidence slices (`middleware_verification_evidence.sysml`,
 `aebs_*_verification.sysml`, `aebs_nominal_evidence.sysml`) contain the
 richest element set. The pattern, in order:
 
@@ -252,8 +252,8 @@ On top of the verdict chain, assurance slices add an argumentation layer
 - **`MiddlewareCounterClaim010`** — explicit bounds on the claim where
   evidence is missing (`CCM-MW-010-…`), each traced to its gap.
 
-Two views publish the two sides: the positive slice (`mw010VerificationAssuranceView`)
-and the challenge slice (`mw010OpenCounterclaimAssuranceView`). **Why:**
+Two views publish the two sides: the positive slice (`middlewareVerificationAssuranceView`)
+and the challenge slice (`middlewareOpenCounterclaimAssuranceView`). **Why:**
 DE4SDV does not hide weaknesses. Counter-claims and gaps are first-class
 model elements precisely so an assurance argument shows what is *not* yet
 established, not just what is.
@@ -281,7 +281,7 @@ can be validated, queried, and rendered — and a PR can be reviewed for
 
 | Kind | Used for | Example |
 |---|---|---|
-| `package` | one reviewable slice | `DE4SDV_MWRequirements` |
+| `package` | one reviewable slice | `DE4SDV_MiddlewareRequirements` |
 | `part def` / `part` | structure, types and usages | `MiddlewareIntegrationVandVBench010` |
 | `port def` | typed interface with `in`/`out` items | `SignalAccessApplicationPort` |
 | `item def` | exchanged or observed information | `VehicleSpeedTranslationObservation010` |
@@ -289,7 +289,7 @@ can be validated, queried, and rendered — and a PR can be reviewed for
 | `requirement def` / `requirement` | needs and verifiable obligations | `reqMonitorMiddlewareHealth` |
 | `verification` (def/usage) | verification/validation cases | `signalTranslationVerification010` |
 | `calc def` | deterministic mappings (outcome → verdict) | `Map010OutcomeToVerdict` |
-| `concern` / `viewpoint` / `view` | scoped stakeholder-facing expressions | `mw010VerificationAssuranceView` |
+| `concern` / `viewpoint` / `view` | scoped stakeholder-facing expressions | `middlewareVerificationAssuranceView` |
 | `dependency` | trace links across the chain | `startupValidationToDiscoveryRequirement` |
 | `doc /* */` | rationale, IDs, and explicit limits | `GAP-MW-025`, `MW-CONFIG-001` |
 

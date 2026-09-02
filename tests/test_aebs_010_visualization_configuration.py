@@ -15,7 +15,7 @@ TEST_ARTICLE = Path(
 )
 REFERENCE_BOF = Path(
     "model-based-product-line-engineering/feature-configurations/"
-    "mw-autoware-aaos-sdv-reference.yaml"
+    "middleware-autoware-aaos-sdv-reference.yaml"
 )
 PRODUCT_LINE_BOF = Path(
     "model-based-product-line-engineering/feature-models/sdv_product_line.yaml"
@@ -30,12 +30,12 @@ def test_test_article_specializes_accepted_configured_member() -> None:
     config = _read(CONFIG_SYSML)
     assert (
         "part def AEBSAutowareAAOSSDVVisualizationTestArticle"
-        " :> MWAutowareAAOSSDVConfiguredMember" in config
+        " :> MiddlewareAutowareAAOSSDVConfiguredMember" in config
     )
     assert (
         "dependency testArticleInheritsReferenceMember" in config
     )
-    assert "to DE4SDV_MWVariabilityConfiguration::configuredMember;" in config
+    assert "to DE4SDV_MiddlewareVariabilityConfiguration::configuredMember;" in config
 
 
 def test_no_new_product_feature_in_product_line_bof() -> None:
@@ -129,7 +129,7 @@ def test_product_selections_inherited_unchanged() -> None:
     assert inherited["reused_unchanged"] is True
     assert inherited["source"] == (
         "model-based-product-line-engineering/feature-configurations/"
-        "mw-autoware-aaos-sdv-reference.yaml"
+        "middleware-autoware-aaos-sdv-reference.yaml"
     )
     # The test article must not add its own product-level selections.
     assert "selections:" not in _read(TEST_ARTICLE)

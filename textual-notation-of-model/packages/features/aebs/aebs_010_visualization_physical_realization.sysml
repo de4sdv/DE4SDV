@@ -7,7 +7,7 @@
  *
  *   pinned native Autoware AEB + existing DE4SDV 009B coordinator
  *     -> read-only ROS 2 visualization adapter
- *     -> bounded length-delimited transport (new port; not the MW-010 port)
+ *     -> bounded length-delimited transport (new port; not the INC-MW-010 port)
  *     -> native SDV Gateway publisher in the sdv_ivi_cf IVI guest
  *     -> SDV Gateway Data Tunnel
  *     -> Java AAOS center-display application

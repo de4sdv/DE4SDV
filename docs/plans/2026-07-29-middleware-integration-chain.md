@@ -16,8 +16,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SAF viewpoints: OperationalContextDefinitionViewpoint, OperationalStoryViewpoint, StakeholderIdentificationViewpoint
 - Outputs: operational context, actors, scenarios, operational processes
 - Content: ADAS app needs vehicle speed signal, diagnostic state, lifecycle coordination from vehicle platform. Operational stories: normal driving (signal exchange), service update (A/B partition swap), fault detection (health monitoring), vehicle startup (lifecycle coordination)
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-operational-context.yaml
+- SysML file: textual-notation-of-model/packages/features/middleware/middleware_operational_context.sysml
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-operational-context.yaml
 
 ### INC-MW-003: Feature/common-capability classification
 - Phase: 3 (Capability/feature semantics)
@@ -26,8 +26,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - Outputs: feature/common-capability classification, variation points
 - Content: adapter layer = common capability, AAOS SDV = feature, S-CORE = feature, variation points in SDV platform stack
 - Note: Phase 3 labels capabilities; Phase 9 assembles the variation points into configured product models
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-feature-classification.yaml
+- SysML file: textual-notation-of-model/packages/features/middleware/middleware_feature_classification.sysml
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-feature-classification.yaml
 
 ### INC-MW-004: Stakeholder needs
 - Phase: 4 (Needs)
@@ -35,8 +35,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SAF viewpoints: StakeholderRequirementDefinitionViewpoint
 - Outputs: needs, sources, rationale, validation intent
 - Content: platform engineer (no coupling), systems engineer (traceability), product-line engineer (middleware as feature), safety engineer (safety path isolation), maintainer (upstream engagement)
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_needs_requirements.sysml
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-needs-requirements.yaml
+- SysML file: textual-notation-of-model/packages/features/middleware/middleware_stakeholder_needs.sysml
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-stakeholder-needs.yaml
 
 ### INC-MW-005: Requirements
 - Phase: 5 (Requirements)
@@ -44,8 +44,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SAF viewpoints: SystemRequirementDefinitionViewpoint, SystemRequirementTraceabilityViewpoint
 - Outputs: design input requirements, constraints, verification methods, trace links
 - Content: signal access, diagnostic access, lifecycle coordination, safety path isolation, service discovery with auth
-- SysML file: (same file as needs, or separate mw_requirements.sysml)
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-requirements.yaml
+- SysML file: (same file as needs, or separate middleware_requirements.sysml)
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-requirements.yaml
 
 ### INC-MW-006: Functional architecture
 - Phase: 6 (Functional architecture)
@@ -53,8 +53,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SAF viewpoints: SystemFunctionalBreakdownStructureViewpoint, SystemProcessViewpoint, SystemInterfaceDefinitionViewpoint
 - Outputs: functional breakdown, interfaces, behavior slices
 - Content: signal translation, lifecycle delegation, health forwarding, diagnostic proxy, update coordination. State machines: service lifecycle, health states, connection states
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_functional_behavior.sysml
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-functional-behavior.yaml
+- SysML file: textual-notation-of-model/packages/features/middleware/middleware_functional_architecture.sysml
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-functional-architecture.yaml
 
 ### INC-MW-007: Logical architecture
 - Phase: 7 (Logical architecture)
@@ -62,8 +62,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SAF viewpoints: SystemStructureDefinitionViewpoint, SystemInternalExchangeViewpoint, SystemFunctionMappingViewpoint
 - Outputs: system structure, exchanges, allocation/mapping
 - Content: SignalTranslator, LifecycleBridge, HealthProxy, DiagnosticProxy, UpdateCoordinator. Mapping from AEBS logical-architecture external service dependencies to middleware logical components
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_logical_architecture.sysml
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-logical-architecture.yaml
+- SysML file: textual-notation-of-model/packages/features/middleware/middleware_logical_architecture.sysml
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-logical-architecture.yaml
 
 ### INC-MW-008: Physical/software realization
 - Phase: 8 (Physical/software realization)
@@ -71,8 +71,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SAF viewpoints: PhysicalStructureDefinitionViewpoint, PhysicalInterfaceDefinitionViewpoint, PhysicalFunctionalMappingViewpoint, PhysicalLogicalMappingViewpoint
 - Outputs: physical/software structure, interfaces, mappings
 - Content: existing AAOS SDV boundary model (INC-MW-002/PR #71) goes HERE. AutowareToAAOSSDVAdapter concrete mapping. ROS 2 topics to VSIDL services. Which AAOS SDV services satisfy which logical components
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml (reposition aaos_sdv_middleware_boundary.sysml content here)
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-physical-software-realization.yaml
+- SysML file: textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml (reposition aaos_sdv_middleware_boundary.sysml content here)
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-physical-software-realization.yaml
 
 ### INC-MW-009: Variability and configuration
 - Phase: 9 (Variability and configuration)
@@ -81,7 +81,7 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - Outputs: variation points, feature configurations, product model assembly
 - Content: PLE feature model (middleware selection: AAOS SDV, S-CORE, AUTOSAR, none). Adapter variant follows from (app, middleware) pair. Bill-of-features for AAOS SDV member product. Product model projection. Consolidates variation points from phases 3-8.
 - SysML file: (updates to existing PLE feature model and product models)
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-variability-configuration.yaml
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-variability-configuration.yaml
 
 ### INC-MW-010: V&V and evidence
 - Phase: 10 (V&V and evidence)
@@ -89,8 +89,8 @@ Aligned to DE4SDV increment-workflow.md (13 phases). Each increment produces a r
 - SAF viewpoints: ArgumentationAssuranceViewpoint
 - Outputs: verification cases, validation scenarios, acceptance criteria, evidence records, open gaps
 - Content: signal translation correctness, lifecycle coordination, health forwarding. Integration test results. Evidence status: planned/draft
-- SysML file: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
-- YAML: methodologies/sysmod-sysmlv2/pilots/mw-vv-evidence.yaml
+- SysML file: textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml
+- YAML: methodologies/sysmod-sysmlv2/pilots/middleware-v-and-v-evidence.yaml
 
 ## Trace chain
 

@@ -3,12 +3,12 @@
 # NOT a product Bill-of-Features. This file records the planned execution
 # configuration of the INC-AEBS-010 System 2 test article. The product-level
 # feature selections are inherited unchanged from the accepted
-# mw-autoware-aaos-sdv-reference.yaml BoF; no feature selection is added or
+# middleware-autoware-aaos-sdv-reference.yaml BoF; no feature selection is added or
 # modified, and the visualization is not a product feature.
 
 name: AEBSAutowareAAOSSDVVisualizationTestArticle
 description: >
-  Instrumented specialization of the accepted MWAutowareAAOSSDVReference
+  Instrumented specialization of the accepted MiddlewareAutowareAAOSSDVReference
   member for the INC-AEBS-010 AEBS visualization chain. The member's
   platform stack and capability selections are inherited unchanged; this
   configuration adds only System 2 visualization instrumentation. It proves
@@ -23,7 +23,7 @@ evidence:
 # (reused by qualified reference in SysML). Reproduced here for execution
 # reproducibility only; the authoritative source remains the reference file.
 inherits_product_configuration:
-  source: model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
+  source: model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml
   reused_unchanged: true
 
 system2_instrumentation:

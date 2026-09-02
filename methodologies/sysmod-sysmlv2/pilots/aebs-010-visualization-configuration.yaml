@@ -17,13 +17,13 @@ configuration_decision:
   id: AEBS-CONFIG-010-001
   element: AEBSAutowareAAOSSDVVisualizationTestArticle
   decision: >-
-    Specialize the accepted MWAutowareAAOSSDVConfiguredMember with the
+    Specialize the accepted MiddlewareAutowareAAOSSDVConfiguredMember with the
     deployed Phase 8 visualization chain instead of creating a new member
     or BoF. All platform-stack and capability selections are inherited
     unchanged.
   reused_sources:
-    - model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
-    - model-based-product-line-engineering/product-models/mw_autoware_aaos_sdv_reference.sysml
+    - model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml
+    - model-based-product-line-engineering/product-models/middleware_autoware_aaos_sdv_reference.sysml
   no_duplicate_bof: true
   no_new_product_feature: true
 
@@ -36,7 +36,7 @@ runtime_bindings:
     - "AO-AEBS-010-001 aosp_manifest_revision (pinned at implementation)"
     - "AO-AEBS-010-002 autoware_container_digest (from 009B runtime lock; pinned at implementation)"
     - "AO-AEBS-010-003 autoware_source_revision f603d8759c92fb2f423f1544844e13086d79ad09 (pinned at architecture)"
-    - "AO-AEBS-010-004 visualization_transport_port (new port; not the MW-010 port; pinned at implementation)"
+    - "AO-AEBS-010-004 visualization_transport_port (new port; not the INC-MW-010 port; pinned at implementation)"
     - "AO-AEBS-010-005 stale_timeout_s (bounded bench planning target 1.0 s; pinned at implementation)"
     - "AO-AEBS-010-006 restore_consecutive_frames (bounded bench planning target 3; pinned at implementation)"
     - "AO-AEBS-010-007 gateway_service_unit_name (pinned at implementation)"

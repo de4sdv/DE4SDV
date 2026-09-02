@@ -17,8 +17,8 @@ purpose: >-
 predecessor_alignment:
   - predecessor_id: INC-MW-010
     use: mandated_successor
-    artifact: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
-    dependency_element: DE4SDV_MW010VerificationEvidence::successorIncrementDecision010
+    artifact: textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml
+    dependency_element: DE4SDV_Middleware010VerificationEvidence::successorIncrementDecision010
     notes:
       - The merged INC-MW-010 Phase 12 decision mandates any stakeholder-visible
         Autoware-to-AAOS visualization and reverse transport to be framed as a
@@ -133,7 +133,7 @@ source_anchors:
   - id: SRC-DE4SDV-MW010-DECISION
     label: INC-MW-010 Phase 12 bounded baseline and successor decision
     role: predecessor_mandate
-    repository_artifact: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
+    repository_artifact: textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml
     use_policy: >-
       Reference the successor decision by qualified name. Do not restate,
       edit, or reinterpret predecessor closure semantics.

@@ -159,11 +159,11 @@ KNOWN_PRESENTATION_NOTES = {
         "The single-column grid is narrower than its title; the mapping cells "
         "remain readable at full size."
     ),
-    "mwProductLineConfigurationView": (
+    "middlewareProductLineConfigurationView": (
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),
-    "mwProductModelAssemblyView": (
+    "middlewareProductModelAssemblyView": (
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),

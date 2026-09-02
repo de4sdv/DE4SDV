@@ -18,7 +18,7 @@ OPERATIONAL = MODEL_DIR / "aebs_010_visualization_operational_context.sysml"
 NEEDS = MODEL_DIR / "aebs_010_visualization_needs_requirements.sysml"
 MW_EVIDENCE = (
     Path("textual-notation-of-model/packages/features/middleware")
-    / "mw_verification_evidence.sysml"
+    / "middleware_verification_evidence.sysml"
 )
 
 
@@ -49,7 +49,7 @@ def test_pilot_yaml_declares_increment_aebs_010() -> None:
 
 def test_framing_declares_successor_dependency_to_mw010_decision() -> None:
     framing = _read(FRAMING)
-    assert "private import DE4SDV_MW010VerificationEvidence::*;" in framing
+    assert "private import DE4SDV_Middleware010VerificationEvidence::*;" in framing
     assert "dependency successorMandate010" in framing
     assert "to successorIncrementDecision010;" in framing
 

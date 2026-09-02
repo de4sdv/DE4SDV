@@ -3,7 +3,7 @@
  *
  * INC-AEBS-010 Phase 9: the configured test article for the AEBS
  * visualization chain. The accepted MW-CONFIG-001 product projection
- * (MWAutowareAAOSSDVReference) is reused by qualified reference; no
+ * (MiddlewareAutowareAAOSSDVReference) is reused by qualified reference; no
  * duplicate Bill-of-Features and no new selectable product feature are
  * created. The visualization stays System 2 engineering/evidence
  * instrumentation deployed into an instrumented specialization of the
@@ -19,7 +19,7 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
-  private import DE4SDV_MWVariabilityConfiguration::*;
+  private import DE4SDV_MiddlewareVariabilityConfiguration::*;
   private import DE4SDV_AEBS010VisualizationFraming::*;
   private import DE4SDV_AEBS010VisualizationPhysicalRealization::*;
   private import Views::*;
@@ -28,7 +28,7 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
     doc /* INC-AEBS-010 Phase 9 slice owner for the configured test article. */
   }
 
-  part def AEBSAutowareAAOSSDVVisualizationTestArticle :> MWAutowareAAOSSDVConfiguredMember {
+  part def AEBSAutowareAAOSSDVVisualizationTestArticle :> MiddlewareAutowareAAOSSDVConfiguredMember {
     doc /*
      * Instrumented specialization of the accepted MW-CONFIG-001 reference
      * member. All platform-stack variant selections are inherited unchanged;
@@ -117,7 +117,7 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
 
   dependency testArticleInheritsReferenceMember
     from testArticle
-    to DE4SDV_MWVariabilityConfiguration::configuredMember;
+    to DE4SDV_MiddlewareVariabilityConfiguration::configuredMember;
   dependency testArticleDeploysVisualizationChain
     from testArticle
     to DE4SDV_AEBS010VisualizationPhysicalRealization::physicalSystem;
@@ -136,7 +136,7 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
     doc /*
      * The accepted Bill-of-Features
      * model-based-product-line-engineering/feature-configurations/
-     * mw-autoware-aaos-sdv-reference.yaml is reused unchanged. No duplicate
+     * middleware-autoware-aaos-sdv-reference.yaml is reused unchanged. No duplicate
      * BoF is created for the visualization.
      */
   }
@@ -144,7 +144,7 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
     doc /*
      * The generated platform-stack projection
      * model-based-product-line-engineering/product-models/
-     * mw_autoware_aaos_sdv_reference.sysml is reused unchanged and was not
+     * middleware_autoware_aaos_sdv_reference.sysml is reused unchanged and was not
      * regenerated, because no feature-model selection changed.
      */
   }
@@ -172,13 +172,13 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
   }
 
   alias inheritedPlatformStack
-    for MWAutowareAAOSSDVReference::vehicleApplication;
+    for MiddlewareAutowareAAOSSDVReference::vehicleApplication;
 
   view aebs010ProductLineConfigurationView {
     viewpoint selectedConfigurationViewpoint : ProductLineConfigurationViewpoint {
       frame visualizationProductLineConfigurationConcern;
     }
-    expose MWAutowareAAOSSDVReference;
+    expose MiddlewareAutowareAAOSSDVReference;
     expose inheritedPlatformStack;
     expose testArticle;
     expose reusedBoFSource;

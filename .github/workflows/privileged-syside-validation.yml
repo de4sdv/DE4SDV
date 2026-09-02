@@ -199,8 +199,8 @@ jobs:
             --min-flow-count 21 \
             --max-flow-count 21
           python scripts/check_svg_view_materialization.py \
-            diagrams/diagram-mwAAOSVehicleSpeedServiceBundleInternalExchangeView.svg \
-            --view-name mwAAOSVehicleSpeedServiceBundleInternalExchangeView \
+            diagrams/diagram-middlewareAAOSVehicleSpeedServiceBundleInternalExchangeView.svg \
+            --view-name middlewareAAOSVehicleSpeedServiceBundleInternalExchangeView \
             --require-label "provider : AAOSVehicleSpeedProvider" \
             --require-label "observer : AAOSVehicleSpeedObserver" \
             --require-exact-label vehicleSpeedOut \
@@ -213,13 +213,13 @@ jobs:
             --min-flow-count 1 \
             --max-flow-count 1
           python scripts/check_svg_view_materialization.py \
-            diagrams/diagram-mwFunctionalInterfaceView.svg \
-            --view-name mwFunctionalInterfaceView \
+            diagrams/diagram-middlewareFunctionalInterfaceView.svg \
+            --view-name middlewareFunctionalInterfaceView \
             --require-label VehicleSignalAccessInbound \
             --require-label VehicleSignalAccessRequest
           python scripts/check_svg_view_materialization.py \
-            diagrams/diagram-mwPhysicalStructureView.svg \
-            --view-name mwPhysicalStructureView \
+            diagrams/diagram-middlewarePhysicalStructureView.svg \
+            --view-name middlewarePhysicalStructureView \
             --require-label "adapter : AutowareToAAOSSDVAdapterPhysical" \
             --require-label "aaosSdvBoundary : SDVCoreBoundary" \
             --require-label "serviceDiscoveryClient : ServiceDiscoveryClient" \
