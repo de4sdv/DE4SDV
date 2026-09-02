@@ -531,6 +531,53 @@ def test_workflow_uses_real_git_checkout() -> None:
     assert "--exclude=.git" not in wf
 
 
+def test_workflow_materializes_pinned_sysand_dependencies() -> None:
+    """The deploy host must reproduce the privileged source manifest exactly.
+
+    The reviewed baseline manifest pins three external Sysand dependency
+    sources under the gitignored .sysand/ directory; the privileged workflow
+    materializes them with ``sysand sync`` from the committed lockfile. The
+    deploy host does a pure Git checkout, so it must run the same
+    materialization step or the importer correctly fails closed with a
+    stale/incomplete source manifest (regression: FileNotFoundError for
+    .sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml during deployment).
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    # A dedicated materialization step exists and runs sysand from a pinned
+    # client install (no floating version). The version-specific venv path
+    # means a pre-existing environment at another version is never silently
+    # reused: any path that is not exactly the pinned version fails closed.
+    assert "Materialize pinned Sysand dependencies" in wf
+    assert "SYSAND_VERSION=0.2.1" in wf
+    assert 'SYSAND_DIR="/srv/de4sdv/sysand-$SYSAND_VERSION"' in wf
+    assert '"sysand==$SYSAND_VERSION"' in wf
+    # Fresh installs verify the installed package version before being
+    # promoted; existing installs re-verify the client version on every run.
+    assert "pip show sysand | grep -q \"Version: $SYSAND_VERSION\"" in wf
+    assert 'grep -qx "sysand $SYSAND_VERSION"' in wf
+    assert "deploy host sysand is not exactly $SYSAND_VERSION" in wf
+    # The unpinned shared-directory form must be gone.
+    assert "SYSAND_DIR=/srv/de4sdv/sysand\n" not in wf
+    assert "sysand sync" in wf
+    # It operates inside the exact Git checkout and requires the lockfile.
+    assert "cd \"$REPO_DIR\"" in wf
+    assert 'sysand-lock.toml missing at the deployed SHA' in wf
+    # All three pinned dependency sources are asserted present afterwards.
+    for pinned in (
+        ".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml",
+        ".sysand/lib/ode4hera-requirements-management_2.0.1/"
+        "RequirementsManagement.sysml",
+        ".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml",
+    ):
+        assert f"test -f {pinned}" in wf
+    # The step runs before the fail-closed deploy step.
+    assert wf.index("Materialize pinned Sysand dependencies") < wf.index(
+        "Transfer validated bundle and run fail-closed deploy"
+    )
+
+
 def test_compose_publishes_only_proxy_ports() -> None:
     compose_text = (DEPLOYMENT / "compose.yaml").read_text(encoding="utf-8")
     ports_sections = compose_text.count("ports:")
