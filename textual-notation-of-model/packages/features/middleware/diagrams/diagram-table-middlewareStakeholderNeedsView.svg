@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1032" height="1334" viewBox="0 0 1032 1334" role="img" aria-labelledby="title description">
+  <title id="title">Middleware stakeholder needs</title>
+  <desc id="description">Lists stakeholder needs with their authoritative natural-language statements.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1032" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">Middleware stakeholder needs</text>
+  <rect x="0" y="54" width="312" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="312" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">Name</tspan>
+  </text>
+  <rect x="672" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Statement</tspan>
+  </text>
+  <rect x="0" y="94" width="312" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needMiddlewareIntegration</tspan>
+  </text>
+  <rect x="312" y="94" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">MiddlewareIntegrationNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="94" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Platform engineers need the SDV product</tspan>
+    <tspan x="684" dy="20">line to provide middleware integration</tspan>
+    <tspan x="684" dy="20">connecting the ADAS application with a</tspan>
+    <tspan x="684" dy="20">vehicle-level platform middleware for</tspan>
+    <tspan x="684" dy="20">signal access, diagnostic access,</tspan>
+    <tspan x="684" dy="20">lifecycle coordination, health monitoring,</tspan>
+    <tspan x="684" dy="20">and update coordination.</tspan>
+  </text>
+  <rect x="0" y="254" width="312" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needPlatformDecoupling</tspan>
+  </text>
+  <rect x="312" y="254" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">PlatformDecouplingNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="254" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Platform engineers need the SDV product</tspan>
+    <tspan x="684" dy="20">line to ensure the ADAS application is not</tspan>
+    <tspan x="684" dy="20">coupled to a specific middleware</tspan>
+    <tspan x="684" dy="20">implementation so that middleware</tspan>
+    <tspan x="684" dy="20">selection remains a product-line feature</tspan>
+    <tspan x="684" dy="20">choice.</tspan>
+  </text>
+  <rect x="0" y="394" width="312" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needMiddlewareAsFeature</tspan>
+  </text>
+  <rect x="312" y="394" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">ProductLineClassificationNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="394" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Product-line engineers need the SDV</tspan>
+    <tspan x="684" dy="20">product line to treat middleware platform</tspan>
+    <tspan x="684" dy="20">selection as a feature that distinguishes</tspan>
+    <tspan x="684" dy="20">member products, with the adapter layer as</tspan>
+    <tspan x="684" dy="20">a common capability derived from the</tspan>
+    <tspan x="684" dy="20">application-middleware feature pair.</tspan>
+  </text>
+  <rect x="0" y="534" width="312" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needSafetyPathIsolation</tspan>
+  </text>
+  <rect x="312" y="534" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">SafetyPathIsolationNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="534" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Safety experts need each SDV product-line</tspan>
+    <tspan x="684" dy="20">member product to ensure that the</tspan>
+    <tspan x="684" dy="20">emergency intervention path is isolated</tspan>
+    <tspan x="684" dy="20">from middleware failures, whether routed</tspan>
+    <tspan x="684" dy="20">through a safety-certified middleware</tspan>
+    <tspan x="684" dy="20">partition or via a direct vehicle-command</tspan>
+    <tspan x="684" dy="20">path.</tspan>
+  </text>
+  <rect x="0" y="694" width="312" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needUpstreamEngagement</tspan>
+  </text>
+  <rect x="312" y="694" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">UpstreamEngagementNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="694" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Maintainers need the DE4SDV middleware</tspan>
+    <tspan x="684" dy="20">increment to engage upstream middleware</tspan>
+    <tspan x="684" dy="20">maintainers before deeper integration,</tspan>
+    <tspan x="684" dy="20">vendoring, or presenting borrowed methods</tspan>
+    <tspan x="684" dy="20">as settled DE4SDV practice.</tspan>
+  </text>
+  <rect x="0" y="814" width="312" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needSecurityTrustBoundary</tspan>
+  </text>
+  <rect x="312" y="814" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">SecurityTrustBoundaryNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="814" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Security experts need the DE4SDV</tspan>
+    <tspan x="684" dy="20">middleware increment to define the trust</tspan>
+    <tspan x="684" dy="20">boundary that middleware service bindings</tspan>
+    <tspan x="684" dy="20">must authenticate across before the ADAS</tspan>
+    <tspan x="684" dy="20">application accepts service data or</tspan>
+    <tspan x="684" dy="20">commands.</tspan>
+  </text>
+  <rect x="0" y="954" width="312" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needTraceabilityToOperationalContext</tspan>
+  </text>
+  <rect x="312" y="954" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">EngineeringTraceabilityNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="954" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Systems engineers need the DE4SDV</tspan>
+    <tspan x="684" dy="20">middleware increment to maintain trace</tspan>
+    <tspan x="684" dy="20">links from stakeholder needs to the</tspan>
+    <tspan x="684" dy="20">operational context scenarios defined in</tspan>
+    <tspan x="684" dy="20">INC-MW-002 and the feature classifications</tspan>
+    <tspan x="684" dy="20">defined in INC-MW-003.</tspan>
+  </text>
+  <rect x="0" y="1094" width="312" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needExplicitEngineeringBoundary</tspan>
+  </text>
+  <rect x="312" y="1094" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">EngineeringTraceabilityNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="1094" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Systems engineers need the DE4SDV</tspan>
+    <tspan x="684" dy="20">middleware increment to keep its</tspan>
+    <tspan x="684" dy="20">engineering boundary, assumptions, source</tspan>
+    <tspan x="684" dy="20">constraints, and out-of-scope cases</tspan>
+    <tspan x="684" dy="20">explicit while needs are derived.</tspan>
+  </text>
+  <rect x="0" y="1214" width="312" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">needVVPlanningAttachment</tspan>
+  </text>
+  <rect x="312" y="1214" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="324" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="324" dy="0">VerificationPlanningNeed,</tspan>
+    <tspan x="324" dy="20">StakeholderNeedCandidate,</tspan>
+    <tspan x="324" dy="20">RequirementsManagementAttributeBase</tspan>
+  </text>
+  <rect x="672" y="1214" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="684" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="684" dy="0">Reviewers need the DE4SDV middleware</tspan>
+    <tspan x="684" dy="20">increment to maintain a separate</tspan>
+    <tspan x="684" dy="20">controlled V&amp;V planning attachment for</tspan>
+    <tspan x="684" dy="20">each stakeholder need without changing the</tspan>
+    <tspan x="684" dy="20">product obligation.</tspan>
+  </text>
+</svg>
