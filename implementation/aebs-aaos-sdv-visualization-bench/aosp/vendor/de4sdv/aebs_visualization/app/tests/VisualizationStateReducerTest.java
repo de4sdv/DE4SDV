@@ -50,6 +50,24 @@ public class VisualizationStateReducerTest {
     }
 
     @Test
+    public void noWarningUpstreamMeansDirectMonitoringToIntervention() {
+        // Absence case (v22 campaign shape): if upstream never supplies
+        // warning=true, the HMI must go MONITORING -> INTERVENTION -> RELEASED
+        // with NO WARNING ever rendered (honest read-only representation).
+        VisualizationStateReducer reducer = healthy();
+        assertEquals(VisualizationStateReducer.Disposition.MONITORING,
+                reducer.onFrame(frame(4, false, false, false, "armed"), T0 + 30));
+        assertEquals(VisualizationStateReducer.Disposition.INTERVENTION,
+                reducer.onFrame(frame(5, true, false, true, "braking_latched"), T0 + 40));
+        assertEquals(VisualizationStateReducer.Disposition.INTERVENTION,
+                reducer.onFrame(frame(6, true, false, true, "braking_latched"), T0 + 50));
+        assertEquals(VisualizationStateReducer.Disposition.RELEASED,
+                reducer.onFrame(frame(7, false, false, false, "released_verified_stop"), T0 + 60));
+        // And no WARNING was ever emitted between any pair of dispositions.
+        assertEquals(VisualizationStateReducer.Disposition.INTERVENTION, reducer.disposition());
+    }
+
+    @Test
     public void releasedOnlyFromCoordinatorLifecycle() {
         VisualizationStateReducer reducer = healthy();
         reducer.onFrame(frame(4, true, true, true, "braking_latched"), T0 + 30);
