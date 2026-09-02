@@ -11,6 +11,7 @@ from pathlib import Path
 MODEL_PATHS = (
     Path("textual-notation-of-model"),
     Path("model-based-product-line-engineering/product-models"),
+    Path("model-based-product-line-engineering/scoping"),
 )
 
 
