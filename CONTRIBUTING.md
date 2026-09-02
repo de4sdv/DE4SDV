@@ -65,6 +65,9 @@ A contribution is done when:
 - Clear user/project value is documented.
 - Traceability to project goals and impacted artifacts is explicit.
 - Terminology is consistent with [`docs/terminology/glossary`](docs/terminology/glossary.md).
+- Naming and identifiers follow
+  [`docs/naming/naming-conventions.md`](docs/naming/naming-conventions.md)
+  (enforced by `scripts/check_naming.py`).
 - Relevant docs are updated when assumptions or structure change.
 - No secrets or unsupported compliance/certification claims are introduced.
 - Repository checks pass.

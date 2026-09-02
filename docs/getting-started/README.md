@@ -139,8 +139,16 @@ For real-time coordination, DE4SDV uses Mattermost at <https://chat.de4sdv.org>
 ## Learn the terms
 
 The [glossary](../terminology/glossary.md) defines the project vocabulary:
-SDV, product line, feature model, digital thread, System 1/2/3, and the
-viewpoint-related terms used across the model and docs.
+SDV, product line, feature model, digital thread, System 1/2/3, increment,
+phase, record, and the viewpoint-related terms used across the model and docs.
+
+## Name things consistently
+
+Naming, identifiers, and abbreviations follow the authoritative
+[naming conventions](../naming/naming-conventions.md) — including the
+identifier-prefix and subject-namespace registries that tell you what
+`INC-AEBS-010`, `REQ-AEBS-014`, or `EVID-MW-011` mean. `check_repo.py`
+enforces the objective rules via `scripts/check_naming.py`.
 
 ## Repository conventions
 

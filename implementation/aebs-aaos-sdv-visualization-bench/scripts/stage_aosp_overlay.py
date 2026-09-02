@@ -4,7 +4,7 @@
 Copies aosp/vendor/de4sdv/aebs_visualization/** into
 <aosp>/system/software_defined_vehicle/samples/de4sdv_aebs_visualization/
 (the location where soong demonstrably instantiates DE4SDV modules in this
-tree, matching the MW-010 modules) and the protobuf contract into the
+tree, matching the INC-MW-010 modules) and the protobuf contract into the
 overlay's interface/ dir so the genrule can compile it. Also appends the
 PRODUCT_PACKAGES block to device/google/sdv/sdv_ivi_cf/sdv_ivi_cf.mk when
 not already present.

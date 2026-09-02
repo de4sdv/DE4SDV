@@ -8,7 +8,7 @@ This scaffold was informed by:
 - GitHub Blog: guidance on effective [`agents`](../../AGENTS.md) files,
   including commands, testing, project structure, code style, git workflow, and
   boundaries.
-- Mykhailo Chalyi's "Making Your Repository AI-Ready": feedback loops, entry
+- Mykhailo Chalyi's "Making Your Repository AI‑Ready": feedback loops, entry
   points, specs, progressive disclosure, skills, and testing documentation.
 - ASELCM three-system framing: Schindel and Dove's *Introduction to the Agile
   Systems Engineering Life Cycle MBSE Pattern*, v1.6.6, published and used by

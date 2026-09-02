@@ -51,9 +51,9 @@ create compliance claims.
 - [`pilots/aebs-operational-story`](pilots/aebs-operational-story.md) presents the same operational slice in reviewer-facing narrative form.
 - [`pilots/aebs-needs-requirements.yaml`](pilots/aebs-needs-requirements.yaml) records the AEBS needs, draft requirements, traceability, V&V planning, gaps, and acceptance criteria.
 - [`pilots/aebs-needs-requirements`](pilots/aebs-needs-requirements.md) presents the same needs/requirements slice in reviewer-facing form.
-- [`pilots/aebs-functional-behavior.yaml`](pilots/aebs-functional-behavior.yaml) records the AEBS functional responsibilities, functional items, draft requirement trace, candidate VSS mappings, and gaps.
-- [`pilots/aebs-functional-behavior`](pilots/aebs-functional-behavior.md) presents the same functional behavior and candidate signal slice in reviewer-facing form.
+- [`pilots/aebs-functional-architecture.yaml`](pilots/aebs-functional-architecture.yaml) records the AEBS functional responsibilities, functional items, draft requirement trace, candidate VSS mappings, and gaps.
+- [`pilots/aebs-functional-architecture`](pilots/aebs-functional-architecture.md) presents the same functional behavior and candidate signal slice in reviewer-facing form.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml) provides the initial SysML v2 model slice for the AEBS increment framing baseline.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml) provides the initial SysML v2 operational context model slice.
 - [`../../textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml) provides the initial SysML v2 needs and draft requirements model slice.
-- [`../../textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml) provides the initial SysML v2 functional behavior model slice.
+- [`../../textual-notation-of-model/packages/features/aebs/aebs_functional_architecture.sysml`](../../textual-notation-of-model/packages/features/aebs/aebs_functional_architecture.sysml) provides the initial SysML v2 functional behavior model slice.

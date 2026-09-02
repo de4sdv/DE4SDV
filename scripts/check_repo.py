@@ -19,6 +19,11 @@ except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import check_model_sync
 
 try:
+    from scripts import check_naming
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import check_naming
+
+try:
     from scripts import generate_scenario_manifest
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import generate_scenario_manifest
@@ -150,6 +155,7 @@ def main() -> int:
     aebs_bench_errors = validate_aebs_executable_bench.validate_bench(root)
     model_sync_errors = check_model_sync.run_all_checks()
     manifest_errors = generate_scenario_manifest.run_check_errors()
+    naming_errors = check_naming.run_all_checks()
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -178,7 +184,19 @@ def main() -> int:
         for error in manifest_errors:
             print(f"- {error}")
 
-    if missing or duplicate_packages or aebs_bench_errors or model_sync_errors or manifest_errors:
+    if naming_errors:
+        print("Repository check failed. Naming errors (docs/naming/naming-conventions.md):")
+        for error in naming_errors:
+            print(f"- {error}")
+
+    if (
+        missing
+        or duplicate_packages
+        or aebs_bench_errors
+        or model_sync_errors
+        or manifest_errors
+        or naming_errors
+    ):
         return 1
 
     print("Repository check passed.")

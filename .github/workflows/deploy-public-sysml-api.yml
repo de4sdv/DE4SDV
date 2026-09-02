@@ -304,7 +304,14 @@ jobs:
           scp -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/bundle/* "$SSH_USER@$SSH_HOST:/srv/de4sdv/artifacts/incoming/"
           # deploy.py uses the dedicated deployment venv created by
           # provision-server.sh and stops the public proxy before importing.
-          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+          # The import runs ~15-20 min with no output; without keepalives an
+          # idle NAT/firewall entry drops the session mid-import (deploy run
+          # 33617984547: 'Timeout, server not responding.' after 20 min of
+          # silence, killing deploy.py mid-import). ServerAliveInterval
+          # keeps the connection alive without loosening any validation.
+          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=60 -o ServerAliveCountMax=30 \
+            -o TCPKeepAlive=yes "$SSH_USER@$SSH_HOST" \
             'cd /srv/de4sdv/DE4SDV && sudo DEPLOY_DIR=/srv/de4sdv /srv/de4sdv/venv/bin/python deployment/scripts/deploy.py --bundle-dir /srv/de4sdv/artifacts/incoming --repo /srv/de4sdv/DE4SDV'
 
       - name: Post-deploy public verification (mandatory)

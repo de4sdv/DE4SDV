@@ -53,27 +53,27 @@ GRID_METADATA = {
         "conceptual exchange items",
         "simulation/deployment exchange items",
     ),
-    "matrix-mwSystemFunctionMappingView": GridMetadata(
+    "matrix-middlewareSystemFunctionMappingView": GridMetadata(
         "Middleware system-function mapping",
         "Maps system functions to conceptual system elements.",
         "system functions (action usages)",
         "conceptual system elements (part usages)",
     ),
-    "matrix-mwPhysicalLogicalMappingView": GridMetadata(
+    "matrix-middlewarePhysicalLogicalMappingView": GridMetadata(
         "Middleware conceptual-to-physical mapping",
         "Maps conceptual system elements to physical/software elements.",
         "conceptual system elements (part usages)",
         "physical/software elements (part usages)",
     ),
-    "table-mwProductLineClassificationView": GridMetadata(
+    "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",
     ),
-    "table-mwStakeholderNeedsView": GridMetadata(
+    "table-middlewareStakeholderNeedsView": GridMetadata(
         "Middleware stakeholder needs",
         "Lists stakeholder needs with their authoritative natural-language statements.",
     ),
-    "table-mwSystemRequirementsView": GridMetadata(
+    "table-middlewareSystemRequirementsView": GridMetadata(
         "Middleware system requirements",
         "Lists system requirements with their authoritative natural-language statements.",
     ),

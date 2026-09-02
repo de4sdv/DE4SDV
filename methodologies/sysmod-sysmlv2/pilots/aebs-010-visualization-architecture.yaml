@@ -95,13 +95,13 @@ claim_boundary: >-
 
 model_artifacts:
   - id: MODEL-AEBS-010-FUNCTIONAL-ARCH-SYSML
-    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_functional_architecture.sysml
+    path: textual-notation-of-model/packages/features/aebs/aebs_visualization_functional_architecture.sysml
     status: draft
   - id: MODEL-AEBS-010-LOGICAL-ARCH-SYSML
-    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_logical_architecture.sysml
+    path: textual-notation-of-model/packages/features/aebs/aebs_visualization_logical_architecture.sysml
     status: draft
   - id: MODEL-AEBS-010-PHYSICAL-REALIZATION-SYSML
-    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_physical_realization.sysml
+    path: textual-notation-of-model/packages/features/aebs/aebs_visualization_physical_software_realization.sysml
     status: draft
 
 traceability:
