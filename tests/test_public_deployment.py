@@ -553,11 +553,18 @@ def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     assert "SYSAND_VERSION=0.2.1" in wf
     assert 'SYSAND_DIR="/srv/de4sdv/sysand-$SYSAND_VERSION"' in wf
     assert '"sysand==$SYSAND_VERSION"' in wf
-    # Fresh installs verify the installed package version before being
-    # promoted; existing installs re-verify the client version on every run.
-    assert "pip show sysand | grep -q \"Version: $SYSAND_VERSION\"" in wf
-    assert 'grep -qx "sysand $SYSAND_VERSION"' in wf
+    # Version checks are exact scalar comparisons — no pipes into grep:
+    #   - grep -q early-exit under pipefail caused a live SIGPIPE false
+    #     negative (deploy run 33601227223);
+    #   - grep substring matching could accept 0.2.10 for 0.2.1.
+    assert 'importlib.metadata.version("sysand")' in wf
+    assert 'if [[ "$ACTUAL_SYSAND_VERSION" != "$SYSAND_VERSION" ]]; then' in wf
+    assert 'ACTUAL_SYSAND_CLI_VERSION=$("$SYSAND" --version)' in wf
+    assert 'if [[ "$ACTUAL_SYSAND_CLI_VERSION" != "sysand $SYSAND_VERSION" ]]; then' in wf
     assert "deploy host sysand is not exactly $SYSAND_VERSION" in wf
+    # The grep-pipeline forms must be gone entirely.
+    assert "pip show sysand | grep" not in wf
+    assert '"$SYSAND" --version | grep' not in wf
     # The unpinned shared-directory form must be gone.
     assert "SYSAND_DIR=/srv/de4sdv/sysand\n" not in wf
     assert "sysand sync" in wf
