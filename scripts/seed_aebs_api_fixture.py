@@ -133,15 +133,15 @@ def validate_live_graph(
     evidence_ids = {
         element_id(by_key[("RequirementUsage", name)])
         for name in (
-            "evidenceContract009BFreshOverrideClear",
-            "evidenceContract009BNominalBrakingPath",
-            "evidenceContract009CMRMGateChain",
+            "evidenceContractFreshOverrideClear",
+            "evidenceContractNominalBrakingPath",
+            "evidenceContractMRMGateChain",
         )
     }
     verification_refs = set()
     for name in (
-        "nominalMovingVehicleTargetVerification009B",
-        "nativeInterventionToMRMVerification009C",
+        "nominalMovingVehicleTargetVerification",
+        "nativeInterventionToMRMVerification",
     ):
         verification_refs.update(
             reference_ids(by_key[("VerificationCaseUsage", name)].get("verifiedRequirement"))

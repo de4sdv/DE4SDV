@@ -37,13 +37,13 @@ def _source(increment: str) -> tuple[str, str]:
 def test_009i_target_cases_verify_only_their_applicable_criterion_contract():
     code = _source("009I")[1]
     pedestrian = braced_body(
-        code, "verification def PedestrianCriterionVerification009I"
+        code, "verification def PedestrianCriterionVerification"
     )
-    bicycle = braced_body(code, "verification def BicycleCriterionVerification009I")
-    assert "verify evidenceContract009IPedestrianApplicableCriterion;" in pedestrian
-    assert "verify evidenceContract009IBicycleApplicableCriterion;" not in pedestrian
-    assert "verify evidenceContract009IBicycleApplicableCriterion;" in bicycle
-    assert "verify evidenceContract009IPedestrianApplicableCriterion;" not in bicycle
+    bicycle = braced_body(code, "verification def BicycleCriterionVerification")
+    assert "verify evidenceContractPedestrianApplicableCriterion;" in pedestrian
+    assert "verify evidenceContractBicycleApplicableCriterion;" not in pedestrian
+    assert "verify evidenceContractBicycleApplicableCriterion;" in bicycle
+    assert "verify evidenceContractPedestrianApplicableCriterion;" not in bicycle
 
 
 def test_009c_maps_all_five_scenario_outcomes_to_native_verdicts():
@@ -56,7 +56,7 @@ def test_009c_maps_all_five_scenario_outcomes_to_native_verdicts():
         "aborted",
     ):
         assert outcome in code
-    assert "Map009COutcomeToVerdict" in code
+    assert "MapPartialInterventionOutcomeToVerdict" in code
 
 
 def test_split_candidate_relevance_dependencies_match_atomic_meanings():
@@ -66,10 +66,10 @@ def test_split_candidate_relevance_dependencies_match_atomic_meanings():
     h = _source("009H")[1]
     i = _source("009I")[1]
 
-    assert re.search(r"from\s+evidenceContract009EWarningSilenceWindow\s+to\s+reqResistFalseReaction\s*;", e)
-    assert re.search(r"from\s+evidenceContract009EBrakingSilenceWindow\s+to\s+reqResistFalseBrakingCommand\s*;", e)
-    assert re.search(r"from\s+evidenceContract009FStateOwnership\s+to\s+reqHandleDegradedUnavailableInputs\s*;", f)
-    assert re.search(r"from\s+evidenceContract009FStatusIndication\s+to\s+reqIndicateDegradedUnavailableStatus\s*;", f)
+    assert re.search(r"from\s+evidenceContractWarningSilenceWindow\s+to\s+reqResistFalseReaction\s*;", e)
+    assert re.search(r"from\s+evidenceContractBrakingSilenceWindow\s+to\s+reqResistFalseBrakingCommand\s*;", e)
+    assert re.search(r"from\s+evidenceContractStateOwnership\s+to\s+reqHandleDegradedUnavailableInputs\s*;", f)
+    assert re.search(r"from\s+evidenceContractStatusIndication\s+to\s+reqIndicateDegradedUnavailableStatus\s*;", f)
 
     assert re.search(r"from\s+\w+\s+to\s+reqPedestrianTargetResponse\s*;", g)
     assert re.search(r"from\s+\w+\s+to\s+reqPedestrianTargetControlledResponse\s*;", g)
@@ -78,21 +78,21 @@ def test_split_candidate_relevance_dependencies_match_atomic_meanings():
     assert re.search(r"from\s+\w+\s+to\s+reqBicycleTargetControlledResponse\s*;", h)
     assert "reqPedestrianTarget" not in h
 
-    assert re.search(r"from\s+evidenceContract009IPedestrianApplicableCriterion\s+to\s+reqPedestrianTargetResponse\s*;", i)
-    assert re.search(r"from\s+evidenceContract009IPedestrianApplicableCriterion\s+to\s+reqPedestrianTargetControlledResponse\s*;", i)
-    assert re.search(r"from\s+evidenceContract009IBicycleApplicableCriterion\s+to\s+reqBicycleTargetResponse\s*;", i)
-    assert re.search(r"from\s+evidenceContract009IBicycleApplicableCriterion\s+to\s+reqBicycleTargetControlledResponse\s*;", i)
+    assert re.search(r"from\s+evidenceContractPedestrianApplicableCriterion\s+to\s+reqPedestrianTargetResponse\s*;", i)
+    assert re.search(r"from\s+evidenceContractPedestrianApplicableCriterion\s+to\s+reqPedestrianTargetControlledResponse\s*;", i)
+    assert re.search(r"from\s+evidenceContractBicycleApplicableCriterion\s+to\s+reqBicycleTargetResponse\s*;", i)
+    assert re.search(r"from\s+evidenceContractBicycleApplicableCriterion\s+to\s+reqBicycleTargetControlledResponse\s*;", i)
 
 
 def test_009i_models_source_criterion_measurement_and_provenance_as_fail_closed_contracts():
     code = _source("009I")[1]
     for target in (
-        "evidenceContract009ISourceIdentity",
-        "evidenceContract009IPedestrianApplicableCriterion",
-        "evidenceContract009IBicycleApplicableCriterion",
-        "evidenceContract009IMeasurementTrace",
-        "evidenceContract009IProvenance",
-        "evidenceContract009IConfigurationBoundedVerdict",
+        "evidenceContractSourceIdentity",
+        "evidenceContractPedestrianApplicableCriterion",
+        "evidenceContractBicycleApplicableCriterion",
+        "evidenceContractMeasurementTrace",
+        "evidenceContractProvenance",
+        "evidenceContractConfigurationBoundedVerdict",
     ):
         assert f"verify {target};" in code
     source = _source("009I")[0]
@@ -111,11 +111,11 @@ def test_009i_models_source_criterion_measurement_and_provenance_as_fail_closed_
 def test_override_matrix_spans_all_six_override_verifications():
     code = _source("009D")[1]
     for usage in (
-        "overrideFalseControlVerification009D",
-        "overrideTrueVerification009D",
-        "overrideStaleVerification009D",
-        "overrideMissingVerification009D",
-        "overrideMalformedVerification009D",
-        "overrideFutureStampedVerification009D",
+        "overrideFalseControlVerification",
+        "overrideTrueVerification",
+        "overrideStaleVerification",
+        "overrideMissingVerification",
+        "overrideMalformedVerification",
+        "overrideFutureStampedVerification",
     ):
         assert usage in code

@@ -9,159 +9,159 @@ package DE4SDV_AEBS009IVerification {
   private import Views::*;
 
 
-  enum def ScenarioIdentity009I {
+  enum def RegulatoryCriterionScenarioIdentity {
     pedestrianCriterion;
     bicycleCriterion;
   }
-  enum def EvidenceOutcome009I {
+  enum def RegulatoryCriterionEvidenceOutcome {
     passBoundedCriterion;
     failBoundedCriterion;
     inconclusiveApplicabilityOrEvidence;
     errorEvidence;
   }
-  item def ControlledCriterionIdentity009I {
+  item def ControlledCriterionIdentity {
     attribute sourceId : String;
     attribute sourceOriginalSha256 : String;
     attribute sourceMetadataPath : String;
     attribute criteriaPath : String;
     attribute evaluatorPath : String;
   }
-  item controlledCriterionIdentity009I : ControlledCriterionIdentity009I {
+  item controlledCriterionIdentity : ControlledCriterionIdentity {
     attribute :>> sourceId = "E/ECE/TRANS/505/Rev.3/Add.151/Rev.2";
     attribute :>> sourceOriginalSha256 = "dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de";
     attribute :>> sourceMetadataPath = "methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml";
     attribute :>> criteriaPath = "methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-criteria.yaml";
     attribute :>> evaluatorPath = "scripts/aebs_regulatory_criteria.py";
   }
-  item def Retained009ICriterionEvidence {
+  item def RegulatoryCriterionEvidenceSet {
     attribute sourceOriginalSha256 : String;
     attribute testedConfigurationIdentity : String;
     attribute measurementArtifactSha256 : String;
   }
-  item def Replayed009ICriterionEvaluation {
-    attribute scenario : ScenarioIdentity009I;
-    attribute outcome : EvidenceOutcome009I;
+  item def RegulatoryCriterionEvaluation {
+    attribute scenario : RegulatoryCriterionScenarioIdentity;
+    attribute outcome : RegulatoryCriterionEvidenceOutcome;
   }
-  calc def Map009IOutcomeToVerdict {
-    in outcome : EvidenceOutcome009I;
+  calc def MapRegulatoryCriterionOutcomeToVerdict {
+    in outcome : RegulatoryCriterionEvidenceOutcome;
     return verdict : VerdictKind =
-      if outcome == EvidenceOutcome009I::passBoundedCriterion? VerdictKind::pass
-      else if outcome == EvidenceOutcome009I::failBoundedCriterion? VerdictKind::fail
-      else if outcome == EvidenceOutcome009I::errorEvidence? VerdictKind::error
+      if outcome == RegulatoryCriterionEvidenceOutcome::passBoundedCriterion? VerdictKind::pass
+      else if outcome == RegulatoryCriterionEvidenceOutcome::failBoundedCriterion? VerdictKind::fail
+      else if outcome == RegulatoryCriterionEvidenceOutcome::errorEvidence? VerdictKind::error
       else VerdictKind::inconclusive;
   }
 
-  part def RegulatoryCriterionBench009I {
-    attribute scenario : ScenarioIdentity009I;
+  part def RegulatoryCriterionBench {
+    attribute scenario : RegulatoryCriterionScenarioIdentity;
   }
-  requirement def EvidenceContract009I;
-  requirement evidenceContract009ISourceIdentity : EvidenceContract009I {
-    subject bench : RegulatoryCriterionBench009I;
+  requirement def RegulatoryCriterionEvidenceContract;
+  requirement evidenceContractSourceIdentity : RegulatoryCriterionEvidenceContract {
+    subject bench : RegulatoryCriterionBench;
     require constraint statement { language "English" /* The bench shall bind controlled source E/ECE/TRANS/505/Rev.3/Add.151/Rev.2, original SHA-256 dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de, source metadata, criterion map, evaluator identity, and an explicit applicability disposition. */ }
   }
-  requirement evidenceContract009IPedestrianApplicableCriterion : EvidenceContract009I {
-    subject bench : RegulatoryCriterionBench009I;
+  requirement evidenceContractPedestrianApplicableCriterion : RegulatoryCriterionEvidenceContract {
+    subject bench : RegulatoryCriterionBench;
     require constraint statement { language "English" /* For the pedestrian scenario only, the bench shall preserve the selected pedestrian-target criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, and tested configuration without making an authority interpretation. */ }
   }
-  requirement evidenceContract009IBicycleApplicableCriterion : EvidenceContract009I {
-    subject bench : RegulatoryCriterionBench009I;
+  requirement evidenceContractBicycleApplicableCriterion : RegulatoryCriterionEvidenceContract {
+    subject bench : RegulatoryCriterionBench;
     require constraint statement { language "English" /* For the bicycle scenario only, the bench shall preserve the selected bicycle-target criterion provenance, units, prescribed conditions, tolerance, uncertainty treatment, repeated-run rule, and tested configuration without making an authority interpretation. */ }
   }
-  requirement evidenceContract009IMeasurementTrace : EvidenceContract009I {
-    subject bench : RegulatoryCriterionBench009I;
+  requirement evidenceContractMeasurementTrace : RegulatoryCriterionEvidenceContract {
+    subject bench : RegulatoryCriterionBench;
     require constraint statement { language "English" /* The bench shall trace each bounded result to replayable observations, processing steps, unit conversion, next-higher-speed selection, repeated-run evidence, and boundary decision. */ }
   }
-  requirement evidenceContract009IProvenance : EvidenceContract009I {
-    subject bench : RegulatoryCriterionBench009I;
+  requirement evidenceContractProvenance : RegulatoryCriterionEvidenceContract {
+    subject bench : RegulatoryCriterionBench;
     require constraint statement { language "English" /* The bench shall hash-bind source metadata, criterion mapping, tested configuration, runtime, evaluator, measurements, and retained artifacts. */ }
   }
-  requirement evidenceContract009IConfigurationBoundedVerdict : EvidenceContract009I {
-    subject bench : RegulatoryCriterionBench009I;
+  requirement evidenceContractConfigurationBoundedVerdict : RegulatoryCriterionEvidenceContract {
+    subject bench : RegulatoryCriterionBench;
     require constraint statement { language "English" /* The bench shall limit the verdict to one exact tested configuration. Missing applicability, prescribed conditions, target fidelity, uncertainty, repetitions, source control, or provenance shall be inconclusive or error. Compliance, certification, homologation, and type approval remain withheld. */ }
   }
 
-  part pedestrianCriterionBench009I : RegulatoryCriterionBench009I {
-    attribute :>> scenario = ScenarioIdentity009I::pedestrianCriterion;
+  part pedestrianCriterionBench : RegulatoryCriterionBench {
+    attribute :>> scenario = RegulatoryCriterionScenarioIdentity::pedestrianCriterion;
   }
-  part bicycleCriterionBench009I : RegulatoryCriterionBench009I {
-    attribute :>> scenario = ScenarioIdentity009I::bicycleCriterion;
+  part bicycleCriterionBench : RegulatoryCriterionBench {
+    attribute :>> scenario = RegulatoryCriterionScenarioIdentity::bicycleCriterion;
   }
 
-  verification def PedestrianCriterionVerification009I {
-    subject verifiedBench : RegulatoryCriterionBench009I;
-    objective pedestrianEvidenceObjective009I {
-      verify evidenceContract009ISourceIdentity;
-      verify evidenceContract009IPedestrianApplicableCriterion;
-      verify evidenceContract009IMeasurementTrace;
-      verify evidenceContract009IProvenance;
-      verify evidenceContract009IConfigurationBoundedVerdict;
+  verification def PedestrianCriterionVerification {
+    subject verifiedBench : RegulatoryCriterionBench;
+    objective pedestrianEvidenceObjective {
+      verify evidenceContractSourceIdentity;
+      verify evidenceContractPedestrianApplicableCriterion;
+      verify evidenceContractMeasurementTrace;
+      verify evidenceContractProvenance;
+      verify evidenceContractConfigurationBoundedVerdict;
     }
     action collectData {
       @VerificationMethod{ kind = inspect; }
-      out item retainedObservations : Retained009ICriterionEvidence;
+      out item retainedObservations : RegulatoryCriterionEvidenceSet;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity009I = verifiedBench.scenario;
-      in item retainedObservations : Retained009ICriterionEvidence = collectData.retainedObservations;
-      out item replayedEvaluation : Replayed009ICriterionEvaluation;
+      in scenarioIdentity : RegulatoryCriterionScenarioIdentity = verifiedBench.scenario;
+      in item retainedObservations : RegulatoryCriterionEvidenceSet = collectData.retainedObservations;
+      out item replayedEvaluation : RegulatoryCriterionEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : Replayed009ICriterionEvaluation = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map009IOutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : RegulatoryCriterionEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapRegulatoryCriterionOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification def BicycleCriterionVerification009I {
-    subject verifiedBench : RegulatoryCriterionBench009I;
-    objective bicycleEvidenceObjective009I {
-      verify evidenceContract009ISourceIdentity;
-      verify evidenceContract009IBicycleApplicableCriterion;
-      verify evidenceContract009IMeasurementTrace;
-      verify evidenceContract009IProvenance;
-      verify evidenceContract009IConfigurationBoundedVerdict;
+  verification def BicycleCriterionVerification {
+    subject verifiedBench : RegulatoryCriterionBench;
+    objective bicycleEvidenceObjective {
+      verify evidenceContractSourceIdentity;
+      verify evidenceContractBicycleApplicableCriterion;
+      verify evidenceContractMeasurementTrace;
+      verify evidenceContractProvenance;
+      verify evidenceContractConfigurationBoundedVerdict;
     }
     action collectData {
       @VerificationMethod{ kind = inspect; }
-      out item retainedObservations : Retained009ICriterionEvidence;
+      out item retainedObservations : RegulatoryCriterionEvidenceSet;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity009I = verifiedBench.scenario;
-      in item retainedObservations : Retained009ICriterionEvidence = collectData.retainedObservations;
-      out item replayedEvaluation : Replayed009ICriterionEvaluation;
+      in scenarioIdentity : RegulatoryCriterionScenarioIdentity = verifiedBench.scenario;
+      in item retainedObservations : RegulatoryCriterionEvidenceSet = collectData.retainedObservations;
+      out item replayedEvaluation : RegulatoryCriterionEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : Replayed009ICriterionEvaluation = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map009IOutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : RegulatoryCriterionEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapRegulatoryCriterionOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification pedestrianCriterionVerification009I : PedestrianCriterionVerification009I {
+  verification pedestrianCriterionVerification : PedestrianCriterionVerification {
     @VerificationMethod{ kind = (inspect, analyze); }
-    subject verifiedBench :> pedestrianCriterionBench009I;
+    subject verifiedBench :> pedestrianCriterionBench;
   }
-  verification bicycleCriterionVerification009I : BicycleCriterionVerification009I {
+  verification bicycleCriterionVerification : BicycleCriterionVerification {
     @VerificationMethod{ kind = (inspect, analyze); }
-    subject verifiedBench :> bicycleCriterionBench009I;
+    subject verifiedBench :> bicycleCriterionBench;
   }
-  part verificationSystem009I {
-    perform pedestrianCriterionVerification009I;
-    perform bicycleCriterionVerification009I;
+  part verificationSystem {
+    perform pedestrianCriterionVerification;
+    perform bicycleCriterionVerification;
   }
 
   dependency sourceControlRelevantToRegulatoryVisibilityNeed
-    from evidenceContract009ISourceIdentity to needVisibleRegulatoryAssumptions;
+    from evidenceContractSourceIdentity to needVisibleRegulatoryAssumptions;
   dependency pedestrianCriterionRelevantToPedestrianDetectionCandidate
-    from evidenceContract009IPedestrianApplicableCriterion to reqPedestrianTargetResponse;
+    from evidenceContractPedestrianApplicableCriterion to reqPedestrianTargetResponse;
   dependency pedestrianCriterionRelevantToPedestrianResponseCandidate
-    from evidenceContract009IPedestrianApplicableCriterion to reqPedestrianTargetControlledResponse;
+    from evidenceContractPedestrianApplicableCriterion to reqPedestrianTargetControlledResponse;
   dependency bicycleCriterionRelevantToBicycleDetectionCandidate
-    from evidenceContract009IBicycleApplicableCriterion to reqBicycleTargetResponse;
+    from evidenceContractBicycleApplicableCriterion to reqBicycleTargetResponse;
   dependency bicycleCriterionRelevantToBicycleResponseCandidate
-    from evidenceContract009IBicycleApplicableCriterion to reqBicycleTargetControlledResponse;
+    from evidenceContractBicycleApplicableCriterion to reqBicycleTargetControlledResponse;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
@@ -173,7 +173,7 @@ package DE4SDV_AEBS009IVerification {
     doc /* Evidence-based assurance claims and their supporting argumentation. */
   }
 
-  view aebs009IVerificationAssuranceView {
+  view aebsRegulatoryCriterionVerificationAssuranceView {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }

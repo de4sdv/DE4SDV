@@ -4,7 +4,7 @@ package DE4SDV_AEBS009DVerification {
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
 
-  enum def ScenarioIdentity009D {
+  enum def OverrideScenarioIdentity {
     freshFalseControl;
     freshTrueOverride;
     staleOverride;
@@ -12,119 +12,119 @@ package DE4SDV_AEBS009DVerification {
     malformedOverride;
     futureStampedOverride;
   }
-  enum def EvidenceOutcome009D {
+  enum def OverrideEvidenceOutcome {
     passBoundedScenario;
     failObservedBehavior;
     inconclusiveCoverage;
     errorEvidence;
   }
-  item def Retained009DObservationSet;
-  item def Replayed009DEvaluation {
-    attribute scenario : ScenarioIdentity009D;
-    attribute outcome : EvidenceOutcome009D;
+  item def OverrideObservationSet;
+  item def OverrideEvaluation {
+    attribute scenario : OverrideScenarioIdentity;
+    attribute outcome : OverrideEvidenceOutcome;
   }
-  calc def Map009DOutcomeToVerdict {
-    in outcome : EvidenceOutcome009D;
+  calc def MapOverrideOutcomeToVerdict {
+    in outcome : OverrideEvidenceOutcome;
     return verdict : VerdictKind =
-      if outcome == EvidenceOutcome009D::passBoundedScenario? VerdictKind::pass
-      else if outcome == EvidenceOutcome009D::failObservedBehavior? VerdictKind::fail
-      else if outcome == EvidenceOutcome009D::errorEvidence? VerdictKind::error
+      if outcome == OverrideEvidenceOutcome::passBoundedScenario? VerdictKind::pass
+      else if outcome == OverrideEvidenceOutcome::failObservedBehavior? VerdictKind::fail
+      else if outcome == OverrideEvidenceOutcome::errorEvidence? VerdictKind::error
       else VerdictKind::inconclusive;
   }
 
-  part def OverrideMatrixBench009D {
-    attribute scenario : ScenarioIdentity009D;
+  part def OverrideMatrixBench {
+    attribute scenario : OverrideScenarioIdentity;
   }
-  requirement def EvidenceContract009D;
-  requirement evidenceContract009DClosedOverrideScenario : EvidenceContract009D {
-    subject bench : OverrideMatrixBench009D;
+  requirement def OverrideEvidenceContract;
+  requirement evidenceContractClosedOverrideScenario : OverrideEvidenceContract {
+    subject bench : OverrideMatrixBench;
     require constraint statement { language "English" /* The bench shall bind exactly one closed override scenario identity. */ }
   }
-  requirement evidenceContract009DOverrideFreshnessReplay : EvidenceContract009D {
-    subject bench : OverrideMatrixBench009D;
+  requirement evidenceContractOverrideFreshnessReplay : OverrideEvidenceContract {
+    subject bench : OverrideMatrixBench;
     require constraint statement { language "English" /* The bench shall replay source stamp, receipt time, value validity, exact diagnostic-source authorization, and the scenario-specific suppression, release, or degraded disposition. A fresh sample is one with source-stamp-to-receipt age at most 0.2 s; suppression is evaluated within a closed window of 0.25 s; runtime-graph sampling gaps above 0.2 s fail the replay. */ }
   }
-  requirement evidenceContract009DIndependentVerdict : EvidenceContract009D {
-    subject bench : OverrideMatrixBench009D;
+  requirement evidenceContractIndependentVerdict : OverrideEvidenceContract {
+    subject bench : OverrideMatrixBench;
     require constraint statement { language "English" /* The bench shall retain separate observations, evaluation, provenance, and verdict for each scenario; observer failure shall not pass. */ }
   }
 
-  part overrideFalseControlBench009D : OverrideMatrixBench009D {
-    attribute :>> scenario = ScenarioIdentity009D::freshFalseControl;
+  part overrideFalseControlBench : OverrideMatrixBench {
+    attribute :>> scenario = OverrideScenarioIdentity::freshFalseControl;
   }
-  part overrideTrueBench009D : OverrideMatrixBench009D {
-    attribute :>> scenario = ScenarioIdentity009D::freshTrueOverride;
+  part overrideTrueBench : OverrideMatrixBench {
+    attribute :>> scenario = OverrideScenarioIdentity::freshTrueOverride;
   }
-  part overrideStaleBench009D : OverrideMatrixBench009D {
-    attribute :>> scenario = ScenarioIdentity009D::staleOverride;
+  part overrideStaleBench : OverrideMatrixBench {
+    attribute :>> scenario = OverrideScenarioIdentity::staleOverride;
   }
-  part overrideMissingBench009D : OverrideMatrixBench009D {
-    attribute :>> scenario = ScenarioIdentity009D::missingOverride;
+  part overrideMissingBench : OverrideMatrixBench {
+    attribute :>> scenario = OverrideScenarioIdentity::missingOverride;
   }
-  part overrideMalformedBench009D : OverrideMatrixBench009D {
-    attribute :>> scenario = ScenarioIdentity009D::malformedOverride;
+  part overrideMalformedBench : OverrideMatrixBench {
+    attribute :>> scenario = OverrideScenarioIdentity::malformedOverride;
   }
-  part overrideFutureStampedBench009D : OverrideMatrixBench009D {
-    attribute :>> scenario = ScenarioIdentity009D::futureStampedOverride;
+  part overrideFutureStampedBench : OverrideMatrixBench {
+    attribute :>> scenario = OverrideScenarioIdentity::futureStampedOverride;
   }
 
-  verification def ConsciousOverrideVerification009D {
-    subject verifiedBench : OverrideMatrixBench009D;
-    objective evidenceObjective009D {
-      verify evidenceContract009DClosedOverrideScenario;
-      verify evidenceContract009DOverrideFreshnessReplay;
-      verify evidenceContract009DIndependentVerdict;
+  verification def ConsciousOverrideVerification {
+    subject verifiedBench : OverrideMatrixBench;
+    objective evidenceObjective {
+      verify evidenceContractClosedOverrideScenario;
+      verify evidenceContractOverrideFreshnessReplay;
+      verify evidenceContractIndependentVerdict;
     }
     action collectData {
       @VerificationMethod{ kind = test; }
-      out item retainedObservations : Retained009DObservationSet;
+      out item retainedObservations : OverrideObservationSet;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity009D = verifiedBench.scenario;
-      in item retainedObservations : Retained009DObservationSet = collectData.retainedObservations;
-      out item replayedEvaluation : Replayed009DEvaluation;
+      in scenarioIdentity : OverrideScenarioIdentity = verifiedBench.scenario;
+      in item retainedObservations : OverrideObservationSet = collectData.retainedObservations;
+      out item replayedEvaluation : OverrideEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : Replayed009DEvaluation = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map009DOutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : OverrideEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapOverrideOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification overrideFalseControlVerification009D : ConsciousOverrideVerification009D {
+  verification overrideFalseControlVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> overrideFalseControlBench009D;
+    subject verifiedBench :> overrideFalseControlBench;
   }
-  verification overrideTrueVerification009D : ConsciousOverrideVerification009D {
+  verification overrideTrueVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> overrideTrueBench009D;
+    subject verifiedBench :> overrideTrueBench;
   }
-  verification overrideStaleVerification009D : ConsciousOverrideVerification009D {
+  verification overrideStaleVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> overrideStaleBench009D;
+    subject verifiedBench :> overrideStaleBench;
   }
-  verification overrideMissingVerification009D : ConsciousOverrideVerification009D {
+  verification overrideMissingVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> overrideMissingBench009D;
+    subject verifiedBench :> overrideMissingBench;
   }
-  verification overrideMalformedVerification009D : ConsciousOverrideVerification009D {
+  verification overrideMalformedVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> overrideMalformedBench009D;
+    subject verifiedBench :> overrideMalformedBench;
   }
-  verification overrideFutureStampedVerification009D : ConsciousOverrideVerification009D {
+  verification overrideFutureStampedVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> overrideFutureStampedBench009D;
+    subject verifiedBench :> overrideFutureStampedBench;
   }
-  part verificationSystem009D {
-    perform overrideFalseControlVerification009D;
-    perform overrideTrueVerification009D;
-    perform overrideStaleVerification009D;
-    perform overrideMissingVerification009D;
-    perform overrideMalformedVerification009D;
-    perform overrideFutureStampedVerification009D;
+  part verificationSystem {
+    perform overrideFalseControlVerification;
+    perform overrideTrueVerification;
+    perform overrideStaleVerification;
+    perform overrideMissingVerification;
+    perform overrideMalformedVerification;
+    perform overrideFutureStampedVerification;
   }
 
   dependency overrideEvidenceRelevantToOverrideCandidate
-    from evidenceContract009DOverrideFreshnessReplay to reqAllowDriverOverride;
+    from evidenceContractOverrideFreshnessReplay to reqAllowDriverOverride;
 }

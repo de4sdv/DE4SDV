@@ -45,10 +45,6 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
   }
 
-  part incAEBS010NeedsRequirements : VisualizationIncrement {
-    doc /* INC-AEBS-010 Phase 3–5 slice owner for needs and requirements. */
-  }
-
   package VisualizationNeeds {
     requirement needLiveVisualizationOnAAOS : VisualizationEngineeringNeed {
       doc /* N-AEBS-009 draft System 2 need. */
@@ -227,7 +223,10 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   dependency s2013DerivedFromLiveVisualizationOnAAOS from reqNoHostBrowserSurface to needLiveVisualizationOnAAOS;
   dependency s2011DerivedFromCorrelatableEvidence from reqEvidenceCorrelation to needCorrelatableEvidence;
 
-  dependency framingToNeeds from incAEBS010NeedsRequirements to incAEBS010;
+  /* Phase order provenance: needs/requirements (Phase 3–5) derive from the
+   * framing slice of the same INC-AEBS-010; the increment part incAEBS010
+   * (DE4SDV_AEBSVisualizationFraming) is the single increment identity. */
+
 
   part gapAaosTargetUnproven : IncrementGap {
     doc /*

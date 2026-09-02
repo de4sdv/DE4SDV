@@ -8,127 +8,127 @@ package DE4SDV_AEBS009FVerification {
   private import Views::*;
 
 
-  enum def ScenarioIdentity009F {
+  enum def DegradedInputScenarioIdentity {
     staleInput;
     missingInput;
     malformedInput;
     inconsistentInput;
     unavailableInput;
   }
-  enum def EvidenceOutcome009F {
+  enum def DegradedInputEvidenceOutcome {
     passBoundedDetection;
     failWrongDisposition;
     inconclusiveInstrumentation;
     errorEvidence;
   }
-  item def Retained009FObservationSet;
-  item def Replayed009FEvaluation {
-    attribute scenario : ScenarioIdentity009F;
-    attribute outcome : EvidenceOutcome009F;
+  item def DegradedInputObservationSet;
+  item def DegradedInputEvaluation {
+    attribute scenario : DegradedInputScenarioIdentity;
+    attribute outcome : DegradedInputEvidenceOutcome;
   }
-  calc def Map009FOutcomeToVerdict {
-    in outcome : EvidenceOutcome009F;
+  calc def MapDegradedInputOutcomeToVerdict {
+    in outcome : DegradedInputEvidenceOutcome;
     return verdict : VerdictKind =
-      if outcome == EvidenceOutcome009F::passBoundedDetection? VerdictKind::pass
-      else if outcome == EvidenceOutcome009F::failWrongDisposition? VerdictKind::fail
-      else if outcome == EvidenceOutcome009F::errorEvidence? VerdictKind::error
+      if outcome == DegradedInputEvidenceOutcome::passBoundedDetection? VerdictKind::pass
+      else if outcome == DegradedInputEvidenceOutcome::failWrongDisposition? VerdictKind::fail
+      else if outcome == DegradedInputEvidenceOutcome::errorEvidence? VerdictKind::error
       else VerdictKind::inconclusive;
   }
 
-  part def DegradedInputMatrixBench009F {
-    attribute scenario : ScenarioIdentity009F;
+  part def DegradedInputMatrixBench {
+    attribute scenario : DegradedInputScenarioIdentity;
   }
-  requirement def EvidenceContract009F;
-  requirement evidenceContract009FClosedInputHealthScenario : EvidenceContract009F {
-    subject bench : DegradedInputMatrixBench009F;
+  requirement def DegradedInputEvidenceContract;
+  requirement evidenceContractClosedInputHealthScenario : DegradedInputEvidenceContract {
+    subject bench : DegradedInputMatrixBench;
     require constraint statement { language "English" /* The bench shall inject exactly one closed stale, missing, malformed, inconsistent, or unavailable input condition after any required healthy baseline. A degraded state is accepted only while its observation age stays within 0.2 s, detection is closed within a 0.25 s window, and runtime-graph sampling gaps stay at or below 0.2 s. */ }
   }
-  requirement evidenceContract009FStateOwnership : EvidenceContract009F {
-    subject bench : DegradedInputMatrixBench009F;
+  requirement evidenceContractStateOwnership : DegradedInputEvidenceContract {
+    subject bench : DegradedInputMatrixBench;
     require constraint statement { language "English" /* The bench shall retain producer identity, affected topic, source timing, and ordered degraded-state transition and ownership observations. */ }
   }
-  requirement evidenceContract009FStatusIndication : EvidenceContract009F {
-    subject bench : DegradedInputMatrixBench009F;
+  requirement evidenceContractStatusIndication : DegradedInputEvidenceContract {
+    subject bench : DegradedInputMatrixBench;
     require constraint statement { language "English" /* The bench shall retain ordered AEBS status-indication observations for the bound input-health scenario. */ }
   }
-  requirement evidenceContract009FObserverFailureIsNotPass : EvidenceContract009F {
-    subject bench : DegradedInputMatrixBench009F;
+  requirement evidenceContractObserverFailureIsNotPass : DegradedInputEvidenceContract {
+    subject bench : DegradedInputMatrixBench;
     require constraint statement { language "English" /* The bench shall map missing, contradictory, contaminated, or unobservable evidence to inconclusive or error, never pass. */ }
   }
 
-  part staleInputBench009F : DegradedInputMatrixBench009F {
-    attribute :>> scenario = ScenarioIdentity009F::staleInput;
+  part staleInputBench : DegradedInputMatrixBench {
+    attribute :>> scenario = DegradedInputScenarioIdentity::staleInput;
   }
-  part missingInputBench009F : DegradedInputMatrixBench009F {
-    attribute :>> scenario = ScenarioIdentity009F::missingInput;
+  part missingInputBench : DegradedInputMatrixBench {
+    attribute :>> scenario = DegradedInputScenarioIdentity::missingInput;
   }
-  part malformedInputBench009F : DegradedInputMatrixBench009F {
-    attribute :>> scenario = ScenarioIdentity009F::malformedInput;
+  part malformedInputBench : DegradedInputMatrixBench {
+    attribute :>> scenario = DegradedInputScenarioIdentity::malformedInput;
   }
-  part inconsistentInputBench009F : DegradedInputMatrixBench009F {
-    attribute :>> scenario = ScenarioIdentity009F::inconsistentInput;
+  part inconsistentInputBench : DegradedInputMatrixBench {
+    attribute :>> scenario = DegradedInputScenarioIdentity::inconsistentInput;
   }
-  part unavailableInputBench009F : DegradedInputMatrixBench009F {
-    attribute :>> scenario = ScenarioIdentity009F::unavailableInput;
+  part unavailableInputBench : DegradedInputMatrixBench {
+    attribute :>> scenario = DegradedInputScenarioIdentity::unavailableInput;
   }
 
-  verification def DegradedUnavailableVerification009F {
-    subject verifiedBench : DegradedInputMatrixBench009F;
-    objective evidenceObjective009F {
-      verify evidenceContract009FClosedInputHealthScenario;
-      verify evidenceContract009FStateOwnership;
-      verify evidenceContract009FStatusIndication;
-      verify evidenceContract009FObserverFailureIsNotPass;
+  verification def DegradedUnavailableVerification {
+    subject verifiedBench : DegradedInputMatrixBench;
+    objective evidenceObjective {
+      verify evidenceContractClosedInputHealthScenario;
+      verify evidenceContractStateOwnership;
+      verify evidenceContractStatusIndication;
+      verify evidenceContractObserverFailureIsNotPass;
     }
     action collectData {
       @VerificationMethod{ kind = test; }
-      out item retainedObservations : Retained009FObservationSet;
+      out item retainedObservations : DegradedInputObservationSet;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity009F = verifiedBench.scenario;
-      in item retainedObservations : Retained009FObservationSet = collectData.retainedObservations;
-      out item replayedEvaluation : Replayed009FEvaluation;
+      in scenarioIdentity : DegradedInputScenarioIdentity = verifiedBench.scenario;
+      in item retainedObservations : DegradedInputObservationSet = collectData.retainedObservations;
+      out item replayedEvaluation : DegradedInputEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : Replayed009FEvaluation = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map009FOutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : DegradedInputEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapDegradedInputOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification staleInputVerification009F : DegradedUnavailableVerification009F {
+  verification staleInputVerification : DegradedUnavailableVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> staleInputBench009F;
+    subject verifiedBench :> staleInputBench;
   }
-  verification missingInputVerification009F : DegradedUnavailableVerification009F {
+  verification missingInputVerification : DegradedUnavailableVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> missingInputBench009F;
+    subject verifiedBench :> missingInputBench;
   }
-  verification malformedInputVerification009F : DegradedUnavailableVerification009F {
+  verification malformedInputVerification : DegradedUnavailableVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> malformedInputBench009F;
+    subject verifiedBench :> malformedInputBench;
   }
-  verification inconsistentInputVerification009F : DegradedUnavailableVerification009F {
+  verification inconsistentInputVerification : DegradedUnavailableVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> inconsistentInputBench009F;
+    subject verifiedBench :> inconsistentInputBench;
   }
-  verification unavailableInputVerification009F : DegradedUnavailableVerification009F {
+  verification unavailableInputVerification : DegradedUnavailableVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> unavailableInputBench009F;
+    subject verifiedBench :> unavailableInputBench;
   }
-  part verificationSystem009F {
-    perform staleInputVerification009F;
-    perform missingInputVerification009F;
-    perform malformedInputVerification009F;
-    perform inconsistentInputVerification009F;
-    perform unavailableInputVerification009F;
+  part verificationSystem {
+    perform staleInputVerification;
+    perform missingInputVerification;
+    perform malformedInputVerification;
+    perform inconsistentInputVerification;
+    perform unavailableInputVerification;
   }
 
   dependency degradedStateEvidenceRelevantToStateTransitionCandidate
-    from evidenceContract009FStateOwnership to reqHandleDegradedUnavailableInputs;
+    from evidenceContractStateOwnership to reqHandleDegradedUnavailableInputs;
   dependency degradedStatusEvidenceRelevantToStatusIndicationCandidate
-    from evidenceContract009FStatusIndication to reqIndicateDegradedUnavailableStatus;
+    from evidenceContractStatusIndication to reqIndicateDegradedUnavailableStatus;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
@@ -140,7 +140,7 @@ package DE4SDV_AEBS009FVerification {
     doc /* Evidence-based assurance claims and their supporting argumentation. */
   }
 
-  view aebs009FVerificationAssuranceView {
+  view aebsDegradedInputVerificationAssuranceView {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }
