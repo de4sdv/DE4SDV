@@ -1,5 +1,5 @@
 /* INC-AEBS-009H bicycle-target evidence contract; no product verification claim. */
-package DE4SDV_AEBS009HVerification {
+package DE4SDV_AEBSBicycleVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
@@ -94,7 +94,7 @@ package DE4SDV_AEBS009HVerification {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009HVerification::*;
+    expose DE4SDV_AEBSBicycleVerification::*;
     render asTreeDiagram;
   }
 }

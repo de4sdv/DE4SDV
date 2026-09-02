@@ -8,7 +8,7 @@
  * and not an INC-MW-010 add-on.
  *
  * Predecessor relationship: this increment is the separate capability
- * increment mandated by DE4SDV_Middleware010VerificationEvidence::
+ * increment mandated by DE4SDV_MiddlewareVerificationEvidence::
  * successorIncrementDecision010. It does not reopen, extend, or retroactively
  * satisfy INC-MW-010 gate 8 or its retained evidence set E-MW-011..E-MW-014.
  */
@@ -18,7 +18,7 @@ package DE4SDV_AEBSVisualizationFraming {
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_ProductLine::*;
-  private import DE4SDV_Middleware010VerificationEvidence::*;
+  private import DE4SDV_MiddlewareVerificationEvidence::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
 

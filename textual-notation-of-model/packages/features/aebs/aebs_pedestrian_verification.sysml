@@ -1,5 +1,5 @@
 /* INC-AEBS-009G pedestrian-target evidence contract; no product verification claim. */
-package DE4SDV_AEBS009GVerification {
+package DE4SDV_AEBSPedestrianVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
@@ -94,7 +94,7 @@ package DE4SDV_AEBS009GVerification {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009GVerification::*;
+    expose DE4SDV_AEBSPedestrianVerification::*;
     render asTreeDiagram;
   }
 }

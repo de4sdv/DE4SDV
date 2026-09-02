@@ -10,7 +10,7 @@
  * homologation, or type approval.
  */
 
-package DE4SDV_AEBS009BNominalEvidence {
+package DE4SDV_AEBSNominalEvidence {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
@@ -314,7 +314,7 @@ package DE4SDV_AEBS009BNominalEvidence {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009BNominalEvidence::*;
+    expose DE4SDV_AEBSNominalEvidence::*;
     render asTreeDiagram;
   }
 }

@@ -623,12 +623,32 @@ KEEP / NEEDS DECISION classification, governance facts, per-item risk).
    semantic names (also accepts legacy numbered form); `check_naming.py`
    unchanged elsewhere.
 
-### Preserved (verified unchanged)
+### Package-identity correction (post-audit, same PR)
+
+The initial batch-3 record kept the 009*/MW-010 evidence-record package names.
+Re-audit under the final package-identity rule (canonical semantic module →
+canonical semantic package; lifecycle identity lives on contained records,
+not the namespace) reclassified all nine: each module holds de-numbered
+reusable vocabulary plus record usages from its increment (and the middleware
+module grew across #89/#136/later slices — not a single frozen snapshot).
+Renamed: `DE4SDV_AEBS009BNominalEvidence → DE4SDV_AEBSNominalEvidence`,
+`DE4SDV_AEBS009C/D/E/F/G/H/IVerification → DE4SDV_AEBSPartialIntervention/
+Override/NonActivation/DegradedInput/Pedestrian/Bicycle/
+RegulatoryCriterionVerification`,
+`DE4SDV_Middleware010VerificationEvidence →
+DE4SDV_MiddlewareVerificationEvidence` (54 references: SysML packages+doc
+headers, `aebs_visualization_framing` import, pilot `dependency_element`,
+`.meta.json` (9), `sysand-lock.toml` (9), `scenario-manifest.json` (8),
+VIEWS.md (7), 2 tests; 7 SVGs with old labels deleted → privileged
+regeneration). Contained records keep their identities: `INC-AEBS-009*`,
+`incAEBS009*`-scoped parts, `INC-MW-010`, `incMW010`, `E-MW-*`,
+`AC/VC/AGT/CCM-MW-010-*`, `BL-MW-010-P12`, `MW-CONFIG-001`,
+`boundedBaselineDecision010`, `successorIncrementDecision010`, gap records.
+
+### Preserved (verified unchanged, batch 3 as amended)
 
 `INC-AEBS-001…010` increment parts and pilot chain, `INC-MW-002…010` chain,
 `part incAEBS001…008`/`incMW002…010` (real per-concern increments),
-`DE4SDV_Middleware010VerificationEvidence` package (closed-record identity),
-`DE4SDV_AEBS009*Verification` packages (closed-record identity),
 `mw010ReferenceContractClaim`, `boundedBaselineDecision010`,
 `successorIncrementDecision010`, all `AC/VC/AGT/CCM/AO/E-/EVID/EC/GAP/BL/SRC/
 SCN` registered IDs, `MW-CONFIG-001`, evidence filenames/dirs, bench runtime

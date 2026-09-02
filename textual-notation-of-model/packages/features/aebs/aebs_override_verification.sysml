@@ -1,5 +1,5 @@
 /* INC-AEBS-009D conscious-override matrix; planned System 2 executable contracts. */
-package DE4SDV_AEBS009DVerification {
+package DE4SDV_AEBSOverrideVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;

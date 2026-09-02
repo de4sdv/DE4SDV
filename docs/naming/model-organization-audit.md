@@ -186,11 +186,15 @@ with that recommendation.
 
 ## 3. KEEP (classified, not leakage)
 
-- File names/packages of 009-series verification & evidence slices
-  (`aebs_bicycle_verification.sysml` + `DE4SDV_AEBS009HVerification`, …):
-  these files ARE the retained evidence records of closed increments; the
-  number in the *file/package* identity is legitimate (identity-bearing
-  record). Only their internal *type* names are normalized (M3).
+- File names of 009-series verification & evidence slices
+  (`aebs_bicycle_verification.sysml`, …): identity-bearing record files.
+  **Package names are NOT kept numbered** — the final package-identity rule
+  (canonical semantic module → canonical semantic package) reclassifies the
+  packages as canonical semantic modules (each holds de-numbered reusable
+  vocabulary plus record usages from its increment). Renamed in the
+  package-identity correction: `DE4SDV_AEBS009HVerification` →
+  `DE4SDV_AEBSBicycleVerification` and siblings; `INC-AEBS-009*` provenance
+  stays in the file doc blocks and pilot YAML chain.
 - `package DE4SDV_Middleware010VerificationEvidence` — retained record of
   closed INC-MW-010 (user's rule 4/13; also success-or-decision: rename
   package would break `sysand-lock.toml` provenance binding and the
@@ -243,14 +247,19 @@ own increment (audit fact 1), so the file names mirror real increment
 boundaries. Recorded here with a concrete recommendation; not silently
 deferred.
 
-### D3. `DE4SDV_Middleware010VerificationEvidence` package name
-User's example list offers `DE4SDV_MiddlewareVerificationEvidence`. The
-package is the retained record of the *closed* INC-MW-010 (audit fact 3:
-baselined_bounded, Phase 12 accepted). Under rule 13 the identity suffix in
-the record's package name is legitimate. Recommendation: KEEP the package
-name (record identity), executed via M2 for the types. If the middleware
-concern later gains a *new* verification-evidence increment, that new
-record gets a new identity name; the closed record stays.
+### D3. `DE4SDV_Middleware010VerificationEvidence` package name — RESOLVED
+Re-audited under the final package-identity rule (canonical semantic module
+→ canonical semantic package; lifecycle identity belongs on the contained
+records, not the namespace). The middleware verification-evidence module
+holds reusable vocabulary (de-numbered in M2) **plus** records from several
+lifecycle events (#89 created the contract, #136 added E-MW-011, later
+slices added E-MW-012/013/014 and the Phase 12 baseline) — it grew across
+events, so the whole package is NOT a single frozen snapshot. Renamed to
+`DE4SDV_MiddlewareVerificationEvidence`; `INC-MW-010`, `E-MW-011…014`,
+`BL-MW-010-P12`, `MW-CONFIG-001`, the AC/VC/AGT/CCM-MW-010-* records and the
+gap/baseline-decision parts keep their identities inside. If the middleware
+concern later gains a new verification-evidence increment, that new record
+joins this canonical module or gets a new identity-named record module.
 
 ## 4b. Post-implementation status (batch 3)
 
@@ -262,9 +271,10 @@ names to a per-increment semantic-enum registry; manifest regenerated;
 kernel mapping + citations updated same-commit; record usages KEEP),
 M4 (execution-environment package + view renamed; meta/lock updated).
 
-KEPT per audit §3: all packages of closed-increment evidence records, all
-registered IDs, all argumentation/criterion/case usage names encoding
-registered IDs, all identity-bearing file names.
+KEPT per audit §3: all registered IDs, all argumentation/criterion/case
+usage names encoding registered IDs, all identity-bearing file names.
+(Package names initially kept numbered were re-classified and renamed in the
+package-identity correction — see D3 resolution and §3 update.)
 
 NEEDS DECISION: D1 (visualization directory split), D2 (vocabulary
 convergence), D3 (MW evidence package name), S1 (Features-nesting flatten).

@@ -1,5 +1,5 @@
 /* INC-AEBS-009I configuration-bounded criterion trace; compliance is always withheld. */
-package DE4SDV_AEBS009IVerification {
+package DE4SDV_AEBSRegulatoryCriterionVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import ScalarValues::*;
@@ -178,7 +178,7 @@ package DE4SDV_AEBS009IVerification {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009IVerification::*;
+    expose DE4SDV_AEBSRegulatoryCriterionVerification::*;
     render asTreeDiagram;
   }
 }

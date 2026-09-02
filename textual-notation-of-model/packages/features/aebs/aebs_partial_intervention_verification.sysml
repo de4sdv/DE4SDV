@@ -1,5 +1,5 @@
 /* INC-AEBS-009C partial native-intervention-to-MRM System 2 verification model. */
-package DE4SDV_AEBS009CVerification {
+package DE4SDV_AEBSPartialInterventionVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
@@ -89,7 +89,7 @@ package DE4SDV_AEBS009CVerification {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009CVerification::*;
+    expose DE4SDV_AEBSPartialInterventionVerification::*;
     render asTreeDiagram;
   }
 }

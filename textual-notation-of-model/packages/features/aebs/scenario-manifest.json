@@ -4,7 +4,7 @@
   "increments": {
     "009B": {
       "sysml_file": "aebs_evidence.sysml",
-      "package_name": "DE4SDV_AEBS009BNominalEvidence",
+      "package_name": "DE4SDV_AEBSNominalEvidence",
       "verification_def": "NominalMovingVehicleTargetVerification",
       "verification_usages": [
         "nominalMovingVehicleTargetVerification"
@@ -15,7 +15,7 @@
     },
     "009C": {
       "sysml_file": "aebs_partial_intervention_verification.sysml",
-      "package_name": "DE4SDV_AEBS009CVerification",
+      "package_name": "DE4SDV_AEBSPartialInterventionVerification",
       "verification_def": "NativeInterventionToMRMVerification",
       "verification_usages": [
         "nativeInterventionToMRMVerification"
@@ -33,7 +33,7 @@
     },
     "009D": {
       "sysml_file": "aebs_override_verification.sysml",
-      "package_name": "DE4SDV_AEBS009DVerification",
+      "package_name": "DE4SDV_AEBSOverrideVerification",
       "verification_def": "ConsciousOverrideVerification",
       "verification_usages": [
         "overrideFalseControlVerification",
@@ -63,7 +63,7 @@
     },
     "009E": {
       "sysml_file": "aebs_non_activation_verification.sysml",
-      "package_name": "DE4SDV_AEBS009EVerification",
+      "package_name": "DE4SDV_AEBSNonActivationVerification",
       "verification_def": "FalseReactionResistanceVerification",
       "verification_usages": [
         "clearPathNonActivationVerification",
@@ -89,7 +89,7 @@
     },
     "009F": {
       "sysml_file": "aebs_degraded_input_verification.sysml",
-      "package_name": "DE4SDV_AEBS009FVerification",
+      "package_name": "DE4SDV_AEBSDegradedInputVerification",
       "verification_def": "DegradedUnavailableVerification",
       "verification_usages": [
         "staleInputVerification",
@@ -117,7 +117,7 @@
     },
     "009G": {
       "sysml_file": "aebs_pedestrian_verification.sysml",
-      "package_name": "DE4SDV_AEBS009GVerification",
+      "package_name": "DE4SDV_AEBSPedestrianVerification",
       "verification_def": "PedestrianTargetVerification",
       "verification_usages": [
         "pedestrianTargetVerification"
@@ -136,7 +136,7 @@
     },
     "009H": {
       "sysml_file": "aebs_bicycle_verification.sysml",
-      "package_name": "DE4SDV_AEBS009HVerification",
+      "package_name": "DE4SDV_AEBSBicycleVerification",
       "verification_def": "BicycleTargetVerification",
       "verification_usages": [
         "bicycleTargetVerification"
@@ -155,7 +155,7 @@
     },
     "009I": {
       "sysml_file": "aebs_regulatory_criterion_verification.sysml",
-      "package_name": "DE4SDV_AEBS009IVerification",
+      "package_name": "DE4SDV_AEBSRegulatoryCriterionVerification",
       "verification_def": "PedestrianCriterionVerification",
       "verification_usages": [
         "pedestrianCriterionVerification",

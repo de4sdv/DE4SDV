@@ -1,5 +1,5 @@
 /* INC-AEBS-009E bounded non-activation matrix; planned System 2 executable contracts. */
-package DE4SDV_AEBS009EVerification {
+package DE4SDV_AEBSNonActivationVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
@@ -131,7 +131,7 @@ package DE4SDV_AEBS009EVerification {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009EVerification::*;
+    expose DE4SDV_AEBSNonActivationVerification::*;
     render asTreeDiagram;
   }
 }

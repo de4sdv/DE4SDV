@@ -1,5 +1,5 @@
 /* INC-AEBS-009F degraded/unavailable input matrix; planned System 2 executable contracts. */
-package DE4SDV_AEBS009FVerification {
+package DE4SDV_AEBSDegradedInputVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
@@ -145,7 +145,7 @@ package DE4SDV_AEBS009FVerification {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009FVerification::*;
+    expose DE4SDV_AEBSDegradedInputVerification::*;
     render asTreeDiagram;
   }
 }

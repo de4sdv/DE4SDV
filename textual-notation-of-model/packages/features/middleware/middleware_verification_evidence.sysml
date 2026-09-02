@@ -13,7 +13,7 @@
  * safety, and certification claims remain deferred or not claimed.
  */
 
-package DE4SDV_Middleware010VerificationEvidence {
+package DE4SDV_MiddlewareVerificationEvidence {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_ProductLine::*;
