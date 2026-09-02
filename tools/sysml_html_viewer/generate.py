@@ -464,9 +464,23 @@ def _filter_html(tree: TreeNode, files: list) -> str:
         {v.viewpoint_type for mf in files for v in mf.views if v.viewpoint_type}
     )
 
-    def _select(sid: str, label: str, options: list[str]) -> str:
+    # element counts per filter option, derived from the same data the
+    # tree nodes carry (data-kind / data-domain / data-aspect / data-vp)
+    from collections import Counter
+
+    kw_counts = Counter(n.kind for n in _walk_tree(tree) if n.kind != "root")
+    vp_counts = Counter(
+        v.viewpoint_type for mf in files for v in mf.views if v.viewpoint_type
+    )
+    dom_counts = Counter(d for d, _ in catalog.values() if d)
+    asp_counts = Counter(a for _, a in catalog.values() if a)
+
+    def _select(sid: str, label: str, options: list[str], counts) -> str:
         opts = "".join(
-            f'<option value="{_esc(o)}">{_esc(o)}</option>' for o in options
+            f'<option value="{_esc(o)}">{_esc(o)} ({counts[o]})</option>'
+            if o in counts
+            else f'<option value="{_esc(o)}">{_esc(o)}</option>'
+            for o in options
         )
         return (
             f'<select id="{sid}" class="tree-filter" aria-label="{_esc(label)}" '
@@ -476,10 +490,10 @@ def _filter_html(tree: TreeNode, files: list) -> str:
 
     return (
         '<div class="tree-filters">'
-        + _select("kindFilter", "SysML v2 keyword", kinds)
-        + _select("domainFilter", "SAF domain", domains)
-        + _select("aspectFilter", "SAF aspect", aspects)
-        + _select("viewpointFilter", "viewpoint", viewpoints)
+        + _select("kindFilter", "SysML v2 keyword", kinds, kw_counts)
+        + _select("domainFilter", "SAF domain", domains, dom_counts)
+        + _select("aspectFilter", "SAF aspect", aspects, asp_counts)
+        + _select("viewpointFilter", "viewpoint", viewpoints, vp_counts)
         + '<button type="button" id="clearFilters" class="tree-filter-clear" '
         'title="Clear search and filters" hidden>✕</button>'
         + "</div>"
@@ -506,10 +520,22 @@ def _docs_page_html(repo_root: Path, md_rel: str, title: str, fallback: str) -> 
         "<meta charset=\"utf-8\">\n"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
         f"<title>{title}</title>\n"
+        "<script>(function(){try{var t=localStorage.getItem('de4sdv-viewer-theme');"
+        "if(!t){var q=new URLSearchParams(location.search).get('theme');"
+        "t=(q==='dark'||q==='light')?q:null;}"
+        "if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}"
+        "}catch(e){}})();</script>\n"
         "<link rel=\"stylesheet\" href=\"assets/viewer.css\">\n"
+        "<link rel=\"stylesheet\" href=\"assets/carbon.css\">\n"
+        "<script src=\"assets/theme.js\"></script>\n"
         "</head>\n<body class=\"help-page\">\n"
         "<header class=\"help-header\">\n"
         "<a class=\"help-back\" href=\"index.html\">← DE4SDV Model Viewer</a>\n"
+        "<button type=\"button\" id=\"themeToggle\" class=\"theme-toggle\" "
+        "aria-label=\"Switch color theme\" title=\"Switch light / dark theme\">"
+        "<span class=\"theme-icon icon-moon\">☾</span>"
+        "<span class=\"theme-icon icon-sun\">☀</span>"
+        "</button>\n"
         "</header>\n"
         f"<main class=\"help-content\">\n{body}\n</main>\n"
         "</body>\n</html>\n"
@@ -813,6 +839,12 @@ def _build_site(
     assets_dir.mkdir(parents=True, exist_ok=True)
     css_src = Path(__file__).parent / "viewer.css"
     shutil.copyfile(css_src, assets_dir / "viewer.css")
+    carbon_src = Path(__file__).parent / "carbon.css"
+    if carbon_src.exists():
+        shutil.copyfile(carbon_src, assets_dir / "carbon.css")
+    theme_src = Path(__file__).parent / "theme.js"
+    if theme_src.exists():
+        shutil.copyfile(theme_src, assets_dir / "theme.js")
     js_src = Path(__file__).parent / "viewer.js"
     shutil.copyfile(js_src, assets_dir / "viewer.js")
 
@@ -830,6 +862,8 @@ def _build_site(
 
     stamp = hashlib.sha1(
         css_src.read_bytes() + js_src.read_bytes() + uses_js.encode("utf-8")
+        + carbon_src.read_bytes()
+        + theme_src.read_bytes()
     ).hexdigest()[:10]
 
     if options is None:
