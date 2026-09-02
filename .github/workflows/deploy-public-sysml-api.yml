@@ -248,18 +248,31 @@ jobs:
             echo "sysand-lock.toml missing at the deployed SHA" >&2
             exit 1
           fi
-          # Pinned sysand client (same version family as the privileged
-          # workflow); isolated venv, no host-wide installation.
-          SYSAND_DIR=/srv/de4sdv/sysand
+          # Pinned sysand client (same version as the privileged workflow);
+          # isolated version-specific venv, no host-wide installation. The
+          # venv directory encodes the exact version, so a pre-existing or
+          # corrupted environment at any other version is never silently
+          # reused: every deployment runs exactly sysand==0.2.1 or fails.
+          SYSAND_VERSION=0.2.1
+          SYSAND_DIR="/srv/de4sdv/sysand-$SYSAND_VERSION"
           if [[ ! -x "$SYSAND_DIR/bin/sysand" ]]; then
             rm -rf "$SYSAND_DIR.tmp"
             python3 -m venv "$SYSAND_DIR.tmp"
-            "$SYSAND_DIR.tmp/bin/pip" install --no-input "sysand==0.2.1" >/dev/null
+            "$SYSAND_DIR.tmp/bin/pip" install --no-input "sysand==$SYSAND_VERSION" >/dev/null
+            "$SYSAND_DIR.tmp/bin/python" -m pip show sysand | grep -q "Version: $SYSAND_VERSION" || {
+              echo "sysand client install did not produce the pinned version" >&2
+              exit 1
+            }
             rm -rf "$SYSAND_DIR"
             mv "$SYSAND_DIR.tmp" "$SYSAND_DIR"
           fi
           SYSAND="$SYSAND_DIR/bin/sysand"
-          "$SYSAND" --version
+          # Fail closed unless the resolved client is exactly the pinned
+          # version (guards against any tampering or drift between runs).
+          "$SYSAND" --version | grep -qx "sysand $SYSAND_VERSION" || {
+            echo "deploy host sysand is not exactly $SYSAND_VERSION" >&2
+            exit 1
+          }
           # sync verifies each resolved package against the lockfile's kpar
           # checksums and fails closed on a mismatch.
           "$SYSAND" sync

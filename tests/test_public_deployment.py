@@ -546,9 +546,20 @@ def test_workflow_materializes_pinned_sysand_dependencies() -> None:
         encoding="utf-8"
     )
     # A dedicated materialization step exists and runs sysand from a pinned
-    # client install (no floating version).
+    # client install (no floating version). The version-specific venv path
+    # means a pre-existing environment at another version is never silently
+    # reused: any path that is not exactly the pinned version fails closed.
     assert "Materialize pinned Sysand dependencies" in wf
-    assert '"sysand==0.2.1"' in wf
+    assert "SYSAND_VERSION=0.2.1" in wf
+    assert 'SYSAND_DIR="/srv/de4sdv/sysand-$SYSAND_VERSION"' in wf
+    assert '"sysand==$SYSAND_VERSION"' in wf
+    # Fresh installs verify the installed package version before being
+    # promoted; existing installs re-verify the client version on every run.
+    assert "pip show sysand | grep -q \"Version: $SYSAND_VERSION\"" in wf
+    assert 'grep -qx "sysand $SYSAND_VERSION"' in wf
+    assert "deploy host sysand is not exactly $SYSAND_VERSION" in wf
+    # The unpinned shared-directory form must be gone.
+    assert "SYSAND_DIR=/srv/de4sdv/sysand\n" not in wf
     assert "sysand sync" in wf
     # It operates inside the exact Git checkout and requires the lockfile.
     assert "cd \"$REPO_DIR\"" in wf
