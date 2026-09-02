@@ -22,7 +22,7 @@
 
   function fmtNum(v) {
     if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
-    return String(Math.round(v * 100) / 100);
+    return String(Math.round(v * 1000) / 1000);
   }
 
   function textKey(x, y) { return fmtNum(x) + ',' + fmtNum(y); }
@@ -650,24 +650,103 @@
       return out;
     }
 
-    /* ---------------- drag dispatch -------------------------------------- */
+    /* ---------------- geometric hit-test dispatch ---------------------------
+     * DOM hit-testing cannot select a 0.5px relationship line: every click
+     * lands on the box behind it, and a box drag moves its whole family -
+     * the "merged blob" experience. Selection here is GEOMETRIC: the click
+     * point (in user units) is tested against connector segments first
+     * (closest segment within PICK px wins, so a line crossing a box body
+     * is still selectable along its visible path), then labels, then boxes.
+     * A halo highlights the exact element set that will move, before the
+     * drag starts. */
+    var PICK = 10;   /* px (user units) tolerance for line selection */
 
-    function bboxOf(pts) {
-      var xs = pts.map(function (q) { return q[0]; });
-      var ys = pts.map(function (q) { return q[1]; });
-      return [Math.min.apply(null, xs), Math.min.apply(null, ys),
-              Math.max.apply(null, xs), Math.max.apply(null, ys)];
+    function distToSegment(p, a, b) {
+      var vx = b[0] - a[0], vy = b[1] - a[1];
+      var wx = p[0] - a[0], wy = p[1] - a[1];
+      var L2 = vx * vx + vy * vy;
+      var t = L2 > 0 ? Math.max(0, Math.min(1, (wx * vx + wy * vy) / L2)) : 0;
+      var cx = a[0] + t * vx, cy = a[1] + t * vy;
+      return Math.hypot(p[0] - cx, p[1] - cy);
     }
 
-    /* labels */
+    /* selection halo: outlines what will move before dragging */
+    var halo = null;
+    function showHalo(kind, node) {
+      clearHalo();
+      try {
+        var b = node.getBBox();
+        var ns = 'http://www.w3.org/2000/svg';
+        halo = document.createElementNS(ns, 'rect');
+        halo.setAttribute('x', b.x - 3);
+        halo.setAttribute('y', b.y - 3);
+        halo.setAttribute('width', b.width + 6);
+        halo.setAttribute('height', b.height + 6);
+        halo.setAttribute('rx', 3);
+        halo.setAttribute('class', 'layout-selection-halo');
+        halo.setAttribute('pointer-events', 'none');
+        node.parentNode.appendChild(halo);
+      } catch (err) { halo = null; }
+    }
+    function clearHalo() {
+      if (halo && halo.parentNode) halo.parentNode.removeChild(halo);
+      halo = null;
+    }
+
+    /* all selectable connectors with live geometry + nodes, from the SVG */
+    function connectorNodes() {
+      var out = [];
+      Array.prototype.forEach.call(svg.querySelectorAll('polyline'), function (pl) {
+        var raw = pl.getAttribute('points') || '';
+        var pts = parsePoints(raw);
+        if (!pts.length) return;
+        var key = state.resolveConnectorKey(raw);
+        if (!key) return;
+        out.push({ node: pl, key: key, pts: pts });
+      });
+      return out;
+    }
+
+    /* geometric connector pick: closest segment within PICK px, or null */
+    function pickConnector(pt) {
+      var conns = connectorNodes();
+      var best = null;
+      conns.forEach(function (ci) {
+        for (var i = 0; i + 1 < ci.pts.length; i++) {
+          var d = distToSegment(pt, ci.pts[i], ci.pts[i + 1]);
+          if (d <= PICK && (!best || d < best.d)) {
+            best = { d: d, kind: 'connectors', node: ci.node, key: ci.key, pts: ci.pts };
+          }
+        }
+      });
+      return best;
+    }
+
+    /* the real mousedown handler.
+     * Priority: 1) connector (geometric, because 0.5px strokes cannot be
+     * DOM-hit and a line crossing a box body must stay selectable along its
+     * visible path); 2) label (DOM glyph hit is reliable); 3) element box
+     * (DOM white-fill hit is reliable). */
     svg.addEventListener('mousedown', function (ev) {
       if (ev.button !== 0) return;
-      var t = ev.target.closest ? ev.target.closest('text') : null;
-      if (!t) return;
       ev.preventDefault();
-      var curKey = textKey(parseFloat(t.getAttribute('x')), parseFloat(t.getAttribute('y')));
-      var key = state.resolveTextKey(curKey);
-      if (!key) return;
+      var pt = svgPoint(ev);
+      var connHit = pickConnector(pt);
+      var t = ev.target.closest ? ev.target.closest('text') : null;
+      if (connHit) {
+        dragConnector(ev, connHit.node, connHit.key, connHit.pts);
+      } else if (t) {
+        var tk = state.resolveTextKey(textKey(
+          parseFloat(t.getAttribute('x')), parseFloat(t.getAttribute('y'))));
+        if (tk) dragLabel(ev, t, tk);
+      } else {
+        var p = ev.target.closest ? ev.target.closest('path') : null;
+        if (p && p.getAttribute('fill') === '#FFFFFF') dragBox(ev, p);
+      }
+    });
+
+    function dragLabel(ev, t, key) {
+      showHalo('text', t);
       var cur = state.curText(key);
       var orig = cur.slice();
       var start = svgPoint(ev);
@@ -680,15 +759,16 @@
         liveTextNode(t, nx, ny);
         record('text', t, key, { x: nx, y: ny }, prevOp);
       }
-      dragEnd(mv);
-    });
+      function up() {
+        document.removeEventListener('mousemove', mv);
+        document.removeEventListener('mouseup', up);
+        clearHalo();
+      }
+      document.addEventListener('mousemove', mv);
+      document.addEventListener('mouseup', up);
+    }
 
-    /* boxes: body = move, edges = resize; companions + endpoints follow */
-    svg.addEventListener('mousedown', function (ev) {
-      if (ev.button !== 0) return;
-      var p = ev.target.closest ? ev.target.closest('path') : null;
-      if (!p || p.getAttribute('fill') !== '#FFFFFF') return;
-      ev.preventDefault();
+    function dragBox(ev, p) {
       var d = p.getAttribute('d') || '';
       var bb = pathBBox(d);
       if (!bb) return;
@@ -706,14 +786,13 @@
       var nearB = Math.abs(my - cur[3] * zoom) < m && mx > cur[0] * zoom - m && mx < cur[2] * zoom + m;
       var edge = { w: nearL, e: nearR, n: nearT, s: nearB };
       var isMove = !edge.n && !edge.s && !edge.w && !edge.e;
-      /* tiny boxes (port glyphs) are never resize targets */
       if (cur[2] - cur[0] < 40 && cur[3] - cur[1] < 40) isMove = true;
       var start = svgPoint(ev);
       var orig = cur.slice();
       var selfState = state.boxes.filter(function (s) { return s.find === key; })[0];
       var prevOp = selfState ? selfState.op : null;
-      /* companions captured ONCE: attachment map decides what follows */
       var companions = collectCompanions(orig, key);
+      showHalo('boxes', p);
       function mv(e) {
         var q = svgPoint(e);
         var dx = q[0] - start[0], dy = q[1] - start[1];
@@ -737,38 +816,24 @@
       function up() {
         document.removeEventListener('mousemove', mv);
         document.removeEventListener('mouseup', up);
+        clearHalo();
       }
       document.addEventListener('mousemove', mv);
       document.addEventListener('mouseup', up);
-    });
+    }
 
-    /* connectors: move whole route, endpoints glued, arrows follow */
-    svg.addEventListener('mousedown', function (ev) {
-      if (ev.button !== 0) return;
-      var p = ev.target.closest ? ev.target.closest('polyline') : null;
-      if (!p) return;
-      ev.preventDefault();
-      var curKey = p.getAttribute('points') || '';
-      var key = state.resolveConnectorKey(curKey);
-      if (!key) return;
-      var cur = state.curConnector(key);
+    function dragConnector(ev, p, key, orig) {
+      showHalo('connectors', p);
       var start = svgPoint(ev);
-      var orig = cur.map(function (q) { return q.slice(); });
       var selfState = state.connectors.filter(function (s) { return s.find === key; })[0];
       var prevOp = selfState ? selfState.op : null;
-
-      /* arrowheads attached at mousedown (from the attachment map) follow
-       * their end, preserving the committed SysIDE gap */
       var dragArrows = dragArrowsFor(key, orig);
-
       function mv(e) {
         var q = svgPoint(e);
         var dx = q[0] - start[0], dy = q[1] - start[1];
         var n = orig.map(function (pt) { return [snap(pt[0] + dx), snap(pt[1] + dy)]; });
         p.setAttribute('points', ptsAttr(n));
         record('connectors', p, key, { points: n }, prevOp);
-        /* arrowheads attached at mousedown follow their end, keeping the
-         * SysIDE gap (same delta as the end itself) */
         dragArrows.forEach(function (a) {
           var ei = a.endIdx;
           var na = [a.start[0] + (n[ei][0] - orig[ei][0]),
@@ -780,10 +845,11 @@
       function up() {
         document.removeEventListener('mousemove', mv);
         document.removeEventListener('mouseup', up);
+        clearHalo();
       }
       document.addEventListener('mousemove', mv);
       document.addEventListener('mouseup', up);
-    });
+    }
 
     /* ---------------- undo ------------------------------------------------ */
 

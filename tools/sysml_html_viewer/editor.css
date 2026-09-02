@@ -18,6 +18,17 @@
 .diagram-edit-btn:hover { background: var(--accent); color: #fff; }
 
 /* editor chrome */
+/* Selection halo in the layout editor: outlines the exact element set
+ * that will move, before the drag starts. */
+.layout-selection-halo {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
 .layout-editor {
   position: relative;
   z-index: 1300;             /* above the diagram content, below fullscreen
