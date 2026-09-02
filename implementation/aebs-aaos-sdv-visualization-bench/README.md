@@ -9,7 +9,7 @@ physical realization).
 ```text
 pinned native Autoware AEB + DE4SDV 009B coordinator  (vmB, ROS 2)
     -> de4sdv_aebs_010_bridge (read-only ROS 2 adapter, subscriptions only)
-    -> length-delimited frame stream, NEW port 4721 (MW-010 port not reused)
+    -> length-delimited frame stream, NEW port 4721 (INC-MW-010 port not reused)
     -> de4sdv_aebs_ingress (native service in sdv_ivi_cf guest)
     -> SDV Gateway Data Tunnel (documented client APIs only)
     -> De4sdvAebsVisualizationApp (Java center-display app)
@@ -44,7 +44,7 @@ PYTHONPATH=. python -m pytest -q test/
 validation (schema/sequence/age/finiteness/range), the presentation watchdog
 (stale/unavailable/invalid/restored), point-cloud projection geometry,
 length-delimited transport, and **non-interference** (no publishers, no
-services/actions, no control-topic references, send-only server, MW-010 port
+services/actions, no control-topic references, send-only server, INC-MW-010 port
 unreused).
 
 ## Staging into AOSP (on vmA, budget-guarded)

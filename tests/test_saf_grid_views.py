@@ -14,25 +14,25 @@ MATRIX_VIEWS = {
         "aebsSimulationPhysicalLogicalMappingView",
         "aebsSimulationPhysicalLogicalItemMappingView",
     ),
-    "textual-notation-of-model/packages/features/middleware/mw_logical_architecture.sysml": (
-        "mwSystemFunctionMappingView",
+    "textual-notation-of-model/packages/features/middleware/middleware_logical_architecture.sysml": (
+        "middlewareSystemFunctionMappingView",
     ),
-    "textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml": (
-        "mwPhysicalLogicalMappingView",
+    "textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml": (
+        "middlewarePhysicalLogicalMappingView",
     ),
 }
 TABLE_VIEWS = {
     "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml": (
         "aebsStakeholderNeedsView",
     ),
-    "textual-notation-of-model/packages/features/middleware/mw_stakeholder_needs.sysml": (
-        "mwStakeholderNeedsView",
+    "textual-notation-of-model/packages/features/middleware/middleware_stakeholder_needs.sysml": (
+        "middlewareStakeholderNeedsView",
     ),
-    "textual-notation-of-model/packages/features/middleware/mw_requirements.sysml": (
-        "mwSystemRequirementsView",
+    "textual-notation-of-model/packages/features/middleware/middleware_requirements.sysml": (
+        "middlewareSystemRequirementsView",
     ),
-    "textual-notation-of-model/packages/features/middleware/mw_feature_classification.sysml": (
-        "mwProductLineClassificationView",
+    "textual-notation-of-model/packages/features/middleware/middleware_feature_classification.sysml": (
+        "middlewareProductLineClassificationView",
     ),
 }
 
@@ -105,12 +105,12 @@ def test_saf_requirement_definition_views_are_native_tables() -> None:
             assert f"view {view_name} : TVD::TableView" in block
             expected_filter = (
                 "filter @ SysML::PartUsage;"
-                if view_name == "mwProductLineClassificationView"
+                if view_name == "middlewareProductLineClassificationView"
                 else "filter @ SysML::RequirementUsage;"
             )
             assert expected_filter in block
             assert "view ID :> columnViews" in block
-            if view_name != "mwProductLineClassificationView":
+            if view_name != "middlewareProductLineClassificationView":
                 assert "view Name :> columnViews" in block
                 assert "view Statement :> columnViews" in block
             assert "render asTreeDiagram;" not in block
@@ -139,7 +139,7 @@ def test_unsubstantiated_physical_function_mapping_is_not_published() -> None:
     model = (
         ROOT
         / "textual-notation-of-model/packages/features/middleware/"
-        "mw_physical_software_realization.sysml"
+        "middleware_physical_software_realization.sysml"
     ).read_text(encoding="utf-8")
     assert "view mwPhysicalFunctionalMappingView" not in model
     assert "No physical-function allocation is modeled" in model
@@ -149,7 +149,7 @@ def test_contained_campaign_is_not_published_as_context_exchange() -> None:
     model = (
         ROOT
         / "textual-notation-of-model/packages/features/middleware/"
-        "mw_physical_software_realization.sysml"
+        "middleware_physical_software_realization.sysml"
     ).read_text(encoding="utf-8")
     assert "mwVehicleSpeedCampaignContextExchangeView" not in model
     assert "No Physical Context Exchange view is published" in model
@@ -169,15 +169,15 @@ def test_operational_story_and_capability_are_focused_presentations() -> None:
     model = (
         ROOT
         / "textual-notation-of-model/packages/features/middleware/"
-        "mw_operational_context.sysml"
+        "middleware_operational_context.sysml"
     ).read_text(encoding="utf-8")
-    story = _block(model, "view mwOperationalStoryView")
+    story = _block(model, "view middlewareOperationalStoryView")
     assert "expose OperationalContext::'integrate ADAS with vehicle platform';" in story
-    assert "view mwOperationalStoryView : ActionFlowView" not in story
+    assert "view middlewareOperationalStoryView : ActionFlowView" not in story
     assert "render asTreeDiagram;" in story
 
-    context = _block(model, "view mwOperationalContextView")
-    capability = _block(model, "view mwOperationalCapabilityView")
+    context = _block(model, "view middlewareOperationalContextView")
+    capability = _block(model, "view middlewareOperationalCapabilityView")
     assert "expose MiddlewareOperationalContext;" in context
     assert "expose MiddlewareIntegrationOperationalCapability;" in capability
     assert "'integrate ADAS with vehicle platform'" not in context
@@ -186,15 +186,15 @@ def test_operational_story_and_capability_are_focused_presentations() -> None:
 
 def test_function_and_interface_views_do_not_dump_packages() -> None:
     cases = {
-        "textual-notation-of-model/packages/features/aebs/aebs_functional_behavior.sysml": (
-            "aebsFunctionalBehaviorView",
+        "textual-notation-of-model/packages/features/aebs/aebs_functional_architecture.sysml": (
+            "aebsFunctionalArchitectureView",
             "VehicleTargetAEBSFunctionalFlow",
             "aebsFunctionalInterfaceView",
         ),
-        "textual-notation-of-model/packages/features/middleware/mw_functional_architecture.sysml": (
-            "mwFunctionalBehaviorView",
+        "textual-notation-of-model/packages/features/middleware/middleware_functional_architecture.sysml": (
+            "middlewareFunctionalArchitectureView",
             "MiddlewareIntegrationFunctionalFlow",
-            "mwFunctionalInterfaceView",
+            "middlewareFunctionalInterfaceView",
         ),
     }
     for relative_path, (behavior_name, flow_name, interface_name) in cases.items():
@@ -202,7 +202,7 @@ def test_function_and_interface_views_do_not_dump_packages() -> None:
         behavior = _block(model, f"view {behavior_name}")
         assert f"expose {flow_name};" in behavior
         interface = _block(model, f"view {interface_name}")
-        if interface_name == "mwFunctionalInterfaceView":
+        if interface_name == "middlewareFunctionalInterfaceView":
             assert "expose FunctionalArchitecture::VehicleSignalAccessInbound;" in interface
             assert "expose FunctionalArchitecture::VehicleSignalAccessRequest;" not in interface
             assert "FunctionalArchitecture::*[" not in interface
@@ -221,13 +221,13 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     conceptual = (
         ROOT
         / "textual-notation-of-model/packages/features/middleware/"
-        "mw_logical_architecture.sysml"
+        "middleware_logical_architecture.sysml"
     ).read_text(encoding="utf-8")
-    structure = _block(conceptual, "view mwSystemStructureView")
+    structure = _block(conceptual, "view middlewareSystemStructureView")
     assert "expose MiddlewareSystem;" in structure
     assert "attribute maxCompartmentEntries = 6;" in structure
     assert "expose MiddlewareSystem::*;" not in structure
-    assert "expose DE4SDV_MWLogicalArchitecture::*;" not in structure
+    assert "expose DE4SDV_MiddlewareLogicalArchitecture::*;" not in structure
     assert "view mwSystemInternalExchangeView" not in conceptual
     normalized = " ".join(conceptual.split())
     assert "cross-component connections or" in normalized
@@ -236,13 +236,13 @@ def test_system_and_physical_views_are_scoped_to_the_subject() -> None:
     physical = (
         ROOT
         / "textual-notation-of-model/packages/features/middleware/"
-        "mw_physical_software_realization.sysml"
+        "middleware_physical_software_realization.sysml"
     ).read_text(encoding="utf-8")
-    physical_structure = _block(physical, "view mwPhysicalStructureView")
+    physical_structure = _block(physical, "view middlewarePhysicalStructureView")
     assert "expose MiddlewarePhysicalSoftwareBoundary;" in physical_structure
     # -1 = show all compartment rows (Syside: -1 all, 0 hide, N first N)
     assert "attribute maxCompartmentEntries = -1;" in physical_structure
     assert "expose MiddlewarePhysicalSoftwareBoundary::*;" not in physical_structure
-    assert "expose DE4SDV_MWPhysicalSoftwareRealization::*;" not in physical_structure
+    assert "expose DE4SDV_MiddlewarePhysicalSoftwareRealization::*;" not in physical_structure
     assert "view mwPhysicalInterfaceView" not in physical
     assert "view mwVehicleSpeedCampaignInternalExchangeView" not in physical

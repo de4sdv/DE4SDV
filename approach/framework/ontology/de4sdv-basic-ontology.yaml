@@ -312,7 +312,7 @@ classes:
   AcceptanceCriterion:
     definition: A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.
     kernel:
-      file: textual-notation-of-model/packages/features/middleware/mw_verification_evidence.sysml
+      file: textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml
       declaration: requirement def MiddlewareAcceptanceCriterion010
   EvidenceArtifact:
     definition: A reviewable artifact that supports a verification, validation, assurance, or release decision.

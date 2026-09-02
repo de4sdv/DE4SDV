@@ -301,11 +301,11 @@ def test_ontology_validation_reports_all_binding_categories_explicitly() -> None
         ),
         acceptance_a: (
             "textual-notation-of-model/packages/features/middleware/"
-            "mw_verification_evidence.sysml"
+            "middleware_verification_evidence.sysml"
         ),
         acceptance_b: (
             "textual-notation-of-model/packages/features/middleware/"
-            "mw_verification_evidence.sysml"
+            "middleware_verification_evidence.sysml"
         ),
     }
 

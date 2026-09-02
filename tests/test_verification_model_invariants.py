@@ -61,7 +61,7 @@ def test_model_discovers_at_least_the_known_verification_models():
     paths = verification_model_paths()
     names = {p.name for p in paths}
     assert "aebs_evidence.sysml" in names
-    assert "mw_verification_evidence.sysml" in names
+    assert "middleware_verification_evidence.sysml" in names
     assert len(paths) >= 9
 
 

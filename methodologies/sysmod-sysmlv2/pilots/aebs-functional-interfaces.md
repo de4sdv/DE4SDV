@@ -21,7 +21,7 @@ INC-AEBS-005 introduces:
 3. **Signal classification** — every VSS signal attribute in every functional item is classified.
 4. **Upstreaming posture** — every DE4SDV candidate VSS extension signal has a proposed upstreaming stance with rationale and review priority.
 
-The port definitions and functional chain are added to the existing `aebs_functional_behavior.sysml` file inside the `FunctionalBehavior` package, not in a separate file. SysIDE does not support cross-file sibling package imports within the same `DE4SDV` namespace.
+The port definitions and functional chain are added to the existing `aebs_functional_architecture.sysml` file inside the `FunctionalBehavior` package, not in a separate file. SysIDE does not support cross-file sibling package imports within the same `DE4SDV` namespace.
 
 Port-to-action bindings use the `perform` block parameter binding pattern from the SysML v2 Pilot Implementation corpus: inside a `perform` body, bind performed action parameters to port items using `=` assignment.
 
