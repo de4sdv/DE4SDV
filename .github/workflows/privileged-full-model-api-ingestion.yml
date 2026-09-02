@@ -24,6 +24,15 @@ on:
 permissions:
   contents: read
 
+# The ingestion job builds a JVM service from source and runs the full
+# Syside export + API import chain. Parallel pull_request runs contend for
+# runner capacity and stretch each other's wall time, so serialize runs:
+# queue them instead of letting them fight (same pattern as the deploy
+# workflow's sysml-api-production group).
+concurrency:
+  group: privileged-full-model-api-ingestion
+  cancel-in-progress: false
+
 jobs:
   ingest-and-validate:
     if: >-
