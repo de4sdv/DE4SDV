@@ -309,7 +309,7 @@ def test_governed_artifacts_use_descriptive_identity_and_record_ratification() -
     assert "OperationProductDecisionBindingStage" not in model
 
     gate_b = GATE_B_RECORD.read_text(encoding="utf-8")
-    assert "SOURCE-INFORMED EXPERIMENTAL OVERRIDE — upstream contact deferred" in gate_b
+    assert "Source-informed experimental override — upstream contact deferred" in gate_b
     assert "not upstream-confirmed" in gate_b
     assert "XORConstraint" in gate_b
 

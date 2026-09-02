@@ -1,6 +1,6 @@
 # Gate B: source-informed experimental override
 
-**Disposition:** **SOURCE-INFORMED EXPERIMENTAL OVERRIDE — upstream contact deferred**
+**Disposition:** **Source-informed experimental override — upstream contact deferred**
 
 **Decision authority:** Orkun Yilmaz, DE4SDV technical lead and maintainer  
 **Decision date:** 2026-09-01  

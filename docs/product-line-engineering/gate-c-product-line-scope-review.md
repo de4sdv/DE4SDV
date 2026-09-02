@@ -135,7 +135,7 @@ hand-maintained numbering scheme supplies machine identity.
 
 Gate B is [recorded](gate-b-source-informed-experimental-override.md) as:
 
-> **SOURCE-INFORMED EXPERIMENTAL OVERRIDE — upstream contact deferred**
+> **Source-informed experimental override — upstream contact deferred**
 
 No upstream issue or contact was created. PLEML remains exact-pinned,
 experimental, reversible, and not upstream-confirmed. The suspected
