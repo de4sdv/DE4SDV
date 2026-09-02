@@ -11,11 +11,25 @@ Diagrams are the committed `syside viz` artifacts gathered in each first-level
 model area's `diagrams/` folder, so what you see is exactly what the privileged
 validation workflow rendered — never a re-render.
 
+## Diagram provenance
+
+Every diagram in this viewer is a **committed artifact**, not a live render: it
+was produced with [SysIDE](https://docs.sensmetry.com/editor/) (`syside viz`) by
+the privileged validation workflow and committed to the repository beside the
+model sources in each area's `diagrams/` folder. The viewer embeds exactly those
+files — it never re-renders or invents a diagram.
+
+To render or refresh diagrams yourself, install the SysIDE Editor extension for
+VS Code — setup and the visualization commands are in the
+[official SysIDE documentation](https://docs.sensmetry.com/editor/) — open the
+package that declares the view, run the visualization command on it, and
+contribute the updated SVG through a pull request.
+
 ## The live website
 
-A live viewer is deployed at **<https://viewer.de4sdv.org>**, rebuilt from
-`main` and open pull requests by the deploy workflow. It is the public
-instance — what you see there is committed content only.
+A live viewer is deployed at **[viewer.de4sdv.org](https://viewer.de4sdv.org)**,
+rebuilt from `main` and open pull requests by the deploy workflow. It is the
+public instance — what you see there is committed content only.
 
 ## Repository diagram collections
 

@@ -352,14 +352,14 @@ def test_help_page_fallback_when_guide_missing(tmp_path):
     assert "No help content found" in html
     assert 'class="help-back" href="index.html"' in html
     index = (out / "index.html").read_text(encoding="utf-8")
-    assert re.search(r'<a class="site-chat" href="help\.html">Help</a>', index)
+    assert '<a class="site-nav-link" href="help.html">Help</a>' in index
     # the elements page is always emitted too, with its own fallback
     elements_page = out / "elements.html"
     assert elements_page.is_file()
     elements_html = elements_page.read_text(encoding="utf-8")
     assert "DE4SDV Model Viewer — Model Elements" in elements_html
     assert "No element guide found" in elements_html
-    assert re.search(r'<a class="site-chat" href="elements\.html">Elements</a>', index)
+    assert '<a class="site-nav-link" href="elements.html">Elements</a>' in index
 
 
 def test_help_page_renders_guide_markdown(tmp_path):
@@ -434,7 +434,7 @@ def test_elements_page_renders_guide_markdown(tmp_path):
     assert "<td><code>dependency</code></td><td>trace links</td>" in html
     assert "No element guide found" not in html
     index = (out / "index.html").read_text(encoding="utf-8")
-    assert re.search(r'<a class="site-chat" href="elements\.html">Elements</a>', index)
+    assert '<a class="site-nav-link" href="elements.html">Elements</a>' in index
     # deterministic: a second build produces identical bytes
     out2 = tmp_path / "site2"
     generate(repo, out2, ["textual-notation-of-model/packages"])
@@ -1002,12 +1002,14 @@ def test_tree_search(tmp_path):
     assert "IBM+Plex+Sans" in index
     assert "IBM+Plex+Mono" in file_page
     # header links to the community chat (beside the brand, with icon)
-    assert 'class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener"' in index
-    assert 'class="site-chat" href="https://chat.de4sdv.org"' in file_page
+    assert 'class="site-nav-link" href="https://chat.de4sdv.org" target="_blank" rel="noopener"' in index
+    assert 'class="site-nav-link" href="https://chat.de4sdv.org"' in file_page
     assert "site-chat-icon" in index
     # no subtitle line in the header anymore
     assert "site-sub" not in index
-    assert "read-only browser over the SysML v2 textual model" not in index
+    # the header must not carry a subtitle; the landing welcome card may
+    header_html = index.split("<header", 1)[1].split("</header>", 1)[0]
+    assert "read-only browser over the SysML v2 textual model" not in header_html
 
 
 def test_source_symbol_tooltips(tmp_path):
@@ -1497,11 +1499,11 @@ def test_tree_filters(tmp_path):
         assert f'id="{sid}"' in index, f"missing {sid}"
     # kind options come from the tree (members, views, files, dirs)
     for opt in ("part def", "view", "viewpoint def", "file", "dir"):
-        assert f'<option value="{opt}">{opt}</option>' in index, f"missing kind {opt}"
+        assert f'<option value="{opt}">{opt} (' in index, f"missing kind count {opt}"
     # SAF options come from the viewpoint def's doc comment
-    assert '<option value="Fixture">Fixture</option>' in index
-    assert '<option value="Test &amp; Sample">Test &amp; Sample</option>' in index
-    assert '<option value="FixtureViewpoint">FixtureViewpoint</option>' in index
+    assert '<option value="Fixture">Fixture (' in index
+    assert '<option value="Test &amp; Sample">Test &amp; Sample (' in index
+    assert '<option value="FixtureViewpoint">FixtureViewpoint (' in index
     assert 'id="clearFilters"' in index
 
     # view node carries kind + viewpoint + SAF domain/aspect attrs
