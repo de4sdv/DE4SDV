@@ -99,9 +99,11 @@ class _ScopeGraph:
                 relationship.get("memberElement")
                 or relationship.get("ownedRelatedElement")
             )
-            if member_id:
-                self.require(member_id)
-                members.append(member_id)
+            if not member_id:
+                continue
+            if self.require(member_id).get("@type") == "Documentation":
+                continue
+            members.append(member_id)
         return tuple(sorted(members))
 
     def type_ids(self, usage_id: str) -> frozenset[str]:
@@ -122,11 +124,20 @@ class _ScopeGraph:
         return frozenset(types)
 
     def typed_usages(self, definition_id: str) -> frozenset[str]:
-        result = {
-            identifier
-            for identifier in self.by_id
-            if definition_id in self.type_ids(identifier)
-        }
+        result: set[str] = set()
+        for relationship in self.elements:
+            if relationship.get("@type") != "FeatureTyping":
+                continue
+            target = element_id(relationship.get("type") or relationship.get("general"))
+            if target != definition_id:
+                continue
+            self._relationship_scope_source(relationship)
+            typed = element_id(
+                relationship.get("typedFeature") or relationship.get("specific")
+            )
+            if typed:
+                self.require(typed)
+                result.add(typed)
         return frozenset(result)
 
     def outgoing_dependency_targets(self, source_id: str) -> frozenset[str]:
@@ -171,20 +182,33 @@ class _ScopeGraph:
     def variant_occurrences(self, variation_id: str) -> list[str]:
         occurrences: list[str] = []
         for relationship in self.elements:
-            if relationship.get("@type") != "Subsetting":
+            if relationship.get("@type") == "Subsetting":
+                general = element_id(
+                    relationship.get("subsettedFeature") or relationship.get("general")
+                )
+                if general != variation_id:
+                    continue
+                self._relationship_scope_source(relationship)
+                specific = element_id(
+                    relationship.get("subsettingFeature")
+                    or relationship.get("specific")
+                )
+                if specific:
+                    self.require(specific)
+                    occurrences.append(specific)
                 continue
-            general = element_id(
-                relationship.get("subsettedFeature") or relationship.get("general")
-            )
-            if general != variation_id:
+            if relationship.get("@type") != "VariantMembership":
+                continue
+            if element_id(relationship.get("owningRelatedElement")) != variation_id:
                 continue
             self._relationship_scope_source(relationship)
-            specific = element_id(
-                relationship.get("subsettingFeature") or relationship.get("specific")
+            member_id = element_id(
+                relationship.get("memberElement")
+                or relationship.get("ownedRelatedElement")
             )
-            if specific:
-                self.require(specific)
-                occurrences.append(specific)
+            if member_id:
+                self.require(member_id)
+                occurrences.append(member_id)
         return occurrences
 
 
