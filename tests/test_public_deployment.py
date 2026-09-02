@@ -219,6 +219,11 @@ def test_import_accepts_deployment_specific_identities(
         # The importer must be invoked from the repo with the exact export.
         assert "scripts/import_sysml_api_baseline.py" in " ".join(cmd)
         assert str(evidence["export_path"]) in " ".join(cmd)
+        # Direct (non-proxied) importer calls must present the allow-listed
+        # Host header, or Play's AllowedHostsFilter returns 400 for every
+        # request (deploy-host bridge IP is not in the allow list).
+        assert "--api-host-header" in cmd
+        assert cmd[cmd.index("--api-host-header") + 1] == deploy.api_host_header()
         # Simulate the deployment API repository generating its OWN identities.
         binding = {
             "git_commit": facts["git_sha"],
@@ -616,3 +621,67 @@ def test_workflow_uses_dedicated_venv_python_for_deploy() -> None:
     )
     assert "/srv/de4sdv/venv/bin/python deployment/scripts/deploy.py" in wf
     assert "sudo DEPLOY_DIR=/srv/de4sdv python3 deployment/scripts/deploy.py" not in wf
+
+
+# ------------------------------------------------- direct-call Host header
+
+
+def test_wait_for_api_sends_allow_listed_host_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The readiness probe bypasses Caddy and must present the accepted Host.
+
+    Regression: probing the container by bridge IP sent ``Host: <ip>:9000``,
+    which Play's AllowedHostsFilter rejects with 400, so every deploy run
+    timed out with "API did not become ready: HTTP Error 400".
+    """
+    captured: dict[str, Any] = {}
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_a):
+            return False
+
+    def fake_urlopen(request, timeout=None):
+        captured["url"] = request.full_url
+        captured["headers"] = {k.lower(): v for k, v in request.header_items()}
+        return FakeResponse()
+
+    monkeypatch.setattr(deploy, "api_base_url_from_docker", lambda: "http://172.18.0.5:9000")
+    monkeypatch.setattr(deploy.urlrequest, "urlopen", fake_urlopen)
+
+    deploy.wait_for_api(timeout_s=5)
+
+    assert captured["url"] == "http://172.18.0.5:9000/projects"
+    assert captured["headers"]["host"] == deploy.api_host_header()
+    # The accepted value must be the compose service name, not an address.
+    assert deploy.api_host_header() == "sysml2-api:9000"
+
+
+def test_importer_threads_host_header_into_api_client() -> None:
+    """``--api-host-header`` reaches ApiClient.default_headers; absent flag = no Host override."""
+    import inspect
+
+    from de4sdv.sysml_api.client import ApiClient
+
+    spec = importlib.util.spec_from_file_location(
+        "import_sysml_api_baseline", REPO / "scripts" / "import_sysml_api_baseline.py"
+    )
+    assert spec is not None and spec.loader is not None
+    importer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(importer)
+
+    signature = inspect.signature(importer.run_import)
+    assert "api_host_header" in signature.parameters
+    assert signature.parameters["api_host_header"].default is None
+
+    # ApiClient maps default_headers into every request (the mechanism used).
+    client = ApiClient("http://172.18.0.5:9000", default_headers={"Host": "sysml2-api:9000"})
+    request_headers = {"Accept": "application/json", **client.default_headers}
+    assert request_headers["Host"] == "sysml2-api:9000"
+    # No flag -> empty default_headers -> urllib auto-Host (unchanged behavior).
+    assert ApiClient("http://host:9000").default_headers == {}
