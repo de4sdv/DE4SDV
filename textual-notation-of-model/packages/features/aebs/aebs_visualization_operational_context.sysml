@@ -9,13 +9,13 @@
  * rendering surface.
  */
 
-package DE4SDV_AEBS010VisualizationOperationalContext {
+package DE4SDV_AEBSVisualizationOperationalContext {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_OperationalContext::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_SYSMODAdapter::*;
-  private import DE4SDV_AEBS010VisualizationFraming::*;
+  private import DE4SDV_AEBSVisualizationFraming::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
@@ -149,7 +149,7 @@ package DE4SDV_AEBS010VisualizationOperationalContext {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs010OperationalContextView {
+  view aebsVisualizationOperationalContextView {
     viewpoint selectedOperationalViewpoint : OperationalContextDefinitionViewpoint {
       frame visualizationScenarioConcern;
     }

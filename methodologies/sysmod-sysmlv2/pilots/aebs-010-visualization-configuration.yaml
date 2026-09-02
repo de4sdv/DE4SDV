@@ -31,7 +31,7 @@ runtime_bindings:
   status: planned_obligations_not_executed_pins
   sysml_owner: >-
     textual-notation-of-model/packages/features/aebs/
-    aebs_010_visualization_variability_configuration.sysml
+    aebs_visualization_variability_configuration.sysml
   bindings:
     - "AO-AEBS-010-001 aosp_manifest_revision (pinned at implementation)"
     - "AO-AEBS-010-002 autoware_container_digest (from 009B runtime lock; pinned at implementation)"
@@ -47,13 +47,16 @@ implementation_artifacts:
   planned_root: implementation/aebs-aaos-sdv-visualization-bench/
   created_this_slice:
     - implementation/aebs-aaos-sdv-visualization-bench/config/test-article.yaml
-  deferred_to_implementation_slice:
-    - runtime-lock.yaml
+  created_by_implementation_slice:
+    # Materialized by the INC-AEBS-010 implementation/evidence PRs; the
+    # Phase 9 configuration slice no longer treats them as deferred.
     - interface/aebs_visualization.proto
     - src/de4sdv_aebs_010_bridge/
     - aosp/vendor/de4sdv/aebs_visualization/
     - scripts/
     - evidence/010/
+  deferred_to_implementation_slice:
+    - runtime-lock.yaml
 
 claim_boundary: >-
   Planned test-article configuration only. No runtime evidence, preflight
@@ -63,7 +66,7 @@ claim_boundary: >-
 
 model_artifacts:
   - id: MODEL-AEBS-010-VARIABILITY-CONFIGURATION-SYSML
-    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_variability_configuration.sysml
+    path: textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml
     status: draft
 
 next_increment:

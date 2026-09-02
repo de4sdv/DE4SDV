@@ -17,13 +17,13 @@
     "DE4SDV_ROS2Types": "textual-notation-of-model/packages/architecture/ros2_types.sysml",
     "DE4SDV_SDVPlatformStack": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
     "DE4SDV_VehicleSensingBoundary": "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml",
-    "DE4SDV_AEBS010VisualizationFraming": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_framing.sysml",
-    "DE4SDV_AEBS010VisualizationFunctionalArchitecture": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_functional_architecture.sysml",
-    "DE4SDV_AEBS010VisualizationLogicalArchitecture": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_logical_architecture.sysml",
-    "DE4SDV_AEBS010VisualizationNeedsRequirements": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_needs_requirements.sysml",
-    "DE4SDV_AEBS010VisualizationOperationalContext": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_operational_context.sysml",
-    "DE4SDV_AEBS010VisualizationPhysicalRealization": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_physical_realization.sysml",
-    "DE4SDV_AEBS010VisualizationVariabilityConfiguration": "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_variability_configuration.sysml",
+    "DE4SDV_AEBSVisualizationFraming": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml",
+    "DE4SDV_AEBSVisualizationFunctionalArchitecture": "textual-notation-of-model/packages/features/aebs/aebs_visualization_functional_architecture.sysml",
+    "DE4SDV_AEBSVisualizationLogicalArchitecture": "textual-notation-of-model/packages/features/aebs/aebs_visualization_logical_architecture.sysml",
+    "DE4SDV_AEBSVisualizationNeedsRequirements": "textual-notation-of-model/packages/features/aebs/aebs_visualization_needs_requirements.sysml",
+    "DE4SDV_AEBSVisualizationOperationalContext": "textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml",
+    "DE4SDV_AEBSVisualizationPhysicalSoftwareRealization": "textual-notation-of-model/packages/features/aebs/aebs_visualization_physical_software_realization.sysml",
+    "DE4SDV_AEBSVisualizationVariabilityConfiguration": "textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml",
     "DE4SDV_AEBS009HVerification": "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml",
     "DE4SDV_AEBS009FVerification": "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml",
     "DE4SDV_AEBS009BNominalEvidence": "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml",
@@ -130,31 +130,31 @@
       "value": "",
       "algorithm": "NONE"
     },
-    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_framing.sysml": {
+    "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml": {
       "value": "",
       "algorithm": "NONE"
     },
-    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_functional_architecture.sysml": {
+    "textual-notation-of-model/packages/features/aebs/aebs_visualization_functional_architecture.sysml": {
       "value": "",
       "algorithm": "NONE"
     },
-    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_logical_architecture.sysml": {
+    "textual-notation-of-model/packages/features/aebs/aebs_visualization_logical_architecture.sysml": {
       "value": "",
       "algorithm": "NONE"
     },
-    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_needs_requirements.sysml": {
+    "textual-notation-of-model/packages/features/aebs/aebs_visualization_needs_requirements.sysml": {
       "value": "",
       "algorithm": "NONE"
     },
-    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_operational_context.sysml": {
+    "textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml": {
       "value": "",
       "algorithm": "NONE"
     },
-    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_physical_realization.sysml": {
+    "textual-notation-of-model/packages/features/aebs/aebs_visualization_physical_software_realization.sysml": {
       "value": "",
       "algorithm": "NONE"
     },
-    "textual-notation-of-model/packages/features/aebs/aebs_010_visualization_variability_configuration.sysml": {
+    "textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml": {
       "value": "",
       "algorithm": "NONE"
     },

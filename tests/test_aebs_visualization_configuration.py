@@ -9,7 +9,7 @@ MODEL_DIR = Path("textual-notation-of-model/packages/features/aebs")
 PILOT = Path(
     "methodologies/sysmod-sysmlv2/pilots/aebs-010-visualization-configuration.yaml"
 )
-CONFIG_SYSML = MODEL_DIR / "aebs_010_visualization_variability_configuration.sysml"
+CONFIG_SYSML = MODEL_DIR / "aebs_visualization_variability_configuration.sysml"
 TEST_ARTICLE = Path(
     "implementation/aebs-aaos-sdv-visualization-bench/config/test-article.yaml"
 )
@@ -62,13 +62,13 @@ def test_configuration_reuses_projection_without_regeneration() -> None:
 
 def test_test_article_declares_deployed_chain_and_aebs_baseline() -> None:
     config = _read(CONFIG_SYSML)
-    assert "part visualizationChain : AEBS010VisualizationPhysicalSystem" in config
+    assert "part visualizationChain : AEBSVisualizationPhysicalSystem" in config
     assert "part aebsCapabilityBaseline" in config
     assert (
         "dependency testArticleDeploysVisualizationChain" in config
     )
     assert (
-        "to DE4SDV_AEBS010VisualizationPhysicalRealization::physicalSystem;" in config
+        "to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem;" in config
     )
 
 

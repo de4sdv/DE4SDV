@@ -13,7 +13,7 @@
  * satisfy INC-MW-010 gate 8 or its retained evidence set E-MW-011..E-MW-014.
  */
 
-package DE4SDV_AEBS010VisualizationFraming {
+package DE4SDV_AEBSVisualizationFraming {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -86,12 +86,12 @@ package DE4SDV_AEBS010VisualizationFraming {
 
   /* Dependency to the mandated predecessor decision (qualified reference,
    * no restatement of predecessor content). */
-  dependency successorMandate010
+  dependency successorMandate
     from incAEBS010 to successorIncrementDecision010;
 
-  dependency framingToProblemStatement010
+  dependency framingToProblemStatement
     from visualizationEngineeringQuestion to visualizationProblemStatement;
-  dependency scopeToTraceabilityShell010
+  dependency scopeToTraceabilityShell
     from visualizationScope to visualizationTraceabilityShell;
 
   part system1ConfiguredAEBSSDVMember : System1SDVProductLine {
@@ -139,41 +139,41 @@ package DE4SDV_AEBS010VisualizationFraming {
     doc /* Safety, ASIL, compliance, certification, homologation claims. */
   }
 
-  part asm010System1Unchanged : IncrementAssumption {
+  part asmSystem1Unchanged : IncrementAssumption {
     doc /*
      * ASM-AEBS-010-001: The visualization consumes System 1 AEBS behavior and
      * changes no AEBS detection, warning, intervention, or release behavior.
      */
   }
-  part asm010RealSourcesRequired : IncrementAssumption {
+  part asmRealSourcesRequired : IncrementAssumption {
     doc /*
      * ASM-AEBS-010-002: Displayed threat state must originate from the pinned
      * native Autoware AEB component and the existing DE4SDV AEBS coordinator;
      * AAOS-originated or display-generated AEBS state is not evidence.
      */
   }
-  part asm010BoundedBenchClaim : IncrementAssumption {
+  part asmBoundedBenchClaim : IncrementAssumption {
     doc /*
      * ASM-AEBS-010-003: Accepted claims remain limited to a deterministic
      * bench environment; no on-road, production, or fleet behavior is claimed.
      */
   }
 
-  part gap010RealizationUnselected : IncrementGap {
+  part gapRealizationUnselected : IncrementGap {
     doc /*
      * GAP-AEBS-010-001: No architecture, target, transport, or application
      * realization is selected in this framing slice; deferred to the
      * architecture increment in the same chain.
      */
   }
-  part gap010ThresholdsUnpinned : IncrementGap {
+  part gapThresholdsUnpinned : IncrementGap {
     doc /*
      * GAP-AEBS-010-002: Freshness timeouts, restoration counts, frame rates,
      * and transport parameters are named as planning targets only and remain
      * unpinned until the Phase 8/9 configuration work in the chain.
      */
   }
-  part gap010EvidenceUnplanned : IncrementGap {
+  part gapEvidenceUnplanned : IncrementGap {
     doc /*
      * GAP-AEBS-010-003: No verification case or evidence artifact exists yet;
      * V&V planning is deferred to the evidence increment in the same chain.
@@ -213,7 +213,7 @@ package DE4SDV_AEBS010VisualizationFraming {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs010FramingView {
+  view aebsVisualizationFramingView {
     viewpoint selectedFramingViewpoint : IncrementFramingViewpoint {
       frame visualizationProvenanceConcern;
       frame visualizationBoundaryConcern;

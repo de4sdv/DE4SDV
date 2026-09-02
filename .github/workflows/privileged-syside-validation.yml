@@ -270,11 +270,11 @@ jobs:
             if [ "${folder}" = "textual-notation-of-model/packages/features/aebs" ]; then
               extra_args+=(
                 --allow-missing
-                diagram-matrix-aebs010FunctionRequirementMappingView.svg
+                diagram-matrix-aebsVisualizationFunctionRequirementMappingView.svg
                 --allow-nonmaterialized
-                diagram-aebs010FramingView.svg
+                diagram-aebsVisualizationFramingView.svg
                 --allow-nonmaterialized
-                diagram-aebs010FunctionInternalExchangeView.svg
+                diagram-aebsVisualizationFunctionInternalExchangeView.svg
               )
             fi
             python scripts/check_committed_view_artifacts.py \

@@ -106,8 +106,9 @@ Rules:
 
 - Prefixes and subject codes come only from the registries below. A newcomer
   must never have to guess whether `E` means Evidence, Element, Event, or
-  Error — hence `E` is legacy-only and `EVID` is the readable form for new
-  evidence IDs.
+  Error — hence `E` is a retired grammar retained only as grandfathered
+  identities (§5.1) and `EVID` is the readable form; likewise `N` is retired
+  and `NEED` is the readable form for new need IDs.
 - Sequence numbers are never renumbered or reused. Superseded IDs keep their
   identity; new work allocates the next free number.
 - Before allocating any ID, sweep all existing IDs across every `.sysml`,
@@ -119,6 +120,21 @@ Rules:
 
 ## 5. Identifier-prefix registry
 
+Every registered family carries exactly one classification:
+
+- **CANONICAL** — the grammar is readable and owned; new identities may use
+  it.
+- **EXTERNAL** — domain/standard identity owned outside DE4SDV; registered
+  only so it is never mistaken for a project ID.
+- **GRANDFATHERED** — a legacy grammar that is readable-but-superseded or
+  externally referenced; only the exact enumerated identities remain valid
+  (§5.1), and creating sibling identities under the retired grammar fails
+  the naming check deterministically. Grandfathering is never a license to
+  extend the legacy pattern.
+- **RETIRED→MIGRATE** — internal, unbound, and still cheap to change; the
+  migration manifest lists the rename. (No family currently sits here; the
+  class exists so future findings have a declared path.)
+
 Two registry groups exist. **Strict prefixes** form `<TYPE>-<SUBJECT>-<SEQ>`
 trace IDs whose subject must be registered (§6). **Free-form prefixes** are
 registered codes whose remainder is a meaningful but free-form name (role
@@ -128,68 +144,107 @@ are not syntax-validated.
 
 ### Strict prefixes (`<TYPE>-<SUBJECT>-<SEQ>[-<SUBSEQ>]`)
 
-| Code | Meaning | Artifact/entity type | Example | New IDs may use |
+| Code | Meaning | Artifact/entity type | Example | Class / new IDs |
 |---|---|---|---|---|
-| `INC` | Engineering increment | Increment charter/parts | `INC-AEBS-010` | yes |
-| `REQ` | Requirement | Design-input requirement | `REQ-AEBS-014` | yes |
-| `N` | Stakeholder need | Stakeholder need usage | `N-AEBS-009` | yes |
-| `AC` | Acceptance criterion | Criterion on a verification case | `AC-MW-010-02` | yes |
-| `VC` | Verification case | Verification activity | `VC-MW-010-01` | yes |
-| `E` | Evidence (legacy spelling) | Retained evidence record | `E-MW-011` | **no** — use `EVID` |
-| `EVID` | Evidence | Retained evidence record | `EVID-AEBS-001` | yes |
-| `GAP` | Gap | Deferred scope / open gap | `GAP-MW-022` | yes |
-| `BL` | Baseline | Baseline decision record | `BL-MW-010-P12` | yes |
-| `SC` | Validation scenario | Bounded validation scenario | `SC-AEBS-010-01` | yes |
+| `INC` | Engineering increment | Increment charter/parts | `INC-AEBS-010` | CANONICAL |
+| `REQ` | Requirement | Design-input requirement | `REQ-AEBS-014` | CANONICAL |
+| `NEED` | Stakeholder need (readable form) | Stakeholder need usage | *(none yet)* | CANONICAL — use for new need IDs |
+| `N` | Stakeholder need (legacy spelling) | Stakeholder need usage | `N-AEBS-009` | GRANDFATHERED (§5.1) — use `NEED` |
+| `AC` | Acceptance criterion | Criterion on a verification case | `AC-MW-010-02` | CANONICAL |
+| `VC` | Verification case | Verification activity | `VC-MW-010-01` | CANONICAL |
+| `EVID` | Evidence | Retained evidence record | `EVID-AEBS-001` | CANONICAL |
+| `E` | Evidence (retired spelling) | Retained evidence record | `E-MW-011` | GRANDFATHERED (§5.1) — use `EVID` |
+| `GAP` | Gap | Deferred scope / open gap | `GAP-MW-022` | CANONICAL |
+| `BL` | Baseline | Baseline decision record | `BL-MW-010-P12` | CANONICAL |
+| `SC` | Validation scenario | Bounded validation scenario | `SC-AEBS-010-01` | CANONICAL |
+
+### 5.1 Grandfathered legacy identities (closed sets)
+
+The retired grammars below are enforced **deterministically**:
+`scripts/check_naming.py` keeps the exact identity sets as allowlists. An
+enumerated identity remains valid wherever it is referenced; any sibling
+spelling (`E-MW-999`, `N-AEBS-015`, `N-MW-010`) is rejected like an
+unregistered prefix. New identities must use the canonical grammar.
+
+`E-<SUBJECT>-<SEQ>` — retained evidence chain of the closed INC-MW-010
+verification record. These IDs are bound inside retained evidence YAML,
+SysML evidence/provenance prose, and the INC-AEBS-010 predecessor
+alignment; renaming them would break provenance-bearing records for zero
+semantic gain. The set is closed:
+
+`E-MW-008`, `E-MW-010`, `E-MW-011`, `E-MW-012`, `E-MW-013`, `E-MW-014`.
+
+`N-<SUBJECT>-<SEQ>` — need identities already anchored in bench
+configuration matrices, evidence records, and the AEBS operational-context
+pilot (traceability would silently rot if renumbered). The set is closed:
+
+`N-AEBS-001`…`N-AEBS-014`, `N-AEBS-OP-001`…`N-AEBS-OP-005`,
+`N-MW-001`…`N-MW-009`.
+
+New need IDs use `NEED-<SUBJECT>-<SEQ>`; new evidence IDs use
+`EVID-<SUBJECT>-<SEQ>`.
 
 ### Free-form prefixes (registered; remainder is a meaningful name)
 
-| Code | Meaning | Where used | Example |
-|---|---|---|---|
-| `AO` | Acceptance objective | increment pilot index | `AO-AEBS-010-004` |
-| `ASM` | Assumption | pilot index | `ASM-MW-016` |
-| `ACT` | Actor | pilot index | `ACT-SUBJECT-VEHICLE` |
-| `ALT` | Realization alternative | pilot index | `ALT-MW-KUKSA-001` |
-| `BLK` | Physical element block | pilot index | `BLK-AEBS-PHY-001` |
-| `CAP` | Capability | pilot index | `CAP-AEBS-FCRM` |
-| `CC` | Common capability | pilot index | `CC-MW-001` |
-| `CLS` | Classification record | pilot index | `CLS-AEBS-010-001` |
-| `DEC` | Decision record | pilot index | `DEC-AEBS-LOG-001` |
-| `DEF` | Deferral | pilot index | `DEF-AEBS-PHY-001` |
-| `EC` | Evidence criterion (executed acceptance observation) | pilot index | `EC-AEBS-009B-01` |
-| `FEAT` | Feature | pilot index | `FEAT-AEBS-VEHICLE-TARGET` |
-| `FUNC` | Function | pilot index | `FUNC-AEBS-001` |
-| `ITEM` | Information item | pilot index | `ITEM-INTERNAL-001` |
-| `LCOMP` | Logical component | pilot index | `LCOMP-AEBS-001` |
-| `LPORT` | Logical port | pilot index | `LPORT-AEBS-IN-001` |
-| `MAP` | Signal mapping record | pilot index | `MAP-MW-008-VEHICLE-SPEED` |
-| `MODEL` | Model artifact index entry | pilot index | `MODEL-AEBS-010-VARIABILITY-CONFIGURATION-SYSML` |
-| `PORT` | Port | pilot index | `PORT-AEBS-IN-001` |
-| `PROBE` | Realization-readiness probe | pilot index | `PROBE-MW-008-AAOS-CUTTLEFISH-BOOT` |
-| `PF` | Bench preflight check | bench tooling | `PF-004` |
-| `QF` | Qualification finding | pilot index | `QF-AEBS-REQ-001` |
-| `REAL` | Realization record | pilot index | `REAL-MW-DIRECT-001` |
-| `SCN` | Bench scenario identity | bench tooling / pilots | `SCN-AEBS-009D-STALE` |
-| `SET` | Needs/requirements set | pilot index | `SET-AEBS-S1-NEEDS` |
-| `C` | Common capability node | feature model | `C-CAPABILITY-AEBS-VEHICLE-TARGET` |
-| `D` | Derived asset | feature model | `D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER` |
-| `F` | Feature node | feature model | `F-PLATFORM-STACK` |
-| `PL` | Product line | feature-model root | `PL-DE4SDV` |
-| `CLM` | Claim (assurance argumentation) | middleware evidence slice + guide | `CLM-MW-010-01` |
-| `AGT` | Assurance argument (argumentation) | middleware evidence slice + guide | `AGT-MW-010-01` |
-| `CCM` | Counter-claim (argumentation) | middleware evidence slice + guide | `CCM-MW-010-01` |
-| `VM` | Campaign bench virtual-machine host label | bench docs/code | `VM-A`, `VM-B` |
-| `H` | Hazard (compliance safety) | hazard analysis artifacts | `H-001` |
-| `T` | Threat (compliance security) | threat model artifacts | `T-001` |
-| `SRC` | External source anchor | model + pilots | `SRC-UNECE-R152` |
-| `STK` | Stakeholder index entry | pilot index | `STK-PRODUCT-LINE-ENGINEER` |
-| `STORY` | Operational story | pilot index | `STORY-AEBS-VEHICLE-TARGET-001` |
-| `SYSML` | External spec anchor (pinned spec/release) | pilots | `SYSML-V2-RELEASE-3f895b7` |
-| `SAF` | External SAF anchor | pilots | `SAF-CONCEPTUAL-DOMAIN` |
-| `UNECE` | External regulation anchor | pilots/docs | `UNECE-R152` |
-| `VAL` | Validation scenario (pilot table index) | pilot index | `VAL-AEBS-001` |
-| `VP` | Viewpoint selection | pilot index | `VP-AEBS-SENSOR-PACKAGE` |
-| `VSS` | VSS source/simulation mapping record | model + pilots | `VSS-SIM-AEBS-001` |
-| `DE4SDV` | DE4SDV project artifact reference | pilots/docs | `DE4SDV-VSS-EXT` |
+Class column: **CANONICAL** = project-owned grammar, new identities may use
+it; **EXTERNAL** = identity owned outside DE4SDV, registered only so it is
+never mistaken for a project ID.
+
+| Code | Meaning | Where used | Example | Class |
+|---|---|---|---|---|
+| `AO` | Acceptance objective | increment pilot index | `AO-AEBS-010-004` | CANONICAL |
+| `ASM` | Assumption | pilot index | `ASM-MW-016` | CANONICAL |
+| `ACT` | Actor | pilot index | `ACT-SUBJECT-VEHICLE` | CANONICAL |
+| `ALT` | Realization alternative | pilot index | `ALT-MW-KUKSA-001` | CANONICAL |
+| `BLK` | Physical element block | pilot index | `BLK-AEBS-PHY-001` | CANONICAL |
+| `CAP` | Capability | pilot index | `CAP-AEBS-FCRM` | CANONICAL |
+| `CC` | Common capability | pilot index | `CC-MW-001` | CANONICAL |
+| `CLS` | Classification record | pilot index | `CLS-AEBS-010-001` | CANONICAL |
+| `DEC` | Decision record | pilot index | `DEC-AEBS-LOG-001` | CANONICAL |
+| `DEF` | Deferral | pilot index | `DEF-AEBS-PHY-001` | CANONICAL |
+| `EC` | Evidence criterion (executed acceptance observation) | pilot index | `EC-AEBS-009B-01` | CANONICAL |
+| `FEAT` | Feature | pilot index | `FEAT-AEBS-VEHICLE-TARGET` | CANONICAL |
+| `FUNC` | Function | pilot index | `FUNC-AEBS-001` | CANONICAL |
+| `ITEM` | Information item | pilot index | `ITEM-INTERNAL-001` | CANONICAL |
+| `LCOMP` | Logical component | pilot index | `LCOMP-AEBS-001` | CANONICAL |
+| `LPORT` | Logical port | pilot index | `LPORT-AEBS-IN-001` | CANONICAL |
+| `MAP` | Signal mapping record | pilot index | `MAP-MW-008-VEHICLE-SPEED` | CANONICAL |
+| `MODEL` | Model artifact index entry | pilot index | `MODEL-AEBS-010-VARIABILITY-CONFIGURATION-SYSML` | CANONICAL |
+| `PORT` | Port | pilot index | `PORT-AEBS-IN-001` | CANONICAL |
+| `PROBE` | Realization-readiness probe | pilot index | `PROBE-MW-008-AAOS-CUTTLEFISH-BOOT` | CANONICAL |
+| `PF` | Bench preflight check | bench tooling | `PF-004` | CANONICAL |
+| `QF` | Qualification finding | pilot index | `QF-AEBS-REQ-001` | CANONICAL |
+| `REAL` | Realization record | pilot index | `REAL-MW-DIRECT-001` | CANONICAL |
+| `SCN` | Bench scenario identity | bench tooling / pilots | `SCN-AEBS-009D-STALE` | CANONICAL |
+| `SET` | Needs/requirements set | pilot index | `SET-AEBS-S1-NEEDS` | CANONICAL |
+| `C` | Common capability node | feature model | `C-CAPABILITY-AEBS-VEHICLE-TARGET` | CANONICAL (feature-model namespace — see note) |
+| `D` | Derived asset | feature model | `D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER` | CANONICAL (feature-model namespace — see note) |
+| `F` | Feature node | feature model | `F-PLATFORM-STACK` | CANONICAL (feature-model namespace — see note) |
+| `PL` | Product line | feature-model root | `PL-DE4SDV` | CANONICAL (feature-model namespace — see note) |
+| `CLM` | Claim (assurance argumentation) | middleware evidence slice + guide | `CLM-MW-010-01` | CANONICAL |
+| `AGT` | Assurance argument (argumentation) | middleware evidence slice + guide | `AGT-MW-010-01` | CANONICAL |
+| `CCM` | Counter-claim (argumentation) | middleware evidence slice + guide | `CCM-MW-010-01` | CANONICAL |
+| `VM` | Campaign bench virtual-machine host label | bench docs/code | `VM-A`, `VM-B` | CANONICAL (infrastructure label; single-suffix shape sits outside the strict grammar) |
+| `H` | Hazard (compliance safety) | hazard analysis artifacts | `H-001` | CANONICAL (domain-standard hazard-ID form) |
+| `T` | Threat (compliance security) | threat model artifacts | `T-001` | CANONICAL (domain-standard threat-ID form) |
+| `SRC` | External source anchor | model + pilots | `SRC-UNECE-R152` | CANONICAL |
+| `STK` | Stakeholder index entry | pilot index | `STK-PRODUCT-LINE-ENGINEER` | CANONICAL |
+| `STORY` | Operational story | pilot index | `STORY-AEBS-VEHICLE-TARGET-001` | CANONICAL |
+| `SYSML` | External spec anchor (pinned spec/release) | pilots | `SYSML-V2-RELEASE-3f895b7` | EXTERNAL |
+| `SAF` | External SAF anchor | pilots | `SAF-CONCEPTUAL-DOMAIN` | EXTERNAL |
+| `UNECE` | External regulation anchor | pilots/docs | `UNECE-R152` | EXTERNAL |
+| `VAL` | Validation scenario (pilot table index) | pilot index | `VAL-AEBS-001` | CANONICAL |
+| `VP` | Viewpoint selection | pilot index | `VP-AEBS-SENSOR-PACKAGE` | CANONICAL |
+| `VSS` | VSS source/simulation mapping record | model + pilots | `VSS-SIM-AEBS-001` | CANONICAL (records *about* the external VSS domain; VSS paths themselves are external identifiers and are never renamed) |
+| `DE4SDV` | DE4SDV project artifact reference | pilots/docs | `DE4SDV-VSS-EXT` | CANONICAL |
+
+Feature-model namespace note (`F`/`C`/`D`/`PL`): these codes are parsed by
+the product-line tooling (`tools/configure_variant.py`, feature-model
+YAML) and are bound into committed feature configurations and generated
+product models. They are short, but they are the established feature-model
+namespace — renaming them is a PLE model-and-tooling change, not a naming
+migration. If the PLE workstream later revises the feature-model grammar,
+that revision owns the rename; this registry is updated the same day.
 
 ### Subject-first configuration identities
 
@@ -214,7 +269,7 @@ Unregistered prefixes or subjects fail `scripts/check_naming.py`.
 | Code | Meaning | Scope notes |
 |---|---|---|
 | `AEBS` | Autonomous Emergency Braking System | System 1 AEBS product-line subject; includes the AEBS visualization System 2 test system |
-| `MW` | Middleware | Legacy registered code for the middleware integration subject; canonical spelling `middleware` in filenames/packages; `MW` remains valid inside trace IDs created before this convention. The checker validates `MW`-subject IDs **syntactically only**; it cannot know whether an ID is new or historical, so the rule "do not start new MW-based families" is **review policy**, not automated enforcement. |
+| `MW` | Middleware | Registered compact trace namespace: `MW = Middleware` inside identifiers (`INC-MW-010`, `REQ-MW-*`, `AC-MW-010-02`, `MW-CONFIG-001`). Canonical semantic names never use it: filenames use `middleware_*`, SysML packages use `Middleware` (batch 1 migrated these). New trace-ID families SHOULD pick a readable subject code; `MW` is retained because existing AC/VC/EVID/E/GAP/BL/CLM/AGT/CCM/REQ/N families for the middleware subject are stable, provenance-bearing identities. |
 | `UNECE` | UNECE regulation anchor | Subject of the `SRC-UNECE-R152` form (`TYPE=SRC`, `SUBJECT=UNECE`, remainder `R152` is the free-form rest segment, not a subject) |
 
 New subjects (e.g. a future `PER` perception subject) must be added here in
@@ -373,10 +428,12 @@ Artifact-aware rules (small and explicit, no heuristic parser):
   external list.
 
 **What the checker cannot do (honest boundary):** it validates syntax
-against the registries only. It cannot know whether an ID is "new" or
-"legacy", so provenance rules — e.g. "do not start new MW-based families"
-or "use `EVID`, not `E`, for new evidence IDs" — are **review policy**,
-stated here and checked by human review, not automated enforcement.
+against the registries plus the enumerated grandfathered identity sets
+(§5.1). Retired grammars (`E-`, `N-`) are therefore enforced
+deterministically — enumerated identities pass, sibling spellings fail —
+but provenance rules that cannot be enumerated, such as subject selection
+for a brand-new increment family, remain **review policy**, stated here and
+checked by human review.
 
 Violations are fixed by migration with an explicit old → new mapping in the
 migration manifest — never by weakening the checker.

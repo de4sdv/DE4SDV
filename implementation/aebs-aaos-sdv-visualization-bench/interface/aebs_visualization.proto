@@ -12,7 +12,7 @@ option optimize_for = LITE_RUNTIME;
 // Serialization only: the semantic authority for every field, its units, its
 // provenance kind, and its freshness semantics is the SysML model
 // (textual-notation-of-model/packages/features/aebs/
-// aebs_010_visualization_functional_architecture.sysml, item def
+// aebs_visualization_functional_architecture.sysml, item def
 // AEBSVisualizationFrame and enum defs VisualizationSourceKind /
 // VisualizationHealthKind). This file adds no semantics and must not gain
 // fields that are not modeled in SysML first.

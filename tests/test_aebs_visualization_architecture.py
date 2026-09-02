@@ -9,9 +9,9 @@ MODEL_DIR = Path("textual-notation-of-model/packages/features/aebs")
 PILOT = Path(
     "methodologies/sysmod-sysmlv2/pilots/aebs-010-visualization-architecture.yaml"
 )
-FUNC = MODEL_DIR / "aebs_010_visualization_functional_architecture.sysml"
-LOGIC = MODEL_DIR / "aebs_010_visualization_logical_architecture.sysml"
-PHYS = MODEL_DIR / "aebs_010_visualization_physical_realization.sysml"
+FUNC = MODEL_DIR / "aebs_visualization_functional_architecture.sysml"
+LOGIC = MODEL_DIR / "aebs_visualization_logical_architecture.sysml"
+PHYS = MODEL_DIR / "aebs_visualization_physical_software_realization.sysml"
 
 
 def _read(path: Path) -> str:
@@ -41,8 +41,8 @@ def test_functional_slice_models_health_state_machine_with_guards() -> None:
 def test_every_s2_requirement_allocated_to_a_function() -> None:
     func = _read(FUNC)
     for number in range(2, 12):
-        assert f"allocate req010" in func or True
-    allocations = [line for line in func.splitlines() if "allocate req010" in line]
+        assert f"allocate req" in func or True
+    allocations = [line for line in func.splitlines() if "allocate req" in line]
     assert len(allocations) == 10
 
 
@@ -154,7 +154,7 @@ def test_logical_roles_allocated_to_selected_physical_elements(
 
 def test_physical_system_declares_no_source_side_command_ports() -> None:
     phys = _read(PHYS)
-    system = phys.split("part def AEBS010VisualizationPhysicalSystem")[1].split(
+    system = phys.split("part def AEBSVisualizationPhysicalSystem")[1].split(
         "part physicalSystem :"
     )[0]
     for token in ("cmdIn", "commandIn", "controlOut", "brakeOut"):

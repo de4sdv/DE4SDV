@@ -11,11 +11,11 @@
  * exchanges remain technology-neutral until Phase 8 selects them.
  */
 
-package DE4SDV_AEBS010VisualizationLogicalArchitecture {
+package DE4SDV_AEBSVisualizationLogicalArchitecture {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
-  private import DE4SDV_AEBS010VisualizationFraming::*;
-  private import DE4SDV_AEBS010VisualizationFunctionalArchitecture::*;
+  private import DE4SDV_AEBSVisualizationFraming::*;
+  private import DE4SDV_AEBSVisualizationFunctionalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
@@ -220,35 +220,35 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
   allocation def LogicalRoleToFunction;
 
   allocation observeBySources : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.observe
+    allocate aebsVisualizationFunctionalFlow.observe
     to logicalSystem.sourceAdapter;
 
   allocation assembleByAdapter : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.assemble
+    allocate aebsVisualizationFunctionalFlow.assemble
     to logicalSystem.sourceAdapter;
 
   allocation validateByAdapter : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.validate
+    allocate aebsVisualizationFunctionalFlow.validate
     to logicalSystem.sourceAdapter;
 
   allocation superviseByHealth : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.supervise
+    allocate aebsVisualizationFunctionalFlow.supervise
     to logicalSystem.healthSupervisor;
 
   allocation transportByTransport : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.transport
+    allocate aebsVisualizationFunctionalFlow.transport
     to logicalSystem.transport;
 
   allocation publishByIngress : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.publish
+    allocate aebsVisualizationFunctionalFlow.publish
     to logicalSystem.ingress;
 
   allocation presentByApplication : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.present
+    allocate aebsVisualizationFunctionalFlow.present
     to logicalSystem.application;
 
   allocation recordByEvidence : LogicalRoleToFunction
-    allocate aebs010FunctionalFlow.record
+    allocate aebsVisualizationFunctionalFlow.record
     to logicalSystem.evidence;
 
   /* ──────────────────────────────────────────
@@ -267,7 +267,7 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs010LogicalStructureView {
+  view aebsVisualizationLogicalStructureView {
     viewpoint selectedLogicalStructureViewpoint : SystemStructureDefinitionViewpoint {
       frame visualizationLogicalStructureConcern;
     }
@@ -285,7 +285,7 @@ package DE4SDV_AEBS010VisualizationLogicalArchitecture {
     render asTreeDiagram;
   }
 
-  view aebs010LogicalInternalExchangeView {
+  view aebsVisualizationLogicalInternalExchangeView {
     viewpoint selectedLogicalExchangeViewpoint : SystemInternalExchangeViewpoint {
       frame visualizationLogicalExchangeConcern;
     }

@@ -244,9 +244,19 @@ Risk: LOW (checks are additive; failure mode is a clear message).
   paths — verified); glossary gains increment/phase/record pointers to the
   conventions doc.
 
-## Batch 2 — scheduled after PR #177 merges (prepared, not executed)
+## Batch 2 — execution record (this PR; merged before PR #177's Phase 10 slice)
 
-### M11. `aebs_010_visualization_*` → canonical concern integration
+> Note: batch 2 was executed on `chore/repo-naming-identity-migration` ahead of
+> PR #177's merge (maintainer directed the repository-wide normalization to
+> proceed). PR #177 adds an eighth slice
+> (`aebs_010_visualization_verification_evidence.sysml` + 2 SVGs + tests +
+> evidence YAML); after #177 merges, its filenames follow the same M11 mapping
+> (`aebs_visualization_verification_evidence.sysml`,
+> `DE4SDV_AEBSVisualizationVerificationEvidence`) and its tests/SVGs inherit
+> the canonical names. The overlap is declared here so reviewers of both PRs
+> see one authoritative mapping — no silent divergence.
+
+### M11. `aebs_010_visualization_*` → canonical concern integration — EXECUTED
 
 INC-AEBS-010 provenance is preserved in each file's header doc and pilot YAML;
 filenames/packages/views drop the increment number because the slices are the
@@ -293,9 +303,10 @@ Bench-side names (`de4sdv_aebs_010_bridge` ROS package, `board_sepolicy_aebs010.
 evidence dirs `010/`, `inc-aebs-010-live-visualization.mp4`, PF records):
 **external/retained — never renamed**.
 
-Risk: medium-high (largest family, in-flight PR dependency) — hence sequenced.
+Risk: medium-high (largest family, in-flight PR dependency) — mitigated by the
+declared #177 overlap note above and a full consumer sweep (executed).
 
-### M12. Numbered reusable definitions in 009-series evidence slices
+### M12. Numbered reusable definitions in 009-series evidence slices — EXECUTED (canonical-file subset)
 
 The 009-series slices are immutable evidence records of bounded increments;
 their **declarations** carry the increment suffix because the evidence
@@ -457,5 +468,106 @@ repair cycle, pre-declared here.
 3. Legacy nested `package Features { … }` shape in 10 slices — tolerated,
    flattening queued as an optional low-priority follow-up (must ride the
    privileged-validation cycle).
+4. AEBS needs/requirements split (mirror of middleware's
+   `stakeholder_needs`/`requirements` pair) — **model-architecture change**,
+   explicitly out of naming-migration scope; recorded as the recommended
+   follow-up increment work, not silently reshaped here.
+5. 009-series scenario verification files (bicycle/pedestrian/degraded/…)
+   keep generic filenames with 009-specific packages — assessed as option B
+   (explicit increment/evidence records, kept as stable semantic modules per
+   conventions §7); renaming would churn 8+ tracked consumers for zero
+   semantic gain. Documented, not migrated.
+6. Bench runtime identities (`de4sdv_aebs_010_bridge` ROS package,
+   `board_sepolicy_aebs010.mk`, `evidence/010/`, branch names
+   `feat/aebs010-*` in the increment record) — identity-bearing/retained,
+   never renamed (conventions §10 upstream/external exception).
 4. AGENTS.md pointer to the conventions doc — approval-gated edit, left for
    the maintainer (one line under "Documentation style").
+
+
+---
+
+## Batch 2 execution record (post-implementation)
+
+Executed on `chore/repo-naming-identity-migration` (this PR), head before the
+documentation commit. Scope: M11 (7 files), M12 (canonical-file subset), plus
+the policy refinement that retired the `E-`/`N-` grammars behind deterministic
+grandfathering.
+
+### Old → new canonical name map (implemented)
+
+- 7 SysML slices renamed `aebs_010_visualization_<concern>.sysml →
+  aebs_visualization_<concern>.sysml`; the physical slice further aligned to
+  the method vocabulary: `…_physical_realization.sysml →
+  aebs_visualization_physical_software_realization.sysml`.
+- Packages `DE4SDV_AEBS010Visualization<Concern> →
+  DE4SDV_AEBSVisualization<Concern>`; physical package →
+  `DE4SDV_AEBSVisualizationPhysicalSoftwareRealization`.
+- Reusable usage names de-numbered: `Aebs010VisualizationFunctionalFlow →
+  AebsVisualizationFunctionalFlow`, `AEBS010VisualizationPhysicalSystem →
+  AEBSVisualizationPhysicalSystem`, `req010<Name> → req<Name>` (14),
+  derivation dependencies `s2NNNDerivedFromN0NN →
+  s2NNNDerivedFrom<NeedSemanticStem>` (15, target-need semantics verified
+  against each requirement's doc/source), increment-frame dependencies
+  `framingToNeeds010/successorMandate010/framingToProblemStatement010/
+  scopeToTraceabilityShell010 → <stem>` (4), assumptions/gaps
+  `asm010*/gap010* → asm*/gap*` (8).
+- 14 view identities `aebs010<Name>View → aebsVisualization<Name>View`.
+- 4 test modules renamed `test_aebs_010_visualization_*.py →
+  test_aebs_visualization_*.py` (+ `test_aebs_010_hmi_presentation_contract.py
+  → test_aebs_visualization_hmi_presentation_contract.py`).
+- M12: `AEBReadinessInputs009A → AEBReadinessInputs`,
+  `PlannedAEBScenarioHarness009B009C → PlannedAEBScenarioHarness`,
+  `PlannedAEBScenarioAssets009B009C → PlannedAEBScenarioAssets` (defs in
+  `aebs_simulation_deployment.sysml` + executable-bench test expectations);
+  origin increments now documented in doc comments at the def sites.
+- Policy: `E-`/`N-` retired grammars → deterministic grandfathering
+  (`_GRANDFATHERED_IDENTITIES` closed sets); `NEED` registered canonical;
+  registry doc gains the four-way classification (CANONICAL / EXTERNAL /
+  GRANDFATHERED / RETIRED→MIGRATE) and §5.1 closed-set documentation.
+
+### Preserved identity-bearing records (verified unchanged)
+
+`INC-AEBS-010` (parts `incAEBS010*`, increment-frame semantics),
+`INC-AEBS-010` pilot YAMLs and their increment-scoped filenames/schemas,
+`de4sdv_aebs_010_bridge` ROS package and its Android.bp/launch/evidence
+bindings, `board_sepolicy_aebs010.mk`, `evidence/010/` trees,
+`feat/aebs010-*` branch names in the increment record, `DE4SDV_
+Middleware010VerificationEvidence` (Phase 12 record) and its `successor
+IncrementDecision010` element, all `REQ-AEBS-S2-*`/`SC-AEBS-010-*`/
+`ASM-AEBS-010-*`/`GAP-AEBS-010-*`/`CLS-AEBS-010-001` IDs, all grandfathered
+`E-MW-*`/`N-*` identities, `MW-CONFIG-001`, `AEBS-CONFIG-010-001`.
+
+### Connected artifacts updated
+
+`.meta.json` (7 keys + 1 alias entry), `sysand-lock.toml` (9 lines),
+`scripts/generate_view_index.py` (5 presentation keys),
+`.github/workflows/privileged-syside-validation.yml` (3 expected-diagram
+names), 3 pilot YAMLs (paths, deferred-list reconciliation:
+`created_by_implementation_slice` now records the five materialized
+entries), 4 renamed test modules + `test_check_naming.py` (batch-2 advisory
+removed; closed-set grandfathering tests added), `VIEWS.md` regenerated
+(aebs; others verified byte-stable), bench README/VISUALIZATION-CONTRACT/
+config/proto references updated where they named model files (runtime
+identities untouched).
+
+### Regenerated artifacts / diagram state
+
+13 `aebs010*` SVGs + 2 SVGs carrying M12 labels deleted (`git rm`); the
+privileged SysIDE run must regenerate and byte-swap the renamed views —
+`VIEWS.md` marks each as "Diagram not present … regenerate via the Privileged
+Syside Validation workflow". Expected CI state: committed-diagram gates fail
+for exactly these until the byte-swap lands (one pre-declared repair cycle,
+same as batch 1).
+
+### Validation results (local, this batch)
+
+- `python scripts/check_naming.py` — pass (no advisories; batch-2 pending
+  list removed with execution).
+- `python scripts/check_repo.py` — pass (includes naming, ontology-kernel
+  sync, scenario-manifest checks).
+- `python scripts/smoke_test.py` — pass.
+- `pytest` visualization + naming + executable-bench suites — green except
+  the two documented pre-existing framing failures (host-browser wording,
+  S2-012/013/014 index), verified failing identically on the pre-migration
+  tree.

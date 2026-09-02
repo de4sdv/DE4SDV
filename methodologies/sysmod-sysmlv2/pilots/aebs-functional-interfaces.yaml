@@ -39,7 +39,7 @@ scope:
 
 source_alignment:
   - source_id: INC-AEBS-004
-    use: functional_behavior_baseline
+    use: functional_architecture_baseline
     artifact: textual-notation-of-model/packages/features/aebs/aebs_functional_architecture.sysml
     notes:
       - Item defs, action defs, and composite flow are imported from INC-AEBS-004.

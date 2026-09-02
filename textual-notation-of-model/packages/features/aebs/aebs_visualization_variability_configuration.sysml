@@ -14,14 +14,14 @@
  * belong to the implementation and Phase 10-12 slices of the chain.
  */
 
-package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
+package DE4SDV_AEBSVisualizationVariabilityConfiguration {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MiddlewareVariabilityConfiguration::*;
-  private import DE4SDV_AEBS010VisualizationFraming::*;
-  private import DE4SDV_AEBS010VisualizationPhysicalRealization::*;
+  private import DE4SDV_AEBSVisualizationFraming::*;
+  private import DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::*;
   private import Views::*;
 
   part incAEBS010Configuration : VisualizationIncrement {
@@ -37,7 +37,7 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
      * selection, or BoF entry is added or modified.
      */
 
-    part visualizationChain : AEBS010VisualizationPhysicalSystem {
+    part visualizationChain : AEBSVisualizationPhysicalSystem {
       doc /* The selected Phase 8 reverse visualization chain, deployed. */
     }
 
@@ -120,16 +120,16 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
     to DE4SDV_MiddlewareVariabilityConfiguration::configuredMember;
   dependency testArticleDeploysVisualizationChain
     from testArticle
-    to DE4SDV_AEBS010VisualizationPhysicalRealization::physicalSystem;
+    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem;
   dependency bindingsPinPhase8Elements
     from bindVisualizationPort
-    to DE4SDV_AEBS010VisualizationPhysicalRealization::physicalSystem::transport;
+    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::transport;
   dependency bindingsPinGatewayPath
     from bindServiceUnitName
-    to DE4SDV_AEBS010VisualizationPhysicalRealization::physicalSystem::iviGuest::dataTunnel;
+    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::iviGuest::dataTunnel;
   dependency bindingsPinApplication
     from bindAppPackage
-    to DE4SDV_AEBS010VisualizationPhysicalRealization::physicalSystem::iviGuest::displayApp;
+    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::iviGuest::displayApp;
 
   /* Reused accepted configuration artifacts (index only; SysML owns semantics). */
   part reusedBoFSource : SourceContributionRecord {
@@ -174,7 +174,7 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
   alias inheritedPlatformStack
     for MiddlewareAutowareAAOSSDVReference::vehicleApplication;
 
-  view aebs010ProductLineConfigurationView {
+  view aebsVisualizationProductLineConfigurationView {
     viewpoint selectedConfigurationViewpoint : ProductLineConfigurationViewpoint {
       frame visualizationProductLineConfigurationConcern;
     }
@@ -188,7 +188,7 @@ package DE4SDV_AEBS010VisualizationVariabilityConfiguration {
     render asTreeDiagram;
   }
 
-  view aebs010ProductModelAssemblyView {
+  view aebsVisualizationProductModelAssemblyView {
     viewpoint selectedAssemblyViewpoint : ProductModelAssemblyViewpoint {
       frame visualizationProductModelAssemblyConcern;
     }

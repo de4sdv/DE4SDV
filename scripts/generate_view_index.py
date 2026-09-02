@@ -130,15 +130,15 @@ CONCERN_EXPLANATIONS = {
 
 
 DIAGRAM_PUBLICATION_GAPS = {
-    "aebs010FramingView": (
+    "aebsVisualizationFramingView": (
         "Withheld because the validated SVG contains only the view frame and "
         "expose row; no model elements materialized."
     ),
-    "aebs010FunctionInternalExchangeView": (
+    "aebsVisualizationFunctionInternalExchangeView": (
         "Withheld because the validated SVG contains only the view frame and "
         "expose rows; no exchange topology or endpoints materialized."
     ),
-    "aebs010FunctionRequirementMappingView": (
+    "aebsVisualizationFunctionRequirementMappingView": (
         "Withheld because the validated native grid export reported no rows or "
         "columns. The model view remains authoritative, but the native diagram "
         "frame is not a usable mapping matrix."
@@ -147,11 +147,11 @@ DIAGRAM_PUBLICATION_GAPS = {
 
 
 KNOWN_PRESENTATION_NOTES = {
-    "aebs010ProductLineConfigurationView": (
+    "aebsVisualizationProductLineConfigurationView": (
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),
-    "aebs010ProductModelAssemblyView": (
+    "aebsVisualizationProductModelAssemblyView": (
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),

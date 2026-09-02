@@ -225,13 +225,13 @@ claim_boundary: >-
 
 model_artifacts:
   - id: MODEL-AEBS-010-FRAMING-SYSML
-    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_framing.sysml
+    path: textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml
     status: draft
   - id: MODEL-AEBS-010-OPERATIONAL-CONTEXT-SYSML
-    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_operational_context.sysml
+    path: textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml
     status: draft
   - id: MODEL-AEBS-010-NEEDS-REQUIREMENTS-SYSML
-    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_needs_requirements.sysml
+    path: textual-notation-of-model/packages/features/aebs/aebs_visualization_needs_requirements.sysml
     status: draft
 
 chain_plan:

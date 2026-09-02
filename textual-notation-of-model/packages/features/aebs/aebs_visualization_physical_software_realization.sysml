@@ -21,12 +21,12 @@
  * readiness preflight is recorded as gates, not as results.
  */
 
-package DE4SDV_AEBS010VisualizationPhysicalRealization {
+package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
-  private import DE4SDV_AEBS010VisualizationFraming::*;
-  private import DE4SDV_AEBS010VisualizationFunctionalArchitecture::*;
-  private import DE4SDV_AEBS010VisualizationLogicalArchitecture::*;
+  private import DE4SDV_AEBSVisualizationFraming::*;
+  private import DE4SDV_AEBSVisualizationFunctionalArchitecture::*;
+  private import DE4SDV_AEBSVisualizationLogicalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
   private import SAF_Viewpoints::*;
@@ -131,7 +131,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
    * Physical composition
    * ────────────────────────────────────────── */
 
-  part def AEBS010VisualizationPhysicalSystem {
+  part def AEBSVisualizationPhysicalSystem {
     doc /* Selected end-to-end physical decomposition across both hosts. */
 
     part pinnedAeb : PinnedAutowareAEBExecution;
@@ -174,7 +174,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
       connect iviGuest.displayApp.renderedOut to evidenceRecorder.renderedIn;
   }
 
-  part physicalSystem : AEBS010VisualizationPhysicalSystem;
+  part physicalSystem : AEBSVisualizationPhysicalSystem;
 
   /* Logical-to-physical allocation for the selected realization. */
   allocation def LogicalRoleToPhysicalRealization;
@@ -343,7 +343,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs010PhysicalStructureView {
+  view aebsVisualizationPhysicalStructureView {
     viewpoint selectedPhysicalStructureViewpoint : PhysicalStructureDefinitionViewpoint {
       frame visualizationPhysicalStructureConcern;
     }
@@ -368,7 +368,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
     render asTreeDiagram;
   }
 
-  view aebs010PhysicalInternalExchangeView {
+  view aebsVisualizationPhysicalInternalExchangeView {
     viewpoint selectedPhysicalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
       frame visualizationPhysicalExchangeConcern;
     }
@@ -381,7 +381,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
     render asInterconnectionDiagram;
   }
 
-  view aebs010PhysicalLogicalMappingView : MVD::MatrixView {
+  view aebsVisualizationPhysicalLogicalMappingView : MVD::MatrixView {
     viewpoint selectedPhysicalLogicalViewpoint : PhysicalLogicalMappingViewpoint {
       frame visualizationProvenanceMappingConcern;
     }
@@ -409,7 +409,7 @@ package DE4SDV_AEBS010VisualizationPhysicalRealization {
       attribute :>> representation = Rep::name;
     }
     view :>> cellView {
-      expose DE4SDV_AEBS010VisualizationPhysicalRealization::*;
+      expose DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::*;
       attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }

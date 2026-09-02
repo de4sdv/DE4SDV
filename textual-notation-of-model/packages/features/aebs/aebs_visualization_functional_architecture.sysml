@@ -12,11 +12,11 @@
  * deferred to the Phase 7/8 slices in the same chain.
  */
 
-package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
+package DE4SDV_AEBSVisualizationFunctionalArchitecture {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
-  private import DE4SDV_AEBS010VisualizationFraming::*;
-  private import DE4SDV_AEBS010VisualizationNeedsRequirements::*;
+  private import DE4SDV_AEBSVisualizationFraming::*;
+  private import DE4SDV_AEBSVisualizationNeedsRequirements::*;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;
@@ -145,7 +145,7 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     out evidenceRecord : ScalarValues::String;
   }
 
-  action def Aebs010VisualizationFunctionalFlow {
+  action def AebsVisualizationFunctionalFlow {
     out item rendered : RenderedAEBSState;
     out item evidenceRecord : ScalarValues::String;
 
@@ -199,7 +199,7 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     action present : RenderAEBSState {
       in publishedFrame;
       in health;
-      out rendered = Aebs010VisualizationFunctionalFlow::rendered;
+      out rendered = AebsVisualizationFunctionalFlow::rendered;
     }
 
     flow from publish.publishedFrame to present.publishedFrame;
@@ -209,14 +209,14 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     action record : RecordVisualizationEvidence {
       in observedFrame;
       in rendered;
-      out evidenceRecord = Aebs010VisualizationFunctionalFlow::evidenceRecord;
+      out evidenceRecord = AebsVisualizationFunctionalFlow::evidenceRecord;
     }
 
     flow from observe.observedFrame to record.observedFrame;
     flow from present.rendered to record.rendered;
   }
 
-  action aebs010FunctionalFlow : Aebs010VisualizationFunctionalFlow;
+  action aebsVisualizationFunctionalFlow : AebsVisualizationFunctionalFlow;
 
   /* ──────────────────────────────────────────
    * Presentation/health state machine
@@ -263,34 +263,34 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
   allocation def System2RequirementToFunction;
 
   allocation sourceFidelityAllocation : System2RequirementToFunction
-    allocate req010SourceFidelity to Aebs010VisualizationFunctionalFlow::assemble;
+    allocate reqSourceFidelity to AebsVisualizationFunctionalFlow::assemble;
 
   allocation nativeParticipationAllocation : System2RequirementToFunction
-    allocate req010NativeParticipation to Aebs010VisualizationFunctionalFlow::observe;
+    allocate reqNativeParticipation to AebsVisualizationFunctionalFlow::observe;
 
   allocation de4sdvParticipationAllocation : System2RequirementToFunction
-    allocate req010De4sdvParticipation to Aebs010VisualizationFunctionalFlow::observe;
+    allocate reqDe4sdvParticipation to AebsVisualizationFunctionalFlow::observe;
 
   allocation nonInterferenceAllocation : System2RequirementToFunction
-    allocate req010NonInterference to Aebs010VisualizationFunctionalFlow::observe;
+    allocate reqNonInterference to AebsVisualizationFunctionalFlow::observe;
 
   allocation failClosedFreshnessAllocation : System2RequirementToFunction
-    allocate req010FailClosedFreshness to Aebs010VisualizationFunctionalFlow::supervise;
+    allocate reqFailClosedFreshness to AebsVisualizationFunctionalFlow::supervise;
 
   allocation availabilityDispositionAllocation : System2RequirementToFunction
-    allocate req010AvailabilityDisposition to Aebs010VisualizationFunctionalFlow::supervise;
+    allocate reqAvailabilityDisposition to AebsVisualizationFunctionalFlow::supervise;
 
   allocation invalidRejectionAllocation : System2RequirementToFunction
-    allocate req010InvalidRejection to Aebs010VisualizationFunctionalFlow::validate;
+    allocate reqInvalidRejection to AebsVisualizationFunctionalFlow::validate;
 
   allocation restorationBehaviorAllocation : System2RequirementToFunction
-    allocate req010RestorationBehavior to Aebs010VisualizationFunctionalFlow::supervise;
+    allocate reqRestorationBehavior to AebsVisualizationFunctionalFlow::supervise;
 
   allocation realAaosRenderingAllocation : System2RequirementToFunction
-    allocate req010RealAAOSRendering to Aebs010VisualizationFunctionalFlow::present;
+    allocate reqRealAAOSRendering to AebsVisualizationFunctionalFlow::present;
 
   allocation evidenceCorrelationAllocation : System2RequirementToFunction
-    allocate req010EvidenceCorrelation to Aebs010VisualizationFunctionalFlow::record;
+    allocate reqEvidenceCorrelation to AebsVisualizationFunctionalFlow::record;
 
   /* ──────────────────────────────────────────
    * Concerns and views
@@ -314,58 +314,58 @@ package DE4SDV_AEBS010VisualizationFunctionalArchitecture {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs010FunctionStructureView {
+  view aebsVisualizationFunctionStructureView {
     viewpoint selectedFunctionStructureViewpoint : SystemStructureDefinitionViewpoint {
       frame visualizationFunctionStructureConcern;
     }
 
-    expose aebs010FunctionalFlow;
+    expose aebsVisualizationFunctionalFlow;
     render asTreeDiagram;
   }
 
-  view aebs010FunctionInternalExchangeView {
+  view aebsVisualizationFunctionInternalExchangeView {
     viewpoint selectedFunctionExchangeViewpoint : SystemInternalExchangeViewpoint {
       frame visualizationFunctionExchangeConcern;
     }
 
-    expose aebs010FunctionalFlow;
-    expose aebs010FunctionalFlow::**;
+    expose aebsVisualizationFunctionalFlow;
+    expose aebsVisualizationFunctionalFlow::**;
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;
   }
 
-  view aebs010FunctionRequirementMappingView : MVD::MatrixView {
+  view aebsVisualizationFunctionRequirementMappingView : MVD::MatrixView {
     viewpoint selectedFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
       frame visualizationFunctionMappingConcern;
     }
     view :>> rowView {
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010SourceFidelity;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010NativeParticipation;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010De4sdvParticipation;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010NonInterference;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010FailClosedFreshness;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010AvailabilityDisposition;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010InvalidRejection;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010RestorationBehavior;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010RealAAOSRendering;
-      expose DE4SDV_AEBS010VisualizationNeedsRequirements::req010EvidenceCorrelation;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqSourceFidelity;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqNativeParticipation;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqDe4sdvParticipation;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqNonInterference;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqFailClosedFreshness;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqAvailabilityDisposition;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqInvalidRejection;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqRestorationBehavior;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqRealAAOSRendering;
+      expose DE4SDV_AEBSVisualizationNeedsRequirements::reqEvidenceCorrelation;
       attribute :>> representation = Rep::name;
     }
     view :>> columnView {
-      expose Aebs010VisualizationFunctionalFlow::observe;
-      expose Aebs010VisualizationFunctionalFlow::assemble;
-      expose Aebs010VisualizationFunctionalFlow::validate;
-      expose Aebs010VisualizationFunctionalFlow::supervise;
-      expose Aebs010VisualizationFunctionalFlow::transport;
-      expose Aebs010VisualizationFunctionalFlow::publish;
-      expose Aebs010VisualizationFunctionalFlow::present;
-      expose Aebs010VisualizationFunctionalFlow::record;
+      expose AebsVisualizationFunctionalFlow::observe;
+      expose AebsVisualizationFunctionalFlow::assemble;
+      expose AebsVisualizationFunctionalFlow::validate;
+      expose AebsVisualizationFunctionalFlow::supervise;
+      expose AebsVisualizationFunctionalFlow::transport;
+      expose AebsVisualizationFunctionalFlow::publish;
+      expose AebsVisualizationFunctionalFlow::present;
+      expose AebsVisualizationFunctionalFlow::record;
       attribute :>> representation = Rep::name;
     }
     view :>> cellView {
-      expose DE4SDV_AEBS010VisualizationFunctionalArchitecture::*;
+      expose DE4SDV_AEBSVisualizationFunctionalArchitecture::*;
       attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
   }

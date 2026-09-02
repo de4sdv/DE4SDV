@@ -31,7 +31,7 @@ system2_instrumentation:
     architecture_slice: INC-AEBS-010 Phase 8
     sysml_owner: >-
       textual-notation-of-model/packages/features/aebs/
-      aebs_010_visualization_physical_realization.sysml
+      aebs_visualization_physical_software_realization.sysml
     notes:
       - Read-only ROS 2 source adapter over the 009B bench.
       - New bounded transport; the INC-MW-010 port is not reused.
@@ -78,7 +78,7 @@ preflight_gates:
   owner: INC-AEBS-010 Phase 8 slice
   sysml_owner: >-
     textual-notation-of-model/packages/features/aebs/
-    aebs_010_visualization_physical_realization.sysml
+    aebs_visualization_physical_software_realization.sysml
   status: planned_not_executed
   gates:
     - PF-AEBS-010-001 gateIviBuildBoot

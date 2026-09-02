@@ -29,9 +29,13 @@ Named exclusions (never scanned): upstream/vendored libraries, snapshots,
 synthetic fixtures, generated diagrams, retained-evidence directories,
 immutable ADR history, and retained raw bench-evidence JSON records.
 
-This checker validates syntax against the registries only. It does not and
-cannot know whether an ID is "new" or "legacy" — provenance rules (e.g. no
-new MW-based families) are review policy, not automated enforcement.
+This checker validates syntax against the registries only. Retired grammar
+families (E-, N-) are deterministically grandfathered: the exact existing
+identity sets are enumerated in _GRANDFATHERED_IDENTITIES, those records
+remain valid, and any sibling spelling under the retired grammar (e.g.
+E-MW-999) is rejected like any unregistered prefix. Provenance rules that
+cannot be enumerated (e.g. subject selection for new increments) remain
+review policy.
 """
 
 from __future__ import annotations
@@ -140,15 +144,68 @@ _GOVERNED_SUFFIXES = {".sysml", ".yaml", ".yml", ".md"}
 STRICT_PREFIXES = {
     "INC",
     "REQ",
-    "N",
+    "NEED",
     "AC",
     "VC",
-    "E",
     "EVID",
     "GAP",
     "BL",
     "SC",
 }
+
+# Grandfathered identity sets: exact existing identities of retired grammars.
+# New identities using these grammars are rejected deterministically; only
+# the enumerated records below may still appear (naming-conventions.md §5.1).
+#
+# E-<SUBJECT>-<SEQ> (legacy evidence spelling) — superseded by EVID-.
+# The retained set is the closed INC-MW-010 evidence chain referenced by
+# middleware evidence records and the INC-AEBS-010 predecessor alignment;
+# these identities are provenance-bearing and externally referenced.
+_LEGACY_E_IDENTITIES = {
+    "E-MW-008",
+    "E-MW-010",
+    "E-MW-011",
+    "E-MW-012",
+    "E-MW-013",
+    "E-MW-014",
+}
+
+# N-<SUBJECT>-<SEQ> (legacy need spelling) — superseded by NEED- for new
+# identities. Existing need records across AEBS 009-series benches, the
+# middleware slice, and the AEBS operational-context pilot keep their
+# identities (traceability anchors, evidence, bench configuration matrices).
+_LEGACY_N_IDENTITIES = {
+    "N-AEBS-001",
+    "N-AEBS-002",
+    "N-AEBS-003",
+    "N-AEBS-004",
+    "N-AEBS-005",
+    "N-AEBS-006",
+    "N-AEBS-007",
+    "N-AEBS-008",
+    "N-AEBS-009",
+    "N-AEBS-010",
+    "N-AEBS-011",
+    "N-AEBS-012",
+    "N-AEBS-013",
+    "N-AEBS-014",
+    "N-AEBS-OP-001",
+    "N-AEBS-OP-002",
+    "N-AEBS-OP-003",
+    "N-AEBS-OP-004",
+    "N-AEBS-OP-005",
+    "N-MW-001",
+    "N-MW-002",
+    "N-MW-003",
+    "N-MW-004",
+    "N-MW-005",
+    "N-MW-006",
+    "N-MW-007",
+    "N-MW-008",
+    "N-MW-009",
+}
+
+_GRANDFATHERED_IDENTITIES = _LEGACY_E_IDENTITIES | _LEGACY_N_IDENTITIES
 
 # FREE_FORM_PREFIXES: registered prefixes whose remainder is a free-form or
 # tool-local name (role names, catalog records, bench identities, standard
@@ -258,28 +315,12 @@ _CONCERN_NUMBER = re.compile(r"_?0\d\d(_|\.sysml$)")
 _RECORD_EXEMPTIONS = {
     # Exact increment projections (identity-bearing records).
     "inc_aebs_009a_jetson_execution_environment.sysml",
-    # Historical retained-evidence slice is renamed to middleware_*; the
-    # 010 in the package/file name is governed by the batch-2 manifest.
 }
 
 # Upstream-named assets (never normalized): the SAF reference catalogue keeps
 # its upstream-style filename; scans still include it for ID tokens.
 _UPSTREAM_NAMED_FILES = {
     "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml",
-}
-
-# Batch-2 pending renames (documented in docs/naming/migration-manifest.md).
-# These filenames still violate the convention; they are reported by the
-# batch-2 checklist (tests/test_check_naming.py) rather than as repo errors
-# so the current tree stays green until the scheduled migration executes.
-_BATCH2_PENDING = {
-    "aebs_010_visualization_framing.sysml",
-    "aebs_010_visualization_functional_architecture.sysml",
-    "aebs_010_visualization_logical_architecture.sysml",
-    "aebs_010_visualization_needs_requirements.sysml",
-    "aebs_010_visualization_operational_context.sysml",
-    "aebs_010_visualization_physical_realization.sysml",
-    "aebs_010_visualization_variability_configuration.sysml",
 }
 
 _REGISTERED_GENERATED_VIEWS = {
@@ -357,6 +398,12 @@ def check_identifier_tokens_in_prepared(
     errors: list[str] = []
     for match in _ID_TOKEN.finditer(prepared_text):
         prefix, rest = match.group(1), match.group(2)
+        token = f"{prefix}-{rest}"
+        if token in _GRANDFATHERED_IDENTITIES:
+            # Grandfathered legacy identity: the exact record is retained;
+            # sibling spellings (E-MW-999, N-MW-010) would not match and
+            # fall through to normal validation below.
+            continue
         if prefix in FREE_FORM_PREFIXES:
             continue
         if prefix not in STRICT_PREFIXES:
@@ -411,13 +458,9 @@ def check_identifier_tokens() -> list[str]:
     return errors
 
 
-def check_sysml_filenames() -> tuple[list[str], list[str]]:
-    """Project-owned SysML filenames must be lower_snake_case and canonical.
-
-    Returns (errors, batch2_pending_advisories).
-    """
+def check_sysml_filenames() -> list[str]:
+    """Project-owned SysML filenames must be lower_snake_case and canonical."""
     errors: list[str] = []
-    batch2_pending: list[str] = []
     for root in SYSML_MODEL_ROOTS:
         if not root.is_dir():
             continue
@@ -425,9 +468,6 @@ def check_sysml_filenames() -> tuple[list[str], list[str]]:
             if _is_exempt_sysml(path):
                 continue
             name = path.name
-            if name in _BATCH2_PENDING:
-                batch2_pending.append(str(path.relative_to(ROOT)))
-                continue
             if str(path.relative_to(ROOT)) in _UPSTREAM_NAMED_FILES:
                 continue
             if name != name.lower():
@@ -444,7 +484,7 @@ def check_sysml_filenames() -> tuple[list[str], list[str]]:
                     f"canonical concern filename embeds an increment number "
                     f"(naming-conventions.md section 7): {path.relative_to(ROOT)}"
                 )
-    return errors, batch2_pending
+    return errors
 
 
 def check_view_diagram_names() -> list[str]:
@@ -484,35 +524,19 @@ def check_view_diagram_names() -> list[str]:
 
 def run_all_checks() -> list[str]:
     errors: list[str] = []
-    filename_errors, batch2_pending = check_sysml_filenames()
-    errors.extend(filename_errors)
+    errors.extend(check_sysml_filenames())
     errors.extend(check_identifier_tokens())
     errors.extend(check_view_diagram_names())
     return errors
 
 
-def batch2_pending_files() -> list[str]:
-    """Advisory list: canonical-concern names awaiting the batch-2 migration."""
-    _, batch2_pending = check_sysml_filenames()
-    return batch2_pending
-
-
 def main() -> int:
     errors = run_all_checks()
-    batch2_pending = batch2_pending_files()
     if errors:
         print("Naming check failed (docs/naming/naming-conventions.md):")
         for error in errors:
             print(f"- {error}")
         return 1
-    if batch2_pending:
-        print(
-            "Naming check passed with scheduled batch-2 renames pending "
-            "(docs/naming/migration-manifest.md M11):"
-        )
-        for name in batch2_pending:
-            print(f"- {name}")
-        return 0
     print("Naming check passed.")
     return 0
 

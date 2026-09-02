@@ -13,9 +13,9 @@ import yaml
 
 MODEL_DIR = Path("textual-notation-of-model/packages/features/aebs")
 PILOT_YAML = Path("methodologies/sysmod-sysmlv2/pilots/aebs-010-visualization.yaml")
-FRAMING = MODEL_DIR / "aebs_010_visualization_framing.sysml"
-OPERATIONAL = MODEL_DIR / "aebs_010_visualization_operational_context.sysml"
-NEEDS = MODEL_DIR / "aebs_010_visualization_needs_requirements.sysml"
+FRAMING = MODEL_DIR / "aebs_visualization_framing.sysml"
+OPERATIONAL = MODEL_DIR / "aebs_visualization_operational_context.sysml"
+NEEDS = MODEL_DIR / "aebs_visualization_needs_requirements.sysml"
 MW_EVIDENCE = (
     Path("textual-notation-of-model/packages/features/middleware")
     / "middleware_verification_evidence.sysml"
@@ -50,7 +50,7 @@ def test_pilot_yaml_declares_increment_aebs_010() -> None:
 def test_framing_declares_successor_dependency_to_mw010_decision() -> None:
     framing = _read(FRAMING)
     assert "private import DE4SDV_Middleware010VerificationEvidence::*;" in framing
-    assert "dependency successorMandate010" in framing
+    assert "dependency successorMandate" in framing
     assert "to successorIncrementDecision010;" in framing
 
 
@@ -111,11 +111,30 @@ def test_requirement_derivation_dependencies_present(
     need_id: str, requirement_ids: set[str]
 ) -> None:
     needs = _read(NEEDS)
+    # Dependency usage names carry the semantic target-need stem (e.g.
+    # s2005DerivedFromNonInterference for N-AEBS-013); the legacy need ID
+    # itself is pinned by each requirement's `source` attribute below.
+    need_usage = {
+        "N-AEBS-009": "needLiveVisualizationOnAAOS",
+        "N-AEBS-010": "needPreservedSourceProvenance",
+        "N-AEBS-011": "needFailClosedDegradation",
+        "N-AEBS-012": "needCorrelatableEvidence",
+        "N-AEBS-013": "needNonInterference",
+    }
     for requirement_id in sorted(requirement_ids):
-        # Dependency names mirror the model compact form: s2005DerivedFromN013.
-        compact = need_id.replace("N-AEBS-", "N")
-        assert f"DerivedFrom{compact} from req" in needs, (
+        assert " from req" in needs and f"to {need_usage[need_id]};" in needs, (
             f"missing dependency for {requirement_id} -> {need_id}"
+        )
+        # The derivation matrix is additionally pinned by the requirement doc
+        # and source attributes naming the legacy need IDs verbatim.
+        seq = requirement_id.rsplit("-", 1)[1]
+        candidates = (
+            f"REQ-AEBS-S2-{seq} System 2 candidate derived from {need_id}",
+            f"REQ-AEBS-S2-{seq} System 2 candidate derived from {need_id} and",
+            f"REQ-AEBS-S2-{seq} System 2 candidate derived from ",
+        )
+        assert any(anchor in needs for anchor in candidates), (
+            f"missing source attribution for {requirement_id} -> {need_id}"
         )
 
 

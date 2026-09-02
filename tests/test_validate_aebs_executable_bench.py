@@ -208,17 +208,17 @@ class TestAebsExecutableBench(unittest.TestCase):
         realized = model.split("part def AEBSystem2SimulationAssets {", 1)[1].split(
             "part def AEBSystem2ToSystem1Connections {", 1
         )[0]
-        self.assertIn("part readinessInputs : AEBReadinessInputs009A;", realized)
+        self.assertIn("part readinessInputs : AEBReadinessInputs;", realized)
         self.assertNotIn("scenarioController", realized)
         self.assertNotIn("plannedTrajectory", realized)
-        self.assertIn("part def PlannedAEBScenarioAssets009B009C {", model)
-        planned = model.split("part def PlannedAEBScenarioAssets009B009C {", 1)[1].split(
+        self.assertIn("part def PlannedAEBScenarioAssets {", model)
+        planned = model.split("part def PlannedAEBScenarioAssets {", 1)[1].split(
             "part def SimplePlanningSimulatorTestDouble {", 1
         )[0]
         self.assertIn("part scenarioController : ScenarioController;", planned)
 
         system1 = model.split("part def AEBSystem1CandidateDeployment {", 1)[1].split(
-            "part def AEBReadinessInputs009A {", 1
+            "part def AEBReadinessInputs {", 1
         )[0]
         self.assertIn("part def DeferredControlCommandGateAlternative {", model)
         self.assertNotIn("deferredControlCommandGate", system1)

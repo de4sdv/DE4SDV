@@ -119,15 +119,17 @@ phase-numbered filenames:
    product model + pilot YAMLs + tests + docs + one workflow path).
 2. `aebs_010_visualization_*` filenames/packages/types/view names carrying
    the increment number as filesystem structure → semantic names with
-   provenance (manifest; **sequenced after PR #177 merges** — see manifest
-   §Sequencing).
+   provenance (**executed** — batch 2; see manifest execution record;
+   PR #177's eighth slice follows the same mapping after it merges).
 3. `aebs_functional_architecture.sysml` → `aebs_functional_architecture.sysml`
    (align with method vocabulary; package `DE4SDV_AEBSFunctionalArchitecture →
    DE4SDV_AEBSFunctionalArchitecture`).
 4. Numbered reusable definitions inside evidence slices
    (`EvidenceOutcome009H`, `ScenarioIdentity009F/D/E/I`, `BicycleTargetBench009H`,
    `AEBReadinessInputs009A`, `PlannedAEBScenarioHarness009B009C`) → semantic
-   names; increment stays in doc/provenance (manifest; sequenced after #177).
+   names; increment stays in doc/provenance (**canonical-file subset
+   executed** — batch 2 M12; evidence-slice declarations remain
+   identity-bearing records by design, see manifest).
 5. `aebs_evidence.sysml` is named generically but contains
    `DE4SDV_AEBS009BNominalEvidence` (INC-AEBS-009B record) — resolved to the
    explicit evidence-record name (manifest).

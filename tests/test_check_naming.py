@@ -68,8 +68,26 @@ def test_invalid_subject_is_rejected():
 
 
 def test_valid_legacy_subject_mw_is_accepted():
-    """MW is a registered legacy subject; E-MW-011 stays valid (stable ID)."""
+    """MW is a registered subject namespace; E-MW-011 is a grandfathered
+    legacy identity and stays valid (stable, provenance-bearing)."""
     assert _yaml_errors("evidence_id: E-MW-011\n") == []
+
+
+def test_grandfathered_legacy_identities_are_closed_sets():
+    """Retired grammars accept ONLY the enumerated identities."""
+    for identity in sorted(check_naming._GRANDFATHERED_IDENTITIES):
+        assert _yaml_errors(f"id: {identity}\n") == [], identity
+    # Sibling spellings under the retired grammars are rejected
+    # deterministically — grandfathering never licenses new IDs.
+    for sibling in ("E-MW-999", "E-AEBS-001", "N-AEBS-015", "N-MW-010", "N-FOO-001"):
+        errors = _yaml_errors(f"id: {sibling}\n")
+        assert errors, f"{sibling} must be rejected"
+        assert any("unregistered" in e for e in errors), (sibling, errors)
+
+
+def test_new_canonical_need_and_evidence_forms_are_accepted():
+    assert _yaml_errors("id: NEED-AEBS-001\n") == []
+    assert _yaml_errors("id: EVID-MW-015\n") == []
 
 
 def test_config_identity_form_is_accepted():
@@ -177,25 +195,14 @@ def test_python_is_not_token_scanned():
 
 
 def test_project_sysml_filenames_are_lower_snake_case():
-    errors, _ = check_naming.check_sysml_filenames()
+    errors = check_naming.check_sysml_filenames()
     assert not errors, "\n".join(errors)
 
 
-def test_batch2_pending_advisory_lists_scheduled_renames():
-    """The seven INC-AEBS-010 visualization slices are documented batch-2 work."""
-    pending = check_naming.batch2_pending_files()
-    assert len(pending) == 7
-    assert all("aebs_010_visualization_" in name for name in pending)
-
-
-def test_batch2_advisory_disappears_after_migration():
-    """Simulate a tree where the batch-2 renames have been applied."""
-    original = set(check_naming._BATCH2_PENDING)
-    try:
-        check_naming._BATCH2_PENDING.clear()
-        assert check_naming.batch2_pending_files() == []
-    finally:
-        check_naming._BATCH2_PENDING.update(original)
+def test_no_canonical_concern_filename_embeds_increment_numbers():
+    """The 010 visualization slices are migrated (M11/M12 executed)."""
+    errors = check_naming.check_sysml_filenames()
+    assert not any("aebs_010" in e for e in errors), errors
 
 
 def test_no_stale_diagram_names():
