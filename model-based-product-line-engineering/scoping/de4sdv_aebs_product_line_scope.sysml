@@ -14,7 +14,7 @@ package DE4SDV_AEBSProductLineScope {
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::System1Product::*;
-  private import DE4SDV_MWRequirements::Features::Middleware::Requirements::System1Product::*;
+  private import DE4SDV_MiddlewareRequirements::Features::Middleware::Requirements::System1Product::*;
 
   part def ProductLineScopeDecisionRecord :> ProductLineCharacteristic {
     doc /* Reviewed governance decision that controls one bounded product-line scope. */
@@ -206,5 +206,5 @@ package DE4SDV_AEBSProductLineScope {
     to DE4SDV_AEBSAutowareReferenceProduct::AEBSAutowareReferenceProduct;
   dependency aaosIntegratedMemberEvidenceTrace
     from InitialPlannedReferenceMemberPortfolio::aaosIntegratedAutowareAEBSReferenceMember
-    to DE4SDV_MWVariabilityConfiguration::MWAutowareAAOSSDVConfiguredMember;
+    to DE4SDV_MiddlewareVariabilityConfiguration::MiddlewareAutowareAAOSSDVConfiguredMember;
 }
