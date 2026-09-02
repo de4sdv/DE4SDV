@@ -147,20 +147,22 @@ def render_ref_picker(
             has_disabled_buildable = True
         tip = f' title="{esc(title)}"' if title else ""
         opts.append(f'<option value="{esc(rel)}"{sel}{dis}{tip}>{esc(label)}</option>')
-    note = ""
+    # The static-serve hint lives in the picker tooltip, not as permanent
+    # header text: it matters only when a listed revision was not built;
+    # on demand-serving sites it would be noise.
+    wrap_title = "Show the viewer for another branch or pull request"
     if has_disabled_buildable:
-        note = (
-            '<span class="ref-picker-note">served statically — run '
-            "<code>python -m tools.sysml_html_viewer.serve</code> "
-            "to make every branch selectable</span>"
+        wrap_title += (
+            " — served statically: run "
+            "python -m tools.sysml_html_viewer.serve "
+            "to make every branch selectable"
         )
     return (
-        '<span class="ref-picker-wrap" title="Show the viewer for another '
-        'branch or pull request">'
+        f'<span class="ref-picker-wrap" title="{esc(wrap_title)}">'
         '<span class="ref-picker-label">Revision</span>'
         f'<select class="ref-picker" id="refPicker">'
-        f'{"".join(opts)}'
-        f"</select>{note}</span>"
+        f'{" ".join(opts)}'
+        f"</select></span>"
     )
 
 
@@ -201,23 +203,29 @@ def _page_shell(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DE4SDV Model Viewer — {esc(title)}</title>
+<script>(function(){{try{{var t=localStorage.getItem('de4sdv-viewer-theme');if(!t){{var q=new URLSearchParams(location.search).get('theme');t=(q==='dark'||q==='light')?q:null;}}if(t==='dark'){{document.documentElement.setAttribute('data-theme','dark');}}}}catch(e){{}}}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="{esc(css_rel)}">
+<link rel="stylesheet" href="{esc(css_rel.replace('viewer.css', 'carbon.css'))}">
+<script src="{esc(js_rel.replace('viewer.js', 'theme.js'))}"></script>
 </head>
 <body{body_attr}>
 <script>window.VIEWER_PREFIX = "{esc(search_prefix)}";</script>
 {uses_tag}
 <header class="site-header">
   <a class="site-title" href="{esc(search_prefix + 'index.html')}">DE4SDV <em>Model Viewer</em></a>
-  <a class="site-chat" href="https://chat.de4sdv.org" target="_blank" rel="noopener">
-    <svg class="site-chat-icon" viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2c-3.6 0-6.5 2.5-6.5 5.6 0 1.7.9 3.2 2.3 4.2-.1 1-.4 1.7-.9 2.3 1.3-.2 2.4-.7 3.2-1.3.6.1 1.2.2 1.9.2 3.6 0 6.5-2.5 6.5-5.5S11.6 2.2 8 2.2z"/></svg>
-    <span>Chat</span>
-  </a>
-  <a class="site-chat" href="{esc(search_prefix + 'help.html')}">Help</a>
-  <a class="site-chat" href="{esc(search_prefix + 'elements.html')}">Elements</a>
-  <a class="site-chat" href="{esc(search_prefix + 'requirements.html')}">Needs &amp; Reqs</a>
+  <nav class="site-nav" aria-label="Viewer pages">
+    <a class="site-nav-link" href="{esc(search_prefix + 'help.html')}">Help</a>
+    <a class="site-nav-link" href="{esc(search_prefix + 'elements.html')}">Elements</a>
+    <a class="site-nav-link" href="{esc(search_prefix + 'requirements.html')}">Needs &amp; Reqs</a>
+    <a class="site-nav-link" href="https://chat.de4sdv.org" target="_blank" rel="noopener">Chat<svg class="site-chat-icon" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2c-3.6 0-6.5 2.5-6.5 5.6 0 1.7.9 3.2 2.3 4.2-.1 1-.4 1.7-.9 2.3 1.3-.2 2.4-.7 3.2-1.3.6.1 1.2.2 1.9.2 3.6 0 6.5-2.5 6.5-5.5S11.6 2.2 8 2.2z"/></svg></a>
+  </nav>
+  <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch color theme" title="Switch light / dark theme">
+    <svg class="theme-icon icon-moon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M13.7 9.9A6.1 6.1 0 0 1 6.1 2.3a.5.5 0 0 0-.6-.7 6.5 6.5 0 1 0 8.9 8.9.5.5 0 0 0-.7-.6z"/></svg>
+    <svg class="theme-icon icon-sun" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"/></svg>
+  </button>
   {picker}
 </header>
 <div class="layout">
@@ -282,22 +290,52 @@ def render_index(
     content = f"""
 <div class="card welcome">
   <h1>DE4SDV systems model</h1>
-  <p>Browse the software-defined vehicle (SDV) systems model: packages,
-  declared members, and every SysML v2 <strong>view</strong> with the diagram
-  SysIDE renders from it. Click through the tree on the left — views open with
-  their full diagram and view definition metadata.</p>
-  <p>This viewer is generated from the authoritative <code>.sysml</code>
-  textual notation. It only links artifacts that exist in the repository;
-  it never invents elements or re-renders diagrams.</p>
+  <p class="muted">A read-only browser over the SysML v2 textual model in the
+  DE4SDV repository — generated from the authoritative <code>.sysml</code>
+  sources. It only links artifacts that exist in the repository; it never
+  invents elements or re-renders diagrams.</p>
   <div class="stats">{stats_html}</div>
 </div>
 <div class="card">
-  <h2>Getting started</h2>
-  <ul>
-    {''.join(start_links)}
-    <li>Open any <span class="kind-badge view-badge">view</span> in a file page to see its diagram and definition.</li>
-    <li>Elements in the tree jump to their declaration line in the highlighted source below the diagrams.</li>
-  </ul>
+  <h2>Get started</h2>
+  <div class="land-cols">
+    <div>
+      <h3>Explore the model</h3>
+      <ul>
+        {''.join(start_links)}
+        <li>Open any <span class="kind-badge view-badge">view</span> in a file
+        page: the diagram, its definition metadata, and the highlighted
+        source it was rendered from.</li>
+        <li>Search the tree as you type, or narrow it with the four filter
+        dropdowns — each shows how many elements it matches.</li>
+        <li>Hover labels and connectors in a diagram for documentation and
+        source links; right-click an element to list every diagram that uses
+        it.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Go further</h3>
+      <ul>
+        <li>Browse <a href="{esc(search_prefix + 'requirements.html')}">needs &amp; requirements</a>
+        with traceability links between statements, evidence, and claims.</li>
+        <li>Learn the notation on the <a href="{esc(search_prefix + 'elements.html')}">Elements</a>
+        page, and the viewer itself under <a href="{esc(search_prefix + 'help.html')}">Help</a>.</li>
+        <li>Compare branches and pull requests with the
+        <strong>Revision</strong> picker in the header. Serving every branch
+        on demand: <code>python -m tools.sysml_html_viewer.serve</code>.</li>
+        <li>Prefer dark? Use the sun/moon button in the header — the choice is
+        remembered.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="muted land-more">Diagrams in this viewer are committed artifacts
+  rendered with <a href="https://docs.sensmetry.com/editor/" target="_blank"
+  rel="noopener">SysIDE</a> from the model sources — see
+  <a href="{esc(search_prefix + 'help.html')}">Help</a> for how they are
+  produced. &nbsp;·&nbsp; Source of truth:
+  <a href="https://github.com/de4sdv/DE4SDV" target="_blank" rel="noopener">github.com/de4sdv/DE4SDV</a>
+  &nbsp;·&nbsp; Community:
+  <a href="https://chat.de4sdv.org" target="_blank" rel="noopener">chat.de4sdv.org</a></p>
 </div>
 """
     return _page_shell(
@@ -742,7 +780,7 @@ def _render_view_block(
     )
     return f"""
 <section class="view-section" id="view-{anchor}">
-  <h2><span class="kind-badge view-badge">view</span> {esc(v.name)}</h2>
+  <h2><span class="kind-badge view-badge">view</span> {esc(v.name)}<a class="view-src-jump" href="#source" title="Jump to the highlighted source below">source ↓</a></h2>
   <table class="meta-table">{meta_html}</table>
   {doc_html}
   {diagram_html}
@@ -781,6 +819,12 @@ def render_file_page(
         if source_url
         else ""
     )
+    jump_link = (
+        '<a class="jump-source" href="#source" title="Jump to the highlighted '
+        'source code at the bottom of this page">Jump to source ↓</a>'
+        if view_count
+        else ""
+    )
     try:
         source_html = _highlight_source(
             mf.path.read_text(encoding="utf-8"), mf, member_index, prefix
@@ -790,11 +834,11 @@ def render_file_page(
     content = f"""
 <div class="card file-header">
   <h1>{esc(mf.rel_path)}</h1>
-  <p class="muted">{view_count} view(s) · {len(mf.members)} declared member(s) {source_link}</p>
+  <p class="muted">{view_count} view(s) · {len(mf.members)} declared member(s) {source_link}{jump_link}</p>
   {doc_html}
 </div>
 {views_html}
-<div class="card">
+<div class="card" id="source">
   <h2>Source</h2>
   <pre class="source-view">{source_html}</pre>
 </div>

@@ -43,6 +43,7 @@ def run_import(
     report_path: Path,
     project_name: str | None,
     git_repository: str,
+    api_host_header: str | None = None,
 ) -> dict[str, object]:
     head = _git_head()
     bundle = BaselineExportBundle.load(export_path)
@@ -51,7 +52,12 @@ def run_import(
             f"baseline export is stale: artifact={bundle.git_commit}, checked-out HEAD={head}"
         )
     bundle.require_current_sources(BaselineManifest.discover(ROOT))
-    client = ApiClient(api_url, timeout=600.0)
+    # default_headers is an injection point, not a bypass: callers on the
+    # deployment host reach the API container directly (Caddy's Host rewrite
+    # is out of the path there), and the API's AllowedHostsFilter rejects a
+    # raw bridge-IP Host header with 400. Public exposure is unchanged.
+    default_headers = {"Host": api_host_header} if api_host_header else {}
+    client = ApiClient(api_url, timeout=600.0, default_headers=default_headers)
     imported = import_baseline(
         client,
         bundle,
@@ -113,6 +119,13 @@ def main() -> int:
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--project-name")
     parser.add_argument("--git-repository", default="de4sdv/DE4SDV")
+    parser.add_argument(
+        "--api-host-header",
+        help=(
+            "Explicit Host header for direct (non-proxied) API calls; required "
+            "when the API's AllowedHostsFilter does not accept the raw address."
+        ),
+    )
     args = parser.parse_args()
     result = run_import(
         api_url=args.api_url,
@@ -121,6 +134,7 @@ def main() -> int:
         report_path=args.report,
         project_name=args.project_name,
         git_repository=args.git_repository,
+        api_host_header=args.api_host_header,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

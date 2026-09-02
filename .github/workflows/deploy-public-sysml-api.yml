@@ -226,6 +226,72 @@ jobs:
           echo "exact checkout verified: $HEAD"
           REMOTE
 
+      - name: Materialize pinned Sysand dependencies on the host
+        run: |
+          set -euo pipefail
+          SSH_HOST="${{ secrets.DEPLOY_SSH_HOST }}"
+          SSH_USER="${{ secrets.DEPLOY_SSH_USER }}"
+          # The reviewed baseline manifest (de4sdv/sysml_api/baseline.py) pins
+          # three external Sysand dependency sources that live under the
+          # gitignored .sysand/ directory. The privileged workflow materializes
+          # them with `sysand sync` from the committed sysand-lock.toml; the
+          # deploy host must reproduce that exact state at the exact SHA or the
+          # importer correctly fails closed on a stale/incomplete source
+          # manifest. Same lockfile + same kpar checksum verification => same
+          # bytes; the manifest hash comparison in the importer proves it.
+          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          REPO_DIR=/srv/de4sdv/DE4SDV
+          cd "$REPO_DIR"
+          if [[ ! -f sysand-lock.toml ]]; then
+            echo "sysand-lock.toml missing at the deployed SHA" >&2
+            exit 1
+          fi
+          SYSAND_VERSION=0.2.1
+          SYSAND_DIR="/srv/de4sdv/sysand-$SYSAND_VERSION"
+          # Recreate the client venv unconditionally on every deployment.
+          # Deploy run 33608232967 left a broken-but-executable
+          # sysand-0.2.1/bin/sysand (stale pip shebang) on the host; a
+          # -x reuse gate would silently reuse it and fail again. Fresh
+          # creation at the final version-specific path also avoids pip's
+          # stale-shebang trap (installing into a .tmp dir and mv-ing it
+          # afterwards leaves every console script pointing at a
+          # nonexistent interpreter — the same run's exit 127).
+          rm -rf "$SYSAND_DIR"
+          python3 -m venv "$SYSAND_DIR"
+          "$SYSAND_DIR/bin/pip" install --no-input "sysand==$SYSAND_VERSION" >/dev/null
+          # Exact scalar version comparison via importlib.metadata: no
+          # pipefail/SIGPIPE mechanics (grep -q early-exit broke this
+          # pipeline live on the deploy host, deploy run 33601227223) and
+          # no substring matching (a grep for "Version: 0.2.1" would also
+          # match 0.2.10).
+          ACTUAL_SYSAND_VERSION=$(
+            "$SYSAND_DIR/bin/python" -c \
+              'import importlib.metadata; print(importlib.metadata.version("sysand"))'
+          )
+          if [[ "$ACTUAL_SYSAND_VERSION" != "$SYSAND_VERSION" ]]; then
+            echo "sysand client install did not produce the pinned version" >&2
+            exit 1
+          fi
+          SYSAND="$SYSAND_DIR/bin/sysand"
+          # Every-run exact scalar comparison of the CLI banner: no pipe into
+          # grep (pipefail/SIGPIPE-free), no substring matching. Also proves
+          # the console script actually executes (stale shebangs fail here).
+          ACTUAL_SYSAND_CLI_VERSION=$("$SYSAND" --version)
+          if [[ "$ACTUAL_SYSAND_CLI_VERSION" != "sysand $SYSAND_VERSION" ]]; then
+            echo "deploy host sysand is not exactly $SYSAND_VERSION" >&2
+            exit 1
+          fi
+          # sync verifies each resolved package against the lockfile's kpar
+          # checksums and fails closed on a mismatch.
+          "$SYSAND" sync
+          test -f .sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml
+          test -f .sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml
+          test -f .sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml
+          echo "pinned Sysand dependencies materialized at $(git rev-parse HEAD)"
+          REMOTE
+
       - name: Transfer validated bundle and run fail-closed deploy
         run: |
           set -euo pipefail

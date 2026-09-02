@@ -239,6 +239,27 @@ as tokens under `:root`.
 - **Shape** — flat surfaces, hairline borders (`--line`), small radii
   (8 px cards), no shadows.
 
+### Carbon theme layer (`carbon.css` + `theme.js`)
+
+On top of the base design, the viewer ships a **Carbon Design System theme
+layer** (loaded after `viewer.css` on every page):
+
+- **Light theme** (default) follows Carbon white/gray tokens: gray-100
+  `#161616` text on white/gray-10 `#f4f4f4` surfaces, blue-60 `#0f62fe`
+  interactive accent, gray-20 `#e0e0e0` borders, 0 px corner radius
+  everywhere, and Carbon component idioms (tags for kind badges and
+  requirement kinds, underline-style selects, square filter chips, 2 px
+  focus rings).
+- **Dark theme** (Carbon g100) activates via `<html data-theme="dark">`:
+  gray-100 background, gray-90 panels, light text, blue-40 `#4589ff`
+  interactive accent, dark-tuned syntax and tag colors.
+- **Theme toggle**: the header sun/moon button switches themes; the choice
+  persists in `localStorage`. A small inline `<head>` script re-applies the
+  saved theme before first paint (no flash), and `?theme=dark|light` acts as
+  a per-view URL override that does not overwrite the saved choice.
+- Both theme token sets live in `carbon.css`; `theme.js` only wires the
+  toggle button and the body-level theme class.
+
 ## Tests
 
 ```bash
