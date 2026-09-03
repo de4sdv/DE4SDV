@@ -286,12 +286,12 @@ def test_ontology_validation_reports_all_binding_categories_explicitly() -> None
         {
             "@type": "RequirementDefinition",
             "@id": acceptance_a,
-            "declaredName": "MiddlewareAcceptanceCriterion010",
+            "declaredName": "MiddlewareAcceptanceCriterion",
         },
         {
             "@type": "RequirementDefinition",
             "@id": acceptance_b,
-            "declaredName": "MiddlewareAcceptanceCriterion010",
+            "declaredName": "MiddlewareAcceptanceCriterion",
         },
     ]
     sources = {

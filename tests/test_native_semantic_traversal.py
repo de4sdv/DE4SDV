@@ -125,12 +125,12 @@ def test_verification_membership_traversal_resolves_native_api_shape() -> None:
     evidence = {
         "@id": "ev-1",
         "@type": "RequirementUsage",
-        "declaredName": "evidenceContract009BFreshOverrideClear",
+        "declaredName": "evidenceContractFreshOverrideClear",
     }
     verification = {
         "@id": "vc-1",
         "@type": "VerificationCaseUsage",
-        "declaredName": "nominalMovingVehicleTargetVerification009B",
+        "declaredName": "nominalMovingVehicleTargetVerification",
     }
     verify_membership = {
         "@id": "rvm-1",
@@ -155,7 +155,7 @@ def _verification_chain_elements() -> tuple[dict, dict, dict]:
         {
             "@id": "vc-1",
             "@type": "VerificationCaseDefinition",
-            "declaredName": "nominalMovingVehicleTargetVerification009B",
+            "declaredName": "nominalMovingVehicleTargetVerification",
         },
         {
             "@id": "objective-1",
@@ -179,7 +179,7 @@ def test_verification_traversal_resolves_objective_ownership_chain() -> None:
     evidence = {
         "@id": "ev-1",
         "@type": "RequirementUsage",
-        "declaredName": "evidenceContract009BFreshOverrideClear",
+        "declaredName": "evidenceContractFreshOverrideClear",
     }
     verification, _objective, objective_membership = _verification_chain_elements()
     elements = [
@@ -238,13 +238,13 @@ def test_verification_traversal_resolves_shadow_only_reference_subsetting() -> N
     declared = {
         "@id": "ev-1",
         "@type": "RequirementUsage",
-        "declaredName": "evidenceContract009BFreshOverrideClear",
+        "declaredName": "evidenceContractFreshOverrideClear",
     }
     verification, _objective, objective_membership = _verification_chain_elements()
     shadow = {
         "@id": "shadow-1",
         "@type": "RequirementUsage",
-        "declaredName": "evidenceContract009BFreshOverrideClear",
+        "declaredName": "evidenceContractFreshOverrideClear",
     }
     elements = [
         declared,
@@ -277,12 +277,12 @@ def test_verification_membership_traversal_honors_member_element_form() -> None:
     evidence = {
         "@id": "ev-1",
         "@type": "RequirementUsage",
-        "declaredName": "evidenceContract009BFreshOverrideClear",
+        "declaredName": "evidenceContractFreshOverrideClear",
     }
     verification = {
         "@id": "vc-1",
         "@type": "VerificationCaseDefinition",
-        "declaredName": "nominalMovingVehicleTargetVerification009B",
+        "declaredName": "nominalMovingVehicleTargetVerification",
     }
     membership = {
         "@id": "rvm-1",
@@ -378,7 +378,7 @@ def test_impact_service_reports_native_edges_against_real_shapes(
         {
             "@id": "ev-override",
             "@type": "RequirementUsage",
-            "declaredName": "evidenceContract009BFreshOverrideClear",
+            "declaredName": "evidenceContractFreshOverrideClear",
         },
         {
             "@id": "dep-override",
@@ -389,7 +389,7 @@ def test_impact_service_reports_native_edges_against_real_shapes(
         {
             "@id": "verify-009b",
             "@type": "VerificationCaseUsage",
-            "declaredName": "nominalMovingVehicleTargetVerification009B",
+            "declaredName": "nominalMovingVehicleTargetVerification",
         },
         {
             "@id": "rvm-override",

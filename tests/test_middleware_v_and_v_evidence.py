@@ -196,9 +196,9 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
             },
         )
         self.assertIn("Vehicle.Speed", self.model)
-        self.assertIn("VehicleStartupValidation010", self.model)
-        self.assertIn("UpdateCoordinationValidation010", self.model)
-        self.assertIn("FaultDetectionValidation010", self.model)
+        self.assertIn("VehicleStartupValidation", self.model)
+        self.assertIn("UpdateCoordinationValidation", self.model)
+        self.assertIn("FaultDetectionValidation", self.model)
 
     def test_signal_translation_criterion_is_deterministic_and_bounded(self):
         criterion = self.pilot["acceptance_criteria"][0]
@@ -327,7 +327,7 @@ class TestMWVerificationAndValidationEvidence(unittest.TestCase):
     def test_model_traces_configured_member_requirements_and_evidence(self):
         required = [
             "part incMW010 : FeatureIncrement",
-            "MiddlewareIntegrationVandVBench010",
+            "MiddlewareIntegrationVandVBench",
             "acceptanceCriterion010SignalTranslation",
             "acceptanceCriterion010LifecycleCoordination",
             "acceptanceCriterion010HealthForwarding",

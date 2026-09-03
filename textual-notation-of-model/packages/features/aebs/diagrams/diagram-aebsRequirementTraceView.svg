@@ -17,7 +17,7 @@
   <path d="M 1476,2425 H 2561 A 6,6 0 0 1 2567,2431 V 2719 A 6,6 0 0 1 2561,2725 H 1476 A 6,6 0 0 1 1470,2719 V 2431 A 6,6 0 0 1 1476,2425 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2920,381 H 3751 A 6,6 0 0 1 3757,387 V 639 A 6,6 0 0 1 3751,645 H 2920 A 6,6 0 0 1 2914,639 V 387 A 6,6 0 0 1 2920,381 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1046,381 H 1843 A 6,6 0 0 1 1849,387 V 639 A 6,6 0 0 1 1843,645 H 1046 A 6,6 0 0 1 1040,639 V 387 A 6,6 0 0 1 1046,381 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1384,1644 H 2444 A 6,6 0 0 1 2450,1650 V 1890 A 6,6 0 0 1 2444,1896 H 1384 A 6,6 0 0 1 1378,1890 V 1650 A 6,6 0 0 1 1384,1644 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1444,1644 H 2504 A 6,6 0 0 1 2510,1650 V 1890 A 6,6 0 0 1 2504,1896 H 1444 A 6,6 0 0 1 1438,1890 V 1650 A 6,6 0 0 1 1444,1644 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 3363,900 H 4816 A 6,6 0 0 1 4822,906 V 1158 A 6,6 0 0 1 4816,1164 H 3363 A 6,6 0 0 1 3357,1158 V 906 A 6,6 0 0 1 3363,900 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 454,2156 H 1286 A 6,6 0 0 1 1292,2162 V 2405 A 6,6 0 0 1 1286,2411 H 454 A 6,6 0 0 1 448,2405 V 2162 A 6,6 0 0 1 454,2156 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 517,2430 H 1287 A 6,6 0 0 1 1293,2436 V 2655 A 6,6 0 0 1 1287,2661 H 517 A 6,6 0 0 1 511,2655 V 2436 A 6,6 0 0 1 517,2430 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -42,7 +42,7 @@
   <path d="M 1476,2425 H 2561 A 6,6 0 0 1 2567,2431 V 2461 H 1470 V 2431 A 6,6 0 0 1 1476,2425 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2920,381 H 3751 A 6,6 0 0 1 3757,387 V 417 H 2914 V 387 A 6,6 0 0 1 2920,381 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1046,381 H 1843 A 6,6 0 0 1 1849,387 V 417 H 1040 V 387 A 6,6 0 0 1 1046,381 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1384,1644 H 2444 A 6,6 0 0 1 2450,1650 V 1680 H 1378 V 1650 A 6,6 0 0 1 1384,1644 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1444,1644 H 2504 A 6,6 0 0 1 2510,1650 V 1680 H 1438 V 1650 A 6,6 0 0 1 1444,1644 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 3363,900 H 4816 A 6,6 0 0 1 4822,906 V 936 H 3357 V 906 A 6,6 0 0 1 3363,900 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 454,2156 H 1286 A 6,6 0 0 1 1292,2162 V 2192 H 448 V 2162 A 6,6 0 0 1 454,2156 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 517,2430 H 1287 A 6,6 0 0 1 1293,2436 V 2466 H 511 V 2436 A 6,6 0 0 1 517,2430 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -82,12 +82,12 @@
   <polyline points="1040,567 1849,567" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1040,601 1849,601" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1046,381 H 1843 A 6,6 0 0 1 1849,387 V 639 A 6,6 0 0 1 1843,645 H 1046 A 6,6 0 0 1 1040,639 V 387 A 6,6 0 0 1 1046,381 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1378,1680 2450,1680" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1378,1714 2450,1714" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1378,1772 2450,1772" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1378,1806 2450,1806" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1378,1852 2450,1852" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1384,1644 H 2444 A 6,6 0 0 1 2450,1650 V 1890 A 6,6 0 0 1 2444,1896 H 1384 A 6,6 0 0 1 1378,1890 V 1650 A 6,6 0 0 1 1384,1644 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1438,1680 2510,1680" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1438,1714 2510,1714" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1438,1772 2510,1772" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1438,1806 2510,1806" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1438,1852 2510,1852" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1444,1644 H 2504 A 6,6 0 0 1 2510,1650 V 1890 A 6,6 0 0 1 2504,1896 H 1444 A 6,6 0 0 1 1438,1890 V 1650 A 6,6 0 0 1 1444,1644 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="3357,936 4822,936" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="3357,970 4822,970" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="3357,1040 4822,1040" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -202,9 +202,9 @@
   <polyline points="1293,2571 1468.688,2571" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="1292,2802 1437.125,2802 1437.125,2579 1468.688,2579" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="1293,3064.4 1429.125,3064.4 1429.125,2587 1468.688,2587" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
-  <polyline points="1210,1514 1361.125,1514 1361.125,1762 1376.688,1762" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
-  <polyline points="1210,1770.4 1376.688,1770.4" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
-  <polyline points="1211,2020.8 1345.125,2020.8 1345.125,1778 1376.688,1778" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <polyline points="1210,1514 1421.125,1514 1421.125,1762 1436.688,1762" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <polyline points="1210,1770.4 1436.688,1770.4" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <polyline points="1211,2020.8 1405.125,2020.8 1405.125,1778 1436.688,1778" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="3189,1028 3355.688,1028" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="3189,1238.4 3332.125,1238.4 3332.125,1036 3355.688,1036" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="2746,509 2912.688,509" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
@@ -227,13 +227,13 @@
   <g transform="translate(1470,2587) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <g transform="translate(1378,1762) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(1438,1762) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <g transform="translate(1378,1770.4) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(1438,1770.4) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <g transform="translate(1378,1778) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(1438,1778) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <g transform="translate(3357,1028) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
@@ -323,22 +323,22 @@
   <text x="1444.5" y="611.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
   <text x="1048" y="627" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Cyclists need the SDV product line to provide a common AEBS capability that reduces forward collision risk with a bicycle target under defined applicable operating conditions.</tspan></text>
   <text x="1048" y="639" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
-  <text x="1914" y="1656" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
-  <text x="1914" y="1672" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">needBoundedDegradationAndAvailability : ProductSafetyAvailabilityNeed</tspan></text>
-  <text x="1914" y="1690.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1386" y="1706" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">N-AEBS-008 draft System 1 safety and availability need.</tspan></text>
-  <text x="1914" y="1724.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="1386" y="1740" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::InDevelopment</tspan></text>
-  <text x="1386" y="1752" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "INC-AEBS-002 operational context degraded-mode scenarios"</tspan></text>
-  <text x="1386" y="1764" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Unavailable or unhealthy AEBS inputs must not present misleading availability to the driver."</tspan></text>
-  <text x="1914" y="1782.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1386" y="1798" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">memberProduct : ProductLineMemberProduct</tspan></text>
-  <text x="1914" y="1816.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
-  <text x="1386" y="1832" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">roadUser : RoadUser</tspan></text>
-  <text x="1386" y="1844" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">occupant : VehicleOccupant</tspan></text>
-  <text x="1914" y="1862.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1386" y="1878" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Road users and vehicle occupants need each SDV product-line member product to manage AEBS degradation so that behavior remains bounded and AEBS availability is apparent when required inputs or AEBS functions are not healthy.</tspan></text>
-  <text x="1386" y="1890" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
+  <text x="1974" y="1656" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
+  <text x="1974" y="1672" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">needBoundedDegradationAndAvailability : ProductSafetyAvailabilityNeed</tspan></text>
+  <text x="1974" y="1690.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1446" y="1706" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">N-AEBS-008 draft System 1 safety and availability need.</tspan></text>
+  <text x="1974" y="1724.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
+  <text x="1446" y="1740" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::InDevelopment</tspan></text>
+  <text x="1446" y="1752" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "INC-AEBS-002 operational context degraded-mode scenarios"</tspan></text>
+  <text x="1446" y="1764" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Unavailable or unhealthy AEBS inputs must not present misleading availability to the driver."</tspan></text>
+  <text x="1974" y="1782.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1446" y="1798" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">memberProduct : ProductLineMemberProduct</tspan></text>
+  <text x="1974" y="1816.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
+  <text x="1446" y="1832" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">roadUser : RoadUser</tspan></text>
+  <text x="1446" y="1844" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">occupant : VehicleOccupant</tspan></text>
+  <text x="1974" y="1862.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1446" y="1878" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Road users and vehicle occupants need each SDV product-line member product to manage AEBS degradation so that behavior remains bounded and AEBS availability is apparent when required inputs or AEBS functions are not healthy.</tspan></text>
+  <text x="1446" y="1890" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
   <text x="4089.5" y="912" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
   <text x="4089.5" y="928" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">needTrustworthyInterventionDecisions : ProductSafetyAvailabilityNeed</tspan></text>
   <text x="4089.5" y="946.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -669,9 +669,9 @@
   <text x="1376.5" y="2556" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req002DerivedFromNeed001</tspan></text>
   <text x="1376.5" y="2813" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req003DerivedFromNeed001</tspan></text>
   <text x="1376.5" y="3075" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req004DerivedFromNeed001</tspan></text>
-  <text x="1294.5" y="1525" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req005DerivedFromNeed008</tspan></text>
-  <text x="1294.5" y="1781" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req009DerivedFromNeed008</tspan></text>
-  <text x="1294.5" y="2031" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req013DerivedFromNeed008</tspan></text>
+  <text x="1324.5" y="1525" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req005DerivedFromNeed008</tspan></text>
+  <text x="1324.5" y="1781" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqDerivedFromNeedBoundedDegradation</tspan></text>
+  <text x="1324.5" y="2031" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req013DerivedFromNeed008</tspan></text>
   <text x="3273.5" y="981" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req008DerivedFromNeed014</tspan></text>
   <text x="3273.5" y="1249" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req012DerivedFromNeed014</tspan></text>
   <text x="2829.5" y="462" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">req010DerivedFromNeed006</tspan></text>

@@ -571,3 +571,106 @@ same as batch 1).
   the two documented pre-existing framing failures (host-browser wording,
   S2-012/013/014 index), verified failing identically on the pre-migration
   tree.
+
+
+---
+
+## Batch 3 execution record — model organization & lifecycle-leakage normalization
+
+Audit: `docs/naming/model-organization-audit.md` (MUST FIX / SHOULD FIX /
+KEEP / NEEDS DECISION classification, governance facts, per-item risk).
+
+### Implemented
+
+1. **M1 — INC-AEBS-010 phase pseudo-increments collapsed.** Deleted
+   `incAEBS010Architecture` / `incAEBS010NeedsRequirements` /
+   `incAEBS010Configuration` (phase work products modeled as increments);
+   the single increment identity `incAEBS010` (framing) remains; the one
+   cross-slice dependency now reads as a provenance doc (phase order 0→9).
+   Zero IDs changed.
+2. **M3 — 009-series reusable type vocabulary de-numbered.** 380 renames
+   across 9 AEBS files (`EvidenceOutcome009H` → `BicycleEvidenceOutcome`,
+   `BicycleTargetBench009H` → `BicycleTargetBench`,
+   `Retained009BObservationSet` → `NominalObservationSet`,
+   `Replayed009BEvaluation` → `NominalEvaluation`, benches/contracts/
+   verifications/roles/maps de-numbered; views
+   `aebs009X…AssuranceView` → `aebs<Scenario>…AssuranceView` with globally
+   unique names). `scripts/generate_scenario_manifest.py` no longer
+   constructs `<Type><increment>`; per-increment semantic enum registries
+   added; manifest regenerated. 13 external test/fixture/seed references
+   migrated. Origin increments documented at def sites.
+3. **M2 — MW evidence vocabulary de-numbered (14 types).**
+   `ScenarioIdentity010` → `MiddlewareScenarioIdentity`,
+   `EvidenceOutcome010` → `MiddlewareEvidenceOutcome`,
+   `EvidenceDisposition010` → `MiddlewareEvidenceDisposition`,
+   `RetainedMiddlewareEvidence010` → `RetainedMiddlewareEvidence`,
+   `ReplayedMiddlewareEvaluation010` → `ReplayedMiddlewareEvaluation`,
+   `MiddlewareAcceptanceCriterion010` → `MiddlewareAcceptanceCriterion`,
+   claim/argument/counterclaim defs, bench/verification/validation defs,
+   `Map010OutcomeToVerdict` → `MapEvidenceOutcomeToVerdict`, observation
+   items. Ontology YAML kernel mapping (`AcceptanceCriterion` →
+   `requirement def MiddlewareAcceptanceCriterion`) and 3 citations updated
+   in the same commit. Usage names that mirror registered IDs
+   (`acceptanceCriterion010*` = AC-MW-010-*, `*Argument010` = AGT-MW-010-*,
+   `counterClaim010*` = CCM-MW-010-*, `*Verification010`/`*Validation010` =
+   VC-MW-010-*, evidence/gap/baseline-decision records) are KEPT as
+   identity-bearing record usages.
+4. **M4 — `DE4SDV_AEBS009AExecutionEnvironment` →
+   `DE4SDV_AEBSExecutionEnvironment`** (+ view rename; .meta.json,
+   sysand-lock.toml updated).
+5. Enforcement: naming-authority audit doc added to the checker's exempt
+   naming-doc set; `check_model_sync.py` scenario-enum regex updated to the
+   semantic names (also accepts legacy numbered form); `check_naming.py`
+   unchanged elsewhere.
+
+### Package-identity correction (post-audit, same PR)
+
+The initial batch-3 record kept the 009*/MW-010 evidence-record package names.
+Re-audit under the final package-identity rule (canonical semantic module →
+canonical semantic package; lifecycle identity lives on contained records,
+not the namespace) reclassified all nine: each module holds de-numbered
+reusable vocabulary plus record usages from its increment (and the middleware
+module grew across #89/#136/later slices — not a single frozen snapshot).
+Renamed: `DE4SDV_AEBS009BNominalEvidence → DE4SDV_AEBSNominalEvidence`,
+`DE4SDV_AEBS009C/D/E/F/G/H/IVerification → DE4SDV_AEBSPartialIntervention/
+Override/NonActivation/DegradedInput/Pedestrian/Bicycle/
+RegulatoryCriterionVerification`,
+`DE4SDV_Middleware010VerificationEvidence →
+DE4SDV_MiddlewareVerificationEvidence` (54 references: SysML packages+doc
+headers, `aebs_visualization_framing` import, pilot `dependency_element`,
+`.meta.json` (9), `sysand-lock.toml` (9), `scenario-manifest.json` (8),
+VIEWS.md (7), 2 tests; 7 SVGs with old labels deleted → privileged
+regeneration). Contained records keep their identities: `INC-AEBS-009*`,
+`incAEBS009*`-scoped parts, `INC-MW-010`, `incMW010`, `E-MW-*`,
+`AC/VC/AGT/CCM-MW-010-*`, `BL-MW-010-P12`, `MW-CONFIG-001`,
+`boundedBaselineDecision010`, `successorIncrementDecision010`, gap records.
+
+### Preserved (verified unchanged, batch 3 as amended)
+
+`INC-AEBS-001…010` increment parts and pilot chain, `INC-MW-002…010` chain,
+`part incAEBS001…008`/`incMW002…010` (real per-concern increments),
+`mw010ReferenceContractClaim`, `boundedBaselineDecision010`,
+`successorIncrementDecision010`, all `AC/VC/AGT/CCM/AO/E-/EVID/EC/GAP/BL/SRC/
+SCN` registered IDs, `MW-CONFIG-001`, evidence filenames/dirs, bench runtime
+identities, fixture/product-model records.
+
+### Regenerated artifacts / diagram state
+
+`scenario-manifest.json` regenerated (48 lines), VIEWS.md regenerated
+(aebs + middleware), 8 stale-named SVGs deleted (7 renamed 009 view SVGs +
+the renamed execution-environment SVG). Privileged run must regenerate and
+byte-swap 8 renamed views (one pre-declared repair cycle).
+
+### NEEDS DECISION (recorded, with recommendations)
+
+- D1: AEBS visualization directory split (`system2/visualization/`) —
+  recommend defer until a second System-2 module exists (high #177 conflict
+  surface; package prefixes already disambiguate).
+- D2: vocabulary convergence (`needs_requirements` split,
+  `evidence`→`verification_evidence`, `increment_framing`→`framing`) —
+  semantic-model restructure; recommend doing with the next content
+  increment touching each file.
+- D3: `DE4SDV_Middleware010VerificationEvidence` package name — recommend
+  KEEP (closed-record identity; user rule 13); types already de-numbered.
+- S1: `Features`-nesting flatten — recommended, own follow-up change
+  (~95 qualified refs + viewer fixtures mirror the shape).
