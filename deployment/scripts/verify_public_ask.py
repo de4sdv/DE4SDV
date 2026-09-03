@@ -169,7 +169,7 @@ def verify_public_ask(
                 f"live grounded query failed with HTTP {answer_code}"
             )
         source = str(answer.get("method_context_source") or "")
-        if not source.startswith("api:"):
+        if source != "api":
             raise VerificationError(
                 f"live query was not API-grounded: {source or 'missing source'}"
             )
