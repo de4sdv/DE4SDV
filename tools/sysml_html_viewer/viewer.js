@@ -385,7 +385,10 @@
             els.grounded.textContent =
               'grounded on ' + el.name + ' \u00b7 ' + el.file + ':' + el.line;
           }
-          els.modelLine.textContent = 'model: ' + (res.data.model || '?');
+          els.modelLine.textContent = 'model: ' + (res.data.model || '?')
+            + (res.data.method_context_source
+              ? ' \u00b7 method context: ' + res.data.method_context_source
+              : '');
           var alts = res.data.ambiguous_alternatives || [];
           if (alts.length) {
             els.altsLine.textContent =

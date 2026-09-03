@@ -49,10 +49,10 @@ from .ask_model import (
     MODEL as ASK_MODEL,
     ask_llm,
     build_evidence,
-    build_method_context,
     load_api_key,
     resolve_element,
 )
+from .ask_model_semantic import build_method_context_api
 from .model_parse import ModelFile, build_member_index, load_model
 from .model_parse import ElementRef  # noqa: F401  (type only)
 
@@ -520,9 +520,11 @@ class _Handler(SimpleHTTPRequestHandler):
 
         evidence = build_evidence(resolved, files)
         try:
-            method_ctx = build_method_context(resolved, files)
+            method_ctx, derivation = build_method_context_api(
+                resolved, files
+            )
         except Exception:
-            method_ctx = {}
+            method_ctx, derivation = {}, "regex:fallback:exception"
         if method_ctx:
             evidence["method_context"] = method_ctx
         api_key = load_api_key()
@@ -549,10 +551,11 @@ class _Handler(SimpleHTTPRequestHandler):
                 "href": f"pages/{resolved.rel_path}.html#src-{resolved.line}",
             },
             "model": ASK_MODEL,
+            "method_context_source": derivation,
             "ambiguous_alternatives": [
                 {"name": c.name, "file": c.rel_path, "line": c.line}
                 for c in candidates[1:6]
-            ] if len(candidates) > 1 else [],
+            ] if (len(candidates) > 1 and derivation.startswith("regex")) else [],
         })
 
     def log_message(self, format: str, *args) -> None:
