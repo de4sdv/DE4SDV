@@ -49,6 +49,7 @@ from .ask_model import (
     MODEL as ASK_MODEL,
     ask_llm,
     build_evidence,
+    build_method_context,
     load_api_key,
     resolve_element,
 )
@@ -474,6 +475,9 @@ class _Handler(SimpleHTTPRequestHandler):
         element = str(payload.get("element") or "").strip()
         question = str(payload.get("question") or "").strip()
         ref = str(payload.get("ref") or "").strip()
+        # the element the user right-clicked (identity, not just name)
+        el_file = str(payload.get("file") or "").strip()
+        el_line = str(payload.get("line") or "").strip()
         if not element or not question:
             self._send_json({"error": "element and question are required"},
                             status=400)
@@ -497,6 +501,17 @@ class _Handler(SimpleHTTPRequestHandler):
             index, files = server.ask_grounding("")
 
         resolved, candidates = resolve_element(index, element)
+        if resolved is not None and el_file:
+            # disambiguate to the element the user actually pointed at
+            if el_line:
+                exact = [
+                    c for c in candidates
+                    if c.rel_path == el_file and str(c.line) == el_line
+                ]
+            else:
+                exact = [c for c in candidates if c.rel_path == el_file]
+            if exact:
+                resolved = exact[0]
         if resolved is None:
             self._send_json({"error": f"element {element!r} is not in the "
                                       f"model index of this revision"},
@@ -504,6 +519,12 @@ class _Handler(SimpleHTTPRequestHandler):
             return
 
         evidence = build_evidence(resolved, files)
+        try:
+            method_ctx = build_method_context(resolved, files)
+        except Exception:
+            method_ctx = {}
+        if method_ctx:
+            evidence["method_context"] = method_ctx
         api_key = load_api_key()
         if not api_key:
             self._send_json(

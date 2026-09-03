@@ -21,6 +21,13 @@ import os
 import urllib.request
 from pathlib import Path
 
+from .requirements_data import (
+    RequirementRecord,
+    _ID_RE,
+    build_trace_links,
+    collect_requirement_records,
+)
+
 API_URL = "https://inference-api.nousresearch.com/v1/chat/completions"
 MODEL = os.environ.get("NOUS_MODEL", "~deepseek/deepseek-v4-flash-latest")
 API_KEY_ENV = "NOUS_API_KEY"
@@ -33,12 +40,20 @@ _USER_AGENT = "HermesAgent/0.20.0"
 _PORTAL_TAGS = ["product=hermes-agent", "client=hermes-client-v0.20.0"]
 
 SYSTEM_PROMPT = """You are the DE4SDV model assistant. You answer questions
-about a SysML v2 model. You are given exactly one model element: its
+about a SysML v2 model. You are given exactly one model element with its
 declaration source text and its documentation comment from the authoritative
-repository. Rules:
+repository. You may also receive a "method_context" section: requirements
+and traceability relations from the model's own method layer (subjects,
+ID mention network). Rules:
 - Answer ONLY from the provided evidence. Never invent elements,
   requirements, flows, ports, or compliance claims.
-- Cite the element by name when you use it.
+- Cite elements by name; cite requirement IDs (e.g. N-AEBS-008) when you
+  use them.
+- When a "requirement_subject_of" list is present and the question asks
+  about traceability, those ARE the requirements this element is the
+  declared subject of — say so with their IDs and statements.
+- When a "mentions" list is present, those are ID cross-references found
+  in the element's own text; distinguish them from subject relations.
 - If the evidence does not answer the question, say exactly what the model
   does not contain. Do not speculate.
 - You are not a compliance authority: never claim certification,
@@ -143,6 +158,62 @@ def build_evidence(ref, files) -> dict:
         "child_elements": siblings_of(ref, files) or None,
         "declaration_source": element_source(ref, files) or None,
     }
+
+
+def build_method_context(ref, files) -> dict:
+    """Method-layer relations of one element, from the model itself.
+
+    Uses the same extraction the requirements browser uses (single source
+    of truth for method semantics): requirement records with subjects and
+    the bidirectional ID mention network. Never invents IDs: a relation
+    is listed only when the model text declares it.
+    """
+    records = collect_requirement_records(files)
+    if not records:
+        return {}
+
+    # requirements that declare this element (or its type) as subject
+    subject_of: list[dict] = []
+    for r in records:
+        if not r.subject:
+            continue
+        subj_name = r.subject.split(" : ")[0].strip()
+        subj_type = r.subject.split(" : ")[-1].strip()
+        if subj_name == ref.name or (
+            ref.type_name and subj_type == ref.type_name
+        ):
+            entry: dict = {
+                "requirement": r.name,
+                "id": r.rid or None,
+                "kind": r.kind,
+                "file": r.rel_path,
+                "line": r.line,
+            }
+            if r.statement:
+                entry["statement"] = r.statement
+            subject_of.append(entry)
+
+    # ID cross-references inside this element's own text (own doc +
+    # declaration source), resolved against the record network
+    own_ids = set()
+    haystack = f"{ref.doc or ''}\n{element_source(ref, files)}"
+    for m in _ID_RE.finditer(haystack):
+        own_ids.add(m.group(1))
+    known = {r.rid for r in records if r.rid}
+    mentions = sorted(own_ids & known)
+
+    if not subject_of and not mentions:
+        return {}
+    ctx: dict = {}
+    if subject_of:
+        ctx["requirement_subject_of"] = subject_of
+    if mentions:
+        links = build_trace_links(records)
+        ctx["mentions"] = {
+            rid: links.get(rid, [])
+            for rid in mentions
+        }
+    return ctx
 
 
 def ask_llm(evidence: dict, question: str, api_key: str,

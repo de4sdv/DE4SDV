@@ -228,6 +228,112 @@ def test_ask_endpoint_without_key_fail_closed_503(fixture_repo, tmp_path,
         server.server_close()
 
 
+def test_ask_endpoint_disambiguates_by_file_and_line(fixture_repo, tmp_path,
+                                                     monkeypatch):
+    """Same-name elements resolve to the one the user right-clicked."""
+    monkeypatch.setenv("NOUS_API_KEY", "test-key")
+    captured: dict = {}
+
+    def fake_llm(ev, q, key, model=""):
+        captured["evidence"] = ev
+        return "ok"
+
+    monkeypatch.setattr(serve_mod, "ask_llm", fake_llm)
+    server = _make_server(fixture_repo, tmp_path)
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    try:
+        port = server.server_address[1]
+
+        def post(payload):
+            body = json.dumps(payload).encode()
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{port}/ask", data=body,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.loads(r.read().decode())
+
+        # find two same-name elements in different files? the fixture has
+        # one file; instead verify a WRONG file hint falls back to the
+        # resolved element and the evidence follows the right file
+        data = post({
+            "element": "observer",
+            "question": "q",
+            "file": "textual-notation-of-model/other.sysml",
+            "line": "999",
+        })
+        assert data["element"]["file"].endswith("fixture_model.sysml")
+        assert data["answer"] == "ok"
+
+        # a correct file hint pins the same element
+        data2 = post({
+            "element": "observer",
+            "question": "q",
+            "file": data["element"]["file"],
+            "line": str(data["element"]["line"]),
+        })
+        assert data2["element"]["line"] == data["element"]["line"]
+        assert captured["evidence"]["element"]["line"] == \
+            data2["element"]["line"]
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_ask_endpoint_includes_method_context(fixture_repo, tmp_path,
+                                              monkeypatch):
+    """When the model declares the element as a requirement subject, the
+    evidence carries the method relation (traceability questions work)."""
+    fixture = (
+        "package AskMethodFixture {\n"
+        "  part def ProductLineMemberProduct;\n"
+        "  part systemCtx {\n"
+        "    part memberProduct : ProductLineMemberProduct;\n"
+        "  }\n"
+        "  requirement needBounded : Need {\n"
+        "    doc /* N-FIX-001 draft bounded need. */\n"
+        "    subject memberProduct : ProductLineMemberProduct;\n"
+        "    require constraint statement { language \"English\" /* The member product shall stay bounded. */ }\n"
+        "  }\n"
+        "}\n"
+    )
+    (fixture_repo / "textual-notation-of-model" / "packages" / "fix"
+     / "method_fixture.sysml").write_text(fixture, encoding="utf-8")
+
+    seen: dict = {}
+
+    def fake_llm(ev, q, key, model=""):
+        seen["evidence"] = ev
+        return "cites N-FIX-001"
+
+    monkeypatch.setenv("NOUS_API_KEY", "test-key")
+    monkeypatch.setattr(serve_mod, "ask_llm", fake_llm)
+    server = _make_server(fixture_repo, tmp_path)
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    try:
+        port = server.server_address[1]
+        body = json.dumps({
+            "element": "memberProduct",
+            "question": "to which requirement can this element be traced?",
+        }).encode()
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/ask", data=body,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.loads(r.read().decode())
+        ctx = seen["evidence"].get("method_context", {})
+        subs = ctx.get("requirement_subject_of", [])
+        assert any(s.get("id") == "N-FIX-001" for s in subs), subs
+        assert data["answer"] == "cites N-FIX-001"
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def test_ask_endpoint_rejects_bad_input(fixture_repo, tmp_path,
                                         monkeypatch):
     monkeypatch.setenv("NOUS_API_KEY", "test-key")
