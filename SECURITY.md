@@ -7,20 +7,16 @@ the first project baseline is released.
 
 ## Reporting a vulnerability
 
-Do not open public issues for vulnerabilities.
+Do not open public issues for vulnerabilities and do not include exploit
+details, payloads, or proof-of-concept code anywhere in public content.
 
-**Current limitation:** GitHub private vulnerability reporting is not enabled
-for this repository yet, and no dedicated private security channel is
-published. Until private reporting is enabled, disclosure options are limited:
+**GitHub private vulnerability reporting is enabled** for this repository.
+Report vulnerabilities privately through the repository's
+**Security → Report a vulnerability** flow. A maintainer will triage the
+report and coordinate a fix and disclosure.
 
-- If you already have access to the invite-only Mattermost workspace, contact
-  a maintainer there.
-- Otherwise, open a regular GitHub issue that describes the concern at a high
-  level only — no exploit details, payloads, or proof-of-concept code — and a
-  maintainer will follow up to establish a private channel.
-
-Enabling GitHub private vulnerability reporting is the intended fix; this
-section will be updated when it is turned on.
+If you cannot use private reporting for any reason, contact a maintainer
+through the invite-only Mattermost workspace (see [`COMMUNICATION`](COMMUNICATION.md)).
 
 ## Scope
 
