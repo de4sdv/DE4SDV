@@ -1,0 +1,22 @@
+# CODEOWNERS — DE4SDV
+#
+# All review requests route to the project owner account. Individual paths can
+# gain dedicated owners as the maintainer team grows (see GOVERNANCE.md);
+# until then, every entry must use the @de4sdv account only.
+
+# Default: the project owner owns everything.
+* @de4sdv
+
+# Governance-critical surfaces are listed explicitly so the review intent is
+# visible even when the default rule above changes.
+/GOVERNANCE.md @de4sdv
+/MAINTAINERS.md @de4sdv
+/CONTRIBUTING.md @de4sdv
+/SECURITY.md @de4sdv
+/SUPPORT.md @de4sdv
+/CODE_OF_CONDUCT.md @de4sdv
+/.github/ @de4sdv
+/textual-notation-of-model/ @de4sdv
+/model-based-product-line-engineering/ @de4sdv
+/scripts/ @de4sdv
+/tests/ @de4sdv

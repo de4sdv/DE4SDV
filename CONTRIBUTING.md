@@ -108,7 +108,12 @@ When opening an issue, include:
 - Scope and impacted areas (folders, docs, model areas)
 - References (standards, papers, prior issues/PRs) when relevant
 
-Use issue templates in `.github/ISSUE_TEMPLATE/` when available.
+Use the issue templates in `.github/ISSUE_TEMPLATE/`. The **Question or
+contribution proposal** template is the generic path for questions and
+proposals that do not fit the model, simulation, or docs/methodology
+templates. For informal questions and early ideas, start in
+[GitHub Discussions](https://github.com/de4sdv/DE4SDV/discussions); open an
+issue when the topic should be tracked and triaged.
 
 ## Pull request workflow
 
@@ -167,7 +172,7 @@ reviewer-facing SVG representations with the diagram artifact.
 Maintainers run it from GitHub Actions by selecting the workflow, choosing
 **Run workflow**, and entering the reviewed `ref` and `model_path`.
 
-1. Open a pull request with:
+5. Open a pull request with:
    - Clear title
    - What changed
    - Why it changed
@@ -194,14 +199,27 @@ For SysML v2 models, product-line artifacts, simulations, or other technical exa
 - Avoid claiming standards compliance without traceable evidence
 - Include references when patterns are derived from standards or literature
 
-## Decision proposal guidance
+## Proposal guidance
 
-For governance/process/architecture decisions:
+Any proposal — documentation, modeling, simulation, tooling, or governance —
+follows the same generic path:
 
-- Open an issue first
-- Present alternatives and trade-offs
-- State impact on repository structure and contributor workflow
-- Wait for maintainer alignment before large implementation work
+1. Check [GitHub Discussions](https://github.com/de4sdv/DE4SDV/discussions)
+   and existing issues for prior discussion of the topic.
+2. Open an issue, using the **Question or contribution proposal** template or
+   the specialized template that fits, describing the change and the
+   motivation.
+3. Discuss alternatives and trade-offs in the issue.
+4. After maintainer alignment, implement the agreed slice and open a pull
+   request linked to the issue.
+
+For governance/process/architecture decisions, additionally:
+
+- State the impact on repository structure and contributor workflow.
+- Wait for maintainer alignment before large implementation work.
+- Record the durable outcome in an architecture decision record in
+  `docs/architecture-decisions/` when it changes architecture, governance,
+  tooling, or contributor workflow.
 
 This project values transparent decisions and explicit rationale.
 
@@ -230,9 +248,18 @@ A PR may receive requests for changes before approval.
 
 ## Who can approve and merge
 
-At this stage, project maintainers are responsible for final approval and merge decisions.
+Reviewers and maintainers may approve pull requests; maintainers make merge
+decisions, as defined in [`GOVERNANCE`](GOVERNANCE.md) and
+[`MAINTAINERS`](MAINTAINERS.md).
 
-As governance evolves, additional contributor roles and explicit authority levels may be defined in [`GOVERNANCE`](GOVERNANCE.md).
+The pull request author cannot approve their own pull request; the normal
+path always requires an independent review. While the maintainer team is a
+single administrator, administrator merges of their own pull requests follow
+the documented exception path in [`GOVERNANCE`](GOVERNANCE.md): a recorded
+reason in the pull request and a follow-up review task.
+
+Role promotion and authority changes follow the public process in
+[`GOVERNANCE`](GOVERNANCE.md).
 
 ## What to avoid for now
 

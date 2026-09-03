@@ -1,0 +1,83 @@
+name: Question or contribution proposal
+description: Ask a question or propose a contribution that does not fit a specialized template
+title: "[Question/Proposal] <short summary>"
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to ask a question about the project or to propose a
+        contribution that does not fit the model correction, model use-case,
+        simulation, docs/methodology, or Mattermost invite templates.
+
+        For informal questions and early ideas,
+        [GitHub Discussions](https://github.com/de4sdv/DE4SDV/discussions) are
+        usually the faster place to start. Open this issue when the topic
+        should be tracked, labeled, and triaged like other work.
+
+        Maintainers apply the matching `lane:*` and `size:*` labels during
+        triage based on your selections below.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      description: What is this issue?
+      options:
+        - Question
+        - Contribution proposal
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Primary lane
+      description: Which contribution lane does this concern?
+      options:
+        - unsure
+        - docs
+        - modeling
+        - simulation
+        - methodology
+        - traceability
+        - compliance
+        - devsecops
+        - community
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Contribution size
+      description: For proposals, the estimated size class. For questions, leave "not applicable".
+      options:
+        - not applicable (question)
+        - XS
+        - S
+        - M
+        - L
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: question_or_proposal
+    attributes:
+      label: Question or proposal
+      description: What do you want to ask, or what do you propose and why?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and impacted areas
+      description: Relevant background, folders, docs, or model areas. Include references (standards, papers, prior issues) when relevant.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and Discussions for this topic
+          required: true
+        - label: I will not introduce unsupported compliance/certification claims
+          required: true
