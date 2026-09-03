@@ -22,12 +22,18 @@ for path in (REPO_ROOT, SCRIPTS_ROOT, PACKAGE_ROOT, FRAMEWORK_ROOT):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
-from evidence_document import load_strict_json
+from evidence_document import (
+    evaluation_to_json,
+    load_strict_json,
+    observation_from_json,
+)
 from evidence_pipeline import build_evidence, load_contract
 from de4sdv_aebs_009b_bench.crossing_target_matrix import TargetType
 from de4sdv_aebs_009b_bench.degraded_input_matrix import DegradedInputScenario
 from de4sdv_aebs_009b_bench.non_activation_matrix import NonActivationScenario
 from de4sdv_aebs_009b_bench.override_matrix import OverrideScenario
+from de4sdv_aebs_009b_bench.scenario_contract import load_scenario_config
+from de4sdv_aebs_009b_bench.scenario_evaluator import evaluate_scenario
 
 
 def _assert_smoke_document(document: dict, *, schema: str, increment_id: str) -> None:
@@ -42,20 +48,24 @@ def _assert_smoke_document(document: dict, *, schema: str, increment_id: str) ->
 def _load_009d_fixture(profile: OverrideScenario) -> tuple[dict, dict, dict]:
     manifest = load_strict_json(BENCH_ROOT / "evidence" / "009d" / "campaign-manifest.json")
     entry = manifest["profiles"][profile.value]
-    run_dir = (
-        BENCH_ROOT
-        / "evidence"
-        / "009d"
-        / "profiles"
-        / profile.value
-        / "runs"
-        / entry["run_id"]
+    document = load_strict_json(BENCH_ROOT / entry["path"])
+    contract = load_contract(BENCH_ROOT / "config/contract-009d.yaml")
+    scenario_config = load_scenario_config(
+        BENCH_ROOT / "config" / contract["scenario_config"]
     )
-    return (
-        load_strict_json(run_dir / "observer-raw.json"),
-        load_strict_json(run_dir / "provenance.json"),
-        load_strict_json(run_dir / "artifacts.json"),
+    observations = tuple(
+        observation_from_json(item) for item in document["collection"]["observations"]
     )
+    raw = {
+        **document["collection"],
+        **document["collector_contract"],
+        "evaluator_result": evaluation_to_json(
+            evaluate_scenario(scenario_config, observations)
+        ),
+        "override_profile": document["profile"],
+        "override_evaluator_result": document["evaluation"],
+    }
+    return raw, document["provenance"], document["artifacts"]
 
 
 class TestFrameworkSmoke009D:

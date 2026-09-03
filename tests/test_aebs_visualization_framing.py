@@ -6,6 +6,7 @@ technology selection in needs, no requirement-ID collisions with existing AEBS
 series, and YAML/SysML index consistency.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -28,15 +29,11 @@ def _read(path: Path) -> str:
 
 def _existing_aebs_requirement_ids() -> set[str]:
     text = _read(MODEL_DIR / "aebs_needs_requirements.sysml")
-    import re
-
     return set(re.findall(r"REQ-AEBS-(?:S2-)?\d+", text))
 
 
 def _existing_aebs_need_ids() -> set[str]:
     text = _read(MODEL_DIR / "aebs_needs_requirements.sysml")
-    import re
-
     return set(re.findall(r"N-AEBS-\d+", text))
 
 
@@ -90,7 +87,7 @@ def test_needs_continue_existing_n_aebs_series_without_collision() -> None:
 
 def test_requirements_use_dedicated_s2_series_without_collision() -> None:
     needs = _read(NEEDS)
-    planned = {f"REQ-AEBS-S2-{number:03d}" for number in range(2, 12)}
+    planned = {f"REQ-AEBS-S2-{number:03d}" for number in range(2, 15)}
     for requirement_id in planned:
         assert requirement_id in needs
     collisions = planned & _existing_aebs_requirement_ids()
@@ -100,8 +97,18 @@ def test_requirements_use_dedicated_s2_series_without_collision() -> None:
 @pytest.mark.parametrize(
     "need_id,requirement_ids",
     [
-        ("N-AEBS-009", {"REQ-AEBS-S2-002", "REQ-AEBS-S2-003", "REQ-AEBS-S2-004", "REQ-AEBS-S2-010"}),
-        ("N-AEBS-010", {"REQ-AEBS-S2-002"}),
+        (
+            "N-AEBS-009",
+            {
+                "REQ-AEBS-S2-002",
+                "REQ-AEBS-S2-003",
+                "REQ-AEBS-S2-004",
+                "REQ-AEBS-S2-010",
+                "REQ-AEBS-S2-012",
+                "REQ-AEBS-S2-013",
+            },
+        ),
+        ("N-AEBS-010", {"REQ-AEBS-S2-002", "REQ-AEBS-S2-014"}),
         ("N-AEBS-011", {"REQ-AEBS-S2-006", "REQ-AEBS-S2-007", "REQ-AEBS-S2-008", "REQ-AEBS-S2-009"}),
         ("N-AEBS-012", {"REQ-AEBS-S2-010", "REQ-AEBS-S2-011"}),
         ("N-AEBS-013", {"REQ-AEBS-S2-005"}),
@@ -122,7 +129,19 @@ def test_requirement_derivation_dependencies_present(
         "N-AEBS-013": "needNonInterference",
     }
     for requirement_id in sorted(requirement_ids):
-        assert " from req" in needs and f"to {need_usage[need_id]};" in needs, (
+        usage_match = re.search(
+            rf"\brequirement\s+(\w+)\s*:[^{{]+\{{\s*"
+            rf"doc\s*/\*\s*{re.escape(requirement_id)}\b",
+            needs,
+        )
+        assert usage_match, f"missing requirement usage for {requirement_id}"
+        requirement_usage = usage_match.group(1)
+        dependency = re.search(
+            rf"\bdependency\s+\w+\s+from\s+{re.escape(requirement_usage)}\s+"
+            rf"to\s+{re.escape(need_usage[need_id])};",
+            needs,
+        )
+        assert dependency, (
             f"missing dependency for {requirement_id} -> {need_id}"
         )
         # The derivation matrix is additionally pinned by the requirement doc
@@ -150,7 +169,10 @@ def test_needs_stay_technology_neutral() -> None:
 
 def test_real_rendering_requirement_forbids_host_browser_surface() -> None:
     needs = _read(NEEDS)
-    assert "shall not use a host-side browser page as the rendering surface" in needs
+    assert (
+        "shall not use a host-side browser page as the AEBS rendering surface"
+        in needs
+    )
 
 
 def test_native_participation_requirement_forbids_provenance_relabeling() -> None:
@@ -190,7 +212,7 @@ def test_yaml_need_and_requirement_indexes_match_model() -> None:
         "N-AEBS-013",
     }
     assert set(data["requirement_ids"]) == {
-        f"REQ-AEBS-S2-{number:03d}" for number in range(2, 12)
+        f"REQ-AEBS-S2-{number:03d}" for number in range(2, 15)
     }
     assert set(data["gap_ids"]) == {
         f"GAP-AEBS-010-{number:03d}" for number in range(1, 6)

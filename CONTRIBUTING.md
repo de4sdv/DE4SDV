@@ -120,10 +120,12 @@ Use issue templates in `.github/ISSUE_TEMPLATE/` when available.
 ```bash
 python scripts/check_repo.py
 python scripts/smoke_test.py
+python -m pytest tests -q
 ```
 
-For public pull requests, CI runs these repository checks without requiring
-licensed tools or repository secrets.
+For public pull requests, CI runs these repository checks and the complete
+project-owned pytest suite without requiring licensed tools or repository
+secrets.
 
 ### SysML v2 validation gate
 
