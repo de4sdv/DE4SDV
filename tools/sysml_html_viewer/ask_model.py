@@ -52,6 +52,15 @@ ID mention network). Rules:
 - When a "requirement_subject_of" list is present and the question asks
   about traceability, those ARE the requirements this element is the
   declared subject of — say so with their IDs and statements.
+- When a "verified_by" list is present, those verification cases verify
+  this element (each entry's "verification_case" name). When a "verifies"
+  list is present, this element IS a verification case and the entries
+  are the requirements it verifies.
+- When an "incoming_dependencies" list is present, those elements declare
+  dependencies toward this element (evidence contracts, derivations) —
+  each entry names the dependency.
+- When a "realized_by" list is present, this element is realized by the
+  listed architecture elements (allocation).
 - When a "mentions" list is present, those are ID cross-references found
   in the element's own text; distinguish them from subject relations.
 - If the evidence does not answer the question, say exactly what the model

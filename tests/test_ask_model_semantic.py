@@ -234,6 +234,199 @@ def test_api_dedupes_shared_subject_across_requirements(fixture_repo,
     ams._SEMANTIC_CTX_CACHE.clear()
 
 
+# ---- coverage upgrade: every ontology-mapped relation family --------------
+
+
+def _browsed_requirement_corpus():
+    """Corpus for the verified_by direction (live-proven payload shape:
+    RVM memberElement = verified requirement, owner = verification case).
+    The browsed element is named memberProduct (the fixture resolves it)."""
+    return [
+        {"@type": "RequirementUsage", "@id": "req-v",
+         "declaredName": "memberProduct"},
+        {"@type": "RequirementUsage", "@id": "case-1",
+         "declaredName": "evidenceObjective"},
+        {"@type": "RequirementVerificationMembership", "@id": "rvm-1",
+         "memberElement": {"@id": "req-v"},
+         "owningRelatedElement": {"@id": "case-1"}},
+    ]
+
+
+def test_api_verified_by_reversed_direction(fixture_repo, monkeypatch):
+    """A verified requirement lists its verification cases (owner=case)."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+
+    class _Service(_FakeService):
+        _build_elements = staticmethod(_browsed_requirement_corpus)
+
+    monkeypatch.setattr(ams, "_runtime", lambda: _Service())
+    ams._SEMANTIC_CTX_CACHE.clear()
+    ref, files = _resolve(fixture_repo)
+    ctx, path = ams.build_method_context_api(ref, files)
+    assert path == "api"
+    assert ctx["verified_by"] == [{
+        "verification_case": "evidenceObjective",
+        "sysml_type": "RequirementUsage",
+        "element_id": "case-1",
+    }]
+    # family isolation: no other family fired for this corpus
+    assert "verifies" not in ctx
+    assert "incoming_dependencies" not in ctx
+    assert "realized_by" not in ctx
+    ams._SEMANTIC_CTX_CACHE.clear()
+
+
+def test_api_verifies_forward_direction(fixture_repo, monkeypatch):
+    """A verification case lists the requirements its RVMs verify."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+
+    class _Service(_FakeService):
+        @staticmethod
+        def _build_elements():
+            return [
+                {"@type": "RequirementUsage", "@id": "case-1",
+                 "declaredName": "memberProduct"},
+                {"@type": "RequirementUsage", "@id": "req-1",
+                 "declaredName": "evidenceContractStateOwnership"},
+                {"@type": "RequirementVerificationMembership",
+                 "@id": "rvm-1",
+                 "memberElement": {"@id": "req-1"},
+                 "owningRelatedElement": {"@id": "case-1"}},
+            ]
+
+    monkeypatch.setattr(ams, "_runtime", lambda: _Service())
+    ams._SEMANTIC_CTX_CACHE.clear()
+    ref, files = _resolve(fixture_repo)
+    ctx, path = ams.build_method_context_api(ref, files)
+    assert path == "api"
+    assert ctx["verifies"] == [{
+        "verified_requirement": "evidenceContractStateOwnership",
+        "sysml_type": "RequirementUsage",
+        "element_id": "req-1",
+    }]
+    assert "verified_by" not in ctx
+    ams._SEMANTIC_CTX_CACHE.clear()
+
+
+def test_api_incoming_dependencies_with_dependency_name(
+        fixture_repo, monkeypatch):
+    """Dependency edges targeting the element list their source element
+    and the dependency's own name (evidence-contract / derivation)."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+
+    class _Service(_FakeService):
+        @staticmethod
+        def _build_elements():
+            return [
+                {"@type": "RequirementUsage", "@id": "req-t",
+                 "declaredName": "memberProduct"},
+                {"@type": "RequirementUsage", "@id": "req-s",
+                 "declaredName": "reqRealAAOSRendering"},
+                {"@type": "Dependency", "@id": "dep-1",
+                 "declaredName": "s2010DerivedFromCorrelatableEvidence",
+                 "source": [{"@id": "req-s"}],
+                 "target": [{"@id": "req-t"}]},
+            ]
+
+    monkeypatch.setattr(ams, "_runtime", lambda: _Service())
+    ams._SEMANTIC_CTX_CACHE.clear()
+    ref, files = _resolve(fixture_repo)
+    ctx, path = ams.build_method_context_api(ref, files)
+    assert path == "api"
+    assert ctx["incoming_dependencies"] == [{
+        "source_element": "reqRealAAOSRendering",
+        "sysml_type": "RequirementUsage",
+        "element_id": "req-s",
+        "dependency": "s2010DerivedFromCorrelatableEvidence",
+    }]
+    ams._SEMANTIC_CTX_CACHE.clear()
+
+
+def test_api_realized_by_outgoing_allocations(fixture_repo, monkeypatch):
+    """AllocationUsage edges from the element list their realized targets."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+
+    class _Service(_FakeService):
+        @staticmethod
+        def _build_elements():
+            return [
+                {"@type": "RequirementUsage", "@id": "req-a",
+                 "declaredName": "memberProduct"},
+                {"@type": "PartUsage", "@id": "arch-1",
+                 "declaredName": "signalTranslator"},
+                {"@type": "AllocationUsage", "@id": "alloc-1",
+                 "source": [{"@id": "req-a"}],
+                 "target": [{"@id": "arch-1"}]},
+            ]
+
+    monkeypatch.setattr(ams, "_runtime", lambda: _Service())
+    ams._SEMANTIC_CTX_CACHE.clear()
+    ref, files = _resolve(fixture_repo)
+    ctx, path = ams.build_method_context_api(ref, files)
+    assert path == "api"
+    assert ctx["realized_by"] == [{
+        "realized_target": "signalTranslator",
+        "sysml_type": "PartUsage",
+        "element_id": "arch-1",
+    }]
+    ams._SEMANTIC_CTX_CACHE.clear()
+
+
+def test_api_derivation_names_all_predicates(fixture_repo, monkeypatch):
+    """The derivation label names every ontology predicate consulted."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+
+    class _Service(_FakeService):
+        _build_elements = staticmethod(_browsed_requirement_corpus)
+
+    monkeypatch.setattr(ams, "_runtime", lambda: _Service())
+    ams._SEMANTIC_CTX_CACHE.clear()
+    ref, files = _resolve(fixture_repo)
+    ctx, path = ams.build_method_context_api(ref, files)
+    for predicate in ("hasSubject", "verifiedBy",
+                      "hasRelevantEvidenceContract", "realizedBy"):
+        assert predicate in ctx["derivation"]
+    ams._SEMANTIC_CTX_CACHE.clear()
+
+
+def test_api_failure_degrades_to_labeled_regex(fixture_repo, monkeypatch):
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+
+    def boom():
+        raise RuntimeError("binding mismatch")
+
+    monkeypatch.setattr(ams, "_runtime", boom)
+    ref, files = _resolve(fixture_repo)
+    ctx, path = ams.build_method_context_api(ref, files)
+    assert path.startswith("regex:fallback:")
+    assert "binding mismatch" in path or "RuntimeError" in path
+    # evidence still complete: regex found the fixture's subject relation
+    subs = ctx.get("requirement_subject_of", [])
+    assert any(s.get("id") == "N-SEM-001" for s in subs)
+
+
+def test_api_empty_context_reports_api_empty(fixture_repo, monkeypatch):
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+
+    class _NoMatch(_FakeService):
+        def __init__(self):
+            self._element_cache = []
+
+    monkeypatch.setattr(ams, "_runtime", lambda: _NoMatch())
+    ref, files = _resolve(fixture_repo)
+    ctx, path = ams.build_method_context_api(ref, files)
+    assert path == "api:no-match"
+    assert ctx == {}
+
+
+def test_runtime_contract_missing_sha_fails_closed(fixture_repo, monkeypatch):
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    monkeypatch.delenv("DE4SDV_EXPECTED_GIT_SHA", raising=False)
+    monkeypatch.delenv("DE4SDV_REVISION_BINDING", raising=False)
+    with pytest.raises(RuntimeError, match="missing DE4SDV_EXPECTED_GIT_SHA"):
+        ams._runtime()
+
+
 # ---- cold-load policy: snapshot + warmup, visitors never wait ------------
 
 class _Binding:

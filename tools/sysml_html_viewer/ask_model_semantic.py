@@ -231,19 +231,32 @@ def _ref_ids(value) -> list[str]:
 
 def api_method_context(service, targets: list[dict],
                        elements: list[dict]) -> dict:
-    """Reverse-traverse the ontology's hasSubject mapping for elements.
+    """Derive the ontology-mapped method context for elements.
 
-    Walks native SubjectMembership objects of the bound API revision whose
-    memberElement resolves to any of the targets; each such membership's
-    owner is a requirement the element is the declared subject of.
+    One pass over the bound revision's elements, collecting every
+    ontology-declared relation family that touches any target:
 
-    Same-name union: the subject references inside requirements are
-    ReferenceUsage elements, while the browsed element is typically the
-    PartUsage in its system context (live-verified: memberProduct in the
-    deployed model — PartUsage carries 0 memberships, each same-name
-    ReferenceUsage carries 1; union-by-name reproduces the full subject
-    set, parity-proven 24/24 against the deployed API). Dedupe by
-    requirement element id.
+    - requirement_subject_of  (hasSubject: SubjectMembership whose
+      memberElement resolves to the element; the owner is the
+      requirement declaring the element as subject)
+    - verified_by             (verifiedBy, reversed: the element is the
+      memberElement of a RequirementVerificationMembership; the owner
+      is the verification case — live-proven owner=case,
+      member=verified requirement, 50/50 resolvable on the deployed
+      API)
+    - verifies                (verifiedBy forward: the element IS the
+      verification case; each memberElement is a verified requirement)
+    - incoming_dependencies   (hasRelevantEvidenceContract as mapped:
+      Dependency edges targeting the element; covers evidence-contract
+      and derivation dependencies, semantic_strength: relevance)
+    - realized_by             (realizedBy: AllocationUsage edges from
+      the element, direction outgoing)
+
+    Same-name union applies to every family (subject references inside
+    requirements are ReferenceUsage elements while the browsed element
+    is typically the PartUsage in its system context; parity-proven
+    24/24 for hasSubject against the deployed API). Entries dedupe by
+    element id; a family is listed only when the model declares it.
     """
     cache_key = ",".join(sorted(
         str(t.get("@id") or "") for t in targets
@@ -251,13 +264,34 @@ def api_method_context(service, targets: list[dict],
     if cache_key and cache_key in _SEMANTIC_CTX_CACHE:
         return _SEMANTIC_CTX_CACHE[cache_key]
 
-    mapping = service.contract.relationship_mapping("hasSubject")
-    membership_types = {
-        str(t) for t in
-        mapping.configuration.get("membership_types", ["SubjectMembership"])
+    subject_mapping = service.contract.relationship_mapping("hasSubject")
+    subject_types = {
+        str(t) for t in subject_mapping.configuration.get(
+            "membership_types", ["SubjectMembership"])
     }
-    member_prop = str(mapping.configuration.get("member_property",
-                                                "memberElement"))
+    member_prop = str(subject_mapping.configuration.get(
+        "member_property", "memberElement"))
+    ver_mapping = service.contract.relationship_mapping("verifiedBy")
+    rvm_types = {
+        str(t) for t in ver_mapping.configuration.get(
+            "membership_types", ["RequirementVerificationMembership"])
+    }
+    dep_mapping = service.contract.relationship_mapping(
+        "hasRelevantEvidenceContract")
+    dep_types = {
+        str(t) for t in dep_mapping.configuration.get(
+            "relationship_types", ["Dependency"])
+    }
+    dep_source_prop = str(dep_mapping.configuration.get(
+        "source_property", "source"))
+    dep_target_prop = str(dep_mapping.configuration.get(
+        "target_property", "target"))
+    alloc_mapping = service.contract.relationship_mapping("realizedBy")
+    alloc_types = {
+        str(t) for t in alloc_mapping.configuration.get(
+            "relationship_types", ["AllocationUsage"])
+    }
+
     target_ids = {str(t.get("@id") or "") for t in targets}
     target_ids.discard("")
 
@@ -267,35 +301,91 @@ def api_method_context(service, targets: list[dict],
         if eid:
             by_id[str(eid)] = e
 
-    seen_reqs: set[str] = set()
-    requirements: list[dict] = []
+    def element_ref(e: dict, role: str) -> dict:
+        return {
+            role: e.get("declaredName") or e.get("name") or "",
+            "sysml_type": str(e.get("@type") or ""),
+            "element_id": str(e.get("elementId") or e.get("@id") or ""),
+        }
+
+    subject_reqs: dict[str, dict] = {}
+    verifying_cases: dict[str, dict] = {}
+    verified_reqs: dict[str, dict] = {}
+    incoming_deps: dict[tuple[str, str], dict] = {}
+    allocations: dict[str, dict] = {}
+
     for m in elements:
-        if str(m.get("@type")) not in membership_types:
-            continue
-        if not (target_ids & set(_ref_ids(m.get(member_prop)))):
-            continue
-        for oid in _ref_ids(m.get("owningRelatedElement")):
-            if oid in seen_reqs:
+        mtype = str(m.get("@type") or "")
+        if mtype in subject_types:
+            if not (target_ids & set(_ref_ids(m.get(member_prop)))):
                 continue
-            owner = by_id.get(oid)
-            if owner is None:
-                continue
-            seen_reqs.add(oid)
-            requirements.append({
-                "requirement": owner.get("declaredName")
-                or owner.get("name") or "",
-                "sysml_type": str(owner.get("@type") or ""),
-                "element_id": oid,
-            })
-    requirements.sort(key=lambda r: (r["requirement"], r["element_id"]))
+            for oid in _ref_ids(m.get("owningRelatedElement")):
+                owner = by_id.get(oid)
+                if owner is not None:
+                    subject_reqs[oid] = element_ref(owner, "requirement")
+        elif mtype in rvm_types:
+            # Deployed payload shape: the member is the verified
+            # requirement, the owner is the verification case.
+            if target_ids & set(_ref_ids(m.get("memberElement"))):
+                for oid in _ref_ids(m.get("owningRelatedElement")):
+                    owner = by_id.get(oid)
+                    if owner is not None:
+                        verifying_cases[oid] = element_ref(
+                            owner, "verification_case")
+            if target_ids & set(_ref_ids(m.get("owningRelatedElement"))):
+                for mid in _ref_ids(m.get("memberElement")):
+                    req = by_id.get(mid)
+                    if req is not None:
+                        verified_reqs[mid] = element_ref(
+                            req, "verified_requirement")
+        elif mtype in dep_types:
+            if target_ids & set(_ref_ids(m.get(dep_target_prop))):
+                for sid in _ref_ids(m.get(dep_source_prop)):
+                    src = by_id.get(sid)
+                    if src is not None:
+                        incoming_deps[
+                            (sid, str(m.get("@id") or ""))
+                        ] = {
+                            **element_ref(src, "source_element"),
+                            "dependency": (
+                                m.get("declaredName") or m.get("name") or ""
+                            ),
+                        }
+        elif mtype in alloc_types:
+            if target_ids & set(_ref_ids(m.get("source"))):
+                for tid in _ref_ids(m.get("target")):
+                    tgt = by_id.get(tid)
+                    if tgt is not None:
+                        allocations[tid] = element_ref(
+                            tgt, "realized_target")
 
     ctx: dict = {}
-    if requirements:
-        ctx["requirement_subject_of"] = requirements
+    if subject_reqs:
+        ctx["requirement_subject_of"] = sorted(
+            subject_reqs.values(),
+            key=lambda r: (r["requirement"], r["element_id"]))
+    if verifying_cases:
+        ctx["verified_by"] = sorted(
+            verifying_cases.values(),
+            key=lambda r: (r["verification_case"], r["element_id"]))
+    if verified_reqs:
+        ctx["verifies"] = sorted(
+            verified_reqs.values(),
+            key=lambda r: (r["verified_requirement"], r["element_id"]))
+    if incoming_deps:
+        ctx["incoming_dependencies"] = sorted(
+            incoming_deps.values(),
+            key=lambda r: (r["source_element"], r["element_id"]))
+    if allocations:
+        ctx["realized_by"] = sorted(
+            allocations.values(),
+            key=lambda r: (r["realized_target"], r["element_id"]))
+    if ctx:
         ctx["derivation"] = (
-            "API-derived: native SubjectMembership relationships of the "
-            "deployed SysML v2 revision (ontology predicate hasSubject), "
-            "same-name subject references united"
+            "API-derived: ontology-declared predicates over the deployed "
+            "SysML v2 revision (hasSubject, verifiedBy both directions, "
+            "hasRelevantEvidenceContract incoming, realizedBy outgoing), "
+            "same-name elements united"
         )
     if cache_key:
         _SEMANTIC_CTX_CACHE[cache_key] = ctx
