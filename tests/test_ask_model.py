@@ -460,3 +460,150 @@ def test_ask_endpoint_rejects_bad_input(fixture_repo, tmp_path,
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_public_ask_requires_the_configured_origin(fixture_repo, tmp_path,
+                                                   monkeypatch):
+    monkeypatch.setenv("NOUS_API_KEY", "test-key")
+    monkeypatch.setattr(serve_mod, "ask_llm", lambda *args, **kwargs: "ok")
+    out = tmp_path / "site"
+    out.mkdir()
+    server = serve_mod.make_server(
+        fixture_repo, out, roots=["textual-notation-of-model"],
+        host="127.0.0.1", port=0, prs=False,
+        allowed_origin="https://ask.de4sdv.org",
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        port = server.server_address[1]
+        body = json.dumps({"element": "observer", "question": "q"}).encode()
+
+        def status(origin=None):
+            headers = {"Content-Type": "application/json"}
+            if origin:
+                headers["Origin"] = origin
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{port}/ask", data=body,
+                headers=headers, method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    return response.status
+            except urllib.error.HTTPError as exc:
+                return exc.code
+
+        assert status() == 403
+        assert status("https://other.example") == 403
+        assert status("https://ask.de4sdv.org") == 200
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_public_ask_rejects_parallel_llm_calls(fixture_repo, tmp_path,
+                                               monkeypatch):
+    monkeypatch.setenv("NOUS_API_KEY", "test-key")
+    entered = threading.Event()
+    release = threading.Event()
+
+    def blocking_llm(*args, **kwargs):
+        entered.set()
+        assert release.wait(timeout=10)
+        return "ok"
+
+    monkeypatch.setattr(serve_mod, "ask_llm", blocking_llm)
+    out = tmp_path / "site"
+    out.mkdir()
+    server = serve_mod.make_server(
+        fixture_repo, out, roots=["textual-notation-of-model"],
+        host="127.0.0.1", port=0, prs=False, max_concurrent_asks=1,
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    first_result = {}
+    try:
+        port = server.server_address[1]
+        body = json.dumps({"element": "observer", "question": "q"}).encode()
+
+        def post():
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{port}/ask", data=body,
+                headers={"Content-Type": "application/json"}, method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    return response.status, json.loads(response.read().decode())
+            except urllib.error.HTTPError as exc:
+                return exc.code, json.loads(exc.read().decode())
+
+        def first_call():
+            first_result["value"] = post()
+
+        first = threading.Thread(target=first_call, daemon=True)
+        first.start()
+        assert entered.wait(timeout=10)
+        status, payload = post()
+        assert status == 429
+        assert payload["error"] == "ask-model is busy; retry later"
+        release.set()
+        first.join(timeout=10)
+        assert first_result["value"][0] == 200
+    finally:
+        release.set()
+        server.shutdown()
+        server.server_close()
+
+
+def test_ask_status_reports_application_and_model_revisions(fixture_repo,
+                                                            tmp_path,
+                                                            monkeypatch):
+    monkeypatch.setattr(
+        serve_mod, "warm_status",
+        lambda: {"status": "failed", "error": "secret internal detail"},
+    )
+    out = tmp_path / "site"
+    out.mkdir()
+    server = serve_mod.make_server(
+        fixture_repo, out, roots=["textual-notation-of-model"],
+        host="127.0.0.1", port=0, prs=False,
+        application_revision="a" * 40, model_revision="b" * 40,
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        port = server.server_address[1]
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{port}/ask-status.json", timeout=30
+        ) as response:
+            payload = json.loads(response.read().decode())
+        assert payload["service"] == "DE4SDV public Ask-model viewer"
+        assert payload["application_git_commit"] == "a" * 40
+        assert payload["model_git_commit"] == "b" * 40
+        assert payload["semantic_warmup"] == {"status": "failed"}
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_production_server_exposes_only_the_deployed_revision(fixture_repo,
+                                                              tmp_path):
+    application_revision = "a" * 40
+    out = tmp_path / "site"
+    out.mkdir()
+    server = serve_mod.make_server(
+        fixture_repo, out, roots=["textual-notation-of-model"],
+        host="127.0.0.1", port=0, prs=False, production=True,
+        application_revision=application_revision,
+    )
+    try:
+        manifest = server.manifest()
+        assert manifest["refs"] == [{
+            "id": "",
+            "label": f"deployed · {application_revision[:7]}",
+            "url": "/index.html",
+            "buildable": True,
+            "built": True,
+        }]
+    finally:
+        server.server_close()

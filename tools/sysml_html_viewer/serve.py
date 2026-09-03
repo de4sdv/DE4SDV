@@ -2,7 +2,7 @@
 
 Usage:
     python -m tools.sysml_html_viewer.serve [--repo REPO] [--out OUT]
-        [--port PORT] [--host HOST] [--no-prs]
+        [--port PORT] [--host HOST] [--no-prs] [--production]
 
 Serves the generated viewer (build/model-viewer by default) over HTTP and
 makes every branch and pull request of the repository selectable in the
@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import functools
 import json
+import os
 import re
 import subprocess
 import sys
@@ -164,12 +165,23 @@ class ViewerServer(ThreadingHTTPServer):
         out_dir: Path,
         roots: list[str],
         prs: bool,
+        *,
+        allowed_origin: str,
+        max_concurrent_asks: int,
+        application_revision: str,
+        model_revision: str,
+        production: bool,
     ):
         super().__init__(addr, functools.partial(_Handler, directory=str(out_dir)))
         self.repo_root = repo_root
         self.out_dir = out_dir
         self.roots = roots
         self.prs = prs
+        self.allowed_origin = allowed_origin
+        self.ask_slots = threading.BoundedSemaphore(max_concurrent_asks)
+        self.application_revision = application_revision
+        self.model_revision = model_revision
+        self.production = production
         self.registry: dict[str, Target] = {}
         self.registry_at = 0.0
         self.build_locks: dict[str, threading.Lock] = {}
@@ -183,6 +195,9 @@ class ViewerServer(ThreadingHTTPServer):
 
     # -- registry ---------------------------------------------------------
     def registry_refresh(self, ttl: float = 60.0) -> dict[str, Target]:
+        if self.production:
+            label = f"deployed · {self.application_revision[:7]}"
+            return {"": Target("", "", label, work=True)}
         if time.time() - self.registry_at > ttl or not self.registry:
             self.registry = build_registry(self.repo_root, self.roots, self.prs)
             self.registry_at = time.time()
@@ -274,8 +289,11 @@ class ViewerServer(ThreadingHTTPServer):
         with lock:
             if not self._worktree_stale():
                 return True
-            branch = _current_branch(self.repo_root)
-            work_label = f"working tree · {branch}" if branch else "working tree"
+            if self.production:
+                work_label = f"deployed · {self.application_revision[:7]}"
+            else:
+                branch = _current_branch(self.repo_root)
+                work_label = f"working tree · {branch}" if branch else "working tree"
             try:
                 if _build_site(
                     self.repo_root, self.out_dir, self.roots,
@@ -393,6 +411,17 @@ class _Handler(SimpleHTTPRequestHandler):
         if path == "/_ask_warmup":
             self._send_json(warm_status())
             return
+        if path == "/ask-status.json":
+            warmup_state = warm_status()
+            self._send_json({
+                "service": "DE4SDV public Ask-model viewer",
+                "application_git_commit": server.application_revision,
+                "model_git_commit": server.model_revision,
+                "semantic_warmup": {
+                    "status": warmup_state.get("status", "unknown")
+                },
+            })
+            return
         if path == "/" or path.endswith(".html"):
             # pick up working-tree model changes before serving pages
             server.ensure_worktree_current()
@@ -462,6 +491,10 @@ class _Handler(SimpleHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path != "/ask":
             self.send_error(404)
+            return
+        if (server.allowed_origin
+                and self.headers.get("Origin") != server.allowed_origin):
+            self._send_json({"error": "origin is not allowed"}, status=403)
             return
         try:
             length = int(self.headers.get("Content-Length") or 0)
@@ -539,13 +572,21 @@ class _Handler(SimpleHTTPRequestHandler):
                 status=503,
             )
             return
-        try:
-            answer = ask_llm(evidence, question, api_key)
-        except Exception as exc:  # noqa: BLE001 — surfaced honestly to the panel
-            self._send_json({"error": f"LLM call failed: {exc}",
-                             "evidence": evidence},
-                            status=502)
+        if not server.ask_slots.acquire(blocking=False):
+            self._send_json(
+                {"error": "ask-model is busy; retry later"}, status=429
+            )
             return
+        try:
+            try:
+                answer = ask_llm(evidence, question, api_key)
+            except Exception as exc:  # noqa: BLE001 — surfaced honestly to the panel
+                self._send_json({"error": f"LLM call failed: {exc}",
+                                 "evidence": evidence},
+                                status=502)
+                return
+        finally:
+            server.ask_slots.release()
         self._send_json({
             "answer": answer,
             "element": {
@@ -572,21 +613,58 @@ def make_server(
     host: str = "127.0.0.1",
     port: int = 8787,
     prs: bool = True,
+    allowed_origin: str | None = None,
+    max_concurrent_asks: int | None = None,
+    application_revision: str | None = None,
+    model_revision: str | None = None,
+    production: bool = False,
 ) -> ViewerServer:
     """Create (not yet started) the viewer server; ensures the working-tree
     site exists first."""
     repo_root = Path(repo_root).resolve()
     out_dir = Path(out_dir).resolve()
     roots = roots or DEFAULT_ROOTS
+    if allowed_origin is None:
+        allowed_origin = os.environ.get("DE4SDV_ASK_ALLOWED_ORIGIN", "")
+    if max_concurrent_asks is None:
+        raw_limit = os.environ.get("NOUS_MAX_CONCURRENT_REQUESTS", "2")
+        try:
+            max_concurrent_asks = int(raw_limit)
+        except ValueError as exc:
+            raise ValueError(
+                "NOUS_MAX_CONCURRENT_REQUESTS must be a positive integer"
+            ) from exc
+    if max_concurrent_asks < 1:
+        raise ValueError(
+            "NOUS_MAX_CONCURRENT_REQUESTS must be a positive integer"
+        )
+    application_revision = application_revision or os.environ.get(
+        "DE4SDV_APP_GIT_SHA", ""
+    )
+    model_revision = model_revision or os.environ.get(
+        "DE4SDV_EXPECTED_GIT_SHA", ""
+    )
+    if production and not re.fullmatch(r"[0-9a-f]{40}", application_revision):
+        raise ValueError("production mode requires DE4SDV_APP_GIT_SHA")
     if not (out_dir / "index.html").exists():
-        branch = _current_branch(repo_root)
-        work_label = f"working tree · {branch}" if branch else "working tree"
+        if production:
+            work_label = f"deployed · {application_revision[:7]}"
+        else:
+            branch = _current_branch(repo_root)
+            work_label = f"working tree · {branch}" if branch else "working tree"
         _build_site(
             repo_root, out_dir, roots,
             options=[("index.html", work_label, True, "", True)],
             current="index.html",
         )
-    return ViewerServer((host, port), repo_root, out_dir, roots, prs)
+    return ViewerServer(
+        (host, port), repo_root, out_dir, roots, prs,
+        allowed_origin=allowed_origin,
+        max_concurrent_asks=max_concurrent_asks,
+        application_revision=application_revision,
+        model_revision=model_revision,
+        production=production,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -596,6 +674,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--host", default="127.0.0.1", help="bind address")
     parser.add_argument("--port", type=int, default=8787, help="bind port")
     parser.add_argument("--no-prs", action="store_true", help="skip GitHub PR refs")
+    parser.add_argument(
+        "--production", action="store_true",
+        help="serve only the exact deployed revision",
+    )
     args = parser.parse_args(argv)
 
     repo = Path(args.repo).resolve()
@@ -605,6 +687,7 @@ def main(argv: list[str] | None = None) -> int:
     server = make_server(
         repo, Path(args.out).resolve(),
         host=args.host, port=args.port, prs=not args.no_prs,
+        production=args.production,
     )
     # semantic ask-mode: warm the API corpus in the background so no
     # visitor ever waits for the cold load (no-op when NOUS_ASK_SEMANTIC
