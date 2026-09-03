@@ -313,7 +313,10 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
                 seen["live"] = True
                 self._json(200, {
                     "answer": "Grounded answer",
-                    "method_context_source": "api:snapshot",
+                    # This is the exact successful derivation marker returned
+                    # by build_method_context_api. Colon-suffixed API markers
+                    # (api:no-match/api:empty) mean no API context was built.
+                    "method_context_source": "api",
                 })
 
         def do_BREW(self):
