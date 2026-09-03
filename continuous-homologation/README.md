@@ -1,5 +1,8 @@
 # Continuous Homologation
 
+Status: **incubating**. The directory defines evidence expectations but does
+not yet provide an automated approval or release-evidence pipeline.
+
 Continuous evidence preparation and compliance workflow. This is not a legal
 approval claim.
 

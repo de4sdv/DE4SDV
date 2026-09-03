@@ -39,12 +39,15 @@ produce reviewable artifacts, trace links, and evidence.
 | `textual-notation-of-model/` | The SysML v2 systems model: method packages, SAF viewpoints, feature packages (AEBS, middleware) |
 | `model-based-product-line-engineering/` | Feature models, configurations, shared assets, product models |
 | `implementation/` | Reference implementations with reproducible evidence (e.g. Autoware AEBS benches) |
+| `deployment/` | Reproducible deployment assets for public services |
 | `compliance/`, `continuous-homologation/`, `configuration-management/` | Safety, security, evidence, baseline structures |
 | `simulation/`, `digital-twin/`, `digital-continuity/`, `sysmlv2-api/` | Simulation, twin, traceability, and API integration assets |
-| `devsecops/` | CI/CD, SBOM, security automation notes |
+| `devsecops/` | Current control status and next security-automation actions |
 | `scripts/`, `tools/` | Repository checks and tooling (including the model viewer) |
 
-The full index lives in [`docs/repository-tree.md`](../repository-tree.md).
+The curated authority and lifecycle map lives in
+[`docs/repository-tree.md`](../repository-tree.md). Run `git ls-files` for a
+complete tracked-file inventory.
 
 ## Explore the model
 

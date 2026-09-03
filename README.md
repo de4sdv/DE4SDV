@@ -115,6 +115,7 @@ making the managed twin boundary explicit.
 | `textual-notation-of-model/` | System model assets and examples |
 | `model-based-product-line-engineering/` | Feature models, configurations, shared assets, product models |
 | `implementation/` | Reference implementations with reproducible evidence (see `implementation/README.md`) |
+| `deployment/` | Public service deployment assets and operations guidance |
 | `compliance/` | Safety, security, UNECE, homologation-related evidence placeholders |
 | `continuous-homologation/` | Continuous compliance and approval evidence workflow |
 | `configuration-management/` | Baselines, change control, versioning, release evidence |
@@ -130,7 +131,9 @@ making the managed twin boundary explicit.
 | `tests/` | Test suite for repository scripts and tooling |
 | `.github/agents/` | Task-specific AI agent instructions |
 
-The full index lives in [`docs/repository-tree.md`](docs/repository-tree.md).
+The curated repository map lives in
+[`docs/repository-tree.md`](docs/repository-tree.md). Run `git ls-files` when a
+complete machine-readable inventory is needed.
 
 ## Contributing
 

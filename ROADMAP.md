@@ -1,91 +1,76 @@
 # Roadmap
 
-This roadmap aligns project work with the GitHub milestone:
-- v0.1 Foundation: https://github.com/de4sdv/DE4SDV/milestone/1
+This file names the current project outcomes and release gate. GitHub milestones
+and issues carry live work status; this file should not duplicate a ticket list.
 
-## v0.1 Foundation (substantially complete)
+## Foundation milestone
 
-Objective: establish a shared project foundation (scope, governance, contribution workflow, and repository baseline) so implementation work can proceed with clear rules and structure.
+The original foundation milestone established the charter, repository
+structure, contributor guide, and initial roadmap. Its four issues and the
+milestone are closed as **Foundation setup — completed**. It is a historical
+planning milestone, not a published release.
 
-### P0 issues — all closed
+DE4SDV has not yet published a tagged release. The next release milestone is
+`v0.1.0 — first reviewable engineering baseline`.
 
-1. ✅ #1 Create DE4SDV project charter
-2. ✅ #2 Decide initial repository structure
-3. ✅ #3 Define DE4SDV v0.1 roadmap
-4. ✅ #4 Rework CONTRIBUTING.md into a practical contributor guide
+## Current outcome goals
 
-Issue links:
-- https://github.com/de4sdv/DE4SDV/issues/1
-- https://github.com/de4sdv/DE4SDV/issues/2
-- https://github.com/de4sdv/DE4SDV/issues/3
-- https://github.com/de4sdv/DE4SDV/issues/4
+### 1. Trustworthy change control
 
-### v0.1 deliverables — status
+A contributor can identify and claim work, submit a focused pull request,
+obtain the appropriate independent review, and find the resulting decision in
+the public project record. Administrator review bypasses are exceptional and
+recorded rather than treated as the default workflow.
 
-| Deliverable | Status |
-|---|---|
-| Project charter (#1) | ✅ Done |
-| Initial repository structure (#2) | ✅ Done — tree documented in `docs/repository-tree.md` |
-| Contributor guide (#4) | ✅ Done — `CONTRIBUTING.md` |
-| Roadmap synchronized (#3) | ✅ Done |
-| Initial process set | ✅ Done — `approach/process-set/README.md` |
-| Initial ontology baseline | ✅ Done — `approach/framework/ontology/de4sdv-basic-ontology.yaml` |
-| System context view | ✅ Done — `textual-notation-of-model/views/system-context/` |
-| ASELCM three-system framing | ✅ Done — ADR #4 |
+### 2. One coherent engineering thread
 
-### Work completed beyond v0.1 scope
+At least one reference slice is traversable from mission and scenario through
+needs, requirements, conceptual architecture, configuration, realization,
+verification, and bounded evidence. AEBS is the first target thread.
 
-Several technical increments were delivered ahead of the v0.2 timeline:
+### 3. Reproducible public baseline
 
-- AEBS pilot: operational context, needs/requirements, functional behavior, functional interface slices (#42, #48, #49, #50)
-- COVESA VSS generated as SysML v2 library (ADR #3)
-- DE4SDV VSS extension package for AEBS-specific signals
-- SysML v2 API repository spike (ADR #5)
-- SysIDE Modeler view automation spike
-- SAF viewpoint map and methodology tailoring
-- Branch protection and repository hygiene on GitHub
+A clean checkout can run every public project-owned check. Licensed validation
+is separately bound to the exact reviewed commit, and published viewer/API
+outputs identify their source revision.
 
-### Blocking order and dependencies
+### 4. Contributor-usable project surface
 
-All v0.1 P0 issues are closed. The original dependency graph (#1 and #2 → #4 → #3) is fully resolved.
+Active, incubating, and dormant areas are explicit. Every active increment has
+an owner or maintainer decision, a reviewable artifact, and a next action.
+New contributors can complete the documented XS/S contribution path without
+private project knowledge.
 
-### Explicitly postponed to v0.2+
+## v0.1.0 release gate
 
-- SysML v2 modeling patterns and modeling guidelines beyond baseline references
-- MBPLE method details and full feature-model workflow examples
-- Executable SysML v2 API, FMU/FMI/SSP, and digital twin integration examples
-- Continuous compliance automation, homologation pipelines, and release evidence workflows
-- DevSecOps automation beyond initial repository hygiene
+The release candidate must satisfy all of the following at one exact commit:
 
-### Definition of Done for v0.1
+- repository checks, smoke tests, and the complete project-owned pytest suite
+  pass from a clean checkout;
+- required SysML v2 validation evidence is bound to the candidate commit;
+- open P0/P1 milestone issues are resolved or explicitly deferred with a
+  recorded reason;
+- active pull requests are triaged and the roadmap and contributor/governance
+  documents describe current practice;
+- the baseline register identifies the model, implementation assets,
+  dependencies, validation evidence, and source commit;
+- release notes distinguish demonstrated assets, experimental assets,
+  placeholders, and known limitations; and
+- no artifact claims certification, homologation, or regulatory approval that
+  the evidence does not establish.
 
-All conditions are met:
+## Capability status
 
-- ✅ All v0.1 milestone issues (#1–#4) are completed and closed.
-- ✅ README.md links to the charter and contributing guide.
-- ✅ CONTRIBUTING.md describes accepted contribution types, issue-first workflow, PR workflow, and review/approval expectations.
-- ✅ The repository structure is documented and reflected in the actual tree.
-- ✅ This ROADMAP.md stays synchronized with milestone scope (in-scope issues, postponed topics, and dependencies).
+| Area | Status | Activation or next gate |
+|---|---|---|
+| SysML v2 method kernel, product-line model, viewer, and API integration | Active | Keep model, implementation, validation, and publication evidence synchronized |
+| AEBS reference thread | Active | Close the end-to-end traceability and exact-head verification gaps |
+| Governance, contribution flow, and release management | Active | Adopt independent-review rules and publish the first release baseline |
+| Continuous homologation and compliance structure | Incubating | Add reviewed, bounded evidence cases without certification claims |
+| Digital continuity and digital twin | Incubating | Name a concrete decision, owner, data boundary, and verification case |
+| Simulation interoperability | Dormant | Activate when an owned FMI/FMU/SSP increment and tool-compatibility assumptions exist |
+| Standards mapping | Dormant | Activate when a named mapping decision has an owner and review source |
 
-Remaining:
-- Maintainer confirmation of v0.1 completion and agreement to close the milestone.
-
-## v0.2 and later (in progress)
-
-After v0.1, priority shifts from governance/setup to executable technical assets.
-
-### Already in flight
-
-- AEBS feature pilot — operational context, needs/requirements, functional behavior, functional interfaces (PRs #42, #48, #49, #50 merged)
-- COVESA VSS as SysML v2 library with DE4SDV extension signals (ADR #3)
-- SysML v2 API repository spike (ADR #5) — draft PR #36
-- SysIDE Modeler view automation spike — draft PR #34
-
-### Next priorities
-
-- Consolidate AEBS pilot: interface/refinement increment, allocation to architecture elements
-- Promote spike PRs (#34, #36) from draft to reviewed, or close with documented outcomes
-- Conceptual framework consolidation (ontology, viewpoints, ADRs, standards mapping)
-- More reference SysML v2 product-line examples beyond AEBS
-- Simulation interoperability examples (FMI/FMUs/SSP)
-- Digital continuity and continuous compliance workflows
+Broad capability ambitions are not simultaneous delivery commitments. A
+workstream moves to **active** only when it has an owner, a decision or issue,
+a maintained artifact, and a verifiable next action.
