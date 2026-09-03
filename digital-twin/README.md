@@ -1,5 +1,8 @@
 # Digital Twin
 
+Status: **incubating**. This document defines the intended boundary and
+credibility questions; no maintained executable digital-twin baseline exists.
+
 Digital twin concepts, parameters, assumptions, and synchronization notes.
 
 ## ASELCM scope
