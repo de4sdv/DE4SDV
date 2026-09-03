@@ -119,3 +119,88 @@ def test_same_origin_helper_rewrites_foreign_links() -> None:
     # Same-origin links pass through untouched.
     same = "https://sysml-api.de4sdv.org/projects/p/commits/c/elements?x=1"
     assert module._same_origin(same, "https://sysml-api.de4sdv.org") == same
+
+
+def test_public_verifier_paginates_on_its_base_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise the pagination call path, not only the URL helper.
+
+    PR #192 passed ``base`` from inside a function that only defines
+    ``base_url``. The helper-only test above could not catch that NameError.
+    """
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "deployment" / "scripts" / "verify_public_api.py"
+    spec = importlib.util.spec_from_file_location("verify_public_api_paging", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    requested: list[str] = []
+    page_number = 0
+
+    def fake_fetch(url: str, *, method: str = "GET", timeout: int = 60):
+        nonlocal page_number
+        requested.append(url)
+        if url.endswith("/elements/known-id"):
+            return 200, {}, json.dumps(
+                {"@id": "known-id", "declaredName": module.KNOWN_ELEMENT_NAME}
+            ).encode()
+        page_number += 1
+        page = [{"@id": f"e-{page_number}-{index}"} for index in range(100)]
+        if page_number == 1:
+            page[0]["@id"] = "known-id"
+            page[0]["declaredName"] = module.KNOWN_ELEMENT_NAME
+        headers = {}
+        if page_number < 501:
+            headers["Link"] = (
+                "<http://sysml2-api:9000/projects/p/commits/c/elements?"
+                f'page%5Bafter%5D={page_number + 1}>; rel="next"'
+            )
+        return 200, headers, json.dumps(page).encode()
+
+    monkeypatch.setattr(module, "fetch", fake_fetch)
+
+    assert (
+        module.check_pagination_and_known_element(
+            "https://sysml-api.de4sdv.org", "p", "c"
+        )
+        == 50_100
+    )
+    assert "page%5Bsize%5D=5000" in requested[0]
+    assert requested[1].startswith("https://sysml-api.de4sdv.org/")
+
+
+def test_tls_check_retries_during_proxy_startup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Caddy may be listening before its first TLS handshake is ready."""
+    import importlib.util
+    from pathlib import Path
+    from urllib.error import URLError
+
+    script = Path(__file__).resolve().parents[1] / "deployment" / "scripts" / "verify_public_api.py"
+    spec = importlib.util.spec_from_file_location("verify_public_api_tls", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    responses = iter([URLError("TLS startup race"), (200, {}, b"")])
+    sleeps: list[float] = []
+
+    def fake_fetch(url: str, *, method: str = "GET", timeout: int = 60):
+        result = next(responses)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    monkeypatch.setattr(module, "fetch", fake_fetch)
+    monkeypatch.setattr(module.time, "sleep", sleeps.append)
+
+    module.check_tls(
+        "https://sysml-api.de4sdv.org", attempts=2, delay_seconds=0.01
+    )
+    assert sleeps == [0.01]
