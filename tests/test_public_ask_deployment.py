@@ -208,6 +208,13 @@ def test_public_ask_workflow_is_exact_sha_gated_and_does_not_ingest():
     assert 'DE4SDV_ASK_ENV_FILE="$DEPLOY_DIR/ask-viewer.env"' in workflow
     assert 'status.get("status") or "unknown"' in workflow
     assert "ready) ready=true" in workflow
+    # The remote script is streamed to `bash -s` over SSH. Compose attaches
+    # stdin even with exec -T/run -T and would otherwise consume every line
+    # after the warmup probe or validation command while returning success.
+    assert workflow.count("</dev/null") >= 2
+    assert "exec -T ask-viewer python -c '" in workflow
+    assert "' </dev/null)" in workflow
+    assert "--adapter caddyfile </dev/null" in workflow
     assert "caddy validate" in workflow
     assert "--live-query" in workflow
     assert "if: failure()" in workflow
