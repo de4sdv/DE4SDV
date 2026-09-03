@@ -221,6 +221,47 @@ if (!container.textContent.includes('<script>alert(1)</script> unfinished')) {
     assert result.returncode == 0, result.stderr
 
 
+def test_static_viewer_does_not_open_empty_context_menu():
+    """Ask metadata alone must not open a menu on the static Pages fallback."""
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+
+global.document = {
+  readyState: 'loading',
+  addEventListener() {}
+};
+global.window = {};
+global.location = {hash: '', pathname: ''};
+
+let source = fs.readFileSync(process.argv[1], 'utf8');
+source = source.replace(
+  '  function init() {',
+  '  global.hasContextMenuItems = hasContextMenuItems;\n\n  function init() {'
+);
+vm.runInThisContext(source);
+if (typeof global.hasContextMenuItems !== 'function') {
+  throw new Error('hasContextMenuItems was not loaded from the shipped viewer.js');
+}
+if (global.hasContextMenuItems(null, {name: 'element'}, false)) {
+  throw new Error('static viewer would open an empty Ask-only menu');
+}
+if (!global.hasContextMenuItems(null, {name: 'element'}, true)) {
+  throw new Error('server viewer must expose the Ask menu item');
+}
+if (!global.hasContextMenuItems([{}], null, false)) {
+  throw new Error('static viewer must preserve diagram-usage menu items');
+}
+"""
+    result = subprocess.run(
+        ["node", "-e", script,
+         str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 # ---- /ask endpoint (real server, LLM monkeypatched) ------------------------
 
 def _make_server(fixture_repo, tmp_path):

@@ -158,6 +158,10 @@
     }
   }
 
+  function hasContextMenuItems(uses, ask, serverEnabled) {
+    return Boolean((uses && uses.length) || (ask && serverEnabled));
+  }
+
   function init() {
     measureHeader();
     // webfonts (IBM Plex) load late and change the header height; when they
@@ -324,7 +328,9 @@
           ? ev.target.closest('a.src-ref, span.src-sym, span.vp-tip') : null;
         var uses = a ? usesFor(a) : null;
         var ask = askInfoFor(ev.target, a);
-        if ((!uses || !uses.length) && !ask) return;
+        var canAsk = ask && window.__DE4SDV_VIEWER_SERVER__;
+        if (!hasContextMenuItems(uses, ask,
+                                 window.__DE4SDV_VIEWER_SERVER__)) return;
         ev.preventDefault();
         closeMenu();
         if (uses && uses.length) {
@@ -364,7 +370,7 @@
             menu.appendChild(item);
           });
         }
-        if (ask && window.__DE4SDV_VIEWER_SERVER__) {
+        if (canAsk) {
           var divider = document.createElement('div');
           divider.className = 'uses-menu-divider';
           menu.appendChild(divider);
