@@ -1,4 +1,4 @@
-# Public deployment: sysml-api.de4sdv.org
+# Public deployment: model API and Ask-model viewer
 
 ## DE4SDV Experimental Read-Only Systems Modeling API
 
@@ -8,6 +8,11 @@ Modeling REST/HTTP API at `https://sysml-api.de4sdv.org`.
 
 See [ADR 0013](../docs/architecture-decisions/0013-deploy-experimental-readonly-public-sysml-api.md)
 for the decision, the fail-closed rules, and the standards follow-ups.
+
+The same host serves the bounded interactive model viewer at
+`https://viewer.de4sdv.org`. See
+[ADR 0016](../docs/architecture-decisions/0016-publish-bounded-public-ask-viewer.md)
+for the separate application/model identity contract and abuse controls.
 
 ## What is served
 
@@ -35,7 +40,9 @@ for the decision, the fail-closed rules, and the standards follow-ups.
 
 ```text
 deployment/
-  compose.yaml                  three-service stack (caddy, sysml2-api, postgres)
+  compose.yaml                  proxy, Ask viewer, model API, and database stack
+  ask_viewer/Dockerfile         pinned non-root Ask-model runtime
+  ask_viewer/entrypoint.py      application/model revision compatibility gate
   sysml2-api/Dockerfile         pinned upstream + restart-safety config patch
   sysml2-api/conf/…             production config layer
   sysml2-api/docker-entrypoint.sh
@@ -44,6 +51,8 @@ deployment/
   scripts/provision-server.sh   one-time host provisioning (Docker, ufw, secrets)
   scripts/deploy.py             fail-closed validated deployment (host-side)
   scripts/verify_public_api.py  external public verification
+  scripts/verify_public_ask.py  Ask identity, policy, and live-query verification
+  scripts/monitor_public_ask.py GET-only health and revision monitor
   status/                       runtime status dir on the host (${DEPLOY_DIR}/status)
 ```
 
@@ -159,6 +168,45 @@ out of band by the repository owner:
   dynamic discovery. The Syside license never touches the deployment host
   (exports are produced in the privileged GitHub workflow).
 - The status document contains no secrets and no internal paths.
+
+## Ask-model deployment
+
+The Ask-model service is a separate manual deployment. It does not ingest or
+copy the model. It mounts the current deployment binding read-only and queries
+the model API over the internal container network.
+
+Before the first run:
+
+1. Confirm the native Pages mirror works at
+   `https://de4sdv.github.io/DE4SDV/`, then remove `viewer.de4sdv.org` as the
+   GitHub Pages custom domain.
+2. Move the DNS-only `A` record for `viewer.de4sdv.org` to the existing
+   deployment host. This is a controlled cutover: DNS cannot route only
+   `/ask`. Keep the previous Pages DNS target recorded for manual reversal.
+3. Add `NOUS_API_KEY` to the protected `sysml-api-production` GitHub
+   environment. The workflow transfers it through the pinned SSH channel into
+   `/srv/de4sdv/ask-viewer.env` with mode `0600`; it is never committed or sent
+   to the browser.
+4. Merge the reviewed deployment change and run **Deploy Public Viewer with
+   Ask-model** with that exact `main` SHA. The production environment approval is
+   mandatory.
+
+The workflow requires DNS to resolve to the deployment host, transfers an
+exact Git bundle, starts the internal Ask container, waits for semantic warmup,
+validates the proxy configuration, and then recreates the proxy. External
+verification makes exactly one paid query after checking identity and policy.
+On host-side failure, the workflow restores the previous checkout and proxy.
+Because DNS is outside that transaction, restoring the former public Pages
+route also requires manually restoring its custom-domain setting and DNS
+target. The native Pages URL remains available throughout.
+
+Public controls are deliberately tighter than the read-only model API: three
+Ask requests per remote host per minute, sixty globally per hour, one hundred
+twenty globally per day, one active inference call, a 16 KiB body limit, and
+exact same-origin enforcement. The scheduled monitor is GET-only and does not
+consume inference quota. These are abuse controls and a daily request ceiling,
+not an exact monetary guarantee. Monitor inference usage and stop the Ask
+service if traffic or cost becomes abnormal.
 
 ## Known limitations
 

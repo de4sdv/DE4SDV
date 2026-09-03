@@ -1,6 +1,6 @@
 # DE4SDV Experimental Read-Only Systems Modeling API — public reverse proxy.
 #
-# Internet -> Caddy (HTTPS, read-only) -> sysml2-api (container network only)
+# Internet -> Caddy (HTTPS) -> read-only sysml2-api or bounded viewer + Ask
 #   -> PostgreSQL (container network only).
 #
 # Security properties enforced here:
@@ -81,5 +81,93 @@ sysml-api.de4sdv.org {
 				header_up Host {upstream_hostport}
 			}
 		}
+	}
+}
+
+viewer.de4sdv.org {
+	encode zstd gzip
+	log {
+		output stdout
+		format json
+	}
+
+	route {
+		header {
+			Strict-Transport-Security "max-age=31536000; includeSubDomains"
+			X-Content-Type-Options "nosniff"
+			X-Frame-Options "DENY"
+			Referrer-Policy "no-referrer"
+			-Server
+		}
+
+		# Warmup diagnostics may contain operational detail and are internal-only.
+		@ask_internal path /_ask_warmup
+		respond @ask_internal 404
+
+		handle /ask {
+			@ask_post method POST
+			handle @ask_post {
+				# One static key limits total hourly spend; the remote-host key
+				# separately stops one client from consuming the shared budget.
+				rate_limit {
+					zone ask_global {
+						key ask-global
+						events 60
+						window 1h
+					}
+					zone ask_daily {
+						key ask-daily
+						events 120
+						window 24h
+					}
+					zone ask_per_ip {
+						key {remote_host}
+						events 3
+						window 1m
+					}
+				}
+				request_body {
+					max_size 16KB
+				}
+				reverse_proxy ask-viewer:8787 {
+					health_uri /ask-status.json
+					health_interval 30s
+					health_timeout 10s
+					transport http {
+						response_header_timeout 180s
+					}
+				}
+			}
+			respond 405 {
+				close
+			}
+		}
+
+		@read method GET HEAD
+		handle @read {
+			reverse_proxy ask-viewer:8787 {
+				transport http {
+					response_header_timeout 180s
+				}
+			}
+		}
+
+		respond 405 {
+			close
+		}
+	}
+
+	# Preserve browse-only access if the dynamic viewer is unavailable. The
+	# native Pages mirror remains public after its custom domain is removed.
+	# POST /ask is handled above and never reaches this fallback.
+	handle_errors {
+		@fallback_read method GET HEAD
+		handle @fallback_read {
+			rewrite * /DE4SDV{uri}
+			reverse_proxy https://de4sdv.github.io {
+				header_up Host de4sdv.github.io
+			}
+		}
+		respond 502
 	}
 }

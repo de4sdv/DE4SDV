@@ -1,6 +1,6 @@
 name: deploy-viewer
 
-# Publishes the static HTML model viewer to GitHub Pages:
+# Publishes the static HTML model viewer to the native GitHub Pages URL:
 #   - on every push to main
 #   - weekly (new branches and open PRs appear in the Revision picker)
 #   - manually via workflow_dispatch
@@ -9,7 +9,9 @@ name: deploy-viewer
 # the generator runs with --public --refs auto, building the root site from
 # the pushed branch plus one sub-site per branch/PR head. Collaborators
 # pick any revision from the header picker; everything is prebuilt, so no
-# on-demand server is needed.
+# on-demand server is needed. The production custom hostname is owned by the
+# Caddy deployment; Pages remains the browse-only engineering mirror and
+# emergency GET fallback.
 
 on:
   push:

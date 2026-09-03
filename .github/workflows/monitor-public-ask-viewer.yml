@@ -1,0 +1,26 @@
+name: Monitor Public Ask-model Viewer
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monitor-public-ask-viewer
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out main history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify enabled public Ask service without inference
+        run: python deployment/scripts/monitor_public_ask.py --repo .
