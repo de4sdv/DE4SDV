@@ -326,7 +326,7 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
             application_sha=app_sha,
             model_sha=model_sha,
             live_query=True,
-            element="evidenceObjective",
+            tls_attempts=1,
         )
         assert result["application_git_commit"] == app_sha
         assert result["model_git_commit"] == model_sha
@@ -344,3 +344,52 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_public_verifier_retries_tls_readiness_before_giving_up():
+    """A just-restarted Caddy may refuse TLS before its first certificate is
+    ready; the verifier must retry only that boundary, then fail fast on
+    real errors."""
+    import ssl
+
+    app_sha = "c" * 40
+    model_sha = "d" * 40
+    state = {"requests": 0}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            state["requests"] += 1
+            if state["requests"] < 3:
+                # terminate the connection like an unready TLS endpoint
+                self.connection.setsockopt(
+                    __import__("socket").SOL_SOCKET,
+                    __import__("socket").SO_LINGER,
+                    __import__("struct").pack("ii", 1, 0),
+                )
+                self.connection.close()
+                return
+            self.send_response(200)
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"{}")
+
+        def log_message(self, format, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        with pytest.raises(Exception) as excinfo:
+            verify_public_ask(
+                base,
+                application_sha=app_sha,
+                model_sha=model_sha,
+                tls_attempts=2,
+            )
+        assert "TLS endpoint not ready" in str(excinfo.value)
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert state["requests"] == 2  # retried, did not fail on attempt 1
