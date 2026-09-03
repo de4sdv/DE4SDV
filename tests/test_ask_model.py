@@ -8,6 +8,7 @@ fail-closed behavior only.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 import threading
 import urllib.error
@@ -122,6 +123,102 @@ def test_load_api_key_env_wins(monkeypatch, tmp_path):
         ask_model, "DEFAULT_KEY_FILE", tmp_path / "nope"
     )
     assert ask_model.load_api_key() == "env-key"
+
+
+def test_ask_answer_formatter_renders_safe_structured_text():
+    """The panel renders common model-answer Markdown without exposing HTML."""
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+
+function textNode(text) {
+  return {nodeType: 3, textContent: String(text), children: []};
+}
+function element(tag) {
+  const node = {
+    nodeType: 1,
+    tagName: String(tag).toUpperCase(),
+    children: [],
+    appendChild(child) { this.children.push(child); return child; }
+  };
+  Object.defineProperty(node, 'textContent', {
+    get() { return this.children.map((child) => child.textContent).join(''); },
+    set(value) { this.children = value ? [textNode(value)] : []; }
+  });
+  return node;
+}
+
+global.document = {
+  readyState: 'loading',
+  addEventListener() {},
+  createElement: element,
+  createTextNode: textNode
+};
+global.window = {};
+global.location = {hash: '', pathname: ''};
+
+let source = fs.readFileSync(process.argv[1], 'utf8');
+source = source.replace(
+  '  function init() {',
+  '  global.renderAskAnswer = renderAskAnswer;\n\n  function init() {'
+);
+vm.runInThisContext(source);
+if (typeof global.renderAskAnswer !== 'function') {
+  throw new Error('renderAskAnswer was not loaded from the shipped viewer.js');
+}
+
+const container = element('div');
+global.renderAskAnswer(container,
+  'From the evidence, **no `outgoing trace`** is declared.\n\n' +
+  'Incoming dependencies:\n\n' +
+  '- `firstEdge`\n' +
+  '- `secondEdge`\n\n' +
+  '1. first step\n\n' +
+  '2. second step\n\n' +
+  '#### Details\n\n' +
+  '```json\n{"safe": true}\n```\n\n' +
+  '````text\nfour-tick fence\n````\n\n' +
+  'Malformed ````foo` fence\n\n' +
+  '***Important*** <script>alert(1)</script> **unfinished'
+);
+
+function descendants(node) {
+  return node.children.reduce(
+    (all, child) => all.concat(child, descendants(child)), []
+  );
+}
+const all = descendants(container);
+const tags = all.filter((node) => node.tagName).map((node) => node.tagName);
+for (const expected of ['STRONG', 'EM', 'CODE', 'UL', 'OL', 'H6', 'PRE']) {
+  if (!tags.includes(expected)) {
+    throw new Error('expected ' + expected + ' markup: ' + tags.join(','));
+  }
+}
+if (tags.filter((tag) => tag === 'OL').length !== 1
+    || tags.filter((tag) => tag === 'LI').length !== 4) {
+  throw new Error('loose lists did not retain one list with all items');
+}
+if (tags.filter((tag) => tag === 'PRE').length !== 2
+    || all.some((node) => node.tagName === 'CODE' && !node.textContent)) {
+  throw new Error('fenced or inline code produced an empty code element');
+}
+if (container.textContent.includes('**') || container.textContent.includes('`')) {
+  throw new Error('literal Markdown markers remain: ' + container.textContent);
+}
+if (tags.includes('SCRIPT')) {
+  throw new Error('model-supplied HTML became executable DOM');
+}
+if (!container.textContent.includes('<script>alert(1)</script> unfinished')) {
+  throw new Error('model-supplied HTML was not preserved as inert text');
+}
+"""
+    result = subprocess.run(
+        ["node", "-e", script,
+         str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 # ---- /ask endpoint (real server, LLM monkeypatched) ------------------------
