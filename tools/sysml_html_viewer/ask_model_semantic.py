@@ -9,25 +9,48 @@ Grounding contract (unchanged): every relation listed exists in the
 bound API revision; answers stay grounded on the deployed baseline, not
 the working tree.
 
+Cold-load policy (visitors never wait):
+  The full-model retrieval over the public API costs minutes per fresh
+  process. A persistent per-revision disk snapshot (checksum-verified,
+  identity-bound to the runtime contract) plus a background warmup at
+  boot remove that wait from the request path:
+
+  - server boot: start_warmup() loads the corpus from the snapshot when
+    present (seconds) or starts the network load in a background thread;
+  - while warming, /ask serves the regex path immediately, labeled
+    "regex:warming" — it never blocks on the cold load;
+  - the snapshot is only trusted AFTER the runtime's binding checks pass
+    (expected Git SHA, ontology identity) and only when its recorded
+    project/commit identity matches the binding exactly.
+
 Fallback ladder (explicit, never silent about which path produced the
 answer's evidence):
-  1. "api"      — SemanticQueryService over the deployed API (requires
-                  NOUS_ASK_SEMANTIC_RUNTIME=1 and the runtime contract:
-                  binding file + expected SHA + matching ontology).
-  2. "regex"    — tools.sysml_html_viewer.ask_model.build_method_context
-                  (source-text extraction; the pre-B fallback).
-The /ask response reports which path served the evidence.
+  "api" | "api:no-match" | "api:empty" | "regex" | "regex:warming" |
+  "regex:warmup-failed" | "regex:fallback:<Error>"
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import threading
+from datetime import datetime, timezone
 from pathlib import Path
 
 _SEMANTIC_RUNTIME = None
 _SEMANTIC_ERROR: str | None = None
 # short-lived memo: element UUID -> method-context dict
 _SEMANTIC_CTX_CACHE: dict[str, dict] = {}
+
+# cold-load coordination + warmup state (one cold load per process, ever;
+# /ask never blocks on it — see build_method_context_api)
+_COLD_LOCK = threading.Lock()
+_WARM_STATE: dict = {"status": "idle", "error": None}
+_SNAPSHOT_FORMAT = 1
+
+
+def warm_status() -> dict:
+    return dict(_WARM_STATE)
 
 
 def semantic_enabled() -> bool:
@@ -75,6 +98,125 @@ def _runtime():
         _SEMANTIC_ERROR = f"semantic runtime unavailable: {exc}"
         raise RuntimeError(_SEMANTIC_ERROR) from exc
     return _SEMANTIC_RUNTIME
+
+
+# ---- per-revision disk snapshot of the API element corpus -----------------
+# Only the network retrieval is replaced; binding/ontology enforcement
+# still runs on every call and the snapshot identity must match the
+# binding exactly. Snapshots live outside the repo (default ~/.cache).
+
+def _snapshot_dir() -> Path:
+    d = Path(os.environ.get(
+        "DE4SDV_SEMANTIC_SNAPSHOT_DIR",
+        str(Path.home() / ".cache" / "de4sdv" / "semantic-snapshots"),
+    ))
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _snapshot_identity(service) -> dict:
+    return {
+        "format": _SNAPSHOT_FORMAT,
+        "git_commit": str(service.binding.git_commit),
+        "sysml_project_id": str(service.binding.sysml_project_id),
+        "sysml_commit_id": str(service.binding.sysml_commit_id),
+    }
+
+
+def _snapshot_path(service) -> Path:
+    return _snapshot_dir() / f"{service.binding.sysml_commit_id}.json"
+
+
+def _snapshot_write(service, elements: list[dict]) -> None:
+    """Atomic snapshot write + sidecar sha256 of the main file."""
+    path = _snapshot_path(service)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    payload = {
+        **_snapshot_identity(service),
+        "element_count": len(elements),
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+        "elements": elements,
+    }
+    tmp.write_text(json.dumps(payload), encoding="utf-8")
+    digest = hashlib.sha256(tmp.read_bytes()).hexdigest()
+    path.with_suffix(".json.sha256").write_text(digest, encoding="utf-8")
+    os.replace(tmp, path)  # atomic on POSIX
+
+
+def _snapshot_load(service) -> list[dict] | None:
+    """Checksum + identity verified snapshot, or None (any doubt = miss)."""
+    path = _snapshot_path(service)
+    try:
+        raw = path.read_bytes()
+        expected_digest = path.with_suffix(".json.sha256").read_text().strip()
+        if hashlib.sha256(raw).hexdigest() != expected_digest:
+            return None
+        data = json.loads(raw.decode("utf-8"))
+        for key, value in _snapshot_identity(service).items():
+            if data.get(key) != value:
+                return None
+        elements = data.get("elements")
+        if not isinstance(elements, list) or not elements:
+            return None
+        if data.get("element_count") != len(elements):
+            return None
+        return elements
+    except (OSError, ValueError):
+        return None
+
+
+def _load_elements_with_snapshot(service) -> list[dict]:
+    """Binding checks FIRST, then snapshot, then network.
+
+    A snapshot is never trusted without the runtime contract passing; a
+    corrupted or stale snapshot is ignored (network load overwrites it).
+    """
+    service._require_valid_revision()
+    if service._element_cache is not None:
+        return service._element_cache
+    snap = _snapshot_load(service)
+    if snap is not None:
+        service._element_cache = snap
+        return snap
+    elements = service._elements()  # network cold load (binding enforced)
+    try:
+        _snapshot_write(service, elements)
+    except OSError:
+        pass  # snapshot is an optimization, never a correctness gate
+    return elements
+
+
+def start_warmup() -> None:
+    """Begin semantic warmup in a background thread (idempotent).
+
+    Sets the status synchronously so callers can label the ask path
+    deterministically right after calling this. A failed warmup is NOT
+    auto-retried: a retry per ask would hammer the public API with
+    concurrent cold loads (each potentially 10-30+ min under
+    contention). Recovery from "error" is a process restart; the error
+    stays visible via warm_status().
+    """
+    if not semantic_enabled():
+        return
+    if _WARM_STATE["status"] in ("warming", "ready", "error"):
+        return
+    _WARM_STATE.update(status="warming", error=None)
+
+    def _run():
+        if not _COLD_LOCK.acquire(blocking=False):
+            return  # another warmup owns the cold load
+        try:
+            service = _runtime()
+            _load_elements_with_snapshot(service)
+            _WARM_STATE["status"] = "ready"
+        except Exception as exc:  # noqa: BLE001 — surfaced via warm_status
+            _WARM_STATE.update(status="error", error=str(exc))
+        finally:
+            _COLD_LOCK.release()
+
+    threading.Thread(target=_run, daemon=True,
+                     name="ask-semantic-warmup").start()
 
 
 def _ref_ids(value) -> list[str]:
@@ -163,29 +305,42 @@ def api_method_context(service, targets: list[dict],
 def build_method_context_api(ref, files) -> tuple[dict, str]:
     """Method context for an element with an explicit derivation label.
 
-    Returns (context, path) where path is "api", "api:no-match",
-    "api:empty", "regex", or "regex:fallback:<Error>". API failures fall
-    back to regex and are reported in the returned path marker.
+    Returns (context, path). API failures fall back to regex and the
+    returned path marker says exactly what served the evidence. The ask
+    path NEVER blocks on the cold load: while the corpus is loading the
+    regex result is served with the "regex:warming" label.
     """
     if semantic_enabled():
+        if _WARM_STATE["status"] == "error":
+            return (
+                _regex_fallback(ref, files),
+                "regex:warmup-failed",
+            )
         try:
             service = _runtime()
-            elements = service._elements()
-            matches = [
-                e for e in elements
-                if (e.get("declaredName") or e.get("name")) == ref.name
-            ]
-            if not matches:
-                return {}, "api:no-match"
-            ctx = api_method_context(service, matches, elements)
-            if ctx:
-                return ctx, "api"
-            return {}, "api:empty"
         except Exception as exc:  # noqa: BLE001 — degrade explicitly
             return (
                 _regex_fallback(ref, files),
                 f"regex:fallback:{type(exc).__name__}",
             )
+        if getattr(service, "_element_cache", None) is None:
+            # cold process: warm up in the background, answer now
+            start_warmup()
+            status = _WARM_STATE["status"]
+            label = ("regex:warming" if status == "warming"
+                     else "regex:warmup-failed")
+            return _regex_fallback(ref, files), label
+        elements = service._element_cache or []
+        matches = [
+            e for e in elements
+            if (e.get("declaredName") or e.get("name")) == ref.name
+        ]
+        if not matches:
+            return {}, "api:no-match"
+        ctx = api_method_context(service, matches, elements)
+        if ctx:
+            return ctx, "api"
+        return {}, "api:empty"
     return _regex_fallback(ref, files), "regex"
 
 

@@ -52,7 +52,7 @@ from .ask_model import (
     load_api_key,
     resolve_element,
 )
-from .ask_model_semantic import build_method_context_api
+from .ask_model_semantic import build_method_context_api, start_warmup, warm_status
 from .model_parse import ModelFile, build_member_index, load_model
 from .model_parse import ElementRef  # noqa: F401  (type only)
 
@@ -390,6 +390,9 @@ class _Handler(SimpleHTTPRequestHandler):
         if path == "/_refs":
             self._send_json(server.manifest())
             return
+        if path == "/_ask_warmup":
+            self._send_json(warm_status())
+            return
         if path == "/" or path.endswith(".html"):
             # pick up working-tree model changes before serving pages
             server.ensure_worktree_current()
@@ -603,6 +606,10 @@ def main(argv: list[str] | None = None) -> int:
         repo, Path(args.out).resolve(),
         host=args.host, port=args.port, prs=not args.no_prs,
     )
+    # semantic ask-mode: warm the API corpus in the background so no
+    # visitor ever waits for the cold load (no-op when NOUS_ASK_SEMANTIC
+    # is unset; snapshot-backed, see ask_model_semantic)
+    start_warmup()
     url = f"http://{args.host}:{server.server_address[1]}/"
     print(f"Serving the DE4SDV model viewer at {url}")
     print("Pick any branch or PR in the Revision picker — the first view of")
