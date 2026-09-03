@@ -59,6 +59,8 @@
       clearActive();
       active = t;
       t.classList.add('tip-hit');
+      // stash for the ask-model context menu (any hovered askable element)
+      t.__askInfo = info;
       tip.textContent = '';
 
       var badge = document.createElement('span');
@@ -145,51 +147,259 @@
       document.addEventListener('keydown', function (ev) {
         if (ev.key === 'Escape') closeMenu();
       });
+      /* ask-model: element identity for the context menu. Source refs and
+       * viewpoint spans carry data-tip-* attrs; SVG texts, connectors, and
+       * boxes stash the tooltip info on hover (show()). */
+      function askInfoFor(target, a) {
+        if (a && a.getAttribute) {
+          var name = a.getAttribute('data-tip-name');
+          if (name) {
+            return {
+              kind: a.getAttribute('data-tip-kind') || 'element',
+              name: name,
+              doc: a.getAttribute('data-tip-doc') || '',
+              file: a.getAttribute('data-tip-file') || '',
+              line: a.getAttribute('data-tip-line') || ''
+            };
+          }
+        }
+        var el = target || null;
+        while (el) {
+          if (el.__askInfo) return el.__askInfo;
+          el = el.parentElement;
+        }
+        return null;
+      }
+
       document.addEventListener('contextmenu', function (ev) {
-        var a = ev.target && ev.target.closest ? ev.target.closest('a.src-ref') : null;
+        var a = ev.target && ev.target.closest
+          ? ev.target.closest('a.src-ref, span.src-sym, span.vp-tip') : null;
         var uses = a ? usesFor(a) : null;
-        if (!uses || !uses.length) return;
+        var ask = askInfoFor(ev.target, a);
+        if ((!uses || !uses.length) && !ask) return;
         ev.preventDefault();
         closeMenu();
-        var title = document.createElement('div');
-        title.className = 'uses-menu-title';
-        title.textContent =
-          'Used in ' + uses.length + (uses.length === 1 ? ' diagram' : ' diagrams');
-        menu.appendChild(title);
-        uses.forEach(function (u) {
-          var item = document.createElement('button');
-          item.type = 'button';
-          item.className = 'uses-menu-item';
-          var icon = document.createElement('span');
-          icon.className = 'uses-menu-icon';
-          icon.textContent = '\u25C8';
-          item.appendChild(icon);
-          var name = document.createElement('span');
-          name.textContent = u.v;
-          item.appendChild(name);
-          item.title = u.f;
-          item.addEventListener('click', function (e) {
+        if (uses && uses.length) {
+          var title = document.createElement('div');
+          title.className = 'uses-menu-title';
+          title.textContent =
+            'Used in ' + uses.length + (uses.length === 1 ? ' diagram' : ' diagrams');
+          menu.appendChild(title);
+          uses.forEach(function (u) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'uses-menu-item';
+            var icon = document.createElement('span');
+            icon.className = 'uses-menu-icon';
+            icon.textContent = '\u25C8';
+            item.appendChild(icon);
+            var name = document.createElement('span');
+            name.textContent = u.v;
+            item.appendChild(name);
+            item.title = u.f;
+            item.addEventListener('click', function (e) {
+              e.stopPropagation();
+              closeMenu();
+              try {
+                sessionStorage.setItem(
+                  'de4sdv-hl',
+                  JSON.stringify({
+                    f: a.getAttribute('data-tip-file'),
+                    l: parseInt(a.getAttribute('data-tip-line'), 10),
+                    h: a.getAttribute('href') || ''
+                  })
+                );
+              } catch (err) {}
+              window.location.href =
+                (window.VIEWER_PREFIX || '') + 'pages/' + u.f + '.html#' + u.a;
+            });
+            menu.appendChild(item);
+          });
+        }
+        if (ask && window.__DE4SDV_VIEWER_SERVER__) {
+          var divider = document.createElement('div');
+          divider.className = 'uses-menu-divider';
+          menu.appendChild(divider);
+          var askItem = document.createElement('button');
+          askItem.type = 'button';
+          askItem.className = 'uses-menu-item';
+          var askIcon = document.createElement('span');
+          askIcon.className = 'uses-menu-icon';
+          askIcon.textContent = '\u2753';
+          askItem.appendChild(askIcon);
+          var askLabel = document.createElement('span');
+          askLabel.textContent = 'Ask the model\u2026';
+          askItem.appendChild(askLabel);
+          askItem.title = 'Ask a question about ' + ask.name +
+            ' — answered from the model element itself';
+          askItem.addEventListener('click', function (e) {
             e.stopPropagation();
             closeMenu();
-            try {
-              sessionStorage.setItem(
-                'de4sdv-hl',
-                JSON.stringify({
-                  f: a.getAttribute('data-tip-file'),
-                  l: parseInt(a.getAttribute('data-tip-line'), 10),
-                  h: a.getAttribute('href') || ''
-                })
-              );
-            } catch (err) {}
-            window.location.href =
-              (window.VIEWER_PREFIX || '') + 'pages/' + u.f + '.html#' + u.a;
+            openAskPanel(ask);
           });
-          menu.appendChild(item);
-        });
+          menu.appendChild(askItem);
+        }
         menu.style.left = Math.min(ev.clientX, window.innerWidth - 240) + 'px';
         menu.style.top = Math.min(ev.clientY, window.innerHeight - menu.offsetHeight - 8) + 'px';
         menu.style.display = 'block';
       });
+
+      /* ---- ask-model panel (server mode only) ---- */
+      var askPanel = null;
+      function ensureAskPanel() {
+        if (askPanel) return;
+        askPanel = document.createElement('div');
+        askPanel.className = 'ask-panel';
+        askPanel.id = 'askPanel';
+
+        var head = document.createElement('div');
+        head.className = 'ask-head';
+        var askTitle = document.createElement('span');
+        askTitle.className = 'ask-title';
+        var askKind = document.createElement('span');
+        askKind.className = 'ask-kind';
+        var closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'ask-close';
+        closeBtn.textContent = '\u2715';
+        closeBtn.title = 'Close (Esc)';
+        closeBtn.addEventListener('click', function () { hideAskPanel(); });
+        head.appendChild(askTitle);
+        head.appendChild(askKind);
+        head.appendChild(closeBtn);
+
+        var meta = document.createElement('a');
+        meta.className = 'ask-meta';
+
+        var body = document.createElement('div');
+        body.className = 'ask-body';
+        var input = document.createElement('textarea');
+        input.className = 'ask-input';
+        input.placeholder = 'Ask about this element\u2026 (Enter to ask, Shift+Enter for a new line)';
+        input.rows = 3;
+        var status = document.createElement('div');
+        status.className = 'ask-status';
+        var answer = document.createElement('div');
+        answer.className = 'ask-answer';
+        var footer = document.createElement('div');
+        footer.className = 'ask-footer';
+        var grounded = document.createElement('a');
+        grounded.className = 'ask-grounded';
+        var modelLine = document.createElement('span');
+        modelLine.className = 'ask-model-line';
+        var altsLine = document.createElement('div');
+        altsLine.className = 'ask-alts';
+        footer.appendChild(grounded);
+        footer.appendChild(modelLine);
+        footer.appendChild(altsLine);
+        body.appendChild(input);
+        body.appendChild(status);
+        body.appendChild(answer);
+        body.appendChild(footer);
+
+        askPanel.appendChild(head);
+        askPanel.appendChild(meta);
+        askPanel.appendChild(body);
+        document.body.appendChild(askPanel);
+
+        input.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' && !ev.shiftKey) {
+            ev.preventDefault();
+            submitAsk();
+          }
+        });
+        document.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Escape' && askPanel.classList.contains('open')) {
+            hideAskPanel();
+          }
+        });
+
+        askPanel.__els = {
+          title: askTitle, kind: askKind, meta: meta, input: input,
+          status: status, answer: answer, grounded: grounded,
+          modelLine: modelLine, altsLine: altsLine
+        };
+      }
+
+      function hideAskPanel() {
+        if (askPanel) askPanel.classList.remove('open');
+      }
+
+      function openAskPanel(info) {
+        ensureAskPanel();
+        var els = askPanel.__els;
+        askPanel.__info = info;
+        askPanel.classList.add('open');
+        els.title.textContent = info.name;
+        els.kind.textContent = info.kind || 'element';
+        els.meta.textContent = info.file ? info.file + ':' + info.line : '';
+        els.meta.href = info.file
+          ? (window.VIEWER_PREFIX || '') + 'pages/' + info.file + '.html#src-' + info.line
+          : '';
+        els.input.value = '';
+        els.status.textContent = '';
+        els.answer.textContent = '';
+        els.grounded.textContent = '';
+        els.grounded.removeAttribute('href');
+        els.modelLine.textContent = '';
+        els.altsLine.textContent = '';
+        els.input.focus();
+      }
+
+      function submitAsk() {
+        if (!askPanel) return;
+        var els = askPanel.__els;
+        var info = askPanel.__info;
+        var q = els.input.value.trim();
+        if (!info || !q || els.status.textContent) return;
+        els.status.textContent = 'Asking the model\u2026';
+        els.answer.textContent = '';
+        els.grounded.textContent = '';
+        els.modelLine.textContent = '';
+        els.altsLine.textContent = '';
+        fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            element: info.name,
+            question: q,
+            file: info.file || '',
+            line: info.line || '',
+            ref: currentRefFromPath()
+          })
+        }).then(function (r) {
+          return r.json().then(function (data) {
+            return { ok: r.ok, data: data };
+          });
+        }).then(function (res) {
+          els.status.textContent = '';
+          if (!res.ok || res.data.error) {
+            els.answer.textContent = res.data.error ||
+              'request failed (HTTP ' + (res.ok ? 200 : '?') + ')';
+            return;
+          }
+          els.answer.textContent = res.data.answer || '(empty answer)';
+          var el = res.data.element || {};
+          if (el.href) {
+            els.grounded.href = (window.VIEWER_PREFIX || '') + el.href;
+            els.grounded.textContent =
+              'grounded on ' + el.name + ' \u00b7 ' + el.file + ':' + el.line;
+          }
+          els.modelLine.textContent = 'model: ' + (res.data.model || '?')
+            + (res.data.method_context_source
+              ? ' \u00b7 method context: ' + res.data.method_context_source
+              : '');
+          var alts = res.data.ambiguous_alternatives || [];
+          if (alts.length) {
+            els.altsLine.textContent =
+              'same-name elements exist (' + alts.length + ' more) \u2014 ' +
+              alts.map(function (x) { return x.file + ':' + x.line; }).join(', ');
+          }
+        }).catch(function (err) {
+          els.status.textContent = '';
+          els.answer.textContent = 'ask-model request failed: ' + err;
+        });
+      }
     }
 
     /* when landing on a view with a pending highlight, flash the labels of
