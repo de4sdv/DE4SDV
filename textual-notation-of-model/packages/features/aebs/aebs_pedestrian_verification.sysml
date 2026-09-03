@@ -1,5 +1,5 @@
 /* INC-AEBS-009G pedestrian-target evidence contract; no product verification claim. */
-package DE4SDV_AEBS009GVerification {
+package DE4SDV_AEBSPedestrianVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
@@ -8,76 +8,76 @@ package DE4SDV_AEBS009GVerification {
   private import Views::*;
 
 
-  enum def EvidenceOutcome009G {
+  enum def PedestrianEvidenceOutcome {
     passBoundedTargetResponse;
     failConfiguredOutcome;
     inconclusiveCoverage;
     errorEvidence;
   }
-  item def Retained009GObservationSet;
-  item def Replayed009GEvaluation {
-    attribute outcome : EvidenceOutcome009G;
+  item def PedestrianObservationSet;
+  item def PedestrianEvaluation {
+    attribute outcome : PedestrianEvidenceOutcome;
   }
-  calc def Map009GOutcomeToVerdict {
-    in outcome : EvidenceOutcome009G;
+  calc def MapPedestrianOutcomeToVerdict {
+    in outcome : PedestrianEvidenceOutcome;
     return verdict : VerdictKind =
-      if outcome == EvidenceOutcome009G::passBoundedTargetResponse? VerdictKind::pass
-      else if outcome == EvidenceOutcome009G::failConfiguredOutcome? VerdictKind::fail
-      else if outcome == EvidenceOutcome009G::errorEvidence? VerdictKind::error
+      if outcome == PedestrianEvidenceOutcome::passBoundedTargetResponse? VerdictKind::pass
+      else if outcome == PedestrianEvidenceOutcome::failConfiguredOutcome? VerdictKind::fail
+      else if outcome == PedestrianEvidenceOutcome::errorEvidence? VerdictKind::error
       else VerdictKind::inconclusive;
   }
 
-  part def PedestrianTargetBench009G;
-  requirement def EvidenceContract009G;
-  requirement evidenceContract009GConfiguredPedestrianTarget : EvidenceContract009G {
-    subject bench : PedestrianTargetBench009G;
+  part def PedestrianTargetBench;
+  requirement def PedestrianEvidenceContract;
+  requirement evidenceContractConfiguredPedestrianTarget : PedestrianEvidenceContract {
+    subject bench : PedestrianTargetBench;
     require constraint statement { language "English" /* The bench shall bind the configured pedestrian trajectory, geometry, timing, and exact bench identity: crossing speed 1.5 m/s, a closed observation window of 2.0 s, and map-frame source observations no older than 0.5 s. */ }
   }
-  requirement evidenceContract009GIndependentFootprintOutcome : EvidenceContract009G {
-    subject bench : PedestrianTargetBench009G;
+  requirement evidenceContractIndependentFootprintOutcome : PedestrianEvidenceContract {
+    subject bench : PedestrianTargetBench;
     require constraint statement { language "English" /* The bench shall reconstruct ego and pedestrian footprints independently from retained map-frame observations and reject missing or contradictory samples. */ }
   }
-  requirement evidenceContract009GReplayableProvenance : EvidenceContract009G {
-    subject bench : PedestrianTargetBench009G;
+  requirement evidenceContractReplayableProvenance : PedestrianEvidenceContract {
+    subject bench : PedestrianTargetBench;
     require constraint statement { language "English" /* The bench shall hash-bind scenario, runtime, evaluator, observation, map-runtime, and artifact identities for independent replay. */ }
   }
 
-  part pedestrianTargetBench009G : PedestrianTargetBench009G;
-  verification def PedestrianTargetVerification009G {
-    subject verifiedBench : PedestrianTargetBench009G;
-    objective evidenceObjective009G {
-      verify evidenceContract009GConfiguredPedestrianTarget;
-      verify evidenceContract009GIndependentFootprintOutcome;
-      verify evidenceContract009GReplayableProvenance;
+  part pedestrianTargetBench : PedestrianTargetBench;
+  verification def PedestrianTargetVerification {
+    subject verifiedBench : PedestrianTargetBench;
+    objective evidenceObjective {
+      verify evidenceContractConfiguredPedestrianTarget;
+      verify evidenceContractIndependentFootprintOutcome;
+      verify evidenceContractReplayableProvenance;
     }
     action collectData {
       @VerificationMethod{ kind = test; }
-      out item retainedObservations : Retained009GObservationSet;
+      out item retainedObservations : PedestrianObservationSet;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in item retainedObservations : Retained009GObservationSet = collectData.retainedObservations;
-      out item replayedEvaluation : Replayed009GEvaluation;
+      in item retainedObservations : PedestrianObservationSet = collectData.retainedObservations;
+      out item replayedEvaluation : PedestrianEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : Replayed009GEvaluation = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map009GOutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : PedestrianEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapPedestrianOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification pedestrianTargetVerification009G : PedestrianTargetVerification009G {
+  verification pedestrianTargetVerification : PedestrianTargetVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> pedestrianTargetBench009G;
+    subject verifiedBench :> pedestrianTargetBench;
   }
-  part verificationSystem009G {
-    perform pedestrianTargetVerification009G;
+  part verificationSystem {
+    perform pedestrianTargetVerification;
   }
 
   dependency pedestrianConfigurationRelevantToPedestrianDetectionCandidate
-    from evidenceContract009GConfiguredPedestrianTarget to reqPedestrianTargetResponse;
+    from evidenceContractConfiguredPedestrianTarget to reqPedestrianTargetResponse;
   dependency pedestrianOutcomeRelevantToPedestrianResponseCandidate
-    from evidenceContract009GIndependentFootprintOutcome to reqPedestrianTargetControlledResponse;
+    from evidenceContractIndependentFootprintOutcome to reqPedestrianTargetControlledResponse;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
@@ -89,12 +89,12 @@ package DE4SDV_AEBS009GVerification {
     doc /* Evidence-based assurance claims and their supporting argumentation. */
   }
 
-  view aebs009GVerificationAssuranceView {
+  view aebsPedestrianVerificationAssuranceView {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009GVerification::*;
+    expose DE4SDV_AEBSPedestrianVerification::*;
     render asTreeDiagram;
   }
 }

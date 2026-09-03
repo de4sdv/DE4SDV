@@ -43,8 +43,8 @@ def braced_body(source: str, declaration: str) -> str:
     """Return the balanced-brace body following ``declaration``.
 
     ``declaration`` is the exact declaration prefix, e.g.
-    ``"verification def NominalMovingVehicleTargetVerification009B"`` or
-    ``"calc def Map009FOutcomeToVerdict"``.
+    ``"verification def NominalMovingVehicleTargetVerification"`` or
+    ``"calc def MapDegradedInputOutcomeToVerdict"``.
     """
     start = source.index(declaration)
     opening = source.index("{", start + len(declaration))

@@ -49,7 +49,7 @@ def test_pilot_yaml_declares_increment_aebs_010() -> None:
 
 def test_framing_declares_successor_dependency_to_mw010_decision() -> None:
     framing = _read(FRAMING)
-    assert "private import DE4SDV_Middleware010VerificationEvidence::*;" in framing
+    assert "private import DE4SDV_MiddlewareVerificationEvidence::*;" in framing
     assert "dependency successorMandate" in framing
     assert "to successorIncrementDecision010;" in framing
 

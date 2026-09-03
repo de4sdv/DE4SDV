@@ -66,6 +66,12 @@ elements and connections for tooltips, jump to definitions, and inspect
 viewpoints and concerns. See the
 [model viewer guide](../guides/model-viewer.md) for all features.
 
+The same baseline is also deployed as a read-only SysML v2 API at
+<https://sysml-api.de4sdv.org>. To explore it beyond the browser — including
+letting an AI agent ask semantic questions against the exact reviewed
+revision — see
+[query the public model via MCP](../guides/query-the-public-model-via-mcp.md).
+
 If you prefer the source, start here:
 
 - `textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml` —

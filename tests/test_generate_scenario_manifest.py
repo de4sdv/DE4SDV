@@ -84,11 +84,28 @@ SCENARIO_IDENTITY_COUNTS = {
     "009I": 2,
 }
 
+# De-numbered semantic enum names per increment (model-organization-audit.md M3).
+SCENARIO_IDENTITY_ENUMS_EXPECTED = {
+    "009D": "OverrideScenarioIdentity",
+    "009E": "NonActivationScenarioIdentity",
+    "009F": "DegradedInputScenarioIdentity",
+    "009I": "RegulatoryCriterionScenarioIdentity",
+}
+EVIDENCE_OUTCOME_ENUMS_EXPECTED = {
+    "009C": "PartialInterventionEvidenceOutcome",
+    "009D": "OverrideEvidenceOutcome",
+    "009E": "NonActivationEvidenceOutcome",
+    "009F": "DegradedInputEvidenceOutcome",
+    "009G": "PedestrianEvidenceOutcome",
+    "009H": "BicycleEvidenceOutcome",
+    "009I": "RegulatoryCriterionEvidenceOutcome",
+}
+
 
 @pytest.mark.parametrize("increment,expected_count", list(SCENARIO_IDENTITY_COUNTS.items()))
 def test_scenario_identity_counts_match_sysml(manifest: dict, increment: str, expected_count: int) -> None:
     entry = manifest["increments"][increment]
-    assert entry["scenario_identity_enum"] == f"ScenarioIdentity{increment}"
+    assert entry["scenario_identity_enum"] == SCENARIO_IDENTITY_ENUMS_EXPECTED[increment]
     identities = entry["scenario_identities"]
     assert len(identities) == expected_count, (increment, identities)
 
@@ -155,7 +172,7 @@ def test_target_type_increments_mark_target_as_identity(manifest: dict, incremen
 def test_every_increment_with_enum_has_outcomes(manifest: dict) -> None:
     for inc, entry in manifest["increments"].items():
         if entry["evidence_outcome_enum"] is not None:
-            assert entry["evidence_outcome_enum"] == f"EvidenceOutcome{inc}"
+            assert entry["evidence_outcome_enum"] == EVIDENCE_OUTCOME_ENUMS_EXPECTED.get(inc)
             assert entry["evidence_outcomes"], inc
 
 
@@ -174,16 +191,16 @@ def test_009d_evidence_outcomes(manifest: dict) -> None:
 
 def test_009b_has_single_nominal_verification(manifest: dict) -> None:
     entry = manifest["increments"]["009B"]
-    assert entry["verification_def"] == "NominalMovingVehicleTargetVerification009B"
-    assert entry["verification_usages"] == ["nominalMovingVehicleTargetVerification009B"]
-    assert entry["bench_definition"] == "NominalMovingVehicleTargetBench009B"
+    assert entry["verification_def"] == "NominalMovingVehicleTargetVerification"
+    assert entry["verification_usages"] == ["nominalMovingVehicleTargetVerification"]
+    assert entry["bench_definition"] == "NominalMovingVehicleTargetBench"
 
 
 def test_009c_has_single_partial_intervention_usage(manifest: dict) -> None:
     entry = manifest["increments"]["009C"]
-    assert entry["verification_def"] == "NativeInterventionToMRMVerification009C"
-    assert entry["verification_usages"] == ["nativeInterventionToMRMVerification009C"]
-    assert entry["bench_definition"] == "NativeInterventionBench009C"
+    assert entry["verification_def"] == "NativeInterventionToMRMVerification"
+    assert entry["verification_usages"] == ["nativeInterventionToMRMVerification"]
+    assert entry["bench_definition"] == "NativeInterventionBench"
 
 
 def test_matrix_verification_usages_match_scenario_identity_count(manifest: dict) -> None:

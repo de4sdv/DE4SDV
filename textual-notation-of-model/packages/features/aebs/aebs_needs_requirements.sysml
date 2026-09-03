@@ -305,7 +305,7 @@ package DE4SDV_AEBSNeedsRequirements {
         dependency req003DerivedFromNeed001 from reqCommandEmergencyBraking to needCommonAEBSCapability;
         dependency req004DerivedFromNeed001 from reqAllowDriverOverride to needCommonAEBSCapability;
         dependency req005DerivedFromNeed008 from reqDetectAEBSFailureCondition to needBoundedDegradationAndAvailability;
-        dependency req009DerivedFromNeed008 from reqHandleDegradedUnavailableInputs to needBoundedDegradationAndAvailability;
+        dependency reqDerivedFromNeedBoundedDegradation from reqHandleDegradedUnavailableInputs to needBoundedDegradationAndAvailability;
         dependency req013DerivedFromNeed008 from reqIndicateDegradedUnavailableStatus to needBoundedDegradationAndAvailability;
         dependency req008DerivedFromNeed014 from reqResistFalseReaction to needTrustworthyInterventionDecisions;
         dependency req012DerivedFromNeed014 from reqResistFalseBrakingCommand to needTrustworthyInterventionDecisions;

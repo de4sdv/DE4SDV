@@ -324,6 +324,6 @@ def test_assurance_views_split_positive_evidence_from_open_challenges() -> None:
     assert "expose providerBindingEvidenceGap010;" in challenges
     assert "signalTranslationArgument010" not in challenges
     for view in (positive, challenges):
-        assert "DE4SDV_Middleware010VerificationEvidence::*" not in view
+        assert "DE4SDV_MiddlewareVerificationEvidence::*" not in view
         assert "DE4SDV_MiddlewareVariabilityConfiguration::*" not in view
         assert "DE4SDV_MiddlewarePhysicalSoftwareRealization::*" not in view

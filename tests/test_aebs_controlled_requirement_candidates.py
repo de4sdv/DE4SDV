@@ -124,7 +124,7 @@ class TestRequirementParentage(unittest.TestCase):
 
     def test_degraded_candidates_keep_member_need_parent(self):
         deps = _model_dependencies(_load_model())
-        self.assertEqual(deps["req009DerivedFromNeed008"][1],
+        self.assertEqual(deps["reqDerivedFromNeedBoundedDegradation"][1],
                          "needBoundedDegradationAndAvailability")
         self.assertEqual(deps["req013DerivedFromNeed008"][1],
                          "needBoundedDegradationAndAvailability")

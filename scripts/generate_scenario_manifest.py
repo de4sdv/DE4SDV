@@ -42,6 +42,26 @@ INCREMENT_MAP: list[tuple[str, str]] = [
 # identity and which do not declare a ScenarioIdentity enum.
 TARGET_TYPE_INCREMENTS = {"009G", "009H"}
 
+# De-numbered semantic enum names per increment (model-organization-audit.md
+# M3). INCREMENT_MAP keeps the filename -> increment provenance mapping; these
+# registries map the increment to its slice's semantic enum type names.
+SCENARIO_IDENTITY_ENUMS = {
+    "009D": "OverrideScenarioIdentity",
+    "009E": "NonActivationScenarioIdentity",
+    "009F": "DegradedInputScenarioIdentity",
+    "009I": "RegulatoryCriterionScenarioIdentity",
+}
+EVIDENCE_OUTCOME_ENUMS = {
+    "009B": "NominalEvidenceOutcome",
+    "009C": "PartialInterventionEvidenceOutcome",
+    "009D": "OverrideEvidenceOutcome",
+    "009E": "NonActivationEvidenceOutcome",
+    "009F": "DegradedInputEvidenceOutcome",
+    "009G": "PedestrianEvidenceOutcome",
+    "009H": "BicycleEvidenceOutcome",
+    "009I": "RegulatoryCriterionEvidenceOutcome",
+}
+
 
 # ---------------------------------------------------------------------------
 # SysML text helpers
@@ -103,12 +123,14 @@ def _extract_enum_members(body: str) -> list[str]:
     return members
 
 
-def _extract_enum(source: str, prefix: str, increment: str) -> tuple[str | None, list[str] | None]:
-    """Find ``enum def <Prefix><Increment> { ... }`` and its members.
+def _extract_enum(source: str, enum_name: str) -> tuple[str | None, list[str] | None]:
+    """Find ``enum def <enum_name> { ... }`` and its members.
 
     Returns (enum_name, members) or (None, None) when the enum is absent.
+    The enum names are the de-numbered semantic types introduced by the
+    model-organization migration (model-organization-audit.md M3); the
+    increment code stays recorded in INCREMENT_MAP provenance metadata.
     """
-    enum_name = f"{prefix}{increment}"
     declaration = f"enum def {enum_name}"
     body = _find_declaration_body(source, declaration)
     if body is None:
@@ -149,8 +171,12 @@ def _build_increment_entry(increment: str, sysml_file: str) -> dict:
     verification_usages = _extract_verification_usages(code)
     bench_defs = _extract_bench_definitions(code)
 
-    scenario_enum, scenario_members = _extract_enum(code, "ScenarioIdentity", increment)
-    outcome_enum, outcome_members = _extract_enum(code, "EvidenceOutcome", increment)
+    scenario_enum, scenario_members = _extract_enum(
+        code, SCENARIO_IDENTITY_ENUMS.get(increment, f"ScenarioIdentity{increment}")
+    )
+    outcome_enum, outcome_members = _extract_enum(
+        code, EVIDENCE_OUTCOME_ENUMS.get(increment, f"EvidenceOutcome{increment}")
+    )
 
     # Heuristic selection of the "primary" verification def and bench
     # definition. Prefer a name that contains both the increment code and a

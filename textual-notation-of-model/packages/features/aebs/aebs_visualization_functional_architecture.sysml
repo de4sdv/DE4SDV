@@ -21,10 +21,6 @@ package DE4SDV_AEBSVisualizationFunctionalArchitecture {
   private import SysideViews::**;
   private import Views::*;
 
-  part incAEBS010Architecture : VisualizationIncrement {
-    doc /* INC-AEBS-010 Phase 6–8 slice owner for functional architecture. */
-  }
-
   /* ──────────────────────────────────────────
    * Provenance and health semantics
    * ────────────────────────────────────────── */

@@ -3,7 +3,7 @@
 
 Checks repository contracts using text extraction from SysML textual notation:
 
-1. Scenario identity enums: SysML ``enum def ScenarioIdentity009X`` members
+1. Scenario identity enums: SysML scenario-identity enum members
    (camelCase → snake_case) must match Python evaluator enum values.
 2. YAML profile names must match Python enum values.
 3. Dependency traces in verification files must target real requirements
@@ -130,8 +130,11 @@ def _read(path: Path) -> str:
 # Sync point 1: Scenario identity enums
 # ---------------------------------------------------------------------------
 
+# Matches both the semantic scenario-identity enum names
+# (<Scenario>ScenarioIdentity, model-organization-audit.md M3) and any legacy
+# numbered spelling (ScenarioIdentity009X) for historical slices.
 _SCENARIO_ENUM_RE = re.compile(
-    r"enum\s+def\s+ScenarioIdentity(\w+)\s*\{([^}]*)\}", re.DOTALL
+    r"enum\s+def\s+(?:[A-Za-z]+)?ScenarioIdentity(?:\w*)\s*\{([^}]*)\}", re.DOTALL
 )
 
 
@@ -144,7 +147,7 @@ def _extract_scenario_identity_members(sysml_text: str) -> list[str] | None:
     match = _SCENARIO_ENUM_RE.search(code)
     if not match:
         return None
-    body = match.group(2)
+    body = match.group(1)
     return re.findall(r"\b([a-z][A-Za-z0-9]*)\s*;", body)
 
 

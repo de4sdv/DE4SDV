@@ -291,7 +291,7 @@ classes:
     kernel:
       native: >-
         Operational-context parts plus scenario-identity enums
-        (for example ScenarioIdentity010) in verification slices
+        (for example MiddlewareScenarioIdentity) in verification slices
   VerificationCase:
     definition: A planned or executed check that evaluates whether a requirement or model claim is satisfied.
     kernel:
@@ -313,13 +313,13 @@ classes:
     definition: A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.
     kernel:
       file: textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml
-      declaration: requirement def MiddlewareAcceptanceCriterion010
+      declaration: requirement def MiddlewareAcceptanceCriterion
   EvidenceArtifact:
     definition: A reviewable artifact that supports a verification, validation, assurance, or release decision.
     kernel:
       external: >-
         Evidence registers and retained-evidence items referenced by
-        verification slices (for example RetainedMiddlewareEvidence010)
+        verification slices (for example RetainedMiddlewareEvidence)
         and bench evidence YAML records
   EvidenceContract:
     definition: >-
@@ -335,7 +335,7 @@ classes:
       Lifecycle status for evidence and verification results. DE4SDV does not
       define its own status vocabulary: requirement verification status uses the
       upstream VVStatus enum, and bounded evidence outcomes/dispositions use
-      slice-local enums such as EvidenceOutcome010 and EvidenceDisposition010.
+      slice-local enums such as MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition.
     kernel:
       external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter
   Assumption:
