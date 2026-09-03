@@ -174,7 +174,7 @@ jobs:
               print(status.get("status") or "unknown")
           except Exception:
               print("starting")
-          ')
+          ' </dev/null)
             case "$state" in
               ready) ready=true; break ;;
               failed) echo "semantic warmup failed" >&2; exit 1 ;;
@@ -187,7 +187,7 @@ jobs:
           fi
 
           "${COMPOSE[@]}" run --rm --no-deps caddy \
-            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile </dev/null
           "${COMPOSE[@]}" up -d --build --no-deps --force-recreate caddy
           REMOTE
 
