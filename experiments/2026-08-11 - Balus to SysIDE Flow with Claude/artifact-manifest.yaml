@@ -1,0 +1,15 @@
+schema: de4sdv.experiment-artifact.v1
+experiment: 2026-08-11-balus-to-syside-flow
+artifact:
+  former_path: 2026-08-11_11-58-48 - Example AI Flow from Balus to SysIDE with Tom Sawyer.mp4
+  sha256: f1716938797005589c8d5cccefa5f2eef287c07c13fc63b8fb0245f2830c1bb9
+  bytes: 26081642
+  disposition: removed_invalid_evidence_media
+  availability: historical_git_object_only
+  reason: >-
+    Contextual demonstration recording without a controlled acceptance claim,
+    machine-readable observation record, or maintained review purpose.
+retained_context:
+  - 2026-08-10_14-23-16 - Step1 - Initial Car.png
+  - 2026-08-10_14-30-11 - Step 2 - Add Parts to Drive Train.png
+  - 2026-08-10_14-33-32 - Step 3 - Add Streaming Flow.png

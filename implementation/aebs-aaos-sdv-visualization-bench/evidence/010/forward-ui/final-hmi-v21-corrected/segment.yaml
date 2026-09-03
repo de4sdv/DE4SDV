@@ -44,9 +44,12 @@ limitations:
   - Screenrecord captures display 0 only (1080x600 center display).
   - RELEASED persists for the rest of the take because the scenario ends there;
     the ego does not re-accelerate, so no post-release re-approach is shown.
-  - Bridge and bench journal slices are host-side correlation logs; no pcap.
-  - Title and end cards in final-cut-v2.mp4 are editing frames, not app
-    output; the 20 s middle section is untouched real-time guest capture
-    (raw-continuous.mp4, approved, unmodified). final-cut-v2 replaces the
+  - Host-side bridge and bench journal filters returned no records; their
+    zero-byte files were removed. No pcap was retained.
+  - The title and end cards in the externally manifested final-cut-v2.mp4 are
+    editing frames, not app output; the 20 s middle section is untouched
+    real-time guest capture (raw-continuous.mp4, approved, unmodified).
+    final-cut-v2 replaces the
     earlier final-cut.mp4 whose title card rendered broken/cropped text;
     only the editing cards and re-encode changed, not the captured take.
+external_media_manifest: "../../external-media.yaml"
