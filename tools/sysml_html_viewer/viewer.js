@@ -10,6 +10,154 @@
     return s.replace(/\s+/g, ' ').trim();
   }
 
+  /* Render the small Markdown subset commonly returned by the model.  Build
+   * nodes explicitly: model output is untrusted and must never reach
+   * innerHTML. */
+  function appendAskInline(parent, text) {
+    var pos = 0;
+    while (pos < text.length) {
+      var emphasisAt = text.indexOf('***', pos);
+      var strongAt = text.indexOf('**', pos);
+      var doubleCodeAt = text.indexOf('``', pos);
+      var codeAt = text.indexOf('`', pos);
+      var next = -1;
+      var marker = '';
+      [
+        [emphasisAt, '***'],
+        [strongAt, '**'],
+        [doubleCodeAt, '``'],
+        [codeAt, '`']
+      ].forEach(function (candidate) {
+        if (candidate[0] !== -1
+            && (next === -1 || candidate[0] < next
+                || (candidate[0] === next
+                    && candidate[1].length > marker.length))) {
+          next = candidate[0];
+          marker = candidate[1];
+        }
+      });
+      if (marker === '**' && emphasisAt === next) {
+        marker = '***';
+      }
+      if (marker === '`' && doubleCodeAt === next) {
+        marker = '``';
+      }
+      if (next === -1) {
+        parent.appendChild(document.createTextNode(text.slice(pos)));
+        return;
+      }
+      if (next > pos) {
+        parent.appendChild(document.createTextNode(text.slice(pos, next)));
+      }
+      var end = text.indexOf(marker, next + marker.length);
+      if (end === -1) {
+        parent.appendChild(document.createTextNode(
+          text.slice(next + marker.length)
+        ));
+        return;
+      }
+      var content = text.slice(next + marker.length, end);
+      if (!content) {
+        pos = end + marker.length;
+        continue;
+      }
+      var node;
+      if (marker === '***') {
+        node = document.createElement('strong');
+        var em = document.createElement('em');
+        appendAskInline(em, content);
+        node.appendChild(em);
+      } else if (marker === '**') {
+        node = document.createElement('strong');
+        appendAskInline(node, content);
+      } else {
+        node = document.createElement('code');
+        node.textContent = content;
+      }
+      parent.appendChild(node);
+      pos = end + marker.length;
+    }
+  }
+
+  function renderAskAnswer(container, text) {
+    container.textContent = '';
+    var lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+    var i = 0;
+    while (i < lines.length) {
+      if (!lines[i].trim()) {
+        i += 1;
+        continue;
+      }
+
+      var fence = lines[i].match(/^\s*`{3,}[^`]*$/);
+      if (fence) {
+        i += 1;
+        var codeLines = [];
+        while (i < lines.length && !/^\s*`{3,}\s*$/.test(lines[i])) {
+          codeLines.push(lines[i]);
+          i += 1;
+        }
+        if (i < lines.length) i += 1;
+        var pre = document.createElement('pre');
+        var blockCode = document.createElement('code');
+        blockCode.textContent = codeLines.join('\n');
+        pre.appendChild(blockCode);
+        container.appendChild(pre);
+        continue;
+      }
+
+      var heading = lines[i].match(/^\s{0,3}(#{1,6})\s+(.+)$/);
+      if (heading) {
+        var h = document.createElement(
+          'h' + Math.min(6, heading[1].length + 2)
+        );
+        appendAskInline(h, heading[2].trim());
+        container.appendChild(h);
+        i += 1;
+        continue;
+      }
+
+      var bullet = lines[i].match(/^\s*[-*+]\s+(.+)$/);
+      var numbered = lines[i].match(/^\s*(\d+)[.)]\s+(.+)$/);
+      if (bullet || numbered) {
+        var list = document.createElement(bullet ? 'ul' : 'ol');
+        while (i < lines.length) {
+          var item = bullet
+            ? lines[i].match(/^\s*[-*+]\s+(.+)$/)
+            : lines[i].match(/^\s*(\d+)[.)]\s+(.+)$/);
+          if (!item) break;
+          var li = document.createElement('li');
+          appendAskInline(li, item[bullet ? 1 : 2].trim());
+          list.appendChild(li);
+          i += 1;
+          var nextItem = i;
+          while (nextItem < lines.length && !lines[nextItem].trim()) {
+            nextItem += 1;
+          }
+          var continues = nextItem < lines.length && (bullet
+            ? /^\s*[-*+]\s+/.test(lines[nextItem])
+            : /^\s*\d+[.)]\s+/.test(lines[nextItem]));
+          if (continues) i = nextItem;
+        }
+        container.appendChild(list);
+        continue;
+      }
+
+      var paragraphLines = [];
+      while (i < lines.length && lines[i].trim()
+             && !/^\s*`{3,}[^`]*$/.test(lines[i])
+             && !/^\s{0,3}#{1,6}\s+/.test(lines[i])
+             && !/^\s*[-*+]\s+/.test(lines[i])
+             && !/^\s*\d+[.)]\s+/.test(lines[i])) {
+        paragraphLines.push(lines[i].trim());
+        i += 1;
+      }
+      var p = document.createElement('p');
+      appendAskInline(p, paragraphLines.join(' '));
+      container.appendChild(p);
+    }
+  }
+
   function init() {
     measureHeader();
     // webfonts (IBM Plex) load late and change the header height; when they
@@ -374,11 +522,11 @@
         }).then(function (res) {
           els.status.textContent = '';
           if (!res.ok || res.data.error) {
-            els.answer.textContent = res.data.error ||
-              'request failed (HTTP ' + (res.ok ? 200 : '?') + ')';
+            renderAskAnswer(els.answer, res.data.error ||
+              'request failed (HTTP ' + (res.ok ? 200 : '?') + ')');
             return;
           }
-          els.answer.textContent = res.data.answer || '(empty answer)';
+          renderAskAnswer(els.answer, res.data.answer || '(empty answer)');
           var el = res.data.element || {};
           if (el.href) {
             els.grounded.href = (window.VIEWER_PREFIX || '') + el.href;
@@ -397,7 +545,7 @@
           }
         }).catch(function (err) {
           els.status.textContent = '';
-          els.answer.textContent = 'ask-model request failed: ' + err;
+          renderAskAnswer(els.answer, 'ask-model request failed: ' + err);
         });
       }
     }
