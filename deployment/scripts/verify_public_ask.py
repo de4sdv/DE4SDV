@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -65,15 +66,48 @@ def _deployed_model_revision() -> str:
     return revision
 
 
+_TLS_READINESS_ATTEMPTS = 12
+_TLS_READINESS_DELAY_SECONDS = 5.0
+
+
+def _tls_ready(base_url: str, *, attempts: int, delay_seconds: float) -> None:
+    """Wait for the public TLS endpoint after the proxy has started.
+
+    Caddy can bind 443 before its first TLS handshake is ready, so retry
+    only this readiness boundary while retaining normal certificate
+    validation.
+    """
+    request = urllib.request.Request(base_url, method="GET")
+    last_error: OSError | None = None
+    for _ in range(attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=30):
+                return
+        except urllib.error.HTTPError:
+            return  # TLS answered; the HTTP status is checked separately
+        except (urllib.error.URLError, OSError) as exc:
+            last_error = exc
+        if attempts > 1:
+            time.sleep(delay_seconds)
+    raise VerificationError(
+        f"TLS endpoint not ready after {attempts} attempts: {last_error}"
+    ) from last_error
+
+
 def verify_public_ask(
     base_url: str,
     *,
     application_sha: str,
     model_sha: str | None = None,
     live_query: bool = False,
-    element: str = "evidenceObjective",
+    tls_attempts: int = _TLS_READINESS_ATTEMPTS,
 ) -> dict[str, str]:
     base_url = base_url.rstrip("/")
+    _tls_ready(
+        base_url,
+        attempts=tls_attempts,
+        delay_seconds=_TLS_READINESS_DELAY_SECONDS,
+    )
     model_sha = model_sha or _deployed_model_revision()
 
     status_code, status = _json_request(f"{base_url}/ask-status.json")
@@ -126,7 +160,7 @@ def verify_public_ask(
             method="POST",
             origin=base_url,
             payload={
-                "element": element,
+                "element": "evidenceObjective",
                 "question": "Which requirements do you verify?",
             },
         )
@@ -157,7 +191,6 @@ def main(argv: list[str] | None = None) -> int:
             application_sha=args.application_sha,
             model_sha=args.model_sha,
             live_query=args.live_query,
-            element=args.element,
         )
     except (OSError, VerificationError) as exc:
         print(f"Public Ask verification failed: {exc}", file=sys.stderr)
