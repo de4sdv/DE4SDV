@@ -113,7 +113,16 @@ jobs:
           DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
         run: |
           set -euo pipefail
-          SSH=(ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          # The activation step wraps a silent multi-minute phase (image
+          # build plus the semantic warmup poll loop). Without keepalives an
+          # idle NAT/firewall entry drops the session mid-warmup (run
+          # 33775855312: 'Timeout, server not responding.' exit 255 after
+          # ~20 min of silence, killed before the verifier ran).
+          # ServerAliveInterval keeps the connection alive without
+          # loosening any validation (same fix as the SysML API deploy).
+          SSH=(ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=60 -o ServerAliveCountMax=30 \
+            -o TCPKeepAlive=yes)
           SCP=(scp -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes)
           "${SCP[@]}" /tmp/de4sdv-ask-source.bundle \
             /tmp/de4sdv-ask-source.bundle.sha256 /tmp/ask-viewer.env \
