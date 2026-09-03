@@ -13,8 +13,8 @@ is complete in both directions:
 
 Adversarial probing per the declarative-artifact-testing skill: every failure
 mode is induced on a live copy and attributed to a specific ``[ONTOLOGY-KERNEL]``
-error. Written as ``unittest.TestCase`` because CI runs
-``python -m unittest discover -s tests``.
+error. Written as ``unittest.TestCase`` and collected by the repository pytest
+suite.
 """
 
 from __future__ import annotations

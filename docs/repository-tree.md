@@ -78,7 +78,7 @@ experiments/2026-08-11 - Balus to SysIDE Flow with Claude/2026-08-10_14-30-11 - 
 experiments/2026-08-11 - Balus to SysIDE Flow with Claude/2026-08-10_14-33-32 - Step 3 - Add Streaming Flow.png
 experiments/2026-08-11 - Balus to SysIDE Flow with Claude/2026-08-11 - AI Prompts.docx
 experiments/2026-08-11 - Balus to SysIDE Flow with Claude/2026-08-11 - CATIA Renders View  Perfectly.svg
-experiments/2026-08-11 - Balus to SysIDE Flow with Claude/2026-08-11_11-58-48 - Example AI Flow from Balus to SysIDE with Tom Sawyer.mp4
+experiments/2026-08-11 - Balus to SysIDE Flow with Claude/artifact-manifest.yaml
 experiments/2026-08-11 - Balus to SysIDE Flow with Claude/Car.svg
 experiments/2026-08-11 - Balus to SysIDE Flow with Claude/Car.sysml
 experiments/2026-08-11 - Balus to SysIDE Flow with Claude/diagrams/diagram-'Car Interconnection View'.svg

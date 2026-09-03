@@ -1,11 +1,21 @@
 # Experiments
 
-A sub-repository for storing exploratory experiments that may not be ready to integrate into the main folders yet.
+Use this directory for controlled experiments that evaluate a specific
+engineering question and end with a decision: adopt, reject, or defer.
 
-The recommended format is to place each experiment in a folder that starts with the ISO 8601 date along with a text 
-descriptor. For example, the first experiment is in a folder:
+Name each folder with an ISO 8601 date followed by a short description. Every
+experiment must record:
 
-2026-08-11 - Balus to SysIDE Flow with Claude
+- the engineering question and owner;
+- start date and planned expiry or review date;
+- method, inputs, source revision, and observations;
+- result, decision, and follow-up issue, if any.
 
-If each contributor names each experiment folder in the same style, they will sort neatly without having to plan
-in advance categories for every concievable experiment.
+Experiments without an owner, decision, or review date are stale and should be
+closed or removed. Canonical video/audio recordings and large binary captures
+stay outside Git; retain only the checksum, byte count, provenance, access
+status, and bounded disposition in an artifact manifest. See
+[`Evidence Management`](../docs/evidence-management.md).
+
+The 2026-08-11 BaLUS-to-SysIDE experiment retains three contextual stills. Its
+uncontrolled video was removed and recorded in `artifact-manifest.yaml`.
