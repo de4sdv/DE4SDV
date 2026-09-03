@@ -120,12 +120,16 @@ Use issue templates in `.github/ISSUE_TEMPLATE/` when available.
 ```bash
 python scripts/check_repo.py
 python scripts/smoke_test.py
+python -m pip install sysand==0.1.0
+sysand sync
 python -m pytest tests -q
 ```
 
 For public pull requests, CI runs these repository checks and the complete
-project-owned pytest suite without requiring licensed tools or repository
-secrets.
+project-owned pytest suite in the same dependency environment, without
+requiring licensed Syside validation or repository secrets. `sysand sync`
+restores the pinned public SysML libraries from the lock file; it is the same
+command documented in the SysML v2 validation gate below.
 
 ### SysML v2 validation gate
 
