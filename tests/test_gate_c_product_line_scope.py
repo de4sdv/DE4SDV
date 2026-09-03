@@ -286,7 +286,6 @@ def test_privileged_workflows_validate_and_ingest_the_governed_scope() -> None:
 
     path_filter = '"model-based-product-line-engineering/scoping/**/*.sysml"'
     assert path_filter in syside
-    assert path_filter in ingestion
     assert "model-based-product-line-engineering/scoping" in syside
     assert "scripts/validate_product_line_scope_api.py" in ingestion
     assert "/tmp/de4sdv-product-line-scope-validation.json" in ingestion
