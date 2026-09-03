@@ -25,6 +25,7 @@ class TestValidateSysML(unittest.TestCase):
                 "check",
                 "textual-notation-of-model",
                 "model-based-product-line-engineering/product-models",
+                "model-based-product-line-engineering/scoping",
             ],
             cwd=Path(validate_sysml.__file__).resolve().parents[1],
         )

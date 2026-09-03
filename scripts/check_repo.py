@@ -41,6 +41,7 @@ REQUIRED_FILES = [
 SYSML_MODEL_PATHS = (
     Path("textual-notation-of-model"),
     Path("model-based-product-line-engineering/product-models"),
+    Path("model-based-product-line-engineering/scoping"),
 )
 
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")

@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit, urlunsplit
 
 KNOWN_ELEMENT_NAME = "reqCommandEmergencyBraking"
 MUTATION_METHODS = ("POST", "PUT", "PATCH", "DELETE")
@@ -40,6 +41,23 @@ NONSTANDARD_METHOD = "BREW"
 
 class VerificationError(RuntimeError):
     pass
+
+
+def _same_origin(link: str, base_url: str) -> str:
+    """Reconnect server-generated pagination links to the configured origin.
+
+    The API builds absolute next-links from the request Host header, which
+    Caddy rewrites to the container-internal name (sysml2-api:9000). A
+    public client cannot resolve that name; the service is whatever
+    base_url is. Keep the linked path+query, swap the origin.
+    """
+    linked = urlsplit(link)
+    configured = urlsplit(base_url)
+    if (linked.scheme, linked.netloc) == (configured.scheme, configured.netloc):
+        return link
+    return urlunsplit(
+        (configured.scheme, configured.netloc, linked.path, linked.query, "")
+    )
 
 
 def require(condition: bool, message: str) -> None:
@@ -146,7 +164,7 @@ def check_pagination_and_known_element(
         if link and 'rel="next"' in link:
             start = link.index("<") + 1
             end = link.index(">")
-            url = link[start:end]
+            url = _same_origin(link[start:end], base)
     require(pages > 1, "expected multi-page pagination for the full model")
     require(total > 50000, f"full model pagination found only {total} elements")
     require(known_id is not None, f"{KNOWN_ELEMENT_NAME} not found while paging")

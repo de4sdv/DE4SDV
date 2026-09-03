@@ -200,21 +200,29 @@ jobs:
           set -euo pipefail
           SSH_HOST="${{ secrets.DEPLOY_SSH_HOST }}"
           SSH_USER="${{ secrets.DEPLOY_SSH_USER }}"
-          # Real exact checkout: fresh clone of the public repository, detached
-          # at the requested SHA, reset+clean so no stale files can survive.
+          # Real exact checkout: recreate the disposable deployment checkout
+          # from the canonical public repository on every run. Never trust a
+          # persisted checkout's origin or repository-local Git configuration:
+          # runs 33660870062 and 33663783815 both reused such state and failed
+          # at `git fetch origin` with a non-interactive credential challenge.
+          # Clone --single-branch main: an anonymous all-refs clone of this
+          # repository is rejected by GitHub with HTTP 401 (deploy run
+          # 33670629082; reproduced locally: anonymous full clone -> 401,
+          # anonymous single-branch full-history clone -> 200). The deploy
+          # SHA is always on main, so the single-branch history is sufficient;
+          # the HEAD equality check below still proves the exact SHA.
           ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" bash -s "$DEPLOY_SHA" <<'REMOTE'
           set -euo pipefail
           REPO_DIR=/srv/de4sdv/DE4SDV
+          REPO_URL="https://github.com/de4sdv/DE4SDV.git"
           SHA="$1"
-          if [[ -d "$REPO_DIR/.git" ]]; then
-            git -C "$REPO_DIR" fetch --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
-          else
-            sudo rm -rf "$REPO_DIR"
-            sudo mkdir -p /srv/de4sdv
-            sudo chown "$(whoami)" /srv/de4sdv
-            git clone https://github.com/de4sdv/DE4SDV.git "$REPO_DIR"
-          fi
+          sudo rm -rf "$REPO_DIR"
+          sudo mkdir -p /srv/de4sdv
+          sudo chown "$(whoami)" /srv/de4sdv
+          GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
+            GIT_TERMINAL_PROMPT=0 git clone --single-branch --branch main \
+            "$REPO_URL" "$REPO_DIR"
           git -C "$REPO_DIR" checkout --detach --force "$SHA"
           git -C "$REPO_DIR" reset --hard "$SHA"
           git -C "$REPO_DIR" clean -ffd
