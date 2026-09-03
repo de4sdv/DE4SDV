@@ -62,11 +62,19 @@ def test_syside_views_dependency_is_exactly_pinned() -> None:
             "resource": "pkg:sysand/mbse4u/sysmod",
             "versionConstraint": "=5.1.1",
         },
+        {
+            "resource": "pkg:sysand/ode4hera/requirements-management",
+            "versionConstraint": "=2.0.1",
+        },
     ]
     lock = (ROOT / "sysand-lock.toml").read_text(encoding="utf-8")
     assert 'name = "Syside Views"' in lock
     assert 'version = "0.10.3"' in lock
     assert 'kpar_digest = "66e395486d0504f5512e84a0c431b08cabc13a9624b662c4e0f2cb39044eaca0"' in lock
+    assert 'publisher = "ode4hera"' in lock
+    assert 'name = "Requirements Management"' in lock
+    assert 'version = "2.0.1"' in lock
+    assert 'kpar_digest = "bf4fa99b780a02c6498afd6912b18f70bb4321e04a306ecf474570a8cfdc2d68"' in lock
 
 
 def test_saf_mapping_views_are_native_allocation_matrices() -> None:

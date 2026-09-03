@@ -118,7 +118,7 @@ def test_campaign_internal_exchange_concern_frames_relevant_reviewers() -> None:
         assert stakeholder in bounded_concern
 
 
-def test_campaign_keeps_four_deployment_connections_and_typed_flows() -> None:
+def test_campaign_keeps_five_deployment_connections_and_typed_flows() -> None:
     model = MODEL.read_text(encoding="utf-8")
     deployment = _named_block(
         model,
@@ -132,20 +132,22 @@ def test_campaign_keeps_four_deployment_connections_and_typed_flows() -> None:
         "connection hostForwarderToPrivateTcp connect vmA.hostForwarder.privateTcpOut to privateTcpBoundary.vmAIn;",
         "connection privateTcpToRos2Ingress connect privateTcpBoundary.vmBOut to vmB.ros2Ingress.privateTcpIn;",
         "connection ros2IngressToObserver connect vmB.ros2Ingress.velocityReportOut to vmB.independentObserver.velocityReportIn;",
+        "connection ros2IngressToAutowareConsumer connect vmB.ros2Ingress.velocityReportOut to vmB.autowareConsumer.velocityReportIn;",
     )
     expected_flows = (
         "flow guestToHostForwarderPayload from vmA.cuttlefishGuest.structuredLogcatOut.envelope to vmA.hostForwarder.structuredLogcatIn.envelope;",
         "flow hostForwarderToPrivateTcpPayload from vmA.hostForwarder.privateTcpOut.envelope to privateTcpBoundary.vmAIn.envelope;",
         "flow privateTcpToRos2IngressPayload from privateTcpBoundary.vmBOut.envelope to vmB.ros2Ingress.privateTcpIn.envelope;",
         "flow ros2IngressToObserverPayload from vmB.ros2Ingress.velocityReportOut.velocityReport to vmB.independentObserver.velocityReportIn.velocityReport;",
+        "flow ros2IngressToAutowareConsumerPayload from vmB.ros2Ingress.velocityReportOut.velocityReport to vmB.autowareConsumer.velocityReportIn.velocityReport;",
     )
     for connection in expected_connections:
         assert connection in normalized
     for flow in expected_flows:
         assert flow in normalized
 
-    assert normalized.count("connection ") == 4
-    assert normalized.count("flow ") == 4
+    assert normalized.count("connection ") == 5
+    assert normalized.count("flow ") == 5
 
     assert "connection providerToObserver" in model
     assert "flow providerToObserverPayload" in model
