@@ -67,9 +67,10 @@ The release candidate must satisfy all of the following at one exact commit:
 | AEBS reference thread | Active | Close the end-to-end traceability and exact-head verification gaps |
 | Governance, contribution flow, and release management | Active | Adopt independent-review rules and publish the first release baseline |
 | Continuous homologation and compliance structure | Incubating | Add reviewed, bounded evidence cases without certification claims |
+| DevSecOps security controls | Active | Close the Dependabot, code-scanning, and private-reporting gaps listed in `devsecops/devsecops-roadmap.md` |
 | Digital continuity and digital twin | Incubating | Name a concrete decision, owner, data boundary, and verification case |
-| Simulation interoperability | Dormant | Activate when an owned FMI/FMU/SSP increment and tool-compatibility assumptions exist |
-| Standards mapping | Dormant | Activate when a named mapping decision has an owner and review source |
+| Simulation interoperability | Dormant (directory-level) | Activate when an owned FMI/FMU/SSP increment and tool-compatibility assumptions exist; reviewed simulator execution already exists under INC-AEBS-008 and AEBS-009 pilots |
+| Standards mapping | Dormant (directory-level) | Activate when a named mapping decision has an owner and review source; the SHA-pinned UN R152 mapping is already reviewed pilot work outside the directory |
 
 Broad capability ambitions are not simultaneous delivery commitments. A
 workstream moves to **active** only when it has an owner, a decision or issue,
