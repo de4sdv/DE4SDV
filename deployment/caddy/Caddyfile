@@ -1,6 +1,6 @@
 # DE4SDV Experimental Read-Only Systems Modeling API — public reverse proxy.
 #
-# Internet -> Caddy (HTTPS, read-only) -> sysml2-api (container network only)
+# Internet -> Caddy (HTTPS) -> read-only sysml2-api or bounded viewer + Ask
 #   -> PostgreSQL (container network only).
 #
 # Security properties enforced here:
@@ -84,7 +84,7 @@ sysml-api.de4sdv.org {
 	}
 }
 
-ask.de4sdv.org {
+viewer.de4sdv.org {
 	encode zstd gzip
 	log {
 		output stdout
@@ -99,6 +99,10 @@ ask.de4sdv.org {
 			Referrer-Policy "no-referrer"
 			-Server
 		}
+
+		# Warmup diagnostics may contain operational detail and are internal-only.
+		@ask_internal path /_ask_warmup
+		respond @ask_internal 404
 
 		handle /ask {
 			@ask_post method POST
@@ -129,6 +133,9 @@ ask.de4sdv.org {
 					health_uri /ask-status.json
 					health_interval 30s
 					health_timeout 10s
+					transport http {
+						response_header_timeout 180s
+					}
 				}
 			}
 			respond 405 {
@@ -138,11 +145,29 @@ ask.de4sdv.org {
 
 		@read method GET HEAD
 		handle @read {
-			reverse_proxy ask-viewer:8787
+			reverse_proxy ask-viewer:8787 {
+				transport http {
+					response_header_timeout 180s
+				}
+			}
 		}
 
 		respond 405 {
 			close
 		}
+	}
+
+	# Preserve browse-only access if the dynamic viewer is unavailable. The
+	# native Pages mirror remains public after its custom domain is removed.
+	# POST /ask is handled above and never reaches this fallback.
+	handle_errors {
+		@fallback_read method GET HEAD
+		handle @fallback_read {
+			rewrite * /DE4SDV{uri}
+			reverse_proxy https://de4sdv.github.io {
+				header_up Host de4sdv.github.io
+			}
+		}
+		respond 502
 	}
 }

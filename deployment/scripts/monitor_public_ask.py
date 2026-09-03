@@ -13,7 +13,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-ASK_URL = "https://ask.de4sdv.org"
+ASK_URL = "https://viewer.de4sdv.org"
 MODEL_STATUS_URL = "https://sysml-api.de4sdv.org/deployment-status.json"
 _SHA = re.compile(r"[0-9a-f]{40}")
 

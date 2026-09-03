@@ -3,7 +3,7 @@
 # Topology (ADR 0013):
 #
 #   Internet --HTTPS--> caddy (80/443 published) --> sysml2-api (internal) --> postgres (internal)
-#                                             \--> ask-viewer (internal)
+#                                             \--> viewer + Ask (internal)
 #
 # Only caddy publishes ports (80/tcp and 443/tcp; HTTP/3 over UDP is NOT
 # exposed — not required for this experimental API, keeps the firewall rule
@@ -90,10 +90,11 @@ services:
     environment:
       NOUS_ASK_SEMANTIC: "1"
       NOUS_MAX_CONCURRENT_REQUESTS: "1"
+      NOUS_MAX_TOKENS: "1000"
       DE4SDV_SYSML_API_URL: http://sysml2-api:9000
       DE4SDV_REVISION_BINDING: /run/de4sdv/de4sdv-full-model-binding.json
       DE4SDV_SEMANTIC_SNAPSHOT_DIR: /var/cache/de4sdv-viewer/semantic-snapshots
-      DE4SDV_ASK_ALLOWED_ORIGIN: https://ask.de4sdv.org
+      DE4SDV_ASK_ALLOWED_ORIGIN: https://viewer.de4sdv.org
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: safe.directory
       GIT_CONFIG_VALUE_0: /srv/de4sdv/DE4SDV

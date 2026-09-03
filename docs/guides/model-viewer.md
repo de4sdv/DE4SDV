@@ -27,17 +27,16 @@ contribute the updated SVG through a pull request.
 
 ## The live website
 
-A static viewer is deployed at
-**[viewer.de4sdv.org](https://viewer.de4sdv.org)**, rebuilt from `main` and
-open pull requests by the deploy workflow. It is the stable browse-only
-instance — what you see there is committed content only.
+The public reader experience is
+**[viewer.de4sdv.org](https://viewer.de4sdv.org)**. It serves one reviewed
+current revision and its bounded Ask-model capability. Right-click a model
+element and choose **Ask the model** to ask a question grounded in the
+deployed model. The answer is generated, not model authority: follow its
+element/source links and verify important conclusions against the model.
 
-The deployment target for the bounded interactive viewer is
-**[ask.de4sdv.org](https://ask.de4sdv.org)**. When the service is enabled,
-right-click a model element and choose **Ask the model** to ask a question
-grounded in the deployed model. The answer is generated, not model authority:
-follow its element/source links and verify important conclusions against the
-model.
+The prebuilt branch and pull-request viewer remains available at the
+[native GitHub Pages URL](https://de4sdv.github.io/DE4SDV/) as a browse-only
+engineering mirror. It does not execute Ask-model requests.
 
 ## Repository diagram collections
 
@@ -139,7 +138,7 @@ The **Chat** link in the header points to the DE4SDV Mattermost community
 
 ## Static vs. server mode
 
-A page served from a static build (including `viewer.de4sdv.org`) shows a note
+A page served from a static build (including the native Pages mirror) shows a note
 when a revision is listed but not built: "served statically — run
 `python -m tools.sysml_html_viewer.serve …`". Server mode is the only mode
 that builds revisions on demand and watches for model changes. The public

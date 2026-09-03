@@ -151,8 +151,9 @@ def test_compose_keeps_ask_viewer_internal_and_mounts_identity_read_only():
     assert environment["NOUS_ASK_SEMANTIC"] == "1"
     assert environment["DE4SDV_SYSML_API_URL"] == "http://sysml2-api:9000"
     assert environment["DE4SDV_ASK_ALLOWED_ORIGIN"] == \
-        "https://ask.de4sdv.org"
+        "https://viewer.de4sdv.org"
     assert environment["NOUS_MAX_CONCURRENT_REQUESTS"] == "1"
+    assert environment["NOUS_MAX_TOKENS"] == "1000"
     assert environment["GIT_CONFIG_COUNT"] == "1"
     assert environment["GIT_CONFIG_KEY_0"] == "safe.directory"
     assert environment["GIT_CONFIG_VALUE_0"] == "/srv/de4sdv/DE4SDV"
@@ -166,7 +167,8 @@ def test_compose_keeps_ask_viewer_internal_and_mounts_identity_read_only():
 
 def test_caddy_applies_global_and_per_ip_ask_quotas_and_method_allowlist():
     caddyfile = Path("deployment/caddy/Caddyfile").read_text(encoding="utf-8")
-    assert "ask.de4sdv.org" in caddyfile
+    assert "viewer.de4sdv.org" in caddyfile
+    assert "ask.de4sdv.org" not in caddyfile
     assert "zone ask_global" in caddyfile
     assert "key ask-global" in caddyfile
     assert "events 60" in caddyfile
@@ -180,7 +182,13 @@ def test_caddy_applies_global_and_per_ip_ask_quotas_and_method_allowlist():
     assert "window 1m" in caddyfile
     assert "@ask_post method POST" in caddyfile
     assert "@read method GET HEAD" in caddyfile
+    assert "@ask_internal path /_ask_warmup" in caddyfile
+    assert "respond @ask_internal 404" in caddyfile
+    assert "response_header_timeout 180s" in caddyfile
     assert "reverse_proxy ask-viewer:8787" in caddyfile
+    assert "rewrite * /DE4SDV{uri}" in caddyfile
+    assert "reverse_proxy https://de4sdv.github.io" in caddyfile
+    assert "POST /ask is handled above and never reaches this fallback" in caddyfile
     assert "respond 405" in caddyfile
     assert "output stdout" in caddyfile
     assert "format json" in caddyfile
@@ -207,6 +215,31 @@ def test_public_ask_workflow_is_exact_sha_gated_and_does_not_ingest():
     assert "if: always()" in workflow
     assert "sysand sync" not in workflow
     assert "privileged-full-model" not in workflow
+    assert "https://viewer.de4sdv.org" in workflow
+    assert "ask.de4sdv.org" not in workflow
+
+
+def test_public_ask_material_has_one_reader_hostname():
+    paths = [
+        "deployment/compose.yaml",
+        "deployment/scripts/verify_public_ask.py",
+        "deployment/scripts/monitor_public_ask.py",
+        "deployment/README.md",
+        "docs/architecture-decisions/0016-publish-bounded-public-ask-viewer.md",
+        "docs/guides/model-viewer.md",
+    ]
+    for path in paths:
+        text = Path(path).read_text(encoding="utf-8")
+        assert "ask.de4sdv.org" not in text, path
+        assert "viewer.de4sdv.org" in text, path
+
+
+def test_pages_workflow_remains_a_native_engineering_mirror():
+    workflow = Path(".github/workflows/deploy-viewer.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "native GitHub Pages URL" in workflow
+    assert "viewer.de4sdv.org" not in workflow
 
 
 def test_public_ask_monitor_is_non_paid_and_schedule_safe():

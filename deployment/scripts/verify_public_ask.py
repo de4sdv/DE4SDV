@@ -145,7 +145,7 @@ def verify_public_ask(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="https://ask.de4sdv.org")
+    parser.add_argument("--base-url", default="https://viewer.de4sdv.org")
     parser.add_argument("--application-sha", required=True)
     parser.add_argument("--model-sha")
     parser.add_argument("--live-query", action="store_true")

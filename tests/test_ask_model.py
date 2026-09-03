@@ -471,7 +471,7 @@ def test_public_ask_requires_the_configured_origin(fixture_repo, tmp_path,
     server = serve_mod.make_server(
         fixture_repo, out, roots=["textual-notation-of-model"],
         host="127.0.0.1", port=0, prs=False,
-        allowed_origin="https://ask.de4sdv.org",
+        allowed_origin="https://viewer.de4sdv.org",
     )
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -495,7 +495,7 @@ def test_public_ask_requires_the_configured_origin(fixture_repo, tmp_path,
 
         assert status() == 403
         assert status("https://other.example") == 403
-        assert status("https://ask.de4sdv.org") == 200
+        assert status("https://viewer.de4sdv.org") == 200
     finally:
         server.shutdown()
         server.server_close()

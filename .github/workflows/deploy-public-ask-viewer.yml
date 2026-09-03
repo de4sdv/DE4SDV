@@ -1,4 +1,4 @@
-name: Deploy Public Ask-model Viewer
+name: Deploy Public Viewer with Ask-model
 
 on:
   workflow_dispatch:
@@ -64,7 +64,7 @@ jobs:
           ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" 'echo SSH_OK'
 
-      - name: Require Ask DNS to resolve to the deployment host
+      - name: Require viewer DNS to resolve to the deployment host
         env:
           DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
         run: |
@@ -72,13 +72,14 @@ jobs:
           import os, socket
           def addresses(host):
               return {row[4][0] for row in socket.getaddrinfo(host, None)}
-          ask = addresses("ask.de4sdv.org")
+          viewer = addresses("viewer.de4sdv.org")
           host = addresses(os.environ["DEPLOY_SSH_HOST"])
-          if not ask.intersection(host):
+          if not viewer.intersection(host):
               raise SystemExit(
-                  f"ask.de4sdv.org {sorted(ask)} does not resolve to the deployment host"
+                  "viewer.de4sdv.org "
+                  f"{sorted(viewer)} does not resolve to the deployment host"
               )
-          print("Ask DNS resolves to the deployment host")
+          print("Viewer DNS resolves to the deployment host")
           PY
 
       - name: Create source bundle and root-readable service environment
@@ -184,7 +185,7 @@ jobs:
       - name: Verify the public reader path with one live grounded query
         run: |
           python3 deployment/scripts/verify_public_ask.py \
-            --base-url https://ask.de4sdv.org \
+            --base-url https://viewer.de4sdv.org \
             --application-sha "$DEPLOY_SHA" \
             --live-query
 

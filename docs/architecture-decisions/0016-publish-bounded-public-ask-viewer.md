@@ -24,14 +24,16 @@ binding and an internal container network behind the TLS proxy.
 
 ## Decision
 
-Operate `ask.de4sdv.org` as a separate, experimental interactive viewer on the
-existing deployment host. Keep `viewer.de4sdv.org` as the static browse-only
-viewer.
+Operate `viewer.de4sdv.org` as the single public reader experience on the
+existing deployment host. It serves the reviewed current-revision viewer and
+`/ask` from the same origin. The browser never receives the inference key. The
+Ask service reaches the Systems Modeling API only through the internal
+container network and mounts the revision binding read-only.
 
-The interactive hostname serves the viewer and `/ask` from the same origin. The
-browser never receives the inference key. The Ask service reaches the Systems
-Modeling API only through the internal container network and mounts the
-revision binding read-only.
+GitHub Pages remains available at its native repository URL as a browse-only
+engineering mirror for prebuilt branch and pull-request revisions. Caddy uses
+that mirror as a GET-only fallback when the dynamic viewer is unavailable;
+`POST /ask` never falls through to Pages.
 
 ### Identity contract
 
@@ -74,8 +76,8 @@ abnormal.
 
 Deployment is manual and protected by the existing production environment. It
 requires one exact application SHA on `main`, an owner-verified SSH host key,
-the inference key in an environment secret, and DNS already resolving the Ask
-hostname to the production host.
+the inference key in an environment secret, removal of the Pages custom-domain
+binding, and DNS resolving the viewer hostname to the production host.
 
 The workflow transfers an exact Git bundle and a root-readable service env
 file. It starts the Ask container, waits for semantic warmup to report `ready`,
@@ -93,10 +95,12 @@ configuration while still needing the same dynamic service and abuse controls.
 It couples the zero-cost static viewer to a paid backend without improving the
 trust boundary.
 
-### Replace the static viewer with the dynamic service
+### Use a second public Ask hostname
 
-Rejected for the first deployment. It removes the stable browse-only fallback
-and makes every public viewer visit depend on the single deployment host.
+Rejected. It leaves readers with two nearly identical viewer URLs and makes
+the primary project URL appear unable to provide its advertised interaction.
+The native Pages mirror provides the browse-only fallback without splitting
+the reader experience across public project hostnames.
 
 ### Expose `/ask` anonymously without global limits
 
@@ -105,12 +109,14 @@ cost.
 
 ## Consequences
 
-- Contributors retain a stable public browse path even if Ask-model is paused.
+- Contributors use one public project URL for browsing and Ask-model.
+- The native Pages URL retains prebuilt branch/PR browsing and a GET fallback.
 - Public answers are revision-bound and the application/model distinction is
   visible rather than implied.
 - The deployment host gains one small Python service and one persistent
   semantic snapshot volume.
 - The project accepts a brief proxy recreation during deployment and a
   single-host availability model.
-- DNS creation, production secret installation, workflow approval, and the
-  first public deployment remain explicit owner actions.
+- Pages custom-domain removal, DNS cutover or reversal, production secret
+  installation, workflow approval, and the first public deployment remain
+  explicit owner actions.
