@@ -20,6 +20,7 @@ Evidence reference categories (mutually exclusive):
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -69,11 +70,16 @@ def _is_machine_evaluable(rel: str) -> bool:
     return f".{suffix}" in PILOT_EVIDENCE_SUFFIXES
 
 
-def _external_media_former_paths() -> set[str]:
+def _external_media_artifacts() -> list[dict]:
     manifest = yaml.safe_load(
         EXTERNAL_MEDIA_MANIFEST.read_text(encoding="utf-8")
     )
-    return {entry["former_path"] for entry in manifest["artifacts"]}
+    return manifest["artifacts"]
+
+
+def external_media_by_former_path() -> list[dict]:
+    """Manifest entries keyed lookup helper (unambiguous identity checks)."""
+    return _external_media_artifacts()
 
 
 def _external_media_identity(rel: str) -> dict | None:
@@ -97,7 +103,6 @@ def test_every_referenced_evidence_artifact_parses_and_exists():
     assert any("e-mw-011" in p for p in seen), (
         "MW pilot no longer references the retained runtime campaign evidence"
     )
-    external_paths = _external_media_former_paths()
     for rel in sorted(seen):
         path = ROOT / rel
         if path.is_dir():
@@ -111,7 +116,21 @@ def test_every_referenced_evidence_artifact_parses_and_exists():
                 f"missing evidence artifact without an external-media "
                 f"manifest identity: {rel}"
             )
-            assert entry["former_path"] in external_paths
+            # The tail match must be unambiguous: exactly one manifest entry
+            # may claim this artifact identity.
+            matches = [
+                e
+                for e in external_media_by_former_path()
+                if rel.endswith(e["former_path"])
+                or rel.endswith(
+                    "implementation/aebs-aaos-sdv-visualization-bench"
+                    "/evidence/010/" + e["former_path"].split("/")[-1]
+                )
+            ]
+            assert len(matches) == 1, (
+                f"ambiguous external-media identity for {rel}: "
+                f"{[m['former_path'] for m in matches]}"
+            )
             assert len(entry["sha256"]) == 64
             assert entry["bytes"] > 0
             assert entry.get("availability"), (
@@ -209,3 +228,43 @@ def test_execution_records_match_their_artifact_timestamps():
             assert str(artifact.get("finished_at", "")).replace("T", " ")[:19].startswith(
                 record["finished_at"][:19].replace("T", " ")
             ), record["evidence_id"]
+
+def test_model_raw_observation_artifact_references_resolve():
+    """Model-side rawObservationArtifact strings must resolve like pilot
+    references: in-tree file, or an external-media identity (reviewer minor
+    #3: model strings were previously unguarded)."""
+    model_text = (
+        ROOT
+        / "textual-notation-of-model/packages/features/aebs/"
+        "aebs_visualization_verification_evidence.sysml"
+    ).read_text(encoding="utf-8")
+    artifacts = re.findall(
+        r'rawObservationArtifact\s*=\s*"([^"]+)"', model_text
+    )
+    assert artifacts, "evidence parts must name raw observation artifacts"
+    external = _external_media_artifacts()
+    for rel in artifacts:
+        path = ROOT / rel
+        if path.is_file():
+            continue
+        tail = "/".join(rel.split("/")[-3:])
+        matches = [
+            e
+            for e in external
+            if rel.endswith(e["former_path"]) or e["former_path"] == tail
+        ]
+        assert matches, (
+            f"model rawObservationArtifact neither in-tree nor in "
+            f"external-media.yaml: {rel}"
+        )
+
+
+def test_pilot_model_artifact_paths_exist():
+    """Pilot model_artifacts.configured_test_article / evidence_index
+    references must exist in-tree (reviewer minor #3)."""
+    pilot = yaml.safe_load(PILOTS[2].read_text(encoding="utf-8"))
+    model_artifacts = pilot.get("model_artifacts", {})
+    for key in ("configured_test_article", "evidence_index"):
+        rel = model_artifacts.get(key)
+        assert rel, f"pilot model_artifacts.{key} missing"
+        assert (ROOT / rel).is_file(), f"missing: {rel}"
