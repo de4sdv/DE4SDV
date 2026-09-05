@@ -44,7 +44,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * bounded Phase 10 V&V content for that increment, not a second increment
    * identity; verificationSystemS2 below carries the slice's trace.
    */
-  reference incAEBS010 : VisualizationIncrement;
+  references incAEBS010;
 
   /* ──────────────────────────────────────────
    * Evidence vocabulary and observation records
