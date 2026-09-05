@@ -172,8 +172,28 @@ def test_verification_cases_cover_all_criteria() -> None:
     assert any(f"verify {integrity_element};" in o for o in objectives)
 
 
-def test_partial_outcome_maps_to_inconclusive_not_pass() -> None:
-    """A partial result can never upgrade into a pass verdict (plan Task 6)."""
+EXPECTED_VERDICT_MAPPING = (
+    "if outcome == VisualizationEvidenceDisposition::observedBounded"
+    "? VerdictKind::pass\n"
+    "      else if outcome == VisualizationEvidenceDisposition::partial"
+    "? VerdictKind::inconclusive\n"
+    "      else if outcome == VisualizationEvidenceDisposition::blocked"
+    "? VerdictKind::inconclusive\n"
+    "      else if outcome == VisualizationEvidenceDisposition::notClaimed"
+    "? VerdictKind::inconclusive\n"
+    "      else VerdictKind::inconclusive;"
+)
+
+
+def test_verdict_mapping_is_exactly_the_reviewed_semantics() -> None:
+    """Pin the full verdict mapping, not just the pass direction.
+
+    Direction-only guards let a partial outcome be re-mapped to a definitive
+    verdict (e.g. fail) that the retained evidence cannot support either: a
+    partial observation supports neither pass nor fail, only inconclusive.
+    The exact mapping is therefore pinned verbatim; any semantics change must
+    consciously rewrite this guard.
+    """
     model = _model()
     mapping = re.search(
         r"calc def MapS2OutcomeToVerdict \{(.*?)\n  \}",
@@ -182,11 +202,11 @@ def test_partial_outcome_maps_to_inconclusive_not_pass() -> None:
     )
     assert mapping, "MapS2OutcomeToVerdict must remain defined"
     body = mapping.group(1)
-    assert "VisualizationEvidenceDisposition::observedBounded? VerdictKind::pass" in body
-    # partial must not map to pass: it stays inconclusive unless a later,
-    # explicitly justified bounded-pass interpretation is added with its own
-    # negative guard removed.
-    assert "VisualizationEvidenceDisposition::partial? VerdictKind::pass" not in body
+    assert EXPECTED_VERDICT_MAPPING.strip() in body, (
+        "MapS2OutcomeToVerdict must map only observedBounded to pass and "
+        "everything else (incl. partial) to inconclusive; "
+        f"got: {body.strip()}"
+    )
 
 
 def test_missing_evidence_cannot_map_to_pass() -> None:
