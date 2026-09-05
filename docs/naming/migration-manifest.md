@@ -674,3 +674,27 @@ byte-swap 8 renamed views (one pre-declared repair cycle).
   KEEP (closed-record identity; user rule 13); types already de-numbered.
 - S1: `Features`-nesting flatten — recommended, own follow-up change
   (~95 qualified refs + viewer fixtures mirror the shape).
+
+## Batch 2 addendum — PR #177 Phase 10 slice (executed in #177's reconciliation)
+
+PR #177 landed its eighth slice while this migration was in flight, so the
+slice joins the canonical family directly in #177 (no separate later rename):
+
+| Old file | New file | Old package | New package |
+|---|---|---|---|
+| `aebs_010_visualization_verification_evidence.sysml` | `aebs_visualization_verification_evidence.sysml` | `DE4SDV_AEBS010VisualizationVerificationEvidence` | `DE4SDV_AEBSVisualizationVerificationEvidence` |
+
+Same-commit migration inside the slice: the four `DE4SDV_AEBS010Visualization*`
+imports to their canonical `DE4SDV_AEBSVisualization*` forms; evidence IDs
+`E-AEBS-S2-001..007` → `EVID-AEBS-S2-001..007` (the `E-` grandfathered set is
+middleware-only; old→new correspondence is recorded here because the old IDs
+appeared in an open PR); views `aebs010VerificationAssuranceView` /
+`aebs010OpenCounterclaimAssuranceView` → `aebsVisualization*`; the phase-level
+pseudo-increment `incAEBS010VerificationEvidence` removed in favor of a
+qualified reference to the framing slice's `incAEBS010`; `req010*` dependency
+endpoints to the canonical `req*` names. `INC-AEBS-010`,
+`AEBS-CONFIG-010-001`, AC/VC/REQ-S2/GAP identities, campaign directories, the
+pilot filename, and `VIDEO-EVIDENCE-DISPOSITION.md` are unchanged
+(lifecycle-owned). The `VIDEO-EVIDENCE-DISPOSITION` filename label joined the
+checker's non-governed look-alike list deliberately (see
+naming-conventions.md).
