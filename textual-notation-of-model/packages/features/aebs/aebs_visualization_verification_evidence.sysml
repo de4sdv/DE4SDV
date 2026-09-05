@@ -16,28 +16,35 @@
  * production-readiness, or vehicle-command claim is made or implied.
  *
  * Package name note: the visualization chain increment ID is INC-AEBS-010,
- * so the Phase 10 package is DE4SDV_AEBS010VisualizationVerificationEvidence
- * (no extra "010" suffix beyond the increment identity).
+ * and this slice is its Phase 10 V&V evidence record
+ * (DE4SDV_AEBSVisualizationVerificationEvidence). The package drops the
+ * increment number per naming-conventions.md section 7: it is the enduring
+ * canonical verification-evidence model of the visualization concern; the
+ * increment identity stays owned by the framing slice (incAEBS010).
  */
 
-package DE4SDV_AEBS010VisualizationVerificationEvidence {
+package DE4SDV_AEBSVisualizationVerificationEvidence {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_ExecutionEnvironments::*;
-  private import DE4SDV_AEBS010VisualizationFraming::*;
-  private import DE4SDV_AEBS010VisualizationNeedsRequirements::*;
-  private import DE4SDV_AEBS010VisualizationPhysicalRealization::*;
-  private import DE4SDV_AEBS010VisualizationVariabilityConfiguration::*;
+  private import DE4SDV_AEBSVisualizationFraming::*;
+  private import DE4SDV_AEBSVisualizationNeedsRequirements::*;
+  private import DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::*;
+  private import DE4SDV_AEBSVisualizationVariabilityConfiguration::*;
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import ScalarValues::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
-  part incAEBS010VerificationEvidence : VisualizationIncrement {
-    doc /* INC-AEBS-010 Phase 10 slice owner for verification, validation, and evidence. */
-  }
+  /*
+   * INC-AEBS-010 increment identity: owned by the canonical framing slice
+   * (DE4SDV_AEBSVisualizationFraming::incAEBS010). This evidence slice is
+   * bounded Phase 10 V&V content for that increment, not a second increment
+   * identity; verificationSystemS2 below carries the slice's trace.
+   */
+  reference incAEBS010 : VisualizationIncrement;
 
   /* ──────────────────────────────────────────
    * Evidence vocabulary and observation records
@@ -85,11 +92,17 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
     attribute acceptanceSummary : ScalarValues::String;
   }
 
+  /*
+   * Verdict mapping: only observedBounded evidence produces pass. partial
+   * maps to inconclusive — a partial observation cannot upgrade into an
+   * acceptance claim without a separately justified bounded-pass
+   * interpretation (none exists for the retained campaign).
+   */
   calc def MapS2OutcomeToVerdict {
     in outcome : VisualizationEvidenceDisposition;
     return verdict : VerdictKind =
       if outcome == VisualizationEvidenceDisposition::observedBounded? VerdictKind::pass
-      else if outcome == VisualizationEvidenceDisposition::partial? VerdictKind::pass
+      else if outcome == VisualizationEvidenceDisposition::partial? VerdictKind::inconclusive
       else if outcome == VisualizationEvidenceDisposition::blocked? VerdictKind::inconclusive
       else if outcome == VisualizationEvidenceDisposition::notClaimed? VerdictKind::inconclusive
       else VerdictKind::inconclusive;
@@ -101,12 +114,17 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
 
   part def VisualizationVandVBenchS2 {
     doc /*
-     * System 1 is the configured member executing unchanged AEBS behavior.
-     * System 2 is the visualization test system and its campaign environment;
-     * it is not a product selection. The instrument observes System 1
-     * read-only and issues no vehicle command.
+     * System 1 is the configured member executing unchanged AEBS behavior:
+     * the uninstrumented AAOS-integrated Autoware member governed by the
+     * accepted product-line scope. System 2 is the visualization test system
+     * and its campaign environment — the instrumented test article plus
+     * observation instrumentation; it is not a product selection. The
+     * instrument observes System 1 read-only and issues no vehicle command.
      */
-    part system1MemberProduct : AEBSAutowareAAOSSDVVisualizationTestArticle;
+    /* System 1 subject: uninstrumented configured member (scope member). */
+    part system1MemberProduct : DE4SDV_MiddlewareVariabilityConfiguration::MiddlewareAutowareAAOSSDVConfiguredMember;
+    /* System 2 subject: instrumented visualization test article. */
+    part system2TestArticle : AEBSAutowareAAOSSDVVisualizationTestArticle;
     part system2Instrument : System2EngineeringAndAssuranceSystem;
     attribute scenario : VisualizationScenarioS2;
   }
@@ -194,7 +212,7 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
 
   part liveChainEvidenceS2 : RetainedVisualizationEvidenceS2 {
     doc /*
-     * E-AEBS-S2-001. Retained live-chain correlation evidence for the
+     * EVID-AEBS-S2-001. Retained live-chain correlation evidence for the
      * corrected final campaign (2026-09-01): 1090 consecutive app-side
      * onGatewayFrame callbacks, sequence span 22891-23980, zero gaps, 10 Hz,
      * mirrored by ingress-side publishes over the chain pinned Autoware AEB
@@ -215,7 +233,7 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
 
   part lifecycleArcEvidenceS2 : RetainedVisualizationEvidenceS2 {
     doc /*
-     * E-AEBS-S2-002. Retained continuous-take lifecycle evidence: one
+     * EVID-AEBS-S2-002. Retained continuous-take lifecycle evidence: one
      * uninterrupted 70.15 s screenrecord of the corrected final UI
      * generation covering MONITORING 0-10 s, WARNING ~10-11.5 s (24 obstacle
      * points, no braking), INTERVENTION ~11.5-14 s (braking latched), and
@@ -236,7 +254,7 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
 
   part readOnlyBoundaryEvidenceS2 : RetainedVisualizationEvidenceS2 {
     doc /*
-     * E-AEBS-S2-003. Read-only boundary evidence: the wire contract carries
+     * EVID-AEBS-S2-003. Read-only boundary evidence: the wire contract carries
      * no command path, the bridge subscribes only (no publishers, no
      * services, no actions), the ingress publishes into the Gateway Data
      * Tunnel only, and the provenance ribbon is present in every retained
@@ -247,14 +265,14 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
     attribute :>> executionEnvironmentIdentity = "repository test suite + retained campaign artifacts";
     attribute :>> contractIdentity = "implementation/aebs-aaos-sdv-visualization-bench/interface/aebs_visualization.proto";
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png";
-    attribute :>> independentObserverIdentity = "tests/test_aebs_010_hmi_presentation_contract.py + bridge non-interference tests";
+    attribute :>> independentObserverIdentity = "tests/test_aebs_visualization_hmi_presentation_contract.py + bridge non-interference tests";
     attribute :>> disposition = VisualizationEvidenceDisposition::observedBounded;
     attribute :>> claimBoundary = "Structural and rendered-session read-only evidence; no vehicle-interaction behavior is exercised or claimed.";
   }
 
   part provenanceSeparationEvidenceS2 : RetainedVisualizationEvidenceS2 {
     doc /*
-     * E-AEBS-S2-004. Display-derived versus native decision semantics
+     * EVID-AEBS-S2-004. Display-derived versus native decision semantics
      * separation evidence for the corrected generation: no
      * Target range / AEB braking threshold pair or RSS reference line is
      * rendered anywhere in the retained stills or UI dumps, obstacle geometry
@@ -267,14 +285,14 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
     attribute :>> executionEnvironmentIdentity = "gcp-europe-west4-a de4sdv-aaos-build + de4sdv-ros2-autoware, sdv_ivi_cf guest, corrected final generation";
     attribute :>> contractIdentity = "implementation/aebs-aaos-sdv-visualization-bench/VISUALIZATION-CONTRACT.md section 3 removal list";
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-warning.png";
-    attribute :>> independentObserverIdentity = "tests/test_aebs_010_hmi_presentation_contract.py";
+    attribute :>> independentObserverIdentity = "tests/test_aebs_visualization_hmi_presentation_contract.py";
     attribute :>> disposition = VisualizationEvidenceDisposition::observedBounded;
     attribute :>> claimBoundary = "Presentation-separation evidence for the corrected generation; not a claim about native Autoware AEB decision internals.";
   }
 
   part failClosedStalenessEvidenceS2 : RetainedVisualizationEvidenceS2 {
     doc /*
-     * E-AEBS-S2-005. Fail-closed staleness evidence: within the retained
+     * EVID-AEBS-S2-005. Fail-closed staleness evidence: within the retained
      * take, when the filtered obstacle-cloud source stopped updating, the
      * display-derived obstacle geometry was suppressed (range/bearing/points
      * cleared) while accepted live frames continued; obstacle geometry also
@@ -292,7 +310,7 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
 
   part degradedRenderingEvidenceS2 : RetainedVisualizationEvidenceS2 {
     doc /*
-     * E-AEBS-S2-006. Degraded-state rendering evidence from the state
+     * EVID-AEBS-S2-006. Degraded-state rendering evidence from the state
      * campaign: stale, unavailable, and invalid dispositions rendered with
      * live geometry cleared and the health chip identifying the degraded
      * condition. The frame source was the PF-004 deterministic publisher,
@@ -310,7 +328,7 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
 
   part restorationEvidencePlannedS2 : PlannedExecutionEnvironmentEvidence {
     doc /*
-     * E-AEBS-S2-007 (planned). Restoration behavior after a failure
+     * EVID-AEBS-S2-007 (planned). Restoration behavior after a failure
      * disposition was not exercised in any retained INC-AEBS-010 campaign.
      * This record is explicitly planned evidence: it supports no observed
      * claim and is bound to the restoration gap below. Planned scope: the
@@ -559,25 +577,25 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
 
   dependency chainCorrelationToEvidenceRequirement
     from acceptanceCriterionS2ChainCorrelation
-    to req010EvidenceCorrelation;
+    to reqEvidenceCorrelation;
   dependency chainCorrelationToRealAAOSRenderingRequirement
     from acceptanceCriterionS2LifecycleArc
-    to req010RealAAOSRendering;
+    to reqRealAAOSRendering;
   dependency readOnlyBoundaryToNonInterferenceRequirement
     from acceptanceCriterionS2ReadOnlyBoundary
-    to req010NonInterference;
+    to reqNonInterference;
   dependency provenanceSeparationToNoImpersonationRequirement
     from acceptanceCriterionS2ProvenanceSeparation
-    to req010NoNativeImpersonation;
+    to reqNoNativeImpersonation;
   dependency failClosedStalenessToFreshnessRequirement
     from acceptanceCriterionS2FailClosedStaleness
-    to req010FailClosedFreshness;
+    to reqFailClosedFreshness;
   dependency degradedRenderingToAvailabilityRequirement
     from acceptanceCriterionS2DegradedRendering
-    to req010AvailabilityDisposition;
+    to reqAvailabilityDisposition;
   dependency restorationToRestorationRequirement
     from acceptanceCriterionS2Restoration
-    to req010RestorationBehavior;
+    to reqRestorationBehavior;
 
   /* Cross-increment traceability to the accepted chain baseline. */
   dependency verificationTestArticleTrace
@@ -624,7 +642,7 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
     subject claimSubject : VisualizationVandVBenchS2;
     require constraint {
       doc /*
-       * The claim requires retained E-AEBS-S2-001 through E-AEBS-S2-006
+       * The claim requires retained EVID-AEBS-S2-001 through EVID-AEBS-S2-006
        * evidence bound to the configured test article, exact wire contract,
        * execution environment, and independent observer identities. It
        * excludes restoration behavior, live degradation beyond the retained
@@ -801,7 +819,7 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view aebs010VerificationAssuranceView {
+  view aebsVisualizationVerificationAssuranceView {
     viewpoint selectedAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcernS2;
     }
@@ -833,7 +851,7 @@ package DE4SDV_AEBS010VisualizationVerificationEvidence {
     render asTreeDiagram;
   }
 
-  view aebs010OpenCounterclaimAssuranceView {
+  view aebsVisualizationOpenCounterclaimAssuranceView {
     viewpoint selectedOpenCounterclaimViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcernS2;
     }

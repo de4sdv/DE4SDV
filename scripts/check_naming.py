@@ -272,6 +272,9 @@ _EXTERNAL_ID_NAMES = {
     # Technical vocabulary, not governed identifiers:
     "SHA-256",  # hash algorithm name (provenance records)
     "SHA-1",  # hash algorithm name (provenance records)
+    # Retained evidence-index filename (INC-AEBS-010 campaign), an artifact
+    # label rather than a project identity; the file is lifecycle-owned.
+    "VIDEO-EVIDENCE-DISPOSITION",
 }
 
 # Subject-first configuration identities (`<SUBJECT>-CONFIG-<SEQ>`); see

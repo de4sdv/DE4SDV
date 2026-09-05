@@ -10,7 +10,7 @@ purpose: >-
   Index the retained verification evidence, bounded verdicts, open gaps, and
   claim-boundary semantics for the System 2 read-only AEBS visualization test
   system. SysML owns the acceptance and closure semantics
-  (aebs_010_visualization_verification_evidence.sysml); this file records
+  (aebs_visualization_verification_evidence.sysml); this file records
   status, evidence locations, and execution facts only.
 
 engineering_question: >-
@@ -31,24 +31,27 @@ phase10_claim:
   status: bounded_instrumentation_claim
   scenario_safety_outcome: deferred_not_proven
   evidence:
-    - id: E-AEBS-S2-001
+    - id: EVID-AEBS-S2-001
       artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log
       status: observed_bounded
-    - id: E-AEBS-S2-002
+    - id: EVID-AEBS-S2-002
       artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4
       status: observed_bounded
-    - id: E-AEBS-S2-003
+    - id: EVID-AEBS-S2-003
       artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png
       status: observed_bounded
-    - id: E-AEBS-S2-004
+    - id: EVID-AEBS-S2-004
       artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-warning.png
       status: observed_bounded
-    - id: E-AEBS-S2-005
+    - id: EVID-AEBS-S2-005
       artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
       status: observed_bounded
-    - id: E-AEBS-S2-006
+    - id: EVID-AEBS-S2-006
       artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/stale.png
       status: observed_bounded_fixture_path
+    - id: EVID-AEBS-S2-007
+      status: planned
+      note: restoration behavior not exercised by any retained campaign
   deferred_items:
     - id: AC-AEBS-S2-007
       status: deferred_not_proven
@@ -58,6 +61,26 @@ phase10_claim:
       status: open
     - id: GAP-AEBS-010-008
       status: open
+
+known_limitations:
+  - id: DEF-AEBS-S2-001
+    limitation: >-
+      The retained v21 take predates the presentation-scale geometry
+      correction (forward-situation geometry PR): obstacle cluster could
+      visually contact the ego silhouette under presentation-only ego
+      enlargement. Retained observations stand for the displayed generation;
+      they neither prove corrected geometry nor repeatable warning timing.
+  - id: DEF-AEBS-S2-002
+    limitation: >-
+      Raw media for the retained campaign is held externally
+      (maintainer_archive per external-media.yaml); independent byte-level
+      re-review requires archive access. In-tree review is limited to
+      retained logs, stills, and manifests.
+  - id: DEF-AEBS-S2-003
+    limitation: >-
+      Warning timing repeatability is unproven: one take supports the
+      observed_bounded lifecycle claim, not a deterministic warning-lead
+      property (see GAP-AEBS-010-007 and the 009D warning-lead work).
 
 scope:
   in_scope:
@@ -148,27 +171,27 @@ acceptance_criteria:
   - id: AC-AEBS-S2-001
     status: pass_bounded_verification
     sysml_element: acceptanceCriterionS2ChainCorrelation
-    evidence: E-AEBS-S2-001 (1090 callbacks, seq 22891-23980, zero gaps)
+    evidence: EVID-AEBS-S2-001 (1090 callbacks, seq 22891-23980, zero gaps)
   - id: AC-AEBS-S2-002
     status: pass_bounded_verification
     sysml_element: acceptanceCriterionS2LifecycleArc
-    evidence: E-AEBS-S2-002 (one take, verified stop)
+    evidence: EVID-AEBS-S2-002 (one take, verified stop)
   - id: AC-AEBS-S2-003
     status: pass_bounded_verification
     sysml_element: acceptanceCriterionS2ReadOnlyBoundary
-    evidence: E-AEBS-S2-003
+    evidence: EVID-AEBS-S2-003
   - id: AC-AEBS-S2-004
     status: pass_bounded_verification
     sysml_element: acceptanceCriterionS2ProvenanceSeparation
-    evidence: E-AEBS-S2-004
+    evidence: EVID-AEBS-S2-004
   - id: AC-AEBS-S2-005
     status: pass_bounded_verification
     sysml_element: acceptanceCriterionS2FailClosedStaleness
-    evidence: E-AEBS-S2-005 (geometry expired after cloud silence)
+    evidence: EVID-AEBS-S2-005 (geometry expired after cloud silence)
   - id: AC-AEBS-S2-006
     status: pass_bounded_verification_fixture_path
     sysml_element: acceptanceCriterionS2DegradedRendering
-    evidence: E-AEBS-S2-006 (PF-004 deterministic publisher, not live Autoware)
+    evidence: EVID-AEBS-S2-006 (PF-004 deterministic publisher, not live Autoware)
   - id: AC-AEBS-S2-007
     status: deferred_not_proven
     sysml_element: acceptanceCriterionS2Restoration
@@ -176,7 +199,7 @@ acceptance_criteria:
   - id: AC-AEBS-S2-008
     status: pass_bounded_verification
     sysml_element: acceptanceCriterionS2EvidenceIntegrity
-    evidence: E-AEBS-S2-001 bound identities + observer
+    evidence: EVID-AEBS-S2-001 bound identities + observer
 
 evidence_ladder:
   - layer: repository_and_sysml
@@ -186,7 +209,7 @@ evidence_ladder:
     status: observed_bounded
     claim: presentation-contract guards, bridge non-interference, sink-side validation
     artifacts:
-      - tests/test_aebs_010_hmi_presentation_contract.py
+      - tests/test_aebs_visualization_hmi_presentation_contract.py
       - implementation/aebs-aaos-sdv-visualization-bench/src/de4sdv_aebs_010_bridge/test
   - layer: target_runtime_interoperability
     status: observed_bounded
@@ -224,6 +247,6 @@ trace_ids:
 - provenanceEvidenceToSourceProvenanceTrace
 
 model_artifacts:
-  sysml: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_verification_evidence.sysml
+  sysml: textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml
   configured_test_article: implementation/aebs-aaos-sdv-visualization-bench/config/test-article.yaml
   evidence_index: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/VIDEO-EVIDENCE-DISPOSITION.md

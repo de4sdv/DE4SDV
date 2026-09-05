@@ -423,9 +423,11 @@ Artifact-aware rules (small and explicit, no heuristic parser):
   counterexamples). The conventions doc itself stays fully governed.
 - **Non-governed look-alikes**: hash-algorithm names (`SHA-256`, `SHA-1`),
   GitHub line anchors (`#L743-L754`), charset fragments, mixed-case prose
-  (`SERVER-IPv4`, `AI-Ready`), and external project names (`S-CORE`,
-  `SAF-SysMLV2`, …) are outside the grammar by construction or by the named
-  external list.
+  (`SERVER-IPv4`, `AI-Ready`), external project names (`S-CORE`,
+  `SAF-SysMLV2`, …), and retained evidence-index filenames
+  (`VIDEO-EVIDENCE-DISPOSITION.md`, an artifact label of the INC-AEBS-010
+  campaign, not a project identity) are outside the grammar by construction
+  or by the named external list.
 
 **What the checker cannot do (honest boundary):** it validates syntax
 against the registries plus the enumerated grandfathered identity sets

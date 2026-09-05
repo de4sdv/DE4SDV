@@ -5,15 +5,28 @@ E-MW-012 previously shipped with an unquoted colon inside a detail string,
 which made the whole artifact unparseable - an unevaluatable evidence file is
 a broken chain-of-evidence link, so this gate fails fast on that class of
 defect.
+
+Evidence reference categories (mutually exclusive):
+
+- ``file``: an in-tree file that must exist; structured suffixes must parse.
+- ``artifact_directory``: an in-tree directory that must exist; a directory
+  can never satisfy a raw evidence-file reference.
+- ``external_media``: bytes held outside Git under the evidence policy. The
+  pilot may reference the media only through the external-media manifest
+  identity (former_path tail + sha256 + bytes + availability); the manifest
+  records identity, not byte availability or runtime behavior.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import yaml
 
 ROOT = Path(__file__).parents[1]
+EVIDENCE_010 = ROOT / "implementation/aebs-aaos-sdv-visualization-bench/evidence/010"
+EXTERNAL_MEDIA_MANIFEST = EVIDENCE_010 / "external-media.yaml"
 PILOTS = [
     ROOT / "methodologies/sysmod-sysmlv2/pilots/middleware-v-and-v-evidence.yaml",
     ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml",
@@ -21,17 +34,23 @@ PILOTS = [
     / "methodologies/sysmod-sysmlv2/pilots/aebs-010-visualization-evidence.yaml",
 ]
 
+EVIDENCE_PREFIX = "implementation/"
+EVIDENCE_MARKER = "evidence/"
+
 
 def _referenced_evidence(data, paths):
     """Collect artifact paths referenced from known evidence-bearing fields."""
     if isinstance(data, dict):
         for key, value in data.items():
             if key in ("artifact", "evidence") and isinstance(value, str):
-                if value.startswith("implementation/") and "evidence/" in value:
+                if value.startswith(EVIDENCE_PREFIX) and EVIDENCE_MARKER in value:
                     paths.add(value)
             elif key == "current_evidence" and isinstance(value, list):
                 for item in value:
-                    if isinstance(item, str) and item.startswith("implementation/"):
+                    if (
+                        isinstance(item, str)
+                        and item.startswith(EVIDENCE_PREFIX)
+                    ):
                         paths.add(item)
             else:
                 _referenced_evidence(value, paths)
@@ -50,6 +69,25 @@ def _is_machine_evaluable(rel: str) -> bool:
     return f".{suffix}" in PILOT_EVIDENCE_SUFFIXES
 
 
+def _external_media_former_paths() -> set[str]:
+    manifest = yaml.safe_load(
+        EXTERNAL_MEDIA_MANIFEST.read_text(encoding="utf-8")
+    )
+    return {entry["former_path"] for entry in manifest["artifacts"]}
+
+
+def _external_media_identity(rel: str) -> dict | None:
+    """Return the manifest entry whose former_path tail matches ``rel``."""
+    manifest = yaml.safe_load(
+        EXTERNAL_MEDIA_MANIFEST.read_text(encoding="utf-8")
+    )
+    for entry in manifest["artifacts"]:
+        former = f"implementation/aebs-aaos-sdv-visualization-bench/evidence/010/{entry['former_path']}"
+        if former == rel or rel.endswith(entry["former_path"]):
+            return entry
+    return None
+
+
 def test_every_referenced_evidence_artifact_parses_and_exists():
     seen = set()
     for pilot in PILOTS:
@@ -59,15 +97,92 @@ def test_every_referenced_evidence_artifact_parses_and_exists():
     assert any("e-mw-011" in p for p in seen), (
         "MW pilot no longer references the retained runtime campaign evidence"
     )
+    external_paths = _external_media_former_paths()
     for rel in sorted(seen):
         path = ROOT / rel
-        assert path.is_file(), f"missing evidence artifact: {rel}"
+        if path.is_dir():
+            raise AssertionError(
+                f"evidence artifact reference resolves to a directory, not a "
+                f"file: {rel} (directories cannot satisfy file evidence)"
+            )
+        if not path.is_file():
+            entry = _external_media_identity(rel)
+            assert entry is not None, (
+                f"missing evidence artifact without an external-media "
+                f"manifest identity: {rel}"
+            )
+            assert entry["former_path"] in external_paths
+            assert len(entry["sha256"]) == 64
+            assert entry["bytes"] > 0
+            assert entry.get("availability"), (
+                f"external-media entry lacks availability status: {rel}"
+            )
+            continue
         if not _is_machine_evaluable(rel):
             continue
-        try:
-            yaml.safe_load(path.read_text(encoding="utf-8"))
-        except yaml.YAMLError as exc:  # pragma: no cover - message context
-            raise AssertionError(f"unparseable evidence artifact {rel}: {exc}")
+        text = path.read_text(encoding="utf-8")
+        if rel.endswith(".json"):
+            try:
+                json.loads(text)
+            except json.JSONDecodeError as exc:  # pragma: no cover
+                raise AssertionError(f"unparseable evidence artifact {rel}: {exc}")
+        else:
+            try:
+                yaml.safe_load(text)
+            except yaml.YAMLError as exc:  # pragma: no cover - message context
+                raise AssertionError(f"unparseable evidence artifact {rel}: {exc}")
+
+
+def test_pilot_evidence_ladder_directories_exist():
+    """artifact_directory references must exist as directories in-tree."""
+    for pilot in PILOTS:
+        data = yaml.safe_load(pilot.read_text(encoding="utf-8"))
+
+        def collect(node):
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    if key == "artifact_directory" and isinstance(value, str):
+                        path = ROOT / value
+                        assert path.is_dir(), (
+                            f"artifact_directory does not exist: {value}"
+                        )
+                    else:
+                        collect(value)
+            elif isinstance(node, list):
+                for item in node:
+                    collect(item)
+
+        collect(data)
+
+
+def test_external_media_manifest_records_v21_raw_take():
+    """The v21 raw take is manifested externally, not pretended in-tree."""
+    entry = _external_media_identity(
+        "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/"
+        "forward-ui/final-hmi-v21-corrected/raw-continuous.mp4"
+    )
+    assert entry is not None, "v21 raw take must keep its manifest identity"
+    assert entry["disposition"] == "observed_bounded"
+    assert entry["availability"] == "maintainer_archive"
+    assert not (EVIDENCE_010 / entry["former_path"]).exists()
+
+
+def test_counterclaims_trace_to_modeled_gaps():
+    """Every pilot counterclaim-bearing gap must be modeled (added by #177)."""
+    pilot = yaml.safe_load(
+        PILOTS[2].read_text(encoding="utf-8")
+    )
+    model = (
+        ROOT
+        / "textual-notation-of-model/packages/features/aebs/"
+        "aebs_visualization_verification_evidence.sysml"
+    ).read_text(encoding="utf-8")
+    for gap in pilot.get("runtime_evidence_gaps", []):
+        element = gap.get("model_element")
+        assert element, f"gap {gap.get('id')} lacks a model_element binding"
+        assert f"part {element}" in model, (
+            f"gap model element missing from the slice: {element}"
+        )
 
 
 def test_execution_records_match_their_artifact_timestamps():
