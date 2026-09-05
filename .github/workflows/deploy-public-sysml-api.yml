@@ -8,8 +8,10 @@
 #      (exact workflow path .github/workflows/<file>, conclusion success,
 #      head_sha == requested SHA);
 #   3. downloading that run's validated full-model bundle;
-#   4. creating a REAL exact Git checkout on the host (public clone, detached
-#      at the SHA, reset/clean — no tar copies, no fake git state);
+#   4. creating a REAL exact Git checkout on the host from a verified Git
+#      bundle produced by the runner's canonical checkout (detached at the
+#      SHA, reset/clean — no tar copies, no fake git state, no host-side
+#      dependency on anonymous GitHub smart HTTP);
 #   5. running the fail-closed deploy.py with the dedicated deployment venv
 #      (/srv/de4sdv/venv), which imports the validated export into the
 #      deployment's own API repository and produces a deployment-specific
@@ -78,11 +80,15 @@ jobs:
     environment: sysml-api-production
     timeout-minutes: 90
     steps:
-      - name: Check out deployment tooling at the exact SHA
+      - name: Check out deployment tooling at the workflow revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.DEPLOY_SHA }}
+          # Keep runner-side scripts aligned with the workflow definition.
+          # This matters when a reviewed branch workflow deploys an unchanged
+          # main SHA: host source is pinned separately by the Git bundle below.
+          ref: ${{ github.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Validate deployment ref (fail closed on PR heads)
         run: |
@@ -200,22 +206,69 @@ jobs:
           set -euo pipefail
           SSH_HOST="${{ secrets.DEPLOY_SSH_HOST }}"
           SSH_USER="${{ secrets.DEPLOY_SSH_USER }}"
-          # Real exact checkout: fresh clone of the public repository, detached
-          # at the requested SHA, reset+clean so no stale files can survive.
+          SOURCE_BUNDLE="/tmp/de4sdv-source-$DEPLOY_SHA.bundle"
+          REMOTE_BUNDLE="/tmp/de4sdv-source-$DEPLOY_SHA.bundle"
+          BUNDLE_REF="refs/heads/deploy-source"
+          cleanup_source_bundle() {
+            rm -f "$SOURCE_BUNDLE"
+            git update-ref -d "$BUNDLE_REF" || true
+          }
+          trap cleanup_source_bundle EXIT
+
+          # actions/checkout has already authenticated to the canonical
+          # repository, fetched full history, checked out DEPLOY_SHA, and had
+          # its persisted credential removed. Build a real, self-contained Git
+          # bundle from a temporary local branch pinned to the independently
+          # validated DEPLOY_SHA. A normal heads ref is deliberate: the
+          # production host's Git treated a bundle containing only a remote-
+          # tracking ref as an empty clone in run 33680917599.
+          # The host
+          # then clones this bundle locally, so deployment does not depend on
+          # anonymous GitHub smart HTTP from the production network (runs
+          # 33670629082 and 33679270407 both received a credential challenge).
+          git update-ref "$BUNDLE_REF" "$DEPLOY_SHA"
+          git bundle create "$SOURCE_BUNDLE" "$BUNDLE_REF"
+          git bundle verify "$SOURCE_BUNDLE"
+          BUNDLE_HEAD=$(git bundle list-heads "$SOURCE_BUNDLE" "$BUNDLE_REF" | cut -d' ' -f1)
+          if [[ "$BUNDLE_HEAD" != "$DEPLOY_SHA" ]]; then
+            echo "source bundle mismatch: deploy-source=$BUNDLE_HEAD expected=$DEPLOY_SHA" >&2
+            exit 1
+          fi
+          SOURCE_BUNDLE_SHA256=$(sha256sum "$SOURCE_BUNDLE" | cut -d' ' -f1)
+          scp -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$SOURCE_BUNDLE" "$SSH_USER@$SSH_HOST:$REMOTE_BUNDLE"
+
           ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$SSH_USER@$SSH_HOST" bash -s "$DEPLOY_SHA" <<'REMOTE'
+            "$SSH_USER@$SSH_HOST" bash -s \
+            "$DEPLOY_SHA" "$SOURCE_BUNDLE_SHA256" "$REMOTE_BUNDLE" <<'REMOTE'
           set -euo pipefail
           REPO_DIR=/srv/de4sdv/DE4SDV
+          REPO_URL="https://github.com/de4sdv/DE4SDV.git"
           SHA="$1"
-          if [[ -d "$REPO_DIR/.git" ]]; then
-            git -C "$REPO_DIR" fetch --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
-          else
-            sudo rm -rf "$REPO_DIR"
-            sudo mkdir -p /srv/de4sdv
-            sudo chown "$(whoami)" /srv/de4sdv
-            git clone https://github.com/de4sdv/DE4SDV.git "$REPO_DIR"
+          EXPECTED_BUNDLE_SHA256="$2"
+          SOURCE_BUNDLE="$3"
+          BUNDLE_REF="refs/heads/deploy-source"
+          trap 'rm -f "$SOURCE_BUNDLE"' EXIT
+
+          REMOTE_BUNDLE_SHA256=$(sha256sum "$SOURCE_BUNDLE" | cut -d' ' -f1)
+          if [[ "$REMOTE_BUNDLE_SHA256" != "$EXPECTED_BUNDLE_SHA256" ]]; then
+            echo "transferred Git bundle checksum mismatch" >&2
+            exit 1
           fi
+          BUNDLE_HEAD=$(git bundle list-heads "$SOURCE_BUNDLE" "$BUNDLE_REF" | cut -d' ' -f1)
+          if [[ "$BUNDLE_HEAD" != "$SHA" ]]; then
+            echo "transferred Git bundle ref mismatch: deploy-source=$BUNDLE_HEAD expected=$SHA" >&2
+            exit 1
+          fi
+
+          sudo rm -rf "$REPO_DIR"
+          sudo mkdir -p /srv/de4sdv
+          sudo chown "$(whoami)" /srv/de4sdv
+          git clone --no-checkout --branch deploy-source \
+            "$SOURCE_BUNDLE" "$REPO_DIR"
           git -C "$REPO_DIR" checkout --detach --force "$SHA"
+          git -C "$REPO_DIR" branch -D deploy-source
+          git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
           git -C "$REPO_DIR" reset --hard "$SHA"
           git -C "$REPO_DIR" clean -ffd
           HEAD=$(git -C "$REPO_DIR" rev-parse HEAD)
@@ -304,7 +357,14 @@ jobs:
           scp -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/bundle/* "$SSH_USER@$SSH_HOST:/srv/de4sdv/artifacts/incoming/"
           # deploy.py uses the dedicated deployment venv created by
           # provision-server.sh and stops the public proxy before importing.
-          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+          # The import runs ~15-20 min with no output; without keepalives an
+          # idle NAT/firewall entry drops the session mid-import (deploy run
+          # 33617984547: 'Timeout, server not responding.' after 20 min of
+          # silence, killing deploy.py mid-import). ServerAliveInterval
+          # keeps the connection alive without loosening any validation.
+          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=60 -o ServerAliveCountMax=30 \
+            -o TCPKeepAlive=yes "$SSH_USER@$SSH_HOST" \
             'cd /srv/de4sdv/DE4SDV && sudo DEPLOY_DIR=/srv/de4sdv /srv/de4sdv/venv/bin/python deployment/scripts/deploy.py --bundle-dir /srv/de4sdv/artifacts/incoming --repo /srv/de4sdv/DE4SDV'
 
       - name: Post-deploy public verification (mandatory)

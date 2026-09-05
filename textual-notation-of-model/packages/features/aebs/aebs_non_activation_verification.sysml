@@ -1,5 +1,5 @@
 /* INC-AEBS-009E bounded non-activation matrix; planned System 2 executable contracts. */
-package DE4SDV_AEBS009EVerification {
+package DE4SDV_AEBSNonActivationVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
@@ -8,113 +8,113 @@ package DE4SDV_AEBS009EVerification {
   private import Views::*;
 
 
-  enum def ScenarioIdentity009E {
+  enum def NonActivationScenarioIdentity {
     clearPath;
     adjacentObject;
     nonClosingTarget;
     belowTrigger;
   }
-  enum def EvidenceOutcome009E {
+  enum def NonActivationEvidenceOutcome {
     passBoundedSilence;
     failUnexpectedActivation;
     inconclusiveCoverage;
     errorEvidence;
   }
-  item def Retained009EObservationSet;
-  item def Replayed009EEvaluation {
-    attribute scenario : ScenarioIdentity009E;
-    attribute outcome : EvidenceOutcome009E;
+  item def NonActivationObservationSet;
+  item def NonActivationEvaluation {
+    attribute scenario : NonActivationScenarioIdentity;
+    attribute outcome : NonActivationEvidenceOutcome;
   }
-  calc def Map009EOutcomeToVerdict {
-    in outcome : EvidenceOutcome009E;
+  calc def MapNonActivationOutcomeToVerdict {
+    in outcome : NonActivationEvidenceOutcome;
     return verdict : VerdictKind =
-      if outcome == EvidenceOutcome009E::passBoundedSilence? VerdictKind::pass
-      else if outcome == EvidenceOutcome009E::failUnexpectedActivation? VerdictKind::fail
-      else if outcome == EvidenceOutcome009E::errorEvidence? VerdictKind::error
+      if outcome == NonActivationEvidenceOutcome::passBoundedSilence? VerdictKind::pass
+      else if outcome == NonActivationEvidenceOutcome::failUnexpectedActivation? VerdictKind::fail
+      else if outcome == NonActivationEvidenceOutcome::errorEvidence? VerdictKind::error
       else VerdictKind::inconclusive;
   }
 
-  part def FalseReactionMatrixBench009E {
-    attribute scenario : ScenarioIdentity009E;
+  part def FalseReactionMatrixBench {
+    attribute scenario : NonActivationScenarioIdentity;
   }
-  requirement def EvidenceContract009E;
-  requirement evidenceContract009EClosedNonActivationScenario : EvidenceContract009E {
-    subject bench : FalseReactionMatrixBench009E;
+  requirement def NonActivationEvidenceContract;
+  requirement evidenceContractClosedNonActivationScenario : NonActivationEvidenceContract {
+    subject bench : FalseReactionMatrixBench;
     require constraint statement { language "English" /* The bench shall bind one closed scenario identity and a complete observation window: at least 4.0 s duration with no sample gap above 0.75 s and every required input no older than 0.5 s at window close. */ }
   }
-  requirement evidenceContract009EWarningSilenceWindow : EvidenceContract009E {
-    subject bench : FalseReactionMatrixBench009E;
+  requirement evidenceContractWarningSilenceWindow : NonActivationEvidenceContract {
+    subject bench : FalseReactionMatrixBench;
     require constraint statement { language "English" /* The bench shall establish warning silence only from a complete periodic window with fresh terminal coverage and no contradictory warning. */ }
   }
-  requirement evidenceContract009EBrakingSilenceWindow : EvidenceContract009E {
-    subject bench : FalseReactionMatrixBench009E;
+  requirement evidenceContractBrakingSilenceWindow : NonActivationEvidenceContract {
+    subject bench : FalseReactionMatrixBench;
     require constraint statement { language "English" /* The bench shall establish braking silence only from complete command, required-input-health, and publisher-topology coverage with no contradictory command. */ }
   }
 
-  part clearPathBench009E : FalseReactionMatrixBench009E {
-    attribute :>> scenario = ScenarioIdentity009E::clearPath;
+  part clearPathBench : FalseReactionMatrixBench {
+    attribute :>> scenario = NonActivationScenarioIdentity::clearPath;
   }
-  part adjacentObjectBench009E : FalseReactionMatrixBench009E {
-    attribute :>> scenario = ScenarioIdentity009E::adjacentObject;
+  part adjacentObjectBench : FalseReactionMatrixBench {
+    attribute :>> scenario = NonActivationScenarioIdentity::adjacentObject;
   }
-  part nonClosingTargetBench009E : FalseReactionMatrixBench009E {
-    attribute :>> scenario = ScenarioIdentity009E::nonClosingTarget;
+  part nonClosingTargetBench : FalseReactionMatrixBench {
+    attribute :>> scenario = NonActivationScenarioIdentity::nonClosingTarget;
   }
-  part belowTriggerBench009E : FalseReactionMatrixBench009E {
-    attribute :>> scenario = ScenarioIdentity009E::belowTrigger;
+  part belowTriggerBench : FalseReactionMatrixBench {
+    attribute :>> scenario = NonActivationScenarioIdentity::belowTrigger;
   }
 
-  verification def FalseReactionResistanceVerification009E {
-    subject verifiedBench : FalseReactionMatrixBench009E;
-    objective evidenceObjective009E {
-      verify evidenceContract009EClosedNonActivationScenario;
-      verify evidenceContract009EWarningSilenceWindow;
-      verify evidenceContract009EBrakingSilenceWindow;
+  verification def FalseReactionResistanceVerification {
+    subject verifiedBench : FalseReactionMatrixBench;
+    objective evidenceObjective {
+      verify evidenceContractClosedNonActivationScenario;
+      verify evidenceContractWarningSilenceWindow;
+      verify evidenceContractBrakingSilenceWindow;
     }
     action collectData {
       @VerificationMethod{ kind = test; }
-      out item retainedObservations : Retained009EObservationSet;
+      out item retainedObservations : NonActivationObservationSet;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : ScenarioIdentity009E = verifiedBench.scenario;
-      in item retainedObservations : Retained009EObservationSet = collectData.retainedObservations;
-      out item replayedEvaluation : Replayed009EEvaluation;
+      in scenarioIdentity : NonActivationScenarioIdentity = verifiedBench.scenario;
+      in item retainedObservations : NonActivationObservationSet = collectData.retainedObservations;
+      out item replayedEvaluation : NonActivationEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : Replayed009EEvaluation = processData.replayedEvaluation;
-      out verdict : VerdictKind = Map009EOutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : NonActivationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapNonActivationOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification clearPathNonActivationVerification009E : FalseReactionResistanceVerification009E {
+  verification clearPathNonActivationVerification : FalseReactionResistanceVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> clearPathBench009E;
+    subject verifiedBench :> clearPathBench;
   }
-  verification adjacentObjectNonActivationVerification009E : FalseReactionResistanceVerification009E {
+  verification adjacentObjectNonActivationVerification : FalseReactionResistanceVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> adjacentObjectBench009E;
+    subject verifiedBench :> adjacentObjectBench;
   }
-  verification nonClosingTargetNonActivationVerification009E : FalseReactionResistanceVerification009E {
+  verification nonClosingTargetNonActivationVerification : FalseReactionResistanceVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> nonClosingTargetBench009E;
+    subject verifiedBench :> nonClosingTargetBench;
   }
-  verification belowTriggerNonActivationVerification009E : FalseReactionResistanceVerification009E {
+  verification belowTriggerNonActivationVerification : FalseReactionResistanceVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> belowTriggerBench009E;
+    subject verifiedBench :> belowTriggerBench;
   }
-  part verificationSystem009E {
-    perform clearPathNonActivationVerification009E;
-    perform adjacentObjectNonActivationVerification009E;
-    perform nonClosingTargetNonActivationVerification009E;
-    perform belowTriggerNonActivationVerification009E;
+  part verificationSystem {
+    perform clearPathNonActivationVerification;
+    perform adjacentObjectNonActivationVerification;
+    perform nonClosingTargetNonActivationVerification;
+    perform belowTriggerNonActivationVerification;
   }
 
   dependency warningSilenceEvidenceRelevantToWarningSilenceCandidate
-    from evidenceContract009EWarningSilenceWindow to reqResistFalseReaction;
+    from evidenceContractWarningSilenceWindow to reqResistFalseReaction;
   dependency brakingSilenceEvidenceRelevantToBrakingSilenceCandidate
-    from evidenceContract009EBrakingSilenceWindow to reqResistFalseBrakingCommand;
+    from evidenceContractBrakingSilenceWindow to reqResistFalseBrakingCommand;
 
   concern physicalStructureConcern : PhysicalStructureConcern {
     subject;
@@ -126,12 +126,12 @@ package DE4SDV_AEBS009EVerification {
     doc /* Evidence-based assurance claims and their supporting argumentation. */
   }
 
-  view aebs009EVerificationAssuranceView {
+  view aebsNonActivationVerificationAssuranceView {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009EVerification::*;
+    expose DE4SDV_AEBSNonActivationVerification::*;
     render asTreeDiagram;
   }
 }

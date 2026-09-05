@@ -15,7 +15,7 @@ import yaml
 
 ROOT = Path(__file__).parents[1]
 PILOTS = [
-    ROOT / "methodologies/sysmod-sysmlv2/pilots/mw-v-and-v-evidence.yaml",
+    ROOT / "methodologies/sysmod-sysmlv2/pilots/middleware-v-and-v-evidence.yaml",
     ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml",
     ROOT
     / "methodologies/sysmod-sysmlv2/pilots/aebs-010-visualization-evidence.yaml",
@@ -74,7 +74,7 @@ def test_execution_records_match_their_artifact_timestamps():
     mw = yaml.safe_load(
         (
             ROOT
-            / "methodologies/sysmod-sysmlv2/pilots/mw-v-and-v-evidence.yaml"
+            / "methodologies/sysmod-sysmlv2/pilots/middleware-v-and-v-evidence.yaml"
         ).read_text(encoding="utf-8")
     )
     for record in mw["execution_records"]["records"]:

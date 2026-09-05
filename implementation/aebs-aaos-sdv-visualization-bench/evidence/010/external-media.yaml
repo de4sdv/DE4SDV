@@ -1,0 +1,98 @@
+schema: de4sdv.external-evidence-media.v1
+policy: docs/evidence-management.md
+removed_from_git_on: "2026-09-03"
+reason: >-
+  Video bytes are not reviewable technical evidence in Git. Current canonical
+  captures are held in a maintainer archive; obsolete captures remain only in
+  historical Git objects and the verified pre-change mirror backup.
+artifacts:
+  - former_path: forward-ui/final-hmi-v21-corrected/final-cut-v2.mp4
+    sha256: 26a86d24a180c987b4349da3468cc78ae2d216eea61c68613afcd419052c46a0
+    bytes: 359391
+    disposition: publication_cut
+    availability: maintainer_archive
+    claim: edited publication cut; its cards are not runtime output
+  - former_path: forward-ui/final-hmi-v21-corrected/raw-continuous.mp4
+    sha256: 7a8110b2416793c46f449084b4001c785409583a8b08d68bdb6ee80281448f82
+    bytes: 1266378
+    disposition: observed_bounded
+    availability: maintainer_archive
+    claim: corrected continuous display capture correlated by segment.yaml
+  - former_path: forward-ui/final-hmi-v21-corrected/card-title-v2.mp4
+    sha256: 63da301c71177026b8d6cda5c14596fb95f28c997cf45cfc9087aae0ce1896d2
+    bytes: 19330
+    disposition: publication_cut_component
+    availability: maintainer_archive
+    claim: editing frame; not runtime output
+  - former_path: forward-ui/final-hmi-v21-corrected/card-end-v2.mp4
+    sha256: f459d6397542d8c552aa6272f0ae3e7cf5bfe7c86c057de7dea5816beaf89207
+    bytes: 17297
+    disposition: publication_cut_component
+    availability: maintainer_archive
+    claim: editing frame; not runtime output
+  - former_path: forward-ui/final-hmi-v20/live-v20-final-hmi-continuous.mp4
+    sha256: 92090b390feb56828922fcaf7d338d963a4619c815649803abc7313aeed6dc1a
+    bytes: 1397808
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: pre-semantic-correction display
+  - former_path: forward-ui/linkedin-cut-pro.mp4
+    sha256: c10954ac30769ed41bb9899d3ebb873d4ce5a61e3ec5f51f14306ddd0c3548fe
+    bytes: 223375
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: superseded publication cut
+  - former_path: forward-ui/linkedin-cut-v3.mp4
+    sha256: 4c414fe0489034cf029fb9b1bbfab5a59e702df7782349b9e41818841a4b78ac
+    bytes: 303367
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: mixed or obsolete UI generation
+  - former_path: forward-ui/live-v17-pro-ui.mp4
+    sha256: a20957fd4d20e77d845d52fbdd6bac6f2d3d63cf371c7f5fd98495947e39600e
+    bytes: 1725676
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: pre-correction UI and fixture-timing limitation
+  - former_path: forward-ui/live-v19-pro-ui.mp4
+    sha256: e883305f0fe91c8c007de6b32099f6328eb748a76b3b56e09ab9d6da740cf901
+    bytes: 1622167
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: pre-correction UI and fixture-timing limitation
+  - former_path: forward-ui/live-v8-braking-to-released.mp4
+    sha256: 7c9b99a4a18d3dcc0e638924ccba7b793d5135b9e59a8eef10bcdb25e481e161
+    bytes: 1344864
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: early UI generation
+  - former_path: forward-ui/live-v9-full-arc.mp4
+    sha256: 0bed9fcd3baee3f9ffa6a8da9bd1d3bd8c60745333eeae00ce10df9ff3dbfb58
+    bytes: 1323320
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: early UI generation with documented ego-speed gap
+  - former_path: video/inc-aebs-010-live-visualization.mp4
+    sha256: e781cbaf1d1ccd0e985d2f777a0a43f4023650f9fb7afa4938cd8a61aaf2a668
+    bytes: 415612
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: v1 scene used a misleading rotating radar sweep
+  - former_path: video/raw-recording-full.mp4
+    sha256: f9f30792a7699a21657039bd9281e89bc32515cb419e43dcb1aa483b65a8febf
+    bytes: 6020372
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: v1 source recording with retired scene semantics
+  - former_path: video/inc-aebs-010-live-visualization-v2-no-sweep.mp4
+    sha256: be1bc2e39bb0ee104fb0ba20a2b722234ef04292802cced001c43b0b3b36d63c
+    bytes: 377075
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: v2 cut retained display semantics later corrected
+  - former_path: video/raw-recording-v2-no-sweep.mp4
+    sha256: 3a24a942ff9366b754750a0d8b30a774a83376303affce5824c9a675775aa27c
+    bytes: 4896350
+    disposition: forensic_only
+    availability: historical_git_object_only
+    reason: v2 source recording with later-retired display semantics

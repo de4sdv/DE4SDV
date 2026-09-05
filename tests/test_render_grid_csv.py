@@ -21,11 +21,11 @@ EXPECTED_MAPPING_AXES = {
         "conceptual exchange items",
         "simulation/deployment exchange items",
     ),
-    "matrix-mwSystemFunctionMappingView": (
+    "matrix-middlewareSystemFunctionMappingView": (
         "system functions (action usages)",
         "conceptual system elements (part usages)",
     ),
-    "matrix-mwPhysicalLogicalMappingView": (
+    "matrix-middlewarePhysicalLogicalMappingView": (
         "conceptual system elements (part usages)",
         "physical/software elements (part usages)",
     ),
@@ -41,19 +41,19 @@ def test_all_saf_mapping_grids_define_human_readable_axes() -> None:
 
 
 def test_middleware_tables_have_human_titles() -> None:
-    assert GRID_METADATA["table-mwProductLineClassificationView"].title == (
+    assert GRID_METADATA["table-middlewareProductLineClassificationView"].title == (
         "Middleware product-line classification"
     )
-    assert GRID_METADATA["table-mwStakeholderNeedsView"].title == (
+    assert GRID_METADATA["table-middlewareStakeholderNeedsView"].title == (
         "Middleware stakeholder needs"
     )
-    assert GRID_METADATA["table-mwSystemRequirementsView"].title == (
+    assert GRID_METADATA["table-middlewareSystemRequirementsView"].title == (
         "Middleware system requirements"
     )
 
 
 def test_matrix_svg_labels_row_and_column_element_kinds(tmp_path: Path) -> None:
-    source = tmp_path / "matrix-mwSystemFunctionMappingView.csv"
+    source = tmp_path / "matrix-middlewareSystemFunctionMappingView.csv"
     output = tmp_path / "matrix.svg"
     source.write_text(
         ",signalTranslator\ntranslateSignal,↗\n",

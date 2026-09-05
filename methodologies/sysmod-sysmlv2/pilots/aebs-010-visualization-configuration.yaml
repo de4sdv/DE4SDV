@@ -17,13 +17,13 @@ configuration_decision:
   id: AEBS-CONFIG-010-001
   element: AEBSAutowareAAOSSDVVisualizationTestArticle
   decision: >-
-    Specialize the accepted MWAutowareAAOSSDVConfiguredMember with the
+    Specialize the accepted MiddlewareAutowareAAOSSDVConfiguredMember with the
     deployed Phase 8 visualization chain instead of creating a new member
     or BoF. All platform-stack and capability selections are inherited
     unchanged.
   reused_sources:
-    - model-based-product-line-engineering/feature-configurations/mw-autoware-aaos-sdv-reference.yaml
-    - model-based-product-line-engineering/product-models/mw_autoware_aaos_sdv_reference.sysml
+    - model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml
+    - model-based-product-line-engineering/product-models/middleware_autoware_aaos_sdv_reference.sysml
   no_duplicate_bof: true
   no_new_product_feature: true
 
@@ -31,12 +31,12 @@ runtime_bindings:
   status: planned_obligations_not_executed_pins
   sysml_owner: >-
     textual-notation-of-model/packages/features/aebs/
-    aebs_010_visualization_variability_configuration.sysml
+    aebs_visualization_variability_configuration.sysml
   bindings:
     - "AO-AEBS-010-001 aosp_manifest_revision (pinned at implementation)"
     - "AO-AEBS-010-002 autoware_container_digest (from 009B runtime lock; pinned at implementation)"
     - "AO-AEBS-010-003 autoware_source_revision f603d8759c92fb2f423f1544844e13086d79ad09 (pinned at architecture)"
-    - "AO-AEBS-010-004 visualization_transport_port (new port; not the MW-010 port; pinned at implementation)"
+    - "AO-AEBS-010-004 visualization_transport_port (new port; not the INC-MW-010 port; pinned at implementation)"
     - "AO-AEBS-010-005 stale_timeout_s (bounded bench planning target 1.0 s; pinned at implementation)"
     - "AO-AEBS-010-006 restore_consecutive_frames (bounded bench planning target 3; pinned at implementation)"
     - "AO-AEBS-010-007 gateway_service_unit_name (pinned at implementation)"
@@ -47,13 +47,16 @@ implementation_artifacts:
   planned_root: implementation/aebs-aaos-sdv-visualization-bench/
   created_this_slice:
     - implementation/aebs-aaos-sdv-visualization-bench/config/test-article.yaml
-  deferred_to_implementation_slice:
-    - runtime-lock.yaml
+  created_by_implementation_slice:
+    # Materialized by the INC-AEBS-010 implementation/evidence PRs; the
+    # Phase 9 configuration slice no longer treats them as deferred.
     - interface/aebs_visualization.proto
     - src/de4sdv_aebs_010_bridge/
     - aosp/vendor/de4sdv/aebs_visualization/
     - scripts/
     - evidence/010/
+  deferred_to_implementation_slice:
+    - runtime-lock.yaml
 
 claim_boundary: >-
   Planned test-article configuration only. No runtime evidence, preflight
@@ -63,7 +66,7 @@ claim_boundary: >-
 
 model_artifacts:
   - id: MODEL-AEBS-010-VARIABILITY-CONFIGURATION-SYSML
-    path: textual-notation-of-model/packages/features/aebs/aebs_010_visualization_variability_configuration.sysml
+    path: textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml
     status: draft
 
 next_increment:

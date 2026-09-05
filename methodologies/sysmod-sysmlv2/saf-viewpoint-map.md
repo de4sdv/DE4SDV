@@ -148,8 +148,8 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 | `SAF_Viewpoints` | `StakeholderRequirementDefinitionViewpoint` | SAF Operational Domain | `aebs_needs_requirements.sysml` → `aebsStakeholderNeedsView` |
 | `SAF_Viewpoints` | `SystemRequirementDefinitionViewpoint` | SAF Conceptual Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
 | `SAF_Viewpoints` | `SystemRequirementTraceabilityViewpoint` | SAF Conceptual Domain | `aebs_needs_requirements.sysml` → `aebsRequirementTraceView` |
-| `SAF_Viewpoints` | `SystemFunctionalBreakdownStructureViewpoint` | SAF Conceptual Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalBehaviorView` |
-| `SAF_Viewpoints` | `SystemInterfaceDefinitionViewpoint` | SAF Conceptual Domain | `aebs_functional_behavior.sysml` → `aebsFunctionalInterfaceView` |
+| `SAF_Viewpoints` | `SystemFunctionalBreakdownStructureViewpoint` | SAF Conceptual Domain | `aebs_functional_architecture.sysml` → `aebsFunctionalArchitectureView` |
+| `SAF_Viewpoints` | `SystemInterfaceDefinitionViewpoint` | SAF Conceptual Domain | `aebs_functional_architecture.sysml` → `aebsFunctionalInterfaceView` |
 | `SAF_Viewpoints` | `PhysicalStructureDefinitionViewpoint` | SAF Physical Domain (`P2_PSTD`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalSoftwareStructureView` |
 | `SAF_Viewpoints` | `PhysicalInterfaceDefinitionViewpoint` | SAF Physical Domain (`P5_PIFD`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalSoftwareInterfaceView` |
 | `SAF_Viewpoints` | `PhysicalLogicalMappingViewpoint` | SAF Physical Domain (`P8_PLOM`) | `aebs_physical_software_realization.sysml` → `aebsPhysicalLogicalMappingView` |
@@ -197,7 +197,7 @@ than publish diagrams that do not answer their framed concerns:
   parts without the connector path, direction, or exchanged item types.
 
 The middleware package does publish one smaller Physical Internal Exchange
-slice: `mwAAOSVehicleSpeedServiceBundleInternalExchangeView` selects the
+slice: `middlewareAAOSVehicleSpeedServiceBundleInternalExchangeView` selects the
 provider and independent observer inside the AAOS service bundle, their owned
 ports, the authoritative connection, and the directed
 `VehicleSpeedProviderMessage` flow. It is deliberately not a substitute for

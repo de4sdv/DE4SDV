@@ -48,6 +48,6 @@ implementation:
   - "health publisher on <topic>_health with NaN VelocityReport marker"
   - "DE4SDV_VELOCITY_HEALTH degraded=stale / restored=healthy log lines"
 model_mapping:
-  - "AC-MW-010-03 health forwarding (mw_verification_evidence.sysml)"
+  - "AC-MW-010-03 health forwarding (middleware_verification_evidence.sysml)"
   - "GAP-MW-028 lifecycle/update/health subset — health disposition now observed"
   - "bridge: VehicleSpeedTcpBridgeNode (ros2 ingress)"

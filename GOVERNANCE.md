@@ -12,18 +12,15 @@ For a general project overview, see [README](README.md).
 
 ## 2. Project Status
 
-DE4SDV is currently in an early foundation phase.
+DE4SDV has moved beyond its initial repository-foundation phase. It is building
+a first reviewable engineering baseline around four outcomes:
 
-At this stage, the main priorities are:
+- contributor-ready scope, workflows, and review paths
+- a traceable SysML v2 and product-line systems-engineering backbone
+- executable, bounded validation evidence for selected increments
+- reproducible baseline, deployment, and release controls
 
-- clarifying the project purpose and scope
-- improving the repository structure
-- reworking placeholder documentation
-- defining contribution workflows
-- establishing maintainer responsibilities
-- preparing the project for future contributors
-
-The project roadmap should be documented in [ROADMAP](ROADMAP.md).
+The project roadmap is documented in [ROADMAP](ROADMAP.md).
 
 This governance model may evolve as the project grows, gains contributors, and develops more technical workstreams.
 
@@ -31,7 +28,7 @@ This governance model may evolve as the project grows, gains contributors, and d
 
 Maintainers are responsible for guiding the project, reviewing contributions, supporting contributors, and protecting the long-term direction of DE4SDV.
 
-Current maintainers are listed in the repository [MAINTAINERS](MAINTAINERS.md).
+Current maintainers, their areas of responsibility, and their authority are listed in the repository [MAINTAINERS](MAINTAINERS.md).
 
 ## 4. Maintainer Responsibilities
 
@@ -49,22 +46,73 @@ Maintainers are expected to:
 
 Maintainers do not need to be experts in every DE4SDV topic. Different maintainers may focus on different areas such as governance, documentation, SysML v2, product-line engineering, simulation, compliance, or tooling.
 
-## 5. Contribution Model
+## 5. Roles and Promotion
 
-The detailed contribution model for DE4SDV is still being defined.
+DE4SDV defines four contributor roles. Roles describe earned trust and authority; they are separate from GitHub's technical permission levels, although each role normally corresponds to a repository permission level.
 
-Because the project is in an early foundation phase, maintainers first need to clarify:
+### Contributor
 
-- what kinds of contributions are accepted
-- how contributors should propose larger changes
-- how documentation, models, examples, and technical concepts should be reviewed
-- when contributors should open an issue before starting work
-- how pull requests should be reviewed and approved
-- which parts of the repository are ready for external contribution
+Everyone who opens an issue, a discussion, or a pull request is a contributor. No special access is required. Contributors:
 
-The contribution workflow will be documented in [CONTRIBUTING](CONTRIBUTING.md).
+- follow [CONTRIBUTING](CONTRIBUTING.md)
+- can comment on issues, discussions, and pull requests
+- can informally review changes, but their reviews do not count as approvals
 
-Until [CONTRIBUTING](CONTRIBUTING.md) is finalized, contributors are encouraged to:
+### Reviewer
+
+A reviewer is a contributor who has demonstrated reliable, constructive work in one or more contribution lanes and has been granted repository write access so that formal GitHub approvals count.
+
+Reviewers:
+
+- can approve pull requests (never their own)
+- can triage issues and apply labels
+- are expected to review changes in their familiar lanes before maintainer review
+
+Promotion to reviewer requires:
+
+- a track record of merged contributions, typically several, in at least one lane
+- consistent and constructive comments on other contributors' work
+- a nomination in a public issue by a maintainer, agreed by the lead maintainer
+
+### Maintainer
+
+A maintainer is a reviewer with merge authority and responsibility for the health of one or more project areas (for example governance, documentation, SysML v2 modeling, simulation, compliance, or tooling).
+
+Maintainers:
+
+- approve and merge other contributors' pull requests after the required checks pass
+- run privileged maintenance workflows, such as licensed SysML validation
+- triage proposals and decide what is in scope
+- mentor contributors and reviewers
+
+Promotion to maintainer requires:
+
+- a nomination in a public issue by an existing maintainer
+- demonstrated judgment across reviews, not only strong authorship
+- agreement of the lead maintainer
+
+### Lead maintainer (repository administrator)
+
+The lead maintainer holds administrator access to the repository and is accountable for the project as a whole. Currently this is the project founder, operating through the `@de4sdv` account (see [MAINTAINERS](MAINTAINERS.md)).
+
+The lead maintainer:
+
+- administers repository settings, branch protection, and secrets
+- makes final calls when maintainers disagree
+- appoints and, in exceptional cases, revokes reviewer and maintainer roles
+- is the fallback approver for urgent maintenance
+
+### Revocation
+
+Roles are earned trust. A role can be revoked by the lead maintainer after a public issue documents the reason. Inactivity alone downgrades a contributor to the previous role and is not treated as a failure.
+
+## 6. Contribution Model
+
+The contribution model is defined in [CONTRIBUTING](CONTRIBUTING.md).
+
+It defines contribution sizes (XS, S, M, L), contribution lanes (modeling, methodology, documentation, simulation, traceability, compliance, DevSecOps, community), the issue templates used for proposals, and a generic proposal path for questions and proposals that do not fit a specialized template.
+
+In summary, contributors should:
 
 - open an issue before starting larger changes
 - keep pull requests small and focused
@@ -73,7 +121,7 @@ Until [CONTRIBUTING](CONTRIBUTING.md) is finalized, contributors are encouraged 
 
 Maintainers should avoid presenting unfinished placeholder content as a stable contribution process.
 
-## 6. Decision-Making
+## 7. Decision-Making
 
 Most project decisions should happen openly in GitHub Issues or Pull Requests.
 
@@ -111,28 +159,52 @@ A larger decision should normally follow this process:
 
 If there are no major objections after discussion, the proposal may move forward.
 
-## 7. Pull Request Review and Merge Process
+## 8. Pull Request Review and Merge Process
 
-The detailed pull request workflow will be defined in [CONTRIBUTING](CONTRIBUTING.md).
+The contribution-side workflow (branching, checks, and validation paths) is defined in [CONTRIBUTING](CONTRIBUTING.md). This section defines who reviews and who merges.
 
-Until then, pull requests should be handled with a simple lightweight process.
+### Normal path
 
-A pull request may be considered for merge when:
+The normal path for every pull request is:
 
-- it aligns with the current project scope
-- it has a clear purpose
-- it is small enough to review
-- it is linked to an issue when appropriate
-- open questions have been resolved
-- at least one maintainer has reviewed it
+1. The author opens a pull request with a clear purpose and, when appropriate, a linked issue.
+2. The required repository checks run on the pull request.
+3. A reviewer or maintainer who is **not the author** reviews and approves the pull request. Self-approval is not accepted; GitHub also prevents an author from approving their own pull request.
+4. A maintainer merges the pull request after approval and green checks.
 
-Small documentation fixes may be merged after one maintainer review.
+Branch protection on `main` enforces parts of this path mechanically:
 
-Larger changes should usually be linked to an issue before they are merged.
+- direct pushes to `main` are rejected for contributors without administrator
+  bypass; project policy requires administrators to use pull requests too
+- at least one approving review is required
+- required status checks must be up to date with the base branch
+- the history is kept linear; pull requests are squash-merged as one commit
+- force pushes and branch deletion are disabled
+- approving reviews are dismissed when new commits are pushed
 
-Maintainers may request changes before merging a pull request. This is part of the normal review process and should be handled constructively.
+Currently, requiring conversations to be resolved and re-approval after the last push are not enforced by branch protection. Maintainers should still ask for unresolved review threads to be addressed and for re-review after substantial new commits.
 
-## 8. Recording Decisions
+### Exceptional administrator merges (temporary)
+
+While the maintainer team consists of a single administrator (see [MAINTAINERS](MAINTAINERS.md)), work authored by that administrator cannot always receive an independent approval before merge. Administrator bypass of branch protection is enabled. Rather than pretending otherwise, this governance defines a bounded exception.
+
+The lead maintainer may merge their own pull request using administrator privileges, bypassing the review requirement, only when all of the following hold:
+
+- the change is small, well-understood, and low-risk, or it unblocks CI, deployment, or repository infrastructure;
+- the required local checks have been run and passed, including `check_repo`, `smoke_test`, and any focused tests for the change;
+- the pull request body records that the merge is an administrator exception,
+  why waiting for independent review would cause disproportionate harm, and
+  the exact-head validation evidence;
+- a follow-up review task is created, as an issue or a pull request comment, so the change receives independent review once another maintainer or reviewer is available.
+
+The exception does not authorize changes to credentials, permissions, or
+security settings without explicit project-owner approval.
+
+This exception is temporary. It is expected to narrow as reviewers and maintainers are promoted, and it should become unnecessary once independent review is routinely available.
+
+It must not be used to bypass disagreement, to rush scope changes, or to merge large or risky changes without review. Such changes wait for review.
+
+## 9. Recording Decisions
 
 Important decisions should not disappear in private chats or meetings.
 
@@ -140,12 +212,12 @@ Project decisions should be recorded in one of the following places:
 
 - GitHub Issues
 - Pull Request discussions
+- architecture decision records in `docs/architecture-decisions/`
 - [ROADMAP](ROADMAP.md)
 - [GOVERNANCE](GOVERNANCE.md)
 - [CONTRIBUTING](CONTRIBUTING.md)
-- dedicated decision records, if the project later introduces them
 
-For the early phase of DE4SDV, GitHub Issues are the preferred place to record decisions.
+Decisions that change architecture, governance, tooling, or contributor workflow should be captured as an architecture decision record (ADR). For the early phase of DE4SDV, GitHub Issues are the preferred place for working decisions, with durable outcomes promoted into ADRs.
 
 When a decision is made during a meeting, a maintainer should add a short summary as a comment to the relevant issue.
 
@@ -165,3 +237,4 @@ This structure keeps the foundation simple while leaving room for future technic
 - Create implementation issue
 - Update README.md
 - Review placeholder files
+```

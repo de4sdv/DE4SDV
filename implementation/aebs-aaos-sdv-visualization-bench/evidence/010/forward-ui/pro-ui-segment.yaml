@@ -6,14 +6,17 @@ environment:
   app: "De4sdvAebsVisualizationApp final-hmi-v20, schema_minor 1"
   bench: "pinned Autoware f603d875 + 009B moving-target scenario"
 recordings:
+  external_manifest: "../external-media.yaml"
   raw:
-    file: "final-hmi-v20/live-v20-final-hmi-continuous.mp4"
+    former_path: "final-hmi-v20/live-v20-final-hmi-continuous.mp4"
+    availability: historical_git_object_only
     duration_s: 55.1202
     dimensions: "1080x600"
     ui_generation: final-hmi-v20
     continuous_take: true
   final_cut:
-    file: "linkedin-cut-pro.mp4"
+    former_path: "linkedin-cut-pro.mp4"
+    availability: historical_git_object_only
     duration_s: 16.6
     dimensions: "1080x600"
     construction: "one unbroken 0.0-12.6 s segment from the raw take, followed by a separate 4.0 s end card"
@@ -45,11 +48,11 @@ bench_deviations:
   - "ACL policy provisioned on the bench system image."
   - "The observer proves the bounded scenario chain; it does not make a safety, compliance or physical brake-performance claim."
 supersession:
-  - "linkedin-cut-pro.mp4 now contains only final-hmi-v20 footage; the prior mixed-generation cut was replaced."
-  - "live-v17-pro-ui.mp4, live-v19-pro-ui.mp4 and live-v9-full-arc.mp4 remain historical development evidence and are not the final showcase."
+  - "linkedin-cut-pro.mp4 contained only final-hmi-v20 footage after replacing the prior mixed-generation cut; its bytes are no longer tracked."
+  - "live-v17-pro-ui.mp4, live-v19-pro-ui.mp4 and live-v9-full-arc.mp4 are historical_git_object_only and are not current evidence."
 known_limitations:
   - "The obstacle remains an unclassified simulated point cluster."
   - "The raw take continues after RELEASED; the final cut removes only the idle tail and performs no state substitution or slow motion."
   - "No audio is generated or claimed."
-checksums: "final-hmi-v20/SHA256SUMS"
+checksums: "../external-media.yaml for video; final-hmi-v20/SHA256SUMS for retained files"
 disposition: observed_bounded

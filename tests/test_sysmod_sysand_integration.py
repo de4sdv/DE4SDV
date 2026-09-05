@@ -39,7 +39,7 @@ AEBS_OPERATIONAL = (
 )
 MW_OPERATIONAL = (
     ROOT
-    / "textual-notation-of-model/packages/features/middleware/mw_operational_context.sysml"
+    / "textual-notation-of-model/packages/features/middleware/middleware_operational_context.sysml"
 )
 METHOD_README = ROOT / "methodologies/sysmod-sysmlv2/README.md"
 PROCESS_SET_README = ROOT / "approach/process-set/README.md"

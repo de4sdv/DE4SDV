@@ -1,7 +1,8 @@
 segment_id: INC-AEBS-010-video-v2-20260830
 recorded_at: "2026-08-30T05:51:00Z"
 guest: sdv_ivi_cf Cuttlefish (de4sdv-aaos-build VM)
-source_video: raw-recording-v2-no-sweep.mp4 (170s continuous adb screenrecord, 1080x600 h264)
+source_video_former_path: raw-recording-v2-no-sweep.mp4
+external_media_manifest: ../external-media.yaml
 change_vs_v1: >-
   Rotating radar sweep REMOVED: it depicted a scanning-antenna radar while
   the sensor source is an obstacle-segmentation pointcloud (full front-field,
@@ -15,7 +16,7 @@ observed_sequence:
   - "14.0s intervention (red) — native AEB braking; target blip at 12 o'clock inside red envelope"
   - "17.0s released (green) — verified stop"
   - "remainder: released/verified-stop steady state with live frames at ~10 Hz"
-delivery_cut: inc-aebs-010-live-visualization-v2-no-sweep.mp4 (51.6s)
+delivery_cut_former_path: inc-aebs-010-live-visualization-v2-no-sweep.mp4
 claims:
   visualization_live_chain: observed_bounded
   scenario_safety_outcome: pass_observed_chain (observer verdict this run)

@@ -60,7 +60,7 @@ EVIDENCE_CONTRACT_RE = re.compile(
 # A SysML v2 textual-notation dependency spans two lines, e.g.::
 #
 #     dependency warningEvidenceRelevantToWarningCandidate
-#         from evidenceContract009BWarningLead to reqProvideCollisionWarning;
+#         from evidenceContractWarningLead to reqProvideCollisionWarning;
 #
 DEPENDENCY_RE = re.compile(
     r"\bdependency\s+([A-Za-z_]\w*)\s*\n\s*"

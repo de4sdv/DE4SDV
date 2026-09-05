@@ -11,6 +11,7 @@ import json
 import re
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit, urlunsplit
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -30,6 +31,18 @@ class ApiClient:
 
     def _url(self, path: str) -> str:
         if path.startswith(("http://", "https://")):
+            # Absolute URLs come from server-generated pagination links,
+            # which the API builds from the request Host header. On direct
+            # (non-proxied) calls that Host is a container-internal name
+            # (e.g. sysml2-api:9000) that the caller cannot resolve; the
+            # server itself is whatever base_url points at. Reconnect to
+            # the configured origin and keep the linked path+query.
+            linked = urlsplit(path)
+            configured = urlsplit(self.base_url)
+            if (linked.scheme, linked.netloc) != (configured.scheme, configured.netloc):
+                return urlunsplit(
+                    (configured.scheme, configured.netloc, linked.path, linked.query, "")
+                )
             return path
         return f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
 
