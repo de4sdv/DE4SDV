@@ -503,20 +503,8 @@ RETIRED_S2_ROLE_SHORTHAND_NAMES = (
 
 
 def _has_s1_s2_role_shorthand(name: str) -> bool:
-    """True when the identifier embeds a standalone System1/System2 role
-    shorthand token (``S2``/``s2``). Acronym interiors (``ROS2``, where the
-    ``S`` follows an uppercase letter or the ``2`` is a digit suffix) are not
-    shorthand."""
-    for match in re.finditer(r"s[12]", name, re.IGNORECASE):
-        start, end = match.span()
-        before = name[start - 1] if start else ""
-        after = name[end] if end < len(name) else ""
-        if before.isdigit() or after.isdigit():
-            continue
-        if before and before.isupper():
-            continue
-        return True
-    return False
+    from scripts.check_naming import has_role_shorthand
+    return has_role_shorthand(name)
 
 
 def test_role_shorthand_detection_preserves_technology_names() -> None:

@@ -159,19 +159,19 @@ package DE4SDV_MiddlewareStakeholderNeeds {
         /*
          * Trace links from needs to prior increments.
          */
-        dependency need001FromOperationalContext
+        dependency needMiddlewareIntegrationFromOperationalContext
           from needMiddlewareIntegration
           to DE4SDV_MiddlewareOperationalContext::Features::Middleware::OperationalContext::operationalCapabilityConcern;
 
-        dependency need002FromClassification
+        dependency needPlatformDecouplingFromClassification
           from needPlatformDecoupling
           to DE4SDV_MiddlewareFeatureClassification::Features::Middleware::FeatureClassification::productLineCapabilityClassificationConcern;
 
-        dependency need003FromClassification
+        dependency needMiddlewareAsFeatureFromClassification
           from needMiddlewareAsFeature
           to DE4SDV_MiddlewareFeatureClassification::Features::Middleware::FeatureClassification::productLineCapabilityClassificationConcern;
 
-        dependency need004FromOperationalContext
+        dependency needSafetyPathIsolationFromOperationalContext
           from needSafetyPathIsolation
           to DE4SDV_MiddlewareOperationalContext::Features::Middleware::OperationalContext::operationalCapabilityConcern;
 

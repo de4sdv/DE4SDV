@@ -85,6 +85,25 @@ doc prose that must state the system role explicitly ("System 1 subject /
 System 2 instrumentation") keeps spelling the role out. The role semantics
 never move — only the redundant shorthand in the identifier goes.
 
+### Dependency declarations
+
+Active canonical dependencies use semantic source/target concern names,
+not compact trace-number stems such as `req001`, `reqS2001`, `s2002`, or
+`need001`. For example, `reqSourceFidelityDerivedFromLiveVisualizationOnAAOS`
+is a declaration name; its requirement and need IDs remain separate stable
+records. Renames are scoped by owning file/package, never by an ambiguous
+repository-wide bare-name substitution.
+
+The naming gate inspects declaration names (including `dependency`) across
+active project-owned package, product-model, and product-line scoping roots.
+It rejects compact trace-number stems and redundant role shorthand, including
+numeric continuations. It preserves technology tokens such as `ROS2` and
+`PointCloud2`, explicit architectural roles, and lifecycle record identities.
+Upstream libraries, snapshots and synthetic fixtures are excluded. This is
+lexical naming lint over ASCII and single-quoted declaration names, not a
+SysML semantic parser or a claim that every naming policy is machine-proven.
+Comments and double-quoted literals are not declaration names.
+
 ## 3. Abbreviation policy
 
 ### Established domain/technology acronyms (keep)

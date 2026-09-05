@@ -856,3 +856,104 @@ pilot filename and all evidence records.
   only ROS2-family tokens (registered keep-list) remain.
 - `scripts/check_repo.py` / `scripts/smoke_test.py` / full `pytest`: see the
   implementation report for captured exit codes.
+
+
+## Canonical dependency-name extension
+
+Normalize compact requirement/need/role names in active dependencies.
+Each mapping is scoped to its owning file: identical old names in distinct
+packages can have different targets. Dependency endpoints, registered trace
+IDs, retained evidence and runtime implementation remain unchanged.
+
+### `aebs_needs_requirements.sysml`
+
+Owner: `textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml`
+
+| Old declaration | Canonical declaration |
+|---|---|
+| `req001DerivedFromNeed001` | `reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability` |
+| `req002DerivedFromNeed001` | `reqProvideCollisionWarningDerivedFromCommonAEBSCapability` |
+| `req003DerivedFromNeed001` | `reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability` |
+| `req004DerivedFromNeed001` | `reqAllowDriverOverrideDerivedFromCommonAEBSCapability` |
+| `req005DerivedFromNeed008` | `reqDetectAEBSFailureConditionDerivedFromBoundedDegradationAndAvailability` |
+| `req013DerivedFromNeed008` | `reqIndicateDegradedUnavailableStatusDerivedFromBoundedDegradationAndAvailability` |
+| `req008DerivedFromNeed014` | `reqResistFalseReactionDerivedFromTrustworthyInterventionDecisions` |
+| `req012DerivedFromNeed014` | `reqResistFalseBrakingCommandDerivedFromTrustworthyInterventionDecisions` |
+| `req010DerivedFromNeed006` | `reqPedestrianTargetResponseDerivedFromPedestrianCollisionRiskReduction` |
+| `req014DerivedFromNeed006` | `reqPedestrianTargetControlledResponseDerivedFromPedestrianCollisionRiskReduction` |
+| `req011DerivedFromNeed007` | `reqBicycleTargetResponseDerivedFromBicycleCollisionRiskReduction` |
+| `req015DerivedFromNeed007` | `reqBicycleTargetControlledResponseDerivedFromBicycleCollisionRiskReduction` |
+| `req006DerivedFromNeed003` | `reqKeepProductLineClassificationExplicitDerivedFromProductLineClassification` |
+| `req007DerivedFromNeed004` | `reqTraceRequirementVVAndGapsDerivedFromVisibleRegulatoryAssumptions` |
+| `req007DerivedFromNeed005` | `reqTraceRequirementVVAndGapsDerivedFromRequirementVVPlanning` |
+| `reqS2001DerivedFromNeed002` | `reqTraceEvidenceContractsToControlledBoundaryDerivedFromExplicitOperationalBoundary` |
+
+### `aebs_visualization_needs_requirements.sysml`
+
+Owner: `textual-notation-of-model/packages/features/aebs/aebs_visualization_needs_requirements.sysml`
+
+| Old declaration | Canonical declaration |
+|---|---|
+| `s2002DerivedFromLiveVisualizationOnAAOS` | `reqSourceFidelityDerivedFromLiveVisualizationOnAAOS` |
+| `s2002DerivedFromPreservedSourceProvenance` | `reqSourceFidelityDerivedFromPreservedSourceProvenance` |
+| `s2003DerivedFromLiveVisualizationOnAAOS` | `reqNativeParticipationDerivedFromLiveVisualizationOnAAOS` |
+| `s2014DerivedFromPreservedSourceProvenance` | `reqNoNativeImpersonationDerivedFromPreservedSourceProvenance` |
+| `s2004DerivedFromLiveVisualizationOnAAOS` | `reqDe4sdvParticipationDerivedFromLiveVisualizationOnAAOS` |
+| `s2005DerivedFromNonInterference` | `reqNonInterferenceDerivedFromNonInterference` |
+| `s2006DerivedFromFailClosedDegradation` | `reqFailClosedFreshnessDerivedFromFailClosedDegradation` |
+| `s2007DerivedFromFailClosedDegradation` | `reqAvailabilityDispositionDerivedFromFailClosedDegradation` |
+| `s2008DerivedFromFailClosedDegradation` | `reqInvalidRejectionDerivedFromFailClosedDegradation` |
+| `s2009DerivedFromFailClosedDegradation` | `reqRestorationBehaviorDerivedFromFailClosedDegradation` |
+| `s2010DerivedFromLiveVisualizationOnAAOS` | `reqRealAAOSRenderingDerivedFromLiveVisualizationOnAAOS` |
+| `s2010DerivedFromCorrelatableEvidence` | `reqRealAAOSRenderingDerivedFromCorrelatableEvidence` |
+| `s2012DerivedFromLiveVisualizationOnAAOS` | `reqAaosEnvironmentObservationDerivedFromLiveVisualizationOnAAOS` |
+| `s2013DerivedFromLiveVisualizationOnAAOS` | `reqNoHostBrowserSurfaceDerivedFromLiveVisualizationOnAAOS` |
+| `s2011DerivedFromCorrelatableEvidence` | `reqEvidenceCorrelationDerivedFromCorrelatableEvidence` |
+
+### `middleware_requirements.sysml`
+
+Owner: `textual-notation-of-model/packages/features/middleware/middleware_requirements.sysml`
+
+| Old declaration | Canonical declaration |
+|---|---|
+| `req001DerivedFromNeed001` | `reqProvideMiddlewareSignalAccessDerivedFromMiddlewareIntegration` |
+| `req002DerivedFromNeed001` | `reqProvideMiddlewareDiagnosticAccessDerivedFromMiddlewareIntegration` |
+| `req003DerivedFromNeed001` | `reqCoordinateMiddlewareLifecycleDerivedFromMiddlewareIntegration` |
+| `req004DerivedFromNeed001` | `reqMonitorMiddlewareHealthDerivedFromMiddlewareIntegration` |
+| `req005DerivedFromNeed001` | `reqCoordinateMiddlewareUpdatesDerivedFromMiddlewareIntegration` |
+| `req006DerivedFromNeed004` | `reqIsolateSafetyPathDerivedFromSafetyPathIsolation` |
+| `req007DerivedFromNeed002` | `reqProvideServiceDiscoveryDerivedFromPlatformDecoupling` |
+| `req008DerivedFromNeed009` | `reqAuthenticateServiceBindingDerivedFromSecurityTrustBoundary` |
+| `req009DerivedFromNeed006` | `reqMaintainMiddlewareBoundaryTraceabilityDerivedFromTraceabilityToOperationalContext` |
+| `req001TracedToExchangeVehicleSignals` | `reqProvideMiddlewareSignalAccessTracedToExchangeVehicleSignals` |
+| `req001TracedToTranslateSignalAction` | `reqProvideMiddlewareSignalAccessTracedToTranslateSignalAction` |
+| `req002TracedToAccessDiagnostics` | `reqProvideMiddlewareDiagnosticAccessTracedToAccessDiagnostics` |
+| `req002TracedToProxyDiagnosticsAction` | `reqProvideMiddlewareDiagnosticAccessTracedToProxyDiagnosticsAction` |
+| `req003TracedToCoordinateLifecycle` | `reqCoordinateMiddlewareLifecycleTracedToCoordinateLifecycle` |
+| `req003TracedToCoordinateLifecycleAction` | `reqCoordinateMiddlewareLifecycleTracedToCoordinateLifecycleAction` |
+| `req004TracedToMonitorServiceHealth` | `reqMonitorMiddlewareHealthTracedToMonitorServiceHealth` |
+| `req004TracedToForwardHealthAction` | `reqMonitorMiddlewareHealthTracedToForwardHealthAction` |
+| `req005TracedToCoordinateUpdate` | `reqCoordinateMiddlewareUpdatesTracedToCoordinateUpdate` |
+| `req005TracedToCoordinateUpdateAction` | `reqCoordinateMiddlewareUpdatesTracedToCoordinateUpdateAction` |
+| `req006TracedToEmergencySafetyPath` | `reqIsolateSafetyPathTracedToEmergencySafetyPath` |
+| `req006TracedToProtectSafetyPathAction` | `reqIsolateSafetyPathTracedToProtectSafetyPathAction` |
+| `req007TracedToExchangeVehicleSignals` | `reqProvideServiceDiscoveryTracedToExchangeVehicleSignals` |
+| `req007TracedToBindServiceAction` | `reqProvideServiceDiscoveryTracedToBindServiceAction` |
+| `req008TracedToExchangeVehicleSignals` | `reqAuthenticateServiceBindingTracedToExchangeVehicleSignals` |
+| `req008TracedToBindServiceAction` | `reqAuthenticateServiceBindingTracedToBindServiceAction` |
+
+### `middleware_stakeholder_needs.sysml`
+
+Owner: `textual-notation-of-model/packages/features/middleware/middleware_stakeholder_needs.sysml`
+
+| Old declaration | Canonical declaration |
+|---|---|
+| `need001FromOperationalContext` | `needMiddlewareIntegrationFromOperationalContext` |
+| `need002FromClassification` | `needPlatformDecouplingFromClassification` |
+| `need003FromClassification` | `needMiddlewareAsFeatureFromClassification` |
+| `need004FromOperationalContext` | `needSafetyPathIsolationFromOperationalContext` |
+
+The extension contains 60 file-scoped mappings. Historical examples and
+synthetic negative tests may retain old spellings. Technology names (ROS2,
+PointCloud2), explicit architectural roles, phase-reference names, and
+immutable baseline-record identities are not compact trace-name residues.
