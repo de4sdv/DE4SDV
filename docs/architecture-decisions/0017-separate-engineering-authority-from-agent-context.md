@@ -39,7 +39,8 @@ The following authority boundaries apply.
 
 | Concern                                  | Authority                        |
 | ---------------------------------------- | -------------------------------- |
-| Accepted baseline, decisions, governance | Merged/reviewed ADRs and docs    |
+| Reviewed project baseline                | Accepted/merged Git revision     |
+| Accepted decisions and governance        | Merged/reviewed ADRs and docs    |
 | Contribution and decision history        | Git and pull-request history     |
 | Current modeled elements, relations      | Validated revision-bound API     |
 | Engineering concepts and semantics       | Ontology/kernel contract         |
@@ -50,8 +51,10 @@ In this table, modeled relations means native SysML v2 relationships, and the
 authoritative SysML source is a validated, revision-bound SysML v2 API
 project/commit. Stale, unvalidated, ontology-mismatched, missing, or ambiguous
 runtime state must fail closed and is not current engineering truth (ADR 0012).
-Accepted decisions are distinct from pull-request and Git history, which record
-contribution and discussion rather than accepted project authority.
+The reviewed project baseline is the accepted/merged Git revision itself; the
+accepted decisions and governance are the merged, reviewed ADRs and
+documentation within it; pull-request and Git history record contribution and
+discussion rather than accepted project authority.
 
 Operational agent memory is an implementation-independent capability. DE4SDV
 does not require a particular memory product, database, hosting model, or
@@ -241,9 +244,9 @@ This decision does not:
 
 ## Links
 
-* ADR 0005: Use SysML v2 API repository as live model store
-* ADR 0010: Bind semantic impact queries to SysML API revisions
-* ADR 0011: Import the reviewed SysML baseline into the API repository
-* ADR 0012: Expose revision-bound semantic reads through MCP (ADR 0017
-  builds directly on its semantic authority tuple and MCP boundary)
-* ADR 0004: Adopt ASEL/CM three-system framing
+* [ADR 0004: Adopt ASEL/CM three-system framing](0004-adopt-aselcm-three-system-framing.md)
+* [ADR 0005: Use SysML v2 API repository as live model store](0005-use-sysml-v2-api-repository-as-live-model-store.md)
+* [ADR 0010: Bind semantic impact queries to SysML API revisions](0010-bind-semantic-impact-queries-to-api-revisions.md)
+* [ADR 0011: Import the reviewed SysML baseline into the API repository](0011-import-reviewed-sysml-baseline-into-api.md)
+* [ADR 0012: Expose revision-bound semantic reads through MCP](0012-expose-revision-bound-semantic-reads-through-mcp.md)
+  (ADR 0017 builds directly on its semantic authority tuple and MCP boundary)
