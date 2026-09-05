@@ -11,7 +11,7 @@
   <path d="M 936,52 H 936 V 52 H 936 V 52 Z" fill="none"/>
   <path d="M 12,565 H 12 V 565 H 12 V 565 Z" fill="none"/>
   <path d="M 18,52 H 930 A 6,6 0 0 1 936,58 V 559 A 6,6 0 0 1 930,565 H 18 A 6,6 0 0 1 12,559 V 58 A 6,6 0 0 1 18,52 Z" fill="#F9FAFF" fill-opacity="1.000"/>
-  <path d="M 18,52 H 252 V 66 A 6,6 0 0 1 246,72 H 12 V 58 A 6,6 0 0 1 18,52 Z" fill="#BDDCFF" fill-opacity="1.000" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 18,52 H 293 V 66 A 6,6 0 0 1 287,72 H 12 V 58 A 6,6 0 0 1 18,52 Z" fill="#BDDCFF" fill-opacity="1.000" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 716,413 H 936 V 559 A 6,6 0 0 1 930,565 H 710 V 419 A 6,6 0 0 1 716,413 Z" fill="#BDDCFF" fill-opacity="1.000" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 18,52 H 930 A 6,6 0 0 1 936,58 V 559 A 6,6 0 0 1 930,565 H 18 A 6,6 0 0 1 12,559 V 58 A 6,6 0 0 1 18,52 Z" fill="none" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 632,243 H 907 A 6,6 0 0 1 913,249 V 273 A 6,6 0 0 1 907,279 H 632 A 6,6 0 0 1 626,273 V 249 A 6,6 0 0 1 632,243 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -78,7 +78,7 @@
   <g transform="translate(626,377) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <text x="20" y="64" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700"> aebs010OpenCounterclaimAssuranceView</tspan></text>
+  <text x="20" y="64" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700"> aebsVisualizationOpenCounterclaimAssuranceView</tspan></text>
   <text x="718" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expose s2VisualizationInstrumentationClaim</tspan></text>
   <text x="718" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expose counterClaimS2Restoration</tspan></text>
   <text x="718" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expose counterClaimS2LiveDegradation</tspan></text>
