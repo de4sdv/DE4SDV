@@ -13,7 +13,7 @@ Evidence reference categories (mutually exclusive):
   can never satisfy a raw evidence-file reference.
 - ``external_media``: bytes held outside Git under the evidence policy. The
   pilot may reference the media only through the external-media manifest
-  identity (former_path tail + sha256 + bytes + availability); the manifest
+  identity (owner-relative former_path + sha256 + bytes + availability); the manifest
   records identity, not byte availability or runtime behavior.
 """
 
@@ -23,6 +23,7 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parents[1]
@@ -77,21 +78,24 @@ def _external_media_artifacts() -> list[dict]:
     return manifest["artifacts"]
 
 
-def external_media_by_former_path() -> list[dict]:
-    """Manifest entries keyed lookup helper (unambiguous identity checks)."""
-    return _external_media_artifacts()
-
-
 def _external_media_identity(rel: str) -> dict | None:
-    """Return the manifest entry whose former_path tail matches ``rel``."""
-    manifest = yaml.safe_load(
-        EXTERNAL_MEDIA_MANIFEST.read_text(encoding="utf-8")
-    )
-    for entry in manifest["artifacts"]:
-        former = f"implementation/aebs-aaos-sdv-visualization-bench/evidence/010/{entry['former_path']}"
-        if former == rel or rel.endswith(entry["former_path"]):
-            return entry
-    return None
+    """Resolve exactly within the manifest's owning evidence directory."""
+    if Path(rel).is_absolute():
+        return None
+    owner = EXTERNAL_MEDIA_MANIFEST.parent.resolve()
+    target = (ROOT / rel).resolve()
+    if not target.is_relative_to(owner):
+        return None
+    matches = []
+    for entry in _external_media_artifacts():
+        former = Path(entry["former_path"])
+        assert not former.is_absolute(), "absolute external-media former_path"
+        candidate = (owner / former).resolve()
+        assert candidate.is_relative_to(owner), "external-media path escapes owner"
+        if candidate == target:
+            matches.append(entry)
+    assert len(matches) <= 1, f"ambiguous external-media identity for {rel}"
+    return matches[0] if matches else None
 
 
 def test_every_referenced_evidence_artifact_parses_and_exists():
@@ -116,21 +120,7 @@ def test_every_referenced_evidence_artifact_parses_and_exists():
                 f"missing evidence artifact without an external-media "
                 f"manifest identity: {rel}"
             )
-            # The tail match must be unambiguous: exactly one manifest entry
-            # may claim this artifact identity.
-            matches = [
-                e
-                for e in external_media_by_former_path()
-                if rel.endswith(e["former_path"])
-                or rel.endswith(
-                    "implementation/aebs-aaos-sdv-visualization-bench"
-                    "/evidence/010/" + e["former_path"].split("/")[-1]
-                )
-            ]
-            assert len(matches) == 1, (
-                f"ambiguous external-media identity for {rel}: "
-                f"{[m['former_path'] for m in matches]}"
-            )
+
             assert len(entry["sha256"]) == 64
             assert entry["bytes"] > 0
             assert entry.get("availability"), (
@@ -242,18 +232,11 @@ def test_model_raw_observation_artifact_references_resolve():
         r'rawObservationArtifact\s*=\s*"([^"]+)"', model_text
     )
     assert artifacts, "evidence parts must name raw observation artifacts"
-    external = _external_media_artifacts()
     for rel in artifacts:
         path = ROOT / rel
         if path.is_file():
             continue
-        tail = "/".join(rel.split("/")[-3:])
-        matches = [
-            e
-            for e in external
-            if rel.endswith(e["former_path"]) or e["former_path"] == tail
-        ]
-        assert matches, (
+        assert _external_media_identity(rel) is not None, (
             f"model rawObservationArtifact neither in-tree nor in "
             f"external-media.yaml: {rel}"
         )
@@ -268,3 +251,27 @@ def test_pilot_model_artifact_paths_exist():
         rel = model_artifacts.get(key)
         assert rel, f"pilot model_artifacts.{key} missing"
         assert (ROOT / rel).is_file(), f"missing: {rel}"
+
+
+def test_external_identity_is_owner_scoped(tmp_path, monkeypatch):
+    monkeypatch.setitem(globals(), "ROOT", tmp_path)
+    monkeypatch.setitem(globals(), "EXTERNAL_MEDIA_MANIFEST", tmp_path / "campaign-a/external-media.yaml")
+    entries = [{"former_path": "take/raw.mp4"}]
+    monkeypatch.setitem(globals(), "_external_media_artifacts", lambda: entries)
+    assert _external_media_identity("campaign-a/take/raw.mp4") == entries[0]
+    assert _external_media_identity("campaign-a/take/./raw.mp4") == entries[0]
+    assert _external_media_identity("campaign-b/take/raw.mp4") is None
+    assert _external_media_identity("campaign-a/../campaign-b/take/raw.mp4") is None
+    assert _external_media_identity(str(tmp_path / "campaign-a/take/raw.mp4")) is None
+    entries.append({"former_path": "take/./raw.mp4"})
+    with pytest.raises(AssertionError, match="ambiguous"):
+        _external_media_identity("campaign-a/take/raw.mp4")
+
+
+@pytest.mark.parametrize("former", ["../campaign-b/raw.mp4", "/tmp/raw.mp4"])
+def test_external_identity_rejects_manifest_escape(tmp_path, monkeypatch, former):
+    monkeypatch.setitem(globals(), "ROOT", tmp_path)
+    monkeypatch.setitem(globals(), "EXTERNAL_MEDIA_MANIFEST", tmp_path / "campaign-a/external-media.yaml")
+    monkeypatch.setitem(globals(), "_external_media_artifacts", lambda: [{"former_path": former}])
+    with pytest.raises(AssertionError):
+        _external_media_identity("campaign-a/raw.mp4")
