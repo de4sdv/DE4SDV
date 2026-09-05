@@ -37,13 +37,21 @@ agent context.
 
 The following authority boundaries apply.
 
-| Concern                                  | Authority                       |
-| ---------------------------------------- | ------------------------------- |
-| Reviewed baseline, decisions, governance | Git repo, PRs, ADRs, docs       |
-| Current modeled elements and relations   | Revision-bound SysML v2 API     |
-| Engineering concepts and semantics       | Ontology/kernel contract        |
-| Semantic queries: trace, impact, V&V     | Revision-bound semantic service |
-| Agent experience and lessons learned     | Agent memory; non-authoritative |
+| Concern                                  | Authority                        |
+| ---------------------------------------- | -------------------------------- |
+| Accepted baseline, decisions, governance | Merged/reviewed ADRs and docs    |
+| Contribution and decision history        | Git and pull-request history     |
+| Current modeled elements, relations      | Validated revision-bound API     |
+| Engineering concepts and semantics       | Ontology/kernel contract         |
+| Semantic queries: trace, impact, V&V     | Validated revision-bound service |
+| Agent experience and lessons learned     | Agent memory; non-authoritative  |
+
+In this table, modeled relations means native SysML v2 relationships, and the
+authoritative SysML source is a validated, revision-bound SysML v2 API
+project/commit. Stale, unvalidated, ontology-mismatched, missing, or ambiguous
+runtime state must fail closed and is not current engineering truth (ADR 0012).
+Accepted decisions are distinct from pull-request and Git history, which record
+contribution and discussion rather than accepted project authority.
 
 Operational agent memory is an implementation-independent capability. DE4SDV
 does not require a particular memory product, database, hosting model, or
@@ -234,4 +242,8 @@ This decision does not:
 ## Links
 
 * ADR 0005: Use SysML v2 API repository as live model store
+* ADR 0010: Bind semantic impact queries to SysML API revisions
+* ADR 0011: Import the reviewed SysML baseline into the API repository
+* ADR 0012: Expose revision-bound semantic reads through MCP (ADR 0017
+  builds directly on its semantic authority tuple and MCP boundary)
 * ADR 0004: Adopt ASEL/CM three-system framing
