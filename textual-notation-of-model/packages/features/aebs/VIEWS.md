@@ -690,8 +690,8 @@ Evidence-based assurance claim, counterclaims, retained evidence, and gaps for t
 
 - **Source:** `aebs_visualization_verification_evidence.sysml`
 - **Viewpoint:** `selectedAssuranceViewpoint` (`ArgumentationAssuranceViewpoint`)
-- **Concern:** `argumentationAssuranceConcernS2`
-- **Exposes:** `s2VisualizationInstrumentationClaim`, `chainCorrelationArgumentS2`, `lifecycleArcArgumentS2`, `readOnlyBoundaryArgumentS2`, `provenanceSeparationArgumentS2`, `failClosedStalenessArgumentS2`, `degradedRenderingArgumentS2`, `liveChainEvidenceS2`, `lifecycleArcEvidenceS2`, `readOnlyBoundaryEvidenceS2`, `provenanceSeparationEvidenceS2`, `failClosedStalenessEvidenceS2`, `degradedRenderingEvidenceS2`, `claimSupportedByChainArgument`, `claimSupportedByLifecycleArgument`, `claimSupportedByReadOnlyArgument`, `claimSupportedByProvenanceArgument`, `claimSupportedByStalenessArgument`, `claimSupportedByDegradedArgument`
+- **Concern:** `visualizationArgumentationAssuranceConcern`
+- **Exposes:** `visualizationInstrumentationClaim`, `chainCorrelationArgument`, `lifecycleArcArgument`, `readOnlyBoundaryArgument`, `provenanceSeparationArgument`, `failClosedStalenessArgument`, `degradedRenderingArgument`, `liveChainEvidence`, `lifecycleArcEvidence`, `readOnlyBoundaryEvidence`, `provenanceSeparationEvidence`, `failClosedStalenessEvidence`, `degradedRenderingEvidence`, `claimSupportedByChainArgument`, `claimSupportedByLifecycleArgument`, `claimSupportedByReadOnlyArgument`, `claimSupportedByProvenanceArgument`, `claimSupportedByStalenessArgument`, `claimSupportedByDegradedArgument`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
@@ -704,8 +704,8 @@ Evidence-based assurance claim, counterclaims, retained evidence, and gaps for t
 
 - **Source:** `aebs_visualization_verification_evidence.sysml`
 - **Viewpoint:** `selectedOpenCounterclaimViewpoint` (`ArgumentationAssuranceViewpoint`)
-- **Concern:** `argumentationAssuranceConcernS2`
-- **Exposes:** `s2VisualizationInstrumentationClaim`, `counterClaimS2Restoration`, `counterClaimS2LiveDegradation`, `counterClaimS2ProductionBoundaries`, `gap010RestorationUnexercisedS2`, `gap010LiveDegradationUnprovenS2`, `gap010InterVmRouteDeferredS2`, `counterClaimRestorationGapTrace`, `counterClaimLiveDegradationGapTrace`, `counterClaimProductionGapTrace`, `restorationEvidencePlannedS2`, `scenarioSafetyDeferredS2`
+- **Concern:** `visualizationArgumentationAssuranceConcern`
+- **Exposes:** `visualizationInstrumentationClaim`, `counterClaimRestoration`, `counterClaimLiveDegradation`, `counterClaimProductionBoundaries`, `gap010RestorationUnexercised`, `gap010LiveDegradationUnproven`, `gap010InterVmRouteDeferred`, `counterClaimRestorationGapTrace`, `counterClaimLiveDegradationGapTrace`, `counterClaimProductionGapTrace`, `restorationEvidencePlanned`, `scenarioSafetyDeferred`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.

@@ -66,6 +66,25 @@ lifecycle record. Historical 009-series verification slices retain their
 increment-suffixed declarations because they are the immutable evidence
 records of those increments; do not copy the pattern into new canonical work.
 
+The same rule covers **system-role shorthand**. When the package or the owning
+definition already establishes the System 1 / System 2 role — for example
+`DE4SDV_AEBSVisualizationVerificationEvidence` is, by its package and doc
+contract, the System 2 read-only AEBS visualization test system's evidence
+slice — locally declared names must not repeat the role as an embedded
+`S2`/`s2` shorthand (`VisualizationVandVBenchS2`,
+`s2VisualizationInstrumentationClaim`). Drop the shorthand where the remaining
+name is already descriptive (`VisualizationAcceptanceCriterion`); where the
+remainder would be generic or could shadow an imported declaration, add the
+concern qualifier instead (`verificationSystem` →
+`visualizationVerificationSystem`,
+`argumentationAssuranceConcern` →
+`visualizationArgumentationAssuranceConcern`). This is a **name-only rule**:
+hyphenated trace IDs (`EVID-AEBS-S2-001`, `AC-AEBS-S2-004`) are registered
+identity records and keep the `S2` namespace (same status as `MW` in §3), and
+doc prose that must state the system role explicitly ("System 1 subject /
+System 2 instrumentation") keeps spelling the role out. The role semantics
+never move — only the redundant shorthand in the identifier goes.
+
 ## 3. Abbreviation policy
 
 ### Established domain/technology acronyms (keep)
@@ -84,6 +103,7 @@ FMI, FMU, SSP, HIL, SIL, MIL, V&V (prose), UNECE.
 | `viz` | `visualization` |
 | `arch` | `architecture` |
 | `ver` | `verification` |
+| `S1` / `S2` embedded role shorthand | Omit when the owning package/definition already establishes the role. Add a concern qualifier when the remainder would be generic. Preserve registered trace IDs and technology names such as `ROS2`. Explicit role names such as `system2Instrumentation` remain valid when needed to distinguish architectural roles. |
 
 `MW` as a **registered subject-namespace code** (see §6) remains valid inside
 governed trace IDs (`E-MW-011`, `BL-MW-010`, legacy `REQ-MW-001`). It is not

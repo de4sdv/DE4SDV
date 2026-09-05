@@ -144,7 +144,7 @@ def test_every_acceptance_criterion_is_status_only_in_yaml_and_modeled() -> None
         assert set(criterion) == ALLOWED_CRITERION_KEYS, criterion["id"]
         element = criterion["sysml_element"]
         assert re.search(
-            rf"requirement\s+{element}\s*:\s*VisualizationAcceptanceCriterionS2\s*\{{",
+            rf"requirement\s+{element}\s*:\s*VisualizationAcceptanceCriterion\s*\{{",
             model,
         ), f"{element} must be a modeled requirement usage"
         assert f"{criterion['id']};" in model or f"{criterion['id']} " in model, (
@@ -196,14 +196,14 @@ def test_verdict_mapping_is_exactly_the_reviewed_semantics() -> None:
     """
     model = _model()
     mapping = re.search(
-        r"calc def MapS2OutcomeToVerdict \{(.*?)\n  \}",
+        r"calc def MapVisualizationOutcomeToVerdict \{(.*?)\n  \}",
         model,
         re.S,
     )
-    assert mapping, "MapS2OutcomeToVerdict must remain defined"
+    assert mapping, "MapVisualizationOutcomeToVerdict must remain defined"
     body = mapping.group(1)
     assert EXPECTED_VERDICT_MAPPING.strip() in body, (
-        "MapS2OutcomeToVerdict must map only observedBounded to pass and "
+        "MapVisualizationOutcomeToVerdict must map only observedBounded to pass and "
         "everything else (incl. partial) to inconclusive; "
         f"got: {body.strip()}"
     )
@@ -213,7 +213,7 @@ def test_missing_evidence_cannot_map_to_pass() -> None:
     """blocked/planned/notClaimed dispositions must stay non-pass."""
     model = _model()
     mapping = re.search(
-        r"calc def MapS2OutcomeToVerdict \{(.*?)\n  \}",
+        r"calc def MapVisualizationOutcomeToVerdict \{(.*?)\n  \}",
         model,
         re.S,
     )
@@ -256,14 +256,14 @@ def test_scenario_safety_outcome_stays_deferred() -> None:
     model = _model()
     pilot = _pilot()
     assert pilot["phase10_claim"]["scenario_safety_outcome"] == "deferred_not_proven"
-    assert "scenarioSafetyDeferredS2" in model
+    assert "scenarioSafetyDeferred" in model
     assert "deferred_not_proven" in model
 
 
 def test_claim_boundary_forbids_safety_and_certification_reading() -> None:
     model = _model()
     claim_block = re.search(
-        r"requirement s2VisualizationInstrumentationClaim : VisualizationClaimS2 \{.*?\n  \}",
+        r"requirement visualizationInstrumentationClaim : VisualizationClaim \{.*?\n  \}",
         model,
         re.S,
     )
@@ -280,7 +280,7 @@ def test_claim_boundary_forbids_safety_and_certification_reading() -> None:
 
 def test_read_only_boundary_is_claimed_in_model() -> None:
     model = _model()
-    assert "acceptanceCriterionS2ReadOnlyBoundary" in model
+    assert "acceptanceCriterionReadOnlyBoundary" in model
     assert "issues no vehicle command" in _read(PILOT).lower() or (
         "no vehicle command" in _read(PILOT)
     )
@@ -351,9 +351,9 @@ def test_evidence_index_classifies_publication_and_forensic_sets() -> None:
 def test_gap_records_are_modeled_with_owner() -> None:
     model = _model()
     for gap in (
-        "gap010RestorationUnexercisedS2",
-        "gap010LiveDegradationUnprovenS2",
-        "gap010InterVmRouteDeferredS2",
+        "gap010RestorationUnexercised",
+        "gap010LiveDegradationUnproven",
+        "gap010InterVmRouteDeferred",
     ):
         assert gap in model
     pilot = _pilot()
@@ -378,7 +378,7 @@ def test_views_use_argumentation_assurance_viewpoint() -> None:
     model = _model()
     assert model.count("view aebsVisualization") >= 2
     assert "ArgumentationAssuranceViewpoint" in model
-    assert "frame argumentationAssuranceConcernS2" in model
+    assert "frame visualizationArgumentationAssuranceConcern" in model
 
 
 def test_slice_adds_no_product_feature_or_member() -> None:
@@ -398,7 +398,7 @@ def test_bench_subject_distinction_is_explicit() -> None:
     instrumented test article belongs to the System 2 side."""
     model = _model()
     bench = re.search(
-        r"part def VisualizationVandVBenchS2 \{(.*?)\n  \}",
+        r"part def VisualizationVerificationBench \{(.*?)\n  \}",
         model,
         re.S,
     )
@@ -454,3 +454,115 @@ def test_partial_status_never_appears_as_campaign_pass() -> None:
     for criterion in pilot["acceptance_criteria"]:
         assert criterion["status"] != "pass", criterion["id"]
         assert "pass_partial" not in criterion["status"], criterion["id"]
+
+
+def _strip_sysml_comments(text: str) -> str:
+    """Blank out /* */ and // comments while preserving line structure."""
+    text = re.sub(
+        r"/\*.*?\*/",
+        lambda match: re.sub(r"[^\n]", " ", match.group(0)),
+        text,
+        flags=re.DOTALL,
+    )
+    return re.sub(r"//[^\n]*", "", text)
+
+
+_DECLARATION_RE = re.compile(
+    r"\b(?:part|item|enum|concern|view|requirement|verification|calc|action|"
+    r"port|flow|attribute|ref)\s+(?:def\s+)?([A-Za-z_][A-Za-z0-9_]*)"
+)
+
+RETIRED_S2_ROLE_SHORTHAND_NAMES = (
+    # Approved direct mappings.
+    "VisualizationScenarioS2",
+    "VisualizationObservationS2",
+    "RetainedVisualizationEvidenceS2",
+    "ReplayedVisualizationEvaluationS2",
+    "VisualizationVandVBenchS2",
+    "MapS2OutcomeToVerdict",
+    # Defs de-shorthand without further change of meaning.
+    "VisualizationAcceptanceCriterionS2",
+    "VisualizationClaimS2",
+    "VisualizationArgumentS2",
+    "VisualizationCounterClaimS2",
+    "VisualizationChainCorrelationVerificationS2",
+    "VisualizationLifecycleArcVerificationS2",
+    "VisualizationReadOnlyBoundaryVerificationS2",
+    "VisualizationProvenanceSeparationVerificationS2",
+    "VisualizationFailClosedStalenessVerificationS2",
+    "VisualizationDegradedRenderingVerificationS2",
+    "VisualizationRestorationVerificationS2",
+    # Generic names that gain the visualization qualifier.
+    "verificationSystemS2",
+    "s2VisualizationInstrumentationClaim",
+    "argumentationAssuranceConcernS2",
+    # Usage records de-shorthand (stems keep their identity role).
+    "scenarioSafetyDeferredS2",
+    "restorationEvidencePlannedS2",
+)
+
+
+def _has_s1_s2_role_shorthand(name: str) -> bool:
+    """True when the identifier embeds a standalone System1/System2 role
+    shorthand token (``S2``/``s2``). Acronym interiors (``ROS2``, where the
+    ``S`` follows an uppercase letter or the ``2`` is a digit suffix) are not
+    shorthand."""
+    for match in re.finditer(r"s[12]", name, re.IGNORECASE):
+        start, end = match.span()
+        before = name[start - 1] if start else ""
+        after = name[end] if end < len(name) else ""
+        if before.isdigit() or after.isdigit():
+            continue
+        if before and before.isupper():
+            continue
+        return True
+    return False
+
+
+def test_role_shorthand_detection_preserves_technology_names() -> None:
+    for name in ("VisualizationS1", "VisualizationS2", "s1Claim", "s2Claim"):
+        assert _has_s1_s2_role_shorthand(name), name
+    for name in ("ROS2TopicEndpoint", "System2Instrumentation", "VisualizationScenario"):
+        assert not _has_s1_s2_role_shorthand(name), name
+
+
+def test_target_declarations_carry_no_role_shorthand() -> None:
+    """Naming conventions §2/§3: the package (and each owning def) establishes
+    the System 2 role, so locally declared names must not embed the redundant
+    S1/S2 role shorthand. Stable hyphenated IDs (EVID/AC/VC/...-AEBS-S2-*) are
+    identity records and are not declarations — they stay untouched."""
+    code = _strip_sysml_comments(_model())
+    offenders = sorted(
+        {
+            name
+            for name in _DECLARATION_RE.findall(code)
+            if _has_s1_s2_role_shorthand(name)
+        }
+    )
+    assert not offenders, (
+        f"declarations still embed S1/S2 role shorthand: {offenders}"
+    )
+
+
+def test_retired_s2_names_absent_from_live_source() -> None:
+    """Every retired S2-shorthand declaration name is gone from live sources:
+    the target model, the pilot record, the generated view index, and all
+    sibling SysML slices. docs/naming/* (migration record) and retained
+    evidence prose are historical surfaces and intentionally out of scope."""
+    live_sources = "\n".join(
+        [
+            _model(),
+            _read(PILOT),
+            _read(MODEL_DIR / "VIEWS.md"),
+            *(
+                path.read_text(encoding="utf-8")
+                for path in sorted(MODEL_DIR.glob("*.sysml"))
+            ),
+        ]
+    )
+    residual = [
+        name
+        for name in RETIRED_S2_ROLE_SHORTHAND_NAMES
+        if name in live_sources
+    ]
+    assert not residual, f"retired names still referenced in live source: {residual}"
