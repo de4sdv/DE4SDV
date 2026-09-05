@@ -1,4 +1,4 @@
-# ADR 0007: Separate engineering authority from agent context and historical memory
+# ADR 0017: Separate engineering authority from agent context and historical memory
 
 ## Status
 
