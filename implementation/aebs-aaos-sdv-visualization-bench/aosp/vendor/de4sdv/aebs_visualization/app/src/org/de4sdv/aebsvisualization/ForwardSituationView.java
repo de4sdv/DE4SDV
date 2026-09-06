@@ -236,11 +236,11 @@ public class ForwardSituationView extends View {
      * factor, so their relative separation on screen equals their real
      * separation in the fixture scene (no presentation-only enlargement; no
      * renderer-side collision semantics — contact is a System 1 decision, not
-     * a drawing outcome). At true scale (~5 px wide at 1080×600) the
+     * a drawing outcome). At true scale (~14 px wide at 1080×600) the
      * silhouette is stylized as a bright core only: the former circular
      * emphasis halo is removed — a circle cannot stay inside the projected
      * footprint (an inscribed circle at 1080×600 would still be footprint-
-     * sized, since the fixture width projects to ~6 px), so any halo read
+     * sized, since the fixture width projects to ~14 px), so any halo read
      * beyond the footprint boundary was false visual contact
      * (VISUALIZATION-CONTRACT.md §13.1).
      */

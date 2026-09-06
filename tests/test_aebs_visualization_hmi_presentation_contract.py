@@ -152,12 +152,15 @@ def test_ego_uses_true_fixture_footprint_without_presentation_enlargement():
 def test_no_circular_ego_halo_remains():
     view = VIEW.read_text(encoding="utf-8")
     # The former circular emphasis halo is removed: a circle cannot stay
-    # inside the projected fixture-true footprint (width ~6 px at 1080x600),
+    # inside the projected fixture-true footprint (width ~14 px at 1080x600),
     # so any glow beyond the footprint boundary read as false visual contact
     # (contract §13.1). Containment is pinned behaviorally on the JVM by
     # SituationSceneGeometryTest (projected bounds, not source strings).
     assert "egoHaloPaint" not in view
     assert "drawCircle(g[0]" not in view
+    # Dead-wiring recurrence guard (round-1 review): the view must actually
+    # instantiate the geometry class, not call its methods on a float[].
+    assert "new SituationSceneGeometry(" in view
 
 
 def test_point_glow_is_decorative_and_small():

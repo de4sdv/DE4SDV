@@ -161,7 +161,7 @@ item defs AEBSVisualizationFrame + TargetPointProjection; proto schema_minor
 | Element | Source | Rendering | Non-claim |
 |---|---|---|---|
 | Target cluster | downsampled filtered obstacle cloud (<=24 pts, `target_points`) | cyan point cluster with no classification glyph | not object classification; not a rendered car body |
-| Ego car shape | scenario fixture footprint (3.74/1.03/1.83 m) | labeled rounded-rect reference silhouette, visually emphasized 2.5x for feed-size legibility | stylized fixture reference, not live pose or a vehicle model |
+| Ego car shape | scenario fixture footprint (3.74/1.03/1.83 m) | labeled rounded-rect reference silhouette at fixture-true scale (no presentation multiplier; the former emphasis halo is removed — see §13.1) | stylized fixture reference, not live pose or a vehicle model |
 | Ego speed | Autoware kinematic state -> `ego_speed` | big glanceable km/h banner (HMI focal point) + metric row | display-presentational; speed of the bench ego only |
 
 
@@ -261,9 +261,11 @@ below are binding and testable (`tests/test_aebs_010_hmi_presentation_contract.p
   in both axes (`ForwardSituationView.sceneGeometry()`).
 - The ego footprint is drawn at the TRUE fixture dimensions (front 3.74 m,
   rear 1.03 m, width 1.83 m) with no presentation-only enlargement relative
-  to obstacle geometry. At 1080×600 the fixture-true silhouette is a few
-  pixels wide; it is stylized (bright core plus a soft low-alpha emphasis
-  halo whose radius never exceeds the footprint span) but its represented
+  to obstacle geometry. At 1080×600 (~7.4 px per metre) the fixture-true
+  silhouette is ~14 px wide; it is stylized as a bright core (the former
+  soft emphasis halo is REMOVED: a circle cannot stay inside the projected
+  footprint at this viewport, and any glow beyond the footprint boundary
+  read as false visual contact) but its represented
   physical dimensions are never enlarged for readability.
 - Visual overlap must never be introduced by unequal scaling: if ego and
   obstacle pixels touch, the underlying metric geometry — not the renderer —
