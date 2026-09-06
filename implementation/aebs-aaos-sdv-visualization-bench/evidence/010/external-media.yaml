@@ -96,3 +96,21 @@ artifacts:
     disposition: forensic_only
     availability: historical_git_object_only
     reason: v2 source recording with later-retired display semantics
+  - former_path: warning-lead/p188-exact-head-108bfa9/p188b-run1.mp4
+    sha256: f4cf26c49ce9047e050ac32904ecd46ac8d31508e18e8434ae6c86125bc597bb
+    bytes: 1738610
+    disposition: observed_bounded
+    availability: maintainer_archive
+    claim: exact-head 009D warning-lead run 1 raw continuous take (lead 1.1103 s, gate pass)
+  - former_path: warning-lead/p188-exact-head-108bfa9/p188b-run2.mp4
+    sha256: 650e8883cb9c099b76b780552e8631495b1c03fa76b0923ac28a94e96e9e24a3
+    bytes: 1726647
+    disposition: observed_bounded
+    availability: maintainer_archive
+    claim: exact-head 009D warning-lead run 2 raw continuous take (lead 1.1123 s, gate pass)
+  - former_path: warning-lead/p188-exact-head-108bfa9/p188b-run3.mp4
+    sha256: 6dc2cb58ef5c0f2e6563f57ec06c34e0e591e43e315da4d6ac0f29cee930bc3b
+    bytes: 1729607
+    disposition: observed_bounded
+    availability: maintainer_archive
+    claim: exact-head 009D warning-lead run 3 raw continuous take (lead 0.9238 s, gate pass)
