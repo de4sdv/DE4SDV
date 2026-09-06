@@ -2,25 +2,24 @@ name: Privileged Full-Model API Ingestion
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/privileged-full-model-api-ingestion.yml"
-      - "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-      - "de4sdv/semantic/**"
-      - "de4sdv/sysml_api/**"
-      - "model-based-product-line-engineering/product-models/**/*.sysml"
-      - "scripts/export_sysml_api_baseline.py"
-      - "scripts/import_sysml_api_baseline.py"
-      - "scripts/semantic_mcp_server.py"
-      - "scripts/validate_semantic_mcp.py"
-      - "scripts/validate_full_model_semantic_queries.py"
-      - "requirements-mcp.txt"
-      - "tests/test_semantic_mcp.py"
-      - "tests/test_sysml_full_ingestion.py"
-      - "textual-notation-of-model/**/*.sysml"
+  schedule:
+    # One nightly full-model ingestion of main. The artifact feeds the
+    # gated public API deployment and keeps a daily semantic health signal.
+    - cron: "30 2 * * *"
 
 permissions:
   contents: read
+
+# The ingestion job builds a JVM service from source and runs the full
+# Syside export + API import chain (~35-60 min serialized). It runs on main
+# nightly and on demand via workflow_dispatch — never per-PR. A PR only
+# needs fast validation (CI + Privileged Syside Validation); its changes
+# get full ingestion coverage through the next nightly run or an explicit
+# dispatch before a production deployment, which re-verifies the exact
+# merged main SHA anyway (the deploy workflow refuses any other pairing).
+concurrency:
+  group: privileged-full-model-api-ingestion
+  cancel-in-progress: false
 
 jobs:
   ingest-and-validate:
@@ -122,6 +121,14 @@ jobs:
             --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
             --output /tmp/de4sdv-full-model-semantic-query-coverage.json
 
+      - name: Validate governed product-line scope through API identity
+        run: |
+          python scripts/validate_product_line_scope_api.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --export /tmp/de4sdv-full-model-export.json \
+            --output /tmp/de4sdv-product-line-scope-validation.json
+
       - name: Exercise read-only semantic MCP tools
         run: |
           python scripts/validate_semantic_mcp.py \
@@ -148,6 +155,7 @@ jobs:
             /tmp/de4sdv-full-model-binding.json
             /tmp/de4sdv-full-model-semantic-validation.json
             /tmp/de4sdv-full-model-semantic-query-coverage.json
+            /tmp/de4sdv-product-line-scope-validation.json
             /tmp/de4sdv-semantic-mcp-validation.json
             /tmp/de4sdv-full-model-export.json
             /tmp/sysml-api.log

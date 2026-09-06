@@ -73,5 +73,7 @@ non_claims:
   - Simulator deceleration is test-double behavior, not physical brake-actuation evidence.
   - The DE4SDV coordinator is an integration prototype, not an upstream Autoware component.
   - The 7.0 m warning margin is a 009D execution setting, not a product requirement.
+  - Native object-velocity calculation is disabled in the 009D calibration for a deterministic RSS schedule; the run does not validate Autoware moving-object relative-velocity estimation or moving-target braking performance.
+  - The scenario target still moves at 1.0 m/s; the static object-speed model applies to the fixture RSS schedule only and the target is NOT stationary.
   - A fresh source-bound true input is bounded evidence of conscious override only within this fixture.
   - This increment does not cover false reaction, degraded operation, pedestrians, bicycles, or quantified regulatory acceptance.

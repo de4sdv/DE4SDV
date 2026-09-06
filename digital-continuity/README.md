@@ -1,5 +1,8 @@
 # Digital Continuity
 
+Status: **incubating**. The repository contains traceability conventions, but
+no maintained OSLC connector baseline.
+
 Traceability across lifecycle artifacts.
 
 ## ASELCM scope

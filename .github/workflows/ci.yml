@@ -26,16 +26,16 @@ jobs:
       - name: Install test dependencies
         run: >-
           python -m pip install --disable-pip-version-check
-          PyYAML==6.0.2 pytest -r requirements-mcp.txt
+          PyYAML==6.0.2 pytest sysand==0.1.0 -r requirements-mcp.txt
+
+      - name: Sync pinned SysML dependencies
+        run: sysand sync
 
       - name: Run repository checks
         run: python scripts/check_repo.py
 
-      - name: Run unit tests
-        run: python -m unittest discover -s tests
-
-      - name: Run semantic MCP tests
-        run: python -m pytest tests/test_semantic_mcp.py -q
+      - name: Run full project test suite
+        run: python -m pytest tests -q
 
       - name: Run smoke tests
         run: python scripts/smoke_test.py

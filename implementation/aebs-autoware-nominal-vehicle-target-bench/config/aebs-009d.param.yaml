@@ -1,0 +1,76 @@
+# INC-AEBS-009D moving-target AEB calibration (deterministic warning-lead schedule).
+# Derived from the shared 009B calibration in aebs-009b.param.yaml, which itself
+# derives from the complete pinned Autoware Universe AEB configuration:
+# repository: https://github.com/autowarefoundation/autoware_universe
+# commit: f603d8759c92fb2f423f1544844e13086d79ad09
+# path: control/autoware_autonomous_emergency_braking/config/autonomous_emergency_braking.param.yaml
+# upstream Git blob SHA-1: b23c3bbdd4d5954b69b70e92512610e9beaab234
+# upstream file SHA-256: 6a620ee2275e48ea3a12b00a42657c1bab35ec5e0e722011556ddd08ca403e5c
+#
+# 009D-only derivation (this file, every other value retained from the 009B
+# calibration):
+# use_object_velocity_calculation changes from true to false. The pinned
+# upstream object-velocity estimator derives object speed from collision-point
+# displacement between AEB cycles (node.hpp, CollisionDataKeeper). In the
+# 2026-09-02 v22 campaign it produced a constant wrong estimate
+# (object_speed_mps=-4.17 against a target receding at +1.0 m/s), inflating
+# rss_distance_m to 23.45 at a 20.0 m bumper gap so native intervention fired
+# at first sight with zero warning lead. With the estimator disabled, object
+# speed is 0.0 and RSS depends only on ego kinematics, giving a deterministic
+# warning-lead schedule (warning at first geometry, native fire ~1.6 s later;
+# >= 0.8 s contract).
+#
+# Non-claims: this is a prototype fixture setting for the 009D moving-target
+# bench only. It does not validate Autoware moving-object relative-velocity
+# estimation, and it does not make the bench target stationary (the target
+# still moves at 1.0 m/s; only the fixture RSS schedule uses the static
+# model). It must never be promoted to a product requirement.
+/**:
+  ros__parameters:
+    # Ego path calculation
+    use_predicted_trajectory: false
+    use_imu_path: true
+    limit_imu_path_lat_dev: false
+    limit_imu_path_length: true
+    use_pointcloud_data: true
+    use_predicted_object_data: false
+    use_object_velocity_calculation: false
+    check_autoware_state: true
+    imu_path_lat_dev_threshold: 1.75
+    min_generated_imu_path_length: 15.0
+    max_generated_imu_path_length: 25.0
+    imu_prediction_time_horizon: 4.0
+    imu_prediction_time_interval: 0.1
+    mpc_prediction_time_horizon: 4.5
+    mpc_prediction_time_interval: 0.1
+
+    # Debug
+    publish_debug_pointcloud: true
+    publish_debug_markers: true
+
+    # Point cloud partitioning
+    detection_range_min_height: 0.0
+    detection_range_max_height_margin: 0.0
+    voxel_grid_x: 0.1
+    voxel_grid_y: 0.1
+    voxel_grid_z: 0.5
+
+    # Point cloud cropping
+    expand_width: 0.2
+    path_footprint_extra_margin: 1.0
+    speed_calculation_expansion_margin: 0.7
+
+    # Point cloud clustering
+    cluster_tolerance: 0.15  # [m]
+    cluster_minimum_height: 0.1
+    minimum_cluster_size: 10
+    maximum_cluster_size: 10000
+
+    # RSS distance collision check
+    longitudinal_offset_margin: 1.0
+    t_response: 1.0
+    a_ego_min: -3.0
+    a_obj_min: -1.0
+    collision_keeping_sec: 3.0
+    previous_obstacle_keep_time: 1.0
+    aeb_hz: 10.0

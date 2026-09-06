@@ -219,6 +219,11 @@ def test_import_accepts_deployment_specific_identities(
         # The importer must be invoked from the repo with the exact export.
         assert "scripts/import_sysml_api_baseline.py" in " ".join(cmd)
         assert str(evidence["export_path"]) in " ".join(cmd)
+        # Direct (non-proxied) importer calls must present the allow-listed
+        # Host header, or Play's AllowedHostsFilter returns 400 for every
+        # request (deploy-host bridge IP is not in the allow list).
+        assert "--api-host-header" in cmd
+        assert cmd[cmd.index("--api-host-header") + 1] == deploy.api_host_header()
         # Simulate the deployment API repository generating its OWN identities.
         binding = {
             "git_commit": facts["git_sha"],
@@ -521,9 +526,154 @@ def test_workflow_uses_real_git_checkout() -> None:
     assert "checkout --detach --force" in wf
     assert "reset --hard" in wf
     assert "clean -ffd" in wf
+    assert "git bundle create" in wf
+    assert "git clone --no-checkout" in wf
     # The old fake-checkout must be gone.
     assert "git init -q" not in wf
     assert "--exclude=.git" not in wf
+
+
+def test_workflow_checks_out_its_own_tooling_revision() -> None:
+    """Branch workflow runs must execute the verifier from that branch.
+
+    Run 33687765841 loaded the amended workflow definition but checked the
+    workspace out at the older DEPLOY_SHA, so the mandatory step executed the
+    old verifier and reproduced its fixed NameError. The Git bundle still
+    pins host source to DEPLOY_SHA independently.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    tooling_step = wf.split("- name: Check out deployment tooling", 1)[1]
+    tooling_step = tooling_step.split("- name: Validate deployment ref", 1)[0]
+
+    assert "ref: ${{ github.sha }}" in tooling_step
+    assert "ref: ${{ env.DEPLOY_SHA }}" not in tooling_step
+    assert 'git update-ref "$BUNDLE_REF" "$DEPLOY_SHA"' in wf
+
+
+def test_workflow_recreates_the_deployment_checkout_unconditionally() -> None:
+    """A previous run's Git config must never control the next deployment.
+
+    Runs 33660870062 and 33663783815 both took the existing-checkout branch
+    and failed at ``git fetch origin`` with an interactive GitHub credential
+    challenge.  Retrying could not self-heal because the persisted checkout
+    and its repository-local configuration were reused unchanged.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    checkout_step = wf.split("- name: Create exact Git checkout on the host", 1)[1]
+    checkout_step = checkout_step.split(
+        "- name: Materialize pinned Sysand dependencies on the host", 1
+    )[0]
+
+    assert 'sudo rm -rf "$REPO_DIR"' in checkout_step
+    assert 'git clone --no-checkout --branch deploy-source' in checkout_step
+    assert 'if [[ -d "$REPO_DIR/.git" ]]' not in checkout_step
+    assert 'git -C "$REPO_DIR" fetch' not in checkout_step
+    assert 'git clone --single-branch' not in checkout_step
+
+
+def test_workflow_transfers_a_verified_git_bundle_from_the_runner() -> None:
+    """The deploy host must not depend on anonymous GitHub smart HTTP.
+
+    Fresh all-refs and single-branch clones both received a GitHub credential
+    challenge from the production host (runs 33670629082 and 33679270407).
+    Build a real Git bundle from actions/checkout's authenticated, exact-SHA
+    canonical checkout, verify its ref and checksum, and clone it locally on
+    the host over the already pinned SSH transport.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    checkout_step = wf.split("- name: Create exact Git checkout on the host", 1)[1]
+    checkout_step = checkout_step.split(
+        "- name: Materialize pinned Sysand dependencies on the host", 1
+    )[0]
+
+    assert "fetch-depth: 0" in wf
+    assert "persist-credentials: false" in wf
+    assert 'BUNDLE_REF="refs/heads/deploy-source"' in checkout_step
+    assert 'git update-ref "$BUNDLE_REF" "$DEPLOY_SHA"' in checkout_step
+    assert 'git bundle create "$SOURCE_BUNDLE" "$BUNDLE_REF"' in checkout_step
+    assert 'git bundle verify "$SOURCE_BUNDLE"' in checkout_step
+    assert 'git bundle list-heads "$SOURCE_BUNDLE"' in checkout_step
+    assert 'scp -i /tmp/deploy_key' in checkout_step
+    assert "StrictHostKeyChecking=yes" in checkout_step
+    assert 'REMOTE_BUNDLE_SHA256=$(sha256sum "$SOURCE_BUNDLE"' in checkout_step
+    assert 'if [[ "$REMOTE_BUNDLE_SHA256" != "$EXPECTED_BUNDLE_SHA256" ]]; then' in checkout_step
+    assert 'git clone --no-checkout --branch deploy-source' in checkout_step
+    assert 'git -C "$REPO_DIR" branch -D deploy-source' in checkout_step
+    assert 'git -C "$REPO_DIR" remote set-url origin "$REPO_URL"' in checkout_step
+    assert 'GIT_TERMINAL_PROMPT=0 git clone' not in checkout_step
+    assert 'refs/remotes/origin/main' not in checkout_step
+
+
+def test_workflow_materializes_pinned_sysand_dependencies() -> None:
+    """The deploy host must reproduce the privileged source manifest exactly.
+
+    The reviewed baseline manifest pins three external Sysand dependency
+    sources under the gitignored .sysand/ directory; the privileged workflow
+    materializes them with ``sysand sync`` from the committed lockfile. The
+    deploy host does a pure Git checkout, so it must run the same
+    materialization step or the importer correctly fails closed with a
+    stale/incomplete source manifest (regression: FileNotFoundError for
+    .sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml during deployment).
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    # A dedicated materialization step exists and runs sysand from a pinned
+    # client install (no floating version). The version-specific venv path
+    # means a pre-existing environment at another version is never silently
+    # reused: any path that is not exactly the pinned version fails closed.
+    assert "Materialize pinned Sysand dependencies" in wf
+    assert "SYSAND_VERSION=0.2.1" in wf
+    assert 'SYSAND_DIR="/srv/de4sdv/sysand-$SYSAND_VERSION"' in wf
+    assert '"sysand==$SYSAND_VERSION"' in wf
+    # Version checks are exact scalar comparisons — no pipes into grep:
+    #   - grep -q early-exit under pipefail caused a live SIGPIPE false
+    #     negative (deploy run 33601227223);
+    #   - grep substring matching could accept 0.2.10 for 0.2.1.
+    assert 'importlib.metadata.version("sysand")' in wf
+    assert 'if [[ "$ACTUAL_SYSAND_VERSION" != "$SYSAND_VERSION" ]]; then' in wf
+    assert 'ACTUAL_SYSAND_CLI_VERSION=$("$SYSAND" --version)' in wf
+    assert 'if [[ "$ACTUAL_SYSAND_CLI_VERSION" != "sysand $SYSAND_VERSION" ]]; then' in wf
+    assert "deploy host sysand is not exactly $SYSAND_VERSION" in wf
+    # The grep-pipeline forms must be gone entirely.
+    assert "pip show sysand | grep" not in wf
+    assert '"$SYSAND" --version | grep' not in wf
+    # The unpinned shared-directory form must be gone.
+    assert "SYSAND_DIR=/srv/de4sdv/sysand\n" not in wf
+    # pip console scripts bake the absolute interpreter path into their
+    # shebangs: installing into a .tmp dir and mv-ing it afterwards leaves
+    # every script with a stale shebang ("bad interpreter", deploy run
+    # 33608232967, exit 127). The venv is recreated unconditionally at the
+    # final version-specific path — no reuse gate (deploy run 33608232967
+    # left a broken-but-executable sysand that a -x check would have
+    # silently reused), and no .tmp build-and-move pattern.
+    assert "if [[ ! -x \"$SYSAND_DIR/bin/sysand\" ]]" not in wf
+    assert "SYSAND_DIR.tmp" not in wf
+    assert 'mv "$SYSAND_DIR.tmp"' not in wf
+    assert 'rm -rf "$SYSAND_DIR"\n          python3 -m venv "$SYSAND_DIR"' in wf
+    assert 'python3 -m venv "$SYSAND_DIR"' in wf
+    assert "sysand sync" in wf
+    # It operates inside the exact Git checkout and requires the lockfile.
+    assert "cd \"$REPO_DIR\"" in wf
+    assert 'sysand-lock.toml missing at the deployed SHA' in wf
+    # All three pinned dependency sources are asserted present afterwards.
+    for pinned in (
+        ".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml",
+        ".sysand/lib/ode4hera-requirements-management_2.0.1/"
+        "RequirementsManagement.sysml",
+        ".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml",
+    ):
+        assert f"test -f {pinned}" in wf
+    # The step runs before the fail-closed deploy step.
+    assert wf.index("Materialize pinned Sysand dependencies") < wf.index(
+        "Transfer validated bundle and run fail-closed deploy"
+    )
 
 
 def test_compose_publishes_only_proxy_ports() -> None:
@@ -616,3 +766,67 @@ def test_workflow_uses_dedicated_venv_python_for_deploy() -> None:
     )
     assert "/srv/de4sdv/venv/bin/python deployment/scripts/deploy.py" in wf
     assert "sudo DEPLOY_DIR=/srv/de4sdv python3 deployment/scripts/deploy.py" not in wf
+
+
+# ------------------------------------------------- direct-call Host header
+
+
+def test_wait_for_api_sends_allow_listed_host_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The readiness probe bypasses Caddy and must present the accepted Host.
+
+    Regression: probing the container by bridge IP sent ``Host: <ip>:9000``,
+    which Play's AllowedHostsFilter rejects with 400, so every deploy run
+    timed out with "API did not become ready: HTTP Error 400".
+    """
+    captured: dict[str, Any] = {}
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_a):
+            return False
+
+    def fake_urlopen(request, timeout=None):
+        captured["url"] = request.full_url
+        captured["headers"] = {k.lower(): v for k, v in request.header_items()}
+        return FakeResponse()
+
+    monkeypatch.setattr(deploy, "api_base_url_from_docker", lambda: "http://172.18.0.5:9000")
+    monkeypatch.setattr(deploy.urlrequest, "urlopen", fake_urlopen)
+
+    deploy.wait_for_api(timeout_s=5)
+
+    assert captured["url"] == "http://172.18.0.5:9000/projects"
+    assert captured["headers"]["host"] == deploy.api_host_header()
+    # The accepted value must be the compose service name, not an address.
+    assert deploy.api_host_header() == "sysml2-api:9000"
+
+
+def test_importer_threads_host_header_into_api_client() -> None:
+    """``--api-host-header`` reaches ApiClient.default_headers; absent flag = no Host override."""
+    import inspect
+
+    from de4sdv.sysml_api.client import ApiClient
+
+    spec = importlib.util.spec_from_file_location(
+        "import_sysml_api_baseline", REPO / "scripts" / "import_sysml_api_baseline.py"
+    )
+    assert spec is not None and spec.loader is not None
+    importer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(importer)
+
+    signature = inspect.signature(importer.run_import)
+    assert "api_host_header" in signature.parameters
+    assert signature.parameters["api_host_header"].default is None
+
+    # ApiClient maps default_headers into every request (the mechanism used).
+    client = ApiClient("http://172.18.0.5:9000", default_headers={"Host": "sysml2-api:9000"})
+    request_headers = {"Accept": "application/json", **client.default_headers}
+    assert request_headers["Host"] == "sysml2-api:9000"
+    # No flag -> empty default_headers -> urllib auto-Host (unchanged behavior).
+    assert ApiClient("http://host:9000").default_headers == {}

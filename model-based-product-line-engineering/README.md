@@ -16,6 +16,18 @@ constructs hold structural choices. The YAML catalogues hold hierarchy,
 compatibility constraints, stable IDs, binding times, and feature-to-asset
 mappings that native variability does not provide by itself.
 
+## Governed product-line scope
+
+The [`scoping/`](scoping/) directory records reviewed planned-member portfolio
+decisions before feature-model authoring. Its SysML/API identity governs which
+members define the scope, which differences are product variability, and which
+technical choices are derived. Portfolio membership does not change local
+increment, implementation, configuration, or evidence status.
+
+The current YAML catalogues remain the operational configuration authority.
+Changing that authority or migrating to another feature-model implementation
+requires a separate reviewed decision.
+
 ## Configurable families
 
 | Family | System role | Feature catalogue | Shared SysML owner |

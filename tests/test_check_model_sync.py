@@ -90,8 +90,8 @@ def test_broken_scenario_identity_detected():
 
     # Inject a bogus member right after the opening brace of the enum.
     broken = original.replace(
-        "enum def ScenarioIdentity009D {",
-        "enum def ScenarioIdentity009D {\n    bogusNonExistentScenario;",
+        "enum def OverrideScenarioIdentity {",
+        "enum def OverrideScenarioIdentity {\n    bogusNonExistentScenario;",
         1,
     )
     assert broken != original, "test setup: replacement did not alter the file"

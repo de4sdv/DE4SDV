@@ -9,7 +9,7 @@ configured family member or candidate projection.
 |---|---|---|---|
 | `example-linux-score-autoware.yaml` | SDV product line | not declared | Example platform projection |
 | `apollo-qnx-qvm.yaml` | SDV product line | not declared | Example mixed-criticality platform projection |
-| `invalid-score-android.yaml` | SDV product line | invalid fixture | Deliberate C001 violation |
+| `fixtures/invalid-score-android.yaml` | SDV product line | invalid fixture | Deliberate C001 violation |
 | `inc-aebs-009a-jetson.yaml` | Engineering environment | `inspected` | Exact maintained Jetson target; historical 009A run proved only Jetson 8 GiB identity |
 | `apple-silicon-macos-candidate.yaml` | Engineering environment | `planned` | Unverified M-series/macOS candidate |
 | `nxp-zephyr-vehicle-target-candidate.yaml` | Vehicle target | `planned` | Unverified unresolved NXP/Zephyr candidate |

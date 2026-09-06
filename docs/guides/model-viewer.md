@@ -11,11 +11,32 @@ Diagrams are the committed `syside viz` artifacts gathered in each first-level
 model area's `diagrams/` folder, so what you see is exactly what the privileged
 validation workflow rendered — never a re-render.
 
+## Diagram provenance
+
+Every diagram in this viewer is a **committed artifact**, not a live render: it
+was produced with [SysIDE](https://docs.sensmetry.com/editor/) (`syside viz`) by
+the privileged validation workflow and committed to the repository beside the
+model sources in each area's `diagrams/` folder. The viewer embeds exactly those
+files — it never re-renders or invents a diagram.
+
+To render or refresh diagrams yourself, install the SysIDE Editor extension for
+VS Code — setup and the visualization commands are in the
+[official SysIDE documentation](https://docs.sensmetry.com/editor/) — open the
+package that declares the view, run the visualization command on it, and
+contribute the updated SVG through a pull request.
+
 ## The live website
 
-A live viewer is deployed at **<https://viewer.de4sdv.org>**, rebuilt from
-`main` and open pull requests by the deploy workflow. It is the public
-instance — what you see there is committed content only.
+The public reader experience is
+**[viewer.de4sdv.org](https://viewer.de4sdv.org)**. It serves one reviewed
+current revision and its bounded Ask-model capability. Right-click a model
+element and choose **Ask the model** to ask a question grounded in the
+deployed model. The answer is generated, not model authority: follow its
+element/source links and verify important conclusions against the model.
+
+The prebuilt branch and pull-request viewer remains available at the
+[native GitHub Pages URL](https://de4sdv.github.io/DE4SDV/) as a browse-only
+engineering mirror. It does not execute Ask-model requests.
 
 ## Repository diagram collections
 
@@ -117,7 +138,10 @@ The **Chat** link in the header points to the DE4SDV Mattermost community
 
 ## Static vs. server mode
 
-A page served from a static build (including the published site) shows a note
+A page served from a static build (including the native Pages mirror) shows a note
 when a revision is listed but not built: "served statically — run
 `python -m tools.sysml_html_viewer.serve …`". Server mode is the only mode
-that builds revisions on demand and watches for model changes.
+that builds revisions on demand and watches for model changes. The public
+interactive service is intentionally pinned to one reviewed application
+revision and one validated model revision; it does not expose arbitrary branch
+or pull-request builds.

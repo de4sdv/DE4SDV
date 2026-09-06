@@ -39,12 +39,15 @@ produce reviewable artifacts, trace links, and evidence.
 | `textual-notation-of-model/` | The SysML v2 systems model: method packages, SAF viewpoints, feature packages (AEBS, middleware) |
 | `model-based-product-line-engineering/` | Feature models, configurations, shared assets, product models |
 | `implementation/` | Reference implementations with reproducible evidence (e.g. Autoware AEBS benches) |
+| `deployment/` | Reproducible deployment assets for public services |
 | `compliance/`, `continuous-homologation/`, `configuration-management/` | Safety, security, evidence, baseline structures |
 | `simulation/`, `digital-twin/`, `digital-continuity/`, `sysmlv2-api/` | Simulation, twin, traceability, and API integration assets |
-| `devsecops/` | CI/CD, SBOM, security automation notes |
+| `devsecops/` | Current control status and next security-automation actions |
 | `scripts/`, `tools/` | Repository checks and tooling (including the model viewer) |
 
-The full index lives in [`docs/repository-tree.md`](../repository-tree.md).
+The curated authority and lifecycle map lives in
+[`docs/repository-tree.md`](../repository-tree.md). Run `git ls-files` for a
+complete tracked-file inventory.
 
 ## Explore the model
 
@@ -65,6 +68,12 @@ open every declared view (the diagrams SysIDE renders from the model), hover
 elements and connections for tooltips, jump to definitions, and inspect
 viewpoints and concerns. See the
 [model viewer guide](../guides/model-viewer.md) for all features.
+
+The same baseline is also deployed as a read-only SysML v2 API at
+<https://sysml-api.de4sdv.org>. To explore it beyond the browser — including
+letting an AI agent ask semantic questions against the exact reviewed
+revision — see
+[query the public model via MCP](../guides/query-the-public-model-via-mcp.md).
 
 If you prefer the source, start here:
 
@@ -139,8 +148,16 @@ For real-time coordination, DE4SDV uses Mattermost at <https://chat.de4sdv.org>
 ## Learn the terms
 
 The [glossary](../terminology/glossary.md) defines the project vocabulary:
-SDV, product line, feature model, digital thread, System 1/2/3, and the
-viewpoint-related terms used across the model and docs.
+SDV, product line, feature model, digital thread, System 1/2/3, increment,
+phase, record, and the viewpoint-related terms used across the model and docs.
+
+## Name things consistently
+
+Naming, identifiers, and abbreviations follow the authoritative
+[naming conventions](../naming/naming-conventions.md) — including the
+identifier-prefix and subject-namespace registries that tell you what
+`INC-AEBS-010`, `REQ-AEBS-014`, or `EVID-MW-011` mean. `check_repo.py`
+enforces the objective rules via `scripts/check_naming.py`.
 
 ## Repository conventions
 

@@ -367,6 +367,30 @@ class ObserverCore:
         ):
             raise ValueError("ended_at_s must be finite and not precede collection start")
         result = self.evaluate()
+        # Hard evidence gates: surface the authoritative source-side warning-lead
+        # timing at the top level so campaign evidence can be gated without
+        # re-deriving it from video or frame logs. first_warning_timestamp_s /
+        # first_intervention_timestamp_s / warning_lead_s come from the
+        # evaluator's details when it reached the warning-lead check; missing
+        # values mean the run did not reach that gate (campaign ineligible for
+        # the full lifecycle claim).
+        detail_keys = (
+            "warning_lead_s",
+            "baseline_stable_at_s",
+        )
+        evidence = {
+            key: result.details[key]
+            for key in detail_keys
+            if key in result.details
+        }
+        warning_lead = result.details.get("warning_lead_s")
+        first_warning_ts = None
+        first_intervention_ts = None
+        for event in result.accepted_events:
+            if event.label == "warning_request" and first_warning_ts is None:
+                first_warning_ts = event.receipt_monotonic_s
+            if event.label in ("native_aeb_intervention", "native_aeb_intervention_diagnostic") and first_intervention_ts is None:
+                first_intervention_ts = event.receipt_monotonic_s
         return {
             "collector_id": COLLECTOR_ID,
             "monotonic_start_s": self.started_at_s,
@@ -374,6 +398,19 @@ class ObserverCore:
             "clock_boundary": CLOCK_BOUNDARY,
             "observations": list(self.observations),
             "evaluator_result": result,
+            "lifecycle_gate": {
+                "warning_lead_min_s": self.config.outcome_contract.warning_lead_min_s,
+                "first_warning_timestamp_s": first_warning_ts,
+                "first_intervention_timestamp_s": first_intervention_ts,
+                "warning_lead_s": warning_lead,
+                "warning_lead_gate": (
+                    "pass"
+                    if warning_lead is not None
+                    and warning_lead >= self.config.outcome_contract.warning_lead_min_s
+                    else "not_reached_or_failed"
+                ),
+                **evidence,
+            },
             "activation": {
                 "request_time_s": self.activation_request_time_s,
                 "response_time_s": self.activation_response_time_s,

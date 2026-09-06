@@ -96,16 +96,16 @@ class TestControlArtifactsAlign(unittest.TestCase):
 class TestRequirementParentage(unittest.TestCase):
     def test_false_reaction_candidates_reparented_to_trustworthy_need(self):
         deps = _model_dependencies(_load_model())
-        self.assertIn("req008DerivedFromNeed014", deps)
-        self.assertIn("req012DerivedFromNeed014", deps)
+        self.assertIn("reqResistFalseReactionDerivedFromTrustworthyInterventionDecisions", deps)
+        self.assertIn("reqResistFalseBrakingCommandDerivedFromTrustworthyInterventionDecisions", deps)
         self.assertNotIn("req008DerivedFromNeed001", deps)
         self.assertNotIn("req012DerivedFromNeed001", deps)
         self.assertEqual(
-            deps["req008DerivedFromNeed014"][1],
+            deps["reqResistFalseReactionDerivedFromTrustworthyInterventionDecisions"][1],
             "needTrustworthyInterventionDecisions",
         )
         self.assertEqual(
-            deps["req012DerivedFromNeed014"][1],
+            deps["reqResistFalseBrakingCommandDerivedFromTrustworthyInterventionDecisions"][1],
             "needTrustworthyInterventionDecisions",
         )
 
@@ -124,9 +124,9 @@ class TestRequirementParentage(unittest.TestCase):
 
     def test_degraded_candidates_keep_member_need_parent(self):
         deps = _model_dependencies(_load_model())
-        self.assertEqual(deps["req009DerivedFromNeed008"][1],
+        self.assertEqual(deps["reqDerivedFromNeedBoundedDegradation"][1],
                          "needBoundedDegradationAndAvailability")
-        self.assertEqual(deps["req013DerivedFromNeed008"][1],
+        self.assertEqual(deps["reqIndicateDegradedUnavailableStatusDerivedFromBoundedDegradationAndAvailability"][1],
                          "needBoundedDegradationAndAvailability")
 
 

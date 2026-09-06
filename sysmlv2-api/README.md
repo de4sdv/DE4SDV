@@ -130,6 +130,12 @@ expose model writes. Its seven tools are `model_status`, `resolve_element`,
 `inspect_element`, `semantic_neighbors`, `impact`, `trace`, and
 `verification_coverage`.
 
+The experimental public deployment of this API at `sysml-api.de4sdv.org` can be
+queried through the same server — building a client binding from the deployed
+status document, connecting an agent, and the cold-cache latency profile are
+step-by-step documented in
+[`../docs/guides/query-the-public-model-via-mcp.md`](../docs/guides/query-the-public-model-via-mcp.md).
+
 The runtime contract is explicit:
 
 ```bash

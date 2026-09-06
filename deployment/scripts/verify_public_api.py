@@ -23,23 +23,42 @@ from __future__ import annotations
 
 import argparse
 import json
-import ssl
 import sys
 import time
 from pathlib import Path
 from typing import Any
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit, urlunsplit
 
 KNOWN_ELEMENT_NAME = "reqCommandEmergencyBraking"
 MUTATION_METHODS = ("POST", "PUT", "PATCH", "DELETE")
 # A deliberately nonstandard/extension method: if the proxy used a deny-list,
 # an unknown verb like this could slip through to the upstream API.
 NONSTANDARD_METHOD = "BREW"
+PAGINATION_PAGE_SIZE = 5_000
+MAX_PAGINATION_PAGES = 1_000
 
 
 class VerificationError(RuntimeError):
     pass
+
+
+def _same_origin(link: str, base_url: str) -> str:
+    """Reconnect server-generated pagination links to the configured origin.
+
+    The API builds absolute next-links from the request Host header, which
+    Caddy rewrites to the container-internal name (sysml2-api:9000). A
+    public client cannot resolve that name; the service is whatever
+    base_url is. Keep the linked path+query, swap the origin.
+    """
+    linked = urlsplit(link)
+    configured = urlsplit(base_url)
+    if (linked.scheme, linked.netloc) == (configured.scheme, configured.netloc):
+        return link
+    return urlunsplit(
+        (configured.scheme, configured.netloc, linked.path, linked.query, "")
+    )
 
 
 def require(condition: bool, message: str) -> None:
@@ -63,12 +82,33 @@ def fetch_json(url: str, **kwargs) -> Any:
     return json.loads(body.decode("utf-8"))
 
 
-def check_tls(base_url: str) -> None:
+def check_tls(
+    base_url: str, *, attempts: int = 12, delay_seconds: float = 5.0
+) -> None:
+    """Wait for the public TLS endpoint after the proxy has started.
+
+    Caddy can bind 443 before its first TLS handshake is ready. The deployment
+    starts Caddy immediately before this verifier, so retry only this readiness
+    boundary while retaining normal certificate validation.
+    """
     require(base_url.startswith("https://"), "base URL must be HTTPS")
-    host = base_url.split("://", 1)[1].rstrip("/")
-    context = ssl.create_default_context()
-    with urlrequest.urlopen(f"https://{host}/", timeout=30, context=context) as response:
-        require(response.status in (200, 404), f"TLS handshake/first response failed: {response.status}")
+    require(attempts > 0, "TLS readiness attempts must be positive")
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            status, _headers, _body = fetch(f"{base_url.rstrip('/')}/", timeout=30)
+            require(
+                status in (200, 404),
+                f"TLS handshake/first response failed: {status}",
+            )
+            return
+        except (URLError, VerificationError) as exc:
+            last_error = exc
+            if attempt < attempts:
+                time.sleep(delay_seconds)
+    raise VerificationError(
+        f"TLS endpoint not ready after {attempts} attempts: {last_error}"
+    ) from last_error
 
 
 def check_method_allowlist(base_url: str) -> dict[str, int]:
@@ -125,11 +165,21 @@ def check_pagination_and_known_element(
     base_url: str, project_id: str, commit_id: str
 ) -> int:
     """Follow rel=next Link headers; prove pagination and the known element."""
-    url: str | None = f"{base_url}/projects/{project_id}/commits/{commit_id}/elements"
+    url: str | None = (
+        f"{base_url}/projects/{project_id}/commits/{commit_id}/elements"
+        f"?page%5Bsize%5D={PAGINATION_PAGE_SIZE}"
+    )
     total = 0
     pages = 0
     known_id: str | None = None
-    while url and pages < 120:
+    seen_urls: set[str] = set()
+    while url:
+        require(url not in seen_urls, f"pagination cycle detected at {url}")
+        require(
+            pages < MAX_PAGINATION_PAGES,
+            f"pagination exceeded {MAX_PAGINATION_PAGES} pages",
+        )
+        seen_urls.add(url)
         status, headers, body = fetch(url)
         require(status == 200, f"{url} returned {status}")
         elements = json.loads(body.decode("utf-8"))
@@ -146,7 +196,7 @@ def check_pagination_and_known_element(
         if link and 'rel="next"' in link:
             start = link.index("<") + 1
             end = link.index(">")
-            url = link[start:end]
+            url = _same_origin(link[start:end], base_url)
     require(pages > 1, "expected multi-page pagination for the full model")
     require(total > 50000, f"full model pagination found only {total} elements")
     require(known_id is not None, f"{KNOWN_ELEMENT_NAME} not found while paging")

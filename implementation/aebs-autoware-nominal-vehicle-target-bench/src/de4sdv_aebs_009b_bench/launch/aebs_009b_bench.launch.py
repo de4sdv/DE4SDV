@@ -29,6 +29,7 @@ def generate_launch_description():
     map_path = LaunchConfiguration("map_path")
     scenario_config_name = LaunchConfiguration("scenario_config_name")
     warning_margin_m = LaunchConfiguration("warning_margin_m")
+    aeb_param_file = LaunchConfiguration("aeb_param_file")
 
     map_loader = include(
         "tier4_map_launch",
@@ -126,7 +127,7 @@ def generate_launch_description():
         name="autonomous_emergency_braking",
         output="screen",
         parameters=[
-            f"{package_share}/config/aebs-009b.param.yaml",
+            PathJoinSubstitution([package_share, "config", aeb_param_file]),
             f"{vehicle_info_share}/config/vehicle_info.param.yaml",
         ],
         remappings=[
@@ -174,6 +175,15 @@ def generate_launch_description():
                 default_value="scenario-009b-moving-vehicle-target.yaml",
             ),
             DeclareLaunchArgument("warning_margin_m", default_value="6.0"),
+            DeclareLaunchArgument(
+                "aeb_param_file",
+                default_value="aebs-009b.param.yaml",
+                description=(
+                    "AEB calibration file under the package config/ directory; "
+                    "009D campaigns pass aebs-009d.param.yaml for the "
+                    "deterministic static-velocity RSS schedule"
+                ),
+            ),
             map_loader,
             simulator,
             vehicle_gate,

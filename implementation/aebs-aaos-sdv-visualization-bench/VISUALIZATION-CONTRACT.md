@@ -154,7 +154,7 @@ Confirmed 2026-08-30: the forward-situation redesign is presentation-only.
 
 ## 10. Schema minor 1 — professional scene elements (2026-08-30)
 
-SysML-first change (aebs_010_visualization_functional_architecture.sysml,
+SysML-first change (aebs_visualization_functional_architecture.sysml,
 item defs AEBSVisualizationFrame + TargetPointProjection; proto schema_minor
 0 -> 1). Display-presentational only; no new decision or state semantics:
 

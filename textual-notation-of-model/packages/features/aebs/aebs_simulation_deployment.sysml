@@ -367,7 +367,8 @@ package DE4SDV_AEBSSimulationDeployment {
   }
 
   /* System 2 is test infrastructure, not a member of the production system. */
-  part def AEBReadinessInputs009A {
+  /* AEBReadinessInputs: introduced by INC-AEBS-009A. */
+  part def AEBReadinessInputs {
     doc /*
      * Realized 009A readiness inputs: nominal fixture publications plus pinned
      * map/initialization inputs. The fixture establishes /autoware/state =
@@ -392,15 +393,17 @@ package DE4SDV_AEBSSimulationDeployment {
     doc /* Planned 009B/009C asset; not instantiated in the realized 009A composite. */
     port scenarioControlOut : ScenarioControlOut;
   }
-  part def PlannedAEBScenarioHarness009B009C {
+  /* PlannedAEBScenarioHarness: introduced by INC-AEBS-009B/009C planning. */
+  part def PlannedAEBScenarioHarness {
     doc /* Planned scenario-control and trajectory source; no 009A execution claim. */
     port scenarioControlIn : ScenarioControlIn;
     port plannedTrajectoryOut : PlannedTrajectoryOut;
   }
-  part def PlannedAEBScenarioAssets009B009C {
+  /* PlannedAEBScenarioAssets: introduced by INC-AEBS-009B/009C planning. */
+  part def PlannedAEBScenarioAssets {
     doc /* Future positive and negative/fault scenario assets; not realized by 009A. */
     part scenarioController : ScenarioController;
-    part scenarioHarness : PlannedAEBScenarioHarness009B009C;
+    part scenarioHarness : PlannedAEBScenarioHarness;
     flow from scenarioController.scenarioControlOut.scenario
       to scenarioHarness.scenarioControlIn.scenario;
   }
@@ -448,7 +451,7 @@ package DE4SDV_AEBSSimulationDeployment {
 
   part def AEBSystem2SimulationAssets {
     doc /* Realized 009A readiness composition; planned 009B/009C assets are separate. */
-    part readinessInputs : AEBReadinessInputs009A;
+    part readinessInputs : AEBReadinessInputs;
     part simulator : SimplePlanningSimulatorTestDouble;
     part evidenceCollector : SimulationEvidenceCollector;
 

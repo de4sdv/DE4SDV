@@ -1,0 +1,242 @@
+name: Deploy Public Viewer with Ask-model
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_sha:
+        description: Exact DE4SDV application SHA to deploy (must be on main)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sysml-api-production
+  cancel-in-progress: false
+
+env:
+  DEPLOY_SHA: ${{ inputs.git_sha }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: sysml-api-production
+    timeout-minutes: 35
+    steps:
+      - name: Check out the exact application revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate exact SHA and main membership
+        run: |
+          set -euo pipefail
+          if [[ ! "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "git_sha must be a full 40-hex SHA" >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$DEPLOY_SHA" origin/main; then
+            echo "Refusing: $DEPLOY_SHA is not on origin/main" >&2
+            exit 1
+          fi
+          test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
+
+      - name: Set up SSH with the owner-verified host key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_SSH_KEY"
+          test -n "$DEPLOY_SSH_KNOWN_HOSTS"
+          test -n "$DEPLOY_SSH_HOST"
+          test -n "$DEPLOY_SSH_USER"
+          install -m 600 /dev/null /tmp/deploy_key
+          printf '%s\n' "$DEPLOY_SSH_KEY" > /tmp/deploy_key
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" 'echo SSH_OK'
+
+      - name: Require viewer DNS to resolve to the deployment host
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+        run: |
+          python3 - <<'PY'
+          import os, socket
+          def addresses(host):
+              return {row[4][0] for row in socket.getaddrinfo(host, None)}
+          viewer = addresses("viewer.de4sdv.org")
+          host = addresses(os.environ["DEPLOY_SSH_HOST"])
+          if not viewer.intersection(host):
+              raise SystemExit(
+                  "viewer.de4sdv.org "
+                  f"{sorted(viewer)} does not resolve to the deployment host"
+              )
+          print("Viewer DNS resolves to the deployment host")
+          PY
+
+      - name: Create source bundle and root-readable service environment
+        env:
+          NOUS_API_KEY: ${{ secrets.NOUS_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$NOUS_API_KEY"
+          BUNDLE_REF=refs/heads/deploy-ask-source
+          git update-ref "$BUNDLE_REF" "$DEPLOY_SHA"
+          git bundle create /tmp/de4sdv-ask-source.bundle "$BUNDLE_REF"
+          git bundle verify /tmp/de4sdv-ask-source.bundle
+          test "$(git bundle list-heads /tmp/de4sdv-ask-source.bundle "$BUNDLE_REF" | cut -d' ' -f1)" = "$DEPLOY_SHA"
+          sha256sum /tmp/de4sdv-ask-source.bundle > /tmp/de4sdv-ask-source.bundle.sha256
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          key = os.environ["NOUS_API_KEY"]
+          if not key or "\n" in key or "\r" in key:
+              raise SystemExit("NOUS_API_KEY must be a non-empty single-line value")
+          Path("/tmp/ask-viewer.env").write_text(
+              f"NOUS_API_KEY={key}\nDE4SDV_APP_GIT_SHA={os.environ['DEPLOY_SHA']}\n",
+              encoding="utf-8",
+          )
+          PY
+          chmod 600 /tmp/ask-viewer.env
+
+      - name: Transfer and activate the fail-closed Ask service
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          set -euo pipefail
+          # The activation step wraps a silent multi-minute phase (image
+          # build plus the semantic warmup poll loop). Without keepalives an
+          # idle NAT/firewall entry drops the session mid-warmup (run
+          # 33775855312: 'Timeout, server not responding.' exit 255 after
+          # ~20 min of silence, killed before the verifier ran).
+          # ServerAliveInterval keeps the connection alive without
+          # loosening any validation (same fix as the SysML API deploy).
+          SSH=(ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=60 -o ServerAliveCountMax=30 \
+            -o TCPKeepAlive=yes)
+          SCP=(scp -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          "${SCP[@]}" /tmp/de4sdv-ask-source.bundle \
+            /tmp/de4sdv-ask-source.bundle.sha256 /tmp/ask-viewer.env \
+            "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:/tmp/"
+          "${SSH[@]}" "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" bash -s -- "$DEPLOY_SHA" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"
+          DEPLOY_DIR=/srv/de4sdv
+          REPO_DIR="$DEPLOY_DIR/DE4SDV"
+          NEXT_DIR="$DEPLOY_DIR/DE4SDV-ask-next"
+          BACKUP_DIR="$DEPLOY_DIR/DE4SDV-ask-backup"
+          BUNDLE=/tmp/de4sdv-ask-source.bundle
+          BUNDLE_SHA=/tmp/de4sdv-ask-source.bundle.sha256
+          ASK_ENV=/tmp/ask-viewer.env
+          BUNDLE_REF=refs/heads/deploy-ask-source
+          trap 'rm -f "$BUNDLE" "$BUNDLE_SHA" "$ASK_ENV"' EXIT
+
+          if ! sha256sum -c "$BUNDLE_SHA"; then
+            echo "transferred Git bundle checksum mismatch" >&2
+            exit 1
+          fi
+          test "$(git bundle list-heads "$BUNDLE" "$BUNDLE_REF" | cut -d' ' -f1)" = "$SHA"
+          sudo rm -rf "$NEXT_DIR" "$BACKUP_DIR"
+          git clone --no-checkout --branch deploy-ask-source "$BUNDLE" "$NEXT_DIR"
+          git -C "$NEXT_DIR" checkout --detach --force "$SHA"
+          git -C "$NEXT_DIR" branch -D deploy-ask-source
+          git -C "$NEXT_DIR" reset --hard "$SHA"
+          git -C "$NEXT_DIR" clean -ffd
+          test "$(git -C "$NEXT_DIR" rev-parse HEAD)" = "$SHA"
+          test -z "$(git -C "$NEXT_DIR" status --porcelain)"
+
+          sudo install -m 600 -o root -g root "$ASK_ENV" "$DEPLOY_DIR/ask-viewer.env"
+          sudo mv "$REPO_DIR" "$BACKUP_DIR"
+          sudo mv "$NEXT_DIR" "$REPO_DIR"
+
+          export DEPLOY_DIR
+          export DE4SDV_ASK_ENV_FILE="$DEPLOY_DIR/ask-viewer.env"
+          COMPOSE=(sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" -f "$REPO_DIR/deployment/compose.yaml")
+          "${COMPOSE[@]}" config >/dev/null
+          "${COMPOSE[@]}" build ask-viewer
+          "${COMPOSE[@]}" up -d --no-deps ask-viewer
+
+          ready=false
+          for _ in $(seq 1 100); do
+            state=$("${COMPOSE[@]}" exec -T ask-viewer python -c '
+          import json, urllib.request
+          try:
+              status = json.load(urllib.request.urlopen("http://127.0.0.1:8787/_ask_warmup", timeout=10))
+              print(status.get("status") or "unknown")
+          except Exception:
+              print("starting")
+          ' </dev/null)
+            case "$state" in
+              ready) ready=true; break ;;
+              failed) echo "semantic warmup failed" >&2; exit 1 ;;
+            esac
+            sleep 10
+          done
+          if [[ "$ready" != true ]]; then
+            echo "semantic warmup did not reach ready before timeout" >&2
+            exit 1
+          fi
+
+          "${COMPOSE[@]}" run --rm --no-deps caddy \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile </dev/null
+          "${COMPOSE[@]}" up -d --build --no-deps --force-recreate caddy
+          REMOTE
+
+      - name: Verify the public reader path with one live grounded query
+        run: |
+          python3 deployment/scripts/verify_public_ask.py \
+            --base-url https://viewer.de4sdv.org \
+            --application-sha "$DEPLOY_SHA" \
+            --live-query
+
+      - name: Remove rollback checkout after successful verification
+        if: success()
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" \
+            'sudo rm -rf /srv/de4sdv/DE4SDV-ask-backup'
+
+      - name: Roll back source, Ask service, and proxy after failure
+        if: failure()
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          DEPLOY_DIR=/srv/de4sdv
+          REPO_DIR="$DEPLOY_DIR/DE4SDV"
+          BACKUP_DIR="$DEPLOY_DIR/DE4SDV-ask-backup"
+          if [[ ! -d "$BACKUP_DIR/.git" ]]; then
+            echo "No activated checkout to roll back"
+            exit 0
+          fi
+          export DEPLOY_DIR
+          export DE4SDV_ASK_ENV_FILE="$DEPLOY_DIR/ask-viewer.env"
+          sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" \
+            -f "$REPO_DIR/deployment/compose.yaml" rm -sf ask-viewer || true
+          sudo rm -rf "$REPO_DIR"
+          sudo mv "$BACKUP_DIR" "$REPO_DIR"
+          sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" \
+            -f "$REPO_DIR/deployment/compose.yaml" up -d --build --no-deps --force-recreate caddy
+          REMOTE
+
+      - name: Remove runner secret material
+        if: always()
+        run: |
+          rm -f /tmp/deploy_key /tmp/ask-viewer.env \
+            /tmp/de4sdv-ask-source.bundle \
+            /tmp/de4sdv-ask-source.bundle.sha256

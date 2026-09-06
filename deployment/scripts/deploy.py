@@ -222,6 +222,19 @@ def stop_public_proxy(repo: Path) -> None:
     compose("stop", "caddy", repo=repo)
 
 
+def api_host_header() -> str:
+    """The Host header the API's AllowedHostsFilter accepts on direct calls.
+
+    The production config allow-lists only ``localhost`` and the compose
+    service names; a raw bridge-IP Host header is rejected with 400. Host
+    traffic normally arrives through Caddy, which rewrites Host to
+    ``sysml2-api:9000`` (``header_up Host {upstream_hostport}``); the
+    deploy-time probe and importer bypass Caddy, so they must present the
+    same accepted Host value themselves.
+    """
+    return "sysml2-api:9000"
+
+
 def api_base_url_from_docker() -> str:
     """Resolve the API container's internal IP from the host.
 
@@ -256,7 +269,11 @@ def wait_for_api(timeout_s: int = 240) -> None:
     last_error: str | None = None
     while time.monotonic() < deadline:
         try:
-            with urlrequest.urlopen(f"{base_url}/projects", timeout=10) as response:
+            request = urlrequest.Request(
+                f"{base_url}/projects",
+                headers={"Host": api_host_header()},
+            )
+            with urlrequest.urlopen(request, timeout=10) as response:
                 if response.status == 200:
                     return
         except (URLError, TimeoutError) as exc:
@@ -294,6 +311,12 @@ def import_baseline(repo: Path, evidence: dict[str, Any]) -> dict[str, Any]:
         f"DE4SDV public API {evidence['git_commit'][:12]}",
         "--git-repository",
         "de4sdv/DE4SDV",
+        # The importer calls the container by IP, bypassing Caddy's Host
+        # rewrite; present the allow-listed Host directly (see
+        # api_host_header) or Play's AllowedHostsFilter rejects every
+        # request with 400.
+        "--api-host-header",
+        api_host_header(),
     ]
     subprocess.run(import_cmd, cwd=repo, check=True)
     binding = load_json(binding_path)
