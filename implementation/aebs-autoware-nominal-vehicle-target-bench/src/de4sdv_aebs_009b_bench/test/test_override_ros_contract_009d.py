@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 PACKAGE_ROOT = Path(__file__).parents[1]
 BENCH_ROOT = Path(__file__).parents[3]
@@ -115,11 +116,16 @@ def test_launch_rejects_unclosed_profile_before_any_runtime_action():
 
 
 def test_matrix_wrapper_retains_six_separate_profile_destinations():
-    profile_runner = (BENCH_ROOT / "scripts/run_override_profile.sh").read_text()
-    matrix_runner = (BENCH_ROOT / "scripts/run_override_matrix.sh").read_text()
-    assert "evidence/009d/profiles/$PROFILE" in profile_runner
-    assert "validate_override_evidence.py" in profile_runner
-    assert "override_evidence.py" in profile_runner
-    assert "scripts/run_scenario.sh" not in matrix_runner
-    for profile in OverrideScenario:
-        assert profile.value in matrix_runner
+    launch = (BENCH_ROOT / "scripts/launch.sh").read_text()
+    contract = yaml.safe_load(
+        (BENCH_ROOT / "config/contract-009d.yaml").read_text()
+    )
+    # The closed 009D profile set drives per-profile evidence destinations via
+    # the shared framework contract (artifact_path_prefix_template), replacing
+    # the retired per-profile wrapper script.
+    assert contract["profile_values"] == [p.value for p in OverrideScenario]
+    assert contract["artifact_path_prefix_template"] == (
+        "{evidence_dir}/profiles/{profile}"
+    )
+    assert "override_scenario:=$profile" in launch
+    assert contract["evidence_dir"] == "evidence/009d"

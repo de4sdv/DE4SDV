@@ -1,0 +1,46 @@
+Sep 06 10:33:15 de4sdv-aaos-build systemd[854]: Stopping /home/mrk/p188b_bench_unit.sh...
+Sep 06 10:33:16 de4sdv-aaos-build systemd[854]: Stopped /home/mrk/p188b_bench_unit.sh.
+Sep 06 10:33:16 de4sdv-aaos-build systemd[854]: bench-p188b.service: Consumed 14min 2.982s CPU time.
+Sep 06 10:33:39 de4sdv-aaos-build systemd[854]: Started /home/mrk/p188b_bench_unit.sh.
+Sep 06 10:33:39 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [launch]: All log files can be found below /home/mrk/.ros/log/2026-09-06-10-33-39-954472-de4sdv-aaos-build-7766
+Sep 06 10:33:39 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [launch]: Default logging verbosity is set to INFO
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [component_container-1]: process started with pid [7803]
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [map_hash_generator-2]: process started with pid [7805]
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [autoware_map_projection_loader_node-3]: process started with pid [7807]
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [autoware_simple_planning_simulator_node-4]: process started with pid [7809]
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [vehicle_cmd_gate_exe-5]: process started with pid [7811]
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [scenario_fixture-6]: process started with pid [7813]
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [autoware_autonomous_emergency_braking-7]: process started with pid [7815]
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [aebs_coordinator-8]: process started with pid [7817]
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [autoware_map_projection_loader_node-3] Load /home/mrk/autoware_map/sample-map-planning/map_projector_info.yaml
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [autoware_simple_planning_simulator_node-4] [INFO] [1788690820.425808829] [simulation.simple_planning_simulator]: waiting initialization...
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.543011599] [map.map_container]: Load Library: /home/mrk/autoware/install/autoware_map_loader/lib/libpointcloud_map_loader_node.so
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.592357802] [map.map_container]: Found class: rclcpp_components::NodeFactoryTemplate<autoware::map_loader::PointCloudMapLoaderNode>
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.592423517] [map.map_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<autoware::map_loader::PointCloudMapLoaderNode>
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map/pointcloud_map_loader' in container '/map/map_container'
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.769368888] [map.map_container]: Load Library: /home/mrk/autoware/install/autoware_map_loader/lib/liblanelet2_map_loader_node.so
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.782317370] [map.map_container]: Found class: rclcpp_components::NodeFactoryTemplate<autoware::map_loader::Lanelet2MapLoaderNode>
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.782382668] [map.map_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<autoware::map_loader::Lanelet2MapLoaderNode>
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map/lanelet2_map_loader' in container '/map/map_container'
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [ERROR] [1788690820.793461742] [map.map_container]: Could not find requested resource in ament index
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [ERROR] [launch_ros.actions.load_composable_nodes]: Failed to load node 'lanelet2_map_visualization' of type 'autoware::lanelet2_map_visualizer::Lanelet2MapVisualizationNode' in container '/map/map_container': Could not find requested resource in ament index
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.795978387] [map.map_container]: Load Library: /home/mrk/autoware/install/autoware_map_tf_generator/lib/libvector_map_tf_generator_node.so
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.799604046] [map.map_container]: Found class: rclcpp_components::NodeFactoryTemplate<autoware::map_tf_generator::VectorMapTFGeneratorNode>
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.799653523] [map.map_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<autoware::map_tf_generator::VectorMapTFGeneratorNode>
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map/vector_map_tf_generator' in container '/map/map_container'
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [WARN] [1788690820.851257663] [map.lanelet2_map_loader]: /home/mrk/autoware_map/sample-map-planning/lanelet2_map.osm has no format_version(null) or non semver-style format_version(null) information
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.851325093] [map.lanelet2_map_loader]: Loaded map format_version: null
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [scenario_fixture-6] /opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/node.py:440: UserWarning: when declaring parameter named 'scenario_config', declaring a parameter only providing its name is deprecated. You have to either:
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [scenario_fixture-6]         - Pass a name and a default value different to "PARAMETER NOT SET" (and optionally a descriptor).
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [scenario_fixture-6]         - Pass a name and a parameter type.
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [scenario_fixture-6]         - Pass a name and a descriptor with `dynamic_typing=True
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [scenario_fixture-6]   warnings.warn(
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.865688651] [map.lanelet2_map_loader]: Succeeded to load lanelet2_map. Map is published.
+Sep 06 10:33:40 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [component_container-1] [INFO] [1788690820.884634311] [map.vector_map_tf_generator]: broadcast static tf. map_frame:map, viewer_frame:viewer, x:3749.71, y:73724.3, z:19.4406
+Sep 06 10:33:42 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [vehicle_cmd_gate_exe-5] [ERROR] [1788690822.274547593] [vehicle_cmd_gate]: [VehicleCmdFilter] Acceleration change limit by longitudinal jerk: constraint(delta)=±0.000 [m/s^2], input_acc=1.500 [m/s^2], output_acc=0.000 [m/s^2]
+Sep 06 10:33:42 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [vehicle_cmd_gate_exe-5] [ERROR] [1788690822.274739176] [vehicle_cmd_gate]: [VehicleCmdFilter] Velocity change limit by longitudinal acceleration: constraint(delta)=±0.000 [m/s], input_vel=6.000 [m/s], output_vel=0.000 [m/s]
+Sep 06 10:36:18 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [vehicle_cmd_gate_exe-5] [ERROR] [1788690978.324447322] [vehicle_cmd_gate]: [VehicleCmdFilter] Acceleration change limit by longitudinal jerk: constraint(delta)=±0.250 [m/s^2], input_acc=-6.000 [m/s^2], output_acc=-0.250 [m/s^2]
+Sep 06 10:36:18 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [vehicle_cmd_gate_exe-5] [ERROR] [1788690978.324561180] [vehicle_cmd_gate]: [VehicleCmdFilter] Longitudinal jerk limit: constraint=±5.000 [m/s^3], input=-10.000 [m/s^3], output=-5.000 [m/s^3]
+Sep 06 10:36:18 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [vehicle_cmd_gate_exe-5] [ERROR] [1788690978.324577341] [vehicle_cmd_gate]: [VehicleCmdFilter] Velocity change limit by longitudinal acceleration: constraint(delta)=±0.250 [m/s], input_vel=0.000 [m/s], output_vel=5.750 [m/s]
+Sep 06 10:36:19 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [vehicle_cmd_gate_exe-5] [ERROR] [1788690979.274703192] [vehicle_cmd_gate]: [VehicleCmdFilter] Longitudinal acceleration limit: constraint=±5.000 [m/s^2], input=-5.001 [m/s^2], output=-5.000 [m/s^2]
+Sep 06 10:36:25 de4sdv-aaos-build p188b_bench_unit.sh[7766]: [vehicle_cmd_gate_exe-5] [ERROR] [1788690985.374756668] [vehicle_cmd_gate]: [VehicleCmdFilter] Acceleration change limit by longitudinal jerk: constraint(delta)=±0.251 [m/s^2], input_acc=0.000 [m/s^2], output_acc=1.249 [m/s^2]
