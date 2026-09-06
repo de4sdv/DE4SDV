@@ -27,7 +27,7 @@ lifecycle_decision_supported: >-
 
 phase10_claim:
   id: CLM-AEBS-S2-001
-  sysml_element: s2VisualizationInstrumentationClaim
+  sysml_element: visualizationInstrumentationClaim
   status: bounded_instrumentation_claim
   scenario_safety_outcome: deferred_not_proven
   evidence:
@@ -170,35 +170,35 @@ verification_cases:
 acceptance_criteria:
   - id: AC-AEBS-S2-001
     status: pass_bounded_verification
-    sysml_element: acceptanceCriterionS2ChainCorrelation
+    sysml_element: acceptanceCriterionChainCorrelation
     evidence: EVID-AEBS-S2-001 (1090 callbacks, seq 22891-23980, zero gaps)
   - id: AC-AEBS-S2-002
     status: pass_bounded_verification
-    sysml_element: acceptanceCriterionS2LifecycleArc
+    sysml_element: acceptanceCriterionLifecycleArc
     evidence: EVID-AEBS-S2-002 (one take, verified stop)
   - id: AC-AEBS-S2-003
     status: pass_bounded_verification
-    sysml_element: acceptanceCriterionS2ReadOnlyBoundary
+    sysml_element: acceptanceCriterionReadOnlyBoundary
     evidence: EVID-AEBS-S2-003
   - id: AC-AEBS-S2-004
     status: pass_bounded_verification
-    sysml_element: acceptanceCriterionS2ProvenanceSeparation
+    sysml_element: acceptanceCriterionProvenanceSeparation
     evidence: EVID-AEBS-S2-004
   - id: AC-AEBS-S2-005
     status: pass_bounded_verification
-    sysml_element: acceptanceCriterionS2FailClosedStaleness
+    sysml_element: acceptanceCriterionFailClosedStaleness
     evidence: EVID-AEBS-S2-005 (geometry expired after cloud silence)
   - id: AC-AEBS-S2-006
     status: pass_bounded_verification_fixture_path
-    sysml_element: acceptanceCriterionS2DegradedRendering
+    sysml_element: acceptanceCriterionDegradedRendering
     evidence: EVID-AEBS-S2-006 (PF-004 deterministic publisher, not live Autoware)
   - id: AC-AEBS-S2-007
     status: deferred_not_proven
-    sysml_element: acceptanceCriterionS2Restoration
+    sysml_element: acceptanceCriterionRestoration
     evidence: no scenario executed
   - id: AC-AEBS-S2-008
     status: pass_bounded_verification
-    sysml_element: acceptanceCriterionS2EvidenceIntegrity
+    sysml_element: acceptanceCriterionEvidenceIntegrity
     evidence: EVID-AEBS-S2-001 bound identities + observer
 
 evidence_ladder:
@@ -227,15 +227,15 @@ evidence_ladder:
 
 runtime_evidence_gaps:
   - id: GAP-AEBS-010-006
-    model_element: gap010RestorationUnexercisedS2
+    model_element: gap010RestorationUnexercised
     owner: successor_increment
     status: open_exercisable_via_deterministic_publisher
   - id: GAP-AEBS-010-007
-    model_element: gap010LiveDegradationUnprovenS2
+    model_element: gap010LiveDegradationUnproven
     owner: successor_increment
     status: open_live_degradation_unobserved
   - id: GAP-AEBS-010-008
-    model_element: gap010InterVmRouteDeferredS2
+    model_element: gap010InterVmRouteDeferred
     owner: successor_increment
     status: open_bench_route_only
 

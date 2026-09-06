@@ -42,7 +42,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * INC-AEBS-010 increment identity: owned by the canonical framing slice
    * (DE4SDV_AEBSVisualizationFraming::incAEBS010). This evidence slice is
    * bounded Phase 10 V&V content for that increment, not a second increment
-   * identity; verificationSystemS2 below carries the slice's trace.
+   * identity; visualizationVerificationSystem below carries the slice's trace.
    */
   references incAEBS010;
 
@@ -50,7 +50,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * Evidence vocabulary and observation records
    * ────────────────────────────────────────── */
 
-  enum def VisualizationScenarioS2 {
+  enum def VisualizationScenario {
     liveChainCorrelation;
     lifecycleArc;
     readOnlyBoundary;
@@ -68,7 +68,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     notClaimed;
   }
 
-  item def VisualizationObservationS2 {
+  item def VisualizationObservation {
     attribute callbackCount : ScalarValues::Integer;
     attribute sequenceSpan : ScalarValues::String;
     attribute observedRateHz : ScalarValues::Real;
@@ -76,7 +76,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute independentCapture : Boolean;
   }
 
-  item def RetainedVisualizationEvidenceS2 {
+  item def RetainedVisualizationEvidence {
     attribute configurationIdentity : ScalarValues::String;
     attribute executionEnvironmentIdentity : ScalarValues::String;
     attribute contractIdentity : ScalarValues::String;
@@ -86,8 +86,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute claimBoundary : ScalarValues::String;
   }
 
-  item def ReplayedVisualizationEvaluationS2 {
-    attribute scenario : VisualizationScenarioS2;
+  item def ReplayedVisualizationEvaluation {
+    attribute scenario : VisualizationScenario;
     attribute outcome : VisualizationEvidenceDisposition;
     attribute acceptanceSummary : ScalarValues::String;
   }
@@ -98,7 +98,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * acceptance claim without a separately justified bounded-pass
    * interpretation (none exists for the retained campaign).
    */
-  calc def MapS2OutcomeToVerdict {
+  calc def MapVisualizationOutcomeToVerdict {
     in outcome : VisualizationEvidenceDisposition;
     return verdict : VerdictKind =
       if outcome == VisualizationEvidenceDisposition::observedBounded? VerdictKind::pass
@@ -112,7 +112,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * Verification bench (System 1 unchanged / System 2 instrument)
    * ────────────────────────────────────────── */
 
-  part def VisualizationVandVBenchS2 {
+  part def VisualizationVerificationBench {
     doc /*
      * System 1 is the configured member executing unchanged AEBS behavior:
      * the uninstrumented AAOS-integrated Autoware member governed by the
@@ -126,83 +126,83 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     /* System 2 subject: instrumented visualization test article. */
     part system2TestArticle : AEBSAutowareAAOSSDVVisualizationTestArticle;
     part system2Instrument : System2EngineeringAndAssuranceSystem;
-    attribute scenario : VisualizationScenarioS2;
+    attribute scenario : VisualizationScenario;
   }
 
-  part liveChainCorrelationBenchS2 : VisualizationVandVBenchS2 {
-    attribute :>> scenario = VisualizationScenarioS2::liveChainCorrelation;
+  part liveChainCorrelationBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::liveChainCorrelation;
   }
-  part lifecycleArcBenchS2 : VisualizationVandVBenchS2 {
-    attribute :>> scenario = VisualizationScenarioS2::lifecycleArc;
+  part lifecycleArcBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::lifecycleArc;
   }
-  part readOnlyBoundaryBenchS2 : VisualizationVandVBenchS2 {
-    attribute :>> scenario = VisualizationScenarioS2::readOnlyBoundary;
+  part readOnlyBoundaryBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::readOnlyBoundary;
   }
-  part provenanceSeparationBenchS2 : VisualizationVandVBenchS2 {
-    attribute :>> scenario = VisualizationScenarioS2::provenanceSeparation;
+  part provenanceSeparationBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::provenanceSeparation;
   }
-  part failClosedStalenessBenchS2 : VisualizationVandVBenchS2 {
-    attribute :>> scenario = VisualizationScenarioS2::failClosedStaleness;
+  part failClosedStalenessBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::failClosedStaleness;
   }
-  part degradedStateRenderingBenchS2 : VisualizationVandVBenchS2 {
-    attribute :>> scenario = VisualizationScenarioS2::degradedStateRendering;
+  part degradedStateRenderingBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::degradedStateRendering;
   }
-  part restorationBehaviorBenchS2 : VisualizationVandVBenchS2 {
-    attribute :>> scenario = VisualizationScenarioS2::restorationBehavior;
+  part restorationBehaviorBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::restorationBehavior;
   }
 
   /* ──────────────────────────────────────────
    * Acceptance criteria (System 2 evidence contracts)
    * ────────────────────────────────────────── */
 
-  requirement def VisualizationAcceptanceCriterionS2
+  requirement def VisualizationAcceptanceCriterion
     :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement acceptanceCriterionS2ChainCorrelation : VisualizationAcceptanceCriterionS2 {
+  requirement acceptanceCriterionChainCorrelation : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-001; bounded verification of source-to-screen correlation. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* The visualization test system shall retain source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture records for each rendered state so that each rendered state can be correlated with its observed source event, with consecutive accepted callbacks and zero sequence gaps over the retained take. */ }
   }
 
-  requirement acceptanceCriterionS2LifecycleArc : VisualizationAcceptanceCriterionS2 {
+  requirement acceptanceCriterionLifecycleArc : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-002; bounded verification of the four-state arc in one take. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* The visualization test system shall present the reducer-driven MONITORING, WARNING, INTERVENTION, and RELEASED dispositions from accepted frames of one uninterrupted real-time take, with the release disposition accompanied by a verified zero-speed stop observation and no edited or older-generation footage presented as part of the take. */ }
   }
 
-  requirement acceptanceCriterionS2ReadOnlyBoundary : VisualizationAcceptanceCriterionS2 {
+  requirement acceptanceCriterionReadOnlyBoundary : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-003; read-only boundary verification. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* The visualization test system shall publish nothing to the vehicle runtime and shall issue no vehicle command, and the public interface shall state the read-only engineering-visualization boundary in every rendered session. */ }
   }
 
-  requirement acceptanceCriterionS2ProvenanceSeparation : VisualizationAcceptanceCriterionS2 {
+  requirement acceptanceCriterionProvenanceSeparation : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-004; display-derived versus native decision semantics separation. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* The visualization test system shall render obstacle geometry only from the display-derived filtered point cloud, shall not present coordinator-derived distance values or any display-derived scalar as a native Autoware decision metric, and shall state in the public interface that AEB decision distances are not visualized. */ }
   }
 
-  requirement acceptanceCriterionS2FailClosedStaleness : VisualizationAcceptanceCriterionS2 {
+  requirement acceptanceCriterionFailClosedStaleness : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-005; fail-closed staleness verification. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* When the filtered obstacle-cloud source stops updating, the visualization test system shall suppress the expired display-derived obstacle geometry while accepted live frames continue, and no interpolation, smoothing, or prediction shall substitute for missing fresh data. */ }
   }
 
-  requirement acceptanceCriterionS2DegradedRendering : VisualizationAcceptanceCriterionS2 {
+  requirement acceptanceCriterionDegradedRendering : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-006; degraded-state rendering verification (fixture path). */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* Under deterministic closed-loop frame injection, the visualization test system shall render the stale, unavailable, and invalid degraded dispositions with live geometry cleared and the health chip identifying the degraded condition, with color never the sole state cue. */ }
   }
 
-  requirement acceptanceCriterionS2Restoration : VisualizationAcceptanceCriterionS2 {
+  requirement acceptanceCriterionRestoration : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-007; restoration behavior criterion (planned). */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* After a failure disposition, the visualization test system shall present a bounded restored indication after the selected consecutive-valid-frame criterion is met, without application restart. */ }
   }
 
-  requirement acceptanceCriterionS2EvidenceIntegrity : VisualizationAcceptanceCriterionS2 {
+  requirement acceptanceCriterionEvidenceIntegrity : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-008; evidence integrity and claim-boundary criterion. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* Every retained verdict shall bind the configured test article, execution environment, wire contract, raw observation artifacts, and independent observer identities, and missing evidence shall be recorded as planned, partial, blocked, or not claimed, never as an observed runtime pass. */ }
   }
 
@@ -210,7 +210,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * Retained evidence records (exact artifacts in the implementation bench)
    * ────────────────────────────────────────── */
 
-  part liveChainEvidenceS2 : RetainedVisualizationEvidenceS2 {
+  part liveChainEvidence : RetainedVisualizationEvidence {
     doc /*
      * EVID-AEBS-S2-001. Retained live-chain correlation evidence for the
      * corrected final campaign (2026-09-01): 1090 consecutive app-side
@@ -231,7 +231,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> claimBoundary = "Live observation-chain evidence on the bench deployment; not safety, braking-authority, certification, or production evidence.";
   }
 
-  part lifecycleArcEvidenceS2 : RetainedVisualizationEvidenceS2 {
+  part lifecycleArcEvidence : RetainedVisualizationEvidence {
     doc /*
      * EVID-AEBS-S2-002. Retained continuous-take lifecycle evidence: one
      * uninterrupted 70.15 s screenrecord of the corrected final UI
@@ -252,7 +252,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> claimBoundary = "One continuous take of the corrected generation; title/end cards are editing frames; not safety or certification evidence.";
   }
 
-  part readOnlyBoundaryEvidenceS2 : RetainedVisualizationEvidenceS2 {
+  part readOnlyBoundaryEvidence : RetainedVisualizationEvidence {
     doc /*
      * EVID-AEBS-S2-003. Read-only boundary evidence: the wire contract carries
      * no command path, the bridge subscribes only (no publishers, no
@@ -270,7 +270,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> claimBoundary = "Structural and rendered-session read-only evidence; no vehicle-interaction behavior is exercised or claimed.";
   }
 
-  part provenanceSeparationEvidenceS2 : RetainedVisualizationEvidenceS2 {
+  part provenanceSeparationEvidence : RetainedVisualizationEvidence {
     doc /*
      * EVID-AEBS-S2-004. Display-derived versus native decision semantics
      * separation evidence for the corrected generation: no
@@ -290,7 +290,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> claimBoundary = "Presentation-separation evidence for the corrected generation; not a claim about native Autoware AEB decision internals.";
   }
 
-  part failClosedStalenessEvidenceS2 : RetainedVisualizationEvidenceS2 {
+  part failClosedStalenessEvidence : RetainedVisualizationEvidence {
     doc /*
      * EVID-AEBS-S2-005. Fail-closed staleness evidence: within the retained
      * take, when the filtered obstacle-cloud source stopped updating, the
@@ -308,7 +308,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> claimBoundary = "Bounded staleness observation within one take; not a certification-grade freshness argument.";
   }
 
-  part degradedRenderingEvidenceS2 : RetainedVisualizationEvidenceS2 {
+  part degradedRenderingEvidence : RetainedVisualizationEvidence {
     doc /*
      * EVID-AEBS-S2-006. Degraded-state rendering evidence from the state
      * campaign: stale, unavailable, and invalid dispositions rendered with
@@ -326,7 +326,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> claimBoundary = "Fixture-path rendering evidence only; not live Autoware degradation evidence.";
   }
 
-  part restorationEvidencePlannedS2 : PlannedExecutionEnvironmentEvidence {
+  part restorationEvidencePlanned : PlannedExecutionEnvironmentEvidence {
     doc /*
      * EVID-AEBS-S2-007 (planned). Restoration behavior after a failure
      * disposition was not exercised in any retained INC-AEBS-010 campaign.
@@ -341,234 +341,234 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * Verification cases
    * ────────────────────────────────────────── */
 
-  verification def VisualizationChainCorrelationVerificationS2 {
-    subject verifiedBench : VisualizationVandVBenchS2;
-    objective chainCorrelationObjectiveS2 {
-      verify acceptanceCriterionS2ChainCorrelation;
-      verify acceptanceCriterionS2EvidenceIntegrity;
+  verification def VisualizationChainCorrelationVerification {
+    subject verifiedBench : VisualizationVerificationBench;
+    objective chainCorrelationObjective {
+      verify acceptanceCriterionChainCorrelation;
+      verify acceptanceCriterionEvidenceIntegrity;
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedVisualizationEvidenceS2;
+      out item retainedEvidence : RetainedVisualizationEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : VisualizationScenarioS2 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedVisualizationEvidenceS2 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedVisualizationEvaluationS2;
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedVisualizationEvaluationS2 = processData.replayedEvaluation;
-      out verdict : VerdictKind = MapS2OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def VisualizationLifecycleArcVerificationS2 {
-    subject verifiedBench : VisualizationVandVBenchS2;
-    objective lifecycleArcObjectiveS2 {
-      verify acceptanceCriterionS2LifecycleArc;
-      verify acceptanceCriterionS2EvidenceIntegrity;
+  verification def VisualizationLifecycleArcVerification {
+    subject verifiedBench : VisualizationVerificationBench;
+    objective lifecycleArcObjective {
+      verify acceptanceCriterionLifecycleArc;
+      verify acceptanceCriterionEvidenceIntegrity;
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedVisualizationEvidenceS2;
+      out item retainedEvidence : RetainedVisualizationEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : VisualizationScenarioS2 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedVisualizationEvidenceS2 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedVisualizationEvaluationS2;
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedVisualizationEvaluationS2 = processData.replayedEvaluation;
-      out verdict : VerdictKind = MapS2OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def VisualizationReadOnlyBoundaryVerificationS2 {
-    subject verifiedBench : VisualizationVandVBenchS2;
-    objective readOnlyBoundaryObjectiveS2 {
-      verify acceptanceCriterionS2ReadOnlyBoundary;
-      verify acceptanceCriterionS2EvidenceIntegrity;
+  verification def VisualizationReadOnlyBoundaryVerification {
+    subject verifiedBench : VisualizationVerificationBench;
+    objective readOnlyBoundaryObjective {
+      verify acceptanceCriterionReadOnlyBoundary;
+      verify acceptanceCriterionEvidenceIntegrity;
     }
     action collectData {
       @VerificationMethod{ kind = (inspect, test); }
-      out item retainedEvidence : RetainedVisualizationEvidenceS2;
+      out item retainedEvidence : RetainedVisualizationEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : VisualizationScenarioS2 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedVisualizationEvidenceS2 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedVisualizationEvaluationS2;
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedVisualizationEvaluationS2 = processData.replayedEvaluation;
-      out verdict : VerdictKind = MapS2OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def VisualizationProvenanceSeparationVerificationS2 {
-    subject verifiedBench : VisualizationVandVBenchS2;
-    objective provenanceSeparationObjectiveS2 {
-      verify acceptanceCriterionS2ProvenanceSeparation;
-      verify acceptanceCriterionS2EvidenceIntegrity;
+  verification def VisualizationProvenanceSeparationVerification {
+    subject verifiedBench : VisualizationVerificationBench;
+    objective provenanceSeparationObjective {
+      verify acceptanceCriterionProvenanceSeparation;
+      verify acceptanceCriterionEvidenceIntegrity;
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedVisualizationEvidenceS2;
+      out item retainedEvidence : RetainedVisualizationEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : VisualizationScenarioS2 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedVisualizationEvidenceS2 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedVisualizationEvaluationS2;
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedVisualizationEvaluationS2 = processData.replayedEvaluation;
-      out verdict : VerdictKind = MapS2OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def VisualizationFailClosedStalenessVerificationS2 {
-    subject verifiedBench : VisualizationVandVBenchS2;
-    objective failClosedStalenessObjectiveS2 {
-      verify acceptanceCriterionS2FailClosedStaleness;
-      verify acceptanceCriterionS2EvidenceIntegrity;
+  verification def VisualizationFailClosedStalenessVerification {
+    subject verifiedBench : VisualizationVerificationBench;
+    objective failClosedStalenessObjective {
+      verify acceptanceCriterionFailClosedStaleness;
+      verify acceptanceCriterionEvidenceIntegrity;
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedVisualizationEvidenceS2;
+      out item retainedEvidence : RetainedVisualizationEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : VisualizationScenarioS2 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedVisualizationEvidenceS2 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedVisualizationEvaluationS2;
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedVisualizationEvaluationS2 = processData.replayedEvaluation;
-      out verdict : VerdictKind = MapS2OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def VisualizationDegradedRenderingVerificationS2 {
+  verification def VisualizationDegradedRenderingVerification {
     doc /*
      * Fixture-path verification case. Its subject scenario uses the PF-004
      * deterministic publisher; any verdict from it is bounded to that path
      * and does not transfer to the live Autoware chain.
      */
-    subject verifiedBench : VisualizationVandVBenchS2;
-    objective degradedRenderingObjectiveS2 {
-      verify acceptanceCriterionS2DegradedRendering;
-      verify acceptanceCriterionS2EvidenceIntegrity;
+    subject verifiedBench : VisualizationVerificationBench;
+    objective degradedRenderingObjective {
+      verify acceptanceCriterionDegradedRendering;
+      verify acceptanceCriterionEvidenceIntegrity;
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
-      out item retainedEvidence : RetainedVisualizationEvidenceS2;
+      out item retainedEvidence : RetainedVisualizationEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : VisualizationScenarioS2 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedVisualizationEvidenceS2 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedVisualizationEvaluationS2;
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedVisualizationEvaluationS2 = processData.replayedEvaluation;
-      out verdict : VerdictKind = MapS2OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
-  verification def VisualizationRestorationVerificationS2 {
+  verification def VisualizationRestorationVerification {
     doc /*
      * Planned verification case. No retained campaign exercised restoration;
      * the case exists to bind the criterion and the gap, and its verdict
      * remains inconclusive until evidence is retained by a later campaign.
      */
-    subject verifiedBench : VisualizationVandVBenchS2;
-    objective restorationObjectiveS2 {
-      verify acceptanceCriterionS2Restoration;
-      verify acceptanceCriterionS2EvidenceIntegrity;
+    subject verifiedBench : VisualizationVerificationBench;
+    objective restorationObjective {
+      verify acceptanceCriterionRestoration;
+      verify acceptanceCriterionEvidenceIntegrity;
     }
     action collectData {
       @VerificationMethod{ kind = test; }
-      out item retainedEvidence : RetainedVisualizationEvidenceS2;
+      out item retainedEvidence : RetainedVisualizationEvidence;
     }
     action processData {
       @VerificationMethod{ kind = analyze; }
-      in scenarioIdentity : VisualizationScenarioS2 = verifiedBench.scenario;
-      in item retainedEvidence : RetainedVisualizationEvidenceS2 = collectData.retainedEvidence;
-      out item replayedEvaluation : ReplayedVisualizationEvaluationS2;
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
     }
     action evaluateData {
       @VerificationMethod{ kind = analyze; }
-      in item replayedEvaluation : ReplayedVisualizationEvaluationS2 = processData.replayedEvaluation;
-      out verdict : VerdictKind = MapS2OutcomeToVerdict(replayedEvaluation.outcome);
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
   doc /* VC-AEBS-S2-001 verification case usage. */
-  verification chainCorrelationVerificationS2 : VisualizationChainCorrelationVerificationS2 {
+  verification chainCorrelationVerification : VisualizationChainCorrelationVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
-    subject verifiedBench :> liveChainCorrelationBenchS2;
+    subject verifiedBench :> liveChainCorrelationBench;
   }
 
   doc /* VC-AEBS-S2-002 verification case usage. */
-  verification lifecycleArcVerificationS2 : VisualizationLifecycleArcVerificationS2 {
+  verification lifecycleArcVerification : VisualizationLifecycleArcVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
-    subject verifiedBench :> lifecycleArcBenchS2;
+    subject verifiedBench :> lifecycleArcBench;
   }
 
   doc /* VC-AEBS-S2-003 verification case usage. */
-  verification readOnlyBoundaryVerificationS2 : VisualizationReadOnlyBoundaryVerificationS2 {
+  verification readOnlyBoundaryVerification : VisualizationReadOnlyBoundaryVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
-    subject verifiedBench :> readOnlyBoundaryBenchS2;
+    subject verifiedBench :> readOnlyBoundaryBench;
   }
 
   doc /* VC-AEBS-S2-004 verification case usage. */
-  verification provenanceSeparationVerificationS2 : VisualizationProvenanceSeparationVerificationS2 {
+  verification provenanceSeparationVerification : VisualizationProvenanceSeparationVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
-    subject verifiedBench :> provenanceSeparationBenchS2;
+    subject verifiedBench :> provenanceSeparationBench;
   }
 
   doc /* VC-AEBS-S2-005 verification case usage. */
-  verification failClosedStalenessVerificationS2 : VisualizationFailClosedStalenessVerificationS2 {
+  verification failClosedStalenessVerification : VisualizationFailClosedStalenessVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
-    subject verifiedBench :> failClosedStalenessBenchS2;
+    subject verifiedBench :> failClosedStalenessBench;
   }
 
   doc /* VC-AEBS-S2-006 verification case usage. */
-  verification degradedRenderingVerificationS2 : VisualizationDegradedRenderingVerificationS2 {
+  verification degradedRenderingVerification : VisualizationDegradedRenderingVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
-    subject verifiedBench :> degradedStateRenderingBenchS2;
+    subject verifiedBench :> degradedStateRenderingBench;
   }
 
   doc /* VC-AEBS-S2-007 verification case usage. */
-  verification restorationVerificationS2 : VisualizationRestorationVerificationS2 {
+  verification restorationVerification : VisualizationRestorationVerification {
     @VerificationMethod{ kind = (test, analyze); }
-    subject verifiedBench :> restorationBehaviorBenchS2;
+    subject verifiedBench :> restorationBehaviorBench;
   }
 
-  part verificationSystemS2 {
-    perform chainCorrelationVerificationS2;
-    perform lifecycleArcVerificationS2;
-    perform readOnlyBoundaryVerificationS2;
-    perform provenanceSeparationVerificationS2;
-    perform failClosedStalenessVerificationS2;
-    perform degradedRenderingVerificationS2;
-    perform restorationVerificationS2;
+  part visualizationVerificationSystem {
+    perform chainCorrelationVerification;
+    perform lifecycleArcVerification;
+    perform readOnlyBoundaryVerification;
+    perform provenanceSeparationVerification;
+    perform failClosedStalenessVerification;
+    perform degradedRenderingVerification;
+    perform restorationVerification;
   }
 
   /* ──────────────────────────────────────────
@@ -576,58 +576,58 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * ────────────────────────────────────────── */
 
   dependency chainCorrelationToEvidenceRequirement
-    from acceptanceCriterionS2ChainCorrelation
+    from acceptanceCriterionChainCorrelation
     to reqEvidenceCorrelation;
   dependency chainCorrelationToRealAAOSRenderingRequirement
-    from acceptanceCriterionS2LifecycleArc
+    from acceptanceCriterionLifecycleArc
     to reqRealAAOSRendering;
   dependency readOnlyBoundaryToNonInterferenceRequirement
-    from acceptanceCriterionS2ReadOnlyBoundary
+    from acceptanceCriterionReadOnlyBoundary
     to reqNonInterference;
   dependency provenanceSeparationToNoImpersonationRequirement
-    from acceptanceCriterionS2ProvenanceSeparation
+    from acceptanceCriterionProvenanceSeparation
     to reqNoNativeImpersonation;
   dependency failClosedStalenessToFreshnessRequirement
-    from acceptanceCriterionS2FailClosedStaleness
+    from acceptanceCriterionFailClosedStaleness
     to reqFailClosedFreshness;
   dependency degradedRenderingToAvailabilityRequirement
-    from acceptanceCriterionS2DegradedRendering
+    from acceptanceCriterionDegradedRendering
     to reqAvailabilityDisposition;
   dependency restorationToRestorationRequirement
-    from acceptanceCriterionS2Restoration
+    from acceptanceCriterionRestoration
     to reqRestorationBehavior;
 
   /* Cross-increment traceability to the accepted chain baseline. */
   dependency verificationTestArticleTrace
-    from verificationSystemS2
+    from visualizationVerificationSystem
     to testArticle;
   dependency verificationPhysicalSystemTrace
-    from verificationSystemS2
+    from visualizationVerificationSystem
     to physicalSystem;
   dependency chainEvidenceToPhysicalSystemTrace
-    from liveChainEvidenceS2
+    from liveChainEvidence
     to physicalSystem;
   dependency lifecycleEvidenceToPhysicalSystemTrace
-    from lifecycleArcEvidenceS2
+    from lifecycleArcEvidence
     to physicalSystem::iviGuest::displayApp;
   dependency provenanceEvidenceToSourceProvenanceTrace
-    from provenanceSeparationEvidenceS2
+    from provenanceSeparationEvidence
     to coordinatorStateProvenance;
 
   /* ──────────────────────────────────────────
    * Claim-argument-evidence layer (INC-AEBS-010 Phase 10)
    * ────────────────────────────────────────── */
 
-  requirement def VisualizationClaimS2
+  requirement def VisualizationClaim
     :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement def VisualizationArgumentS2
+  requirement def VisualizationArgument
     :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement def VisualizationCounterClaimS2
+  requirement def VisualizationCounterClaim
     :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement s2VisualizationInstrumentationClaim : VisualizationClaimS2 {
+  requirement visualizationInstrumentationClaim : VisualizationClaim {
     doc /*
      * CLM-AEBS-S2-001: for AEBS-CONFIG-010-001 on the retained campaign
      * environment, the read-only visualization instrumentation observed the
@@ -639,7 +639,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * injection. The scenario-safety outcome remains deferred_not_proven:
      * this claim is about the instrumentation, never about AEBS safety.
      */
-    subject claimSubject : VisualizationVandVBenchS2;
+    subject claimSubject : VisualizationVerificationBench;
     require constraint {
       doc /*
        * The claim requires retained EVID-AEBS-S2-001 through EVID-AEBS-S2-006
@@ -653,115 +653,115 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     }
   }
 
-  requirement chainCorrelationArgumentS2 : VisualizationArgumentS2 {
+  requirement chainCorrelationArgument : VisualizationArgument {
     doc /* AGT-AEBS-S2-01: argues AC-AEBS-S2-001 (source-to-screen correlation with zero gaps) within the claim boundary. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
-  requirement lifecycleArcArgumentS2 : VisualizationArgumentS2 {
+  requirement lifecycleArcArgument : VisualizationArgument {
     doc /* AGT-AEBS-S2-02: argues AC-AEBS-S2-002 (one-take four-state arc with verified stop) within the claim boundary. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
-  requirement readOnlyBoundaryArgumentS2 : VisualizationArgumentS2 {
+  requirement readOnlyBoundaryArgument : VisualizationArgument {
     doc /* AGT-AEBS-S2-03: argues AC-AEBS-S2-003 (read-only, no vehicle command) within the claim boundary. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
-  requirement provenanceSeparationArgumentS2 : VisualizationArgumentS2 {
+  requirement provenanceSeparationArgument : VisualizationArgument {
     doc /* AGT-AEBS-S2-04: argues AC-AEBS-S2-004 (display-derived versus native separation) within the claim boundary. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
-  requirement failClosedStalenessArgumentS2 : VisualizationArgumentS2 {
+  requirement failClosedStalenessArgument : VisualizationArgument {
     doc /* AGT-AEBS-S2-05: argues AC-AEBS-S2-005 (fail-closed suppression of expired geometry) within the claim boundary. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
-  requirement degradedRenderingArgumentS2 : VisualizationArgumentS2 {
+  requirement degradedRenderingArgument : VisualizationArgument {
     doc /* AGT-AEBS-S2-06: argues AC-AEBS-S2-006 bounded to the fixture path; live-chain degradation is not argued by this branch. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
-  requirement counterClaimS2Restoration : VisualizationCounterClaimS2 {
+  requirement counterClaimRestoration : VisualizationCounterClaim {
     doc /* CCM-AEBS-S2-01: bounds the claim for restoration behavior (AC-AEBS-S2-007); no retained campaign exercised it. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
-  requirement counterClaimS2LiveDegradation : VisualizationCounterClaimS2 {
+  requirement counterClaimLiveDegradation : VisualizationCounterClaim {
     doc /* CCM-AEBS-S2-02: bounds the claim for live degraded dispositions (stale/unavailable/invalid) from real Autoware source conditions; retained degraded-state evidence is fixture-path only. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
-  requirement counterClaimS2ProductionBoundaries : VisualizationCounterClaimS2 {
+  requirement counterClaimProductionBoundaries : VisualizationCounterClaim {
     doc /* CCM-AEBS-S2-03: bounds the claim against inter-VM transport without the bounded adb-reverse bench route, signed-policy enforcement, production HMI, and any safety or certification reading. */
-    subject bench : VisualizationVandVBenchS2;
+    subject bench : VisualizationVerificationBench;
   }
 
   dependency claimSupportedByChainArgument
-    from chainCorrelationArgumentS2 to s2VisualizationInstrumentationClaim;
+    from chainCorrelationArgument to visualizationInstrumentationClaim;
   dependency claimSupportedByLifecycleArgument
-    from lifecycleArcArgumentS2 to s2VisualizationInstrumentationClaim;
+    from lifecycleArcArgument to visualizationInstrumentationClaim;
   dependency claimSupportedByReadOnlyArgument
-    from readOnlyBoundaryArgumentS2 to s2VisualizationInstrumentationClaim;
+    from readOnlyBoundaryArgument to visualizationInstrumentationClaim;
   dependency claimSupportedByProvenanceArgument
-    from provenanceSeparationArgumentS2 to s2VisualizationInstrumentationClaim;
+    from provenanceSeparationArgument to visualizationInstrumentationClaim;
   dependency claimSupportedByStalenessArgument
-    from failClosedStalenessArgumentS2 to s2VisualizationInstrumentationClaim;
+    from failClosedStalenessArgument to visualizationInstrumentationClaim;
   dependency claimSupportedByDegradedArgument
-    from degradedRenderingArgumentS2 to s2VisualizationInstrumentationClaim;
+    from degradedRenderingArgument to visualizationInstrumentationClaim;
 
   dependency chainVerificationReinforcesArgument
-    from chainCorrelationVerificationS2 to chainCorrelationArgumentS2;
+    from chainCorrelationVerification to chainCorrelationArgument;
   dependency lifecycleVerificationReinforcesArgument
-    from lifecycleArcVerificationS2 to lifecycleArcArgumentS2;
+    from lifecycleArcVerification to lifecycleArcArgument;
   dependency readOnlyVerificationReinforcesArgument
-    from readOnlyBoundaryVerificationS2 to readOnlyBoundaryArgumentS2;
+    from readOnlyBoundaryVerification to readOnlyBoundaryArgument;
   dependency provenanceVerificationReinforcesArgument
-    from provenanceSeparationVerificationS2 to provenanceSeparationArgumentS2;
+    from provenanceSeparationVerification to provenanceSeparationArgument;
   dependency stalenessVerificationReinforcesArgument
-    from failClosedStalenessVerificationS2 to failClosedStalenessArgumentS2;
+    from failClosedStalenessVerification to failClosedStalenessArgument;
   dependency degradedVerificationReinforcesArgument
-    from degradedRenderingVerificationS2 to degradedRenderingArgumentS2;
+    from degradedRenderingVerification to degradedRenderingArgument;
 
   dependency chainEvidenceReinforcesChainArgument
-    from liveChainEvidenceS2 to chainCorrelationArgumentS2;
+    from liveChainEvidence to chainCorrelationArgument;
   dependency lifecycleEvidenceReinforcesLifecycleArgument
-    from lifecycleArcEvidenceS2 to lifecycleArcArgumentS2;
+    from lifecycleArcEvidence to lifecycleArcArgument;
   dependency readOnlyEvidenceReinforcesReadOnlyArgument
-    from readOnlyBoundaryEvidenceS2 to readOnlyBoundaryArgumentS2;
+    from readOnlyBoundaryEvidence to readOnlyBoundaryArgument;
   dependency provenanceEvidenceReinforcesProvenanceArgument
-    from provenanceSeparationEvidenceS2 to provenanceSeparationArgumentS2;
+    from provenanceSeparationEvidence to provenanceSeparationArgument;
   dependency stalenessEvidenceReinforcesStalenessArgument
-    from failClosedStalenessEvidenceS2 to failClosedStalenessArgumentS2;
+    from failClosedStalenessEvidence to failClosedStalenessArgument;
   dependency degradedEvidenceReinforcesDegradedArgument
-    from degradedRenderingEvidenceS2 to degradedRenderingArgumentS2;
+    from degradedRenderingEvidence to degradedRenderingArgument;
 
   dependency chainEvidenceTraceToClaim
-    from liveChainEvidenceS2 to s2VisualizationInstrumentationClaim;
+    from liveChainEvidence to visualizationInstrumentationClaim;
   dependency lifecycleEvidenceTraceToClaim
-    from lifecycleArcEvidenceS2 to s2VisualizationInstrumentationClaim;
+    from lifecycleArcEvidence to visualizationInstrumentationClaim;
   dependency readOnlyEvidenceTraceToClaim
-    from readOnlyBoundaryEvidenceS2 to s2VisualizationInstrumentationClaim;
+    from readOnlyBoundaryEvidence to visualizationInstrumentationClaim;
   dependency provenanceEvidenceTraceToClaim
-    from provenanceSeparationEvidenceS2 to s2VisualizationInstrumentationClaim;
+    from provenanceSeparationEvidence to visualizationInstrumentationClaim;
   dependency stalenessEvidenceTraceToClaim
-    from failClosedStalenessEvidenceS2 to s2VisualizationInstrumentationClaim;
+    from failClosedStalenessEvidence to visualizationInstrumentationClaim;
   dependency degradedEvidenceTraceToClaim
-    from degradedRenderingEvidenceS2 to s2VisualizationInstrumentationClaim;
+    from degradedRenderingEvidence to visualizationInstrumentationClaim;
 
   dependency counterClaimRestorationCountersClaim
-    from counterClaimS2Restoration to s2VisualizationInstrumentationClaim;
+    from counterClaimRestoration to visualizationInstrumentationClaim;
   dependency counterClaimLiveDegradationCountersClaim
-    from counterClaimS2LiveDegradation to s2VisualizationInstrumentationClaim;
+    from counterClaimLiveDegradation to visualizationInstrumentationClaim;
   dependency counterClaimProductionCountersClaim
-    from counterClaimS2ProductionBoundaries to s2VisualizationInstrumentationClaim;
+    from counterClaimProductionBoundaries to visualizationInstrumentationClaim;
 
   /* ──────────────────────────────────────────
    * Gaps (deferred scope owned by this slice's successors)
    * ────────────────────────────────────────── */
 
-  part gap010RestorationUnexercisedS2 : IncrementGap {
+  part gap010RestorationUnexercised : IncrementGap {
     doc /*
      * GAP-AEBS-010-006: Restoration after a failure disposition
      * (AC-AEBS-S2-007) was not exercised in any retained INC-AEBS-010
@@ -769,7 +769,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * live bench time. Owner: successor increment in this chain.
      */
   }
-  part gap010LiveDegradationUnprovenS2 : IncrementGap {
+  part gap010LiveDegradationUnproven : IncrementGap {
     doc /*
      * GAP-AEBS-010-007: Degraded dispositions from real Autoware source
      * conditions (stale/unavailable/invalid on the live chain) are not
@@ -777,7 +777,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * fixture-path only. Owner: successor increment in this chain.
      */
   }
-  part gap010InterVmRouteDeferredS2 : DeferredProductLineScope {
+  part gap010InterVmRouteDeferred : DeferredProductLineScope {
     doc /*
      * GAP-AEBS-010-008: The retained route is the bounded bench transport
      * (TCP :4721 + adb reverse). An inter-VM route without the adb-reverse
@@ -788,16 +788,16 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   }
 
   dependency counterClaimRestorationGapTrace
-    from counterClaimS2Restoration to gap010RestorationUnexercisedS2;
+    from counterClaimRestoration to gap010RestorationUnexercised;
   dependency counterClaimLiveDegradationGapTrace
-    from counterClaimS2LiveDegradation to gap010LiveDegradationUnprovenS2;
+    from counterClaimLiveDegradation to gap010LiveDegradationUnproven;
   dependency counterClaimProductionGapTrace
-    from counterClaimS2ProductionBoundaries to gap010InterVmRouteDeferredS2;
+    from counterClaimProductionBoundaries to gap010InterVmRouteDeferred;
   dependency plannedRestorationEvidenceGapTrace
-    from restorationEvidencePlannedS2 to gap010RestorationUnexercisedS2;
+    from restorationEvidencePlanned to gap010RestorationUnexercised;
 
   /* Safety non-claim anchor: the scenario-safety outcome stays deferred. */
-  part scenarioSafetyDeferredS2 : DeferredProductLineScope {
+  part scenarioSafetyDeferred : DeferredProductLineScope {
     doc /*
      * The visualization observes AEBS behavior; it contributes no braking
      * authority, hazard control, or safety argument. The scenario-safety
@@ -805,13 +805,13 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      */
   }
   dependency readOnlyArgumentSafetyNonClaimTrace
-    from readOnlyBoundaryArgumentS2 to scenarioSafetyDeferredS2;
+    from readOnlyBoundaryArgument to scenarioSafetyDeferred;
 
   /* ──────────────────────────────────────────
    * Concern and views (ArgumentationAssurance for evidence claims)
    * ────────────────────────────────────────── */
 
-  concern argumentationAssuranceConcernS2 : ArgumentationAssuranceConcern {
+  concern visualizationArgumentationAssuranceConcern : ArgumentationAssuranceConcern {
     doc /* Evidence-based assurance claim, counterclaims, retained evidence, and gaps for the visualization instrumentation. */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -821,25 +821,25 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
 
   view aebsVisualizationVerificationAssuranceView {
     viewpoint selectedAssuranceViewpoint : ArgumentationAssuranceViewpoint {
-      frame argumentationAssuranceConcernS2;
+      frame visualizationArgumentationAssuranceConcern;
     }
     doc /*
      * Positive Phase 10 slice: the bounded instrumentation claim, its
      * supporting arguments, and the retained evidence branches.
      */
-    expose s2VisualizationInstrumentationClaim;
-    expose chainCorrelationArgumentS2;
-    expose lifecycleArcArgumentS2;
-    expose readOnlyBoundaryArgumentS2;
-    expose provenanceSeparationArgumentS2;
-    expose failClosedStalenessArgumentS2;
-    expose degradedRenderingArgumentS2;
-    expose liveChainEvidenceS2;
-    expose lifecycleArcEvidenceS2;
-    expose readOnlyBoundaryEvidenceS2;
-    expose provenanceSeparationEvidenceS2;
-    expose failClosedStalenessEvidenceS2;
-    expose degradedRenderingEvidenceS2;
+    expose visualizationInstrumentationClaim;
+    expose chainCorrelationArgument;
+    expose lifecycleArcArgument;
+    expose readOnlyBoundaryArgument;
+    expose provenanceSeparationArgument;
+    expose failClosedStalenessArgument;
+    expose degradedRenderingArgument;
+    expose liveChainEvidence;
+    expose lifecycleArcEvidence;
+    expose readOnlyBoundaryEvidence;
+    expose provenanceSeparationEvidence;
+    expose failClosedStalenessEvidence;
+    expose degradedRenderingEvidence;
     expose claimSupportedByChainArgument;
     expose claimSupportedByLifecycleArgument;
     expose claimSupportedByReadOnlyArgument;
@@ -853,24 +853,24 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
 
   view aebsVisualizationOpenCounterclaimAssuranceView {
     viewpoint selectedOpenCounterclaimViewpoint : ArgumentationAssuranceViewpoint {
-      frame argumentationAssuranceConcernS2;
+      frame visualizationArgumentationAssuranceConcern;
     }
     doc /*
      * Challenge slice: unresolved counterclaims and gaps that prevent
      * broader restoration, live-degradation, inter-VM, and safety assurance.
      */
-    expose s2VisualizationInstrumentationClaim;
-    expose counterClaimS2Restoration;
-    expose counterClaimS2LiveDegradation;
-    expose counterClaimS2ProductionBoundaries;
-    expose gap010RestorationUnexercisedS2;
-    expose gap010LiveDegradationUnprovenS2;
-    expose gap010InterVmRouteDeferredS2;
+    expose visualizationInstrumentationClaim;
+    expose counterClaimRestoration;
+    expose counterClaimLiveDegradation;
+    expose counterClaimProductionBoundaries;
+    expose gap010RestorationUnexercised;
+    expose gap010LiveDegradationUnproven;
+    expose gap010InterVmRouteDeferred;
     expose counterClaimRestorationGapTrace;
     expose counterClaimLiveDegradationGapTrace;
     expose counterClaimProductionGapTrace;
-    expose restorationEvidencePlannedS2;
-    expose scenarioSafetyDeferredS2;
+    expose restorationEvidencePlanned;
+    expose scenarioSafetyDeferred;
     attribute maxCompartmentEntries = 0;
     attribute showAnnotationRows = false;
     render asTreeDiagram;

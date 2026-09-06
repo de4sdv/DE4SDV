@@ -123,31 +123,31 @@ package DE4SDV_MiddlewareRequirements {
           }
         }
 
-        dependency req001DerivedFromNeed001
+        dependency reqProvideMiddlewareSignalAccessDerivedFromMiddlewareIntegration
           from reqProvideMiddlewareSignalAccess
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::needMiddlewareIntegration;
-        dependency req002DerivedFromNeed001
+        dependency reqProvideMiddlewareDiagnosticAccessDerivedFromMiddlewareIntegration
           from reqProvideMiddlewareDiagnosticAccess
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::needMiddlewareIntegration;
-        dependency req003DerivedFromNeed001
+        dependency reqCoordinateMiddlewareLifecycleDerivedFromMiddlewareIntegration
           from reqCoordinateMiddlewareLifecycle
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::needMiddlewareIntegration;
-        dependency req004DerivedFromNeed001
+        dependency reqMonitorMiddlewareHealthDerivedFromMiddlewareIntegration
           from reqMonitorMiddlewareHealth
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::needMiddlewareIntegration;
-        dependency req005DerivedFromNeed001
+        dependency reqCoordinateMiddlewareUpdatesDerivedFromMiddlewareIntegration
           from reqCoordinateMiddlewareUpdates
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::needMiddlewareIntegration;
-        dependency req006DerivedFromNeed004
+        dependency reqIsolateSafetyPathDerivedFromSafetyPathIsolation
           from reqIsolateSafetyPath
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::needSafetyPathIsolation;
-        dependency req007DerivedFromNeed002
+        dependency reqProvideServiceDiscoveryDerivedFromPlatformDecoupling
           from reqProvideServiceDiscovery
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::needPlatformDecoupling;
-        dependency req008DerivedFromNeed009
+        dependency reqAuthenticateServiceBindingDerivedFromSecurityTrustBoundary
           from reqAuthenticateServiceBinding
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::System2EngineeringAssurance::needSecurityTrustBoundary;
-        dependency req009DerivedFromNeed006
+        dependency reqMaintainMiddlewareBoundaryTraceabilityDerivedFromTraceabilityToOperationalContext
           from reqMaintainMiddlewareBoundaryTraceability
           to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::needTraceabilityToOperationalContext;
 
@@ -155,52 +155,52 @@ package DE4SDV_MiddlewareRequirements {
          * each requirement (SystemRequirementTraceabilityViewpoint targets:
          * use case, process, context). Each requirement is justified by the
          * operational scenario it enables. */
-        dependency req001TracedToExchangeVehicleSignals
+        dependency reqProvideMiddlewareSignalAccessTracedToExchangeVehicleSignals
           from reqProvideMiddlewareSignalAccess
           to 'exchange vehicle signals';
-        dependency req001TracedToTranslateSignalAction
+        dependency reqProvideMiddlewareSignalAccessTracedToTranslateSignalAction
           from reqProvideMiddlewareSignalAccess
           to middlewareIntegrationFunctionalFlow::translateSignal;
-        dependency req002TracedToAccessDiagnostics
+        dependency reqProvideMiddlewareDiagnosticAccessTracedToAccessDiagnostics
           from reqProvideMiddlewareDiagnosticAccess
           to 'access diagnostics';
-        dependency req002TracedToProxyDiagnosticsAction
+        dependency reqProvideMiddlewareDiagnosticAccessTracedToProxyDiagnosticsAction
           from reqProvideMiddlewareDiagnosticAccess
           to middlewareIntegrationFunctionalFlow::proxyDiagnostics;
-        dependency req003TracedToCoordinateLifecycle
+        dependency reqCoordinateMiddlewareLifecycleTracedToCoordinateLifecycle
           from reqCoordinateMiddlewareLifecycle
           to 'coordinate lifecycle';
-        dependency req003TracedToCoordinateLifecycleAction
+        dependency reqCoordinateMiddlewareLifecycleTracedToCoordinateLifecycleAction
           from reqCoordinateMiddlewareLifecycle
           to middlewareIntegrationFunctionalFlow::coordinateLifecycle;
-        dependency req004TracedToMonitorServiceHealth
+        dependency reqMonitorMiddlewareHealthTracedToMonitorServiceHealth
           from reqMonitorMiddlewareHealth
           to 'monitor service health';
-        dependency req004TracedToForwardHealthAction
+        dependency reqMonitorMiddlewareHealthTracedToForwardHealthAction
           from reqMonitorMiddlewareHealth
           to middlewareIntegrationFunctionalFlow::forwardHealth;
-        dependency req005TracedToCoordinateUpdate
+        dependency reqCoordinateMiddlewareUpdatesTracedToCoordinateUpdate
           from reqCoordinateMiddlewareUpdates
           to 'coordinate software update';
-        dependency req005TracedToCoordinateUpdateAction
+        dependency reqCoordinateMiddlewareUpdatesTracedToCoordinateUpdateAction
           from reqCoordinateMiddlewareUpdates
           to middlewareIntegrationFunctionalFlow::coordinateUpdate;
-        dependency req006TracedToEmergencySafetyPath
+        dependency reqIsolateSafetyPathTracedToEmergencySafetyPath
           from reqIsolateSafetyPath
           to 'emergency intervention via safety path';
-        dependency req006TracedToProtectSafetyPathAction
+        dependency reqIsolateSafetyPathTracedToProtectSafetyPathAction
           from reqIsolateSafetyPath
           to middlewareIntegrationFunctionalFlow::protectSafetyPath;
-        dependency req007TracedToExchangeVehicleSignals
+        dependency reqProvideServiceDiscoveryTracedToExchangeVehicleSignals
           from reqProvideServiceDiscovery
           to 'exchange vehicle signals';
-        dependency req007TracedToBindServiceAction
+        dependency reqProvideServiceDiscoveryTracedToBindServiceAction
           from reqProvideServiceDiscovery
           to middlewareIntegrationFunctionalFlow::bindService;
-        dependency req008TracedToExchangeVehicleSignals
+        dependency reqAuthenticateServiceBindingTracedToExchangeVehicleSignals
           from reqAuthenticateServiceBinding
           to 'exchange vehicle signals';
-        dependency req008TracedToBindServiceAction
+        dependency reqAuthenticateServiceBindingTracedToBindServiceAction
           from reqAuthenticateServiceBinding
           to middlewareIntegrationFunctionalFlow::bindService;
 

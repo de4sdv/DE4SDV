@@ -462,6 +462,61 @@ def check_identifier_tokens() -> list[str]:
     return errors
 
 
+# Lexical naming lint only: ASCII or single-quoted declaration names.
+# Relationship endpoints and SysML semantics remain the licensed validator's job.
+_DECLARATION_NAME = re.compile(
+    r"\b(?:dependency|part|item|enum|concern|view|viewpoint|requirement|"
+    r"verification|calc|action|port|flow|attribute|ref|package|constraint|"
+    r"connection|allocation|interface|state|analysis|use\s+case)\s+"
+    r"(?:def\s+)?(?P<name>'(?:\\.|[^'\\])*'|[A-Za-z_][A-Za-z0-9_]*)"
+)
+_NAMING_PROSE = re.compile(
+    r'"(?:\\.|[^"\\])*"|/\*.*?\*/|//[^\n]*', re.DOTALL
+)
+_COMPACT_TRACE_NAME = re.compile(r"^(?:req(?:s[12])?|need|s[12])\d", re.IGNORECASE)
+
+
+def has_role_shorthand(name: str) -> bool:
+    """Recognize role shorthand, including numeric continuations, not ROS2."""
+    for match in re.finditer(r"s[12]", name, re.IGNORECASE):
+        if name[max(0, match.start() - 2):match.end()].lower() == "ros2":
+            continue
+        before = name[match.start() - 1] if match.start() else ""
+        if not before or (not before.isupper() and not before.isdigit()):
+            return True
+    return False
+
+
+def check_declaration_names_in_text(text: str, display_path: str) -> list[str]:
+    """Reject compact role/trace names, preserving IDs in prose and strings."""
+    code = _NAMING_PROSE.sub(lambda m: "\n" * m.group().count("\n"), text)
+    errors = []
+    for match in _DECLARATION_NAME.finditer(code):
+        name = match.group("name").strip("'")
+        if _COMPACT_TRACE_NAME.search(name) or has_role_shorthand(name):
+            errors.append(f"compact declaration name '{name}' in {display_path}")
+    return errors
+
+
+def iter_declaration_model_files():
+    """Active project-owned models, including product-line scoping."""
+    roots = (*SYSML_MODEL_ROOTS, ROOT / "model-based-product-line-engineering/scoping")
+    for root in roots:
+        for path in sorted(root.rglob("*")):
+            if path.is_file() and path.suffix.lower() == ".sysml":
+                if not _is_exempt_sysml(path) and "fixtures" not in path.parts:
+                    yield path
+
+
+def check_sysml_declaration_names() -> list[str]:
+    errors = []
+    for path in iter_declaration_model_files():
+        errors.extend(check_declaration_names_in_text(
+            path.read_text(), str(path.relative_to(ROOT))
+        ))
+    return errors
+
+
 def check_sysml_filenames() -> list[str]:
     """Project-owned SysML filenames must be lower_snake_case and canonical."""
     errors: list[str] = []
@@ -529,6 +584,7 @@ def check_view_diagram_names() -> list[str]:
 def run_all_checks() -> list[str]:
     errors: list[str] = []
     errors.extend(check_sysml_filenames())
+    errors.extend(check_sysml_declaration_names())
     errors.extend(check_identifier_tokens())
     errors.extend(check_view_diagram_names())
     return errors

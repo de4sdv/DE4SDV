@@ -698,3 +698,262 @@ pilot filename, and `VIDEO-EVIDENCE-DISPOSITION.md` are unchanged
 (lifecycle-owned). The `VIDEO-EVIDENCE-DISPOSITION` filename label joined the
 checker's non-governed look-alike list deliberately (see
 naming-conventions.md).
+
+---
+
+## Batch 4 execution record — S2 role-shorthand removal in the Phase 10 evidence slice
+
+Audit basis: a declaration-keyword scan over every project `.sysml` file
+(`part|item|enum|concern|view|requirement|verification|calc|action|port|flow|
+attribute|ref [def] <name>`) found embedded System-role shorthand (`S2`/`s2`
+as an identifier token) in exactly one slice:
+`aebs_visualization_verification_evidence.sysml`. All other hits are ROS2
+technology tokens (§3 keep-list) or registered hyphenated IDs. Per the §2
+system-role rule added with this batch, the package
+(`DE4SDV_AEBSVisualizationVerificationEvidence`) and each owning def already
+establish the System 2 role, so the embedded shorthand is redundant in
+semantic declarations. Name-only migration; zero semantics, zero IDs, zero
+System 1 vs System 2 prose changes.
+
+### Old → new name map (implemented, word-boundary swept)
+
+Approved direct mappings:
+
+| Old | New |
+|---|---|
+| `VisualizationScenarioS2` | `VisualizationScenario` |
+| `VisualizationObservationS2` | `VisualizationObservation` |
+| `RetainedVisualizationEvidenceS2` | `RetainedVisualizationEvidence` |
+| `ReplayedVisualizationEvaluationS2` | `ReplayedVisualizationEvaluation` |
+| `VisualizationVandVBenchS2` | `VisualizationVerificationBench` |
+| `MapS2OutcomeToVerdict` | `MapVisualizationOutcomeToVerdict` |
+
+Defs de-shorthand (already descriptive; suffix dropped):
+
+| Old | New |
+|---|---|
+| `VisualizationAcceptanceCriterionS2` | `VisualizationAcceptanceCriterion` |
+| `VisualizationClaimS2` | `VisualizationClaim` |
+| `VisualizationArgumentS2` | `VisualizationArgument` |
+| `VisualizationCounterClaimS2` | `VisualizationCounterClaim` |
+| `VisualizationChainCorrelationVerificationS2` | `VisualizationChainCorrelationVerification` |
+| `VisualizationLifecycleArcVerificationS2` | `VisualizationLifecycleArcVerification` |
+| `VisualizationReadOnlyBoundaryVerificationS2` | `VisualizationReadOnlyBoundaryVerification` |
+| `VisualizationProvenanceSeparationVerificationS2` | `VisualizationProvenanceSeparationVerification` |
+| `VisualizationFailClosedStalenessVerificationS2` | `VisualizationFailClosedStalenessVerification` |
+| `VisualizationDegradedRenderingVerificationS2` | `VisualizationDegradedRenderingVerification` |
+| `VisualizationRestorationVerificationS2` | `VisualizationRestorationVerification` |
+
+Generic remainders gain the concern qualifier (avoids shadowing imported
+declarations, e.g. `argumentationAssuranceConcern` imported from
+`DE4SDV_ExecutionEnvironments`; `verificationSystem` declared by seven
+sibling AEBS verification slices):
+
+| Old | New |
+|---|---|
+| `verificationSystemS2` | `visualizationVerificationSystem` |
+| `s2VisualizationInstrumentationClaim` | `visualizationInstrumentationClaim` |
+| `argumentationAssuranceConcernS2` | `visualizationArgumentationAssuranceConcern` |
+
+Usage records de-shorthand (stems keep their identity role; verified
+collision-free against every imported package):
+
+| Old | New |
+|---|---|
+| `liveChainCorrelationBenchS2` | `liveChainCorrelationBench` |
+| `lifecycleArcBenchS2` | `lifecycleArcBench` |
+| `readOnlyBoundaryBenchS2` | `readOnlyBoundaryBench` |
+| `provenanceSeparationBenchS2` | `provenanceSeparationBench` |
+| `failClosedStalenessBenchS2` | `failClosedStalenessBench` |
+| `degradedStateRenderingBenchS2` | `degradedStateRenderingBench` |
+| `restorationBehaviorBenchS2` | `restorationBehaviorBench` |
+| `acceptanceCriterionS2ChainCorrelation` | `acceptanceCriterionChainCorrelation` |
+| `acceptanceCriterionS2LifecycleArc` | `acceptanceCriterionLifecycleArc` |
+| `acceptanceCriterionS2ReadOnlyBoundary` | `acceptanceCriterionReadOnlyBoundary` |
+| `acceptanceCriterionS2ProvenanceSeparation` | `acceptanceCriterionProvenanceSeparation` |
+| `acceptanceCriterionS2FailClosedStaleness` | `acceptanceCriterionFailClosedStaleness` |
+| `acceptanceCriterionS2DegradedRendering` | `acceptanceCriterionDegradedRendering` |
+| `acceptanceCriterionS2Restoration` | `acceptanceCriterionRestoration` |
+| `acceptanceCriterionS2EvidenceIntegrity` | `acceptanceCriterionEvidenceIntegrity` |
+| `liveChainEvidenceS2` | `liveChainEvidence` |
+| `lifecycleArcEvidenceS2` | `lifecycleArcEvidence` |
+| `readOnlyBoundaryEvidenceS2` | `readOnlyBoundaryEvidence` |
+| `provenanceSeparationEvidenceS2` | `provenanceSeparationEvidence` |
+| `failClosedStalenessEvidenceS2` | `failClosedStalenessEvidence` |
+| `degradedRenderingEvidenceS2` | `degradedRenderingEvidence` |
+| `restorationEvidencePlannedS2` | `restorationEvidencePlanned` |
+| `chainCorrelationObjectiveS2` | `chainCorrelationObjective` |
+| `lifecycleArcObjectiveS2` | `lifecycleArcObjective` |
+| `readOnlyBoundaryObjectiveS2` | `readOnlyBoundaryObjective` |
+| `provenanceSeparationObjectiveS2` | `provenanceSeparationObjective` |
+| `failClosedStalenessObjectiveS2` | `failClosedStalenessObjective` |
+| `degradedRenderingObjectiveS2` | `degradedRenderingObjective` |
+| `restorationObjectiveS2` | `restorationObjective` |
+| `chainCorrelationVerificationS2` | `chainCorrelationVerification` |
+| `lifecycleArcVerificationS2` | `lifecycleArcVerification` |
+| `readOnlyBoundaryVerificationS2` | `readOnlyBoundaryVerification` |
+| `provenanceSeparationVerificationS2` | `provenanceSeparationVerification` |
+| `failClosedStalenessVerificationS2` | `failClosedStalenessVerification` |
+| `degradedRenderingVerificationS2` | `degradedRenderingVerification` |
+| `restorationVerificationS2` | `restorationVerification` |
+| `chainCorrelationArgumentS2` | `chainCorrelationArgument` |
+| `lifecycleArcArgumentS2` | `lifecycleArcArgument` |
+| `readOnlyBoundaryArgumentS2` | `readOnlyBoundaryArgument` |
+| `provenanceSeparationArgumentS2` | `provenanceSeparationArgument` |
+| `failClosedStalenessArgumentS2` | `failClosedStalenessArgument` |
+| `degradedRenderingArgumentS2` | `degradedRenderingArgument` |
+| `counterClaimS2Restoration` | `counterClaimRestoration` |
+| `counterClaimS2LiveDegradation` | `counterClaimLiveDegradation` |
+| `counterClaimS2ProductionBoundaries` | `counterClaimProductionBoundaries` |
+| `gap010RestorationUnexercisedS2` | `gap010RestorationUnexercised` |
+| `gap010LiveDegradationUnprovenS2` | `gap010LiveDegradationUnproven` |
+| `gap010InterVmRouteDeferredS2` | `gap010InterVmRouteDeferred` |
+| `scenarioSafetyDeferredS2` | `scenarioSafetyDeferred` |
+
+### Preserved (verified unchanged)
+
+All hyphenated registered IDs — `EVID-AEBS-S2-001..007`, `AC-AEBS-S2-*`,
+`VC-AEBS-S2-*`, `CLM/AGT/CCM/DEF/GAP-AEBS-S2-*`, `INC-AEBS-010`,
+`AEBS-CONFIG-010-001` — the package name, both view identities
+(`aebsVisualizationVerificationAssuranceView`,
+`aebsVisualizationOpenCounterclaimAssuranceView`), every doc-prose System 1 /
+System 2 statement (including the bench subject-distinction body), the
+verdict-mapping semantics body (`observedBounded→pass`, everything else
+`inconclusive` — guard pinned verbatim, only the calc name changed), the
+pilot filename and all evidence records.
+
+### Impact set (same-change sweep)
+
+- Model: 312 word-boundary replacements in
+  `textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml`
+  (declarations + references + the header doc's name mention).
+- Pilot: 12 `sysml_element:`/`model_element:` strings in
+  `methodologies/sysmod-sysmlv2/pilots/aebs-010-visualization-evidence.yaml`.
+- Guards: `tests/test_aebs_visualization_verification_evidence.py` — 14
+  reference updates plus two new guard tests
+  (`test_target_declarations_carry_no_role_shorthand`,
+  `test_retired_s2_names_absent_from_live_source`); the retired-name record
+  lives only inside the guard block. `check_naming.py` deliberately gains no
+  new parser in this bounded batch — the declaration-level rule is enforced
+  by the target's guard tests.
+- Generated: `VIEWS.md` (aebs) regenerated via
+  `scripts/generate_view_index.py` (4 Concern/Exposes lines). The two
+  committed assurance-view SVGs embed old exposed-member labels — refreshed
+  by the privileged SysIDE byte-swap at PR review (one pre-declared repair
+  cycle, same procedure as batches 1–3); SVGs were not hand-edited.
+- Docs: this section and naming-conventions.md §2/§3 (system-role shorthand
+  rule). No other live source referenced the retired names (repo-wide sweep:
+  model, pilots, tests, scripts, `.meta.json`, workflows, ontology YAML).
+
+### Validation results (local, this batch)
+
+- RED captured first: with only the guards added,
+  `pytest tests/test_aebs_visualization_verification_evidence.py` →
+  2 failed (both new guards), 27 passed.
+- GREEN after the sweep + VIEWS.md regeneration: 29 passed, exit 0.
+- Independent declaration sweep (`S1`/`S2` identifier scan over
+  `textual-notation-of-model`): zero remaining shorthand declarations;
+  only ROS2-family tokens (registered keep-list) remain.
+- `scripts/check_repo.py` / `scripts/smoke_test.py` / full `pytest`: see the
+  implementation report for captured exit codes.
+
+
+## Canonical dependency-name extension
+
+Normalize compact requirement/need/role names in active dependencies.
+Each mapping is scoped to its owning file: identical old names in distinct
+packages can have different targets. Dependency endpoints, registered trace
+IDs, retained evidence and runtime implementation remain unchanged.
+
+### `aebs_needs_requirements.sysml`
+
+Owner: `textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml`
+
+| Old declaration | Canonical declaration |
+|---|---|
+| `req001DerivedFromNeed001` | `reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability` |
+| `req002DerivedFromNeed001` | `reqProvideCollisionWarningDerivedFromCommonAEBSCapability` |
+| `req003DerivedFromNeed001` | `reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability` |
+| `req004DerivedFromNeed001` | `reqAllowDriverOverrideDerivedFromCommonAEBSCapability` |
+| `req005DerivedFromNeed008` | `reqDetectAEBSFailureConditionDerivedFromBoundedDegradationAndAvailability` |
+| `req013DerivedFromNeed008` | `reqIndicateDegradedUnavailableStatusDerivedFromBoundedDegradationAndAvailability` |
+| `req008DerivedFromNeed014` | `reqResistFalseReactionDerivedFromTrustworthyInterventionDecisions` |
+| `req012DerivedFromNeed014` | `reqResistFalseBrakingCommandDerivedFromTrustworthyInterventionDecisions` |
+| `req010DerivedFromNeed006` | `reqPedestrianTargetResponseDerivedFromPedestrianCollisionRiskReduction` |
+| `req014DerivedFromNeed006` | `reqPedestrianTargetControlledResponseDerivedFromPedestrianCollisionRiskReduction` |
+| `req011DerivedFromNeed007` | `reqBicycleTargetResponseDerivedFromBicycleCollisionRiskReduction` |
+| `req015DerivedFromNeed007` | `reqBicycleTargetControlledResponseDerivedFromBicycleCollisionRiskReduction` |
+| `req006DerivedFromNeed003` | `reqKeepProductLineClassificationExplicitDerivedFromProductLineClassification` |
+| `req007DerivedFromNeed004` | `reqTraceRequirementVVAndGapsDerivedFromVisibleRegulatoryAssumptions` |
+| `req007DerivedFromNeed005` | `reqTraceRequirementVVAndGapsDerivedFromRequirementVVPlanning` |
+| `reqS2001DerivedFromNeed002` | `reqTraceEvidenceContractsToControlledBoundaryDerivedFromExplicitOperationalBoundary` |
+
+### `aebs_visualization_needs_requirements.sysml`
+
+Owner: `textual-notation-of-model/packages/features/aebs/aebs_visualization_needs_requirements.sysml`
+
+| Old declaration | Canonical declaration |
+|---|---|
+| `s2002DerivedFromLiveVisualizationOnAAOS` | `reqSourceFidelityDerivedFromLiveVisualizationOnAAOS` |
+| `s2002DerivedFromPreservedSourceProvenance` | `reqSourceFidelityDerivedFromPreservedSourceProvenance` |
+| `s2003DerivedFromLiveVisualizationOnAAOS` | `reqNativeParticipationDerivedFromLiveVisualizationOnAAOS` |
+| `s2014DerivedFromPreservedSourceProvenance` | `reqNoNativeImpersonationDerivedFromPreservedSourceProvenance` |
+| `s2004DerivedFromLiveVisualizationOnAAOS` | `reqDe4sdvParticipationDerivedFromLiveVisualizationOnAAOS` |
+| `s2005DerivedFromNonInterference` | `reqNonInterferenceDerivedFromNonInterference` |
+| `s2006DerivedFromFailClosedDegradation` | `reqFailClosedFreshnessDerivedFromFailClosedDegradation` |
+| `s2007DerivedFromFailClosedDegradation` | `reqAvailabilityDispositionDerivedFromFailClosedDegradation` |
+| `s2008DerivedFromFailClosedDegradation` | `reqInvalidRejectionDerivedFromFailClosedDegradation` |
+| `s2009DerivedFromFailClosedDegradation` | `reqRestorationBehaviorDerivedFromFailClosedDegradation` |
+| `s2010DerivedFromLiveVisualizationOnAAOS` | `reqRealAAOSRenderingDerivedFromLiveVisualizationOnAAOS` |
+| `s2010DerivedFromCorrelatableEvidence` | `reqRealAAOSRenderingDerivedFromCorrelatableEvidence` |
+| `s2012DerivedFromLiveVisualizationOnAAOS` | `reqAaosEnvironmentObservationDerivedFromLiveVisualizationOnAAOS` |
+| `s2013DerivedFromLiveVisualizationOnAAOS` | `reqNoHostBrowserSurfaceDerivedFromLiveVisualizationOnAAOS` |
+| `s2011DerivedFromCorrelatableEvidence` | `reqEvidenceCorrelationDerivedFromCorrelatableEvidence` |
+
+### `middleware_requirements.sysml`
+
+Owner: `textual-notation-of-model/packages/features/middleware/middleware_requirements.sysml`
+
+| Old declaration | Canonical declaration |
+|---|---|
+| `req001DerivedFromNeed001` | `reqProvideMiddlewareSignalAccessDerivedFromMiddlewareIntegration` |
+| `req002DerivedFromNeed001` | `reqProvideMiddlewareDiagnosticAccessDerivedFromMiddlewareIntegration` |
+| `req003DerivedFromNeed001` | `reqCoordinateMiddlewareLifecycleDerivedFromMiddlewareIntegration` |
+| `req004DerivedFromNeed001` | `reqMonitorMiddlewareHealthDerivedFromMiddlewareIntegration` |
+| `req005DerivedFromNeed001` | `reqCoordinateMiddlewareUpdatesDerivedFromMiddlewareIntegration` |
+| `req006DerivedFromNeed004` | `reqIsolateSafetyPathDerivedFromSafetyPathIsolation` |
+| `req007DerivedFromNeed002` | `reqProvideServiceDiscoveryDerivedFromPlatformDecoupling` |
+| `req008DerivedFromNeed009` | `reqAuthenticateServiceBindingDerivedFromSecurityTrustBoundary` |
+| `req009DerivedFromNeed006` | `reqMaintainMiddlewareBoundaryTraceabilityDerivedFromTraceabilityToOperationalContext` |
+| `req001TracedToExchangeVehicleSignals` | `reqProvideMiddlewareSignalAccessTracedToExchangeVehicleSignals` |
+| `req001TracedToTranslateSignalAction` | `reqProvideMiddlewareSignalAccessTracedToTranslateSignalAction` |
+| `req002TracedToAccessDiagnostics` | `reqProvideMiddlewareDiagnosticAccessTracedToAccessDiagnostics` |
+| `req002TracedToProxyDiagnosticsAction` | `reqProvideMiddlewareDiagnosticAccessTracedToProxyDiagnosticsAction` |
+| `req003TracedToCoordinateLifecycle` | `reqCoordinateMiddlewareLifecycleTracedToCoordinateLifecycle` |
+| `req003TracedToCoordinateLifecycleAction` | `reqCoordinateMiddlewareLifecycleTracedToCoordinateLifecycleAction` |
+| `req004TracedToMonitorServiceHealth` | `reqMonitorMiddlewareHealthTracedToMonitorServiceHealth` |
+| `req004TracedToForwardHealthAction` | `reqMonitorMiddlewareHealthTracedToForwardHealthAction` |
+| `req005TracedToCoordinateUpdate` | `reqCoordinateMiddlewareUpdatesTracedToCoordinateUpdate` |
+| `req005TracedToCoordinateUpdateAction` | `reqCoordinateMiddlewareUpdatesTracedToCoordinateUpdateAction` |
+| `req006TracedToEmergencySafetyPath` | `reqIsolateSafetyPathTracedToEmergencySafetyPath` |
+| `req006TracedToProtectSafetyPathAction` | `reqIsolateSafetyPathTracedToProtectSafetyPathAction` |
+| `req007TracedToExchangeVehicleSignals` | `reqProvideServiceDiscoveryTracedToExchangeVehicleSignals` |
+| `req007TracedToBindServiceAction` | `reqProvideServiceDiscoveryTracedToBindServiceAction` |
+| `req008TracedToExchangeVehicleSignals` | `reqAuthenticateServiceBindingTracedToExchangeVehicleSignals` |
+| `req008TracedToBindServiceAction` | `reqAuthenticateServiceBindingTracedToBindServiceAction` |
+
+### `middleware_stakeholder_needs.sysml`
+
+Owner: `textual-notation-of-model/packages/features/middleware/middleware_stakeholder_needs.sysml`
+
+| Old declaration | Canonical declaration |
+|---|---|
+| `need001FromOperationalContext` | `needMiddlewareIntegrationFromOperationalContext` |
+| `need002FromClassification` | `needPlatformDecouplingFromClassification` |
+| `need003FromClassification` | `needMiddlewareAsFeatureFromClassification` |
+| `need004FromOperationalContext` | `needSafetyPathIsolationFromOperationalContext` |
+
+The extension contains 60 file-scoped mappings. Historical examples and
+synthetic negative tests may retain old spellings. Technology names (ROS2,
+PointCloud2), explicit architectural roles, phase-reference names, and
+immutable baseline-record identities are not compact trace-name residues.

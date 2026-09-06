@@ -119,7 +119,7 @@ def test_requirement_derivation_dependencies_present(
 ) -> None:
     needs = _read(NEEDS)
     # Dependency usage names carry the semantic target-need stem (e.g.
-    # s2005DerivedFromNonInterference for N-AEBS-013); the legacy need ID
+    # reqNonInterferenceDerivedFromNonInterference for N-AEBS-013); the legacy need ID
     # itself is pinned by each requirement's `source` attribute below.
     need_usage = {
         "N-AEBS-009": "needLiveVisualizationOnAAOS",
