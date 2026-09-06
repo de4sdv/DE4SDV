@@ -114,11 +114,11 @@ def aebs_impact_fixture() -> ImpactFixture:
             "kernel.RequirementCandidate",
             "aebs.memberProduct",
             "aebs.reqCommandEmergencyBraking",
-            "aebs.evidenceContract009BFreshOverrideClear",
-            "aebs.evidenceContract009BNominalBrakingPath",
-            "aebs.evidenceContract009CMRMGateChain",
-            "aebs.nominalMovingVehicleTargetVerification009B",
-            "aebs.nativeInterventionToMRMVerification009C",
+            "aebs.evidenceContractFreshOverrideClear",
+            "aebs.evidenceContractNominalBrakingPath",
+            "aebs.evidenceContractMRMGateChain",
+            "aebs.nominalMovingVehicleTargetVerification",
+            "aebs.nativeInterventionToMRMVerification",
             "dependency.override-to-command",
             "dependency.braking-to-command",
             "dependency.mrm-to-command",
@@ -136,9 +136,9 @@ def aebs_impact_fixture() -> ImpactFixture:
     root["subjectParameter"] = ref(ids["aebs.memberProduct"])
 
     evidence_specs = (
-        ("aebs.evidenceContract009BFreshOverrideClear", "evidenceContract009BFreshOverrideClear"),
-        ("aebs.evidenceContract009BNominalBrakingPath", "evidenceContract009BNominalBrakingPath"),
-        ("aebs.evidenceContract009CMRMGateChain", "evidenceContract009CMRMGateChain"),
+        ("aebs.evidenceContractFreshOverrideClear", "evidenceContractFreshOverrideClear"),
+        ("aebs.evidenceContractNominalBrakingPath", "evidenceContractNominalBrakingPath"),
+        ("aebs.evidenceContractMRMGateChain", "evidenceContractMRMGateChain"),
     )
     evidence = {
         key: usage("RequirementUsage", ids[key], name)
@@ -146,20 +146,20 @@ def aebs_impact_fixture() -> ImpactFixture:
     }
     verification_009b = usage(
         "VerificationCaseUsage",
-        ids["aebs.nominalMovingVehicleTargetVerification009B"],
-        "nominalMovingVehicleTargetVerification009B",
+        ids["aebs.nominalMovingVehicleTargetVerification"],
+        "nominalMovingVehicleTargetVerification",
     )
     verification_009b["verifiedRequirement"] = [
-        ref(ids["aebs.evidenceContract009BFreshOverrideClear"]),
-        ref(ids["aebs.evidenceContract009BNominalBrakingPath"]),
+        ref(ids["aebs.evidenceContractFreshOverrideClear"]),
+        ref(ids["aebs.evidenceContractNominalBrakingPath"]),
     ]
     verification_009c = usage(
         "VerificationCaseUsage",
-        ids["aebs.nativeInterventionToMRMVerification009C"],
-        "nativeInterventionToMRMVerification009C",
+        ids["aebs.nativeInterventionToMRMVerification"],
+        "nativeInterventionToMRMVerification",
     )
     verification_009c["verifiedRequirement"] = [
-        ref(ids["aebs.evidenceContract009CMRMGateChain"])
+        ref(ids["aebs.evidenceContractMRMGateChain"])
     ]
 
     elements = {
@@ -174,19 +174,19 @@ def aebs_impact_fixture() -> ImpactFixture:
             dependency(
                 ids["dependency.override-to-command"],
                 "fresh override clear relevant to command emergency braking",
-                source_id=ids["aebs.evidenceContract009BFreshOverrideClear"],
+                source_id=ids["aebs.evidenceContractFreshOverrideClear"],
                 target_id=ids["aebs.reqCommandEmergencyBraking"],
             ),
             dependency(
                 ids["dependency.braking-to-command"],
                 "nominal braking path relevant to command emergency braking",
-                source_id=ids["aebs.evidenceContract009BNominalBrakingPath"],
+                source_id=ids["aebs.evidenceContractNominalBrakingPath"],
                 target_id=ids["aebs.reqCommandEmergencyBraking"],
             ),
             dependency(
                 ids["dependency.mrm-to-command"],
                 "MRM gate chain relevant to command emergency braking",
-                source_id=ids["aebs.evidenceContract009CMRMGateChain"],
+                source_id=ids["aebs.evidenceContractMRMGateChain"],
                 target_id=ids["aebs.reqCommandEmergencyBraking"],
             ),
         )

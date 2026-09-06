@@ -34,7 +34,7 @@ Autoware application integration, or a production transport contract.
 ## Local rehearsal
 
 The rehearsal mirrors the modeled adapter chain in
-`mw_physical_software_realization.sysml` (`MiddlewarePhysicalSoftwareBoundary`):
+`middleware_physical_software_realization.sysml` (`MiddlewarePhysicalSoftwareBoundary`):
 
 ```text
 aaosSdvBoundary (VSIDL service access stand-in)
@@ -95,7 +95,7 @@ full_autoware_application_runtime: not_proven
 
 The physical realization model records the bounded campaign separately from the
 candidate System 1 middleware boundary:
-[`mw_physical_software_realization.sysml`](../../textual-notation-of-model/packages/features/middleware/mw_physical_software_realization.sysml).
+[`middleware_physical_software_realization.sysml`](../../textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml).
 
 The campaign structure is explicitly:
 

@@ -4,25 +4,25 @@
   "increments": {
     "009B": {
       "sysml_file": "aebs_evidence.sysml",
-      "package_name": "DE4SDV_AEBS009BNominalEvidence",
-      "verification_def": "NominalMovingVehicleTargetVerification009B",
+      "package_name": "DE4SDV_AEBSNominalEvidence",
+      "verification_def": "NominalMovingVehicleTargetVerification",
       "verification_usages": [
-        "nominalMovingVehicleTargetVerification009B"
+        "nominalMovingVehicleTargetVerification"
       ],
       "scenario_identity_enum": null,
       "evidence_outcome_enum": null,
-      "bench_definition": "NominalMovingVehicleTargetBench009B"
+      "bench_definition": "NominalMovingVehicleTargetBench"
     },
     "009C": {
       "sysml_file": "aebs_partial_intervention_verification.sysml",
-      "package_name": "DE4SDV_AEBS009CVerification",
-      "verification_def": "NativeInterventionToMRMVerification009C",
+      "package_name": "DE4SDV_AEBSPartialInterventionVerification",
+      "verification_def": "NativeInterventionToMRMVerification",
       "verification_usages": [
-        "nativeInterventionToMRMVerification009C"
+        "nativeInterventionToMRMVerification"
       ],
       "scenario_identity_enum": null,
-      "evidence_outcome_enum": "EvidenceOutcome009C",
-      "bench_definition": "NativeInterventionBench009C",
+      "evidence_outcome_enum": "PartialInterventionEvidenceOutcome",
+      "bench_definition": "NativeInterventionBench",
       "evidence_outcomes": [
         "passObservedChain",
         "failScenario",
@@ -33,19 +33,19 @@
     },
     "009D": {
       "sysml_file": "aebs_override_verification.sysml",
-      "package_name": "DE4SDV_AEBS009DVerification",
-      "verification_def": "ConsciousOverrideVerification009D",
+      "package_name": "DE4SDV_AEBSOverrideVerification",
+      "verification_def": "ConsciousOverrideVerification",
       "verification_usages": [
-        "overrideFalseControlVerification009D",
-        "overrideTrueVerification009D",
-        "overrideStaleVerification009D",
-        "overrideMissingVerification009D",
-        "overrideMalformedVerification009D",
-        "overrideFutureStampedVerification009D"
+        "overrideFalseControlVerification",
+        "overrideTrueVerification",
+        "overrideStaleVerification",
+        "overrideMissingVerification",
+        "overrideMalformedVerification",
+        "overrideFutureStampedVerification"
       ],
-      "scenario_identity_enum": "ScenarioIdentity009D",
-      "evidence_outcome_enum": "EvidenceOutcome009D",
-      "bench_definition": "OverrideMatrixBench009D",
+      "scenario_identity_enum": "OverrideScenarioIdentity",
+      "evidence_outcome_enum": "OverrideEvidenceOutcome",
+      "bench_definition": "OverrideMatrixBench",
       "scenario_identities": [
         "freshFalseControl",
         "freshTrueOverride",
@@ -63,17 +63,17 @@
     },
     "009E": {
       "sysml_file": "aebs_non_activation_verification.sysml",
-      "package_name": "DE4SDV_AEBS009EVerification",
-      "verification_def": "FalseReactionResistanceVerification009E",
+      "package_name": "DE4SDV_AEBSNonActivationVerification",
+      "verification_def": "FalseReactionResistanceVerification",
       "verification_usages": [
-        "clearPathNonActivationVerification009E",
-        "adjacentObjectNonActivationVerification009E",
-        "nonClosingTargetNonActivationVerification009E",
-        "belowTriggerNonActivationVerification009E"
+        "clearPathNonActivationVerification",
+        "adjacentObjectNonActivationVerification",
+        "nonClosingTargetNonActivationVerification",
+        "belowTriggerNonActivationVerification"
       ],
-      "scenario_identity_enum": "ScenarioIdentity009E",
-      "evidence_outcome_enum": "EvidenceOutcome009E",
-      "bench_definition": "FalseReactionMatrixBench009E",
+      "scenario_identity_enum": "NonActivationScenarioIdentity",
+      "evidence_outcome_enum": "NonActivationEvidenceOutcome",
+      "bench_definition": "FalseReactionMatrixBench",
       "scenario_identities": [
         "clearPath",
         "adjacentObject",
@@ -89,18 +89,18 @@
     },
     "009F": {
       "sysml_file": "aebs_degraded_input_verification.sysml",
-      "package_name": "DE4SDV_AEBS009FVerification",
-      "verification_def": "DegradedUnavailableVerification009F",
+      "package_name": "DE4SDV_AEBSDegradedInputVerification",
+      "verification_def": "DegradedUnavailableVerification",
       "verification_usages": [
-        "staleInputVerification009F",
-        "missingInputVerification009F",
-        "malformedInputVerification009F",
-        "inconsistentInputVerification009F",
-        "unavailableInputVerification009F"
+        "staleInputVerification",
+        "missingInputVerification",
+        "malformedInputVerification",
+        "inconsistentInputVerification",
+        "unavailableInputVerification"
       ],
-      "scenario_identity_enum": "ScenarioIdentity009F",
-      "evidence_outcome_enum": "EvidenceOutcome009F",
-      "bench_definition": "DegradedInputMatrixBench009F",
+      "scenario_identity_enum": "DegradedInputScenarioIdentity",
+      "evidence_outcome_enum": "DegradedInputEvidenceOutcome",
+      "bench_definition": "DegradedInputMatrixBench",
       "scenario_identities": [
         "staleInput",
         "missingInput",
@@ -117,14 +117,14 @@
     },
     "009G": {
       "sysml_file": "aebs_pedestrian_verification.sysml",
-      "package_name": "DE4SDV_AEBS009GVerification",
-      "verification_def": "PedestrianTargetVerification009G",
+      "package_name": "DE4SDV_AEBSPedestrianVerification",
+      "verification_def": "PedestrianTargetVerification",
       "verification_usages": [
-        "pedestrianTargetVerification009G"
+        "pedestrianTargetVerification"
       ],
       "scenario_identity_enum": null,
-      "evidence_outcome_enum": "EvidenceOutcome009G",
-      "bench_definition": "PedestrianTargetBench009G",
+      "evidence_outcome_enum": "PedestrianEvidenceOutcome",
+      "bench_definition": "PedestrianTargetBench",
       "evidence_outcomes": [
         "passBoundedTargetResponse",
         "failConfiguredOutcome",
@@ -136,14 +136,14 @@
     },
     "009H": {
       "sysml_file": "aebs_bicycle_verification.sysml",
-      "package_name": "DE4SDV_AEBS009HVerification",
-      "verification_def": "BicycleTargetVerification009H",
+      "package_name": "DE4SDV_AEBSBicycleVerification",
+      "verification_def": "BicycleTargetVerification",
       "verification_usages": [
-        "bicycleTargetVerification009H"
+        "bicycleTargetVerification"
       ],
       "scenario_identity_enum": null,
-      "evidence_outcome_enum": "EvidenceOutcome009H",
-      "bench_definition": "BicycleTargetBench009H",
+      "evidence_outcome_enum": "BicycleEvidenceOutcome",
+      "bench_definition": "BicycleTargetBench",
       "evidence_outcomes": [
         "passBoundedTargetResponse",
         "failConfiguredOutcome",
@@ -155,15 +155,15 @@
     },
     "009I": {
       "sysml_file": "aebs_regulatory_criterion_verification.sysml",
-      "package_name": "DE4SDV_AEBS009IVerification",
-      "verification_def": "PedestrianCriterionVerification009I",
+      "package_name": "DE4SDV_AEBSRegulatoryCriterionVerification",
+      "verification_def": "PedestrianCriterionVerification",
       "verification_usages": [
-        "pedestrianCriterionVerification009I",
-        "bicycleCriterionVerification009I"
+        "pedestrianCriterionVerification",
+        "bicycleCriterionVerification"
       ],
-      "scenario_identity_enum": "ScenarioIdentity009I",
-      "evidence_outcome_enum": "EvidenceOutcome009I",
-      "bench_definition": "RegulatoryCriterionBench009I",
+      "scenario_identity_enum": "RegulatoryCriterionScenarioIdentity",
+      "evidence_outcome_enum": "RegulatoryCriterionEvidenceOutcome",
+      "bench_definition": "RegulatoryCriterionBench",
       "scenario_identities": [
         "pedestrianCriterion",
         "bicycleCriterion"

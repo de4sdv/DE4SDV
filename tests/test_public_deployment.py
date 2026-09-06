@@ -526,9 +526,88 @@ def test_workflow_uses_real_git_checkout() -> None:
     assert "checkout --detach --force" in wf
     assert "reset --hard" in wf
     assert "clean -ffd" in wf
+    assert "git bundle create" in wf
+    assert "git clone --no-checkout" in wf
     # The old fake-checkout must be gone.
     assert "git init -q" not in wf
     assert "--exclude=.git" not in wf
+
+
+def test_workflow_checks_out_its_own_tooling_revision() -> None:
+    """Branch workflow runs must execute the verifier from that branch.
+
+    Run 33687765841 loaded the amended workflow definition but checked the
+    workspace out at the older DEPLOY_SHA, so the mandatory step executed the
+    old verifier and reproduced its fixed NameError. The Git bundle still
+    pins host source to DEPLOY_SHA independently.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    tooling_step = wf.split("- name: Check out deployment tooling", 1)[1]
+    tooling_step = tooling_step.split("- name: Validate deployment ref", 1)[0]
+
+    assert "ref: ${{ github.sha }}" in tooling_step
+    assert "ref: ${{ env.DEPLOY_SHA }}" not in tooling_step
+    assert 'git update-ref "$BUNDLE_REF" "$DEPLOY_SHA"' in wf
+
+
+def test_workflow_recreates_the_deployment_checkout_unconditionally() -> None:
+    """A previous run's Git config must never control the next deployment.
+
+    Runs 33660870062 and 33663783815 both took the existing-checkout branch
+    and failed at ``git fetch origin`` with an interactive GitHub credential
+    challenge.  Retrying could not self-heal because the persisted checkout
+    and its repository-local configuration were reused unchanged.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    checkout_step = wf.split("- name: Create exact Git checkout on the host", 1)[1]
+    checkout_step = checkout_step.split(
+        "- name: Materialize pinned Sysand dependencies on the host", 1
+    )[0]
+
+    assert 'sudo rm -rf "$REPO_DIR"' in checkout_step
+    assert 'git clone --no-checkout --branch deploy-source' in checkout_step
+    assert 'if [[ -d "$REPO_DIR/.git" ]]' not in checkout_step
+    assert 'git -C "$REPO_DIR" fetch' not in checkout_step
+    assert 'git clone --single-branch' not in checkout_step
+
+
+def test_workflow_transfers_a_verified_git_bundle_from_the_runner() -> None:
+    """The deploy host must not depend on anonymous GitHub smart HTTP.
+
+    Fresh all-refs and single-branch clones both received a GitHub credential
+    challenge from the production host (runs 33670629082 and 33679270407).
+    Build a real Git bundle from actions/checkout's authenticated, exact-SHA
+    canonical checkout, verify its ref and checksum, and clone it locally on
+    the host over the already pinned SSH transport.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    checkout_step = wf.split("- name: Create exact Git checkout on the host", 1)[1]
+    checkout_step = checkout_step.split(
+        "- name: Materialize pinned Sysand dependencies on the host", 1
+    )[0]
+
+    assert "fetch-depth: 0" in wf
+    assert "persist-credentials: false" in wf
+    assert 'BUNDLE_REF="refs/heads/deploy-source"' in checkout_step
+    assert 'git update-ref "$BUNDLE_REF" "$DEPLOY_SHA"' in checkout_step
+    assert 'git bundle create "$SOURCE_BUNDLE" "$BUNDLE_REF"' in checkout_step
+    assert 'git bundle verify "$SOURCE_BUNDLE"' in checkout_step
+    assert 'git bundle list-heads "$SOURCE_BUNDLE"' in checkout_step
+    assert 'scp -i /tmp/deploy_key' in checkout_step
+    assert "StrictHostKeyChecking=yes" in checkout_step
+    assert 'REMOTE_BUNDLE_SHA256=$(sha256sum "$SOURCE_BUNDLE"' in checkout_step
+    assert 'if [[ "$REMOTE_BUNDLE_SHA256" != "$EXPECTED_BUNDLE_SHA256" ]]; then' in checkout_step
+    assert 'git clone --no-checkout --branch deploy-source' in checkout_step
+    assert 'git -C "$REPO_DIR" branch -D deploy-source' in checkout_step
+    assert 'git -C "$REPO_DIR" remote set-url origin "$REPO_URL"' in checkout_step
+    assert 'GIT_TERMINAL_PROMPT=0 git clone' not in checkout_step
+    assert 'refs/remotes/origin/main' not in checkout_step
 
 
 def test_workflow_materializes_pinned_sysand_dependencies() -> None:
@@ -567,6 +646,18 @@ def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     assert '"$SYSAND" --version | grep' not in wf
     # The unpinned shared-directory form must be gone.
     assert "SYSAND_DIR=/srv/de4sdv/sysand\n" not in wf
+    # pip console scripts bake the absolute interpreter path into their
+    # shebangs: installing into a .tmp dir and mv-ing it afterwards leaves
+    # every script with a stale shebang ("bad interpreter", deploy run
+    # 33608232967, exit 127). The venv is recreated unconditionally at the
+    # final version-specific path — no reuse gate (deploy run 33608232967
+    # left a broken-but-executable sysand that a -x check would have
+    # silently reused), and no .tmp build-and-move pattern.
+    assert "if [[ ! -x \"$SYSAND_DIR/bin/sysand\" ]]" not in wf
+    assert "SYSAND_DIR.tmp" not in wf
+    assert 'mv "$SYSAND_DIR.tmp"' not in wf
+    assert 'rm -rf "$SYSAND_DIR"\n          python3 -m venv "$SYSAND_DIR"' in wf
+    assert 'python3 -m venv "$SYSAND_DIR"' in wf
     assert "sysand sync" in wf
     # It operates inside the exact Git checkout and requires the lockfile.
     assert "cd \"$REPO_DIR\"" in wf

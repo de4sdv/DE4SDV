@@ -121,7 +121,7 @@ def semantic_service():
         {
             "@id": "evidence-1",
             "@type": "RequirementUsage",
-            "declaredName": "evidenceContract009BNominalBrakingPath",
+            "declaredName": "evidenceContractNominalBrakingPath",
         },
         {
             "@id": "dependency-1",
@@ -132,7 +132,7 @@ def semantic_service():
         {
             "@id": "verification-1",
             "@type": "VerificationCaseUsage",
-            "declaredName": "nominalMovingVehicleTargetVerification009B",
+            "declaredName": "nominalMovingVehicleTargetVerification",
         },
         {
             "@id": "rvm-1",

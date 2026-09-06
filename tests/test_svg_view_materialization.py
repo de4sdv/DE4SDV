@@ -125,13 +125,13 @@ def test_privileged_workflow_gates_aebs_context_exchange_artifact() -> None:
     assert "simulationEvidenceSystem2 : AEBSystem2SimulationAssets" in workflow
     assert "--min-flow-count 21" in workflow
     assert "--max-flow-count 21" in workflow
-    assert "diagram-mwFunctionalInterfaceView.svg" in workflow
+    assert "diagram-middlewareFunctionalInterfaceView.svg" in workflow
     assert "VehicleSignalAccessInbound" in workflow
     assert "diagram-mwPhysicalInterfaceView.svg" not in workflow
-    assert "diagram-mwPhysicalStructureView.svg" in workflow
+    assert "diagram-middlewarePhysicalStructureView.svg" in workflow
     assert "adapter : AutowareToAAOSSDVAdapterPhysical" in workflow
     assert "aaosSdvBoundary : SDVCoreBoundary" in workflow
-    assert "diagram-mwAAOSVehicleSpeedServiceBundleInternalExchangeView.svg" in workflow
+    assert "diagram-middlewareAAOSVehicleSpeedServiceBundleInternalExchangeView.svg" in workflow
     assert "provider : AAOSVehicleSpeedProvider" in workflow
     assert "observer : AAOSVehicleSpeedObserver" in workflow
     assert "--require-exact-label vehicleSpeedOut" in workflow

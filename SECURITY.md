@@ -2,13 +2,21 @@
 
 ## Supported versions
 
-This project is pre-release. Security issues may apply to all versions until a release policy is established.
+No released version is currently supported. Security fixes target `main` until
+the first project baseline is released.
 
 ## Reporting a vulnerability
 
-Do not open public issues for vulnerabilities.
+Do not open public issues for vulnerabilities and do not include exploit
+details, payloads, or proof-of-concept code anywhere in public content.
 
-Use GitHub private vulnerability reporting once enabled, or contact the maintainers through the configured private channel.
+**GitHub private vulnerability reporting is enabled** for this repository.
+Report vulnerabilities privately through the repository's
+**Security → Report a vulnerability** flow. A maintainer will triage the
+report and coordinate a fix and disclosure.
+
+If you cannot use private reporting for any reason, contact a maintainer
+through the invite-only Mattermost workspace (see [`COMMUNICATION`](COMMUNICATION.md)).
 
 ## Scope
 

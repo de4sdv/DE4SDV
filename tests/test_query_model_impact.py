@@ -55,9 +55,20 @@ def test_list_requirements_contains_expected_names():
 def test_list_evidence_contracts_nonempty_and_covering_increments():
     contracts = set(qmi.list_evidence_contracts())
     assert contracts, "expected at least one evidence contract"
-    # Each increment declares at least one evidence contract.
-    for prefix in ("009B", "009C", "009D", "009E", "009F", "009G", "009H", "009I"):
-        assert any(prefix in c for c in contracts), f"no evidence contract for {prefix}"
+    # Each increment's slice declares its (de-numbered, semantic) evidence
+    # contract type (model-organization-audit.md M3).
+    expected_contract_stems = (
+        "evidenceContractWarningLead",  # nominal (009B provenance)
+        "evidenceContractMRMGateChain",  # partial intervention (009C)
+        "evidenceContractOverrideFreshnessReplay",  # override (009D)
+        "evidenceContractWarningSilenceWindow",  # non-activation (009E)
+        "evidenceContractStateOwnership",  # degraded input (009F)
+        "evidenceContractConfiguredPedestrianTarget",  # pedestrian (009G)
+        "evidenceContractConfiguredBicycleTarget",  # bicycle (009H)
+        "evidenceContractSourceIdentity",  # regulatory criterion (009I)
+    )
+    for stem in expected_contract_stems:
+        assert any(stem in c for c in contracts), f"no evidence contract {stem}"
 
 
 # --- reqCommandEmergencyBraking -------------------------------------------
@@ -74,18 +85,18 @@ def test_query_reqCommandEmergencyBraking_returns_009B_009C_009D():
 def test_query_reqCommandEmergencyBraking_sources_include_expected_contracts():
     report = qmi.query_impact("reqCommandEmergencyBraking")
     sources = {edge.source for edge in report.edges}
-    assert "evidenceContract009BFreshOverrideClear" in sources, sources
-    assert "evidenceContract009BNominalBrakingPath" in sources, sources
-    assert "evidenceContract009CMRMGateChain" in sources, sources
+    assert "evidenceContractFreshOverrideClear" in sources, sources
+    assert "evidenceContractNominalBrakingPath" in sources, sources
+    assert "evidenceContractMRMGateChain" in sources, sources
 
 
 def test_query_reqCommandEmergencyBraking_edges_carry_verification_def():
     report = qmi.query_impact("reqCommandEmergencyBraking")
     for edge in report.edges:
         if edge.file == "aebs_evidence.sysml":
-            assert edge.verification_def == "NominalMovingVehicleTargetVerification009B"
+            assert edge.verification_def == "NominalMovingVehicleTargetVerification"
         elif edge.file == "aebs_partial_intervention_verification.sysml":
-            assert edge.verification_def == "NativeInterventionToMRMVerification009C"
+            assert edge.verification_def == "NativeInterventionToMRMVerification"
 
 
 # --- reqPedestrianTargetResponse ------------------------------------------
@@ -101,8 +112,8 @@ def test_query_reqPedestrianTargetResponse_returns_009G_and_009I():
 def test_query_reqPedestrianTargetResponse_sources_include_expected_contracts():
     report = qmi.query_impact("reqPedestrianTargetResponse")
     sources = {edge.source for edge in report.edges}
-    assert "evidenceContract009GConfiguredPedestrianTarget" in sources, sources
-    assert "evidenceContract009IPedestrianApplicableCriterion" in sources, sources
+    assert "evidenceContractConfiguredPedestrianTarget" in sources, sources
+    assert "evidenceContractPedestrianApplicableCriterion" in sources, sources
 
 
 # --- Nonexistent target ----------------------------------------------------
@@ -169,7 +180,7 @@ def test_cli_list_evidence_contracts():
         cwd=ROOT,
     )
     assert proc.returncode == 0, proc.stderr
-    assert "evidenceContract009BWarningLead" in proc.stdout
+    assert "evidenceContractWarningLead" in proc.stdout
 
 
 def test_cli_text_query_includes_file_grouping():
@@ -182,7 +193,7 @@ def test_cli_text_query_includes_file_grouping():
     assert proc.returncode == 0, proc.stderr
     assert "aebs_evidence.sysml" in proc.stdout
     assert "aebs_partial_intervention_verification.sysml" in proc.stdout
-    assert "evidenceContract009BFreshOverrideClear" in proc.stdout
+    assert "evidenceContractFreshOverrideClear" in proc.stdout
 
 
 def test_cli_text_query_nonexistent_reports_no_results():

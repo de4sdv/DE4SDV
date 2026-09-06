@@ -300,23 +300,23 @@ package DE4SDV_AEBSNeedsRequirements {
           }
         }
 
-        dependency req001DerivedFromNeed001 from reqDetectForwardCollisionRisk to needCommonAEBSCapability;
-        dependency req002DerivedFromNeed001 from reqProvideCollisionWarning to needCommonAEBSCapability;
-        dependency req003DerivedFromNeed001 from reqCommandEmergencyBraking to needCommonAEBSCapability;
-        dependency req004DerivedFromNeed001 from reqAllowDriverOverride to needCommonAEBSCapability;
-        dependency req005DerivedFromNeed008 from reqDetectAEBSFailureCondition to needBoundedDegradationAndAvailability;
-        dependency req009DerivedFromNeed008 from reqHandleDegradedUnavailableInputs to needBoundedDegradationAndAvailability;
-        dependency req013DerivedFromNeed008 from reqIndicateDegradedUnavailableStatus to needBoundedDegradationAndAvailability;
-        dependency req008DerivedFromNeed014 from reqResistFalseReaction to needTrustworthyInterventionDecisions;
-        dependency req012DerivedFromNeed014 from reqResistFalseBrakingCommand to needTrustworthyInterventionDecisions;
-        dependency req010DerivedFromNeed006 from reqPedestrianTargetResponse to needPedestrianCollisionRiskReduction;
-        dependency req014DerivedFromNeed006 from reqPedestrianTargetControlledResponse to needPedestrianCollisionRiskReduction;
-        dependency req011DerivedFromNeed007 from reqBicycleTargetResponse to needBicycleCollisionRiskReduction;
-        dependency req015DerivedFromNeed007 from reqBicycleTargetControlledResponse to needBicycleCollisionRiskReduction;
-        dependency req006DerivedFromNeed003 from reqKeepProductLineClassificationExplicit to needProductLineClassification;
-        dependency req007DerivedFromNeed004 from reqTraceRequirementVVAndGaps to needVisibleRegulatoryAssumptions;
-        dependency req007DerivedFromNeed005 from reqTraceRequirementVVAndGaps to needRequirementVVPlanning;
-        dependency reqS2001DerivedFromNeed002 from reqTraceEvidenceContractsToControlledBoundary to needExplicitOperationalBoundary;
+        dependency reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability from reqDetectForwardCollisionRisk to needCommonAEBSCapability;
+        dependency reqProvideCollisionWarningDerivedFromCommonAEBSCapability from reqProvideCollisionWarning to needCommonAEBSCapability;
+        dependency reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability from reqCommandEmergencyBraking to needCommonAEBSCapability;
+        dependency reqAllowDriverOverrideDerivedFromCommonAEBSCapability from reqAllowDriverOverride to needCommonAEBSCapability;
+        dependency reqDetectAEBSFailureConditionDerivedFromBoundedDegradationAndAvailability from reqDetectAEBSFailureCondition to needBoundedDegradationAndAvailability;
+        dependency reqDerivedFromNeedBoundedDegradation from reqHandleDegradedUnavailableInputs to needBoundedDegradationAndAvailability;
+        dependency reqIndicateDegradedUnavailableStatusDerivedFromBoundedDegradationAndAvailability from reqIndicateDegradedUnavailableStatus to needBoundedDegradationAndAvailability;
+        dependency reqResistFalseReactionDerivedFromTrustworthyInterventionDecisions from reqResistFalseReaction to needTrustworthyInterventionDecisions;
+        dependency reqResistFalseBrakingCommandDerivedFromTrustworthyInterventionDecisions from reqResistFalseBrakingCommand to needTrustworthyInterventionDecisions;
+        dependency reqPedestrianTargetResponseDerivedFromPedestrianCollisionRiskReduction from reqPedestrianTargetResponse to needPedestrianCollisionRiskReduction;
+        dependency reqPedestrianTargetControlledResponseDerivedFromPedestrianCollisionRiskReduction from reqPedestrianTargetControlledResponse to needPedestrianCollisionRiskReduction;
+        dependency reqBicycleTargetResponseDerivedFromBicycleCollisionRiskReduction from reqBicycleTargetResponse to needBicycleCollisionRiskReduction;
+        dependency reqBicycleTargetControlledResponseDerivedFromBicycleCollisionRiskReduction from reqBicycleTargetControlledResponse to needBicycleCollisionRiskReduction;
+        dependency reqKeepProductLineClassificationExplicitDerivedFromProductLineClassification from reqKeepProductLineClassificationExplicit to needProductLineClassification;
+        dependency reqTraceRequirementVVAndGapsDerivedFromVisibleRegulatoryAssumptions from reqTraceRequirementVVAndGaps to needVisibleRegulatoryAssumptions;
+        dependency reqTraceRequirementVVAndGapsDerivedFromRequirementVVPlanning from reqTraceRequirementVVAndGaps to needRequirementVVPlanning;
+        dependency reqTraceEvidenceContractsToControlledBoundaryDerivedFromExplicitOperationalBoundary from reqTraceEvidenceContractsToControlledBoundary to needExplicitOperationalBoundary;
 
         public import System1Product::*;
         public import System2EngineeringAssurance::*;

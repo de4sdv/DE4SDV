@@ -3,6 +3,7 @@
 # Topology (ADR 0013):
 #
 #   Internet --HTTPS--> caddy (80/443 published) --> sysml2-api (internal) --> postgres (internal)
+#                                             \--> viewer + Ask (internal)
 #
 # Only caddy publishes ports (80/tcp and 443/tcp; HTTP/3 over UDP is NOT
 # exposed — not required for this experimental API, keeps the firewall rule
@@ -76,12 +77,65 @@ services:
     networks:
       - internal
 
+  ask-viewer:
+    build:
+      context: ask_viewer
+      dockerfile: Dockerfile
+    image: de4sdv/ask-viewer:pinned
+    restart: unless-stopped
+    depends_on:
+      - sysml2-api
+    env_file:
+      - ${DE4SDV_ASK_ENV_FILE:-/dev/null}
+    environment:
+      NOUS_ASK_SEMANTIC: "1"
+      NOUS_MAX_CONCURRENT_REQUESTS: "1"
+      NOUS_MAX_TOKENS: "1000"
+      DE4SDV_SYSML_API_URL: http://sysml2-api:9000
+      DE4SDV_REVISION_BINDING: /run/de4sdv/de4sdv-full-model-binding.json
+      DE4SDV_SEMANTIC_SNAPSHOT_DIR: /var/cache/de4sdv-viewer/semantic-snapshots
+      DE4SDV_ASK_ALLOWED_ORIGIN: https://viewer.de4sdv.org
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: /srv/de4sdv/DE4SDV
+    expose:
+      - "8787"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - ${DEPLOY_SOURCE_DIR:-/srv/de4sdv/DE4SDV}:/srv/de4sdv/DE4SDV:ro
+      - ${DEPLOY_DIR}/artifacts/current/de4sdv-full-model-binding.json:/run/de4sdv/de4sdv-full-model-binding.json:ro
+      - ask_viewer_cache:/var/cache/de4sdv-viewer
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/ask-status.json', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - internal
+
   caddy:
     build:
       context: .
       dockerfile: caddy/Dockerfile
     image: de4sdv/caddy-ratelimit:2.8.4
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     depends_on:
       - sysml2-api
     ports:
@@ -101,6 +155,7 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+  ask_viewer_cache:
 
 networks:
   internal:

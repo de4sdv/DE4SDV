@@ -227,7 +227,7 @@ class TestConfigureVariant(unittest.TestCase):
     def test_invalid_score_android(self):
         """Invalid: S-CORE + Android HLOS violates C001."""
         rc, out, err = self.run_config(
-            BOF_DIR / "invalid-score-android.yaml",
+            BOF_DIR / "fixtures/invalid-score-android.yaml",
             extra_args=["--check-only"],
             expect_fail=True
         )

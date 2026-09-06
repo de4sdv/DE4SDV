@@ -42,7 +42,7 @@
 
 package DE4SDV_VehicleSensingBoundary {
   private import DE4SDV_SDVPlatformStack::*;
-  private import DE4SDV_AEBSFunctionalBehavior::Features::AEBS::FunctionalBehavior::*;
+  private import DE4SDV_AEBSFunctionalArchitecture::Features::AEBS::FunctionalBehavior::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;

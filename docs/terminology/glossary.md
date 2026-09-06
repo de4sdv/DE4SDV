@@ -9,6 +9,8 @@
 | Viewpoint | A convention that frames one or more concerns: the stakeholders it serves and the way views are expressed. In SysML v2, a `viewpoint def` frames `concern usage` elements. |
 | View | The result of applying a viewpoint to the model: a scoped selection of model elements that answers the framed concerns. In SysML v2, a `view` selects a `viewpoint` and exposes the elements needed to answer it. |
 | Increment | A bounded, reviewable unit of DE4SDV work that answers one engineering question and leaves behind reviewable artifacts; executed through the 13-phase increment workflow. |
+| Phase | One step of the 13-phase increment workflow executed inside an increment (0 framing … 12 baseline). Phases are workflow steps; they never receive identifiers and never name enduring model partitions. See [naming conventions](../naming/naming-conventions.md). |
+| Record | An identity-bearing artifact tied to a specific increment, verification activity, runtime, configuration, or decision (evidence record, acceptance criterion, baseline, configured projection). Records keep stable lifecycle identities; see [identifier registry](../naming/naming-conventions.md). |
 | MBPLE | Model-Based Product Line Engineering. |
 | Feature model | A model of common and variable product capabilities. |
 | Feature | A distinguishing characteristic that expresses variability among member products in a product line; in DE4SDV a characteristic stays a feature candidate until member-product variability is shown. |

@@ -1,4 +1,4 @@
-package DE4SDV_AEBS009AExecutionEnvironment {
+package DE4SDV_AEBSExecutionEnvironment {
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import Views::*;
@@ -8,7 +8,7 @@ package DE4SDV_AEBS009AExecutionEnvironment {
   private import DE4SDV_ExecutionEnvironments::*;
   private import INCAEBS009AJetsonExecutionEnvironment;
 
-  part def AEB009AMaintainedJetsonEnvironmentContext
+  part def AEBMaintainedJetsonEnvironmentContext
     :> AEBTwoSystemSimulationDeployment {
     doc /*
      * Exact maintained System 2 environment context associated with
@@ -56,7 +56,7 @@ package DE4SDV_AEBS009AExecutionEnvironment {
        */
     }
 
-    dependency historical009ARuntimeEvidence
+    dependency historicalRuntimeEvidence
       from runtimeLockEvidence,
            containerIdentityEvidence,
            readinessEvidence
@@ -77,12 +77,12 @@ package DE4SDV_AEBS009AExecutionEnvironment {
     doc /* Evidence-based assurance claims and their supporting argumentation. */
   }
 
-  view aebs009AExecutionEnvironmentAssuranceView {
+  view aebsExecutionEnvironmentAssuranceView {
     viewpoint selectedArgumentationAssuranceViewpoint : ArgumentationAssuranceViewpoint {
       frame argumentationAssuranceConcern;
     }
 
-    expose DE4SDV_AEBS009AExecutionEnvironment::*;
+    expose DE4SDV_AEBSExecutionEnvironment::*;
     render asTreeDiagram;
   }
 }
