@@ -245,7 +245,10 @@ public class ForwardSituationView extends View {
      * (VISUALIZATION-CONTRACT.md §13.1).
      */
     private void drawEgo(Canvas canvas, float[] g) {
-        final float[] bodyRect = sceneGeometry().egoFootprintRectPx();
+        // Geometry authority: the pure, JVM-tested scene geometry class.
+        final SituationSceneGeometry scene =
+                new SituationSceneGeometry(getWidth(), getHeight());
+        final float[] bodyRect = scene.egoFootprintRectPx();
         // Crisp fixture-true core (rounded-rect, unmodified metric footprint).
         RectF body = new RectF(bodyRect[0], bodyRect[1], bodyRect[2], bodyRect[3]);
         canvas.drawRoundRect(body, 2f, 2f, egoPaint);
@@ -257,7 +260,7 @@ public class ForwardSituationView extends View {
         egoLabelPaint.getTextBounds("EGO", 0, 3, bounds);
         canvas.drawText("EGO",
                 g[0],
-                sceneGeometry().egoLabelBaselinePx(bodyRect[3], bounds.height()),
+                scene.egoLabelBaselinePx(bodyRect[3], bounds.height()),
                 egoLabelPaint);
     }
 
