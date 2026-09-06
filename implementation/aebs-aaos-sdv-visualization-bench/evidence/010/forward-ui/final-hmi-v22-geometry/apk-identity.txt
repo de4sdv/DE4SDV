@@ -1,0 +1,8 @@
+installed path: /data/app/~~c1U7oUHp17sZaeIEAJfK7Q==/org.de4sdv.aebsvisualization-zf-Wdhb9nigbF-adIIYR3g==/base.apk
+installed_sha=66ec6609a81f80d545fd0fc4e5f99ab63ee373c418a6ceb8e551b91f90a96303
+built_sha=66ec6609a81f80d545fd0fc4e5f99ab63ee373c418a6ceb8e551b91f90a96303
+APK_IDENTITY_MATCH
+    versionName=17
+    lastUpdateTime=2026-09-06 16:21:22
+    versionName=17
+    lastUpdateTime=2026-09-06 16:17:13

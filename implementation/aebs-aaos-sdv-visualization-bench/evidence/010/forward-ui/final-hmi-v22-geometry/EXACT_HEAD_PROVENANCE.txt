@@ -1,0 +1,6 @@
+PR #180 exact-head provenance
+branch: fix/aebs-forward-situation-geometry
+head: 4cd3f1d (full: 4cd3f1dcfb343f6004557d99baff6956a970cbe6)
+archive: pr180-head-overlay.tgz
+archive_sha256: 61ea21ea4c04032e8bfd3caaeffaa88a063aef6511a317e957e10c107e04eec3
+created: 2026-09-06T15:32:31Z
