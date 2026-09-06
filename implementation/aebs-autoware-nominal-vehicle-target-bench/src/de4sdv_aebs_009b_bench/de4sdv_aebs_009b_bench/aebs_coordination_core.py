@@ -149,6 +149,10 @@ def warning_on_intervention_diagnostic(
     rss_distance_m: float | None,
     point_distance_m: float | None,
     warning_margin_m: float,
+    *,
+    rss_age_s: float | None,
+    point_distance_age_s: float | None,
+    geometry_max_age_s: float,
 ) -> bool:
     """Evaluate the warning condition at the instant a native intervention
     diagnostic is received, using the PRE-diagnostic latch state.
@@ -161,8 +165,25 @@ def warning_on_intervention_diagnostic(
     requires real geometry and real RSS through :func:`next_warning_state`; no
     warning is fabricated when geometry inputs are absent.
     """
-    if rss_distance_m is None or point_distance_m is None:
-        return current_warning
+    if type(current_warning) is not bool:
+        raise TypeError("current warning state must be boolean")
+    if latch_state not in {"armed", "braking_latched", "released_verified_stop"}:
+        raise ValueError("unknown intervention latch state")
+    if current_warning:
+        return True  # Retain a real latched warning, never invent earlier history.
+    if (rss_distance_m is None or point_distance_m is None
+            or rss_age_s is None or point_distance_age_s is None):
+        return False
+    values = (rss_distance_m, point_distance_m, warning_margin_m,
+              rss_age_s, point_distance_age_s, geometry_max_age_s)
+    if any(type(value) not in (int, float) or not math.isfinite(value)
+           for value in values):
+        return False
+    if (geometry_max_age_s <= 0 or rss_distance_m < 0
+            or point_distance_m < 0 or warning_margin_m < 0
+            or not 0 <= rss_age_s <= geometry_max_age_s
+            or not 0 <= point_distance_age_s <= geometry_max_age_s):
+        return False
     return next_warning_state(
         current_warning,
         latch_state,

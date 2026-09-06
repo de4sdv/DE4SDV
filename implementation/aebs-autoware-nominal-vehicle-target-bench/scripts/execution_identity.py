@@ -25,6 +25,7 @@ TOP_LEVEL_INPUTS = (
     "config/scenario-009e-non-closing-target.yaml",
     "config/scenario-009e-below-trigger.yaml",
     "config/aebs-009b.param.yaml",
+    "config/aebs-009d.param.yaml",
     "workspace/.gitkeep",
 )
 REQUIRED_RECURSIVE_INPUT_ROOTS = ("scripts", "src")

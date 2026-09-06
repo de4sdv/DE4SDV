@@ -24,7 +24,6 @@ from .aebs_coordination_core import (
     InterventionLatch,
     braking_authorized_for_disposition,
     classify_override_source,
-    next_warning_state,
     warning_on_intervention_diagnostic,
 )
 
@@ -73,6 +72,9 @@ class AebsCoordinator(Node):
         self._override_source_ns: int | None = None
         self._rss_m: float | None = None
         self._distance_m: float | None = None
+        self._rss_received_ns: int | None = None
+        self._distance_received_ns: int | None = None
+        self._GEOMETRY_MAX_AGE_S = self._latch.odometry_max_age_s
         self._warning = False
         self._ego_speed_mps: float | None = None
         self._odometry_received_ns: int | None = None
@@ -115,6 +117,12 @@ class AebsCoordinator(Node):
         value = float(message.data)
         if math.isfinite(value) and value >= 0.0:
             self._rss_m = value
+            self._rss_received_ns = self.get_clock().now().nanoseconds
+        else:
+            # Invalid sample invalidates the cache; never serve the last good
+            # value as fresh geometry.
+            self._rss_m = None
+            self._rss_received_ns = None
 
     def _on_cloud(self, message: PointCloud2) -> None:
         x_field = next((field for field in message.fields if field.name == "x"), None)
@@ -131,6 +139,35 @@ class AebsCoordinator(Node):
                 distances.append(value)
         if distances:
             self._distance_m = min(distances)
+            self._distance_received_ns = self.get_clock().now().nanoseconds
+        else:
+            # Empty/invalid cloud invalidates the cached distance; stale geometry
+            # must never be treated as fresh for warning evaluation.
+            self._distance_m = None
+            self._distance_received_ns = None
+
+    def _geometry_ages_s(self, now_ns: int) -> tuple[float | None, float | None]:
+        """Receipt ages of the cached RSS and point-distance samples."""
+        rss_age = (
+            (now_ns - self._rss_received_ns) / 1e9
+            if self._rss_received_ns is not None else None
+        )
+        point_age = (
+            (now_ns - self._distance_received_ns) / 1e9
+            if self._distance_received_ns is not None else None
+        )
+        return rss_age, point_age
+
+    def _geometry_is_fresh(self, now_ns: int) -> bool:
+        """Both cached geometry inputs exist and are within the freshness bound."""
+        rss_age, point_age = self._geometry_ages_s(now_ns)
+        return (
+            self._rss_m is not None
+            and self._distance_m is not None
+            and rss_age is not None and point_age is not None
+            and 0.0 <= rss_age <= self._GEOMETRY_MAX_AGE_S
+            and 0.0 <= point_age <= self._GEOMETRY_MAX_AGE_S
+        )
 
     def _on_diagnostics(self, message: DiagnosticArray) -> None:
         for status in message.status:
@@ -168,12 +205,17 @@ class AebsCoordinator(Node):
             # Semantics preserved: warning still requires real geometry + real RSS
             # + the coordinator margin; no warning is fabricated without inputs.
             if intervention:
+                now_ns = self.get_clock().now().nanoseconds
+                rss_age, point_age = self._geometry_ages_s(now_ns)
                 self._warning = warning_on_intervention_diagnostic(
                     self._warning,
                     self._latch.state,
                     self._rss_m,
                     self._distance_m,
                     self.warning_margin_m,
+                    rss_age_s=rss_age,
+                    point_distance_age_s=point_age,
+                    geometry_max_age_s=self._GEOMETRY_MAX_AGE_S,
                 )
             self._latch.observe_diagnostic(intervention, braking_authorized)
             return
@@ -275,13 +317,20 @@ class AebsCoordinator(Node):
         state.data = self._latch.state
         self.state_pub.publish(state)
         self._publish_override_evaluation("monitoring")
-        if self._rss_m is not None and self._distance_m is not None:
-            self._warning = next_warning_state(
+        now_ns = self.get_clock().now().nanoseconds
+        # Freshness-bounded periodic warning evaluation: stale cached geometry
+        # (or a stale warning from an earlier tick) can never latch here either.
+        if self._geometry_is_fresh(now_ns):
+            rss_age, point_age = self._geometry_ages_s(now_ns)
+            self._warning = warning_on_intervention_diagnostic(
                 self._warning,
                 self._latch.state,
-                self._distance_m,
                 self._rss_m,
+                self._distance_m,
                 self.warning_margin_m,
+                rss_age_s=rss_age,
+                point_distance_age_s=point_age,
+                geometry_max_age_s=self._GEOMETRY_MAX_AGE_S,
             )
             risk = String()
             risk.data = json.dumps({

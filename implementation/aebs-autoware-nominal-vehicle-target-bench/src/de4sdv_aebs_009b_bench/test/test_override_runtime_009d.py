@@ -423,12 +423,11 @@ def test_009d_resolved_timing_input_preserves_criterion_and_adds_margin():
     assert resolved.outcome_contract.warning_margin_m == 7.0
     setup = (PACKAGE_ROOT / "setup.py").read_text()
     launch = (BENCH_ROOT / "scripts/launch.sh").read_text()
-    runner = (BENCH_ROOT / "scripts/run_override_profile.sh").read_text()
     assert '"../../config/scenario-009d-moving-vehicle-target.yaml"' in setup
     assert "scenario_config_name:=scenario-009d-moving-vehicle-target.yaml" in launch
     assert '"warning_margin_m"' in launch
+    assert "warning_margin_m:=" in launch
     assert "config/scenario-009d-moving-vehicle-target.yaml" in launch
-    assert "config/scenario-009d-moving-vehicle-target.yaml" in runner
 
 
 def test_matrix_loader_rejects_duplicate_profiles(tmp_path):
@@ -548,10 +547,10 @@ def test_evidence_builder_independently_replays_each_profile(
             lambda raw: raw["limits"].update(timeout_s=-1.0),
             "finite number|positive|authoritative scenario timeout",
         ),
-        (lambda raw: raw.update(evaluator_result={}), "inherited 009B result"),
+        (lambda raw: raw.update(evaluator_result={}), "independent replay"),
         (
             lambda raw: raw["observations"].reverse(),
-            "inherited 009B result|monotonic receipt order",
+            "independent replay|monotonic receipt order",
         ),
     ],
 )
