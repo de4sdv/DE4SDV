@@ -323,7 +323,7 @@ def test_api_incoming_dependencies_with_dependency_name(
                 {"@type": "RequirementUsage", "@id": "req-s",
                  "declaredName": "reqRealAAOSRendering"},
                 {"@type": "Dependency", "@id": "dep-1",
-                 "declaredName": "s2010DerivedFromCorrelatableEvidence",
+                 "declaredName": "reqRealAAOSRenderingDerivedFromCorrelatableEvidence",
                  "source": [{"@id": "req-s"}],
                  "target": [{"@id": "req-t"}]},
             ]
@@ -337,7 +337,7 @@ def test_api_incoming_dependencies_with_dependency_name(
         "source_element": "reqRealAAOSRendering",
         "sysml_type": "RequirementUsage",
         "element_id": "req-s",
-        "dependency": "s2010DerivedFromCorrelatableEvidence",
+        "dependency": "reqRealAAOSRenderingDerivedFromCorrelatableEvidence",
     }]
     ams._SEMANTIC_CTX_CACHE.clear()
 
