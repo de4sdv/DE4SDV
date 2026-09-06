@@ -46,13 +46,28 @@ acceptance_items:
   no_misleading_contact:
     verdict: pass
     evidence: >-
-      warning-25.5s.jpg (20.6 m), intervention-26.5s.jpg (15.7 m),
-      intervention-27.5s.jpg (10.7 m closest approach)
+      retained stills stills/state-warning.png (displayed range 20.6 m),
+      stills/statepanel-intervention.png and stills/state-intervention.png
+      (27.5 s, displayed range 10.7 m, closest approach); per-instant frames
+      warning-25.5s.jpg, intervention-26.5s.jpg and intervention-27.5s.jpg
+      are NOT in this bundle - they are in the maintainer archive, registered
+      with sha256 in ../../external-media.yaml under
+      forward-ui/final-hmi-v22-geometry/
     notes: >-
-      No touch or overlap between cyan geometry (incl. its 6 px decorative
-      glow) and the ego at any instant, clearance >= 120 px at closest
-      approach; the circular ego halo is REMOVED in this head (verified in
-      stills and by dex probe); no false visual contact at any point.
+      Bounded visual observation: no touch or overlap between the cyan
+      geometry (including its 6 px decorative glow) and the ego silhouette at
+      any inspected instant, including the closest approach; the circular ego
+      halo is absent in every still and by dex probe. Quantitative support is
+      renderer arithmetic, not a pixel measurement from the compressed
+      capture: at the closest approach the panel displayed a range of 10.7 m
+      against the fixture front of 3.74 m, a metric gap of 6.96 m, about
+      51.5 px at the scene scale of ~7.4 px per metre, leaving the glow's
+      leading edge roughly 45 px short of the ego front bumper; this matches
+      the projection-based containment pinned by SituationSceneGeometryTest.
+      No numerical pixel clearance is claimed from the still: an attempt to
+      measure pixel gaps from the 1080x600 capture was rejected because
+      scene-scale landmarks (tick labels, bottom dock) confound naive color
+      segmentation.
   clean_presentation:
     verdict: pass
     evidence: p180-pre.png, stills/
