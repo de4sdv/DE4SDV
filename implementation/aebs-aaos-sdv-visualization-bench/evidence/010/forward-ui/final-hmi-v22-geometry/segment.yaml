@@ -1,0 +1,122 @@
+segment_id: INC-AEBS-010-forward-ui-final-hmi-v22-geometry-20260906T1624Z
+started_at: "2026-09-06T16:24:12Z"
+vm: de4sdv-aaos-build (single-VM bench; guest sdv_ivi_cf cp2a)
+head_under_test: 4cd3f1dcfb343f6004557d99baff6956a970cbe6 (fix/aebs-forward-situation-geometry; base main includes #188 = 64d4e6a)
+intent: >-
+  Final combined HMI acceptance campaign for PR #180 (forward-situation geometry
+  repair) on one head that also carries merged #188 lifecycle semantics.
+  Replaces the two-branch temporary combination used during the #188 campaign.
+build_identity:
+  staged_source: >-
+    git archive of exact head 4cd3f1d; provenance chain in
+    EXACT_HEAD_PROVENANCE.txt (archive sha256
+    61ea21ea4c04032e8bfd3caaeffaa88a063aef6511a317e957e10c107e04eec3)
+  staged_markers: >-
+    '0.4f' absent, 'egoHaloPaint' absent, 'new SituationSceneGeometry(' present,
+    full rear bound present
+  apk_built_sha256: 66ec6609a81f80d545fd0fc4e5f99ab63ee373c418a6ceb8e551b91f90a96303
+  apk_installed_sha256: 66ec6609a81f80d545fd0fc4e5f99ab63ee373c418a6ceb8e551b91f90a96303
+  apk_identity: >-
+    APK_IDENTITY_MATCH (installed bytes == built bytes); dex probe confirms the
+    SituationSceneGeometry class is present with no halo residue. The #188
+    campaign validated the image-bundled app; this campaign validates THIS APK.
+  jvm_gate_on_build_output: "OK (37 tests) incl. SituationSceneGeometryTest"
+chain:
+  - bench: >-
+      de4sdv_aebs_009b_bench with 009D profile
+      (scenario-009d-moving-vehicle-target.yaml, aebs-009d.param.yaml,
+      warning_margin_m 7.0)
+  - live_param_check: >-
+      use_object_velocity_calculation = False observed on the running node
+      (aeb_param_check.txt)
+  - bridge: >-
+      bridge_unit.sh (read-only ROS subscriptions, frame server tcp/4721)
+  - guest: >-
+      de4sdv_aebs_ingress -> Gateway Data Tunnel -> app (transport proven:
+      initComms ok, subscribed to topic=aebs-visualization-frame)
+acceptance_items:
+  scale_and_footprint:
+    verdict: pass
+    evidence: p180-pre.png, stills/state-monitoring.png
+    notes: >-
+      One isotropic metre-per-pixel scale: the 20.6 m obstacle read renders at
+      the 20 m tick; ego silhouette at fixture-true scale with FULL rear bound
+      (the former 0.4x rear shortening is gone); EGO label clear of the
+      silhouette.
+  no_misleading_contact:
+    verdict: pass
+    evidence: >-
+      retained stills stills/state-warning.png (displayed range 20.6 m),
+      stills/statepanel-intervention.png and stills/state-intervention.png
+      (27.5 s, displayed range 10.7 m, closest approach); per-instant frames
+      warning-25.5s.jpg, intervention-26.5s.jpg and intervention-27.5s.jpg
+      are NOT in this bundle - they are in the maintainer archive, registered
+      with sha256 in ../../external-media.yaml under
+      forward-ui/final-hmi-v22-geometry/
+    notes: >-
+      Bounded visual observation: no touch or overlap between the cyan
+      geometry (including its 6 px decorative glow) and the ego silhouette at
+      any inspected instant, including the closest approach; the circular ego
+      halo is absent in every still and by dex probe. Quantitative support is
+      renderer arithmetic, not a pixel measurement from the compressed
+      capture: at the closest approach the panel displayed a range of 10.7 m
+      against the fixture front of 3.74 m, a metric gap of 6.96 m, about
+      51.5 px at the scene scale of ~7.4 px per metre, leaving the glow's
+      leading edge roughly 45 px short of the ego front bumper; this matches
+      the projection-based containment pinned by SituationSceneGeometryTest.
+      No numerical pixel clearance is claimed from the still: an attempt to
+      measure pixel gaps from the 1080x600 capture was rejected because
+      scene-scale landmarks (tick labels, bottom dock) confound naive color
+      segmentation.
+  clean_presentation:
+    verdict: pass
+    evidence: p180-pre.png, stills/
+    notes: EGO label and range row readable, no clipping; tick labels 10-60 m crisp.
+  fail_closed:
+    verdict: pass
+    evidence: >-
+      p180-fc-degraded.png (STALE gray + pause icon, scene cleared, range row
+      em-dash), p180-fc-restored.png (LIVE chip restored; state RELEASED after
+      the run lifecycle)
+    notes: >-
+      Ingress stop -> STALE with full live-geometry clearing including the
+      displayed obstacle range; restore -> LIVE returns. uiautomator text
+      dumps were empty (known flaky); screencap PNGs are the retained evidence.
+  lifecycle_regression:
+    verdict: pass
+    evidence: >-
+      pixel timeline (B 0-25.0s -> O 25.0-26.0s -> R 26.0-28.5s -> G 28.5s+,
+      2 fps state-panel scan), stills/state-monitoring.png,
+      stills/state-warning.png, stills/state-intervention.png,
+      stills/state-released.png
+    notes: >-
+      Continuous MONITORING -> WARNING -> INTERVENTION -> RELEASED rendered on
+      the combined head; app-frame log correlates (1318 callbacks, seq
+      1062-2379, 0 gaps; 37 warning=true frames, 841 braking=true frames).
+  observer_warning_lead:
+    verdict: pass
+    evidence: observer-raw.json lifecycle_gate
+    notes: >-
+      warning_lead_s = 1.034 >= 0.8 (warning_lead_gate pass), from independent
+      observer receipt-monotonic timestamps. Single regression run per
+      campaign scope; no regression exposed, so the #188 three-run protocol
+      was not repeated.
+known_non_claims:
+  - >-
+    observer evaluator outcome is fail_scenario on the footprint outcome
+    (footprint_state collection stops ~3.2 s in), the SAME documented #188-era
+    source-side collection issue; not introduced by #180 and not an HMI
+    defect. pass_observed_chain is NOT claimed.
+  - >-
+    scenario_safety_outcome remains deferred_not_proven (read-only
+    visualization; no vehicle commands; synthetic bench scenario).
+bench_deviations:
+  - >-
+    ingress future-skew bound relaxed for unsynchronized bench clocks (as in
+    prior segments); production requirement remains 100 ms (AO-AEBS-010-005)
+  - setenforce 0 bench provisioning; diagnostic-only, not a production posture
+disposition: observed_bounded
+media_note: >-
+  Video bytes (p180-run1.mp4 and per-state extraction frames) are held in the
+  maintainer archive and registered with sha256 in external-media.yaml per
+  docs/evidence-management.md; PNG stills and all text evidence are retained here.

@@ -1,0 +1,2 @@
+Sep 06 16:24:32 de4sdv-aaos-build systemd[870]: Started /home/mrk/aebs010_observer.sh.
+Sep 06 16:24:39 de4sdv-aaos-build systemd[870]: observer-p180.service: Consumed 3.432s CPU time.

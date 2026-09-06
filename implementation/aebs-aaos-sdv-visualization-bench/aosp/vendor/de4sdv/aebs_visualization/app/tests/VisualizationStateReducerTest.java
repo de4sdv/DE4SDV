@@ -1,6 +1,7 @@
 package org.de4sdv.aebsvisualization;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -47,6 +48,42 @@ public class VisualizationStateReducerTest {
                 reducer.onFrame(frame(4, false, true, false, "armed"), T0 + 30));
         assertEquals(VisualizationStateReducer.Disposition.INTERVENTION,
                 reducer.onFrame(frame(5, true, true, false, "braking_latched"), T0 + 40));
+    }
+
+    @Test
+    public void noWarningUpstreamMeansDirectMonitoringToIntervention() {
+        // Absence case (v22 campaign shape): if upstream never supplies
+        // warning=true, the HMI must go MONITORING -> INTERVENTION -> RELEASED
+        // with NO WARNING ever rendered (honest read-only representation).
+        VisualizationStateReducer reducer = healthy();
+        assertEquals(VisualizationStateReducer.Disposition.MONITORING,
+                reducer.onFrame(frame(4, false, false, false, "armed"), T0 + 30));
+        assertEquals(VisualizationStateReducer.Disposition.INTERVENTION,
+                reducer.onFrame(frame(5, true, false, true, "braking_latched"), T0 + 40));
+        assertEquals(VisualizationStateReducer.Disposition.INTERVENTION,
+                reducer.onFrame(frame(6, true, false, true, "braking_latched"), T0 + 50));
+        assertEquals(VisualizationStateReducer.Disposition.RELEASED,
+                reducer.onFrame(frame(7, false, false, false, "released_verified_stop"), T0 + 60));
+        // The arc never rendered a WARNING between any pair of dispositions:
+        // record every returned disposition and assert WARNING never appears
+        // (matches the v22 campaign shape and the #188 lifecycle semantics).
+        VisualizationStateReducer recorded = healthy();
+        java.util.List<VisualizationStateReducer.Disposition> arc = new java.util.ArrayList<>();
+        arc.add(recorded.onFrame(recordedFrame(4, recorded, false, "armed"), T0 + 30));
+        arc.add(recorded.onFrame(recordedFrame(5, recorded, true, "braking_latched"), T0 + 40));
+        arc.add(recorded.onFrame(recordedFrame(6, recorded, true, "braking_latched"), T0 + 50));
+        arc.add(recorded.onFrame(recordedFrame(7, recorded, false, "released_verified_stop"),
+                T0 + 60));
+        assertFalse("no WARNING may appear in the absence arc: " + arc,
+                arc.contains(VisualizationStateReducer.Disposition.WARNING));
+        assertEquals("arc ends RELEASED after the coordinator publishes the verified stop",
+                VisualizationStateReducer.Disposition.RELEASED, recorded.disposition());
+    }
+
+    private static VisualizationStateReducer.FrameInput recordedFrame(
+            long seq, VisualizationStateReducer reducer, boolean intervention, String lifecycle) {
+        return new VisualizationStateReducer.FrameInput(seq, intervention, false, intervention,
+                lifecycle);
     }
 
     @Test

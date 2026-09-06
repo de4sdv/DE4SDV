@@ -145,17 +145,28 @@ public class SituationRenderModelTest {
     }
 
     // ------------------------------------------------------------------
-    // Frame age is health text only, never geometry (rule: liveness separate)
+    // Frame age drives health label only, is never rendered (rule: liveness
+    // separate; review feedback: no age display anywhere)
     // ------------------------------------------------------------------
 
     @Test
-    public void frameAgeFormatsWithoutChangingGeometry() {
+    public void frameAgeDoesNotAppearInAnyRenderedText() {
         SituationRenderModel withAge = model(VisualizationStateReducer.Disposition.MONITORING,
                 30f, 0f, 15f, 42);
         SituationRenderModel noAge = model(VisualizationStateReducer.Disposition.MONITORING,
                 30f, 0f, 15f, -1);
-        assertEquals("42 ms", withAge.getFrameAgeText());
-        assertEquals("—", noAge.getFrameAgeText());
+        // No public String getter exposes an age value:
+        for (java.lang.reflect.Method method : SituationRenderModel.class.getMethods()) {
+            if (method.getReturnType() == String.class && method.getParameterCount() == 0) {
+                try {
+                    String value = (String) method.invoke(withAge);
+                    assertFalse("age text must not be exposed: " + method.getName(),
+                            value != null && value.matches(".*\\d+\\s*ms.*"));
+                } catch (IllegalAccessException | java.lang.reflect.InvocationTargetException ignored) {
+                    // Non-plain getters (e.g. toString variants) are not render surfaces.
+                }
+            }
+        }
         // Geometry identical regardless of frame age:
         assertEquals(withAge.getTargetForwardNormalized(), noAge.getTargetForwardNormalized(), EPS);
         assertEquals(withAge.getRssForwardNormalized(), noAge.getRssForwardNormalized(), EPS);
@@ -210,6 +221,36 @@ public class SituationRenderModelTest {
                 13.8f, 0f, 14.58f);
         assertEquals("13.8 m", m.getTargetRangeText());
         assertEquals("14.6 m", m.getRssDistanceText());
+    }
+
+    // ------------------------------------------------------------------
+    // Fixture-true ego scale (contract §13.1, follow-up to merged #164)
+    // ------------------------------------------------------------------
+
+    @Test
+    public void egoFootprintMatchesPinnedFixtureDimensions() {
+        // The pinned 009B fixture footprint, in metres. If either side of the
+        // scene renders the ego larger than this, visual contact with the
+        // obstacle cloud becomes possible where the metric geometry has none.
+        assertEquals(3.74f, SituationRenderModel.EGO_FRONT_M, EPS);
+        assertEquals(1.03f, SituationRenderModel.EGO_REAR_M, EPS);
+        assertEquals(1.83f, SituationRenderModel.EGO_WIDTH_M, EPS);
+    }
+
+    @Test
+    public void egoFootprintIsFarSmallerThanNominalInterventionDistance() {
+        // Presentation-scale guard: at the nominal warning/intervention
+        // distances the fixture-true ego is tiny relative to the gap to the
+        // obstacle. If the renderer multiplied the footprint (as the merged
+        // #164 generation did at 2.5x), a ~20 m apparent gap shrinks below
+        // the true separation and reads as contact during INTERVENTION.
+        float footprintSpanM = SituationRenderModel.EGO_FRONT_M + SituationRenderModel.EGO_REAR_M;
+        assertTrue(footprintSpanM < 5.0f);
+        // The projected bounds are pinned numerically by
+        // SituationSceneGeometryTest at the campaign viewport; here the guard
+        // is consistency of the fixture constants themselves.
+        assertEquals(3.74f, SituationRenderModel.EGO_FRONT_M, EPS);
+        assertEquals(1.03f, SituationRenderModel.EGO_REAR_M, EPS);
     }
 
     // ------------------------------------------------------------------

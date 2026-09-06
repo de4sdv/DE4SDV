@@ -114,3 +114,28 @@ artifacts:
     disposition: observed_bounded
     availability: maintainer_archive
     claim: exact-head 009D warning-lead run 3 raw continuous take (lead 0.9238 s, gate pass)
+
+  - former_path: forward-ui/final-hmi-v22-geometry/p180-run1.mp4
+    sha256: 99495c49225a21a50db2edbc8d3df2dd68ee5e9fb61e99513b75dd60895d7164
+    bytes: 1262382
+    disposition: observed_bounded
+    availability: maintainer_archive
+    claim: continuous 85 s display capture of the combined-head #180 campaign (head 4cd3f1d), correlated by final-hmi-v22-geometry/segment.yaml
+  - former_path: forward-ui/final-hmi-v22-geometry/warning-25.5s.jpg
+    sha256: 41fee1cb97ad9ee574a77aef3ef69e3de08ef9f30910f7ce84c8fc537819b12a
+    bytes: 57299
+    disposition: observed_bounded
+    availability: maintainer_archive
+    claim: WARNING-instant frame (displayed obstacle range 20.6 m); visual checks recorded in segment.yaml
+  - former_path: forward-ui/final-hmi-v22-geometry/intervention-26.5s.jpg
+    sha256: c4f576020c0e2197ba6048df298032ef76c551a58d8c7771acf17fc0184057d1
+    bytes: 54785
+    disposition: observed_bounded
+    availability: maintainer_archive
+    claim: INTERVENTION-instant frame (15.7 m); visual checks recorded in segment.yaml
+  - former_path: forward-ui/final-hmi-v22-geometry/intervention-27.5s.jpg
+    sha256: c4e6fd7e0e4d6882e82eb789b5bac0c8dc2cfafeb934bbeb190a8dab7af6f58c
+    bytes: 54049
+    disposition: observed_bounded
+    availability: maintainer_archive
+    claim: late-INTERVENTION closest-approach frame (10.7 m); visual checks recorded in segment.yaml

@@ -18,13 +18,25 @@ import androidx.annotation.Nullable;
  * - RSS boundary: native Autoware metric on the shared range scale; never
  *   triggers or influences state.
  * - Degraded dispositions (stale/invalid/unavailable) clear all live geometry.
- * - Frame age is health text only; it never enters geometry.
+ * - Frame age is internal staleness input only; it never enters geometry and
+ *   is never rendered.
  * - The model NEVER outputs a Disposition (enforced by reflection test).
  */
 public final class SituationRenderModel {
 
     /** Display scale bound in metres (display-only, not a data bound). */
     public static final float MAX_RANGE_M = 60.0f;
+
+    /**
+     * Ego footprint from the pinned scenario fixture (metres). Public so the
+     * fixture-true scale contract is unit-testable on the JVM: the renderer
+     * must draw the ego at exactly these dimensions on the shared isotropic
+     * scene scale — presentation-only enlargement is prohibited
+     * (VISUALIZATION-CONTRACT.md §13.1).
+     */
+    public static final float EGO_FRONT_M = 3.74f;
+    public static final float EGO_REAR_M = 1.03f;
+    public static final float EGO_WIDTH_M = 1.83f;
 
     /** Stale threshold for the health chip (matches AO-AEBS-010-005 bound). */
     public static final long STALE_HEALTH_MS = 1_000L;
@@ -45,7 +57,6 @@ public final class SituationRenderModel {
     private final float rssForwardNormalized;
     private final String targetRangeText;
     private final String rssDistanceText;
-    private final String frameAgeText;
     private final String healthLabel;
     private final boolean trailVisible;
     private final String egoSpeedText;
@@ -111,7 +122,8 @@ public final class SituationRenderModel {
                     ? formatMetres(b.rssDistance) : "—";
         }
 
-        this.frameAgeText = b.frameAgeMs >= 0 ? (b.frameAgeMs + " ms") : "—";
+        // Age display removed (review feedback): frameAgeMs stays as the
+        // internal staleness input for healthLabel; no age text is formatted.
         this.healthLabel = (b.frameAgeMs >= 0 && b.frameAgeMs > STALE_HEALTH_MS)
                 ? "STALE" : healthLabelFor(disposition);
     }
@@ -220,10 +232,6 @@ public final class SituationRenderModel {
 
     public String getRssDistanceText() {
         return rssDistanceText;
-    }
-
-    public String getFrameAgeText() {
-        return frameAgeText;
     }
 
     /** Health chip label: LIVE/STALE/INVALID/UNAVAILABLE/RESTORED. */

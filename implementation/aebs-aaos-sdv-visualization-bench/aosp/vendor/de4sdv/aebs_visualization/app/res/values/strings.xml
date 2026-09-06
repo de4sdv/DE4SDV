@@ -4,8 +4,8 @@
     <string name="initial_disposition">unavailable</string>
     <string name="initial_health">○ UNAVAILABLE</string>
     <string name="initial_obstacle_points">Filtered obstacle points  —</string>
-    <string name="decision_distance_boundary">AEB decision distances not visualized</string>
-    <string name="initial_frame_age">Frame age  —</string>
+    <string name="initial_displayed_obstacle_range">Displayed obstacle range  —</string>
+    <string name="displayed_obstacle_range_clarification">filtered point cloud</string>
     <string name="initial_ego_speed">Ego speed  —</string>
     <string name="state_monitoring">MONITORING</string>
     <string name="state_warning">WARNING</string>

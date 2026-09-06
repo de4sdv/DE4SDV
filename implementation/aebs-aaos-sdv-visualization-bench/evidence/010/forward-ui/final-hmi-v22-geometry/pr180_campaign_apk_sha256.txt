@@ -1,0 +1,1 @@
+66ec6609a81f80d545fd0fc4e5f99ab63ee373c418a6ceb8e551b91f90a96303  /home/mrk/aosp/out/target/product/sdv_ivi_cf/vendor/priv-app/De4sdvAebsVisualizationApp/De4sdvAebsVisualizationApp.apk

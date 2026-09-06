@@ -71,8 +71,10 @@ def test_evidence_files_are_not_empty_placeholders() -> None:
 def test_removed_media_manifest_has_complete_identity() -> None:
     manifest = yaml.safe_load(RETENTION_MANIFEST.read_text(encoding="utf-8"))
     artifacts = manifest["artifacts"]
-    assert 18 == len(artifacts)
-    assert 18 == len({entry["former_path"] for entry in artifacts})
+    # 18 historical entries + 4 entries from the final-hmi-v22-geometry
+    # campaign (raw take + three inspection frames, PR #180, 2026-09-06).
+    assert 22 == len(artifacts)
+    assert 22 == len({entry["former_path"] for entry in artifacts})
     for entry in artifacts:
         assert re.fullmatch(r"[0-9a-f]{64}", entry["sha256"])
         assert entry["bytes"] > 0

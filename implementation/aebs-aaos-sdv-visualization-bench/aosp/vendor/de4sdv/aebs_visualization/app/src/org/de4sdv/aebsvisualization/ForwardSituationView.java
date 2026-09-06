@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
@@ -13,13 +12,18 @@ import android.view.View;
  * DE4SDV AEBS forward-situation view (display-derived presentation only).
  *
  * Professional automotive HMI styling (dark base #121212, rounded cards,
- * cyan live accents) applied to the pure render model: car-shaped ego at the
- * bottom (fixture footprint 3.74 m front / 1.03 m rear / 1.83 m width),
- * the filtered obstacle cloud rendered as a bounded point cluster, and
- * subdued distance ticks every 10 m
- * up to 60 m. No circles, sweep, pulse, invented lanes, or decorative road:
- * every element is live frame data, labeled fixture geometry, or the static
- * display scale (VISUALIZATION-CONTRACT.md). Fails closed: degraded
+ * cyan live accents) applied to the pure render model. ONE isotropic
+ * metre-per-pixel factor governs ego footprint, filtered obstacle points,
+ * and range ticks alike, so the on-screen separation of ego and obstacle
+ * equals their real fixture separation. The ego silhouette is drawn at the
+ * TRUE fixture footprint (3.74 m front / 1.03 m rear / 1.83 m width) as a
+ * bright core only — the former circular emphasis halo is removed because a
+ * circle cannot stay inside the projected footprint at this viewport, and
+ * any glow beyond the footprint boundary read as false visual contact; point
+ * glow is decoration and distance ticks are static display scale
+ * (VISUALIZATION-CONTRACT.md §13). No circles, sweep, pulse, invented lanes,
+ * or decorative road: every element is live frame data, labeled fixture
+ * geometry, or the static display scale. Fails closed: degraded
  * dispositions clear the scene (REQ-AEBS-S2-005/006).
  */
 public class ForwardSituationView extends View {
@@ -27,10 +31,12 @@ public class ForwardSituationView extends View {
     /** Display scale bound in metres (display-only, not a data bound). */
     private static final float MAX_RANGE_M = SituationRenderModel.MAX_RANGE_M;
 
-    /** Ego footprint from the pinned scenario fixture (metres). */
-    private static final float EGO_FRONT_M = 3.74f;
-    private static final float EGO_REAR_M = 1.03f;
-    private static final float EGO_WIDTH_M = 1.83f;
+    /**
+     * Point rendering is decoration only: the glow radius must never be
+     * readable as physical object extent (VISUALIZATION-CONTRACT.md §13).
+     */
+    private static final float POINT_GLOW_PX = 6f;
+    private static final float POINT_CORE_PX = 3.5f;
 
     // Design tokens (automotive dark HMI language).
     private static final int COLOR_BASE = Color.rgb(18, 18, 18);
@@ -47,7 +53,7 @@ public class ForwardSituationView extends View {
     private final Paint tickLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint cardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint egoPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint egoOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint egoLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint clusterPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint clusterCorePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint trailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -97,9 +103,12 @@ public class ForwardSituationView extends View {
         egoPaint.setStyle(Paint.Style.FILL);
         egoPaint.setColor(COLOR_EGO);
 
-        egoOutlinePaint.setStyle(Paint.Style.STROKE);
-        egoOutlinePaint.setStrokeWidth(2f);
-        egoOutlinePaint.setColor(Color.argb(90, 229, 229, 229));
+        // EGO label: light-on-dark below the silhouette; crisp separation from
+        // both the vehicle edge and the scene background.
+        egoLabelPaint.setColor(Color.rgb(229, 229, 229));
+        egoLabelPaint.setTextSize(17f);
+        egoLabelPaint.setFakeBoldText(true);
+        egoLabelPaint.setTextAlign(Paint.Align.CENTER);
 
         clusterPaint.setStyle(Paint.Style.FILL);
         clusterPaint.setColor(COLOR_CLUSTER);
@@ -150,9 +159,11 @@ public class ForwardSituationView extends View {
     }
 
     /**
-     * Scene geometry. Ego REAR bumper sits at originY; the ego car shape is
-     * drawn to scale against the same metre-per-pixel factor as the range
-     * axis used by the filtered obstacle points.
+     * Scene geometry. Ego REAR bumper sits at originY; every element (ego
+     * footprint, filtered obstacle points, ticks) uses ONE metre-per-pixel
+     * factor in both axes, so unequal scaling can never introduce a visual
+     * overlap that the metric geometry does not contain
+     * (VISUALIZATION-CONTRACT.md §13).
      */
     private float[] sceneGeometry() {
         final float w = getWidth();
@@ -160,9 +171,8 @@ public class ForwardSituationView extends View {
         final float originX = w / 2f;
         final float originY = h * 0.90f;          // ego rear bumper
         final float usableHeight = h * 0.74f;     // 0..60 m band above origin
-        final float usableHalfWidth = w * 0.44f;
         final float metresPerPx = MAX_RANGE_M / usableHeight;
-        return new float[]{originX, originY, usableHeight, usableHalfWidth, metresPerPx};
+        return new float[]{originX, originY, usableHeight, 0f, metresPerPx};
     }
 
     private float forwardToY(float[] g, float metres) {
@@ -170,7 +180,8 @@ public class ForwardSituationView extends View {
     }
 
     private float lateralToX(float[] g, float metres) {
-        return g[0] + (metres / (MAX_RANGE_M / 2f)) * g[3];
+        // Same metres-per-pixel factor as the forward axis (isotropic scene).
+        return g[0] + metres / g[4];
     }
 
     @Override
@@ -196,19 +207,21 @@ public class ForwardSituationView extends View {
 
         // Filtered obstacle cluster: bounded point projection (schema minor 1).
         // Rendered as cyan points only; no object classification or AEB
-        // decision-distance semantics are implied.
+        // decision-distance semantics are implied. Glow radius is decoration
+        // only and is smaller than the projected geometry it decorates, so
+        // apparent contact can never precede the underlying point position.
         if (model.isClusterVisible()) {
             final float[] pts = model.getClusterPointsDisplay();
             for (int i = 0; i + 1 < pts.length; i += 2) {
                 final float px = lateralToX(g, pts[i + 1] * (MAX_RANGE_M / 2f));
                 final float py = forwardToY(g, pts[i] * MAX_RANGE_M);
-                canvas.drawCircle(px, py, 11f, clusterCorePaint);
-                canvas.drawCircle(px, py, 5f, clusterPaint);
+                canvas.drawCircle(px, py, POINT_GLOW_PX, clusterCorePaint);
+                canvas.drawCircle(px, py, POINT_CORE_PX, clusterPaint);
             }
         }
 
 
-        // Ego: car-shaped to fixture scale (side view silhouette, centered).
+        // Ego reference silhouette at fixture-true scale (isotropic scene).
         drawEgo(canvas, g);
 
         // Live speed banner (top-left card): ego speed from kinematic state.
@@ -217,39 +230,38 @@ public class ForwardSituationView extends View {
         drawSpeedBanner(canvas, model.getEgoSpeedText());
     }
 
+    /**
+     * Ego reference silhouette at fixture-true scale (isotropic scene).
+     * Ego and the filtered obstacle points share one isotropic metre-per-pixel
+     * factor, so their relative separation on screen equals their real
+     * separation in the fixture scene (no presentation-only enlargement; no
+     * renderer-side collision semantics — contact is a System 1 decision, not
+     * a drawing outcome). At true scale (~14 px wide at 1080×600) the
+     * silhouette is stylized as a bright core only: the former circular
+     * emphasis halo is removed — a circle cannot stay inside the projected
+     * footprint (an inscribed circle at 1080×600 would still be footprint-
+     * sized, since the fixture width projects to ~14 px), so any halo read
+     * beyond the footprint boundary was false visual contact
+     * (VISUALIZATION-CONTRACT.md §13.1).
+     */
     private void drawEgo(Canvas canvas, float[] g) {
-        final float mPerPx = g[4];
-        // Visual emphasis: fixture-true footprint renders ~50px (unreadable as a car on
-        // a 600px surface), so the silhouette is drawn at 2.5x the physical scale. Labeled
-        // fixture geometry (contract section 10); range scale of cluster/RSS is unchanged.
-        // Unit math: mPerPx is metres-per-pixel, so pixel size = metres / mPerPx.
-        final float emph = 2.5f;
-        final float carFront = (EGO_FRONT_M / mPerPx) * emph;
-        final float carRear = (EGO_REAR_M / mPerPx) * emph;
-        final float carWpx = (EGO_WIDTH_M / mPerPx) * emph * 1.4f;
-
-        Path car = new Path();
-        float top = g[1] - carFront;
-        float bottom = g[1] + carRear * 0.4f;
-        float left = g[0] - carWpx / 2f;
-        float right = g[0] + carWpx / 2f;
-        RectF body = new RectF(left, top, right, bottom);
-        car.addRoundRect(body, 14f, 14f, Path.Direction.CW);
-        canvas.drawPath(car, egoPaint);
-        canvas.drawPath(car, egoOutlinePaint);
-        // Cabin hint: darker windshield band (fixture geometry, stylized).
-        Paint cabin = new Paint(Paint.ANTI_ALIAS_FLAG);
-        cabin.setStyle(Paint.Style.FILL);
-        cabin.setColor(Color.argb(70, 18, 18, 18));
-        RectF cabinRect = new RectF(left + carWpx * 0.14f, top + carFront * 0.28f,
-                right - carWpx * 0.14f, top + carFront * 0.52f);
-        canvas.drawRoundRect(cabinRect, 8f, 8f, cabin);
-        Paint egoLabel = new Paint(Paint.ANTI_ALIAS_FLAG);
-        egoLabel.setColor(COLOR_BASE);
-        egoLabel.setTextSize(19f);
-        egoLabel.setFakeBoldText(true);
-        egoLabel.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("EGO", g[0], bottom - 14f, egoLabel);
+        // Geometry authority: the pure, JVM-tested scene geometry class.
+        final SituationSceneGeometry scene =
+                new SituationSceneGeometry(getWidth(), getHeight());
+        final float[] bodyRect = scene.egoFootprintRectPx();
+        // Crisp fixture-true core (rounded-rect, unmodified metric footprint).
+        RectF body = new RectF(bodyRect[0], bodyRect[1], bodyRect[2], bodyRect[3]);
+        canvas.drawRoundRect(body, 2f, 2f, egoPaint);
+        // EGO label sits BELOW the silhouette with a clearance gap so the
+        // glyphs never touch the physical boundary or blend with the vehicle
+        // edge at 1080×600 anti-aliasing (contract §13). Clearance uses the
+        // actual glyph ascent from the label paint's font bounds.
+        final android.graphics.Rect bounds = new android.graphics.Rect();
+        egoLabelPaint.getTextBounds("EGO", 0, 3, bounds);
+        canvas.drawText("EGO",
+                g[0],
+                scene.egoLabelBaselinePx(bodyRect[3], bounds.height()),
+                egoLabelPaint);
     }
 
 

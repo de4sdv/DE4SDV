@@ -1,0 +1,3 @@
+09-06 16:21:45.171  4040  4073 I AebsFrameSubscriber: initComms ok
+09-06 16:21:45.197  4040  4073 I AebsFrameSubscriber: subscribed to topic=aebs-visualization-frame
+APP_SUBSCRIBED_ATTEMPT=2
