@@ -119,25 +119,45 @@ def test_ego_and_filtered_point_roles_remain_distinct_without_distance_pill():
 
 def test_ego_uses_true_fixture_footprint_without_presentation_enlargement():
     view = VIEW.read_text(encoding="utf-8")
+    geometry = (APP / "src/org/de4sdv/aebsvisualization/SituationSceneGeometry.java").read_text(
+        encoding="utf-8")
     model = (APP / "src/org/de4sdv/aebsvisualization/SituationRenderModel.java").read_text(
         encoding="utf-8")
     contract = CONTRACT.read_text(encoding="utf-8")
     contract_flat = " ".join(contract.split())
-    # Fixture dimensions are owned by the pure render model and consumed by
-    # the view with no presentation multiplier.
+    # Fixture dimensions are owned by the pure render model; the scene
+    # geometry projects them and the view consumes that projection with no
+    # presentation multiplier.
     assert "EGO_FRONT_M = 3.74f" in model
     assert "EGO_REAR_M = 1.03f" in model
     assert "EGO_WIDTH_M = 1.83f" in model
-    assert "SituationRenderModel.EGO_FRONT_M" in view
+    assert "SituationRenderModel.EGO_FRONT_M" in geometry
+    # Both longitudinal bounds are fixture-true: full rear, unshortened by
+    # any presentation factor (defect: bottom = originY + rear * 0.4).
+    assert "originY + carRear," in geometry
+    assert "0.4f" not in geometry
+    assert "0.4f" not in view
+    assert "egoFootprintRectPx" in view
     assert not re.search(r"EGO_\w+\s*/\s*mPerPx\s*\)\s*\*\s*\d", view), \
         "ego footprint must not be scaled by a presentation multiplier"
     # One isotropic metre-per-pixel factor: the lateral projection divides by
     # the same geometry factor used for the footprint conversion.
     assert "return g[0] + metres / g[4];" in view
-    assert "metresPerPx = MAX_RANGE_M / usableHeight" in view
+    assert "metresPerPx = MAX_RANGE_M / usableHeight" in geometry
     # Contract states the single-scale and no-enlargement rules.
     assert "one consistent metre-per-pixel scale" in contract_flat
     assert "isotropic" in contract_flat
+
+
+def test_no_circular_ego_halo_remains():
+    view = VIEW.read_text(encoding="utf-8")
+    # The former circular emphasis halo is removed: a circle cannot stay
+    # inside the projected fixture-true footprint (width ~6 px at 1080x600),
+    # so any glow beyond the footprint boundary read as false visual contact
+    # (contract §13.1). Containment is pinned behaviorally on the JVM by
+    # SituationSceneGeometryTest (projected bounds, not source strings).
+    assert "egoHaloPaint" not in view
+    assert "drawCircle(g[0]" not in view
 
 
 def test_point_glow_is_decorative_and_small():
@@ -154,9 +174,13 @@ def test_point_glow_is_decorative_and_small():
 
 def test_ego_label_has_clearance_from_silhouette_boundary():
     view = VIEW.read_text(encoding="utf-8")
-    assert "EGO_LABEL_CLEARANCE_PX = 5f" in view
-    # Label baseline sits below the silhouette bottom edge.
-    assert "bottom + EGO_LABEL_CLEARANCE_PX" in view
+    geometry = (APP / "src/org/de4sdv/aebsvisualization/SituationSceneGeometry.java").read_text(
+        encoding="utf-8")
+    assert "EGO_LABEL_CLEARANCE_PX = 5f" in geometry
+    # Label placement goes through the geometry helper with the actual glyph
+    # ascent from the label paint's font bounds (getTextBounds).
+    assert "egoLabelBaselinePx" in view
+    assert "getTextBounds" in view
     # No dark-on-light inside-the-body label rendering remains.
     assert "egoLabel.setColor(COLOR_BASE)" not in view
 

@@ -246,10 +246,11 @@ public class SituationRenderModelTest {
         // the true separation and reads as contact during INTERVENTION.
         float footprintSpanM = SituationRenderModel.EGO_FRONT_M + SituationRenderModel.EGO_REAR_M;
         assertTrue(footprintSpanM < 5.0f);
-        // At the observed minimum footprint separation (3.59 m, PR #164
-        // evidence) an enlarged ego would overlap the obstacle; the true one
-        // cannot span it.
-        assertTrue(SituationRenderModel.EGO_FRONT_M < 3.59f);
+        // The projected bounds are pinned numerically by
+        // SituationSceneGeometryTest at the campaign viewport; here the guard
+        // is consistency of the fixture constants themselves.
+        assertEquals(3.74f, SituationRenderModel.EGO_FRONT_M, EPS);
+        assertEquals(1.03f, SituationRenderModel.EGO_REAR_M, EPS);
     }
 
     // ------------------------------------------------------------------

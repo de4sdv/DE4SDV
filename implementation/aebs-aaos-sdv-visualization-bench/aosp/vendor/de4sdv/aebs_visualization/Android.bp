@@ -108,9 +108,14 @@ java_library {
 }
 
 // Pure render model (presentation-only; unit-testable without Android).
+// SituationSceneGeometry carries the isotropic scene projection and footprint
+// bounds so renderer placement rules are JVM-testable (§13.1/§13.3).
 java_library {
     name: "de4sdv_aebs_visualization_render_model",
-    srcs: ["app/src/org/de4sdv/aebsvisualization/SituationRenderModel.java"],
+    srcs: [
+        "app/src/org/de4sdv/aebsvisualization/SituationRenderModel.java",
+        "app/src/org/de4sdv/aebsvisualization/SituationSceneGeometry.java",
+    ],
     sdk_version: "system_current",
     owner: "de4sdv",
     static_libs: [
