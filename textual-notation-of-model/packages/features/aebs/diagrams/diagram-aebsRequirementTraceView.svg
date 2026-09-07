@@ -198,10 +198,6 @@
   <polyline points="28,244 855,244" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,278 855,278" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 34,92 H 849 A 6,6 0 0 1 855,98 V 317 A 6,6 0 0 1 849,323 H 34 A 6,6 0 0 1 28,317 V 98 A 6,6 0 0 1 34,92 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1292,2784 1632.125,2784 1632.125,3064 1650.688,3064" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
-  <polyline points="1293,3072 1650.688,3072" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
-  <polyline points="1292,3302.8 1619.125,3302.8 1619.125,3080 1650.688,3080" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
-  <polyline points="1293,3565.2 1611.125,3565.2 1611.125,3088 1650.688,3088" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="1210,2014.8 1622.125,2014.8 1622.125,2263 1637.688,2263" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="1210,2271.2 1637.688,2271.2" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="1211,2521.6 1606.125,2521.6 1606.125,2279 1637.688,2279" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
@@ -215,18 +211,10 @@
   <polyline points="997,1210.5 1007,1210.5 1007,993 1377.688,993" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="997,1218.5 1377.688,1218.5" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <polyline points="855,208 1297.688,208" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
-  <g transform="translate(1652,3064) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
-    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
-  </g>
-  <g transform="translate(1652,3072) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
-    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
-  </g>
-  <g transform="translate(1652,3080) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
-    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
-  </g>
-  <g transform="translate(1652,3088) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
-    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
-  </g>
+  <polyline points="1292,2784 1632.125,2784 1632.125,3064 1650.688,3064" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <polyline points="1293,3072 1650.688,3072" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <polyline points="1292,3302.8 1619.125,3302.8 1619.125,3080 1650.688,3080" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <polyline points="1293,3565.2 1611.125,3565.2 1611.125,3088 1650.688,3088" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="4 4"/>
   <g transform="translate(1639,2263) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
@@ -264,6 +252,18 @@
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <g transform="translate(1299,208) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
+  </g>
+  <g transform="translate(1652,3064) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
+  </g>
+  <g transform="translate(1652,3072) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
+  </g>
+  <g transform="translate(1652,3080) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
+  </g>
+  <g transform="translate(1652,3088) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <text x="20" y="64" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700"> aebsRequirementTraceView</tspan></text>
@@ -665,10 +665,6 @@
   <text x="441.5" y="288.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
   <text x="36" y="304" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">The DE4SDV AEBS increment shall maintain trace links from each AEBS evidence contract to its controlled operational boundary, assumptions, source constraints, and exclusions.</tspan></text>
   <text x="36" y="316" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
-  <text x="1468" y="2794" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability</tspan></text>
-  <text x="1468" y="3057" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqProvideCollisionWarningDerivedFromCommonAEBSCapability</tspan></text>
-  <text x="1467.5" y="3313" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability</tspan></text>
-  <text x="1467.5" y="3576" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqAllowDriverOverrideDerivedFromCommonAEBSCapability</tspan></text>
   <text x="1424.5" y="2025" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqDetectAEBSFailureConditionDerivedFromBoundedDegradationAndAvailability</tspan></text>
   <text x="1424.5" y="2282" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqDerivedFromNeedBoundedDegradation</tspan></text>
   <text x="1425" y="2532" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqIndicateDegradedUnavailableStatusDerivedFromBoundedDegradationAndAvailability</tspan></text>
@@ -682,4 +678,8 @@
   <text x="1187.5" y="985" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqTraceRequirementVVAndGapsDerivedFromVisibleRegulatoryAssumptions</tspan></text>
   <text x="1187.5" y="1263" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqTraceRequirementVVAndGapsDerivedFromRequirementVVPlanning</tspan></text>
   <text x="1077" y="219" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqTraceEvidenceContractsToControlledBoundaryDerivedFromExplicitOperationalBoundary</tspan></text>
+  <text x="1468" y="2794" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability</tspan></text>
+  <text x="1468" y="3057" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqProvideCollisionWarningDerivedFromCommonAEBSCapability</tspan></text>
+  <text x="1467.5" y="3313" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability</tspan></text>
+  <text x="1467.5" y="3576" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqAllowDriverOverrideDerivedFromCommonAEBSCapability</tspan></text>
 </svg>
