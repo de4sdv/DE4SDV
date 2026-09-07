@@ -232,3 +232,46 @@ def test_subject_registry_grammar_is_consistent():
 def test_sha_names_are_documented_non_governed():
     assert "SHA-256" in check_naming._EXTERNAL_ID_NAMES
     assert "SHA-1" in check_naming._EXTERNAL_ID_NAMES
+
+
+def test_ignored_bench_workspace_is_outside_governed_surface():
+    """Git-ignored bench workspaces are runtime material, not committed IDs.
+
+    The 009A workspace holds a vendored Autoware checkout whose config/docs
+    use upstream identifiers (LIDAR-, CAMERA-, VLP-, ...). Those files are
+    git-ignored; a local checkout must not fail the governed-surface check,
+    and a clean CI checkout (no workspace at all) must behave identically.
+    """
+    ignored = (
+        ROOT
+        / "implementation/aebs-autoware-executable-bench/workspace/src/autoware_launch"
+    )
+    if ignored.is_dir():
+        scanned = [str(p) for p in check_naming._iter_governed_text_files()]
+        assert not any(str(ignored) in s for s in scanned)
+
+
+def test_ignored_runtime_path_probe_follows_git():
+    """The ignore probe is behavioral: tracked files stay governed."""
+
+    def probe(relative: str) -> bool:
+        return check_naming._is_ignored_runtime_path(ROOT / relative)
+
+    # .gitignore is tracked, not ignored, and outside a workspace anyway.
+    assert probe(".gitignore") is False
+    # A path inside an ignored workspace area is ignored only when git says so.
+    ignored_candidate = (
+        "implementation/aebs-autoware-executable-bench/workspace/install/setup.bash"
+    )
+    if (ROOT / ignored_candidate).exists():
+        import subprocess
+
+        expected = (
+            subprocess.run(
+                ["git", "check-ignore", "-q", ignored_candidate],
+                cwd=ROOT,
+                capture_output=True,
+            ).returncode
+            == 0
+        )
+        assert probe(ignored_candidate) is expected

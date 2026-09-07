@@ -34,8 +34,14 @@ jobs:
       - name: Run repository checks
         run: python scripts/check_repo.py
 
+      - name: Check documentation local links
+        run: python tools/check_markdown_links.py
+
       - name: Run full project test suite
         run: python -m pytest tests -q
+
+      - name: Run bench unit/contract suites (isolated per bench)
+        run: python tools/run_bench_unit_tests.py
 
       - name: Run smoke tests
         run: python scripts/smoke_test.py

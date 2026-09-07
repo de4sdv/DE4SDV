@@ -173,6 +173,13 @@ def test_identity_changes_for_authoritative_input_and_ignores_pycache(tmp_path: 
 def test_runtime_verifier_accepts_live_inheritance_and_rejects_mismatch(
     tmp_path: Path,
 ) -> None:
+    inherited_setup = INHERITED / "workspace/install/setup.bash"
+    if not inherited_setup.is_file():
+        pytest.skip(
+            "requires the git-ignored inherited 009A workspace build output "
+            f"({inherited_setup}); built by the bench prepare/build flow, "
+            "not by a source checkout"
+        )
     command = [
         sys.executable,
         str(BENCH / "scripts/verify_runtime.py"),
