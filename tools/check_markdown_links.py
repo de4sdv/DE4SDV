@@ -1,12 +1,24 @@
 """Validate inline local links in tracked Markdown documentation.
 
-A relative Markdown link must resolve to a tracked repository file. This
-check covers navigation integrity only: it does not validate anchors,
-remote URLs, or link text.
+A relative Markdown link must resolve, after URL decoding, fragment and
+query stripping, and path normalization, to tracked repository content
+(``git ls-files``). This enforces two rules:
+
+1. The link target must be tracked repository content. A file link is valid
+   only when the resolved file itself is tracked; a directory link (trailing
+   slash, or a target that resolves to a directory) is valid only when at
+   least one tracked file lives beneath that directory. A file that merely
+   exists locally but is not tracked does not make a link valid.
+2. The link must stay inside the repository. A relative path that escapes
+   the repository root is rejected even if a file exists at the escaped
+   location.
+
+Explicitly out of scope: remote URLs, same-page anchors, generated SVG
+targets (guarded by the naming checks), and link text.
 
 Usage:
     python tools/check_markdown_links.py            # fail on broken links
-    python tools/check_markdown_links.py --list     # print all local links
+    python tools/check_markdown_links.py --list     # print tracked Markdown
 """
 
 from __future__ import annotations
@@ -16,7 +28,7 @@ import re
 import subprocess
 import sys
 import urllib.parse
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,7 +37,8 @@ ROOT = Path(__file__).resolve().parents[1]
 _INLINE_LINK = re.compile(r"\[[^\]\n]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 _FENCE = re.compile(r"```.*?```", re.DOTALL)
 
-_SKIP_SUFFIXES = {".svg"}  # generated artifacts are guarded by naming checks
+# Generated artifacts are guarded by the naming checks, not this tool.
+_SKIP_SUFFIXES = {".svg"}
 
 
 def tracked_files() -> list[str]:
@@ -35,7 +48,24 @@ def tracked_files() -> list[str]:
     return [path for path in completed.stdout.split("\0") if path]
 
 
-def broken_links(markdown_files: list[str]) -> list[str]:
+def tracked_surface() -> frozenset[str]:
+    """Normalized repository-relative paths of every tracked file."""
+    return frozenset(
+        str(PurePosixPath(name)) for name in tracked_files()
+    )
+
+
+def broken_links(
+    markdown_files: list[str],
+    tracked: frozenset[str] | None = None,
+) -> list[str]:
+    """Return sorted, de-duplicated broken-link reports for the given files.
+
+    ``tracked`` defaults to the real repository surface; tests may inject a
+    synthetic surface.
+    """
+    if tracked is None:
+        tracked = tracked_surface()
     errors: list[str] = []
     for name in markdown_files:
         absolute = ROOT / name
@@ -47,20 +77,55 @@ def broken_links(markdown_files: list[str]) -> list[str]:
                 continue  # remote or same-page anchor
             path_part = urllib.parse.unquote(raw.split("#")[0].split("?")[0])
             if not path_part:
-                continue
+                continue  # pure fragment/query target
             if Path(path_part).suffix.lower() in _SKIP_SUFFIXES:
                 continue
-            target = absolute.parent / path_part
-            if not target.exists():
+            # Resolve relative to the Markdown file's directory, then make
+            # the result repository-relative and canonical.
+            resolved = (absolute.parent / path_part).resolve()
+            try:
+                repo_relative = resolved.relative_to(ROOT.resolve())
+            except ValueError:
                 line = scrubbed[: match.start()].count("\n") + 1
-                errors.append(f"{name}:{line}: broken local link -> {raw}")
+                errors.append(
+                    f"{name}:{line}: link escapes repository root -> {raw}"
+                )
+                continue
+            normalized = PurePosixPath(repo_relative).as_posix()
+            target_is_directory = (
+                path_part.endswith("/")
+                or (resolved.is_dir() and not resolved.is_file())
+            )
+            if target_is_directory:
+                # Git tracks files, not directories: a directory link is
+                # valid when tracked content lives beneath the directory.
+                tracked_prefix = normalized if normalized == "." else (
+                    normalized + "/"
+                )
+                tracked_inside = any(
+                    tracked_path.startswith(tracked_prefix)
+                    for tracked_path in tracked
+                )
+                if not tracked_inside:
+                    line = scrubbed[: match.start()].count("\n") + 1
+                    errors.append(
+                        f"{name}:{line}: broken local link -> {raw} "
+                        f"(no tracked content beneath {normalized})"
+                    )
+                continue
+            if normalized not in tracked:
+                line = scrubbed[: match.start()].count("\n") + 1
+                errors.append(
+                    f"{name}:{line}: broken local link -> {raw} "
+                    f"(resolved {normalized} is not tracked repository content)"
+                )
     return sorted(set(errors))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--list", action="store_true", help="list Markdown files with local links"
+        "--list", action="store_true", help="list tracked Markdown files"
     )
     arguments = parser.parse_args()
 

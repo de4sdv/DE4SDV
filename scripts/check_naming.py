@@ -379,15 +379,20 @@ def _is_exempt_from_id_scan(path: Path) -> bool:
     return any(rel.startswith(prefix) for prefix in _EXEMPT_PATH_PREFIXES)
 
 
-def _is_ignored_runtime_path(path: Path) -> bool:
-    """True only when git actually ignores the path (tracked files stay governed)."""
+def _is_ignored_runtime_path(path: Path, repository: Path | None = None) -> bool:
+    """True only when git actually ignores the path (tracked files stay governed).
+
+    ``repository`` defaults to the DE4SDV root; tests may pass an isolated
+    fixture repository to exercise both sides of the rule deterministically.
+    """
+    repository = ROOT if repository is None else repository
     try:
         result = subprocess.run(
-            ["git", "check-ignore", "-q", str(path.relative_to(ROOT))],
-            cwd=ROOT,
+            ["git", "check-ignore", "-q", str(path.relative_to(repository))],
+            cwd=repository,
             capture_output=True,
         )
-    except OSError:
+    except (OSError, ValueError):
         return False
     return result.returncode == 0
 

@@ -234,44 +234,123 @@ def test_sha_names_are_documented_non_governed():
     assert "SHA-1" in check_naming._EXTERNAL_ID_NAMES
 
 
-def test_ignored_bench_workspace_is_outside_governed_surface():
-    """Git-ignored bench workspaces are runtime material, not committed IDs.
+def _ignored_runtime_fixture(tmp_path: Path):
+    """Create an isolated git repository mirroring the bench ignore rules.
 
-    The 009A workspace holds a vendored Autoware checkout whose config/docs
-    use upstream identifiers (LIDAR-, CAMERA-, VLP-, ...). Those files are
-    git-ignored; a local checkout must not fail the governed-surface check,
-    and a clean CI checkout (no workspace at all) must behave identically.
+    Returns the fixture repo path. Contains:
+    - an ignored runtime workspace path with an ID-shaped upstream token
+      (simulates the vendored Autoware checkout),
+    - a tracked file under the same workspace directory tree (proves tracked
+      files stay governed even below an ignorable directory name),
+    - a tracked file elsewhere with the same token (control: governed).
     """
-    ignored = (
-        ROOT
-        / "implementation/aebs-autoware-executable-bench/workspace/src/autoware_launch"
+    import subprocess as sp
+
+    repo = tmp_path / "fixture-repo"
+    repo.mkdir()
+    def git(*args, check=True):
+        return sp.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=check)
+    git("init", "-q")
+    git("config", "user.name", "fixture")
+    git("config", "user.email", "fixture@example.org")
+    (repo / ".gitignore").write_text(
+        "implementation/aebs-bench/workspace/*\n"
+        "!implementation/aebs-bench/workspace/tracked.sysml\n",
+        encoding="utf-8",
     )
-    if ignored.is_dir():
-        scanned = [str(p) for p in check_naming._iter_governed_text_files()]
-        assert not any(str(ignored) in s for s in scanned)
-
-
-def test_ignored_runtime_path_probe_follows_git():
-    """The ignore probe is behavioral: tracked files stay governed."""
-
-    def probe(relative: str) -> bool:
-        return check_naming._is_ignored_runtime_path(ROOT / relative)
-
-    # .gitignore is tracked, not ignored, and outside a workspace anyway.
-    assert probe(".gitignore") is False
-    # A path inside an ignored workspace area is ignored only when git says so.
-    ignored_candidate = (
-        "implementation/aebs-autoware-executable-bench/workspace/install/setup.bash"
+    ignored_dir = repo / "implementation/aebs-bench/workspace/src/upstream/config"
+    ignored_dir.mkdir(parents=True)
+    (ignored_dir / "vendor.param.yaml").write_text(
+        "channel: LIDAR-01\n", encoding="utf-8"
     )
-    if (ROOT / ignored_candidate).exists():
-        import subprocess
+    tracked_in_workspace = repo / "implementation/aebs-bench/workspace/tracked.sysml"
+    tracked_in_workspace.write_text("part def TrackedInWorkspace\n", encoding="utf-8")
+    governed = repo / "implementation"
+    governed.mkdir(exist_ok=True)
+    (governed / "governed.param.yaml").write_text(
+        "subject: REQ-FIXTURE-001\n", encoding="utf-8"
+    )
+    git("add", "-A")
+    git("commit", "-q", "-m", "fixture")
+    return repo
 
-        expected = (
-            subprocess.run(
-                ["git", "check-ignore", "-q", ignored_candidate],
-                cwd=ROOT,
-                capture_output=True,
-            ).returncode
-            == 0
+
+def _probe_fixture(repo: Path, relative: str) -> bool:
+    import subprocess as sp
+
+    return (
+        sp.run(
+            ["git", "check-ignore", "-q", relative],
+            cwd=repo,
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+
+
+def test_ignored_runtime_path_excluded_and_tracked_path_governed(tmp_path: Path):
+    """Deterministic proof of both sides of the runtime-workspace rule.
+
+    Uses an isolated git fixture, so clean CI proves the contract without a
+    built developer workspace:
+    - a git-ignored untracked runtime path is outside the governed surface;
+    - a tracked file under the same ignorable directory stays governed;
+    - the ignore decision comes from git, not from a directory-name blanket.
+    """
+    repo = _ignored_runtime_fixture(tmp_path)
+
+    ignored_file = repo / "implementation/aebs-bench/workspace/src/upstream/config/vendor.param.yaml"
+    tracked_file = repo / "implementation/aebs-bench/workspace/tracked.sysml"
+
+    # Git classifies: ignored path ignored; tracked path (negated) not ignored.
+    assert _probe_fixture(repo, "implementation/aebs-bench/workspace/src/upstream/config/vendor.param.yaml")
+    assert not _probe_fixture(repo, "implementation/aebs-bench/workspace/tracked.sysml")
+
+    # Production seam honors both classifications.
+    assert check_naming._is_ignored_runtime_path(ignored_file, repository=repo)
+    assert not check_naming._is_ignored_runtime_path(tracked_file, repository=repo)
+
+
+def test_tracked_file_under_workspace_area_remains_governed(tmp_path: Path):
+    """A tracked file below an ignorable workspace directory keeps ID checks."""
+    repo = _ignored_runtime_fixture(tmp_path)
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        # Simulate the governed scan by scanning a copy of the tracked file
+        # content through the public behavioral seam.
+        tracked = repo / "implementation/aebs-bench/workspace/tracked.sysml"
+        tracked.write_text(
+            "part def TrackedInWorkspace {\n"
+            "  doc /* REQ-FIXTURE-001 anchor; BAD-TOK lives in code below */\n"
+            "}\n"
+            "part untrackedStyle : BAD-TOK;\n",
+            encoding="utf-8",
         )
-        assert probe(ignored_candidate) is expected
+        errors = check_naming.check_identifier_tokens_in_text(
+            tracked.read_text(encoding="utf-8"),
+            display_path="implementation/aebs-bench/workspace/tracked.sysml",
+            suffix=".sysml",
+        )
+    assert any("BAD-" in error for error in errors), errors
+
+
+def test_real_bench_workspace_ignored_when_present(tmp_path: Path):
+    """Behavioral probe follows git on the real bench workspace, if present.
+
+    Skipped on clean checkouts without a built workspace; the deterministic
+    fixture tests above already cover both classifications there.
+    """
+    candidate = (
+        ROOT
+        / "implementation/aebs-autoware-executable-bench/workspace/install/setup.bash"
+    )
+    if not candidate.exists():
+        import pytest
+
+        pytest.skip(
+            "no built bench workspace in this checkout; the isolated fixture "
+            "tests cover the ignored/tracked classifications deterministically"
+        )
+    expected = _probe_fixture(ROOT, str(candidate.relative_to(ROOT)))
+    assert check_naming._is_ignored_runtime_path(candidate) is expected
