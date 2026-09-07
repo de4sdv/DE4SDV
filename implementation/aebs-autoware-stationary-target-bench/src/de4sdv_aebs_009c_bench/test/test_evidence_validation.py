@@ -94,6 +94,25 @@ class EvidenceValidationTests(unittest.TestCase):
             "reviewed_head": "871ef95bbdf3b865d5761d692065674fc0b4e196",
             "delivery_commit": "81e043386251118b302bafbed91922f8fa821522",
         }
+        missing = [
+            name
+            for name, revision in (
+                ("retained_run_head", relation["retained_run_head"]),
+                ("reviewed_head", relation["reviewed_head"]),
+            )
+            if subprocess.run(
+                ["git", "-C", repository, "cat-file", "-e", f"{revision}^{{commit}}"],
+                capture_output=True,
+            ).returncode
+            != 0
+        ]
+        if missing:
+            self.skipTest(
+                "requires the squashed PR #66 commit objects "
+                f"({', '.join(missing)}) which exist only in clones that "
+                "fetched the pull refs; run this test from a full developer "
+                "clone or fetch refs/pull/66/head"
+            )
         live_head = subprocess.check_output(
             ["git", "-C", repository, "rev-parse", "HEAD"], text=True
         ).strip()
