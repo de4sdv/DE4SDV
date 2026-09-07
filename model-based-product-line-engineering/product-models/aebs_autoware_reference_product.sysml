@@ -102,6 +102,18 @@ package DE4SDV_AEBSAutowareReferenceProduct {
      * declared in DE4SDV_AEBSPhysicalSoftwareRealization. The logical
      * system's responsibilities are allocated to the AEB node with typed
      * coverage records (available, partial, missing).
+     *
+     * Bounded projection limitation: those canonical allocations bind
+     * DE4SDV_AEBSLogicalArchitecture::system to the physical realization's
+     * physicalSoftware usage — not the composite usages above, which are
+     * typed views over the same shared-asset definitions. Importing the
+     * packages does not transfer instance-level identity; the composite is a
+     * structural projection for review, not a resolved configured product.
+     * Product-instance-level allocation/evidence binding requires either
+     * explicit reference dependencies from these usages to the canonical
+     * elements or a configured-product derivation increment with its own
+     * trace. Until then, product-level trace claims must cite the canonical
+     * allocation records, not this composite.
      */
   }
 

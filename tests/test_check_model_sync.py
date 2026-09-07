@@ -78,6 +78,81 @@ def test_check_verification_usages_clean():
     assert errors == []
 
 
+def test_check_requirement_derivation_coverage_clean():
+    errors: list[str] = []
+    check_model_sync.check_requirement_derivation_coverage(errors)
+    assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# Deliberate breakage: requirement-derivation coverage is detected (R003)
+# ---------------------------------------------------------------------------
+
+
+def test_missing_requirement_derivation_detected():
+    """Deleting a requirement's need-derivation dependency must be caught.
+
+    Ontology rule R003 requires every design-input requirement to trace to a
+    need. The old dependency-target check only validated endpoints of links
+    that exist; this proves a missing required link now fails the gate.
+    """
+    sysml_file = MODEL_DIR / "aebs_needs_requirements.sysml"
+    original = sysml_file.read_text(encoding="utf-8")
+
+    broken = original.replace(
+        "dependency reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability "
+        "from reqDetectForwardCollisionRisk to needCommonAEBSCapability;",
+        "dependency repointedShapePreservingDependency "
+        "from reqHandleDegradedUnavailableInputs to needBoundedDegradationAndAvailability;",
+        1,
+    )
+    assert broken != original, "test setup: replacement did not alter the file"
+
+    errors: list[str] = []
+    with mock.patch.object(
+        check_model_sync,
+        "_read",
+        side_effect=lambda p: broken if p == sysml_file else _read_original(p),
+    ):
+        check_model_sync.check_requirement_derivation_coverage(errors)
+
+    assert errors, "Expected at least one error for missing need derivation"
+    assert any("SP6" in e for e in errors)
+    assert any("reqDetectForwardCollisionRisk" in e for e in errors)
+
+
+def test_need_and_problem_statement_usages_are_out_of_scope():
+    """Stakeholder-need usages and the problem statement are not design-input
+    requirements and must not require outgoing derivation links."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    code = (
+        "package X {\n"
+        "  requirement needSomething : SomeNeed {\n"
+        "    doc /* need usage without derivation */\n"
+        "  }\n"
+        "  requirement framingStatement : ProblemStatement {\n"
+        "    doc /* problem statement without derivation */\n"
+        "  }\n"
+        "}\n"
+    )
+    errors: list[str] = []
+    with tempfile.NamedTemporaryFile("w", suffix=".sysml", delete=False) as handle:
+        handle.write(code)
+        synthetic = _Path(handle.name)
+    try:
+        with mock.patch.object(
+            check_model_sync,
+            "_REQUIREMENT_SLICES",
+            (synthetic,),
+        ):
+            check_model_sync.check_requirement_derivation_coverage(errors)
+    finally:
+        synthetic.unlink(missing_ok=True)
+    assert errors == [], f"Expected no errors, got: {errors}"
+
+
 # ---------------------------------------------------------------------------
 # Deliberate breakage: scenario identity is detected
 # ---------------------------------------------------------------------------

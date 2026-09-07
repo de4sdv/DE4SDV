@@ -438,6 +438,83 @@ def _is_within(relative_file: str, relative_directory: str) -> bool:
     )
 
 
+# ---------------------------------------------------------------------------
+# Sync point 6: Requirement-derivation coverage (ontology R003)
+# ---------------------------------------------------------------------------
+
+# Design-input requirement slices in feature increments. R003 (basic-ontology
+# validation_rules) requires every Requirement in a feature increment to trace
+# to at least one Need, RegulatoryConstraint, or ADR. In the current model this
+# trace is expressed as a native dependency from the requirement usage to a
+# stakeholder-need usage (all current needs are SysML requirement usages typed
+# by *Need candidates). Evidence-contract slices are excluded: their
+# requirement-like usages are System 2 planning vocabulary with a different
+# trace obligation (trace to the controlled operational boundary), per
+# REQ-AEBS-S2-001 and the ontology EvidenceContract mapping.
+_REQUIREMENT_SLICES = (
+    ROOT
+    / "textual-notation-of-model/packages/features/aebs"
+    / "aebs_needs_requirements.sysml",
+    ROOT
+    / "textual-notation-of-model/packages/features/aebs"
+    / "aebs_visualization_needs_requirements.sysml",
+    ROOT
+    / "textual-notation-of-model/packages/features/middleware"
+    / "middleware_requirements.sysml",
+)
+
+_REQUIREMENT_USAGE_RE = re.compile(
+    r"^\s*requirement ([a-z][A-Za-z0-9]*)\s*:\s*([A-Za-z][A-Za-z0-9]*)\s*\{",
+    re.MULTILINE,
+)
+_DEPENDENCY_EDGE_RE = re.compile(
+    r"^\s*dependency\s+[A-Za-z][A-Za-z0-9]*\s+"
+    r"from\s+([\w'.:]+)\s+to\s+([\w'.:]+)\s*;",
+    re.MULTILINE | re.DOTALL,
+)
+
+# Requirement usages that are not design-input requirements: stakeholder-need
+# usages (typed by *Need candidates) and the SYSMOD problem-statement anchor
+# (framing vocabulary traced INTO by requirements, not out of).
+_NON_DESIGN_INPUT_TYPES = re.compile(
+    r"(?:Need|ProblemStatement)$"
+)
+
+
+def check_requirement_derivation_coverage(errors: list[str]) -> None:
+    """Sync point 6: every design-input requirement usage derives from a need.
+
+    Enforces ontology validation rule R003 against the model text: each
+    requirement usage in a governed requirements slice must carry at least one
+    outgoing dependency whose target resolves to a stakeholder-need usage.
+    This checks presence of the required link (the gap the dependency-target
+    check cannot see); semantic strength of each link remains review policy.
+    """
+    for slice_path in _REQUIREMENT_SLICES:
+        if not slice_path.exists():
+            errors.append(
+                f"[SP6] {slice_path.name}: requirements slice not found"
+            )
+            continue
+        code = _strip_comments(_read(slice_path))
+        usages = set(_REQUIREMENT_USAGE_RE.findall(code))
+        edges = _DEPENDENCY_EDGE_RE.findall(code)
+        for usage_name, usage_type in sorted(usages):
+            if _NON_DESIGN_INPUT_TYPES.search(usage_type):
+                continue
+            need_targets = [
+                target
+                for source, target in edges
+                if source == usage_name
+                and target.rsplit("::", 1)[-1].startswith("need")
+            ]
+            if not need_targets:
+                errors.append(
+                    f"[SP6] {slice_path.name}: requirement usage '{usage_name}' "
+                    f"({usage_type}) has no outgoing derivation dependency to a "
+                    f"stakeholder need (ontology rule DE4SDV-ONT-R003)"
+                )
+
 def check_ontology_kernel_contract(errors: list[str]) -> None:
     """Validate the bidirectional ontology ↔ SysML method-kernel contract.
 
@@ -649,6 +726,7 @@ def run_all_checks() -> list[str]:
     check_yaml_profiles(errors)
     check_dependency_targets(errors)
     check_verification_usages(errors)
+    check_requirement_derivation_coverage(errors)
     check_ontology_kernel_contract(errors)
     return errors
 
