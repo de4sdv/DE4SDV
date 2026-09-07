@@ -11,6 +11,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Bench evidence-validation tests verify repository-history invariants
+          # (retained-run ancestry / reviewed squash relations) that need the
+          # real commit graph, not a depth-1 checkout.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
