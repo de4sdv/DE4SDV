@@ -14,6 +14,13 @@ Checks repository contracts using text extraction from SysML textual notation:
    ontology mapping resolves, and every governed kernel declaration is either
    mapped or explicitly excluded with a reason. Feature slices must not
    re-declare mapped kernel vocabulary.
+6. Requirement-derivation coverage (ontology R003): every design-input
+   requirement usage in a governed requirements slice must carry at least one
+   outgoing dependency whose target resolves — through the model-wide
+   declaration index and specialization closure — to a semantic type grounding
+   Need, RegulatoryConstraint, or ArchitectureDecisionRecord. Identifier
+   prefixes are never consulted; the permitted origin groundings are declared
+   in the ontology's R003 ``origin_groundings`` block.
 
 Exit code 0 on success, 1 on any mismatch.
 """
@@ -444,13 +451,11 @@ def _is_within(relative_file: str, relative_directory: str) -> bool:
 
 # Design-input requirement slices in feature increments. R003 (basic-ontology
 # validation_rules) requires every Requirement in a feature increment to trace
-# to at least one Need, RegulatoryConstraint, or ADR. In the current model this
-# trace is expressed as a native dependency from the requirement usage to a
-# stakeholder-need usage (all current needs are SysML requirement usages typed
-# by *Need candidates). Evidence-contract slices are excluded: their
-# requirement-like usages are System 2 planning vocabulary with a different
-# trace obligation (trace to the controlled operational boundary), per
-# REQ-AEBS-S2-001 and the ontology EvidenceContract mapping.
+# to at least one Need, RegulatoryConstraint, or ArchitectureDecisionRecord.
+# Evidence-contract slices are excluded: their requirement-like usages are
+# System 2 planning vocabulary with a different trace obligation (trace to the
+# controlled operational boundary), per REQ-AEBS-S2-001 and the ontology
+# EvidenceContract mapping.
 _REQUIREMENT_SLICES = (
     ROOT
     / "textual-notation-of-model/packages/features/aebs"
@@ -473,23 +478,184 @@ _DEPENDENCY_EDGE_RE = re.compile(
     re.MULTILINE | re.DOTALL,
 )
 
-# Requirement usages that are not design-input requirements: stakeholder-need
-# usages (typed by *Need candidates) and the SYSMOD problem-statement anchor
-# (framing vocabulary traced INTO by requirements, not out of).
-_NON_DESIGN_INPUT_TYPES = re.compile(
-    r"(?:Need|ProblemStatement)$"
+# The SYSMOD problem-statement anchor is framing vocabulary traced INTO by
+# requirements, not out of. Stakeholder-need usages are excluded semantically
+# (their type specializes the Need grounding declaration), not by name.
+_NON_DESIGN_INPUT_PROBLEM_STATEMENT = re.compile(r"ProblemStatement$")
+
+# Model roots scanned to build the semantic type index used for R003 target
+# resolution. This is deliberately the full governed model surface, not just
+# the requirement slices, so a derivation may target a valid origin declared
+# in another governed slice or in the method kernel.
+_R003_MODEL_ROOTS = (
+    ROOT / "textual-notation-of-model/packages",
+    ROOT / "model-based-product-line-engineering/product-models",
+    ROOT / "model-based-product-line-engineering/scoping",
 )
+
+# Matches ``<kind> def <Name> :> Parent1, Parent2 {`` — the specialization
+# clause is optional. Only the declaration kind, name, and specialization
+# parents are captured; bodies are irrelevant for type resolution.
+_R003_DECLARATION_RE = re.compile(
+    r"(?m)^[ \t]*"
+    r"(?:(?:public|private|protected)[ \t]+)?"
+    r"(?:abstract[ \t]+)?"
+    r"([A-Za-z]+(?:[ \t]+[A-Za-z]+)?)[ \t]+def[ \t]+"
+    r"([A-Za-z][A-Za-z0-9_]*)"
+    r"(?:[ \t]*:>[ \t]*([A-Za-z][A-Za-z0-9_]*(?:[ \t*,]+[A-Za-z][A-Za-z0-9_]*)*))?"
+)
+
+# Matches usage declarations ``<kind> <name> : <Type> {`` for the kinds that
+# R003 origins can be modeled as (requirement usages and part usages).
+_R003_USAGE_RE = re.compile(
+    r"(?m)^[ \t]*"
+    r"(requirement|part|action)[ \t]+"
+    r"([a-z][A-Za-z0-9_]*)[ \t]*:[ \t]*"
+    r"([A-Za-z][A-Za-z0-9_]*)"
+)
+
+# Kind a semantic origin is declared with, per its kernel grounding kind.
+_R003_ORIGIN_KINDS = {
+    "requirement def",
+    "part def",
+}
+
+
+def _load_ontology_r003_groundings() -> dict[str, tuple[str, str]]:
+    """Read the R003 origin groundings from the ontology YAML.
+
+    The ontology owns the semantic mapping (R003 ``origin_groundings``);
+    this gate only consumes it. Returns ``{origin_name: (file, declaration)}``.
+    """
+    import yaml  # local import: PyYAML is a CI test dependency
+
+    doc = yaml.safe_load(_read(ONTOLOGY_YAML))
+    rules = doc.get("validation_rules") or []
+    for rule in rules:
+        if isinstance(rule, dict) and rule.get("id") == "DE4SDV-ONT-R003":
+            groundings = rule.get("origin_groundings")
+            if not isinstance(groundings, dict) or not groundings:
+                raise ValueError(
+                    "ontology DE4SDV-ONT-R003 has no origin_groundings block"
+                )
+            result: dict[str, tuple[str, str]] = {}
+            for origin, grounding in groundings.items():
+                if not isinstance(grounding, dict):
+                    raise ValueError(
+                        f"R003 origin {origin!r} grounding must be a mapping"
+                    )
+                file_name = grounding.get("file")
+                declaration = grounding.get("declaration")
+                if not isinstance(file_name, str) or not isinstance(declaration, str):
+                    raise ValueError(
+                        f"R003 origin {origin!r} needs file+declaration grounding"
+                    )
+                result[origin] = (file_name, declaration)
+            return result
+    raise ValueError("ontology has no DE4SDV-ONT-R003 validation rule")
+
+
+def _r003_specialization_closure(
+    declarations: dict[str, dict[str, object]],
+    type_name: str,
+) -> set[str]:
+    """Return ``type_name`` plus every type it (transitively) specializes.
+
+    ``declarations`` maps ``<kind> def <Name>`` keys to records with a
+    ``parents`` list of specialized type names. Unresolvable parents are
+    ignored (they may be upstream library types outside the governed roots);
+    the closure only needs governed declarations to classify governed targets.
+    """
+    seen: set[str] = set()
+    frontier = [type_name]
+    while frontier:
+        current = frontier.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        record = declarations.get(current)
+        if record is None:
+            continue
+        frontier.extend(str(parent) for parent in record["parents"])  # type: ignore[arg-type]
+    return seen
 
 
 def check_requirement_derivation_coverage(errors: list[str]) -> None:
-    """Sync point 6: every design-input requirement usage derives from a need.
+    """Sync point 6: every design-input requirement traces to a valid R003 origin.
 
-    Enforces ontology validation rule R003 against the model text: each
-    requirement usage in a governed requirements slice must carry at least one
-    outgoing dependency whose target resolves to a stakeholder-need usage.
-    This checks presence of the required link (the gap the dependency-target
-    check cannot see); semantic strength of each link remains review policy.
+    Enforces ontology validation rule DE4SDV-ONT-R003 against the model text:
+    each requirement usage in a governed requirements slice must carry at least
+    one outgoing dependency whose target resolves — through the model-wide
+    declaration/usage index and specialization closure — to a semantic type
+    grounding one of the permitted origin types (Need, RegulatoryConstraint,
+    ArchitectureDecisionRecord). Identifier prefixes are never consulted: a
+    target named ``needFoo`` that is not typed as a Need is rejected. This
+    checks presence of the required link (the gap the dependency-target check
+    cannot see); semantic strength of each link remains review policy.
     """
+    groundings = _load_ontology_r003_groundings()
+
+    # Model-wide index: declarations (kind+name -> parents) and usages
+    # (name -> declared type), collected across all governed model roots.
+    # Built once here and reused for both target resolution and the semantic
+    # exclusion of stakeholder-need usages from the design-input population.
+    declarations: dict[str, dict[str, object]] = {}
+    usages: dict[str, str] = {}
+    for model_root in _R003_MODEL_ROOTS:
+        if not model_root.is_dir():
+            continue
+        for path in sorted(model_root.rglob("*.sysml")):
+            code = _strip_comments(_read(path))
+            for kind, name, parents in _R003_DECLARATION_RE.findall(code):
+                parent_list = [
+                    parent.strip().rstrip(",")
+                    for parent in (parents or "").split(",")
+                    if parent.strip().rstrip(",")
+                ]
+                declarations[name] = {
+                    "kind": " ".join(kind.split()),
+                    "parents": parent_list,
+                }
+            for usage_kind, usage_name, usage_type in _R003_USAGE_RE.findall(code):
+                # First declaration wins; later shadowing in other files is
+                # not overridden (governed model avoids ambiguous reuse, and
+                # the ontology-kernel gate rejects kernel-name redeclaration).
+                usages.setdefault(usage_name, usage_type)
+
+    # Grounding declarations must exist and carry a permitted kind.
+    origin_keys: set[str] = set()
+    for origin, (file_name, declaration) in groundings.items():
+        if not _declaration_exists(_read(ROOT / file_name), declaration):
+            errors.append(
+                f"[SP6] ontology R003 origin {origin!r} grounding declaration "
+                f"'{declaration}' not found in {file_name}"
+            )
+            continue
+        kind, _, grounding_name = declaration.partition(" def ")
+        if f"{kind} def" not in _R003_ORIGIN_KINDS:
+            errors.append(
+                f"[SP6] ontology R003 origin {origin!r} grounding "
+                f"'{declaration}' is not a supported requirement/part def"
+            )
+            continue
+        origin_keys.add(grounding_name)
+
+    def _resolves_to_valid_origin(target: str) -> bool:
+        target_name = target.rsplit("::", 1)[-1].strip("'")
+        for candidate in _r003_specialization_closure(declarations, target_name):
+            if candidate in origin_keys:
+                return True
+            # The target may be a usage: resolve its declared type and walk
+            # that type's specialization closure too.
+        usage_type = usages.get(target_name)
+        if usage_type is not None:
+            for candidate in _r003_specialization_closure(
+                declarations, usage_type
+            ):
+                if candidate in origin_keys:
+                    return True
+        return False
+
     for slice_path in _REQUIREMENT_SLICES:
         if not slice_path.exists():
             errors.append(
@@ -497,23 +663,34 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
             )
             continue
         code = _strip_comments(_read(slice_path))
-        usages = set(_REQUIREMENT_USAGE_RE.findall(code))
+        usages_in_slice = set(_REQUIREMENT_USAGE_RE.findall(code))
         edges = _DEPENDENCY_EDGE_RE.findall(code)
-        for usage_name, usage_type in sorted(usages):
-            if _NON_DESIGN_INPUT_TYPES.search(usage_type):
+        for usage_name, usage_type in sorted(usages_in_slice):
+            if _NON_DESIGN_INPUT_PROBLEM_STATEMENT.search(usage_type):
                 continue
-            need_targets = [
+            # Semantically exclude Need usages: a usage whose declared type
+            # specializes the Need grounding declaration is itself a Need,
+            # not a design-input requirement. This is type-based, not
+            # identifier-prefix-based.
+            usage_closure = _r003_specialization_closure(
+                declarations, usage_type
+            )
+            need_grounding_name = groundings["Need"][1].partition(" def ")[2]
+            if need_grounding_name in usage_closure:
+                continue
+            valid_targets = [
                 target
                 for source, target in edges
-                if source == usage_name
-                and target.rsplit("::", 1)[-1].startswith("need")
+                if source == usage_name and _resolves_to_valid_origin(target)
             ]
-            if not need_targets:
+            if not valid_targets:
                 errors.append(
                     f"[SP6] {slice_path.name}: requirement usage '{usage_name}' "
                     f"({usage_type}) has no outgoing derivation dependency to a "
-                    f"stakeholder need (ontology rule DE4SDV-ONT-R003)"
+                    f"Need, RegulatoryConstraint, or ArchitectureDecisionRecord "
+                    f"(ontology rule DE4SDV-ONT-R003)"
                 )
+
 
 def check_ontology_kernel_contract(errors: list[str]) -> None:
     """Validate the bidirectional ontology ↔ SysML method-kernel contract.

@@ -69,9 +69,17 @@ Absence of a hop is not proof that no model relationship exists: a "no
 allocation" result from `realizedBy` says nothing about relevance
 dependencies, and external evidence is never traversed. Requirement
 derivation (`derivesRequirementFromNeed`) is model-native and enforced for
-presence by sync point 6 in `scripts/check_model_sync.py` (rule R003), but it
-has no API traversal strategy yet; adding one is a deliberate schema-mapping
-change requiring upstream API-shape review, not a silent default.
+presence by sync point 6 in `scripts/check_model_sync.py` (rule R003): each
+design-input requirement usage must carry at least one outgoing dependency
+whose target resolves — through the model-wide declaration index and
+specialization closure — to a semantic type grounding Need
+(`StakeholderNeedCandidate`), RegulatoryConstraint
+(`RegulatoryConstraintCandidate`), or ArchitectureDecisionRecord
+(`ArchitectureDecisionRecord`). Identifier prefixes are never consulted; the
+origin groundings are declared in the R003 `origin_groundings` block of this
+ontology. Derivation has no API traversal strategy yet; adding one is a
+deliberate schema-mapping change requiring upstream API-shape review, not a
+silent default.
 
 ### Kernel sync
 
