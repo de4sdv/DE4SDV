@@ -58,6 +58,40 @@ def _contract():
     )
 
 
+def _kernel_ownership():
+    """OwningMembership evidence placing kernel definitions in their packages.
+
+    Real SysML API exports carry no populated owner fields; ownership is the
+    OwningMembership graph. Kernel definitions used by runtime binding must
+    be owned by the package path the governed kernel file declares.
+    """
+    ref = lambda value: {"@id": value}
+    return [
+        {
+            "@id": "pkg-product-line",
+            "@type": "Package",
+            "declaredName": "DE4SDV_ProductLine",
+        },
+        {
+            "@id": "om-kernel-member-product",
+            "@type": "OwningMembership",
+            "memberElement": ref("kernel-member-product"),
+            "owningRelatedElement": ref("pkg-product-line"),
+        },
+        {
+            "@id": "pkg-method-context",
+            "@type": "Package",
+            "declaredName": "DE4SDV_MethodContext",
+        },
+        {
+            "@id": "om-kernel-requirement",
+            "@type": "OwningMembership",
+            "memberElement": ref("kernel-requirement"),
+            "owningRelatedElement": ref("pkg-method-context"),
+        },
+    ]
+
+
 def _f3_elements():
     """Minimal API-shaped fixture covering both new predicates.
 
@@ -67,6 +101,7 @@ def _f3_elements():
     """
     ref = lambda value: {"@id": value}
     return [
+        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -236,6 +271,7 @@ def test_member_product_exclusion_follows_transitive_lineage() -> None:
 
     ref = lambda value: {"@id": value}
     elements = [
+        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -334,12 +370,29 @@ def test_exclusion_fails_closed_on_unknown_root_class(monkeypatch) -> None:
 
 
 def test_exclusion_fails_closed_on_unrelated_homonym_definition() -> None:
-    """An unrelated same-named definition must not widen the exclusion."""
+    """An unrelated same-named definition must not widen the exclusion.
+
+    With the canonical kernel definition present, the homonym is rejected
+    by package-path grounding (not by ambiguity): exactly one candidate is
+    owned by the governed package, so the canonical element grounds and the
+    unrelated-homonym-typed usage keeps flowing as architecture.
+    """
     from de4sdv.semantic.traversal import SemanticTraversal
 
     ref = lambda value: {"@id": value}
     elements = _f3_elements() + [
         # Unrelated package's definition with the kernel's declared name.
+        {
+            "@id": "pkg-other",
+            "@type": "Package",
+            "declaredName": "OtherPackage",
+        },
+        {
+            "@id": "om-homonym",
+            "@type": "OwningMembership",
+            "memberElement": ref("homonym-def"),
+            "owningRelatedElement": ref("pkg-other"),
+        },
         {
             "@id": "homonym-def",
             "@type": "PartDefinition",
@@ -366,13 +419,15 @@ def test_exclusion_fails_closed_on_unrelated_homonym_definition() -> None:
         },
     ]
     requirement = next(item for item in elements if item["@id"] == "req-1")
-    # The same-named declaration in another package makes canonical
-    # resolution ambiguous: fail closed instead of silently excluding the
-    # homonym-typed legitimate architecture element.
-    with pytest.raises(Exception, match="resolved ambiguously"):
-        SemanticTraversal(_contract()).traverse(
-            "hasRelevantArchitecture", requirement, elements
-        )
+    hops = SemanticTraversal(_contract()).traverse(
+        "hasRelevantArchitecture", requirement, elements
+    )
+    targets = sorted(hop.target["@id"] for hop in hops)
+    # The canonical kernel element still grounds (the unrelated homonym in
+    # another package cannot borrow the mapping), so the homonym-typed
+    # legitimate usage is NOT excluded.
+    assert "plain-homonym-usage" in targets
+    assert "configured-member-usage" not in targets
 
 
 def test_exclusion_fails_closed_when_kernel_definition_is_absent() -> None:
@@ -396,6 +451,110 @@ def test_exclusion_fails_closed_when_kernel_definition_is_absent() -> None:
         SemanticTraversal(_contract()).traverse(
             "hasRelevantArchitecture", requirement, elements
         )
+
+
+def test_exclusion_fails_closed_when_canonical_missing_but_homonym_survives() -> None:
+    """The decisive combined case: no canonical root, one unrelated homonym.
+
+    Removing the governed kernel definition while an unrelated
+    OtherPackage::ProductLineMemberProduct (which legitimately types a
+    real architecture element) remains must fail closed. It must NOT
+    borrow the homonym as the exclusion root: that would suppress the
+    legitimate architecture trace and admit configured-product usages.
+    """
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    ref = lambda value: {"@id": value}
+    elements = [
+        item for item in _f3_elements() if item["@id"] != "kernel-member-product"
+    ]
+    elements += [
+        # Unrelated package's same-named definition that genuinely types a
+        # legitimate architecture element.
+        {
+            "@id": "pkg-other",
+            "@type": "Package",
+            "declaredName": "OtherPackage",
+        },
+        {
+            "@id": "om-homonym",
+            "@type": "OwningMembership",
+            "memberElement": ref("homonym-def"),
+            "owningRelatedElement": ref("pkg-other"),
+        },
+        {
+            "@id": "homonym-def",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+            "qualifiedName": "OtherPackage::ProductLineMemberProduct",
+        },
+        {
+            "@id": "ft-legit",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("part-translator"),
+            "type": ref("homonym-def"),
+        },
+        # Subclassification chain pointing at the missing canonical root.
+        {
+            "@id": "orphan-sub",
+            "@type": "Subclassification",
+            "subclassifier": ref("configured-member-def"),
+            "superclassifier": ref("kernel-member-product"),
+        },
+    ]
+    requirement = next(item for item in elements if item["@id"] == "req-1")
+    # The homonym is the only type/name candidate, but it is owned by
+    # OtherPackage, not the governed DE4SDV_ProductLine package: fail
+    # closed with the grounding diagnostic instead of silently borrowing.
+    with pytest.raises(Exception, match="none owned by package path"):
+        SemanticTraversal(_contract()).traverse(
+            "hasRelevantArchitecture", requirement, elements
+        )
+
+
+def test_bind_class_fails_closed_when_canonical_missing_but_homonym_survives(
+    api_server_fixture,
+) -> None:
+    """The binder shares the grounding contract: a surviving homonym in
+    another package must not substitute for the missing canonical root."""
+    from de4sdv.semantic.api_binding import OntologyApiBinder
+    from de4sdv.sysml_api.client import ApiClient
+    from de4sdv.sysml_api.repository import SysMLRepository
+
+    ref = lambda value: {"@id": value}
+    elements = [
+        {
+            "@id": "pkg-other",
+            "@type": "Package",
+            "declaredName": "OtherPackage",
+        },
+        {
+            "@id": "om-homonym",
+            "@type": "OwningMembership",
+            "memberElement": ref("homonym-def"),
+            "owningRelatedElement": ref("pkg-other"),
+        },
+        {
+            "@id": "homonym-def",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+            "qualifiedName": "OtherPackage::ProductLineMemberProduct",
+        },
+    ]
+    response_map = {
+        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
+            200,
+            elements,
+            {},
+        )
+    }
+    base_url, handler = api_server_fixture
+    handler.response_map = response_map
+    binder = OntologyApiBinder(
+        _contract(), SysMLRepository(ApiClient(base_url)), project_id="project-1", commit_id="commit-1"
+    )
+    with pytest.raises(Exception, match="none owned by package path"):
+        binder.bind_class("MemberProduct")
 
 
 def test_member_product_definition_sources_are_excluded() -> None:
@@ -452,6 +611,7 @@ def test_impact_reports_function_category_and_split_architecture_gaps(
 
     ref = lambda value: {"@id": value}
     elements = [
+        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -552,6 +712,7 @@ def test_impact_reports_function_gap_when_no_function_relevance(
 
     ref = lambda value: {"@id": value}
     elements = [
+        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -621,6 +782,7 @@ def test_impact_preserves_function_role_on_shared_architecture_node(
 
     ref = lambda value: {"@id": value}
     elements = [
+        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",

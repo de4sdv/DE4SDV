@@ -362,11 +362,13 @@ def test_impact_service_reports_native_edges_against_real_shapes(
             "@id": "kernel-requirement",
             "@type": "RequirementDefinition",
             "declaredName": "RequirementCandidate",
+            "qualifiedName": "DE4SDV_MethodContext::RequirementCandidate",
         },
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
             "declaredName": "ProductLineMemberProduct",
+            "qualifiedName": "DE4SDV_ProductLine::ProductLineMemberProduct",
         },
         {
             "@id": "req-braking",

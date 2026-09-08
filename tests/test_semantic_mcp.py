@@ -99,6 +99,7 @@ def semantic_service():
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
             "declaredName": "ProductLineMemberProduct",
+            "qualifiedName": "DE4SDV_ProductLine::ProductLineMemberProduct",
         },
         {
             "@id": "req-1",

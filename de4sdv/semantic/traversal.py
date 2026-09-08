@@ -9,6 +9,7 @@ from de4sdv.sysml_api.errors import AmbiguousIdentityError, IdentityNotFoundErro
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
 from .api_binding import declaration_identity
+from .identity_grounding import ground_kernel_declaration
 from .kernel_contract import KernelContract, RelationshipMapping
 
 
@@ -172,30 +173,12 @@ class SemanticTraversal:
                 "exclude_source_specializations_of must be an ontology class name"
             )
         kernel = self.contract.class_mapping(root_class)
-        declaration_name, expected_type = declaration_identity(
-            kernel.declaration
-        )
-        candidates = [
-            element
-            for element in by_id.values()
-            if str(element.get("@type")) == expected_type
-            and (element.get("declaredName") or element.get("name"))
-            == declaration_name
-        ]
-        if not candidates:
-            raise IdentityNotFoundError(
-                f"exclude_source_specializations_of {root_class!r} mapping "
-                f"{kernel.file}::{kernel.declaration} resolved to no "
-                f"{expected_type} element"
-            )
-        if len(candidates) > 1:
-            ids = sorted(str(element_id(item)) for item in candidates)
-            raise AmbiguousIdentityError(
-                f"exclude_source_specializations_of {root_class!r} mapping "
-                f"{kernel.file}::{kernel.declaration} resolved ambiguously: "
-                f"{ids}"
-            )
-        root_id = element_id(candidates[0])
+        # Grounding is by governed source location, not type+name: a
+        # same-named declaration in another package must never become the
+        # exclusion root, and a missing canonical root fails closed even
+        # when an unrelated homonym survives.
+        root_element = ground_kernel_declaration(kernel, by_id)
+        root_id = element_id(root_element)
         # Single-pass Subclassification index: general -> specifics.
         specifics_by_general: dict[str, set[str]] = {}
         for element in by_id.values():

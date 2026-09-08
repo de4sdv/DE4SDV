@@ -310,6 +310,7 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
             "declaredName": "ProductLineMemberProduct",
+            "qualifiedName": "DE4SDV_ProductLine::ProductLineMemberProduct",
         },
         {
             "@id": "req-braking",

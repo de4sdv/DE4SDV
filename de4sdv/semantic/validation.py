@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from de4sdv.sysml_api.repository import element_id
 
-from .api_binding import declaration_identity
+from .kernel_contract import declaration_identity
 from .kernel_contract import (
     KernelContract,
     KernelExternalMapping,

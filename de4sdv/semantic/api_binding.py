@@ -9,9 +9,12 @@ from typing import Any
 from de4sdv.sysml_api.errors import AmbiguousIdentityError, IdentityNotFoundError
 from de4sdv.sysml_api.repository import SysMLRepository, element_id
 
-from .kernel_contract import KernelContract, KernelFileMapping
-
-_DECLARATION = re.compile(r"^(.+?)\s+def\s+([A-Za-z][A-Za-z0-9_]*)$")
+from .identity_grounding import ground_kernel_declaration
+from .kernel_contract import (
+    KernelContract,
+    KernelFileMapping,
+    declaration_identity,
+)
 
 
 @dataclass(frozen=True)
@@ -30,23 +33,6 @@ class OntologyClassBinding:
     sysml: BoundSysMLElement
 
 
-def declaration_identity(declaration: str) -> tuple[str, str]:
-    match = _DECLARATION.fullmatch(" ".join(declaration.split()))
-    if not match:
-        raise ValueError(f"unsupported kernel declaration syntax: {declaration!r}")
-    kind, name = match.groups()
-    kind_words = kind.split()
-    if kind_words and kind_words[0] == "variation":
-        kind_words = kind_words[1:]
-    special = {"enum": "Enumeration", "use case": "UseCase"}
-    normalized_kind = " ".join(kind_words)
-    type_stem = special.get(
-        normalized_kind,
-        "".join(word[:1].upper() + word[1:] for word in kind_words),
-    )
-    return name, f"{type_stem}Definition"
-
-
 class OntologyApiBinder:
     """Resolve exact file/declaration mappings against one API revision."""
 
@@ -63,6 +49,7 @@ class OntologyApiBinder:
         self.project_id = project_id
         self.commit_id = commit_id
         self._elements: list[dict[str, Any]] | None = None
+        self._by_id_cache: dict[str, dict[str, Any]] | None = None
 
     def _all_elements(self) -> list[dict[str, Any]]:
         if self._elements is None:
@@ -71,28 +58,22 @@ class OntologyApiBinder:
             )
         return self._elements
 
+    def _by_id(self) -> dict[str, dict[str, Any]]:
+        if self._by_id_cache is None:
+            self._by_id_cache = {
+                candidate_id: item
+                for item in self._all_elements()
+                if (candidate_id := element_id(item)) is not None
+            }
+        return self._by_id_cache
+
     def bind_class(self, ontology_class: str) -> OntologyClassBinding:
         kernel = self.contract.class_mapping(ontology_class)
         name, expected_type = declaration_identity(kernel.declaration)
-        candidates = [
-            item
-            for item in self._all_elements()
-            if item.get("@type") == expected_type
-            and (item.get("declaredName") or item.get("name")) == name
-        ]
-        if not candidates:
-            raise IdentityNotFoundError(
-                f"{ontology_class} mapping {kernel.file}::{kernel.declaration} "
-                f"did not resolve to a {expected_type} in project "
-                f"{self.project_id} commit {self.commit_id}"
-            )
-        if len(candidates) > 1:
-            ids = sorted(str(element_id(item)) for item in candidates)
-            raise AmbiguousIdentityError(
-                f"{ontology_class} mapping {kernel.file}::{kernel.declaration} "
-                f"resolved ambiguously: {ids}"
-            )
-        candidate = candidates[0]
+        # Grounding is by governed source location, not type+name: any
+        # package can declare the same short name, so the candidate must be
+        # owned through the exact package path parsed from the kernel file.
+        candidate = ground_kernel_declaration(kernel, self._by_id())
         candidate_id = element_id(candidate)
         if candidate_id is None:
             raise IdentityNotFoundError(
