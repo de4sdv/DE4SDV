@@ -276,6 +276,11 @@ functions:
     known_gaps:
       - GAP-AEBS-FUNC-009
 
+# INC-AEBS-004 follow-up: the draft mappings below are also represented as
+# native relevance dependencies in the needs/requirements SysML slice
+# (aebs_needs_requirements.sysml, "Requirement-to-function candidate trace").
+# The YAML rows remain the review record of the original draft decision;
+# relationship semantics live in SysML per naming-conventions.md section 10.
 traceability:
   - from: REQ-AEBS-001
     relation: allocated_to_function_candidate

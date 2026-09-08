@@ -13,6 +13,7 @@ package DE4SDV_AEBSNeedsRequirements {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_ProductLine::*;
+        private import DE4SDV_AEBSFunctionalArchitecture::Features::AEBS::FunctionalBehavior::*;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
         private import SysideViews::**;
@@ -317,6 +318,44 @@ package DE4SDV_AEBSNeedsRequirements {
         dependency reqTraceRequirementVVAndGapsDerivedFromVisibleRegulatoryAssumptions from reqTraceRequirementVVAndGaps to needVisibleRegulatoryAssumptions;
         dependency reqTraceRequirementVVAndGapsDerivedFromRequirementVVPlanning from reqTraceRequirementVVAndGaps to needRequirementVVPlanning;
         dependency reqTraceEvidenceContractsToControlledBoundaryDerivedFromExplicitOperationalBoundary from reqTraceEvidenceContractsToControlledBoundary to needExplicitOperationalBoundary;
+
+        /*
+         * Requirement-to-function candidate trace (INC-AEBS-004, Phase 6).
+         *
+         * Mirrors the reviewed draft mappings in
+         * methodologies/sysmod-sysmlv2/pilots/aebs-functional-architecture.yaml
+         * (traceability: REQ-AEBS-001..007 -> FUNC-AEBS-001..007,
+         * relation allocated_to_function_candidate, status draft). These are
+         * relevance dependencies from draft requirement candidates to nested
+         * functional-action responsibilities of the composite flow usage —
+         * neither satisfy nor verify relationships. REQ-AEBS-006 constrains
+         * the whole functional slice rather than one function, so it traces
+         * to the composite flow usage itself.
+         */
+        dependency reqDetectForwardCollisionRiskTracedToAcquireStateCandidate
+          from reqDetectForwardCollisionRisk
+          to vehicleTargetAEBSFunctionalFlow::acquireState;
+        dependency reqDetectForwardCollisionRiskTracedToAssessRiskCandidate
+          from reqDetectForwardCollisionRisk
+          to vehicleTargetAEBSFunctionalFlow::assessRisk;
+        dependency reqProvideCollisionWarningTracedToRequestWarningCandidate
+          from reqProvideCollisionWarning
+          to vehicleTargetAEBSFunctionalFlow::requestWarning;
+        dependency reqCommandEmergencyBrakingTracedToRequestBrakingCandidate
+          from reqCommandEmergencyBraking
+          to vehicleTargetAEBSFunctionalFlow::requestBraking;
+        dependency reqAllowDriverOverrideTracedToEvaluateOverrideCandidate
+          from reqAllowDriverOverride
+          to vehicleTargetAEBSFunctionalFlow::evaluateOverride;
+        dependency reqDetectAEBSFailureConditionTracedToMonitorFailureCandidate
+          from reqDetectAEBSFailureCondition
+          to vehicleTargetAEBSFunctionalFlow::monitorFailure;
+        dependency reqTraceRequirementVVAndGapsTracedToRecordEvidenceCandidate
+          from reqTraceRequirementVVAndGaps
+          to vehicleTargetAEBSFunctionalFlow::recordEvidence;
+        dependency reqKeepProductLineClassificationExplicitTracedToFunctionalSliceCandidate
+          from reqKeepProductLineClassificationExplicit
+          to vehicleTargetAEBSFunctionalFlow;
 
         public import System1Product::*;
         public import System2EngineeringAssurance::*;

@@ -258,10 +258,16 @@ classes:
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
       declaration: requirement def ProblemStatement
+  ArchitectureDecisionRecord:
+    definition: A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def ArchitectureDecisionRecord
   RegulatoryConstraint:
     definition: A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim.
     kernel:
-      native: Requirement usage constrained by a controlled regulatory source; framed by the regulatory-scope viewpoint
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def RegulatoryConstraintCandidate
   ArchitectureElement:
     definition: Any model element used to describe system context, function, logical realization, physical/software realization, interface, or behavior.
     kernel:
@@ -528,7 +534,29 @@ validation_rules:
     enforced_by: Increment framing review against the kernel viewpoint selections.
   - id: DE4SDV-ONT-R003
     statement: Every Requirement in a feature increment shall trace to at least one Need, RegulatoryConstraint, or ArchitectureDecisionRecord.
-    enforced_by: scripts/check_model_sync.py dependency-target checks plus requirements QA review.
+    enforced_by: >-
+      scripts/check_model_sync.py sync point 6 resolves each derivation
+      target to its modeled type (including specialization closure) and
+      accepts only targets whose semantic type grounds Need
+      (StakeholderNeedCandidate specializations), RegulatoryConstraint
+      (RegulatoryConstraintCandidate specializations), or
+      ArchitectureDecisionRecord (ArchitectureDecisionRecord
+      specializations); identifier prefixes are never consulted. Remaining
+      semantic-strength questions stay with requirements QA review.
+    origin_groundings:
+      Need:
+        file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+        declaration: requirement def StakeholderNeedCandidate
+      RegulatoryConstraint:
+        file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+        declaration: requirement def RegulatoryConstraintCandidate
+      ArchitectureDecisionRecord:
+        file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+        declaration: part def ArchitectureDecisionRecord
+    exclusion_groundings:
+      ProblemStatement:
+        file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+        declaration: requirement def ProblemStatement
   - id: DE4SDV-ONT-R004
     statement: Every compliance-oriented claim shall be marked as draft, planned, example, verified, or accepted.
     enforced_by: Verification-model invariant tests (product-claim bans) and evidence-register status review.

@@ -136,6 +136,14 @@ package DE4SDV_MethodContext {
     doc /* Candidate requirement for evidence-contract traceability to controlled boundaries. */
   }
 
+  requirement def RegulatoryConstraintCandidate :> RequirementsManagementAttributeBase {
+    doc /* Constraint or reference derived from a standard, regulation, or homologation-relevant source. Carries controlled source identity and never implies compliance. Grounds the ontology RegulatoryConstraint class and R003 derivation targets. */
+  }
+
+  part def ArchitectureDecisionRecord {
+    doc /* Reviewed architecture or method decision (recorded as an ADR in Git) that a design-input requirement can trace to as its semantic origin. Grounds the ontology ArchitectureDecisionRecord class and R003 derivation targets. */
+  }
+
   part def IncrementAssumption {
     doc /* Assumption recorded for an engineering increment. */
   }

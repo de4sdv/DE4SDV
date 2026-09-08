@@ -48,6 +48,39 @@ minimal vocabulary for SYSMOD/SysML v2 increments. It is intentionally lightweig
 - terms exist to keep feature increments, SAF viewpoints, requirements,
   architecture elements, evidence, and baselines semantically consistent.
 
+### Query coverage (executable semantic queries)
+
+The relationships block distinguishes vocabulary from executable query
+surface. Only relationships carrying a `sysml_mapping` block are traversable
+through the revision-bound semantic API; the rest are vocabulary whose links
+live natively in the model, in external records, or in review artifacts, and
+are not returned by semantic queries:
+
+| Relationship | Mapping strategy | Queryable |
+|---|---|---|
+| `realizedBy` | `allocation` (outgoing AllocationUsage) | yes |
+| `verifiedBy` | `verification-membership` (reverse) | yes |
+| `hasEvidence` | `external` (evidence registers) | external data required |
+| `hasSubject` | `subject-membership` | yes |
+| `hasRelevantEvidenceContract` | `dependency` (incoming) | yes |
+| all other relationships | none declared | no — model/review artifacts |
+
+Absence of a hop is not proof that no model relationship exists: a "no
+allocation" result from `realizedBy` says nothing about relevance
+dependencies, and external evidence is never traversed. Requirement
+derivation (`derivesRequirementFromNeed`) is model-native and enforced for
+presence by sync point 6 in `scripts/check_model_sync.py` (rule R003): each
+design-input requirement usage must carry at least one outgoing dependency
+whose target resolves — through the model-wide declaration index and
+specialization closure — to a semantic type grounding Need
+(`StakeholderNeedCandidate`), RegulatoryConstraint
+(`RegulatoryConstraintCandidate`), or ArchitectureDecisionRecord
+(`ArchitectureDecisionRecord`). Identifier prefixes are never consulted; the
+origin groundings are declared in the R003 `origin_groundings` block of this
+ontology. Derivation has no API traversal strategy yet; adding one is a
+deliberate schema-mapping change requiring upstream API-shape review, not a
+silent default.
+
 ### Kernel sync
 
 The YAML is not a free-floating word list: every class carries a `kernel`
