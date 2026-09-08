@@ -96,6 +96,12 @@ def semantic_service():
             "qualifiedName": "DE4SDV_MethodContext::RequirementCandidate",
         },
         {
+            "@id": "kernel-member-product",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+            "qualifiedName": "DE4SDV_ProductLine::ProductLineMemberProduct",
+        },
+        {
             "@id": "req-1",
             "@type": "RequirementUsage",
             "declaredName": "reqCommandEmergencyBraking",
@@ -156,15 +162,39 @@ def semantic_service():
             "semantic_validation": "passed",
             "scope": "fixture",
             "ontology": ontology_identity(),
+            "kernel_bindings": [
+                {
+                    "ontology_class": "Requirement",
+                    "element_id": "kernel-requirement",
+                    "source_file": (
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_method_context.sysml"
+                    ),
+                    "declaration": "requirement def RequirementCandidate",
+                },
+                {
+                    "ontology_class": "MemberProduct",
+                    "element_id": "kernel-member-product",
+                    "source_file": (
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_product_line.sysml"
+                    ),
+                    "declaration": "part def ProductLineMemberProduct",
+                },
+            ],
         }
     )
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+
+    kernel_index = KernelBindingIndex.from_binding(binding)
     binder = OntologyApiBinder(
         contract,
         repository,  # type: ignore[arg-type]
         project_id="project-1",
         commit_id="commit-1",
+        kernel_bindings=kernel_index,
     )
-    traversal = SemanticTraversal(contract)
+    traversal = SemanticTraversal(contract, kernel_bindings=kernel_index)
     impact = ImpactService(
         repository=repository,  # type: ignore[arg-type]
         binding=binding,
@@ -213,7 +243,7 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     result = semantic_service.model_status()
 
     assert result["current_baseline"] is True
-    assert result["element_count"] == 9
+    assert result["element_count"] == 10
     assert result["gaps"] == []
 
 
@@ -358,6 +388,7 @@ def test_verification_coverage_is_partial_when_one_evidence_contract_has_no_case
             "declared_name": "evidenceContractWithoutVerification",
             "qualified_name": None,
             "category": "evidence",
+            "categories": ["evidence"],
             "source_uri": "sysml://project-1/commit-1/evidence-2",
         }
     ]
@@ -447,6 +478,26 @@ def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
                 "semantic_validation": "passed",
                 "scope": "fixture",
                 "ontology": ontology_identity(),
+                "kernel_bindings": [
+                    {
+                        "ontology_class": "Requirement",
+                        "element_id": "kernel-requirement",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_method_context.sysml"
+                        ),
+                        "declaration": "requirement def RequirementCandidate",
+                    },
+                    {
+                        "ontology_class": "MemberProduct",
+                        "element_id": "kernel-member-product",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_product_line.sysml"
+                        ),
+                        "declaration": "part def ProductLineMemberProduct",
+                    },
+                ],
             }
         ),
         encoding="utf-8",
@@ -536,6 +587,26 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
                 "semantic_validation": "passed",
                 "scope": "fixture",
                 "ontology": ontology_identity(),
+                "kernel_bindings": [
+                    {
+                        "ontology_class": "Requirement",
+                        "element_id": "kernel-requirement",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_method_context.sysml"
+                        ),
+                        "declaration": "requirement def RequirementCandidate",
+                    },
+                    {
+                        "ontology_class": "MemberProduct",
+                        "element_id": "kernel-member-product",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_product_line.sysml"
+                        ),
+                        "declaration": "part def ProductLineMemberProduct",
+                    },
+                ],
             }
         ),
         encoding="utf-8",

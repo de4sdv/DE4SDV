@@ -302,6 +302,7 @@ def query_api_impact(
     """Query one exact API revision through the ontology traversal layer."""
     from de4sdv.semantic.api_binding import OntologyApiBinder
     from de4sdv.semantic.impact import ImpactService
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
     from de4sdv.semantic.kernel_contract import KernelContract
     from de4sdv.semantic.traversal import SemanticTraversal
     from de4sdv.sysml_api.client import ApiClient
@@ -311,6 +312,7 @@ def query_api_impact(
     binding = RevisionBinding.load(binding_path)
     contract = KernelContract.load(ontology_path)
     repository = SysMLRepository(ApiClient(api_url))
+    kernel_bindings = KernelBindingIndex.from_binding(binding)
     return ImpactService(
         repository=repository,
         binding=binding,
@@ -320,8 +322,9 @@ def query_api_impact(
             repository,
             project_id=binding.sysml_project_id,
             commit_id=binding.sysml_commit_id,
+            kernel_bindings=kernel_bindings,
         ),
-        traversal=SemanticTraversal(contract),
+        traversal=SemanticTraversal(contract, kernel_bindings=kernel_bindings),
     ).impact(target, git_revision=git_revision)
 
 
@@ -378,8 +381,19 @@ def _render_api_text(report: dict) -> str:
             f"({revision['binding_status']})"
         ),
     ]
-    for category in ("architecture", "verification", "evidence", "product-line"):
-        nodes = [node for node in report["nodes"] if node["category"] == category]
+    for category in (
+        "architecture",
+        "function",
+        "verification",
+        "evidence",
+        "product-line",
+    ):
+        # A node can carry multiple roles when distinct predicates reach the
+        # same element; match against the full role list, not only the
+        # first-seen category.
+        nodes = [
+            node for node in report["nodes"] if category in node["categories"]
+        ]
         lines.append(f"  {category}: {len(nodes)}")
         for node in nodes:
             lines.append(

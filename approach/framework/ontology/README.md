@@ -59,15 +59,46 @@ are not returned by semantic queries:
 | Relationship | Mapping strategy | Queryable |
 |---|---|---|
 | `realizedBy` | `allocation` (outgoing AllocationUsage) | yes |
+| `specifiesFunction` | `dependency` (outgoing, action-typed targets) | yes |
+| `hasRelevantArchitecture` | `dependency` (incoming, part/action-typed sources, member-product lineage excluded) | yes |
 | `verifiedBy` | `verification-membership` (reverse) | yes |
 | `hasEvidence` | `external` (evidence registers) | external data required |
 | `hasSubject` | `subject-membership` | yes |
-| `hasRelevantEvidenceContract` | `dependency` (incoming) | yes |
+| `hasRelevantEvidenceContract` | `dependency` (incoming, requirement-usage sources) | yes |
 | all other relationships | none declared | no — model/review artifacts |
+
+The two relevance-direction predicates are deliberately disjoint:
+`specifiesFunction` follows dependencies from the requirement to
+action-typed targets; `hasRelevantArchitecture` follows dependencies into
+the requirement from part/action-typed sources. `hasRelevantEvidenceContract`
+restricts sources to requirement usages (evidence contracts and acceptance
+criteria are requirement usages in the kernel), so no dependency edge is
+reported under two predicates. Sources whose type specializes the kernel
+`ProductLineMemberProduct` declaration are excluded from
+`hasRelevantArchitecture`: configured-product traces are product-line
+relationships, not architecture relevance. Canonical kernel identity is
+established exactly once at ingestion, when ontology/API binding validation
+confirms the API type/name against the serializer-recorded source document,
+and the validated UUID is persisted in the revision binding's kernel
+bindings. Runtime traversal pins that UUID against the API graph and never
+re-derives identity from element names or SysML source text (ADR 0011: no
+custom textual parser, no source-derived runtime semantics). The behavior
+contract is: canonical declaration present and an unrelated same-named
+declaration elsewhere — the canonical element grounds and the homonym
+cannot borrow the mapping; canonical declaration absent from the bound
+revision — `IdentityNotFoundError` even when unrelated homonyms survive;
+more than one genuinely grounded canonical candidate — rejected as
+ambiguous at ingestion time. Both lineage definitions and usages typed by
+lineage definitions are excluded, so specialized product definitions
+cannot pose as architecture sources either.
 
 Absence of a hop is not proof that no model relationship exists: a "no
 allocation" result from `realizedBy` says nothing about relevance
-dependencies, and external evidence is never traversed. Requirement
+dependencies, and external evidence is never traversed. The impact service
+separates the two architecture conditions: `architecture` means neither
+allocation nor reverse relevance exists; `architecture-allocation` means
+relevance dependencies exist while no AllocationUsage allocates the
+requirement — relevance is not allocation. Requirement
 derivation (`derivesRequirementFromNeed`) is model-native and enforced for
 presence by sync point 6 in `scripts/check_model_sync.py` (rule R003): each
 design-input requirement usage must carry at least one outgoing dependency

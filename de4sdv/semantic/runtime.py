@@ -10,6 +10,7 @@ from de4sdv.sysml_api.revisions import RevisionBinding
 
 from .api_binding import OntologyApiBinder
 from .impact import ImpactService
+from .kernel_binding_index import KernelBindingIndex
 from .kernel_contract import KernelContract
 from .query import SemanticQueryService
 from .traversal import SemanticTraversal
@@ -29,19 +30,24 @@ def build_semantic_runtime(
     expected-Git equality, and the exact full-model or fixture scope are
     enforced by every semantic operation through
     :class:`SemanticQueryService`; only a validated full-model binding can make
-    a current-baseline claim.
+    a current-baseline claim. Kernel identity comes exclusively from the
+    ingestion-validated kernel bindings carried by the revision binding
+    (ADR 0011: no runtime source-text parsing); classes without a validated
+    binding fail closed.
     """
     binding = RevisionBinding.load(binding_path)
     contract = KernelContract.load(ontology_path)
     binding.require_ontology(contract.identity)
+    kernel_bindings = KernelBindingIndex.from_binding(binding)
     repository = SysMLRepository(ApiClient(api_url, timeout=api_timeout))
     binder = OntologyApiBinder(
         contract,
         repository,
         project_id=binding.sysml_project_id,
         commit_id=binding.sysml_commit_id,
+        kernel_bindings=kernel_bindings,
     )
-    traversal = SemanticTraversal(contract)
+    traversal = SemanticTraversal(contract, kernel_bindings=kernel_bindings)
     impact_service = ImpactService(
         repository=repository,
         binding=binding,
