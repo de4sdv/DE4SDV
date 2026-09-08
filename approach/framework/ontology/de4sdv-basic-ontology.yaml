@@ -548,6 +548,25 @@ relationships:
   selectsFeature:
     domain: FeatureConfiguration
     range: Feature
+  instantiatesCanonicalArchitecture:
+    domain: MemberProduct
+    range: ArchitectureElement
+    definition: >-
+      Explicit binding from a composite member product's contained
+      architecture instances (its logical-system and software usages) to the
+      canonical architecture usages whose allocation and evidence records
+      govern them. The modeled dependencies originate from the contained
+      usages, not from the member-product root; the executable mapping must
+      therefore define which elements carry this relationship and how a
+      query walks it before any product-level query reachability is claimed.
+      Vocabulary only for now: no sysml_mapping is declared because a
+      generic dependency traversal cannot distinguish canonical-architecture
+      bindings from ordinary part-to-part dependencies without inventing a
+      naming heuristic. Declaring an executable mapping requires an explicit
+      canonical-usage selector (for example an API-side allowlist of
+      canonical packages), not a name-based filter. The binding does not
+      restate allocations at product level and does not make a composite
+      projection a resolved configured product.
   includesCommonCapability:
     domain: FeatureConfiguration
     range: CommonCapability

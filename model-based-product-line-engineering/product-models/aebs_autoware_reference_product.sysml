@@ -48,13 +48,17 @@ package DE4SDV_AEBSAutowareReferenceProduct {
   private import DE4SDV_VehicleSensingBoundary::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_AEBSLogicalArchitecture::*;
+  private import DE4SDV_AEBSProductLineScope::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
-  part def AEBSAutowareReferenceProduct {
+  part def AEBSAutowareReferenceProduct :> StandaloneAutowareAEBSReferenceMember {
     doc /*
-     * Composite AEBS reference member product.
+     * Composite AEBS reference member product. Specializes the governed
+     * planned-member decision (StandaloneAutowareAEBSReferenceMember in
+     * DE4SDV_AEBSProductLineScope), so this composite carries the
+     * ProductLineMemberProduct lineage that product-line queries resolve.
      *
      * Platform: Autoware on Linux, no vehicle-level middleware, no hypervisor.
      * Sensing: LiDAR + camera perception sensors, IMU + wheel odometry common.
@@ -102,19 +106,36 @@ package DE4SDV_AEBSAutowareReferenceProduct {
      * declared in DE4SDV_AEBSPhysicalSoftwareRealization. The logical
      * system's responsibilities are allocated to the AEB node with typed
      * coverage records (available, partial, missing).
-     *
-     * Bounded projection limitation: those canonical allocations bind
-     * DE4SDV_AEBSLogicalArchitecture::system to the physical realization's
-     * physicalSoftware usage — not the composite usages above, which are
-     * typed views over the same shared-asset definitions. Importing the
-     * packages does not transfer instance-level identity; the composite is a
-     * structural projection for review, not a resolved configured product.
-     * Product-instance-level allocation/evidence binding requires either
-     * explicit reference dependencies from these usages to the canonical
-     * elements or a configured-product derivation increment with its own
-     * trace. Until then, product-level trace claims must cite the canonical
-     * allocation records, not this composite.
      */
+    doc /*
+     * Canonical-architecture binding: the composite usages above are
+     * product-level instances, while the canonical allocation and evidence
+     * records bind the canonical usages
+     * DE4SDV_AEBSLogicalArchitecture::system and
+     * DE4SDV_AEBSPhysicalSoftwareRealization::physicalSoftware. The
+     * explicit dependencies below record this product's instances as bound
+     * to those canonical elements. These are model-native reference
+     * dependencies only: no executable semantic query maps them yet, so
+     * reachability through the revision-bound API is not claimed by this
+     * binding, and the composite does not own the canonical records.
+     *
+     * Bounded projection limitation (unchanged): importing the packages
+     * does not transfer instance-level identity, and the explicit reference
+     * dependencies do not restate the canonical allocations at product
+     * level. Platform-stack variant selections are resolved only in the
+     * generated projection (aebs_autoware_linux_lidar_camera.sysml), and
+     * sensing-boundary perception-sensor selections live in the
+     * bill-of-features, not in this composite. Product-level trace claims
+     * must still cite the canonical allocation records; these dependencies
+     * make the binding path explicit, they do not make this composite a
+     * resolved configured product.
+     */
+    dependency aebsLogicalSystemBindingToCanonicalSystem
+      from aebsLogicalSystem
+      to DE4SDV_AEBSLogicalArchitecture::system;
+    dependency aebsSoftwareBindingToCanonicalPhysicalSoftware
+      from aebsSoftware
+      to DE4SDV_AEBSPhysicalSoftwareRealization::physicalSoftware;
   }
 
   /*
