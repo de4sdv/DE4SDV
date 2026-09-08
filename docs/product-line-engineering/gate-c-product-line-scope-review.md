@@ -44,7 +44,7 @@ runtime evidence.
 | Planned reference member | Vehicle Platform Integration Mode | Existing supporting model evidence |
 |---|---|---|
 | Standalone Autoware AEBS Reference Member | Standalone | [Standalone reference product](../../model-based-product-line-engineering/product-models/aebs_autoware_reference_product.sysml) |
-| AAOS-Integrated Autoware AEBS Reference Member | AAOS Integrated | [Middleware configured member](../../textual-notation-of-model/packages/features/middleware/mw_variability_configuration.sysml) |
+| AAOS-Integrated Autoware AEBS Reference Member | AAOS Integrated | [Middleware configured member](../../textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml) |
 
 The supporting artifacts remain evidence of local definitions and maturity.
 They do not replace the governed membership decision.

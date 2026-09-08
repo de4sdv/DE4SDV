@@ -58,7 +58,7 @@ compliance, or homologation claim is made.
 Video bytes are not tracked in Git. The three continuous raw recordings are
 held in the maintainer archive under
 `2026-09-06/p188-exact-head-108bfa9/`; their checksums are recorded in
-[`external-media.yaml`](../../../external-media.yaml). Per-state stills are
+[`external-media.yaml`](../../external-media.yaml). Per-state stills are
 retained here as frame-level evidence.
 
 ## Per-run record contents

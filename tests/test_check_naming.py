@@ -232,3 +232,208 @@ def test_subject_registry_grammar_is_consistent():
 def test_sha_names_are_documented_non_governed():
     assert "SHA-256" in check_naming._EXTERNAL_ID_NAMES
     assert "SHA-1" in check_naming._EXTERNAL_ID_NAMES
+
+
+def _ignored_runtime_fixture(tmp_path: Path):
+    """Create an isolated git repository mirroring the bench ignore rules.
+
+    Returns the fixture repo path. Contains:
+    - an ignored runtime workspace path with an ID-shaped upstream token
+      (simulates the vendored Autoware checkout),
+    - a tracked file under the same workspace directory tree (proves tracked
+      files stay governed even below an ignorable directory name),
+    - a tracked file elsewhere with the same token (control: governed).
+    """
+    import subprocess as sp
+
+    repo = tmp_path / "fixture-repo"
+    repo.mkdir()
+    def git(*args, check=True):
+        return sp.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=check)
+    git("init", "-q")
+    git("config", "user.name", "fixture")
+    git("config", "user.email", "fixture@example.org")
+    (repo / ".gitignore").write_text(
+        "implementation/aebs-bench/workspace/*\n"
+        "!implementation/aebs-bench/workspace/tracked.sysml\n",
+        encoding="utf-8",
+    )
+    ignored_dir = repo / "implementation/aebs-bench/workspace/src/upstream/config"
+    ignored_dir.mkdir(parents=True)
+    (ignored_dir / "vendor.param.yaml").write_text(
+        "channel: LIDAR-01\n", encoding="utf-8"
+    )
+    tracked_in_workspace = repo / "implementation/aebs-bench/workspace/tracked.sysml"
+    tracked_in_workspace.write_text("part def TrackedInWorkspace\n", encoding="utf-8")
+    governed = repo / "implementation"
+    governed.mkdir(exist_ok=True)
+    (governed / "governed.param.yaml").write_text(
+        "subject: REQ-FIXTURE-001\n", encoding="utf-8"
+    )
+    git("add", "-A")
+    git("commit", "-q", "-m", "fixture")
+    return repo
+
+
+def _probe_fixture(repo: Path, relative: str) -> bool:
+    import subprocess as sp
+
+    return (
+        sp.run(
+            ["git", "check-ignore", "-q", relative],
+            cwd=repo,
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+
+
+def test_ignored_runtime_path_excluded_and_tracked_path_governed(tmp_path: Path):
+    """Deterministic proof of both sides of the runtime-workspace rule.
+
+    Uses an isolated git fixture, so clean CI proves the contract without a
+    built developer workspace:
+    - a git-ignored untracked runtime path is outside the governed surface;
+    - a tracked file under the same ignorable directory stays governed;
+    - the ignore decision comes from git, not from a directory-name blanket.
+    """
+    repo = _ignored_runtime_fixture(tmp_path)
+
+    ignored_file = repo / "implementation/aebs-bench/workspace/src/upstream/config/vendor.param.yaml"
+    tracked_file = repo / "implementation/aebs-bench/workspace/tracked.sysml"
+
+    # Git classifies: ignored path ignored; tracked path (negated) not ignored.
+    assert _probe_fixture(repo, "implementation/aebs-bench/workspace/src/upstream/config/vendor.param.yaml")
+    assert not _probe_fixture(repo, "implementation/aebs-bench/workspace/tracked.sysml")
+
+    # Production seam honors both classifications.
+    assert check_naming._is_ignored_runtime_path(ignored_file, repository=repo)
+    assert not check_naming._is_ignored_runtime_path(tracked_file, repository=repo)
+
+
+def test_tracked_file_under_workspace_area_remains_governed(tmp_path: Path):
+    """A tracked file below an ignorable workspace directory keeps ID checks."""
+    repo = _ignored_runtime_fixture(tmp_path)
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        # Simulate the governed scan by scanning a copy of the tracked file
+        # content through the public behavioral seam.
+        tracked = repo / "implementation/aebs-bench/workspace/tracked.sysml"
+        tracked.write_text(
+            "part def TrackedInWorkspace {\n"
+            "  doc /* REQ-FIXTURE-001 anchor; BAD-TOK lives in code below */\n"
+            "}\n"
+            "part untrackedStyle : BAD-TOK;\n",
+            encoding="utf-8",
+        )
+        errors = check_naming.check_identifier_tokens_in_text(
+            tracked.read_text(encoding="utf-8"),
+            display_path="implementation/aebs-bench/workspace/tracked.sysml",
+            suffix=".sysml",
+        )
+    assert any("BAD-" in error for error in errors), errors
+
+
+def test_real_bench_workspace_ignored_when_present(tmp_path: Path):
+    """Behavioral probe follows git on the real bench workspace, if present.
+
+    Skipped on clean checkouts without a built workspace; the deterministic
+    fixture tests above already cover both classifications there.
+    """
+    candidate = (
+        ROOT
+        / "implementation/aebs-autoware-executable-bench/workspace/install/setup.bash"
+    )
+    if not candidate.exists():
+        import pytest
+
+        pytest.skip(
+            "no built bench workspace in this checkout; the isolated fixture "
+            "tests cover the ignored/tracked classifications deterministically"
+        )
+    expected = _probe_fixture(ROOT, str(candidate.relative_to(ROOT)))
+    assert check_naming._is_ignored_runtime_path(candidate) is expected
+
+
+def _force_tracked_under_ignored_fixture(tmp_path: Path) -> Path:
+    """Fixture repo where a bad-ID file is tracked WITHOUT a gitignore negation.
+
+    Gitignore says `implementation/aebs-bench/workspace/*`; the file is added
+    with `git add -f`, so it is tracked while still matching the ignore rule.
+    This is the case a directory-name blanket exemption would silently skip.
+    """
+    import subprocess as sp
+
+    repo = tmp_path / "aggregate-fixture"
+    repo.mkdir()
+    def git(*args, check=True):
+        return sp.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=check)
+    git("init", "-q")
+    git("config", "user.name", "fixture")
+    git("config", "user.email", "fixture@example.org")
+    (repo / ".gitignore").write_text(
+        "implementation/aebs-bench/workspace/*\n", encoding="utf-8"
+    )
+    nested = repo / "implementation/aebs-bench/workspace/build"
+    nested.mkdir(parents=True)
+    (nested / "tracked_bad.sysml").write_text(
+        "part def TrackedUnderIgnored {\n"
+        "  part brokenStyle : BAD-TOK;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    governed = repo / "implementation"
+    governed.mkdir(exist_ok=True)
+    (governed / "governed.param.yaml").write_text(
+        "subject: REQ-FIXTURE-001\n", encoding="utf-8"
+    )
+    git("add", "implementation/governed.param.yaml")
+    git("add", "-f", "implementation/aebs-bench/workspace/build/tracked_bad.sysml")
+    git("add", ".gitignore")
+    git("commit", "-q", "-m", "fixture")
+    return repo
+
+
+def test_aggregate_scanner_governs_tracked_file_under_ignored_dir(
+    tmp_path: Path,
+):
+    """The full governed scan still checks a tracked file under an ignored dir.
+
+    End-to-end seam: the path matches a gitignore rule (so a directory-name
+    blanket exemption would drop it), yet git tracks it, so its invalid
+    identifier must reach `check_identifier_tokens()` results. The ignore
+    match is proven with `git check-ignore --no-index`, because a tracked
+    path is by definition not ignored in index mode.
+    """
+    import subprocess as sp
+
+    repo = _force_tracked_under_ignored_fixture(tmp_path)
+    relative = "implementation/aebs-bench/workspace/build/tracked_bad.sysml"
+    # Preconditions: matches the gitignore rule in no-index mode, yet tracked.
+    assert (
+        sp.run(
+            ["git", "check-ignore", "--no-index", "-q", relative],
+            cwd=repo,
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+    assert (
+        sp.run(
+            ["git", "ls-files", "--", relative],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    )
+
+    original_root = check_naming.ROOT
+    try:
+        check_naming.ROOT = repo
+        errors = check_naming.check_identifier_tokens()
+    finally:
+        check_naming.ROOT = original_root
+    assert any(
+        "tracked_bad.sysml" in error and "BAD-" in error for error in errors
+    ), errors

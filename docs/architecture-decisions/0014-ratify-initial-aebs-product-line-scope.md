@@ -168,4 +168,4 @@ This ADR does not:
 - [Gate C review](../product-line-engineering/gate-c-product-line-scope-review.md)
 - [Product-line semantic kernel](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml)
 - [Standalone reference product](../../model-based-product-line-engineering/product-models/aebs_autoware_reference_product.sysml)
-- [AAOS-integrated configured member](../../textual-notation-of-model/packages/features/middleware/mw_variability_configuration.sysml)
+- [AAOS-integrated configured member](../../textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml)

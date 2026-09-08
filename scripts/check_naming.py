@@ -42,6 +42,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 try:
@@ -136,6 +137,17 @@ _EXEMPT_DOC_FILES = {
 # of Python produces regex-fragment false positives (naming-conventions.md
 # section 11 documents this narrowing).
 _GOVERNED_SUFFIXES = {".sysml", ".yaml", ".yml", ".md"}
+
+# Ignored upstream/runtime workspaces under implementation benches: these
+# directories hold vendored upstream source checkouts (Autoware) and build
+# outputs produced by prepare/build scripts. They are git-ignored runtime
+# material whose identifiers follow upstream naming, not the DE4SDV
+# registry. Scanning them would fail CI whenever a developer has a local
+# workspace checkout, regardless of committed content. The committed
+# repository surface is still fully governed.
+_IGNORABLE_RUNTIME_PARTS = {
+    "workspace",  # bench runtime checkouts/build trees (git-ignored)
+}
 
 # ---------------------------------------------------------------------------
 # Identifier registry (docs/naming/naming-conventions.md section 5).
@@ -359,7 +371,30 @@ def _is_exempt_from_id_scan(path: Path) -> bool:
         return True
     if any(part in _EXEMPT_ID_PATH_PARTS for part in parts):
         return True
+    # Git-ignored bench runtime workspaces (vendored upstream checkouts and
+    # build outputs) are outside the governed committed surface. Any tracked
+    # file under a bench workspace remains scanned.
+    if any(part in _IGNORABLE_RUNTIME_PARTS for part in parts):
+        return _is_ignored_runtime_path(path)
     return any(rel.startswith(prefix) for prefix in _EXEMPT_PATH_PREFIXES)
+
+
+def _is_ignored_runtime_path(path: Path, repository: Path | None = None) -> bool:
+    """True only when git actually ignores the path (tracked files stay governed).
+
+    ``repository`` defaults to the DE4SDV root; tests may pass an isolated
+    fixture repository to exercise both sides of the rule deterministically.
+    """
+    repository = ROOT if repository is None else repository
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", str(path.relative_to(repository))],
+            cwd=repository,
+            capture_output=True,
+        )
+    except (OSError, ValueError):
+        return False
+    return result.returncode == 0
 
 
 # Technical tokens that merely look like ID-shaped but are external

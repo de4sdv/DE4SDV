@@ -460,6 +460,14 @@ Artifact-aware rules (small and explicit, no heuristic parser):
   templates), the historical 009C–009I implementation-plan record, and the
   naming QA/manifest docs (which quote unregistered forms as
   counterexamples). The conventions doc itself stays fully governed.
+- **Git-ignored bench runtime workspaces**
+  (`implementation/*/workspace/...` that `git check-ignore` confirms is
+  ignored): vendored upstream source checkouts and build outputs produced
+  by bench prepare/build scripts. Their identifiers follow upstream naming
+  and are runtime material, not committed governed data. The exemption is
+  behavioral, not a blanket path rule — any tracked file under such a
+  directory stays governed — so a clean CI checkout and a developer
+  checkout with a built workspace behave identically.
 - **Non-governed look-alikes**: hash-algorithm names (`SHA-256`, `SHA-1`),
   GitHub line anchors (`#L743-L754`), charset fragments, mixed-case prose
   (`SERVER-IPv4`, `AI-Ready`), external project names (`S-CORE`,
