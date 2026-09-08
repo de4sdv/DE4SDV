@@ -5,8 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from de4sdv.sysml_api.errors import AmbiguousIdentityError, IdentityNotFoundError
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
+from .api_binding import declaration_identity
 from .kernel_contract import KernelContract, RelationshipMapping
 
 
@@ -141,44 +143,74 @@ class SemanticTraversal:
         root_class: Any,
         by_id: dict[str, dict[str, Any]],
     ) -> set[str]:
-        """Return elements typed by the transitive specialization lineage of a
-        kernel declaration (for example ``ProductLineMemberProduct``).
+        """Return elements in the specialization lineage of one kernel class.
 
-        Uses native Subclassification objects: each references its specific
-        classifier through ``subclassifier`` and its general classifier through
-        ``superclassifier``. Usage-level exclusion resolves each element's
-        FeatureTyping to its defining classifier before the lineage check.
-        Unknown root class names fail closed with an error so a typo in the
+        ``root_class`` names an ONTOLOGY class (for example ``MemberProduct``).
+        The canonical SysML identity is resolved through the governed ontology
+        kernel mapping (``kernel.file``/``kernel.declaration``) using the same
+        type/name resolution contract as the API class binder: exactly one
+        ``<Kind>Definition`` element with the mapped declared name must match.
+        An unrelated same-named declaration in another package makes the
+        resolution ambiguous and fails closed instead of silently widening the
+        exclusion.
+
+        The result contains two populations, both excluded from incoming
+        architecture traversal:
+
+        - definitions in the transitive ``Subclassification`` lineage of the
+          resolved kernel definition (so specialized product definitions
+          cannot pose as architecture sources), and
+        - usages whose ``FeatureTyping`` resolves to a lineage definition.
+
+        Unknown ontology classes fail closed with an error so a typo in the
         ontology cannot silently disable the exclusion.
         """
         if not root_class:
             return set()
         if not isinstance(root_class, str):
             raise ValueError(
-                "exclude_source_specializations_of must be a class name string"
+                "exclude_source_specializations_of must be an ontology class name"
             )
+        kernel = self.contract.class_mapping(root_class)
+        declaration_name, expected_type = declaration_identity(
+            kernel.declaration
+        )
+        candidates = [
+            element
+            for element in by_id.values()
+            if str(element.get("@type")) == expected_type
+            and (element.get("declaredName") or element.get("name"))
+            == declaration_name
+        ]
+        if not candidates:
+            raise IdentityNotFoundError(
+                f"exclude_source_specializations_of {root_class!r} mapping "
+                f"{kernel.file}::{kernel.declaration} resolved to no "
+                f"{expected_type} element"
+            )
+        if len(candidates) > 1:
+            ids = sorted(str(element_id(item)) for item in candidates)
+            raise AmbiguousIdentityError(
+                f"exclude_source_specializations_of {root_class!r} mapping "
+                f"{kernel.file}::{kernel.declaration} resolved ambiguously: "
+                f"{ids}"
+            )
+        root_id = element_id(candidates[0])
         # Single-pass Subclassification index: general -> specifics.
         specifics_by_general: dict[str, set[str]] = {}
-        roots: list[str | None] = []
         for element in by_id.values():
-            if element.get("declaredName") == root_class:
-                roots.append(element_id(element))
-            elif str(element.get("@type")) == "Subclassification":
-                general = element_id(element.get("superclassifier")) or element_id(
-                    element.get("general")
-                )
-                specific = element_id(element.get("subclassifier")) or element_id(
-                    element.get("specific")
-                )
-                if general is not None and specific is not None:
-                    specifics_by_general.setdefault(general, set()).add(specific)
-        if not any(candidate is not None for candidate in roots):
-            raise ValueError(
-                f"exclude_source_specializations_of names no model element: "
-                f"{root_class!r}"
+            if str(element.get("@type")) != "Subclassification":
+                continue
+            general = element_id(element.get("superclassifier")) or element_id(
+                element.get("general")
             )
+            specific = element_id(element.get("subclassifier")) or element_id(
+                element.get("specific")
+            )
+            if general is not None and specific is not None:
+                specifics_by_general.setdefault(general, set()).add(specific)
         lineage: set[str] = set()
-        frontier: list[str | None] = list(roots)
+        frontier: list[str | None] = [root_id]
         while frontier:
             current = frontier.pop()
             if current is None or current in lineage:
@@ -206,6 +238,11 @@ class SemanticTraversal:
                 "ActionUsage",
                 "ActionDefinition",
             }:
+                continue
+            # Definitions that are themselves in the lineage are product
+            # structure, not architecture sources.
+            if candidate_id in lineage:
+                excluded.add(candidate_id)
                 continue
             if feature_typing.get(candidate_id, set()) & lineage:
                 excluded.add(candidate_id)

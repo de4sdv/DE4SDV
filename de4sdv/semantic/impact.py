@@ -49,16 +49,28 @@ class ImpactService:
             candidate_id = element_id(element)
             if candidate_id is None:
                 raise ValueError("impact node has no API UUID")
-            node = {
-                "element_id": candidate_id,
-                "semantic_type": semantic_type,
-                "sysml_type": str(element.get("@type") or ""),
-                "declared_name": element.get("declaredName") or element.get("name"),
-                "qualified_name": element.get("qualifiedName"),
-                "category": category,
-                "source_uri": f"sysml://{project_id}/{commit_id}/{candidate_id}",
-            }
-            nodes[candidate_id] = node
+            node = nodes.get(candidate_id)
+            if node is None:
+                node = {
+                    "element_id": candidate_id,
+                    "semantic_type": semantic_type,
+                    "sysml_type": str(element.get("@type") or ""),
+                    "declared_name": (
+                        element.get("declaredName") or element.get("name")
+                    ),
+                    "qualified_name": element.get("qualifiedName"),
+                    "category": category,
+                    "categories": [category],
+                    "source_uri": f"sysml://{project_id}/{commit_id}/{candidate_id}",
+                }
+                nodes[candidate_id] = node
+                return node
+            # Distinct predicates can reach the same element through distinct
+            # API objects; a single element must not lose an earlier role
+            # because a later traversal classified it differently. Keep the
+            # first-seen category stable and record every role.
+            if category not in node["categories"]:
+                node["categories"].append(category)
             return node
 
         def add_hop(hop: TraversalHop, semantic_type: str, category: str) -> None:

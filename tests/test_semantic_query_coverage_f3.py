@@ -186,10 +186,15 @@ def test_ontology_declares_function_and_reverse_architecture_mappings() -> None:
     assert architecture_mapping.strategy == "dependency"
     assert architecture_mapping.semantic_strength == "relevance"
     assert architecture_mapping.configuration["direction"] == "incoming"
+    # The exclusion names the governed ONTOLOGY class; traversal resolves its
+    # canonical SysML identity through the kernel mapping, never by bare name.
     assert (
         architecture_mapping.configuration["exclude_source_specializations_of"]
-        == "ProductLineMemberProduct"
+        == "MemberProduct"
     )
+    kernel = contract.class_mapping("MemberProduct")
+    assert kernel.declaration == "part def ProductLineMemberProduct"
+    assert kernel.file.endswith("de4sdv_product_line.sysml")
 
 
 def test_specifies_function_traverses_only_action_typed_targets() -> None:
@@ -320,12 +325,119 @@ def test_exclusion_fails_closed_on_unknown_root_class(monkeypatch) -> None:
     try:
         contract = KernelContract.load(broken_path)
         by_id = {item["@id"]: item for item in _f3_elements()}
-        with pytest.raises(ValueError, match="names no model element"):
+        with pytest.raises(KeyError, match="no kernel mapping"):
             SemanticTraversal(contract).traverse(
                 "hasRelevantArchitecture", by_id["req-1"], _f3_elements()
             )
     finally:
         broken_path.unlink(missing_ok=True)
+
+
+def test_exclusion_fails_closed_on_unrelated_homonym_definition() -> None:
+    """An unrelated same-named definition must not widen the exclusion."""
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    ref = lambda value: {"@id": value}
+    elements = _f3_elements() + [
+        # Unrelated package's definition with the kernel's declared name.
+        {
+            "@id": "homonym-def",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+            "qualifiedName": "OtherPackage::ProductLineMemberProduct",
+        },
+        # A legitimate architecture element typed by that unrelated homonym.
+        {
+            "@id": "legit-typed-by-homonym",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("plain-homonym-usage"),
+            "type": ref("homonym-def"),
+        },
+        {
+            "@id": "plain-homonym-usage",
+            "@type": "PartUsage",
+            "declaredName": "legitPart",
+        },
+        {
+            "@id": "dep-from-homonym-usage",
+            "@type": "Dependency",
+            "source": [ref("plain-homonym-usage")],
+            "target": [ref("req-1")],
+        },
+    ]
+    requirement = next(item for item in elements if item["@id"] == "req-1")
+    # The same-named declaration in another package makes canonical
+    # resolution ambiguous: fail closed instead of silently excluding the
+    # homonym-typed legitimate architecture element.
+    with pytest.raises(Exception, match="resolved ambiguously"):
+        SemanticTraversal(_contract()).traverse(
+            "hasRelevantArchitecture", requirement, elements
+        )
+
+
+def test_exclusion_fails_closed_when_kernel_definition_is_absent() -> None:
+    """A model lacking the kernel definition must fail closed, not pass open."""
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    ref = lambda value: {"@id": value}
+    elements = [item for item in _f3_elements() if item["@id"] != "kernel-member-product"]
+    # Keep a Subclassification pointing at the now-missing kernel so the
+    # failure is not simply an empty lineage.
+    elements.append(
+        {
+            "@id": "orphan-sub",
+            "@type": "Subclassification",
+            "subclassifier": ref("configured-member-def"),
+            "superclassifier": ref("kernel-member-product"),
+        }
+    )
+    requirement = next(item for item in elements if item["@id"] == "req-1")
+    with pytest.raises(Exception, match="resolved to no"):
+        SemanticTraversal(_contract()).traverse(
+            "hasRelevantArchitecture", requirement, elements
+        )
+
+
+def test_member_product_definition_sources_are_excluded() -> None:
+    """A dependency sourced by a lineage definition is product structure."""
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    ref = lambda value: {"@id": value}
+    elements = _f3_elements() + [
+        {
+            "@id": "dep-from-configured-member-def",
+            "@type": "Dependency",
+            "source": [ref("configured-member-def")],
+            "target": [ref("req-1")],
+        },
+        # A definition specialized only through the (already excluded)
+        # intermediate definition is also product structure.
+        {
+            "@id": "leaf-member-def",
+            "@type": "PartDefinition",
+            "declaredName": "LeafMember",
+        },
+        {
+            "@id": "sub-leaf-def",
+            "@type": "Subclassification",
+            "subclassifier": ref("leaf-member-def"),
+            "superclassifier": ref("configured-member-def"),
+        },
+        {
+            "@id": "dep-from-leaf-def",
+            "@type": "Dependency",
+            "source": [ref("leaf-member-def")],
+            "target": [ref("req-1")],
+        },
+    ]
+    requirement = next(item for item in elements if item["@id"] == "req-1")
+    hops = SemanticTraversal(_contract()).traverse(
+        "hasRelevantArchitecture", requirement, elements
+    )
+    targets = sorted(hop.target["@id"] for hop in hops)
+    # Only the legitimate part/action sources remain; both lineage
+    # definitions (direct and transitive) are excluded.
+    assert targets == ["action-def-flow", "part-translator"]
 
 
 def test_impact_reports_function_category_and_split_architecture_gaps(
@@ -494,3 +606,133 @@ def test_impact_reports_function_gap_when_no_function_relevance(
     gap_categories = {gap["category"] for gap in result["gaps"]}
     assert "function" in gap_categories
     assert "architecture" in gap_categories
+
+
+def test_impact_preserves_function_role_on_shared_architecture_node(
+    api_server_fixture,
+) -> None:
+    """One element with both function and architecture roles keeps both."""
+    from de4sdv.semantic.api_binding import OntologyApiBinder
+    from de4sdv.semantic.impact import ImpactService
+    from de4sdv.semantic.traversal import SemanticTraversal
+    from de4sdv.sysml_api.client import ApiClient
+    from de4sdv.sysml_api.repository import SysMLRepository
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    ref = lambda value: {"@id": value}
+    elements = [
+        {
+            "@id": "kernel-member-product",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+        },
+        {
+            "@id": "kernel-requirement",
+            "@type": "RequirementDefinition",
+            "declaredName": "RequirementCandidate",
+        },
+        {
+            "@id": "req-braking",
+            "@type": "RequirementUsage",
+            "declaredName": "reqCommandEmergencyBraking",
+        },
+        {
+            "@id": "action-request-braking",
+            "@type": "ActionUsage",
+            "declaredName": "requestBraking",
+        },
+        # The same action is BOTH the outgoing function target and the
+        # incoming architecture source (distinct dependency objects).
+        {
+            "@id": "dep-specifies-function",
+            "@type": "Dependency",
+            "source": [ref("req-braking")],
+            "target": [ref("action-request-braking")],
+        },
+        {
+            "@id": "dep-from-architecture",
+            "@type": "Dependency",
+            "source": [ref("action-request-braking")],
+            "target": [ref("req-braking")],
+        },
+    ]
+    response_map = {
+        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
+            200,
+            elements,
+            {},
+        )
+    }
+    base_url, handler = api_server_fixture
+    handler.response_map = response_map
+    repository = SysMLRepository(ApiClient(base_url))
+    binding = RevisionBinding.from_dict(
+        {
+            "git_repository": "de4sdv/DE4SDV",
+            "git_commit": "a" * 40,
+            "sysml_project_id": "project-1",
+            "sysml_commit_id": "commit-1",
+            "import_timestamp": "2026-08-31T00:00:00Z",
+            "import_tool_version": "test",
+            "semantic_validation": "passed",
+            "scope": "full-model",
+            "ontology": _contract().identity.to_dict(),
+        }
+    )
+    contract = _contract()
+    service = ImpactService(
+        repository=repository,
+        binding=binding,
+        contract=contract,
+        binder=OntologyApiBinder(
+            contract, repository, project_id="project-1", commit_id="commit-1"
+        ),
+        traversal=SemanticTraversal(contract),
+    )
+    result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)
+
+    predicates = {edge["predicate"] for edge in result["edges"]}
+    assert predicates == {"specifiesFunction", "hasRelevantArchitecture"}
+    action_nodes = [
+        node
+        for node in result["nodes"]
+        if node["element_id"] == "action-request-braking"
+    ]
+    assert len(action_nodes) == 1
+    node = action_nodes[0]
+    # Both roles survive on the single shared node; the first-seen category
+    # stays stable and the role list records the second.
+    assert node["category"] == "function"
+    assert sorted(node["categories"]) == ["architecture", "function"]
+
+
+def test_impact_text_output_includes_function_category() -> None:
+    """The public CLI formatter must render the function category."""
+    from scripts import query_model_impact as qmi
+
+    report = {
+        "revision": {
+            "git_commit": "a" * 40,
+            "sysml_project_id": "project-1",
+            "sysml_commit_id": "commit-1",
+            "binding_status": "synchronized",
+        },
+        "root": {
+            "qualified_name": None,
+            "declared_name": "reqExample",
+            "element_id": "req-1",
+        },
+        "nodes": [
+            {
+                "element_id": "action-translate",
+                "qualified_name": None,
+                "declared_name": "translateSignal",
+                "category": "function",
+                "categories": ["function"],
+            }
+        ],
+        "gaps": [],
+    }
+    text = qmi._render_api_text(report)
+    assert "function: 1" in text
+    assert "translateSignal" in text

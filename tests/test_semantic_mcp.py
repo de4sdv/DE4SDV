@@ -363,6 +363,7 @@ def test_verification_coverage_is_partial_when_one_evidence_contract_has_no_case
             "declared_name": "evidenceContractWithoutVerification",
             "qualified_name": None,
             "category": "evidence",
+            "categories": ["evidence"],
             "source_uri": "sysml://project-1/commit-1/evidence-2",
         }
     ]

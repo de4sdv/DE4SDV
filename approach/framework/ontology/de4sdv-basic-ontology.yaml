@@ -461,9 +461,10 @@ relationships:
     definition: >-
       Reverse relevance: an incoming dependency from an architecture element
       (part, action, or their definitions) that is derived from or traces to
-      the requirement. Sources typed by the kernel ProductLineMemberProduct
-      lineage are excluded — configured-product traces are product-line
-      relationships, not architecture relevance.
+      the requirement. Sources grounded in the MemberProduct kernel lineage
+      (resolved through the governed kernel mapping, never by bare name) are
+      excluded — configured-product traces are product-line relationships,
+      not architecture relevance.
     sysml_mapping:
       strategy: dependency
       relationship_types: [Dependency]
@@ -471,7 +472,7 @@ relationships:
       source_property: source
       target_property: target
       source_types: [PartUsage, PartDefinition, ActionUsage, ActionDefinition]
-      exclude_source_specializations_of: ProductLineMemberProduct
+      exclude_source_specializations_of: MemberProduct
       semantic_strength: relevance
   allocatedTo:
     domain: Function

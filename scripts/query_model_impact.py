@@ -378,8 +378,19 @@ def _render_api_text(report: dict) -> str:
             f"({revision['binding_status']})"
         ),
     ]
-    for category in ("architecture", "verification", "evidence", "product-line"):
-        nodes = [node for node in report["nodes"] if node["category"] == category]
+    for category in (
+        "architecture",
+        "function",
+        "verification",
+        "evidence",
+        "product-line",
+    ):
+        # A node can carry multiple roles when distinct predicates reach the
+        # same element; match against the full role list, not only the
+        # first-seen category.
+        nodes = [
+            node for node in report["nodes"] if category in node["categories"]
+        ]
         lines.append(f"  {category}: {len(nodes)}")
         for node in nodes:
             lines.append(
