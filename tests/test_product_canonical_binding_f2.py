@@ -81,16 +81,62 @@ def _composite_code() -> str:
     return _strip_comments(text)
 
 
+_DOC_BLOCK = re.compile(r"(?<!\S)doc\s*/\*(?P<body>.*?)\*/", re.DOTALL)
+
+
+def _active_doc_blocks() -> list[str]:
+    """Bodies of active `doc /* ... */` blocks owned by the composite part def.
+
+    ``doc /* ... */`` is active model content, not a comment: its prose is
+    the declared documentation. The `doc` keyword must be present (a plain
+    ``/* ... */`` note is a comment carrier, not documentation) and the
+    line must not be inside a ``//`` comment. Blocks are collected from the
+    raw file so the blanking helpers cannot erase the prose itself.
+    """
+    text = COMPOSITE.read_text(encoding="utf-8")
+    start = re.search(r"part\s+def\s+AEBSAutowareReferenceProduct\b", text)
+    assert start is not None, "composite part def not found"
+    brace = text.find("{", start.end())
+    assert brace != -1
+    depth = 0
+    end = None
+    for index in range(brace, len(text)):
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+            if depth == 0:
+                end = index
+                break
+    assert end is not None, "composite part def body is unbalanced"
+    body = text[brace:end]
+    blocks: list[str] = []
+    for match in _DOC_BLOCK.finditer(body):
+        prefix_start = body.rfind("\n", 0, match.start()) + 1
+        if "//" in body[prefix_start : match.start()]:
+            continue
+        blocks.append(match.group("body"))
+    return blocks
+
+
 def _part_def_block(code: str, name: str) -> str:
-    """Return the brace-balanced body of `part def <name> { ... }`."""
+    """Return the brace-balanced body of `part def <name> { ... }`.
+
+    Fails closed when the header is not followed by an opening brace: a
+    semicolon-form `part def <name> :> ...;` declares NO body, so the next
+    `{` in the file belongs to a later element and must never be borrowed.
+    """
     start = re.search(
         rf"^\s*part\s+def\s+{name}\b", code, re.MULTILINE
     )
     if start is None:
         raise AssertionError(f"part def {name} not found in active code")
-    brace = code.find("{", start.end())
-    if brace == -1:
+    structural = re.search(r"[{};]", code[start.end() :])
+    if structural is None or structural.group() == ";":
         raise AssertionError(f"part def {name} has no body")
+    if structural.group() != "{":
+        raise AssertionError(f"part def {name} body is unbalanced")
+    brace = start.end() + structural.start()
     depth = 0
     for index in range(brace, len(code)):
         if code[index] == "{":
@@ -188,30 +234,14 @@ def test_composite_specializes_governed_member_decision() -> None:
 
 
 def test_composite_keeps_bounded_projection_limitation_wording() -> None:
-    """The binding must not upgrade the composite to a resolved product."""
-    text = COMPOSITE.read_text(encoding="utf-8")
-    start = re.search(
-        r"part\s+def\s+AEBSAutowareReferenceProduct\b", text
-    )
-    assert start is not None
-    brace = text.find("{", start.end())
-    assert brace != -1
-    depth = 0
-    end = None
-    for index in range(brace, len(text)):
-        if text[index] == "{":
-            depth += 1
-        elif text[index] == "}":
-            depth -= 1
-            if depth == 0:
-                end = index
-                break
-    assert end is not None
-    body = text[brace:end]
-    # Join ALL doc blocks under the part def (the composite carries several);
-    # strip comment leaders before the prose check.
-    docs = re.findall(r"/\*(.*?)\*/", body, re.DOTALL)
-    assert docs, "composite doc blocks not found"
+    """The binding must not upgrade the composite to a resolved product.
+
+    The prose must live in ACTIVE doc blocks: plain ``/* */`` comments
+    without the ``doc`` keyword, or ``//``-commented lines, do not satisfy
+    the guard — a deleted disclaimer must fail exactly like a reworded one.
+    """
+    docs = _active_doc_blocks()
+    assert docs, "composite active doc blocks not found"
     normalized = " ".join(
         " ".join(doc.replace("*", " ").split()) for doc in docs
     )

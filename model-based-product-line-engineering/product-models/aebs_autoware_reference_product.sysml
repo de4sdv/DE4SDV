@@ -106,7 +106,8 @@ package DE4SDV_AEBSAutowareReferenceProduct {
      * declared in DE4SDV_AEBSPhysicalSoftwareRealization. The logical
      * system's responsibilities are allocated to the AEB node with typed
      * coverage records (available, partial, missing).
-     *
+     */
+    doc /*
      * Canonical-architecture binding: the composite usages above are
      * product-level instances, while the canonical allocation and evidence
      * records bind the canonical usages
