@@ -468,8 +468,13 @@ _REQUIREMENT_SLICES = (
     / "middleware_requirements.sysml",
 )
 
+# Governed requirement usage: unqualified or qualified type, body opened by
+# ``{`` or terminated by ``;``. The type is captured including qualification
+# so a requirement never silently disappears from the governed population.
 _REQUIREMENT_USAGE_RE = re.compile(
-    r"^\s*requirement ([a-z][A-Za-z0-9]*)\s*:\s*([A-Za-z][A-Za-z0-9]*)\s*\{",
+    r"^\s*requirement ([a-z][A-Za-z0-9]*)\s*:\s*"
+    r"([A-Za-z][A-Za-z0-9_]*(?:::[A-Za-z][A-Za-z0-9_]*)*)"
+    r"\s*(?:\{|;)",
     re.MULTILINE,
 )
 _DEPENDENCY_EDGE_RE = re.compile(
@@ -477,11 +482,6 @@ _DEPENDENCY_EDGE_RE = re.compile(
     r"from\s+([\w'.:]+)\s+to\s+([\w'.:]+)\s*;",
     re.MULTILINE | re.DOTALL,
 )
-
-# The SYSMOD problem-statement anchor is framing vocabulary traced INTO by
-# requirements, not out of. Stakeholder-need usages are excluded semantically
-# (their type specializes the Need grounding declaration), not by name.
-_NON_DESIGN_INPUT_PROBLEM_STATEMENT = re.compile(r"ProblemStatement$")
 
 # Model roots scanned to build the semantic type index used for R003 target
 # resolution. This is deliberately the full governed model surface, not just
@@ -506,12 +506,21 @@ _R003_DECLARATION_RE = re.compile(
 )
 
 # Matches usage declarations ``<kind> <name> : <Type> {`` for the kinds that
-# R003 origins can be modeled as (requirement usages and part usages).
+# R003 origins can be modeled as (requirement usages and part usages). The
+# declared type keeps its package qualification.
 _R003_USAGE_RE = re.compile(
     r"(?m)^[ \t]*"
     r"(requirement|part|action)[ \t]+"
     r"([a-z][A-Za-z0-9_]*)[ \t]*:[ \t]*"
-    r"([A-Za-z][A-Za-z0-9_]*)"
+    r"([A-Za-z][A-Za-z0-9_]*(?:::[A-Za-z][A-Za-z0-9_]*)*)"
+)
+
+# Matches imports that bring names into a package scope. ``*`` imports make
+# every member visible; named imports list specific members.
+_IMPORT_RE = re.compile(
+    r"(?m)^[ \t]*(?:public|private|protected)?[ \t]*import\s+"
+    r"([A-Za-z][A-Za-z0-9_]*(?:::[A-Za-z][A-Za-z0-9_]*)*)"
+    r"(::\*)?\s*;"
 )
 
 # Kind a semantic origin is declared with, per its kernel grounding kind.
@@ -519,6 +528,10 @@ _R003_ORIGIN_KINDS = {
     "requirement def",
     "part def",
 }
+
+
+class _R003ScopeError(RuntimeError):
+    """A governed model text could not be resolved unambiguously (fail closed)."""
 
 
 def _load_ontology_r003_groundings() -> dict[str, tuple[str, str]]:
@@ -557,17 +570,22 @@ def _load_ontology_r003_groundings() -> dict[str, tuple[str, str]]:
 
 def _r003_specialization_closure(
     declarations: dict[str, dict[str, object]],
-    type_name: str,
+    scope: dict[str, object],
+    type_reference: str,
 ) -> set[str]:
-    """Return ``type_name`` plus every type it (transitively) specializes.
+    """Return the resolved type plus every type it (transitively) specializes.
 
-    ``declarations`` maps ``<kind> def <Name>`` keys to records with a
-    ``parents`` list of specialized type names. Unresolvable parents are
-    ignored (they may be upstream library types outside the governed roots);
-    the closure only needs governed declarations to classify governed targets.
+    ``declarations`` maps qualified declaration names to records with a
+    ``parents`` list of (possibly qualified) specialized type names. Every
+    hop — the initial reference and each parent — is resolved through the
+    referencing file's import ``scope``, so specializations declared in
+    other packages (e.g. kernel groundings imported via ``::*``) resolve
+    correctly. Unresolvable parents are ignored (they may be upstream
+    library types outside the governed roots); ambiguous parents fail
+    closed via :class:`_R003ScopeError`.
     """
     seen: set[str] = set()
-    frontier = [type_name]
+    frontier = [_r003_resolve_type_reference(type_reference, scope)]
     while frontier:
         current = frontier.pop()
         if current in seen:
@@ -576,54 +594,220 @@ def _r003_specialization_closure(
         record = declarations.get(current)
         if record is None:
             continue
-        frontier.extend(str(parent) for parent in record["parents"])  # type: ignore[arg-type]
+        for parent in record["parents"]:
+            frontier.append(
+                _r003_resolve_type_reference(str(parent), scope)
+            )  # type: ignore[arg-type]
     return seen
 
+
+def _r003_resolve_type_reference(
+    reference: str,
+    scope: "dict[str, object]",
+) -> str:
+    """Resolve a (possibly qualified) type reference to a qualified name.
+
+    ``scope`` is a per-file resolution context produced by
+    ``_r003_build_scope``. Resolution rules, in order:
+
+    1. A fully qualified reference that exists in the declaration index is
+       used as-is.
+    2. Otherwise the reference is resolved through the file's import scope
+       (exact import, ``::*`` import namespaces, then the referencing
+       package's own namespace).
+    3. A bare name that resolves to multiple candidates raises
+       :class:`_R003ScopeError` — ambiguity fails closed instead of picking
+       an arbitrary homonym.
+    """
+    candidates: list[str] = []
+    if reference in scope["declarations"]:  # type: ignore[operator]
+        return reference
+    for prefix in scope["visible_namespaces"]:  # type: ignore[operator]
+        qualified = f"{prefix}::{reference}"
+        if qualified in scope["declarations"]:  # type: ignore[operator]
+            candidates.append(qualified)
+    if len(candidates) == 1:
+        return candidates[0]
+    if len(candidates) > 1:
+        raise _R003ScopeError(
+            f"ambiguous reference '{reference}' resolves to "
+            + ", ".join(sorted(candidates))
+        )
+    # Undeclared reference (e.g. an upstream library type): keep the bare
+    # name so the closure simply cannot resolve it — no valid origin.
+    return reference
+
+
+def _r003_build_scope(
+    package_path: str,
+    code: str,
+    declarations: dict[str, dict[str, object]],
+) -> dict[str, object]:
+    """Build the import-resolution scope for one governed file.
+
+    ``package_path`` is the dotted name of the package that owns the
+    requirement slice (the outermost ``package`` in the file). Wildcard
+    imports make every member of the imported namespace visible; named
+    imports make the imported namespace itself visible.
+    """
+    visible: list[str] = []
+    for namespaced, wildcard in _IMPORT_RE.findall(code):
+        if wildcard:
+            visible.append(namespaced)
+        else:
+            visible.append(namespaced.rsplit("::", 1)[0])
+    if package_path:
+        visible.append(package_path)
+    return {
+        "declarations": declarations,
+        "visible_namespaces": visible,
+    }
+
+
+def _r003_outermost_package(code: str) -> str:
+    match = re.search(r"(?m)^\s*package\s+([A-Za-z][A-Za-z0-9_]*)\s*\{", code)
+    return match.group(1) if match else ""
+
+
+def _r003_nested_package_prefixes(code: str) -> list[str]:
+    """Dotted package prefixes for every nested ``package`` block in a file.
+
+    Returns prefixes outermost-first, e.g. ``Pkg``, ``Pkg::Features``,
+    ``Pkg::Features::AEBS``. Uses brace-depth scanning on comment-stripped
+    code; body braces of declarations are irrelevant because only
+    ``package <Name> {`` lines extend the prefix.
+    """
+    prefixes: list[str] = []
+    stack: list[str] = []
+    pattern = re.compile(
+        r"(?m)^[ \t]*package\s+([A-Za-z][A-Za-z0-9_]*)\s*\{"
+    )
+    events: list[tuple[int, int]] = []  # (position, +1 open / -1 close)
+    open_positions: dict[int, str] = {}
+    for match in pattern.finditer(code):
+        open_positions[match.end() - 1] = match.group(1)
+    depth_delta = []
+    opens = {pos: name for pos, name in open_positions.items()}
+    for index, char in enumerate(code):
+        if char == "{":
+            depth_delta.append((index, 1))
+        elif char == "}":
+            depth_delta.append((index, -1))
+    depth = 0
+    for position, delta in depth_delta:
+        if delta == 1 and position in opens:
+            stack.append(opens[position])
+            prefixes.append("::".join(stack))
+        depth += delta
+        if delta == -1 and stack and depth < len(stack):
+            stack.pop()
+    return prefixes
+
+
+def _r003_name_declared_in_block(code: str, prefix: str, name: str) -> bool:
+    """True when ``name`` is declared directly inside the ``prefix`` block.
+
+    Single pass over every brace: each ``{`` pushes a frame; a ``package``
+    header names the frame it opens; each ``}`` pops exactly one frame.
+    Package spans are recorded from header frames only, so requirement and
+    doc bodies keep the depth balanced and sibling/nested packages resolve
+    to their true dotted prefixes.
+    """
+    header_pattern = re.compile(
+        r"^[ \t]*package\s+([A-Za-z][A-Za-z0-9_]*)[ \t]*\{",
+        re.MULTILINE,
+    )
+    declaration_pattern = re.compile(
+        r"^[ \t]*(?:requirement|part|action)[ \t]+(?:def[ \t]+)?"
+        + re.escape(name)
+        + r"(?:::)?[ \t]*[:{;]",
+        re.MULTILINE,
+    )
+    wanted = tuple(prefix.split("::"))
+
+    headers = {match.end() - 1: match.group(1) for match in header_pattern.finditer(code)}
+    frames: list[tuple[str | None, int]] = []  # (header name, body_start)
+    spans: list[tuple[tuple[str, ...], int, int]] = []
+    for index, char in enumerate(code):
+        if char == "{":
+            frames.append((headers.get(index), index + 1))
+        elif char == "}":
+            if not frames:
+                continue
+            header_name, body_start = frames.pop()
+            if header_name is not None:
+                prefix_names = tuple(
+                    entry[0] for entry in frames if entry[0] is not None
+                ) + (header_name,)
+                spans.append((prefix_names, body_start, index))
+    for span_prefix, span_start, span_end in spans:
+        if span_prefix == wanted:
+            return bool(declaration_pattern.search(code[span_start:span_end]))
+    return False
 
 def check_requirement_derivation_coverage(errors: list[str]) -> None:
     """Sync point 6: every design-input requirement traces to a valid R003 origin.
 
     Enforces ontology validation rule DE4SDV-ONT-R003 against the model text:
     each requirement usage in a governed requirements slice must carry at least
-    one outgoing dependency whose target resolves — through the model-wide
-    declaration/usage index and specialization closure — to a semantic type
-    grounding one of the permitted origin types (Need, RegulatoryConstraint,
-    ArchitectureDecisionRecord). Identifier prefixes are never consulted: a
-    target named ``needFoo`` that is not typed as a Need is rejected. This
-    checks presence of the required link (the gap the dependency-target check
-    cannot see); semantic strength of each link remains review policy.
+    one outgoing dependency whose target resolves — through qualified
+    declaration/usage indexes, per-file import scopes, and specialization
+    closure — to a semantic type grounding one of the permitted origin types
+    (Need, RegulatoryConstraint, ArchitectureDecisionRecord). Identifier
+    prefixes are never consulted: a target named ``needFoo`` that is not
+    typed as a Need is rejected, and ambiguous references fail closed.
+    This checks presence of the required link (the gap the dependency-target
+    check cannot see); semantic strength of each link remains review policy.
     """
     groundings = _load_ontology_r003_groundings()
 
-    # Model-wide index: declarations (kind+name -> parents) and usages
-    # (name -> declared type), collected across all governed model roots.
-    # Built once here and reused for both target resolution and the semantic
-    # exclusion of stakeholder-need usages from the design-input population.
+    # Model-wide indexes keyed by QUALIFIED declaration name (kind is part of
+    # the identity so a part def and a requirement def with the same name do
+    # not collide) plus a global usage registry keyed by bare name whose
+    # values carry every (qualified identity, declared type, owning file)
+    # triple. Identities — not guesses — drive resolution; ambiguity in any
+    # consumed lookup fails closed.
     declarations: dict[str, dict[str, object]] = {}
-    usages: dict[str, str] = {}
+    declarations_by_name: dict[str, list[str]] = {}
+    usages: dict[str, list[tuple[str, str, Path]]] = {}
+    scopes: dict[Path, dict[str, object]] = {}
     for model_root in _R003_MODEL_ROOTS:
         if not model_root.is_dir():
             continue
         for path in sorted(model_root.rglob("*.sysml")):
-            code = _strip_comments(_read(path))
+            raw_code = _read(path)
+            code = _strip_comments(raw_code)
+            package_path = _r003_outermost_package(code)
+            scope = _r003_build_scope(package_path, code, declarations)
+            scopes[path] = scope
             for kind, name, parents in _R003_DECLARATION_RE.findall(code):
+                qualified = f"{package_path}::{name}" if package_path else name
                 parent_list = [
                     parent.strip().rstrip(",")
                     for parent in (parents or "").split(",")
                     if parent.strip().rstrip(",")
                 ]
-                declarations[name] = {
+                declarations[qualified] = {
                     "kind": " ".join(kind.split()),
                     "parents": parent_list,
                 }
+                declarations_by_name.setdefault(name, []).append(qualified)
+            # Usage identities include the file's nested ``package`` structure
+            # so a qualified dependency target matches the declaration site.
+            nesting = _r003_nested_package_prefixes(code)
             for usage_kind, usage_name, usage_type in _R003_USAGE_RE.findall(code):
-                # First declaration wins; later shadowing in other files is
-                # not overridden (governed model avoids ambiguous reuse, and
-                # the ontology-kernel gate rejects kernel-name redeclaration).
-                usages.setdefault(usage_name, usage_type)
+                identity = usage_name
+                for prefix in sorted(nesting, key=lambda p: p.count("::"), reverse=True):
+                    if _r003_name_declared_in_block(code, prefix, usage_name):
+                        identity = f"{prefix}::{usage_name}"
+                        break
+                usages.setdefault(usage_name, []).append(
+                    (identity, usage_type, path)
+                )
 
     # Grounding declarations must exist and carry a permitted kind.
-    origin_keys: set[str] = set()
+    origin_qualified: set[str] = set()
+    origin_bare: set[str] = set()
     for origin, (file_name, declaration) in groundings.items():
         if not _declaration_exists(_read(ROOT / file_name), declaration):
             errors.append(
@@ -638,23 +822,125 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
                 f"'{declaration}' is not a supported requirement/part def"
             )
             continue
-        origin_keys.add(grounding_name)
+        origin_bare.add(grounding_name)
+        grounded_qualifications = declarations_by_name.get(grounding_name, [])
+        if grounded_qualifications:
+            origin_qualified.update(grounded_qualifications)
+        else:
+            # Kernel file not under the scanned roots (e.g. a synthetic test
+            # kernel): the bare name is the only identity available.
+            origin_qualified.add(grounding_name)
 
-    def _resolves_to_valid_origin(target: str) -> bool:
-        target_name = target.rsplit("::", 1)[-1].strip("'")
-        for candidate in _r003_specialization_closure(declarations, target_name):
-            if candidate in origin_keys:
+    # The kernel file declares groundings; ensure the grounding declarations
+    # themselves are indexed (they live inside the method-kernel package).
+    kernel_paths = {
+        ROOT / file_name for file_name, _ in groundings.values()
+    }
+    for kernel_path in kernel_paths:
+        if not kernel_path.exists() or kernel_path in scopes:
+            continue
+        code = _strip_comments(_read(kernel_path))
+        package_path = _r003_outermost_package(code)
+        scope = _r003_build_scope(package_path, code, declarations)
+        scopes[kernel_path] = scope
+        for kind, name, parents in _R003_DECLARATION_RE.findall(code):
+            qualified = f"{package_path}::{name}" if package_path else name
+            parent_list = [
+                parent.strip().rstrip(",")
+                for parent in (parents or "").split(",")
+                if parent.strip().rstrip(",")
+            ]
+            declarations[qualified] = {
+                "kind": " ".join(kind.split()),
+                "parents": parent_list,
+            }
+            declarations_by_name.setdefault(name, []).append(qualified)
+        if package_path:
+            origin_qualified.update(
+                f"{package_path}::{name}"
+                for name in origin_bare
+                if f"{package_path}::{name}" in declarations
+            )
+
+    def _closure_hits(
+        scope: dict[str, object],
+        reference: str,
+        allowed: set[str],
+    ) -> bool:
+        try:
+            closure = _r003_specialization_closure(declarations, scope, reference)
+        except _R003ScopeError as error:
+            raise _R003ScopeError(f"[SP6] {error}") from error
+        return any(name in allowed for name in closure)
+
+    def _usage_entries_for_target(
+        target: str,
+    ) -> tuple[list[tuple[str, str, Path]], list[str]]:
+        """Registry entries matching the written target, plus ambiguities.
+
+        Matching rules, in order:
+
+        1. Exact identity or suffix-identity (identity ends with the full
+           written reference).
+        2. Otherwise, for a qualified reference, entries whose identity ends
+           with the reference's bare name AND whose identity shares the
+           reference's leading path — SysML visibility can make a written
+           parent path name a shorter (prefix) form of the true identity —
+           accepted only when every such candidate resolves to the SAME
+           declared type; differing types are reported as ambiguous and
+           fail closed.
+        3. A bare reference returns all entries for the bare name; type
+           divergence among them is handled by the caller through scope
+           resolution (each candidate type is tested in its own owner
+           scope), so a genuinely different-typed homonym can never borrow
+           a valid classification silently.
+        """
+        reference = target.strip("'")
+        bare = reference.rsplit("::", 1)[-1]
+        entries = usages.get(bare, [])
+        if not entries:
+            return [], []
+        if "::" in reference:
+            exact = [
+                entry
+                for entry in entries
+                if entry[0] == reference or entry[0].endswith("::" + reference)
+            ]
+            if exact:
+                return exact, []
+            partial = [
+                entry
+                for entry in entries
+                if "::" in entry[0]
+                and entry[0].rsplit("::", 1)[0].startswith(
+                    reference.rsplit("::", 1)[0]
+                )
+            ]
+            if not partial:
+                return [], []
+            types = {entry[1] for entry in partial}
+            if len(types) > 1:
+                identities = ", ".join(sorted(entry[0] for entry in partial))
+                return [], [
+                    f"ambiguous derivation target '{reference}' matches "
+                    f"distinctly typed usages: {identities}"
+                ]
+            return partial, []
+        return entries, []
+
+    def _resolves_to_valid_origin(
+        scope: dict[str, object], target: str
+    ) -> bool:
+        entries, ambiguities = _usage_entries_for_target(target)
+        if ambiguities:
+            raise _R003ScopeError(f"[SP6] {ambiguities[0]}")
+        for _identity, usage_type, owner_path in entries:
+            owner_scope = scopes.get(owner_path, scope)
+            if _closure_hits(owner_scope, usage_type, origin_qualified):
                 return True
-            # The target may be a usage: resolve its declared type and walk
-            # that type's specialization closure too.
-        usage_type = usages.get(target_name)
-        if usage_type is not None:
-            for candidate in _r003_specialization_closure(
-                declarations, usage_type
-            ):
-                if candidate in origin_keys:
-                    return True
-        return False
+        # The target may itself be a declaration (kernel grounding usage
+        # written qualified) rather than a registry usage.
+        return _closure_hits(scope, target.strip("'"), origin_qualified)
 
     for slice_path in _REQUIREMENT_SLICES:
         if not slice_path.exists():
@@ -663,26 +949,51 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
             )
             continue
         code = _strip_comments(_read(slice_path))
+        if slice_path not in scopes:
+            scopes[slice_path] = _r003_build_scope(
+                _r003_outermost_package(code), code, declarations
+            )
+        scope = scopes[slice_path]
         usages_in_slice = set(_REQUIREMENT_USAGE_RE.findall(code))
         edges = _DEPENDENCY_EDGE_RE.findall(code)
+        need_grounding_name = groundings["Need"][1].partition(" def ")[2]
+        need_qualified = {
+            qualified
+            for qualified in declarations_by_name.get(need_grounding_name, [])
+        } or {need_grounding_name}
         for usage_name, usage_type in sorted(usages_in_slice):
-            if _NON_DESIGN_INPUT_PROBLEM_STATEMENT.search(usage_type):
+            # Semantic exclusions — resolved types, never suffixes:
+            # 1. A usage whose type specializes the Need grounding is itself
+            #    a stakeholder need, not a design-input requirement.
+            # 2. A usage whose type specializes the kernel ProblemStatement
+            #    grounding is framing vocabulary traced INTO, not out of.
+            problem_statement_qualified = set(
+                declarations_by_name.get("ProblemStatement", [])
+            ) or {"ProblemStatement"}
+            try:
+                if _closure_hits(scope, usage_type, need_qualified):
+                    continue
+                if _closure_hits(
+                    scope, usage_type, problem_statement_qualified
+                ):
+                    continue
+            except _R003ScopeError as error:
+                errors.append(f"{error} (while excluding {usage_name!r})")
                 continue
-            # Semantically exclude Need usages: a usage whose declared type
-            # specializes the Need grounding declaration is itself a Need,
-            # not a design-input requirement. This is type-based, not
-            # identifier-prefix-based.
-            usage_closure = _r003_specialization_closure(
-                declarations, usage_type
-            )
-            need_grounding_name = groundings["Need"][1].partition(" def ")[2]
-            if need_grounding_name in usage_closure:
+            valid_targets = []
+            failed_closed = False
+            for source, target in edges:
+                if source != usage_name:
+                    continue
+                try:
+                    if _resolves_to_valid_origin(scope, target):
+                        valid_targets.append(target)
+                except _R003ScopeError as error:
+                    errors.append(str(error))
+                    failed_closed = True
+                    break
+            if failed_closed:
                 continue
-            valid_targets = [
-                target
-                for source, target in edges
-                if source == usage_name and _resolves_to_valid_origin(target)
-            ]
             if not valid_targets:
                 errors.append(
                     f"[SP6] {slice_path.name}: requirement usage '{usage_name}' "

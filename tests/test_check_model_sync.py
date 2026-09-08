@@ -136,12 +136,15 @@ _SP6_KERNEL = """package K {
   requirement def ConcreteNeed :> StakeholderNeedCandidate { doc /* specialization */ }
   requirement def ConcreteReg :> RegulatoryConstraintCandidate { doc /* specialization */ }
   part def ConcreteAdr :> ArchitectureDecisionRecord { doc /* specialization */ }
+  requirement def FunctionalRequirementCandidate { doc /* requirement base */ }
+  part def DeferredProductLineScope { doc /* unrelated base */ }
 }
 """
 
 
 def _sp6_slice(dep_lines: str, extra_usages: str = "") -> str:
     return f"""package S {{
+  private import K::*;
   requirement reqDesignInput : FunctionalRequirementCandidate {{
     doc /* design-input requirement under test */
   }}
@@ -265,6 +268,7 @@ def test_need_and_problem_statement_usages_are_out_of_scope(tmp_path: Path):
     the problem statement are not design-input requirements and must not
     require outgoing derivation links."""
     slice_text = """package S {
+  private import K::*;
   requirement needSomething : ConcreteNeed {
     doc /* need usage without derivation; excluded semantically */
   }
@@ -274,6 +278,120 @@ def test_need_and_problem_statement_usages_are_out_of_scope(tmp_path: Path):
 }
 """
     errors = _sp6_scenario(slice_text, _SP6_KERNEL, tmp_path)
+    assert errors == [], errors
+
+
+
+
+# ---------------------------------------------------------------------------
+# SP6 adversarial: qualified identity, population integrity, semantic
+# exclusions (PR #220 review findings R220-1/2/3)
+# ---------------------------------------------------------------------------
+
+_SP6_KERNEL_TWO_SCOPES = """package K {
+  requirement def StakeholderNeedCandidate { doc /* need grounding */ }
+  requirement def RegulatoryConstraintCandidate { doc /* regulatory grounding */ }
+  part def ArchitectureDecisionRecord { doc /* ADR grounding */ }
+  requirement def ConcreteNeed :> StakeholderNeedCandidate { doc /* specialization */ }
+  requirement def ConcreteReg :> RegulatoryConstraintCandidate { doc /* specialization */ }
+  part def ConcreteAdr :> ArchitectureDecisionRecord { doc /* specialization */ }
+  requirement def FunctionalRequirementCandidate { doc /* requirement base */ }
+  part def DeferredProductLineScope { doc /* unrelated base */ }
+  requirement def ProblemStatement { doc /* kernel problem statement */ }
+}
+package Good {
+  private import K::*;
+  requirement origin : ConcreteNeed { doc /* the VALID Need homonym */ }
+}
+package Bad {
+  private import K::*;
+  part origin : DeferredProductLineScope { doc /* the INVALID homonym */ }
+}
+"""
+
+
+def test_r003_qualified_invalid_target_does_not_borrow_homonym(tmp_path: Path):
+    """Bad::origin (unrelated part) must not borrow Good::origin's Need type."""
+    slice_text = """package S {
+  private import K::*;
+  requirement reqDesignInput : FunctionalRequirementCandidate { doc /* under test */ }
+  dependency d1 from reqDesignInput to Bad::origin;
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL_TWO_SCOPES, tmp_path)
+    assert _sp6_flagged(errors, "reqDesignInput"), errors
+
+
+def test_r003_qualified_valid_adr_target_passes(tmp_path: Path):
+    """A qualified valid origin usage (K::ArchitectureDecisionRecord typed)
+    satisfies R003 — the reverse failure of the homonym case."""
+    slice_text = """package S {
+  private import K::*;
+  requirement reqDesignInput : FunctionalRequirementCandidate { doc /* under test */ }
+  part adrOrigin : ArchitectureDecisionRecord { doc /* valid origin usage */ }
+  dependency d1 from reqDesignInput to adrOrigin;
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL_TWO_SCOPES, tmp_path)
+    assert errors == [], errors
+
+
+def test_r003_qualified_type_requirement_stays_governed(tmp_path: Path):
+    """A requirement with a qualified type and no derivation must FAIL — the
+    qualified form may not silently leave the governed population."""
+    slice_text = """package S {
+  private import K::*;
+  requirement reqDesignInput : K::FunctionalRequirementCandidate { doc /* qualified type */ }
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL_TWO_SCOPES, tmp_path)
+    assert _sp6_flagged(errors, "reqDesignInput"), errors
+
+
+def test_r003_semicolon_form_requirement_stays_governed(tmp_path: Path):
+    """A semicolon-terminated requirement usage stays governed."""
+    slice_text = """package S {
+  private import K::*;
+  requirement reqDesignInput : FunctionalRequirementCandidate;
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL_TWO_SCOPES, tmp_path)
+    assert _sp6_flagged(errors, "reqDesignInput"), errors
+
+
+def test_r003_unrelated_problem_statement_suffix_not_excluded(tmp_path: Path):
+    """FakeProblemStatement specializes a design-input requirement, not the
+    kernel ProblemStatement; the suffix alone must NOT exclude it."""
+    kernel_text = _SP6_KERNEL_TWO_SCOPES + """package Impostor {
+  private import K::*;
+  requirement def FakeProblemStatement :> FunctionalRequirementCandidate { doc /* suffix trick */ }
+}
+"""
+    slice_text = """package S {
+  private import K::*;
+  private import Impostor::*;
+  requirement reqDesignInput : FakeProblemStatement { doc /* no derivation */ }
+}
+"""
+    errors = _sp6_scenario(slice_text, kernel_text, tmp_path)
+    assert _sp6_flagged(errors, "reqDesignInput"), errors
+
+
+def test_r003_true_problem_statement_specialization_excluded(tmp_path: Path):
+    """A usage typed by a true ProblemStatement specialization is framing
+    vocabulary and stays out of the design-input population."""
+    kernel_text = _SP6_KERNEL_TWO_SCOPES + """package Framing {
+  private import K::*;
+  requirement def ReviewFramingStatement :> ProblemStatement { doc /* true specialization */ }
+}
+"""
+    slice_text = """package S {
+  private import K::*;
+  private import Framing::*;
+  requirement framingStatement : ReviewFramingStatement { doc /* no derivation needed */ }
+}
+"""
+    errors = _sp6_scenario(slice_text, kernel_text, tmp_path)
     assert errors == [], errors
 
 
