@@ -528,6 +528,7 @@ def _docs_page_html(repo_root: Path, md_rel: str, title: str, fallback: str) -> 
         "<link rel=\"stylesheet\" href=\"assets/viewer.css\">\n"
         "<link rel=\"stylesheet\" href=\"assets/carbon.css\">\n"
         "<script src=\"assets/theme.js\"></script>\n"
+        "<script src=\"assets/viewer.js\"></script>\n"
         "</head>\n<body class=\"help-page\">\n"
         "<header class=\"help-header\">\n"
         "<a class=\"help-back\" href=\"index.html\">← DE4SDV Model Viewer</a>\n"

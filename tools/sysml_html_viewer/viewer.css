@@ -908,6 +908,220 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
 .ask-model-line:empty, .ask-alts:empty { display: none; }
 .ask-alts { overflow-wrap: anywhere; }
 
+/* ---- DE4SDV Guide: floating repository chatbot (all viewer pages) ----
+ * Same visual language as the ask-model panel (tokens, radius, shadows);
+ * a separate capability with its own namespace. Collapsed by default:
+ * the FAB is the collapsed form, .guide-panel.open the expanded one. */
+.guide-fab {
+  position: fixed;
+  z-index: 4100; /* under the ask-panel (4200), above tooltips */
+  right: 18px;
+  bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 9px 16px;
+  cursor: pointer;
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16);
+}
+.guide-fab:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.guide-panel {
+  position: fixed;
+  z-index: 4100;
+  right: 18px;
+  bottom: 18px;
+  width: min(430px, calc(100vw - 36px));
+  height: min(560px, calc(100vh - 90px));
+  display: none;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 34px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+}
+.guide-panel.open { display: flex; }
+.guide-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.guide-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+.guide-cap {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--accent-soft);
+  border-radius: 4px;
+  padding: 1px 6px;
+  cursor: help;
+}
+.guide-clear,
+.guide-min {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.guide-clear { margin-left: auto; }
+.guide-min { font-size: 15px; line-height: 1; }
+.guide-clear:hover, .guide-min:hover { color: var(--ink); }
+.guide-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.guide-msg {
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  max-width: 92%;
+}
+.guide-msg-user {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px 10px 3px 10px;
+  padding: 7px 10px;
+  white-space: pre-wrap;
+}
+.guide-msg-guide {
+  align-self: flex-start;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px 10px 10px 3px;
+  padding: 7px 10px;
+}
+.guide-msg-guide p { margin: 0 0 8px; }
+.guide-msg-guide p:last-child { margin-bottom: 0; }
+.guide-msg-guide ul, .guide-msg-guide ol { margin: 2px 0 8px; padding-left: 20px; }
+.guide-msg-guide code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+.guide-status { color: var(--muted); font-size: 12px; }
+.guide-intro { background: var(--accent-soft); }
+.guide-starter {
+  align-self: flex-start;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.guide-starter:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.guide-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  font-size: 11px;
+}
+.guide-sources-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-size: 10px;
+}
+.guide-source {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.guide-source:hover { text-decoration: underline; }
+.guide-source:not([href]) { color: var(--muted); cursor: default; }
+.guide-sha {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+.guide-foot {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.guide-input {
+  flex: 1;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  resize: none;
+}
+.guide-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--panel);
+}
+.guide-send {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.guide-send:hover { filter: brightness(1.08); }
+@media (max-width: 640px) {
+  .guide-fab { right: 12px; bottom: 12px; padding: 8px 13px; }
+  .guide-panel {
+    right: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+    height: min(70vh, 520px);
+  }
+}
+
 /* return path note after arriving via the uses-menu */
 .origin-note {
   margin-left: auto;

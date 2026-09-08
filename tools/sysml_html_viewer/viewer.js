@@ -158,6 +158,305 @@
     }
   }
 
+  /* ---- DE4SDV Guide: floating repository chatbot (all viewer pages) ----
+   * Separate from "Ask the model": repository/documentation assistant,
+   * grounded in the checked-out Git repository via /api/repo-chat.
+   * Never routes through the Systems Modeling API, never falls back to
+   * Ask the model, and states that boundary in its intro. Conversation
+   * and collapsed/expanded state persist client-side (localStorage). */
+  var GUIDE_STORAGE_KEY = 'de4sdv-guide-state';
+
+  function guideLoadState() {
+    try {
+      var st = JSON.parse(
+        window.localStorage.getItem(GUIDE_STORAGE_KEY) || 'null'
+      );
+      if (st && typeof st === 'object' && Array.isArray(st.messages)) {
+        return st;
+      }
+    } catch (err) {}
+    return { open: false, messages: [] };
+  }
+
+  function guideSaveState(state) {
+    try {
+      window.localStorage.setItem(
+        GUIDE_STORAGE_KEY, JSON.stringify(state)
+      );
+    } catch (err) { /* file:// or private mode: no persistence */ }
+  }
+
+  function initRepoGuide() {
+    if (document.getElementById('guideFab')) return;
+
+    var state = guideLoadState();
+
+    /* floating action button (the collapsed form, bottom-right) */
+    var fab = document.createElement('button');
+    fab.type = 'button';
+    fab.id = 'guideFab';
+    fab.className = 'guide-fab';
+    fab.setAttribute('aria-label', 'Open the DE4SDV Guide chat');
+    fab.title = 'DE4SDV Guide \u2014 repository & documentation assistant';
+    var fabIcon = document.createElement('span');
+    fabIcon.className = 'guide-fab-icon';
+    fabIcon.textContent = '\u{1F4AC}';
+    fabIcon.setAttribute('aria-hidden', 'true');
+    var fabLabel = document.createElement('span');
+    fabLabel.textContent = 'Guide';
+    fab.appendChild(fabIcon);
+    fab.appendChild(fabLabel);
+
+    /* panel (the expanded form) */
+    var panel = document.createElement('div');
+    panel.className = 'guide-panel';
+    panel.id = 'guidePanel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'DE4SDV Guide');
+
+    var head = document.createElement('div');
+    head.className = 'guide-head';
+    var title = document.createElement('span');
+    title.className = 'guide-title';
+    title.textContent = 'DE4SDV Guide';
+    var cap = document.createElement('span');
+    cap.className = 'guide-cap';
+    cap.textContent = 'repo assistant';
+    cap.title = 'Generated answers grounded in the checked-out Git '
+      + 'repository. Not an engineering or model authority; no '
+      + 'Systems Modeling API queries. For a model element, '
+      + 'right-click it and use Ask the model.';
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'guide-clear';
+    clearBtn.textContent = 'New chat';
+    clearBtn.title = 'Clear the conversation';
+    var minBtn = document.createElement('button');
+    minBtn.type = 'button';
+    minBtn.className = 'guide-min';
+    minBtn.textContent = '\u2212';
+    minBtn.setAttribute('aria-label', 'Minimize the DE4SDV Guide');
+    minBtn.title = 'Minimize';
+    head.appendChild(title);
+    head.appendChild(cap);
+    head.appendChild(clearBtn);
+    head.appendChild(minBtn);
+
+    var body = document.createElement('div');
+    body.className = 'guide-body';
+    body.id = 'guideBody';
+
+    var foot = document.createElement('div');
+    foot.className = 'guide-foot';
+    var input = document.createElement('textarea');
+    input.className = 'guide-input';
+    input.id = 'guideInput';
+    input.placeholder = 'Ask about the repository, docs, workflow\u2026';
+    input.rows = 2;
+    input.setAttribute('aria-label', 'Ask the DE4SDV Guide');
+    var sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'guide-send';
+    sendBtn.textContent = 'Send';
+    foot.appendChild(input);
+    foot.appendChild(sendBtn);
+
+    panel.appendChild(head);
+    panel.appendChild(body);
+    panel.appendChild(foot);
+
+    document.body.appendChild(fab);
+    document.body.appendChild(panel);
+
+    var els = { body: body, input: input };
+
+    /* --- rendering (untrusted model output never reaches innerHTML) --- */
+    function guideSourcesBlock(answer, sources, sha) {
+      var wrap = document.createElement('div');
+      wrap.className = 'guide-sources';
+      var label = document.createElement('span');
+      label.className = 'guide-sources-label';
+      label.textContent = 'sources';
+      wrap.appendChild(label);
+      (sources || []).forEach(function (s) {
+        var a = document.createElement('a');
+        a.className = 'guide-source';
+        var ref = s.path + ':' + s.start + '-' + s.end;
+        if (s.github_url) {
+          a.href = s.github_url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.title = 'Open ' + ref + ' on GitHub at the deployed revision';
+        } else {
+          a.title = 'Repository source ' + ref;
+        }
+        a.textContent = ref;
+        wrap.appendChild(a);
+      });
+      if (sha) {
+        var pinned = document.createElement('span');
+        pinned.className = 'guide-sha';
+        pinned.title = 'Source links are pinned to the deployed '
+          + 'application revision';
+        pinned.textContent = '@ ' + sha.slice(0, 7);
+        wrap.appendChild(pinned);
+      }
+      return wrap;
+    }
+
+    function guideAppendUser(text) {
+      var b = document.createElement('div');
+      b.className = 'guide-msg guide-msg-user';
+      b.textContent = text;
+      els.body.appendChild(b);
+      els.body.scrollTop = els.body.scrollHeight;
+    }
+
+    function guideAppendStarter(text) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'guide-starter';
+      b.textContent = text;
+      b.addEventListener('click', function () {
+        b.remove();
+        guideSubmit(text);
+      });
+      els.body.appendChild(b);
+    }
+
+    function guidePendingBubble() {
+      var b = document.createElement('div');
+      b.className = 'guide-msg guide-msg-guide';
+      var st = document.createElement('span');
+      st.className = 'guide-status';
+      st.textContent = 'Searching the repository\u2026';
+      b.appendChild(st);
+      els.body.appendChild(b);
+      els.body.scrollTop = els.body.scrollHeight;
+      return b;
+    }
+
+    function guideRemoveStarterButtons() {
+      Array.prototype.slice.call(
+        els.body.querySelectorAll('.guide-starter')
+      ).forEach(function (b) { b.remove(); });
+    }
+
+    function guideSubmit(text) {
+      var q = String(text || '').trim();
+      if (!q) return;
+      guideRemoveStarterButtons();
+      guideAppendUser(q);
+      state.messages.push({ role: 'user', text: q });
+      guideSaveState(state);
+      var bubble = guidePendingBubble();
+      input.value = '';
+      fetch('/api/repo-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q })
+      }).then(function (r) {
+        return r.json().then(function (data) {
+          return { ok: r.ok, data: data };
+        });
+      }).then(function (res) {
+        bubble.remove();
+        var b = document.createElement('div');
+        b.className = 'guide-msg guide-msg-guide';
+        renderAskAnswer(b, res.data.error
+          ? res.data.error
+          : (res.data.answer || '(empty answer)'));
+        if (res.data.sources && res.data.sources.length) {
+          b.appendChild(guideSourcesBlock(
+            res.data.answer, res.data.sources, res.data.git_sha
+          ));
+        }
+        els.body.appendChild(b);
+        state.messages.push({
+          role: 'guide',
+          text: res.data.answer || res.data.error || '',
+          sources: res.data.sources || [],
+          sha: res.data.git_sha || ''
+        });
+        guideSaveState(state);
+        els.body.scrollTop = els.body.scrollHeight;
+      }).catch(function (err) {
+        bubble.remove();
+        var b = document.createElement('div');
+        b.className = 'guide-msg guide-msg-guide';
+        renderAskAnswer(b, 'DE4SDV Guide request failed: ' + err);
+        els.body.appendChild(b);
+        els.body.scrollTop = els.body.scrollHeight;
+      });
+    }
+
+    function guideReplay() {
+      els.body.textContent = '';
+      if (state.messages.length) {
+        state.messages.forEach(function (m) {
+          if (m.role === 'user') {
+            guideAppendUser(m.text);
+            return;
+          }
+          var b = document.createElement('div');
+          b.className = 'guide-msg guide-msg-guide';
+          renderAskAnswer(b, m.text || '');
+          if (m.sources && m.sources.length) {
+            b.appendChild(guideSourcesBlock(
+              m.text, m.sources, m.sha
+            ));
+          }
+          els.body.appendChild(b);
+        });
+      } else {
+        var intro = document.createElement('div');
+        intro.className = 'guide-msg guide-msg-guide guide-intro';
+        renderAskAnswer(intro,
+          'I can help you understand the DE4SDV repository, '
+          + 'architecture, documentation and contribution workflow. '
+          + 'Answers are generated from the checked-out Git repository '
+          + '\u2014 not from the Systems Modeling API. For a specific '
+          + 'model element, right-click it and use Ask the model.');
+        els.body.appendChild(intro);
+        ['What is DE4SDV and where do I start?',
+         'How do I contribute to the repository?',
+         'Where are the architecture decision records (ADRs)?',
+         'How is the SysML v2 model organized?',
+         'What does the public deployment stack look like?'
+        ].forEach(guideAppendStarter);
+      }
+      els.body.scrollTop = els.body.scrollHeight;
+    }
+
+    function applyOpen(open) {
+      state.open = !!open;
+      panel.classList.toggle('open', state.open);
+      fab.style.display = state.open ? 'none' : '';
+      guideSaveState(state);
+      if (state.open) input.focus();
+    }
+
+    fab.addEventListener('click', function () { applyOpen(true); });
+    minBtn.addEventListener('click', function () { applyOpen(false); });
+    clearBtn.addEventListener('click', function () {
+      state.messages = [];
+      guideSaveState(state);
+      guideReplay();
+    });
+    sendBtn.addEventListener('click', function () {
+      guideSubmit(input.value);
+    });
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && !ev.shiftKey) {
+        ev.preventDefault();
+        guideSubmit(input.value);
+      }
+    });
+
+    guideReplay();
+    applyOpen(state.open);
+  }
+
   function hasContextMenuItems(uses, ask, serverEnabled) {
     return Boolean((uses && uses.length) || (ask && serverEnabled));
   }
@@ -791,6 +1090,7 @@
     initUsesMenu();
     initTreeSearch();
     initRequirements();
+    initRepoGuide();
     flashTarget();
     highlightFromUses();
     window.addEventListener('hashchange', function () {
