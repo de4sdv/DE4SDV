@@ -25,8 +25,8 @@
   <path d="M 728,88 H 1086 V 124 H 728 V 88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 28,436 H 383 V 472 H 28 V 436 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <polyline points="402,472 838,472" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="402,626 838,626" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="402,720 838,720" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="402,866 838,866" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="402,960 838,960" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 402,436 H 838 V 1209 H 402 V 436 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="387,124 708,124" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="387,194 708,194" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -64,53 +64,53 @@
   <text x="410" y="594" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">and the AEBS physical software realization. It makes the traceability</tspan></text>
   <text x="410" y="606" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">from physical sensors through ROS 2 topics to the AEB node visible</tspan></text>
   <text x="410" y="618" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">in a single product-level view.</tspan></text>
-  <text x="620" y="636.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">parts</tspan></text>
-  <text x="410" y="652" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">platformStack : SDVPlatformStack</tspan></text>
-  <text x="410" y="664" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">sensingAssembly : VehicleSensingAssembly</tspan></text>
-  <text x="410" y="676" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">aebsSoftware : VehicleTargetAEBSPhysicalSoftwareBoundary</tspan></text>
-  <text x="410" y="688" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">aebsLogicalSystem : VehicleTargetAEBSSystem</tspan></text>
-  <text x="410" y="700" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^system</tspan></text>
-  <text x="410" y="712" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^physicalSoftware</tspan></text>
-  <text x="620" y="730.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">features</tspan></text>
-  <text x="410" y="746" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Platform stack — shared-asset superset. Variant selections are</tspan></text>
-  <text x="410" y="758" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">resolved in the generated projection</tspan></text>
-  <text x="410" y="770" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(aebs_autoware_linux_lidar_camera.sysml).</tspan></text>
-  <text x="410" y="782" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Sensing boundary — common motion sensors + selected perception sensors.</tspan></text>
-  <text x="410" y="794" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AEBS physical software — the Autoware AEB node and its required boundaries.</tspan></text>
-  <text x="410" y="806" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AEBS logical system — the technology-neutral logical architecture.</tspan></text>
-  <text x="410" y="818" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Product-level traceability: sensing assembly resides in the hardware</tspan></text>
-  <text x="410" y="830" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">layer of the platform stack.</tspan></text>
-  <text x="410" y="842" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Product-level traceability: the AEB node's ROS 2 topic inputs trace</tspan></text>
-  <text x="410" y="854" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">back to sensors and the perception pipeline. Key links (declared in</tspan></text>
-  <text x="410" y="866" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_VehicleSensingBoundary, visible through import):</tspan></text>
-  <text x="410" y="878" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  LiDARSensorBoundary -&gt; PointCloud2Message (AEB node port pointCloudIn)</tspan></text>
-  <text x="410" y="890" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  IMUSensorBoundary -&gt; ImuMessage (AEB node port imuIn)</tspan></text>
-  <text x="410" y="902" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  WheelOdometrySensorBoundary -&gt; VelocityReportMessage (AEB node port velocityIn)</tspan></text>
-  <text x="410" y="914" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  PerceptionPipelineBoundary -&gt; PredictedObjectsMessage (AEB node port predictedObjectsIn)</tspan></text>
-  <text x="410" y="926" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Product-level traceability: the AEBS logical-to-physical allocation is</tspan></text>
-  <text x="410" y="938" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">declared in DE4SDV_AEBSPhysicalSoftwareRealization. The logical</tspan></text>
-  <text x="410" y="950" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">system's responsibilities are allocated to the AEB node with typed</tspan></text>
-  <text x="410" y="962" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">coverage records (available, partial, missing).</tspan></text>
-  <text x="410" y="974" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Canonical-architecture binding: the composite usages above are</tspan></text>
-  <text x="410" y="986" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">product-level instances, while the canonical allocation and evidence</tspan></text>
-  <text x="410" y="998" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">records bind the canonical usages</tspan></text>
-  <text x="410" y="1010" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_AEBSLogicalArchitecture::system and</tspan></text>
-  <text x="410" y="1022" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_AEBSPhysicalSoftwareRealization::physicalSoftware. The</tspan></text>
-  <text x="410" y="1034" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">explicit dependencies below record this product's instances as bound</tspan></text>
-  <text x="410" y="1046" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">to those canonical elements. These are model-native reference</tspan></text>
-  <text x="410" y="1058" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">dependencies only: no executable semantic query maps them yet, so</tspan></text>
-  <text x="410" y="1070" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reachability through the revision-bound API is not claimed by this</tspan></text>
-  <text x="410" y="1082" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">binding, and the composite does not own the canonical records.</tspan></text>
-  <text x="410" y="1094" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Bounded projection limitation (unchanged): importing the packages</tspan></text>
-  <text x="410" y="1106" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">does not transfer instance-level identity, and the explicit reference</tspan></text>
-  <text x="410" y="1118" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">dependencies do not restate the canonical allocations at product</tspan></text>
-  <text x="410" y="1130" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">level. Platform-stack variant selections are resolved only in the</tspan></text>
-  <text x="410" y="1142" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">generated projection (aebs_autoware_linux_lidar_camera.sysml), and</tspan></text>
-  <text x="410" y="1154" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">sensing-boundary perception-sensor selections live in the</tspan></text>
-  <text x="410" y="1166" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">bill-of-features, not in this composite. Product-level trace claims</tspan></text>
-  <text x="410" y="1178" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">must still cite the canonical allocation records; these dependencies</tspan></text>
-  <text x="410" y="1190" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">make the binding path explicit, they do not make this composite a</tspan></text>
-  <text x="410" y="1202" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">resolved configured product.</tspan></text>
+  <text x="410" y="630" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Canonical-architecture binding: the composite usages above are</tspan></text>
+  <text x="410" y="642" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">product-level instances, while the canonical allocation and evidence</tspan></text>
+  <text x="410" y="654" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">records bind the canonical usages</tspan></text>
+  <text x="410" y="666" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_AEBSLogicalArchitecture::system and</tspan></text>
+  <text x="410" y="678" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_AEBSPhysicalSoftwareRealization::physicalSoftware. The</tspan></text>
+  <text x="410" y="690" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">explicit dependencies below record this product's instances as bound</tspan></text>
+  <text x="410" y="702" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">to those canonical elements. These are model-native reference</tspan></text>
+  <text x="410" y="714" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">dependencies only: no executable semantic query maps them yet, so</tspan></text>
+  <text x="410" y="726" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reachability through the revision-bound API is not claimed by this</tspan></text>
+  <text x="410" y="738" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">binding, and the composite does not own the canonical records.</tspan></text>
+  <text x="410" y="750" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Bounded projection limitation (unchanged): importing the packages</tspan></text>
+  <text x="410" y="762" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">does not transfer instance-level identity, and the explicit reference</tspan></text>
+  <text x="410" y="774" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">dependencies do not restate the canonical allocations at product</tspan></text>
+  <text x="410" y="786" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">level. Platform-stack variant selections are resolved only in the</tspan></text>
+  <text x="410" y="798" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">generated projection (aebs_autoware_linux_lidar_camera.sysml), and</tspan></text>
+  <text x="410" y="810" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">sensing-boundary perception-sensor selections live in the</tspan></text>
+  <text x="410" y="822" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">bill-of-features, not in this composite. Product-level trace claims</tspan></text>
+  <text x="410" y="834" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">must still cite the canonical allocation records; these dependencies</tspan></text>
+  <text x="410" y="846" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">make the binding path explicit, they do not make this composite a</tspan></text>
+  <text x="410" y="858" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">resolved configured product.</tspan></text>
+  <text x="620" y="876.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">parts</tspan></text>
+  <text x="410" y="892" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">platformStack : SDVPlatformStack</tspan></text>
+  <text x="410" y="904" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">sensingAssembly : VehicleSensingAssembly</tspan></text>
+  <text x="410" y="916" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">aebsSoftware : VehicleTargetAEBSPhysicalSoftwareBoundary</tspan></text>
+  <text x="410" y="928" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">aebsLogicalSystem : VehicleTargetAEBSSystem</tspan></text>
+  <text x="410" y="940" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^system</tspan></text>
+  <text x="410" y="952" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^physicalSoftware</tspan></text>
+  <text x="620" y="970.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">features</tspan></text>
+  <text x="410" y="986" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Platform stack — shared-asset superset. Variant selections are</tspan></text>
+  <text x="410" y="998" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">resolved in the generated projection</tspan></text>
+  <text x="410" y="1010" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(aebs_autoware_linux_lidar_camera.sysml).</tspan></text>
+  <text x="410" y="1022" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Sensing boundary — common motion sensors + selected perception sensors.</tspan></text>
+  <text x="410" y="1034" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AEBS physical software — the Autoware AEB node and its required boundaries.</tspan></text>
+  <text x="410" y="1046" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AEBS logical system — the technology-neutral logical architecture.</tspan></text>
+  <text x="410" y="1058" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Product-level traceability: sensing assembly resides in the hardware</tspan></text>
+  <text x="410" y="1070" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">layer of the platform stack.</tspan></text>
+  <text x="410" y="1082" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Product-level traceability: the AEB node's ROS 2 topic inputs trace</tspan></text>
+  <text x="410" y="1094" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">back to sensors and the perception pipeline. Key links (declared in</tspan></text>
+  <text x="410" y="1106" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">DE4SDV_VehicleSensingBoundary, visible through import):</tspan></text>
+  <text x="410" y="1118" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  LiDARSensorBoundary -&gt; PointCloud2Message (AEB node port pointCloudIn)</tspan></text>
+  <text x="410" y="1130" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  IMUSensorBoundary -&gt; ImuMessage (AEB node port imuIn)</tspan></text>
+  <text x="410" y="1142" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  WheelOdometrySensorBoundary -&gt; VelocityReportMessage (AEB node port velocityIn)</tspan></text>
+  <text x="410" y="1154" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  PerceptionPipelineBoundary -&gt; PredictedObjectsMessage (AEB node port predictedObjectsIn)</tspan></text>
+  <text x="410" y="1166" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Product-level traceability: the AEBS logical-to-physical allocation is</tspan></text>
+  <text x="410" y="1178" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">declared in DE4SDV_AEBSPhysicalSoftwareRealization. The logical</tspan></text>
+  <text x="410" y="1190" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">system's responsibilities are allocated to the AEB node with typed</tspan></text>
+  <text x="410" y="1202" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">coverage records (available, partial, missing).</tspan></text>
   <text x="547.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="547.5" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">SDVPlatformStack</tspan></text>
   <text x="547.5" y="134.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
