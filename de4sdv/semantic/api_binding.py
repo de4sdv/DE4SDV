@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import Any
 
-from de4sdv.sysml_api.errors import AmbiguousIdentityError, IdentityNotFoundError
+from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import SysMLRepository, element_id
 
-from .identity_grounding import ground_kernel_declaration
+from .kernel_binding_index import KernelBindingIndex
 from .kernel_contract import (
     KernelContract,
     KernelFileMapping,
@@ -34,7 +33,14 @@ class OntologyClassBinding:
 
 
 class OntologyApiBinder:
-    """Resolve exact file/declaration mappings against one API revision."""
+    """Bind file-mapped ontology classes to API elements via validated UUIDs.
+
+    Identity is never re-derived at runtime: the revision binding carries
+    ingestion-validated kernel bindings (API type/name confirmed against
+    serializer-recorded source-document provenance), and this binder pins
+    those exact UUIDs against the bound API revision. A class without a
+    validated binding fails closed.
+    """
 
     def __init__(
         self,
@@ -43,11 +49,13 @@ class OntologyApiBinder:
         *,
         project_id: str,
         commit_id: str,
+        kernel_bindings: KernelBindingIndex | None = None,
     ) -> None:
         self.contract = contract
         self.repository = repository
         self.project_id = project_id
         self.commit_id = commit_id
+        self.kernel_bindings = kernel_bindings
         self._elements: list[dict[str, Any]] | None = None
         self._by_id_cache: dict[str, dict[str, Any]] | None = None
 
@@ -69,15 +77,26 @@ class OntologyApiBinder:
 
     def bind_class(self, ontology_class: str) -> OntologyClassBinding:
         kernel = self.contract.class_mapping(ontology_class)
-        name, expected_type = declaration_identity(kernel.declaration)
-        # Grounding is by governed source location, not type+name: any
-        # package can declare the same short name, so the candidate must be
-        # owned through the exact package path parsed from the kernel file.
-        candidate = ground_kernel_declaration(kernel, self._by_id())
-        candidate_id = element_id(candidate)
-        if candidate_id is None:
+        _, expected_type = declaration_identity(kernel.declaration)
+        if self.kernel_bindings is None:
             raise IdentityNotFoundError(
-                f"resolved {ontology_class} element has no API identifier"
+                f"no validated kernel binding index is available; ontology class "
+                f"{ontology_class!r} cannot be resolved without ingestion-validated "
+                f"binding metadata"
+            )
+        # Runtime identity comes exclusively from ingestion-validated
+        # binding metadata: no name matching, no source-text parsing.
+        candidate_id = self.kernel_bindings.element_id_for(
+            ontology_class, self._by_id()
+        )
+        candidate = self._by_id()[candidate_id]
+        actual_type = str(candidate.get("@type"))
+        if actual_type != expected_type:
+            raise IdentityNotFoundError(
+                f"validated binding for {ontology_class!r} points at element "
+                f"{candidate_id!r} of type {actual_type!r}, contradicting "
+                f"governed declaration {kernel.declaration!r} "
+                f"(expected {expected_type})"
             )
         return OntologyClassBinding(
             ontology_class=ontology_class,
@@ -86,7 +105,7 @@ class OntologyApiBinder:
                 project_id=self.project_id,
                 commit_id=self.commit_id,
                 element_id=candidate_id,
-                type=str(candidate["@type"]),
+                type=actual_type,
                 qualified_name=(
                     str(candidate["qualifiedName"])
                     if candidate.get("qualifiedName") is not None

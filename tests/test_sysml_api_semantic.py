@@ -195,12 +195,46 @@ def test_identity_resolution_never_silently_selects_an_ambiguous_name() -> None:
         resolve_identity("reqX", elements)
 
 
+def _semantic_binding_dict(kernel_bindings=None):
+    base = {
+        "git_repository": "de4sdv/DE4SDV",
+        "git_commit": "a" * 40,
+        "sysml_project_id": "project-1",
+        "sysml_commit_id": "commit-1",
+        "import_timestamp": "2026-08-31T00:00:00Z",
+        "import_tool_version": "de4sdv-semantic-fixture/1",
+        "semantic_validation": "passed",
+        "ontology": ontology_identity(),
+    }
+    if kernel_bindings is not None:
+        base["kernel_bindings"] = kernel_bindings
+    return base
+
+
+def _requirement_kernel_bindings(element_id: str = "kernel-requirement"):
+    from de4sdv.sysml_api.revisions import KernelElementBinding
+
+    return [
+        KernelElementBinding(
+            ontology_class="Requirement",
+            element_id=element_id,
+            source_file=(
+                "textual-notation-of-model/packages/methods/de4sdv/"
+                "de4sdv_method_context.sysml"
+            ),
+            declaration="requirement def RequirementCandidate",
+        )
+    ]
+
+
 def test_ontology_requirement_binds_through_exact_kernel_mapping_to_api_uuid(
     api_server: tuple[str, type[_ApiHandler]],
 ) -> None:
     from de4sdv.semantic.api_binding import OntologyApiBinder
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
     from de4sdv.semantic.kernel_contract import KernelContract
     from de4sdv.sysml_api.client import ApiClient
+    from de4sdv.sysml_api.revisions import RevisionBinding
     from de4sdv.sysml_api.repository import SysMLRepository
 
     contract = KernelContract.load(
@@ -225,11 +259,20 @@ def test_ontology_requirement_binds_through_exact_kernel_mapping_to_api_uuid(
             {},
         )
     }
+    from dataclasses import replace as _dc_replace
+
+    index = KernelBindingIndex.from_binding(
+        _dc_replace(
+            RevisionBinding.from_dict(_semantic_binding_dict()),
+            kernel_bindings=tuple(_requirement_kernel_bindings("kernel-requirement-uuid")),
+        )
+    )
     binder = OntologyApiBinder(
         contract,
         SysMLRepository(ApiClient(base_url)),
         project_id="project-1",
         commit_id="commit-1",
+        kernel_bindings=index,
     )
 
     binding = binder.bind_class("Requirement")
@@ -398,6 +441,28 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
         ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
     )
     repository = SysMLRepository(ApiClient(base_url))
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+
+    kernel_bindings = [
+        {
+            "ontology_class": "Requirement",
+            "element_id": "kernel-requirement",
+            "source_file": (
+                "textual-notation-of-model/packages/methods/de4sdv/"
+                "de4sdv_method_context.sysml"
+            ),
+            "declaration": "requirement def RequirementCandidate",
+        },
+        {
+            "ontology_class": "MemberProduct",
+            "element_id": "kernel-member-product",
+            "source_file": (
+                "textual-notation-of-model/packages/methods/de4sdv/"
+                "de4sdv_product_line.sysml"
+            ),
+            "declaration": "part def ProductLineMemberProduct",
+        },
+    ]
     binding = RevisionBinding.from_dict(
         {
             "git_repository": "de4sdv/DE4SDV",
@@ -409,16 +474,19 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "semantic_validation": "passed",
             "scope": "AEBS impact pilot",
             "ontology": contract.identity.to_dict(),
+            "kernel_bindings": kernel_bindings,
         }
     )
+    index = KernelBindingIndex.from_binding(binding)
     service = ImpactService(
         repository=repository,
         binding=binding,
         contract=contract,
         binder=OntologyApiBinder(
-            contract, repository, project_id="project-1", commit_id="commit-1"
+            contract, repository, project_id="project-1", commit_id="commit-1",
+            kernel_bindings=index,
         ),
-        traversal=SemanticTraversal(contract),
+        traversal=SemanticTraversal(contract, kernel_bindings=index),
     )
 
     result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)

@@ -162,15 +162,39 @@ def semantic_service():
             "semantic_validation": "passed",
             "scope": "fixture",
             "ontology": ontology_identity(),
+            "kernel_bindings": [
+                {
+                    "ontology_class": "Requirement",
+                    "element_id": "kernel-requirement",
+                    "source_file": (
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_method_context.sysml"
+                    ),
+                    "declaration": "requirement def RequirementCandidate",
+                },
+                {
+                    "ontology_class": "MemberProduct",
+                    "element_id": "kernel-member-product",
+                    "source_file": (
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_product_line.sysml"
+                    ),
+                    "declaration": "part def ProductLineMemberProduct",
+                },
+            ],
         }
     )
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+
+    kernel_index = KernelBindingIndex.from_binding(binding)
     binder = OntologyApiBinder(
         contract,
         repository,  # type: ignore[arg-type]
         project_id="project-1",
         commit_id="commit-1",
+        kernel_bindings=kernel_index,
     )
-    traversal = SemanticTraversal(contract)
+    traversal = SemanticTraversal(contract, kernel_bindings=kernel_index)
     impact = ImpactService(
         repository=repository,  # type: ignore[arg-type]
         binding=binding,

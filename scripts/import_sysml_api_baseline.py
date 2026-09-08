@@ -21,7 +21,7 @@ from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
 from de4sdv.sysml_api.repository import SysMLRepository
-from de4sdv.sysml_api.revisions import RevisionBinding
+from de4sdv.sysml_api.revisions import KernelElementBinding, RevisionBinding
 
 
 def _git_head() -> str:
@@ -69,6 +69,22 @@ def run_import(
         ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
     )
     ontology = validate_ontology_bindings(contract, elements, bundle.element_sources)
+    # Persist the ingestion-validated kernel identities: each file-mapped
+    # ontology class whose binding resolved to exactly one API UUID carries
+    # that UUID, its serializer-recorded source file, and the governed
+    # declaration into the revision binding. Runtime consumers read these
+    # bindings instead of re-deriving identity from element names or
+    # SysML source text.
+    kernel_bindings = [
+        {
+            "ontology_class": entry.ontology_class,
+            "element_id": entry.element_ids[0],
+            "source_file": entry.mapping["file"],
+            "declaration": entry.mapping["declaration"],
+        }
+        for entry in ontology.entries
+        if entry.status == "mapped" and len(entry.element_ids) == 1
+    ]
     report = {
         "schema": "de4sdv-full-model-semantic-validation/v1",
         "git_commit": head,
@@ -100,6 +116,9 @@ def run_import(
         semantic_validation="passed",
         ontology=contract.identity,
         scope="full-model",
+        kernel_bindings=tuple(
+            KernelElementBinding.from_dict(item) for item in kernel_bindings
+        ),
     )
     _write_json(binding_path, binding.to_dict())
     return {

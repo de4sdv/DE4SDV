@@ -5,11 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from de4sdv.sysml_api.errors import AmbiguousIdentityError, IdentityNotFoundError
+from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
-from .api_binding import declaration_identity
-from .identity_grounding import ground_kernel_declaration
+from .kernel_binding_index import KernelBindingIndex
 from .kernel_contract import KernelContract, RelationshipMapping
 
 
@@ -26,8 +25,13 @@ class TraversalHop:
 class SemanticTraversal:
     """Execute only explicitly configured ontology relationship strategies."""
 
-    def __init__(self, contract: KernelContract) -> None:
+    def __init__(
+        self,
+        contract: KernelContract,
+        kernel_bindings: KernelBindingIndex | None = None,
+    ) -> None:
         self.contract = contract
+        self.kernel_bindings = kernel_bindings
 
     def traverse(
         self,
@@ -147,24 +151,35 @@ class SemanticTraversal:
         """Return elements in the specialization lineage of one kernel class.
 
         ``root_class`` names an ONTOLOGY class (for example ``MemberProduct``).
-        The canonical SysML identity is resolved through the governed ontology
-        kernel mapping (``kernel.file``/``kernel.declaration``) using the same
-        type/name resolution contract as the API class binder: exactly one
-        ``<Kind>Definition`` element with the mapped declared name must match.
-        An unrelated same-named declaration in another package makes the
-        resolution ambiguous and fails closed instead of silently widening the
-        exclusion.
+        The canonical SysML identity is the UUID validated at ingestion time
+        and persisted in the revision binding's kernel bindings: the
+        ingestion-side ontology validation confirmed the API type/name
+        against the serializer-recorded source document. Runtime traversal
+        consumes that validated UUID against the API graph and never
+        re-derives identity from element names or SysML source text (ADR
+        0011: no custom textual parser, no source-derived runtime
+        semantics).
+
+        Behavior contract:
+
+        - canonical declaration present (+ any unrelated same-named
+          declarations elsewhere): the validated canonical element grounds
+          and homonyms cannot borrow the mapping;
+        - canonical declaration absent (binding UUID missing from the
+          revision, or ingestion never validated the class):
+          ``IdentityNotFoundError`` — fail closed even when unrelated
+          homonyms survive;
+        - more than one genuinely grounded canonical candidate is
+          unrepresentable in the binding schema and is rejected as
+          ambiguous at ingestion time.
 
         The result contains two populations, both excluded from incoming
         architecture traversal:
 
         - definitions in the transitive ``Subclassification`` lineage of the
-          resolved kernel definition (so specialized product definitions
+          validated kernel definition (so specialized product definitions
           cannot pose as architecture sources), and
         - usages whose ``FeatureTyping`` resolves to a lineage definition.
-
-        Unknown ontology classes fail closed with an error so a typo in the
-        ontology cannot silently disable the exclusion.
         """
         if not root_class:
             return set()
@@ -172,13 +187,14 @@ class SemanticTraversal:
             raise ValueError(
                 "exclude_source_specializations_of must be an ontology class name"
             )
-        kernel = self.contract.class_mapping(root_class)
-        # Grounding is by governed source location, not type+name: a
-        # same-named declaration in another package must never become the
-        # exclusion root, and a missing canonical root fails closed even
-        # when an unrelated homonym survives.
-        root_element = ground_kernel_declaration(kernel, by_id)
-        root_id = element_id(root_element)
+        self.contract.class_mapping(root_class)
+        if self.kernel_bindings is None:
+            raise IdentityNotFoundError(
+                f"no validated kernel binding index is available; exclusion root "
+                f"{root_class!r} cannot be resolved without ingestion-validated "
+                f"binding metadata"
+            )
+        root_id = self.kernel_bindings.element_id_for(root_class, by_id)
         # Single-pass Subclassification index: general -> specifics.
         specifics_by_general: dict[str, set[str]] = {}
         for element in by_id.values():

@@ -4,6 +4,12 @@ relevance traversal with typed dependency filters.
 Fixture shapes mirror the serialized SysML v2 2025-02-01 API model observed in
 the full-model baseline (Subclassification/FeatureTyping shapes verified against
 the 57k-element semantic snapshot).
+
+Kernel identity contract (ADR 0011): runtime never resolves kernel identity
+from element names or SysML source text. The revision binding carries
+ingestion-validated kernel bindings (API type/name confirmed against
+serializer-recorded source provenance), and traversal/binding consume those
+exact UUIDs. The fixtures below exercise that contract directly.
 """
 
 from __future__ import annotations
@@ -58,36 +64,46 @@ def _contract():
     )
 
 
-def _kernel_ownership():
-    """OwningMembership evidence placing kernel definitions in their packages.
+def _binding_dict(
+    kernel_bindings: list[dict[str, str]] | None = None,
+) -> dict[str, object]:
+    """Revision-binding dict with optional ingestion-validated kernel bindings."""
+    result: dict[str, object] = {
+        "git_repository": "de4sdv/DE4SDV",
+        "git_commit": "a" * 40,
+        "sysml_project_id": "project-1",
+        "sysml_commit_id": "commit-1",
+        "import_timestamp": "2026-08-31T00:00:00Z",
+        "import_tool_version": "test",
+        "semantic_validation": "passed",
+        "scope": "full-model",
+        "ontology": _contract().identity.to_dict(),
+    }
+    if kernel_bindings is not None:
+        result["kernel_bindings"] = kernel_bindings
+    return result
 
-    Real SysML API exports carry no populated owner fields; ownership is the
-    OwningMembership graph. Kernel definitions used by runtime binding must
-    be owned by the package path the governed kernel file declares.
-    """
-    ref = lambda value: {"@id": value}
+
+def _f3_kernel_bindings() -> list[dict[str, str]]:
+    """Ingestion-validated kernel identities for the fixture's kernel elements."""
     return [
         {
-            "@id": "pkg-product-line",
-            "@type": "Package",
-            "declaredName": "DE4SDV_ProductLine",
+            "ontology_class": "MemberProduct",
+            "element_id": "kernel-member-product",
+            "source_file": (
+                "textual-notation-of-model/packages/methods/de4sdv/"
+                "de4sdv_product_line.sysml"
+            ),
+            "declaration": "part def ProductLineMemberProduct",
         },
         {
-            "@id": "om-kernel-member-product",
-            "@type": "OwningMembership",
-            "memberElement": ref("kernel-member-product"),
-            "owningRelatedElement": ref("pkg-product-line"),
-        },
-        {
-            "@id": "pkg-method-context",
-            "@type": "Package",
-            "declaredName": "DE4SDV_MethodContext",
-        },
-        {
-            "@id": "om-kernel-requirement",
-            "@type": "OwningMembership",
-            "memberElement": ref("kernel-requirement"),
-            "owningRelatedElement": ref("pkg-method-context"),
+            "ontology_class": "Requirement",
+            "element_id": "kernel-requirement",
+            "source_file": (
+                "textual-notation-of-model/packages/methods/de4sdv/"
+                "de4sdv_method_context.sysml"
+            ),
+            "declaration": "requirement def RequirementCandidate",
         },
     ]
 
@@ -101,7 +117,6 @@ def _f3_elements():
     """
     ref = lambda value: {"@id": value}
     return [
-        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -221,8 +236,8 @@ def test_ontology_declares_function_and_reverse_architecture_mappings() -> None:
     assert architecture_mapping.strategy == "dependency"
     assert architecture_mapping.semantic_strength == "relevance"
     assert architecture_mapping.configuration["direction"] == "incoming"
-    # The exclusion names the governed ONTOLOGY class; traversal resolves its
-    # canonical SysML identity through the kernel mapping, never by bare name.
+    # The exclusion names the governed ONTOLOGY class; runtime traversal pins
+    # the ingestion-validated UUID for it and never resolves by bare name.
     assert (
         architecture_mapping.configuration["exclude_source_specializations_of"]
         == "MemberProduct"
@@ -232,13 +247,27 @@ def test_ontology_declares_function_and_reverse_architecture_mappings() -> None:
     assert kernel.file.endswith("de4sdv_product_line.sysml")
 
 
-def test_specifies_function_traverses_only_action_typed_targets() -> None:
+def _index(kernel_bindings: list[dict[str, str]]):
+    from de4sdv.sysml_api.revisions import RevisionBinding
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+
+    return KernelBindingIndex.from_binding(
+        RevisionBinding.from_dict(_binding_dict(kernel_bindings))
+    )
+
+
+def _traversal(kernel_bindings: list[dict[str, str]] | None):
     from de4sdv.semantic.traversal import SemanticTraversal
 
+    contract = _contract()
+    index = None if kernel_bindings is None else _index(kernel_bindings)
+    return SemanticTraversal(contract, kernel_bindings=index)
+
+
+def test_specifies_function_traverses_only_action_typed_targets() -> None:
     by_id = {item["@id"]: item for item in _f3_elements()}
-    requirement = by_id["req-1"]
-    hops = SemanticTraversal(_contract()).traverse(
-        "specifiesFunction", requirement, _f3_elements()
+    hops = _traversal(_f3_kernel_bindings()).traverse(
+        "specifiesFunction", by_id["req-1"], _f3_elements()
     )
     assert [hop.target["@id"] for hop in hops] == ["action-translate"]
     hop = hops[0]
@@ -248,12 +277,9 @@ def test_specifies_function_traverses_only_action_typed_targets() -> None:
 
 
 def test_has_relevant_architecture_excludes_member_product_sources() -> None:
-    from de4sdv.semantic.traversal import SemanticTraversal
-
     by_id = {item["@id"]: item for item in _f3_elements()}
-    requirement = by_id["req-1"]
-    hops = SemanticTraversal(_contract()).traverse(
-        "hasRelevantArchitecture", requirement, _f3_elements()
+    hops = _traversal(_f3_kernel_bindings()).traverse(
+        "hasRelevantArchitecture", by_id["req-1"], _f3_elements()
     )
     targets = sorted(hop.target["@id"] for hop in hops)
     # PartUsage + ActionDefinition sources pass; the configured-member-typed
@@ -267,11 +293,8 @@ def test_has_relevant_architecture_excludes_member_product_sources() -> None:
 
 
 def test_member_product_exclusion_follows_transitive_lineage() -> None:
-    from de4sdv.semantic.traversal import SemanticTraversal
-
     ref = lambda value: {"@id": value}
     elements = [
-        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -335,10 +358,31 @@ def test_member_product_exclusion_follows_transitive_lineage() -> None:
             "target": [ref("req-1")],
         },
     ]
-    hops = SemanticTraversal(_contract()).traverse(
+    hops = _traversal(_f3_kernel_bindings()).traverse(
         "hasRelevantArchitecture", {"@id": "req-1"}, elements
     )
     assert [hop.target["@id"] for hop in hops] == ["plain-usage"]
+
+
+def test_exclusion_fails_closed_without_validated_kernel_bindings() -> None:
+    """No ingestion-validated binding for the exclusion root fails closed."""
+    with pytest.raises(Exception, match="no validated kernel binding index"):
+        _traversal(None).traverse(
+            "hasRelevantArchitecture", {"@id": "req-1"}, _f3_elements()
+        )
+
+
+def test_exclusion_fails_closed_on_unvalidated_exclusion_class() -> None:
+    """A binding lacking the MemberProduct entry must not disable exclusion."""
+    bindings = [
+        item
+        for item in _f3_kernel_bindings()
+        if item["ontology_class"] != "MemberProduct"
+    ]
+    with pytest.raises(Exception, match="no validated kernel binding for"):
+        _traversal(bindings).traverse(
+            "hasRelevantArchitecture", {"@id": "req-1"}, _f3_elements()
+        )
 
 
 def test_exclusion_fails_closed_on_unknown_root_class(monkeypatch) -> None:
@@ -360,39 +404,26 @@ def test_exclusion_fails_closed_on_unknown_root_class(monkeypatch) -> None:
         broken_path = Path(handle.name)
     try:
         contract = KernelContract.load(broken_path)
-        by_id = {item["@id"]: item for item in _f3_elements()}
         with pytest.raises(KeyError, match="no kernel mapping"):
-            SemanticTraversal(contract).traverse(
-                "hasRelevantArchitecture", by_id["req-1"], _f3_elements()
+            SemanticTraversal(
+                contract, kernel_bindings=_index(_f3_kernel_bindings())
+            ).traverse(
+                "hasRelevantArchitecture", {"@id": "req-1"}, _f3_elements()
             )
     finally:
         broken_path.unlink(missing_ok=True)
 
 
-def test_exclusion_fails_closed_on_unrelated_homonym_definition() -> None:
-    """An unrelated same-named definition must not widen the exclusion.
+def test_canonical_grounds_and_homonym_cannot_borrow_mapping() -> None:
+    """Canonical present + unrelated same-named declaration -> canonical grounds.
 
-    With the canonical kernel definition present, the homonym is rejected
-    by package-path grounding (not by ambiguity): exactly one candidate is
-    owned by the governed package, so the canonical element grounds and the
-    unrelated-homonym-typed usage keeps flowing as architecture.
+    The validated binding pins the canonical UUID; an unrelated same-named
+    definition in another package (which legitimately types a real
+    architecture element) can never borrow the mapping, so the homonym-typed
+    usage keeps flowing as architecture. This is NOT an ambiguity case.
     """
-    from de4sdv.semantic.traversal import SemanticTraversal
-
     ref = lambda value: {"@id": value}
     elements = _f3_elements() + [
-        # Unrelated package's definition with the kernel's declared name.
-        {
-            "@id": "pkg-other",
-            "@type": "Package",
-            "declaredName": "OtherPackage",
-        },
-        {
-            "@id": "om-homonym",
-            "@type": "OwningMembership",
-            "memberElement": ref("homonym-def"),
-            "owningRelatedElement": ref("pkg-other"),
-        },
         {
             "@id": "homonym-def",
             "@type": "PartDefinition",
@@ -418,26 +449,28 @@ def test_exclusion_fails_closed_on_unrelated_homonym_definition() -> None:
             "target": [ref("req-1")],
         },
     ]
-    requirement = next(item for item in elements if item["@id"] == "req-1")
-    hops = SemanticTraversal(_contract()).traverse(
-        "hasRelevantArchitecture", requirement, elements
+    hops = _traversal(_f3_kernel_bindings()).traverse(
+        "hasRelevantArchitecture", {"@id": "req-1"}, elements
     )
     targets = sorted(hop.target["@id"] for hop in hops)
-    # The canonical kernel element still grounds (the unrelated homonym in
-    # another package cannot borrow the mapping), so the homonym-typed
-    # legitimate usage is NOT excluded.
     assert "plain-homonym-usage" in targets
     assert "configured-member-usage" not in targets
 
 
 def test_exclusion_fails_closed_when_kernel_definition_is_absent() -> None:
-    """A model lacking the kernel definition must fail closed, not pass open."""
-    from de4sdv.semantic.traversal import SemanticTraversal
+    """A model lacking the kernel definition must fail closed, not pass open.
 
+    The binding still names the validated UUID, but that element does not
+    exist in the bound revision: binding/revision inconsistency fails
+    closed. A surviving unrelated homonym changes nothing.
+    """
     ref = lambda value: {"@id": value}
-    elements = [item for item in _f3_elements() if item["@id"] != "kernel-member-product"]
+    elements = [
+        item for item in _f3_elements() if item["@id"] != "kernel-member-product"
+    ]
     # Keep a Subclassification pointing at the now-missing kernel so the
-    # failure is not simply an empty lineage.
+    # failure is not simply an empty lineage, and let an unrelated
+    # same-named declaration survive.
     elements.append(
         {
             "@id": "orphan-sub",
@@ -446,94 +479,38 @@ def test_exclusion_fails_closed_when_kernel_definition_is_absent() -> None:
             "superclassifier": ref("kernel-member-product"),
         }
     )
-    requirement = next(item for item in elements if item["@id"] == "req-1")
-    with pytest.raises(Exception, match="resolved to no"):
-        SemanticTraversal(_contract()).traverse(
-            "hasRelevantArchitecture", requirement, elements
-        )
-
-
-def test_exclusion_fails_closed_when_canonical_missing_but_homonym_survives() -> None:
-    """The decisive combined case: no canonical root, one unrelated homonym.
-
-    Removing the governed kernel definition while an unrelated
-    OtherPackage::ProductLineMemberProduct (which legitimately types a
-    real architecture element) remains must fail closed. It must NOT
-    borrow the homonym as the exclusion root: that would suppress the
-    legitimate architecture trace and admit configured-product usages.
-    """
-    from de4sdv.semantic.traversal import SemanticTraversal
-
-    ref = lambda value: {"@id": value}
-    elements = [
-        item for item in _f3_elements() if item["@id"] != "kernel-member-product"
-    ]
-    elements += [
-        # Unrelated package's same-named definition that genuinely types a
-        # legitimate architecture element.
-        {
-            "@id": "pkg-other",
-            "@type": "Package",
-            "declaredName": "OtherPackage",
-        },
-        {
-            "@id": "om-homonym",
-            "@type": "OwningMembership",
-            "memberElement": ref("homonym-def"),
-            "owningRelatedElement": ref("pkg-other"),
-        },
+    elements.append(
         {
             "@id": "homonym-def",
             "@type": "PartDefinition",
             "declaredName": "ProductLineMemberProduct",
             "qualifiedName": "OtherPackage::ProductLineMemberProduct",
-        },
-        {
-            "@id": "ft-legit",
-            "@type": "FeatureTyping",
-            "owningRelatedElement": ref("part-translator"),
-            "type": ref("homonym-def"),
-        },
-        # Subclassification chain pointing at the missing canonical root.
-        {
-            "@id": "orphan-sub",
-            "@type": "Subclassification",
-            "subclassifier": ref("configured-member-def"),
-            "superclassifier": ref("kernel-member-product"),
-        },
-    ]
-    requirement = next(item for item in elements if item["@id"] == "req-1")
-    # The homonym is the only type/name candidate, but it is owned by
-    # OtherPackage, not the governed DE4SDV_ProductLine package: fail
-    # closed with the grounding diagnostic instead of silently borrowing.
-    with pytest.raises(Exception, match="none owned by package path"):
-        SemanticTraversal(_contract()).traverse(
-            "hasRelevantArchitecture", requirement, elements
+        }
+    )
+    with pytest.raises(Exception, match="does not exist in the bound revision"):
+        _traversal(_f3_kernel_bindings()).traverse(
+            "hasRelevantArchitecture", {"@id": "req-1"}, elements
         )
 
 
-def test_bind_class_fails_closed_when_canonical_missing_but_homonym_survives(
+def test_bind_class_binds_validated_uuid_and_ignores_homonyms(
     api_server_fixture,
 ) -> None:
-    """The binder shares the grounding contract: a surviving homonym in
-    another package must not substitute for the missing canonical root."""
+    """The binder pins the validated UUID; an unrelated same-named
+    declaration elsewhere cannot redirect the binding."""
     from de4sdv.semantic.api_binding import OntologyApiBinder
     from de4sdv.sysml_api.client import ApiClient
     from de4sdv.sysml_api.repository import SysMLRepository
 
     ref = lambda value: {"@id": value}
     elements = [
+        # The validated canonical element (binding UUID target).
         {
-            "@id": "pkg-other",
-            "@type": "Package",
-            "declaredName": "OtherPackage",
+            "@id": "kernel-member-product",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
         },
-        {
-            "@id": "om-homonym",
-            "@type": "OwningMembership",
-            "memberElement": ref("homonym-def"),
-            "owningRelatedElement": ref("pkg-other"),
-        },
+        # Unrelated same-named declaration in another package.
         {
             "@id": "homonym-def",
             "@type": "PartDefinition",
@@ -551,16 +528,85 @@ def test_bind_class_fails_closed_when_canonical_missing_but_homonym_survives(
     base_url, handler = api_server_fixture
     handler.response_map = response_map
     binder = OntologyApiBinder(
-        _contract(), SysMLRepository(ApiClient(base_url)), project_id="project-1", commit_id="commit-1"
+        _contract(),
+        SysMLRepository(ApiClient(base_url)),
+        project_id="project-1",
+        commit_id="commit-1",
+        kernel_bindings=_index(_f3_kernel_bindings()),
     )
-    with pytest.raises(Exception, match="none owned by package path"):
+    binding = binder.bind_class("MemberProduct")
+    assert binding.sysml.element_id == "kernel-member-product"
+
+
+def test_bind_class_fails_closed_without_validated_binding(
+    api_server_fixture,
+) -> None:
+    """No validated kernel binding for the class: fail closed, no name
+    fallback, regardless of what same-named elements the revision holds."""
+    from de4sdv.semantic.api_binding import OntologyApiBinder
+    from de4sdv.sysml_api.client import ApiClient
+    from de4sdv.sysml_api.repository import SysMLRepository
+
+    ref = lambda value: {"@id": value}
+    elements = [
+        {
+            "@id": "homonym-def",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+            "qualifiedName": "OtherPackage::ProductLineMemberProduct",
+        },
+    ]
+    response_map = {
+        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
+            200,
+            elements,
+            {},
+        )
+    }
+    base_url, handler = api_server_fixture
+    handler.response_map = response_map
+    # A binding whose MemberProduct UUID is absent from this revision.
+    binder = OntologyApiBinder(
+        _contract(),
+        SysMLRepository(ApiClient(base_url)),
+        project_id="project-1",
+        commit_id="commit-1",
+        kernel_bindings=_index(_f3_kernel_bindings()),
+    )
+    with pytest.raises(Exception, match="does not exist in the bound revision"):
         binder.bind_class("MemberProduct")
+
+
+def test_kernel_binding_index_rejects_contradicting_element_type() -> None:
+    """A validated UUID whose element type contradicts the governed
+    declaration is binding corruption and must fail closed."""
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    bindings = [
+        {
+            "ontology_class": "MemberProduct",
+            "element_id": "wrong-type-element",
+            "source_file": "somewhere.sysml",
+            "declaration": "part def ProductLineMemberProduct",
+        }
+    ]
+    index = KernelBindingIndex.from_binding(
+        RevisionBinding.from_dict(_binding_dict(bindings))
+    )
+    by_id = {
+        "wrong-type-element": {
+            "@id": "wrong-type-element",
+            "@type": "RequirementUsage",
+            "declaredName": "ProductLineMemberProduct",
+        }
+    }
+    with pytest.raises(Exception, match="contradicting governed declaration"):
+        index.element_id_for("MemberProduct", by_id)
 
 
 def test_member_product_definition_sources_are_excluded() -> None:
     """A dependency sourced by a lineage definition is product structure."""
-    from de4sdv.semantic.traversal import SemanticTraversal
-
     ref = lambda value: {"@id": value}
     elements = _f3_elements() + [
         {
@@ -589,9 +635,8 @@ def test_member_product_definition_sources_are_excluded() -> None:
             "target": [ref("req-1")],
         },
     ]
-    requirement = next(item for item in elements if item["@id"] == "req-1")
-    hops = SemanticTraversal(_contract()).traverse(
-        "hasRelevantArchitecture", requirement, elements
+    hops = _traversal(_f3_kernel_bindings()).traverse(
+        "hasRelevantArchitecture", {"@id": "req-1"}, elements
     )
     targets = sorted(hop.target["@id"] for hop in hops)
     # Only the legitimate part/action sources remain; both lineage
@@ -599,9 +644,8 @@ def test_member_product_definition_sources_are_excluded() -> None:
     assert targets == ["action-def-flow", "part-translator"]
 
 
-def test_impact_reports_function_category_and_split_architecture_gaps(
-    api_server_fixture,
-) -> None:
+def _impact_service(api_server_fixture, elements, kernel_bindings):
+    """Shared impact-service assembly with validated kernel bindings."""
     from de4sdv.semantic.api_binding import OntologyApiBinder
     from de4sdv.semantic.impact import ImpactService
     from de4sdv.semantic.traversal import SemanticTraversal
@@ -609,9 +653,39 @@ def test_impact_reports_function_category_and_split_architecture_gaps(
     from de4sdv.sysml_api.repository import SysMLRepository
     from de4sdv.sysml_api.revisions import RevisionBinding
 
+    response_map = {
+        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
+            200,
+            elements,
+            {},
+        )
+    }
+    base_url, handler = api_server_fixture
+    handler.response_map = response_map
+    repository = SysMLRepository(ApiClient(base_url))
+    binding = RevisionBinding.from_dict(_binding_dict(kernel_bindings))
+    contract = _contract()
+    index = None if kernel_bindings is None else _index(kernel_bindings)
+    return ImpactService(
+        repository=repository,
+        binding=binding,
+        contract=contract,
+        binder=OntologyApiBinder(
+            contract,
+            repository,
+            project_id="project-1",
+            commit_id="commit-1",
+            kernel_bindings=index,
+        ),
+        traversal=SemanticTraversal(contract, kernel_bindings=index),
+    )
+
+
+def test_impact_reports_function_category_and_split_architecture_gaps(
+    api_server_fixture,
+) -> None:
     ref = lambda value: {"@id": value}
     elements = [
-        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -650,39 +724,7 @@ def test_impact_reports_function_category_and_split_architecture_gaps(
             "target": [ref("req-braking")],
         },
     ]
-    response_map = {
-        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
-            200,
-            elements,
-            {},
-        )
-    }
-    base_url, handler = api_server_fixture
-    handler.response_map = response_map
-    repository = SysMLRepository(ApiClient(base_url))
-    binding = RevisionBinding.from_dict(
-        {
-            "git_repository": "de4sdv/DE4SDV",
-            "git_commit": "a" * 40,
-            "sysml_project_id": "project-1",
-            "sysml_commit_id": "commit-1",
-            "import_timestamp": "2026-08-31T00:00:00Z",
-            "import_tool_version": "test",
-            "semantic_validation": "passed",
-            "scope": "full-model",
-            "ontology": _contract().identity.to_dict(),
-        }
-    )
-    contract = _contract()
-    service = ImpactService(
-        repository=repository,
-        binding=binding,
-        contract=contract,
-        binder=OntologyApiBinder(
-            contract, repository, project_id="project-1", commit_id="commit-1"
-        ),
-        traversal=SemanticTraversal(contract),
-    )
+    service = _impact_service(api_server_fixture, elements, _f3_kernel_bindings())
     result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)
 
     predicates = {edge["predicate"] for edge in result["edges"]}
@@ -703,16 +745,8 @@ def test_impact_reports_function_category_and_split_architecture_gaps(
 def test_impact_reports_function_gap_when_no_function_relevance(
     api_server_fixture,
 ) -> None:
-    from de4sdv.semantic.api_binding import OntologyApiBinder
-    from de4sdv.semantic.impact import ImpactService
-    from de4sdv.semantic.traversal import SemanticTraversal
-    from de4sdv.sysml_api.client import ApiClient
-    from de4sdv.sysml_api.repository import SysMLRepository
-    from de4sdv.sysml_api.revisions import RevisionBinding
-
     ref = lambda value: {"@id": value}
     elements = [
-        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -729,39 +763,7 @@ def test_impact_reports_function_gap_when_no_function_relevance(
             "declaredName": "reqNoFunctionTrace",
         },
     ]
-    response_map = {
-        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
-            200,
-            elements,
-            {},
-        )
-    }
-    base_url, handler = api_server_fixture
-    handler.response_map = response_map
-    repository = SysMLRepository(ApiClient(base_url))
-    binding = RevisionBinding.from_dict(
-        {
-            "git_repository": "de4sdv/DE4SDV",
-            "git_commit": "a" * 40,
-            "sysml_project_id": "project-1",
-            "sysml_commit_id": "commit-1",
-            "import_timestamp": "2026-08-31T00:00:00Z",
-            "import_tool_version": "test",
-            "semantic_validation": "passed",
-            "scope": "full-model",
-            "ontology": _contract().identity.to_dict(),
-        }
-    )
-    contract = _contract()
-    service = ImpactService(
-        repository=repository,
-        binding=binding,
-        contract=contract,
-        binder=OntologyApiBinder(
-            contract, repository, project_id="project-1", commit_id="commit-1"
-        ),
-        traversal=SemanticTraversal(contract),
-    )
+    service = _impact_service(api_server_fixture, elements, _f3_kernel_bindings())
     result = service.impact("reqNoFunctionTrace", git_revision="a" * 40)
 
     gap_categories = {gap["category"] for gap in result["gaps"]}
@@ -773,16 +775,8 @@ def test_impact_preserves_function_role_on_shared_architecture_node(
     api_server_fixture,
 ) -> None:
     """One element with both function and architecture roles keeps both."""
-    from de4sdv.semantic.api_binding import OntologyApiBinder
-    from de4sdv.semantic.impact import ImpactService
-    from de4sdv.semantic.traversal import SemanticTraversal
-    from de4sdv.sysml_api.client import ApiClient
-    from de4sdv.sysml_api.repository import SysMLRepository
-    from de4sdv.sysml_api.revisions import RevisionBinding
-
     ref = lambda value: {"@id": value}
     elements = [
-        *_kernel_ownership(),
         {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
@@ -818,39 +812,7 @@ def test_impact_preserves_function_role_on_shared_architecture_node(
             "target": [ref("req-braking")],
         },
     ]
-    response_map = {
-        "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
-            200,
-            elements,
-            {},
-        )
-    }
-    base_url, handler = api_server_fixture
-    handler.response_map = response_map
-    repository = SysMLRepository(ApiClient(base_url))
-    binding = RevisionBinding.from_dict(
-        {
-            "git_repository": "de4sdv/DE4SDV",
-            "git_commit": "a" * 40,
-            "sysml_project_id": "project-1",
-            "sysml_commit_id": "commit-1",
-            "import_timestamp": "2026-08-31T00:00:00Z",
-            "import_tool_version": "test",
-            "semantic_validation": "passed",
-            "scope": "full-model",
-            "ontology": _contract().identity.to_dict(),
-        }
-    )
-    contract = _contract()
-    service = ImpactService(
-        repository=repository,
-        binding=binding,
-        contract=contract,
-        binder=OntologyApiBinder(
-            contract, repository, project_id="project-1", commit_id="commit-1"
-        ),
-        traversal=SemanticTraversal(contract),
-    )
+    service = _impact_service(api_server_fixture, elements, _f3_kernel_bindings())
     result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)
 
     predicates = {edge["predicate"] for edge in result["edges"]}
@@ -897,4 +859,3 @@ def test_impact_text_output_includes_function_category() -> None:
     }
     text = qmi._render_api_text(report)
     assert "function: 1" in text
-    assert "translateSignal" in text

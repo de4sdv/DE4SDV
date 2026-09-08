@@ -76,15 +76,21 @@ criteria are requirement usages in the kernel), so no dependency edge is
 reported under two predicates. Sources whose type specializes the kernel
 `ProductLineMemberProduct` declaration are excluded from
 `hasRelevantArchitecture`: configured-product traces are product-line
-relationships, not architecture relevance. The exclusion resolves one
-canonical identity through the governed ontology kernel mapping
-(`MemberProduct` -> `part def ProductLineMemberProduct` in
-`de4sdv_product_line.sysml`) using the same resolution contract as the API
-class binder; an unrelated same-named declaration in another package makes
-resolution ambiguous and fails closed rather than silently widening the
-exclusion. Both lineage definitions and usages typed by lineage definitions
-are excluded, so specialized product definitions cannot pose as
-architecture sources either.
+relationships, not architecture relevance. Canonical kernel identity is
+established exactly once at ingestion, when ontology/API binding validation
+confirms the API type/name against the serializer-recorded source document,
+and the validated UUID is persisted in the revision binding's kernel
+bindings. Runtime traversal pins that UUID against the API graph and never
+re-derives identity from element names or SysML source text (ADR 0011: no
+custom textual parser, no source-derived runtime semantics). The behavior
+contract is: canonical declaration present and an unrelated same-named
+declaration elsewhere — the canonical element grounds and the homonym
+cannot borrow the mapping; canonical declaration absent from the bound
+revision — `IdentityNotFoundError` even when unrelated homonyms survive;
+more than one genuinely grounded canonical candidate — rejected as
+ambiguous at ingestion time. Both lineage definitions and usages typed by
+lineage definitions are excluded, so specialized product definitions
+cannot pose as architecture sources either.
 
 Absence of a hop is not proof that no model relationship exists: a "no
 allocation" result from `realizedBy` says nothing about relevance

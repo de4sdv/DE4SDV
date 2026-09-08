@@ -415,6 +415,8 @@ def test_impact_service_reports_native_edges_against_real_shapes(
     base_url, handler = api_server_fixture
     handler.response_map = response_map
     repository = SysMLRepository(ApiClient(base_url))
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+
     binding = RevisionBinding.from_dict(
         {
             "git_repository": "de4sdv/DE4SDV",
@@ -426,17 +428,39 @@ def test_impact_service_reports_native_edges_against_real_shapes(
             "semantic_validation": "passed",
             "scope": "full-model",
             "ontology": _contract().identity.to_dict(),
+            "kernel_bindings": [
+                {
+                    "ontology_class": "Requirement",
+                    "element_id": "kernel-requirement",
+                    "source_file": (
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_method_context.sysml"
+                    ),
+                    "declaration": "requirement def RequirementCandidate",
+                },
+                {
+                    "ontology_class": "MemberProduct",
+                    "element_id": "kernel-member-product",
+                    "source_file": (
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_product_line.sysml"
+                    ),
+                    "declaration": "part def ProductLineMemberProduct",
+                },
+            ],
         }
     )
     contract = _contract()
+    index = KernelBindingIndex.from_binding(binding)
     service = ImpactService(
         repository=repository,
         binding=binding,
         contract=contract,
         binder=OntologyApiBinder(
-            contract, repository, project_id="project-1", commit_id="commit-1"
+            contract, repository, project_id="project-1", commit_id="commit-1",
+            kernel_bindings=index,
         ),
-        traversal=SemanticTraversal(contract),
+        traversal=SemanticTraversal(contract, kernel_bindings=index),
     )
     result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)
 

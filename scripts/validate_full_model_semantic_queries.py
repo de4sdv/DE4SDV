@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
 
 from de4sdv.semantic.api_binding import OntologyApiBinder
 from de4sdv.semantic.impact import ImpactService
+from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.client import ApiClient
@@ -91,6 +92,7 @@ def run_queries(
         raise RuntimeError(
             "semantic report ontology identity does not match the validated binding"
         )
+    kernel_bindings = KernelBindingIndex.from_binding(binding)
     service = ImpactService(
         repository=repository,
         binding=binding,
@@ -100,8 +102,9 @@ def run_queries(
             repository,
             project_id=binding.sysml_project_id,
             commit_id=binding.sysml_commit_id,
+            kernel_bindings=kernel_bindings,
         ),
-        traversal=SemanticTraversal(contract),
+        traversal=SemanticTraversal(contract, kernel_bindings=kernel_bindings),
     )
     results: list[dict[str, Any]] = []
     allowed_strengths = {
