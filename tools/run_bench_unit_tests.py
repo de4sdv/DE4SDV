@@ -23,6 +23,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+class GitInventoryError(RuntimeError):
+    """The git file inventory could not be read (fail closed)."""
+
+
 # One entry per isolated suite: test paths plus required PYTHONPATH entries
 # (bench packages imported as bare modules by their tests).
 SUITES: list[dict[str, object]] = [
@@ -72,18 +77,27 @@ SUITES: list[dict[str, object]] = [
 
 
 def _tracked_test_paths(paths: list[str]) -> list[str]:
-    """Keep only test paths that contain tracked test files."""
+    """Keep only test paths that contain tracked test files.
+
+    Raises :class:`GitInventoryError` when git itself fails: an unreadable
+    inventory must fail the run, never shrink it to zero suites.
+    """
     existing: list[str] = []
     for rel in paths:
         absolute = ROOT / rel
         if not absolute.is_dir():
             continue
-        if not subprocess.run(
+        completed = subprocess.run(
             ["git", "ls-files", "--", rel],
             cwd=ROOT,
             capture_output=True,
             text=True,
-        ).stdout.strip():
+        )
+        if completed.returncode != 0:
+            raise GitInventoryError(
+                f"git ls-files -- {rel} failed: {completed.stderr.strip()}"
+            )
+        if not completed.stdout.strip():
             continue
         existing.append(rel)
     return existing
@@ -96,9 +110,36 @@ def main() -> int:
     )
     arguments = parser.parse_args()
 
+    if not arguments.dry_run:
+        # Verify the git inventory is readable BEFORE running any suite: a
+        # broken inventory would otherwise silently shrink the run to zero
+        # suites and report success.
+        try:
+            subprocess.run(
+                ["git", "rev-parse", "--git-dir"],
+                cwd=ROOT,
+                capture_output=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as error:
+            print(
+                "Bench unit/contract runner failed: git inventory is "
+                f"unreadable ({error})",
+                file=sys.stderr,
+            )
+            return 1
+
     failures: list[str] = []
     for suite in SUITES:
-        tests = _tracked_test_paths(suite["tests"])  # type: ignore[arg-type]
+        try:
+            tests = _tracked_test_paths(suite["tests"])  # type: ignore[arg-type]
+        except GitInventoryError as error:
+            print(
+                "Bench unit/contract runner failed: unreadable git inventory "
+                f"({error})",
+                file=sys.stderr,
+            )
+            return 1
         if not tests:
             print(f"[skip] {suite['name']}: no tracked test paths")
             continue

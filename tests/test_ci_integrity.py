@@ -31,3 +31,25 @@ def test_root_pytest_collection_is_scoped_to_project_tests() -> None:
     assert pytest.get("testpaths", "").split() == ["tests"]
     assert "implementation" in pytest.get("norecursedirs", "").split()
     assert ".sysand" in pytest.get("norecursedirs", "").split()
+
+
+def test_bench_runner_fails_closed_on_git_inventory_failure(tmp_path) -> None:
+    """A failed git inventory must fail the bench runner, not pass vacuously."""
+    import importlib.util
+    import subprocess
+    import sys
+    from unittest import mock
+
+    tool = ROOT / "tools" / "run_bench_unit_tests.py"
+    spec = importlib.util.spec_from_file_location("run_bench_unit_tests", tool)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    failing = subprocess.CompletedProcess(
+        ["git"], 128, "", "fatal: inventory failed"
+    )
+    with mock.patch.object(
+        module.subprocess, "run", return_value=failing
+    ), mock.patch.object(sys, "argv", ["run_bench_unit_tests.py"]):
+        assert module.main() == 1
