@@ -468,11 +468,12 @@ _REQUIREMENT_SLICES = (
     / "middleware_requirements.sysml",
 )
 
-# Governed requirement usage: unqualified or qualified type, body opened by
-# ``{`` or terminated by ``;``. The type is captured including qualification
-# so a requirement never silently disappears from the governed population.
+# Governed requirement usage: optional visibility modifier, unqualified or
+# qualified type, body opened by ``{`` or terminated by ``;``. The type is
+# captured including qualification, and a visibility modifier never removes
+# a requirement from the governed population.
 _REQUIREMENT_USAGE_RE = re.compile(
-    r"^\s*requirement ([a-z][A-Za-z0-9]*)\s*:\s*"
+    r"^\s*(?:(?:public|private|protected)\s+)?requirement ([a-z][A-Za-z0-9]*)\s*:\s*"
     r"([A-Za-z][A-Za-z0-9_]*(?:::[A-Za-z][A-Za-z0-9_]*)*)"
     r"\s*(?:\{|;)",
     re.MULTILINE,
@@ -502,7 +503,8 @@ _R003_DECLARATION_RE = re.compile(
     r"(?:abstract[ \t]+)?"
     r"([A-Za-z]+(?:[ \t]+[A-Za-z]+)?)[ \t]+def[ \t]+"
     r"([A-Za-z][A-Za-z0-9_]*)"
-    r"(?:[ \t]*:>[ \t]*([A-Za-z][A-Za-z0-9_]*(?:[ \t*,]+[A-Za-z][A-Za-z0-9_]*)*))?"
+    r"(?:[ \t]*:>[ \t]*([A-Za-z][A-Za-z0-9_]*(?:::[A-Za-z][A-Za-z0-9_]*)*"
+    r"(?:[ \t*,]+[A-Za-z][A-Za-z0-9_]*(?:::[A-Za-z][A-Za-z0-9_]*)*)*))?"
 )
 
 # Matches usage declarations ``<kind> <name> : <Type> {`` for the kinds that
@@ -510,7 +512,7 @@ _R003_DECLARATION_RE = re.compile(
 # declared type keeps its package qualification.
 _R003_USAGE_RE = re.compile(
     r"(?m)^[ \t]*"
-    r"(requirement|part|action)[ \t]+"
+    r"(requirement|part|action)(?:[ \t]+(?:public|private|protected))?[ \t]+"
     r"([a-z][A-Za-z0-9_]*)[ \t]*:[ \t]*"
     r"([A-Za-z][A-Za-z0-9_]*(?:::[A-Za-z][A-Za-z0-9_]*)*)"
 )
@@ -562,6 +564,42 @@ def _load_ontology_r003_groundings() -> dict[str, tuple[str, str]]:
                 if not isinstance(file_name, str) or not isinstance(declaration, str):
                     raise ValueError(
                         f"R003 origin {origin!r} needs file+declaration grounding"
+                    )
+                result[origin] = (file_name, declaration)
+            return result
+    raise ValueError("ontology has no DE4SDV-ONT-R003 validation rule")
+
+
+def _load_ontology_exclusion_groundings() -> dict[str, tuple[str, str]]:
+    """Read the R003 exclusion groundings from the ontology YAML.
+
+    Exclusion groundings name vocabulary that is traced INTO rather than out
+    of (e.g. the kernel ProblemStatement). Returns
+    ``{class_name: (file, declaration)}``; consumers must bind each class to
+    declarations indexed from exactly that file, never to a bare name.
+    """
+    import yaml  # local import: PyYAML is a CI test dependency
+
+    doc = yaml.safe_load(_read(ONTOLOGY_YAML))
+    rules = doc.get("validation_rules") or []
+    for rule in rules:
+        if isinstance(rule, dict) and rule.get("id") == "DE4SDV-ONT-R003":
+            groundings = rule.get("exclusion_groundings")
+            if not isinstance(groundings, dict) or not groundings:
+                raise ValueError(
+                    "ontology DE4SDV-ONT-R003 has no exclusion_groundings block"
+                )
+            result: dict[str, tuple[str, str]] = {}
+            for origin, grounding in groundings.items():
+                if not isinstance(grounding, dict):
+                    raise ValueError(
+                        f"R003 exclusion {origin!r} grounding must be a mapping"
+                    )
+                file_name = grounding.get("file")
+                declaration = grounding.get("declaration")
+                if not isinstance(file_name, str) or not isinstance(declaration, str):
+                    raise ValueError(
+                        f"R003 exclusion {origin!r} needs file+declaration grounding"
                     )
                 result[origin] = (file_name, declaration)
             return result
@@ -790,6 +828,7 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
                 declarations[qualified] = {
                     "kind": " ".join(kind.split()),
                     "parents": parent_list,
+                    "file": str(path),
                 }
                 declarations_by_name.setdefault(name, []).append(qualified)
             # Usage identities include the file's nested ``package`` structure
@@ -823,7 +862,14 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
             )
             continue
         origin_bare.add(grounding_name)
-        grounded_qualifications = declarations_by_name.get(grounding_name, [])
+        grounding_file = str(ROOT / file_name)
+        # Identity, not a bare-name homonym: only declarations indexed from
+        # the grounding's own file may satisfy this origin.
+        grounded_qualifications = [
+            qualified
+            for qualified in declarations_by_name.get(grounding_name, [])
+            if declarations[qualified].get("file") == grounding_file
+        ]
         if grounded_qualifications:
             origin_qualified.update(grounded_qualifications)
         else:
@@ -853,6 +899,7 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
             declarations[qualified] = {
                 "kind": " ".join(kind.split()),
                 "parents": parent_list,
+                "file": str(kernel_path),
             }
             declarations_by_name.setdefault(name, []).append(qualified)
         if package_path:
@@ -861,6 +908,21 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
                 for name in origin_bare
                 if f"{package_path}::{name}" in declarations
             )
+
+    exclusion_groundings = _load_ontology_exclusion_groundings()
+    ps_file, ps_declaration = exclusion_groundings["ProblemStatement"]
+    ps_grounding_name = ps_declaration.partition(" def ")[2]
+    ps_grounding_file = str(ROOT / ps_file)
+    problem_statement_qualified = {
+        qualified
+        for qualified in declarations_by_name.get(ps_grounding_name, [])
+        if declarations[qualified].get("file") == ps_grounding_file
+    }
+    if not problem_statement_qualified:
+        errors.append(
+            f"[SP6] ProblemStatement exclusion grounding '{ps_declaration}' "
+            f"is not indexed from {ps_file}"
+        )
 
     def _closure_hits(
         scope: dict[str, object],
@@ -875,25 +937,26 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
 
     def _usage_entries_for_target(
         target: str,
+        slice_file: Path,
+        slice_prefixes: tuple[str, ...],
     ) -> tuple[list[tuple[str, str, Path]], list[str]]:
         """Registry entries matching the written target, plus ambiguities.
 
         Matching rules, in order:
 
-        1. Exact identity or suffix-identity (identity ends with the full
-           written reference).
-        2. Otherwise, for a qualified reference, entries whose identity ends
-           with the reference's bare name AND whose identity shares the
-           reference's leading path — SysML visibility can make a written
-           parent path name a shorter (prefix) form of the true identity —
-           accepted only when every such candidate resolves to the SAME
-           declared type; differing types are reported as ambiguous and
-           fail closed.
-        3. A bare reference returns all entries for the bare name; type
-           divergence among them is handled by the caller through scope
-           resolution (each candidate type is tested in its own owner
-           scope), so a genuinely different-typed homonym can never borrow
-           a valid classification silently.
+        1. A qualified reference matches by SEGMENT identity: exact
+           identity, full suffix identity (``identity.endswith("::" +
+           reference)``), or trailing-segment match (the identity's last
+           ``len(reference segments)`` segments equal the reference's
+           segments — SysML visibility may let a writer omit leading
+           packages). Differently typed candidates are reported as
+           ambiguous and fail closed. String prefix matching is never
+           used: ``Bad::origin`` cannot match ``BadExtra::origin``.
+        2. A bare reference resolves only within the referencing slice's
+           lexical scope: usages declared in the slice file inside the
+           slice's package chain. An unrelated same-named usage in another
+           package can never be borrowed. Divergent types in scope are
+           ambiguous (fail closed).
         """
         reference = target.strip("'")
         bare = reference.rsplit("::", 1)[-1]
@@ -901,6 +964,7 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
         if not entries:
             return [], []
         if "::" in reference:
+            ref_segments = reference.split("::")
             exact = [
                 entry
                 for entry in entries
@@ -908,12 +972,18 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
             ]
             if exact:
                 return exact, []
+            def _segments_in_order(needle: list[str], hay: list[str]) -> bool:
+                iterator = iter(hay)
+                return all(segment in iterator for segment in needle)
+
             partial = [
                 entry
                 for entry in entries
-                if "::" in entry[0]
-                and entry[0].rsplit("::", 1)[0].startswith(
-                    reference.rsplit("::", 1)[0]
+                if len(ref_segments) >= 2
+                and entry[0].endswith("::" + ref_segments[-1])
+                and _segments_in_order(
+                    ref_segments[:-1],
+                    entry[0].split("::")[:-1],
                 )
             ]
             if not partial:
@@ -926,21 +996,48 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
                     f"distinctly typed usages: {identities}"
                 ]
             return partial, []
-        return entries, []
+        visible = [
+            entry
+            for entry in entries
+            if entry[2] == slice_file
+            and (
+                entry[0] == bare
+                or entry[0].rsplit("::", 1)[0] in slice_prefixes
+            )
+        ]
+        if not visible:
+            return [], []
+        types = {entry[1] for entry in visible}
+        if len(types) > 1:
+            identities = ", ".join(sorted(entry[0] for entry in visible))
+            return [], [
+                f"ambiguous derivation target '{reference}' matches "
+                f"distinctly typed usages in scope: {identities}"
+            ]
+        return visible, []
 
     def _resolves_to_valid_origin(
-        scope: dict[str, object], target: str
+        scope: dict[str, object],
+        target: str,
+        slice_file: Path,
+        slice_prefixes: tuple[str, ...],
     ) -> bool:
-        entries, ambiguities = _usage_entries_for_target(target)
+        entries, ambiguities = _usage_entries_for_target(
+            target, slice_file, slice_prefixes
+        )
         if ambiguities:
             raise _R003ScopeError(f"[SP6] {ambiguities[0]}")
         for _identity, usage_type, owner_path in entries:
             owner_scope = scopes.get(owner_path, scope)
             if _closure_hits(owner_scope, usage_type, origin_qualified):
                 return True
-        # The target may itself be a declaration (kernel grounding usage
-        # written qualified) rather than a registry usage.
-        return _closure_hits(scope, target.strip("'"), origin_qualified)
+        reference = target.strip("'")
+        # A qualified target may itself be a declaration (e.g. a kernel
+        # grounding usage written qualified) rather than a registry usage.
+        # Bare names are never treated as global declarations.
+        if "::" in reference:
+            return _closure_hits(scope, reference, origin_qualified)
+        return False
 
     for slice_path in _REQUIREMENT_SLICES:
         if not slice_path.exists():
@@ -954,6 +1051,7 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
                 _r003_outermost_package(code), code, declarations
             )
         scope = scopes[slice_path]
+        slice_prefixes = tuple(_r003_nested_package_prefixes(code))
         usages_in_slice = set(_REQUIREMENT_USAGE_RE.findall(code))
         edges = _DEPENDENCY_EDGE_RE.findall(code)
         need_grounding_name = groundings["Need"][1].partition(" def ")[2]
@@ -966,10 +1064,8 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
             # 1. A usage whose type specializes the Need grounding is itself
             #    a stakeholder need, not a design-input requirement.
             # 2. A usage whose type specializes the kernel ProblemStatement
-            #    grounding is framing vocabulary traced INTO, not out of.
-            problem_statement_qualified = set(
-                declarations_by_name.get("ProblemStatement", [])
-            ) or {"ProblemStatement"}
+            #    grounding (bound to its ontology-declared file) is framing
+            #    vocabulary traced INTO, not out of.
             try:
                 if _closure_hits(scope, usage_type, need_qualified):
                     continue
@@ -986,7 +1082,9 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
                 if source != usage_name:
                     continue
                 try:
-                    if _resolves_to_valid_origin(scope, target):
+                    if _resolves_to_valid_origin(
+                        scope, target, slice_path, slice_prefixes
+                    ):
                         valid_targets.append(target)
                 except _R003ScopeError as error:
                     errors.append(str(error))

@@ -553,6 +553,10 @@ validation_rules:
       ArchitectureDecisionRecord:
         file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
         declaration: part def ArchitectureDecisionRecord
+    exclusion_groundings:
+      ProblemStatement:
+        file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+        declaration: requirement def ProblemStatement
   - id: DE4SDV-ONT-R004
     statement: Every compliance-oriented claim shall be marked as draft, planned, example, verified, or accepted.
     enforced_by: Verification-model invariant tests (product-claim bans) and evidence-register status review.

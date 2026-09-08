@@ -115,6 +115,12 @@ def _sp6_scenario(
             "part def ArchitectureDecisionRecord",
         ),
     }
+    exclusion_grounding = {
+        "ProblemStatement": (
+            str(kernel_path),
+            "requirement def ProblemStatement",
+        ),
+    }
     errors: list[str] = []
     with mock.patch.object(
         check_model_sync, "_REQUIREMENT_SLICES", (slice_path,)
@@ -124,6 +130,10 @@ def _sp6_scenario(
         check_model_sync,
         "_load_ontology_r003_groundings",
         return_value=grounding,
+    ), mock.patch.object(
+        check_model_sync,
+        "_load_ontology_exclusion_groundings",
+        return_value=exclusion_grounding,
     ):
         check_model_sync.check_requirement_derivation_coverage(errors)
     return errors
@@ -133,6 +143,7 @@ _SP6_KERNEL = """package K {
   requirement def StakeholderNeedCandidate { doc /* need grounding */ }
   requirement def RegulatoryConstraintCandidate { doc /* regulatory grounding */ }
   part def ArchitectureDecisionRecord { doc /* ADR grounding */ }
+  requirement def ProblemStatement { doc /* kernel problem statement grounding */ }
   requirement def ConcreteNeed :> StakeholderNeedCandidate { doc /* specialization */ }
   requirement def ConcreteReg :> RegulatoryConstraintCandidate { doc /* specialization */ }
   part def ConcreteAdr :> ArchitectureDecisionRecord { doc /* specialization */ }
@@ -164,6 +175,101 @@ def _sp6_slice(dep_lines: str, extra_usages: str = "") -> str:
 
 def _sp6_flagged(errors: list[str], usage: str) -> bool:
     return any(f"'{usage}'" in error for error in errors)
+
+
+# ---------------------------------------------------------------------------
+# SP6 round-3 adversarial regressions (review findings: bare homonyms,
+# nonexistent qualified targets, visibility population, exclusion grounding)
+# ---------------------------------------------------------------------------
+
+def test_r003_bare_target_cannot_borrow_out_of_scope_homonym(tmp_path: Path):
+    """A bare target resolves only in the slice's own scope: an unrelated
+    same-named usage in another package is ambiguous/absent, never borrowed."""
+    slice_text = """package Good {
+  private import K::*;
+  requirement origin : ConcreteNeed { doc /* Need-typed homonym elsewhere */ }
+}
+package S {
+  private import K::*;
+  part origin : DeferredProductLineScope { doc /* local unrelated origin */ }
+  requirement reqDesignInput : FunctionalRequirementCandidate { doc /* under test */ }
+  dependency d1 from reqDesignInput to origin;
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL, tmp_path)
+    # Either flagged (target unresolved) or ambiguous fail-closed — never a
+    # silent pass via the invisible Need homonym.
+    assert errors, "bare target borrowed an out-of-scope homonym"
+    assert "reqDesignInput" in " ".join(errors), errors
+
+
+def test_r003_nonexistent_qualified_target_fails(tmp_path: Path):
+    """Bad::origin must not match BadExtra::origin by string prefix."""
+    slice_text = """package BadExtra {
+  private import K::*;
+  requirement origin : ConcreteNeed { doc /* near-miss namespace */ }
+}
+package S {
+  private import K::*;
+  requirement reqDesignInput : FunctionalRequirementCandidate { doc /* under test */ }
+  dependency d1 from reqDesignInput to Bad::origin;
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL, tmp_path)
+    assert _sp6_flagged(errors, "reqDesignInput"), errors
+
+
+def test_r003_private_visibility_requirement_stays_governed(tmp_path: Path):
+    """A visibility-modified requirement usage cannot leave the population."""
+    slice_text = """package S {
+  private import K::*;
+  private requirement reqDesignInput : FunctionalRequirementCandidate { doc /* hidden */ }
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL, tmp_path)
+    assert _sp6_flagged(errors, "reqDesignInput"), errors
+
+
+def test_r003_problem_statement_homonym_not_excluded(tmp_path: Path):
+    """A local ProblemStatement-named type does not gain kernel exclusion."""
+    slice_text = """package S {
+  private import K::*;
+  requirement def ProblemStatement :> FunctionalRequirementCandidate { doc /* homonym */ }
+  requirement reqDesignInput : ProblemStatement { doc /* no derivation */ }
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL, tmp_path)
+    # The local homonym is ambiguous against the kernel grounding in the
+    # shared file scope, so resolution fails closed; the usage must not be
+    # silently excluded.
+    assert "reqDesignInput" in " ".join(errors) or any(
+        "ambiguous" in error for error in errors
+    ), errors
+
+
+def test_r003_kernel_problem_statement_usage_excluded(tmp_path: Path):
+    """A usage typed by the kernel ProblemStatement grounding stays excluded."""
+    slice_text = """package S {
+  private import K::*;
+  requirement framingStatement : ProblemStatement { doc /* no derivation needed */ }
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL, tmp_path)
+    assert errors == [], errors
+
+
+def test_r003_qualified_specialization_parent_accepted(tmp_path: Path):
+    """A specialization of K::StakeholderNeedCandidate grounds its usages."""
+    slice_text = """package S {
+  private import K::*;
+  requirement def ActualNeed :> K::StakeholderNeedCandidate { doc /* qualified parent */ }
+  requirement origin : ActualNeed { doc /* valid origin usage */ }
+  requirement reqDesignInput : FunctionalRequirementCandidate { doc /* under test */ }
+  dependency d1 from reqDesignInput to origin;
+}
+"""
+    errors = _sp6_scenario(slice_text, _SP6_KERNEL, tmp_path)
+    assert errors == [], errors
 
 
 def test_r003_requirement_to_need_passes(tmp_path: Path):
