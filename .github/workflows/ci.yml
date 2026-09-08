@@ -11,6 +11,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Bench evidence-validation tests verify repository-history invariants
+          # (retained-run ancestry / reviewed squash relations) that need the
+          # real commit graph, not a depth-1 checkout.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -34,8 +39,14 @@ jobs:
       - name: Run repository checks
         run: python scripts/check_repo.py
 
+      - name: Check documentation local links
+        run: python tools/check_markdown_links.py
+
       - name: Run full project test suite
         run: python -m pytest tests -q
+
+      - name: Run bench unit/contract suites (isolated per bench)
+        run: python tools/run_bench_unit_tests.py
 
       - name: Run smoke tests
         run: python scripts/smoke_test.py

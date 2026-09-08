@@ -2,7 +2,15 @@
 
 ## Status
 
-Draft semantic audit for the current DE4SDV SysML v2 textual notation baseline.
+Historical record — not a current inventory. This audit was written while the
+early AEBS slices were under open review; some rows describe per-PR states
+("added in this PR"), reference a since-merged separate functional-interface
+slice, and predate later consolidations. Use it to understand repair history,
+not as evidence of the present model shape. The current baseline is the
+SysML model itself, validated through the repository SysML validation paths;
+view inventories are generated from model sources.
+
+This audit separates three different claims:
 
 This audit separates three different claims:
 
