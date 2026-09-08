@@ -1,17 +1,16 @@
 """Validate inline local links in tracked Markdown documentation.
 
 A relative Markdown link must resolve, after URL decoding, fragment and
-query stripping, and path normalization, to tracked repository content
-(``git ls-files``). This enforces two rules:
+query stripping, and path normalization, to a file that is BOTH present in
+the working tree AND tracked repository content (``git ls-files``). A file
+that merely exists locally but is not tracked does not make a link valid,
+and a tracked-but-deleted (unstaged deletion) target does not either.
+A directory link (trailing slash, or a target that resolves to a directory)
+is valid only when at least one tracked file lives beneath that directory;
+the repository root is valid when ANY tracked file exists.
 
-1. The link target must be tracked repository content. A file link is valid
-   only when the resolved file itself is tracked; a directory link (trailing
-   slash, or a target that resolves to a directory) is valid only when at
-   least one tracked file lives beneath that directory. A file that merely
-   exists locally but is not tracked does not make a link valid.
-2. The link must stay inside the repository. A relative path that escapes
-   the repository root is rejected even if a file exists at the escaped
-   location.
+The link must stay inside the repository. A relative path that escapes the
+repository root is rejected even if a file exists at the escaped location.
 
 Explicitly out of scope: remote URLs, same-page anchors, generated SVG
 targets (guarded by the naming checks), and link text.
@@ -32,20 +31,37 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Inline Markdown links: [text](target). Reference-style definitions and
-# bare autolinks are out of scope.
-_INLINE_LINK = re.compile(r"\[[^\]\n]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+# Inline Markdown links: [text](destination "optional title"). Accepts
+# plain destinations, angle-bracket destinations, and double- or
+# single-quoted titles. Reference-style definitions and bare autolinks are
+# out of scope.
+_INLINE_LINK = re.compile(
+    r"\[[^\]\n]*\]\("
+    r"(?:<([^>\n]*)>|([^)\s]+))"
+    r"(?:[ \t]+(?:(?:\"[^\"]*\")|(?:\'[^\']*\')))?"
+    r"\)"
+)
 _FENCE = re.compile(r"```.*?```", re.DOTALL)
 
 # Generated artifacts are guarded by the naming checks, not this tool.
 _SKIP_SUFFIXES = {".svg"}
 
 
+class GitInventoryError(RuntimeError):
+    """The git file inventory could not be read (fail closed)."""
+
+
 def tracked_files() -> list[str]:
     completed = subprocess.run(
-        ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, text=True
+        ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True
     )
-    return [path for path in completed.stdout.split("\0") if path]
+    if completed.returncode != 0:
+        raise GitInventoryError(
+            "git ls-files failed: "
+            + completed.stderr.decode("utf-8", errors="replace").strip()
+        )
+    stdout = completed.stdout.decode("utf-8", errors="replace")
+    return [path for path in stdout.split("\0") if path]
 
 
 def tracked_surface() -> frozenset[str]:
@@ -72,7 +88,8 @@ def broken_links(
         text = absolute.read_text(encoding="utf-8", errors="replace")
         scrubbed = _FENCE.sub(lambda match: "\n" * match.group().count("\n"), text)
         for match in _INLINE_LINK.finditer(scrubbed):
-            raw = match.group(1).strip().strip("<>")
+            raw = next(group for group in match.groups() if group is not None)
+            raw = raw.strip().strip("<>")
             if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", raw) or raw.startswith("#"):
                 continue  # remote or same-page anchor
             path_part = urllib.parse.unquote(raw.split("#")[0].split("?")[0])
@@ -99,13 +116,14 @@ def broken_links(
             if target_is_directory:
                 # Git tracks files, not directories: a directory link is
                 # valid when tracked content lives beneath the directory.
-                tracked_prefix = normalized if normalized == "." else (
-                    normalized + "/"
-                )
-                tracked_inside = any(
-                    tracked_path.startswith(tracked_prefix)
-                    for tracked_path in tracked
-                )
+                if normalized == ".":
+                    tracked_inside = bool(tracked)
+                else:
+                    tracked_prefix = normalized + "/"
+                    tracked_inside = any(
+                        tracked_path.startswith(tracked_prefix)
+                        for tracked_path in tracked
+                    )
                 if not tracked_inside:
                     line = scrubbed[: match.start()].count("\n") + 1
                     errors.append(
@@ -113,11 +131,20 @@ def broken_links(
                         f"(no tracked content beneath {normalized})"
                     )
                 continue
+            # A link target must be BOTH tracked and present in the tree.
+            # Membership alone would let a tracked-but-deleted (unstaged
+            # deletion) file satisfy the link.
             if normalized not in tracked:
                 line = scrubbed[: match.start()].count("\n") + 1
                 errors.append(
                     f"{name}:{line}: broken local link -> {raw} "
                     f"(resolved {normalized} is not tracked repository content)"
+                )
+            elif not resolved.is_file():
+                line = scrubbed[: match.start()].count("\n") + 1
+                errors.append(
+                    f"{name}:{line}: broken local link -> {raw} "
+                    f"(tracked {normalized} is missing from the working tree)"
                 )
     return sorted(set(errors))
 
@@ -129,9 +156,13 @@ def main() -> int:
     )
     arguments = parser.parse_args()
 
-    markdown_files = [
-        name for name in tracked_files() if name.lower().endswith(".md")
-    ]
+    try:
+        markdown_files = [
+            name for name in tracked_files() if name.lower().endswith(".md")
+        ]
+    except GitInventoryError as error:
+        print(f"Markdown local-link check failed: {error}", file=sys.stderr)
+        return 1
     if arguments.list:
         for name in markdown_files:
             print(name)

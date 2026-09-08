@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / "tools" / "check_markdown_links.py"
@@ -150,3 +151,74 @@ def test_tracked_directory_link_passes_and_empty_directory_fails(
     ) as errors:
         assert len(errors) == 1, errors
         assert "no tracked content beneath" in errors[0]
+
+
+def test_tracked_but_deleted_file_fails(tmp_path: Path) -> None:
+    """An indexed-but-deleted (unstaged deletion) target must fail."""
+    module = _load_tool()
+    doc = tmp_path / "docs/doc.md"
+    target = tmp_path / "docs/target.md"
+    doc.parent.mkdir(parents=True)
+    doc.write_text("[target](./target.md)\n", encoding="utf-8")
+    target.write_text("exists\n", encoding="utf-8")
+    original_root = module.ROOT
+    try:
+        module.ROOT = tmp_path
+        errors = module.broken_links(
+            ["docs/doc.md"], tracked=frozenset({"docs/doc.md", "docs/target.md"})
+        )
+        assert errors == [], errors
+        target.unlink()  # unstaged deletion of the tracked target
+        errors = module.broken_links(
+            ["docs/doc.md"], tracked=frozenset({"docs/doc.md", "docs/target.md"})
+        )
+    finally:
+        module.ROOT = original_root
+    assert len(errors) == 1, errors
+    assert "missing from the working tree" in errors[0]
+
+
+def test_single_quoted_title_target_still_checked(tmp_path: Path) -> None:
+    """Single-quoted titles are inline links, not extractor escapes."""
+    with _scenario(
+        tmp_path,
+        {"docs/doc.md": "[missing](./no-such.md \'optional title\')\n"},
+        {"docs/doc.md"},
+    ) as errors:
+        assert len(errors) == 1, errors
+        assert "no-such.md" in errors[0]
+
+
+def test_angle_destination_target_still_checked(tmp_path: Path) -> None:
+    """Angle-bracket destinations are inline links too."""
+    with _scenario(
+        tmp_path,
+        {"docs/doc.md": "[missing](<./no-such.md>)\n"},
+        {"docs/doc.md"},
+    ) as errors:
+        assert len(errors) == 1, errors
+        assert "no-such.md" in errors[0]
+
+
+def test_git_inventory_failure_fails_closed(tmp_path: Path, capsys) -> None:
+    """A failed git inventory must fail the check, not pass vacuously."""
+    module = _load_tool()
+    with mock.patch.object(
+        module.subprocess,
+        "run",
+        return_value=subprocess.CompletedProcess(
+            ["git"], 128, b"", b"fatal: not a git repository"
+        ),
+    ), mock.patch.object(sys, "argv", ["check_markdown_links.py"]):
+        assert module.main() == 1
+    assert "git ls-files failed" in capsys.readouterr().err
+
+
+def test_root_directory_link_counts_all_tracked_files(tmp_path: Path) -> None:
+    """./ must not depend on tracked dotfiles existing."""
+    with _scenario(
+        tmp_path,
+        {"README.md": "[root](./)\n", "src/code.py": "x\n"},
+        {"README.md", "src/code.py"},
+    ) as errors:
+        assert errors == [], errors

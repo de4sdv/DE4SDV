@@ -354,3 +354,86 @@ def test_real_bench_workspace_ignored_when_present(tmp_path: Path):
         )
     expected = _probe_fixture(ROOT, str(candidate.relative_to(ROOT)))
     assert check_naming._is_ignored_runtime_path(candidate) is expected
+
+
+def _force_tracked_under_ignored_fixture(tmp_path: Path) -> Path:
+    """Fixture repo where a bad-ID file is tracked WITHOUT a gitignore negation.
+
+    Gitignore says `implementation/aebs-bench/workspace/*`; the file is added
+    with `git add -f`, so it is tracked while still matching the ignore rule.
+    This is the case a directory-name blanket exemption would silently skip.
+    """
+    import subprocess as sp
+
+    repo = tmp_path / "aggregate-fixture"
+    repo.mkdir()
+    def git(*args, check=True):
+        return sp.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=check)
+    git("init", "-q")
+    git("config", "user.name", "fixture")
+    git("config", "user.email", "fixture@example.org")
+    (repo / ".gitignore").write_text(
+        "implementation/aebs-bench/workspace/*\n", encoding="utf-8"
+    )
+    nested = repo / "implementation/aebs-bench/workspace/build"
+    nested.mkdir(parents=True)
+    (nested / "tracked_bad.sysml").write_text(
+        "part def TrackedUnderIgnored {\n"
+        "  part brokenStyle : BAD-TOK;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    governed = repo / "implementation"
+    governed.mkdir(exist_ok=True)
+    (governed / "governed.param.yaml").write_text(
+        "subject: REQ-FIXTURE-001\n", encoding="utf-8"
+    )
+    git("add", "implementation/governed.param.yaml")
+    git("add", "-f", "implementation/aebs-bench/workspace/build/tracked_bad.sysml")
+    git("add", ".gitignore")
+    git("commit", "-q", "-m", "fixture")
+    return repo
+
+
+def test_aggregate_scanner_governs_tracked_file_under_ignored_dir(
+    tmp_path: Path,
+):
+    """The full governed scan still checks a tracked file under an ignored dir.
+
+    End-to-end seam: the path matches a gitignore rule (so a directory-name
+    blanket exemption would drop it), yet git tracks it, so its invalid
+    identifier must reach `check_identifier_tokens()` results. The ignore
+    match is proven with `git check-ignore --no-index`, because a tracked
+    path is by definition not ignored in index mode.
+    """
+    import subprocess as sp
+
+    repo = _force_tracked_under_ignored_fixture(tmp_path)
+    relative = "implementation/aebs-bench/workspace/build/tracked_bad.sysml"
+    # Preconditions: matches the gitignore rule in no-index mode, yet tracked.
+    assert (
+        sp.run(
+            ["git", "check-ignore", "--no-index", "-q", relative],
+            cwd=repo,
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+    assert (
+        sp.run(
+            ["git", "ls-files", "--", relative],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    )
+
+    original_root = check_naming.ROOT
+    try:
+        check_naming.ROOT = repo
+        errors = check_naming.check_identifier_tokens()
+    finally:
+        check_naming.ROOT = original_root
+    assert any(
+        "tracked_bad.sysml" in error and "BAD-" in error for error in errors
+    ), errors
