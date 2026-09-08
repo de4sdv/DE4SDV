@@ -112,10 +112,11 @@ package DE4SDV_AEBSAutowareReferenceProduct {
      * records bind the canonical usages
      * DE4SDV_AEBSLogicalArchitecture::system and
      * DE4SDV_AEBSPhysicalSoftwareRealization::physicalSoftware. The
-     * explicit dependencies below bind this product's instances to those
-     * canonical elements, so product-level trace queries can reach the
-     * canonical allocation and evidence records without claiming that the
-     * composite owns them.
+     * explicit dependencies below record this product's instances as bound
+     * to those canonical elements. These are model-native reference
+     * dependencies only: no executable semantic query maps them yet, so
+     * reachability through the revision-bound API is not claimed by this
+     * binding, and the composite does not own the canonical records.
      *
      * Bounded projection limitation (unchanged): importing the packages
      * does not transfer instance-level identity, and the explicit reference
