@@ -364,6 +364,11 @@ def test_impact_service_reports_native_edges_against_real_shapes(
             "declaredName": "RequirementCandidate",
         },
         {
+            "@id": "kernel-member-product",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+        },
+        {
             "@id": "req-braking",
             "@type": "RequirementUsage",
             "declaredName": "reqCommandEmergencyBraking",

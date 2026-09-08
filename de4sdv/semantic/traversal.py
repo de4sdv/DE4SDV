@@ -75,6 +75,27 @@ class SemanticTraversal:
         source_property = str(config.get("source_property", "source"))
         target_property = str(config.get("target_property", "target"))
         direction = str(config.get("direction", "outgoing"))
+        source_types = {
+            str(item) for item in config.get("source_types", [])
+        }
+        target_types = {
+            str(item) for item in config.get("target_types", [])
+        }
+        exclude_root = config.get("exclude_source_specializations_of")
+        if exclude_root:
+            # Exclusion by specialization lineage is only meaningful for
+            # incoming traversal (filtering neighbor sources). For outgoing
+            # traversal the queried source is the requirement root itself,
+            # which is never a member-product specialization; skip the
+            # O(elements) lineage computation there.
+            if direction == "incoming":
+                excluded_ids = self._excluded_specialization_ids(
+                    exclude_root, by_id
+                )
+            else:
+                excluded_ids: set[str] = set()
+        else:
+            excluded_ids = set()
         hops: list[TraversalHop] = []
         for relationship in elements:
             if allowed_types and str(relationship.get("@type")) not in allowed_types:
@@ -87,11 +108,108 @@ class SemanticTraversal:
                 neighbor_ids = relationship_targets
             else:
                 continue
+            if direction == "incoming":
+                if source_types:
+                    neighbor_ids = [
+                        neighbor_id
+                        for neighbor_id in neighbor_ids
+                        if str(by_id.get(neighbor_id, {}).get("@type")) in source_types
+                    ]
+                if excluded_ids:
+                    neighbor_ids = [
+                        neighbor_id for neighbor_id in neighbor_ids if neighbor_id not in excluded_ids
+                    ]
+            else:
+                if source_types and str(source.get("@type")) not in source_types:
+                    continue
+                if excluded_ids and source_id in excluded_ids:
+                    continue
+                if target_types:
+                    neighbor_ids = [
+                        neighbor_id
+                        for neighbor_id in neighbor_ids
+                        if str(by_id.get(neighbor_id, {}).get("@type")) in target_types
+                    ]
             for neighbor_id in neighbor_ids:
                 target = by_id.get(neighbor_id)
                 if target is not None:
                     hops.append(self._hop(mapping, source, target, relationship))
         return self._deduplicate(hops)
+
+    def _excluded_specialization_ids(
+        self,
+        root_class: Any,
+        by_id: dict[str, dict[str, Any]],
+    ) -> set[str]:
+        """Return elements typed by the transitive specialization lineage of a
+        kernel declaration (for example ``ProductLineMemberProduct``).
+
+        Uses native Subclassification objects: each references its specific
+        classifier through ``subclassifier`` and its general classifier through
+        ``superclassifier``. Usage-level exclusion resolves each element's
+        FeatureTyping to its defining classifier before the lineage check.
+        Unknown root class names fail closed with an error so a typo in the
+        ontology cannot silently disable the exclusion.
+        """
+        if not root_class:
+            return set()
+        if not isinstance(root_class, str):
+            raise ValueError(
+                "exclude_source_specializations_of must be a class name string"
+            )
+        # Single-pass Subclassification index: general -> specifics.
+        specifics_by_general: dict[str, set[str]] = {}
+        roots: list[str | None] = []
+        for element in by_id.values():
+            if element.get("declaredName") == root_class:
+                roots.append(element_id(element))
+            elif str(element.get("@type")) == "Subclassification":
+                general = element_id(element.get("superclassifier")) or element_id(
+                    element.get("general")
+                )
+                specific = element_id(element.get("subclassifier")) or element_id(
+                    element.get("specific")
+                )
+                if general is not None and specific is not None:
+                    specifics_by_general.setdefault(general, set()).add(specific)
+        if not any(candidate is not None for candidate in roots):
+            raise ValueError(
+                f"exclude_source_specializations_of names no model element: "
+                f"{root_class!r}"
+            )
+        lineage: set[str] = set()
+        frontier: list[str | None] = list(roots)
+        while frontier:
+            current = frontier.pop()
+            if current is None or current in lineage:
+                continue
+            lineage.add(current)
+            frontier.extend(specifics_by_general.get(current, ()))
+        # Single-pass FeatureTyping reverse index: usage -> typed definitions.
+        feature_typing: dict[str, set[str]] = {}
+        for element in by_id.values():
+            if str(element.get("@type")) != "FeatureTyping":
+                continue
+            usage_id = element_id(element.get("owningRelatedElement"))
+            if usage_id is None:
+                continue
+            typed = element_id(element.get("type")) or element_id(
+                element.get("general")
+            )
+            if typed is not None:
+                feature_typing.setdefault(usage_id, set()).add(typed)
+        excluded: set[str] = set()
+        for candidate_id, element in by_id.items():
+            if str(element.get("@type")) not in {
+                "PartUsage",
+                "PartDefinition",
+                "ActionUsage",
+                "ActionDefinition",
+            }:
+                continue
+            if feature_typing.get(candidate_id, set()) & lineage:
+                excluded.add(candidate_id)
+        return excluded
 
     def _reverse_reference_hops(
         self,

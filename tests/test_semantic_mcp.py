@@ -96,6 +96,11 @@ def semantic_service():
             "qualifiedName": "DE4SDV_MethodContext::RequirementCandidate",
         },
         {
+            "@id": "kernel-member-product",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+        },
+        {
             "@id": "req-1",
             "@type": "RequirementUsage",
             "declaredName": "reqCommandEmergencyBraking",
@@ -213,7 +218,7 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     result = semantic_service.model_status()
 
     assert result["current_baseline"] is True
-    assert result["element_count"] == 9
+    assert result["element_count"] == 10
     assert result["gaps"] == []
 
 

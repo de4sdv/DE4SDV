@@ -439,6 +439,40 @@ relationships:
       source_property: source
       target_property: target
       semantic_strength: allocation
+  specifiesFunction:
+    domain: Requirement
+    range: Function
+    definition: >-
+      Requirement-to-function relevance: a dependency from a draft requirement
+      candidate to the functional action or flow responsibility that addresses
+      it. Relevance only — not satisfaction, allocation, or verification.
+    sysml_mapping:
+      strategy: dependency
+      relationship_types: [Dependency]
+      direction: outgoing
+      source_property: source
+      target_property: target
+      source_types: [RequirementUsage]
+      target_types: [ActionUsage, ActionDefinition]
+      semantic_strength: relevance
+  hasRelevantArchitecture:
+    domain: Requirement
+    range: ArchitectureElement
+    definition: >-
+      Reverse relevance: an incoming dependency from an architecture element
+      (part, action, or their definitions) that is derived from or traces to
+      the requirement. Sources typed by the kernel ProductLineMemberProduct
+      lineage are excluded — configured-product traces are product-line
+      relationships, not architecture relevance.
+    sysml_mapping:
+      strategy: dependency
+      relationship_types: [Dependency]
+      direction: incoming
+      source_property: source
+      target_property: target
+      source_types: [PartUsage, PartDefinition, ActionUsage, ActionDefinition]
+      exclude_source_specializations_of: ProductLineMemberProduct
+      semantic_strength: relevance
   allocatedTo:
     domain: Function
     range: LogicalElement
@@ -508,6 +542,7 @@ relationships:
       direction: incoming
       source_property: source
       target_property: target
+      source_types: [RequirementUsage]
       semantic_strength: relevance
   selectsFeature:
     domain: FeatureConfiguration

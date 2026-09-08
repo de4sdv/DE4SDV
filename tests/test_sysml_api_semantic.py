@@ -307,6 +307,11 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "qualifiedName": "DE4SDV_MethodContext::RequirementCandidate",
         },
         {
+            "@id": "kernel-member-product",
+            "@type": "PartDefinition",
+            "declaredName": "ProductLineMemberProduct",
+        },
+        {
             "@id": "req-braking",
             "@type": "RequirementUsage",
             "declaredName": "reqCommandEmergencyBraking",

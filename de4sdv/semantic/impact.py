@@ -87,13 +87,43 @@ class ImpactService:
         architecture_hops = self.traversal.traverse("realizedBy", root, elements)
         for hop in architecture_hops:
             add_hop(hop, "ArchitectureElement", "architecture")
-        if not architecture_hops:
+        function_hops = self.traversal.traverse("specifiesFunction", root, elements)
+        for hop in function_hops:
+            add_hop(hop, "Function", "function")
+        reverse_architecture_hops = self.traversal.traverse(
+            "hasRelevantArchitecture", root, elements
+        )
+        for hop in reverse_architecture_hops:
+            add_hop(hop, "ArchitectureElement", "architecture")
+        if not architecture_hops and not reverse_architecture_hops:
             gaps.append(
                 {
                     "category": "architecture",
                     "reason": (
                         "No ontology-mapped AllocationUsage connects this requirement "
-                        "to an architecture element in the bound API revision."
+                        "to an architecture element and no architecture element "
+                        "dependency resolves to it in the bound API revision."
+                    ),
+                }
+            )
+        elif not architecture_hops:
+            gaps.append(
+                {
+                    "category": "architecture-allocation",
+                    "reason": (
+                        "Architecture relevance dependencies exist, but no "
+                        "ontology-mapped AllocationUsage allocates this requirement "
+                        "in the bound API revision. Relevance is not allocation."
+                    ),
+                }
+            )
+        if not function_hops:
+            gaps.append(
+                {
+                    "category": "function",
+                    "reason": (
+                        "No requirement-to-function relevance dependency resolves "
+                        "to a functional action or flow in the bound API revision."
                     ),
                 }
             )
