@@ -102,6 +102,38 @@ def _part_def_block(code: str, name: str) -> str:
     raise AssertionError(f"part def {name} body is unbalanced")
 
 
+def _dependency_directly_owned(block: str, name: str) -> re.Match[str]:
+    """Match the dependency ONLY at the block's immediate brace depth.
+
+    The block string includes its own outer braces, so immediately owned
+    members sit at depth 1. A dependency declared inside a nested part def
+    or nested block sits deeper and is NOT owned by this part def — the
+    guard must not accept structure borrowed from a nested owner.
+    """
+    matches = [
+        match
+        for match in _DEP.finditer(block)
+        if match.group("name") == name and _match_depth(block, match) == 1
+    ]
+    if len(matches) != 1:
+        raise AssertionError(
+            f"expected exactly one active dependency {name!r} owned directly by "
+            f"the part def body, found {len(matches)}"
+        )
+    return matches[0]
+
+
+def _match_depth(block: str, match: re.Match[str]) -> int:
+    """Brace depth of a match's start position within the block string."""
+    depth = 0
+    for character in block[: match.start()]:
+        if character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+    return depth
+
+
 def _dependency(block: str, name: str) -> re.Match[str]:
     matches = [match for match in _DEP.finditer(block) if match.group("name") == name]
     if len(matches) != 1:
@@ -122,7 +154,9 @@ def _import_statement(code: str, target: str) -> None:
 def test_composite_binds_logical_system_to_canonical_system() -> None:
     code = _composite_code()
     block = _part_def_block(code, "AEBSAutowareReferenceProduct")
-    dependency = _dependency(block, "aebsLogicalSystemBindingToCanonicalSystem")
+    dependency = _dependency_directly_owned(
+        block, "aebsLogicalSystemBindingToCanonicalSystem"
+    )
     assert dependency.group("source") == "aebsLogicalSystem"
     assert (
         dependency.group("target") == "DE4SDV_AEBSLogicalArchitecture::system"
@@ -132,7 +166,7 @@ def test_composite_binds_logical_system_to_canonical_system() -> None:
 def test_composite_binds_software_to_canonical_physical_software() -> None:
     code = _composite_code()
     block = _part_def_block(code, "AEBSAutowareReferenceProduct")
-    dependency = _dependency(
+    dependency = _dependency_directly_owned(
         block, "aebsSoftwareBindingToCanonicalPhysicalSoftware"
     )
     assert dependency.group("source") == "aebsSoftware"
@@ -254,6 +288,36 @@ def test_dependency_guard_rejects_deleted_binding() -> None:
     block = _part_def_block(code, "Composite")
     with pytest.raises(AssertionError, match="exactly one active dependency"):
         _dependency(block, "bound")
+
+
+def test_full_guard_rejects_binding_owned_by_nested_definition(monkeypatch) -> None:
+    """The real guard must not accept structure owned by a nested part def.
+
+    Regression for the review probe: a nested unrelated definition declares
+    the usage AND the correctly spelled dependency. Endpoint spelling alone
+    does not establish ownership — the full logical-binding guard must fail
+    on this input, not silently accept the borrowed structure.
+    """
+    import sys
+
+    code = (
+        "package DE4SDV_AEBSAutowareReferenceProduct {\n"
+        "  private import DE4SDV_AEBSProductLineScope::*;\n"
+        "  part def AEBSAutowareReferenceProduct :> StandaloneAutowareAEBSReferenceMember {\n"
+        "    part def UnrelatedNested {\n"
+        "      part aebsLogicalSystem;\n"
+        "      dependency aebsLogicalSystemBindingToCanonicalSystem\n"
+        "        from aebsLogicalSystem\n"
+        "        to DE4SDV_AEBSLogicalArchitecture::system;\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+    monkeypatch.setitem(
+        sys.modules[__name__].__dict__, "_composite_code", lambda: code
+    )
+    with pytest.raises(AssertionError, match="owned directly by"):
+        test_composite_binds_logical_system_to_canonical_system()
 
 
 def test_comment_stripping_preserves_multiplication_operators() -> None:
