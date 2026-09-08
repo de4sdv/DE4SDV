@@ -478,6 +478,26 @@ def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
                 "semantic_validation": "passed",
                 "scope": "fixture",
                 "ontology": ontology_identity(),
+                "kernel_bindings": [
+                    {
+                        "ontology_class": "Requirement",
+                        "element_id": "kernel-requirement",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_method_context.sysml"
+                        ),
+                        "declaration": "requirement def RequirementCandidate",
+                    },
+                    {
+                        "ontology_class": "MemberProduct",
+                        "element_id": "kernel-member-product",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_product_line.sysml"
+                        ),
+                        "declaration": "part def ProductLineMemberProduct",
+                    },
+                ],
             }
         ),
         encoding="utf-8",
@@ -567,6 +587,26 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
                 "semantic_validation": "passed",
                 "scope": "fixture",
                 "ontology": ontology_identity(),
+                "kernel_bindings": [
+                    {
+                        "ontology_class": "Requirement",
+                        "element_id": "kernel-requirement",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_method_context.sysml"
+                        ),
+                        "declaration": "requirement def RequirementCandidate",
+                    },
+                    {
+                        "ontology_class": "MemberProduct",
+                        "element_id": "kernel-member-product",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_product_line.sysml"
+                        ),
+                        "declaration": "part def ProductLineMemberProduct",
+                    },
+                ],
             }
         ),
         encoding="utf-8",
