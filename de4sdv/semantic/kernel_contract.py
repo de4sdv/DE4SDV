@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,26 @@ from de4sdv.sysml_api.revisions import OntologyIdentity
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+_DECLARATION = re.compile(r"^(.+?)\s+def\s+([A-Za-z][A-Za-z0-9_]*)$")
+
+
+def declaration_identity(declaration: str) -> tuple[str, str]:
+    """Declared name and API element type for one kernel declaration string."""
+    match = _DECLARATION.fullmatch(" ".join(declaration.split()))
+    if not match:
+        raise ValueError(f"unsupported kernel declaration syntax: {declaration!r}")
+    kind, name = match.groups()
+    kind_words = kind.split()
+    if kind_words and kind_words[0] == "variation":
+        kind_words = kind_words[1:]
+    special = {"enum": "Enumeration", "use case": "UseCase"}
+    normalized_kind = " ".join(kind_words)
+    type_stem = special.get(
+        normalized_kind,
+        "".join(word[:1].upper() + word[1:] for word in kind_words),
+    )
+    return name, f"{type_stem}Definition"
 
 
 @dataclass(frozen=True)

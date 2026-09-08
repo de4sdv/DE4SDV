@@ -49,6 +49,36 @@ class OntologyIdentity:
 
 
 @dataclass(frozen=True)
+class KernelElementBinding:
+    """One ingestion-validated kernel identity for a file-mapped ontology class.
+
+    Produced by ontology/API binding validation at ingestion time: the
+    serializer-recorded source document pins the exact API element that
+    carries the governed declaration. Runtime consumers use these UUIDs
+    directly and never re-derive identity from names or source text.
+    """
+
+    ontology_class: str
+    element_id: str
+    source_file: str
+    declaration: str
+
+    @classmethod
+    def from_dict(cls, value: object) -> "KernelElementBinding":
+        if not isinstance(value, dict):
+            raise ValueError("kernel binding must be a JSON object")
+        for field in ("ontology_class", "element_id", "source_file", "declaration"):
+            if not str(value.get(field) or ""):
+                raise ValueError(f"kernel binding {field} is required")
+        return cls(
+            ontology_class=str(value["ontology_class"]),
+            element_id=str(value["element_id"]),
+            source_file=str(value["source_file"]),
+            declaration=str(value["declaration"]),
+        )
+
+
+@dataclass(frozen=True)
 class RevisionBinding:
     git_repository: str
     git_commit: str
@@ -59,6 +89,7 @@ class RevisionBinding:
     semantic_validation: str
     ontology: OntologyIdentity
     scope: str = "full-model"
+    kernel_bindings: tuple[KernelElementBinding, ...] = ()
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "RevisionBinding":
@@ -78,6 +109,9 @@ class RevisionBinding:
         git_commit = str(value["git_commit"])
         if not _FULL_SHA.fullmatch(git_commit):
             raise ValueError("git_commit must be a full 40-character lowercase SHA")
+        raw_kernel_bindings = value.get("kernel_bindings", ())
+        if not isinstance(raw_kernel_bindings, (list, tuple)):
+            raise ValueError("revision binding kernel_bindings must be a list")
         return cls(
             git_repository=str(value["git_repository"]),
             git_commit=git_commit,
@@ -88,6 +122,10 @@ class RevisionBinding:
             semantic_validation=str(value["semantic_validation"]),
             ontology=OntologyIdentity.from_dict(value["ontology"]),
             scope=str(value.get("scope", "full-model")),
+            kernel_bindings=tuple(
+                KernelElementBinding.from_dict(item)
+                for item in raw_kernel_bindings
+            ),
         )
 
     @classmethod

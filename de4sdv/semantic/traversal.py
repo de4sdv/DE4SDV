@@ -5,8 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
+from .kernel_binding_index import KernelBindingIndex
 from .kernel_contract import KernelContract, RelationshipMapping
 
 
@@ -23,8 +25,13 @@ class TraversalHop:
 class SemanticTraversal:
     """Execute only explicitly configured ontology relationship strategies."""
 
-    def __init__(self, contract: KernelContract) -> None:
+    def __init__(
+        self,
+        contract: KernelContract,
+        kernel_bindings: KernelBindingIndex | None = None,
+    ) -> None:
         self.contract = contract
+        self.kernel_bindings = kernel_bindings
 
     def traverse(
         self,
@@ -75,6 +82,27 @@ class SemanticTraversal:
         source_property = str(config.get("source_property", "source"))
         target_property = str(config.get("target_property", "target"))
         direction = str(config.get("direction", "outgoing"))
+        source_types = {
+            str(item) for item in config.get("source_types", [])
+        }
+        target_types = {
+            str(item) for item in config.get("target_types", [])
+        }
+        exclude_root = config.get("exclude_source_specializations_of")
+        if exclude_root:
+            # Exclusion by specialization lineage is only meaningful for
+            # incoming traversal (filtering neighbor sources). For outgoing
+            # traversal the queried source is the requirement root itself,
+            # which is never a member-product specialization; skip the
+            # O(elements) lineage computation there.
+            if direction == "incoming":
+                excluded_ids = self._excluded_specialization_ids(
+                    exclude_root, by_id
+                )
+            else:
+                excluded_ids: set[str] = set()
+        else:
+            excluded_ids = set()
         hops: list[TraversalHop] = []
         for relationship in elements:
             if allowed_types and str(relationship.get("@type")) not in allowed_types:
@@ -87,11 +115,137 @@ class SemanticTraversal:
                 neighbor_ids = relationship_targets
             else:
                 continue
+            if direction == "incoming":
+                if source_types:
+                    neighbor_ids = [
+                        neighbor_id
+                        for neighbor_id in neighbor_ids
+                        if str(by_id.get(neighbor_id, {}).get("@type")) in source_types
+                    ]
+                if excluded_ids:
+                    neighbor_ids = [
+                        neighbor_id for neighbor_id in neighbor_ids if neighbor_id not in excluded_ids
+                    ]
+            else:
+                if source_types and str(source.get("@type")) not in source_types:
+                    continue
+                if excluded_ids and source_id in excluded_ids:
+                    continue
+                if target_types:
+                    neighbor_ids = [
+                        neighbor_id
+                        for neighbor_id in neighbor_ids
+                        if str(by_id.get(neighbor_id, {}).get("@type")) in target_types
+                    ]
             for neighbor_id in neighbor_ids:
                 target = by_id.get(neighbor_id)
                 if target is not None:
                     hops.append(self._hop(mapping, source, target, relationship))
         return self._deduplicate(hops)
+
+    def _excluded_specialization_ids(
+        self,
+        root_class: Any,
+        by_id: dict[str, dict[str, Any]],
+    ) -> set[str]:
+        """Return elements in the specialization lineage of one kernel class.
+
+        ``root_class`` names an ONTOLOGY class (for example ``MemberProduct``).
+        The canonical SysML identity is the UUID validated at ingestion time
+        and persisted in the revision binding's kernel bindings: the
+        ingestion-side ontology validation confirmed the API type/name
+        against the serializer-recorded source document. Runtime traversal
+        consumes that validated UUID against the API graph and never
+        re-derives identity from element names or SysML source text (ADR
+        0011: no custom textual parser, no source-derived runtime
+        semantics).
+
+        Behavior contract:
+
+        - canonical declaration present (+ any unrelated same-named
+          declarations elsewhere): the validated canonical element grounds
+          and homonyms cannot borrow the mapping;
+        - canonical declaration absent (binding UUID missing from the
+          revision, or ingestion never validated the class):
+          ``IdentityNotFoundError`` — fail closed even when unrelated
+          homonyms survive;
+        - more than one genuinely grounded canonical candidate is
+          unrepresentable in the binding schema and is rejected as
+          ambiguous at ingestion time.
+
+        The result contains two populations, both excluded from incoming
+        architecture traversal:
+
+        - definitions in the transitive ``Subclassification`` lineage of the
+          validated kernel definition (so specialized product definitions
+          cannot pose as architecture sources), and
+        - usages whose ``FeatureTyping`` resolves to a lineage definition.
+        """
+        if not root_class:
+            return set()
+        if not isinstance(root_class, str):
+            raise ValueError(
+                "exclude_source_specializations_of must be an ontology class name"
+            )
+        self.contract.class_mapping(root_class)
+        if self.kernel_bindings is None:
+            raise IdentityNotFoundError(
+                f"no validated kernel binding index is available; exclusion root "
+                f"{root_class!r} cannot be resolved without ingestion-validated "
+                f"binding metadata"
+            )
+        root_id = self.kernel_bindings.element_id_for(root_class, by_id)
+        # Single-pass Subclassification index: general -> specifics.
+        specifics_by_general: dict[str, set[str]] = {}
+        for element in by_id.values():
+            if str(element.get("@type")) != "Subclassification":
+                continue
+            general = element_id(element.get("superclassifier")) or element_id(
+                element.get("general")
+            )
+            specific = element_id(element.get("subclassifier")) or element_id(
+                element.get("specific")
+            )
+            if general is not None and specific is not None:
+                specifics_by_general.setdefault(general, set()).add(specific)
+        lineage: set[str] = set()
+        frontier: list[str | None] = [root_id]
+        while frontier:
+            current = frontier.pop()
+            if current is None or current in lineage:
+                continue
+            lineage.add(current)
+            frontier.extend(specifics_by_general.get(current, ()))
+        # Single-pass FeatureTyping reverse index: usage -> typed definitions.
+        feature_typing: dict[str, set[str]] = {}
+        for element in by_id.values():
+            if str(element.get("@type")) != "FeatureTyping":
+                continue
+            usage_id = element_id(element.get("owningRelatedElement"))
+            if usage_id is None:
+                continue
+            typed = element_id(element.get("type")) or element_id(
+                element.get("general")
+            )
+            if typed is not None:
+                feature_typing.setdefault(usage_id, set()).add(typed)
+        excluded: set[str] = set()
+        for candidate_id, element in by_id.items():
+            if str(element.get("@type")) not in {
+                "PartUsage",
+                "PartDefinition",
+                "ActionUsage",
+                "ActionDefinition",
+            }:
+                continue
+            # Definitions that are themselves in the lineage are product
+            # structure, not architecture sources.
+            if candidate_id in lineage:
+                excluded.add(candidate_id)
+                continue
+            if feature_typing.get(candidate_id, set()) & lineage:
+                excluded.add(candidate_id)
+        return excluded
 
     def _reverse_reference_hops(
         self,
