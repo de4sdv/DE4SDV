@@ -136,6 +136,26 @@ detects newer files.
 The **Chat** link in the header points to the DE4SDV Mattermost community
 (<https://chat.de4sdv.org>).
 
+### DE4SDV Guide (repository assistant)
+
+The **Guide** button at the bottom-right of every page opens the DE4SDV
+Guide, a chat assistant for the **repository**: documentation,
+architecture material, architecture decision records, tooling, the
+contribution workflow, and product-line assets. It is minimized by
+default; "New chat" clears the conversation, and the conversation stays
+available while you navigate the viewer (stored in your browser only).
+
+DE4SDV Guide is a **generated** answer source grounded in the deployed
+Git checkout — it is **not** an engineering or model authority and it
+never queries the Systems Modeling API. When the repository material does
+not answer a question, it says so instead of guessing. Answers carry
+source references that open on GitHub at the exact deployed revision.
+
+For questions about a **specific model element**, use **Ask the model**
+instead: right-click the element in the viewer. Ask the model is the
+element-grounded model capability and is separate from DE4SDV Guide —
+the two never substitute for each other.
+
 ## Static vs. server mode
 
 A page served from a static build (including the native Pages mirror) shows a note

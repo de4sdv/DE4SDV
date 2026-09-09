@@ -208,6 +208,32 @@ consume inference quota. These are abuse controls and a daily request ceiling,
 not an exact monetary guarantee. Monitor inference usage and stop the Ask
 service if traffic or cost becomes abnormal.
 
+### DE4SDV Guide (`/api/repo-chat`)
+
+The same viewer container also serves **DE4SDV Guide**, the repository
+assistant: a separate capability from Ask the model, on its own endpoint
+`POST /api/repo-chat` (`tools/sysml_html_viewer/repo_guide.py`). It
+answers newcomer questions about the Git repository — documentation,
+ADRs, tooling, contribution workflow — grounded in the **exact deployed
+checkout** through a deterministic SQLite FTS5 retrieval index built
+lazily by the server (no vector database). The index excludes `.git`,
+secrets/environment files, build output, caches, and generated assets;
+retrieval is keyed to the checkout's HEAD, so the index rebuilds when the
+deployment moves to a new SHA. Source references in answers are GitHub
+links pinned to the deployed application SHA.
+
+Authority boundary (also stated in the UI and the viewer README):
+DE4SDV Guide is a **generated** repository/documentation assistant, not
+an engineering or model authority; it never queries the Systems Modeling
+API and never falls back to Ask the model (nor the reverse). When no
+trustworthy repository context matches a question, the endpoint returns
+404 and the guide says it cannot answer rather than guessing. The proxy
+route mirrors the `/ask` hardening — POST-only, same 16 KiB body limit,
+and an independent rate-limit budget (`guide_global`, `guide_daily`,
+`guide_per_ip`) so the two capabilities can never consume each other's
+hourly/daily spend. No server-side user memory or accounts exist in V1;
+conversation state is browser-local.
+
 ## Known limitations
 
 - The pilot implementation serializes large result sets server-side; complete
