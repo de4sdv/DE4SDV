@@ -1159,9 +1159,13 @@ function assert(cond, msg) { if (!cond) throw new Error(msg + ' | state: guide='
   + ', fab=' + registry.guideFab.style.display
   + ', body=[' + Array.from(bodyClasses).join(',') + ']'); }
 
-// state A: both closed
+// state A: both closed — FAB visible, NO chip (never minimized)
 assert(!registry.guidePanel.classList.contains('open'), 'A guide open');
 assert(registry.guideFab.style.display !== 'none', 'A fab hidden');
+const initialChip = registry.guideMinChip;
+if (initialChip && initialChip.style.display === 'inline-flex') {
+  throw new Error('A debug: store=' + JSON.stringify(store) + '; chipDisplay=' + JSON.stringify(initialChip.style.display));
+}
 
 // open Guide (state B)
 registry.guideFab.dispatch('click');
