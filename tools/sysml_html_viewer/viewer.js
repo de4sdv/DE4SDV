@@ -359,6 +359,9 @@
     guideChip.title = 'DE4SDV Guide — minimized';
     guideChip.textContent = '\u{1F4AC}';
     guideChip.addEventListener('click', function () {
+      try {
+        window.localStorage.setItem(CHAT_GUIDE_CHIP_KEY, '0');
+      } catch (err) {}
       applyOpen(true);
     });
     document.body.appendChild(guideChip);
@@ -542,17 +545,17 @@
       state.open = !!open;
       panel.classList.toggle('open', state.open);
       guideSaveState(state);
-      try {
-        window.localStorage.setItem(
-          CHAT_GUIDE_CHIP_KEY, open ? '0' : '1'
-        );
-      } catch (err) {}
       chatSyncLayout();
       if (state.open) input.focus();
     }
 
     fab.addEventListener('click', function () { applyOpen(true); });
-    minBtn.addEventListener('click', function () { applyOpen(false); });
+    minBtn.addEventListener('click', function () {
+      try {
+        window.localStorage.setItem(CHAT_GUIDE_CHIP_KEY, '1');
+      } catch (err) {}
+      applyOpen(false);
+    });
     clearBtn.addEventListener('click', function () {
       state.messages = [];
       guideSaveState(state);
