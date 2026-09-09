@@ -1130,8 +1130,8 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
 }
 
 /* ---- chat panel layout: side-by-side when both open ---- */
-/* Ask keeps the corner; Guide shifts left so both are fully visible. */
-.guide-panel.open.shifted,
+/* Fixed order left -> right: Ask panel, Guide panel (corner). When both
+ * are open the ASK panel shifts left; Guide always owns the corner. */
 .ask-panel.open.shifted {
   right: calc(18px + min(430px, calc(100vw - 36px)) + 16px);
 }
@@ -1173,16 +1173,26 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   border-color: var(--accent);
   background: var(--accent-soft);
 }
-#guideMinChip { right: 18px; }
-#askMinChip { right: 74px; }
-/* When the Ask panel occupies the corner, the minimized Guide chip must
- * sit to its LEFT, not underneath the panel. */
-body.chat-ask-open #guideMinChip {
+/* Fixed horizontal order (left -> right): Ask chip, FAB / Guide panel.
+ * right: 18px = corner slot (Guide panel + its FAB).
+ * right: calc(18px + panelWidth + 16px) = the Ask slot left of Guide. */
+#askMinChip {
   right: calc(18px + min(430px, calc(100vw - 36px)) + 16px);
 }
+/* Guide FAB shifts left of the Ask panel/chip footprint while Ask is open
+ * or minimized, so nothing stacks underneath anything else. */
+.guide-fab.shifted {
+  right: calc(18px + min(430px, calc(100vw - 36px)) + 16px
+    + 44px + 12px);
+}
 @media (max-width: 640px) {
-  #guideMinChip { right: 12px; }
-  #askMinChip { right: 68px; }
+  #askMinChip {
+    right: calc(12px + min(430px, calc(100vw - 16px)) + 12px);
+  }
+  .guide-fab.shifted {
+    right: calc(12px + min(430px, calc(100vw - 16px)) + 12px
+      + 44px + 10px);
+  }
 }
 
 /* return path note after arriving via the uses-menu */

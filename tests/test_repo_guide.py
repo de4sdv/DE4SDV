@@ -1082,13 +1082,17 @@ console.log('TREE MENU OK');
 
 
 def test_chat_panels_layout_states():
-    """Layout states: both closed (FAB), one open (corner), both open
-    (side-by-side via shifted), minimized (chips, ask keeps context)."""
+    """Single Guide entry point (FAB) + fixed panel order:
+    [Ask panel/chip] left, [Guide panel] right (corner). States:
+    Guide open -> FAB hidden, corner; both open -> Ask shifted left;
+    Ask minimized -> chip left of Guide; Guide minimized -> FAB returns
+    and Ask owns the corner."""
     script = r"""
 const fs = require('fs');
 const vm = require('vm');
 const registry = {};
 const docListeners = [];
+const store = {};
 function textNode(t){return {nodeType:3, textContent:String(t), children:[]};}
 function element(tag){
   const node = {nodeType:1, tagName:String(tag).toUpperCase(), children:[],
@@ -1109,7 +1113,7 @@ function element(tag){
   Object.defineProperty(node,'className',{
     get(){return cn;},
     set(v){cn=String(v); classes.clear();
-      cn.split(/\s+/).filter(Boolean).forEach(c=>classes.add(c));}
+      cn.split(/\\s+/).filter(Boolean).forEach(c=>classes.add(c));}
   });
   node.classList = {add:c=>classes.add(c), remove:c=>classes.delete(c),
     toggle(c,on){if(on===undefined){classes.has(c)?classes.delete(c):classes.add(c);}else if(on)classes.add(c);else classes.delete(c);},
@@ -1141,7 +1145,6 @@ global.document = {
   querySelector(){return null;}, querySelectorAll(){return [];},
   addEventListener(t,f){docListeners.push([t,f]);}
 };
-const store = {};
 global.window = {localStorage:{
   getItem:(k)=> (k in store ? store[k] : null),
   setItem:(k,v)=> { store[k] = String(v); }
@@ -1149,54 +1152,27 @@ global.window = {localStorage:{
 global.location = {hash:'', pathname:''};
 global.sessionStorage = {getItem:()=>null, setItem(){}};
 global.fetch = () => Promise.resolve({ok:true, json:()=>Promise.resolve({})});
-let source = fs.readFileSync(process.argv[1], 'utf8');
+let source = fs.readFileSync(process.argv[process.argv.length - 1], 'utf8');
 vm.runInThisContext(source);
 global.window.__DE4SDV_VIEWER_SERVER__ = true;
-
-function assert(cond, msg) { if (!cond) throw new Error(msg + ' | state: guide='
-  + registry.guidePanel.classList.contains('open')
-  + ', ask=' + (registry.askPanel ? registry.askPanel.classList.contains('open') : 'none')
-  + ', fab=' + registry.guideFab.style.display
-  + ', body=[' + Array.from(bodyClasses).join(',') + ']'); }
-
-// state A: both closed — FAB visible, NO chip (never minimized)
-assert(!registry.guidePanel.classList.contains('open'), 'A guide open');
-assert(registry.guideFab.style.display !== 'none', 'A fab hidden');
-const initialChip = registry.guideMinChip;
-if (initialChip && initialChip.style.display === 'inline-flex') {
-  throw new Error('A debug: store=' + JSON.stringify(store) + '; chipDisplay=' + JSON.stringify(initialChip.style.display));
-}
-
-// open Guide (state B)
-registry.guideFab.dispatch('click');
-assert(registry.guidePanel.classList.contains('open'), 'B guide closed');
-assert(bodyClasses.has('chat-guide-open'), 'B body class missing');
-assert(registry.guideFab.style.display === 'none', 'B fab visible');
-
-// minimize Guide -> chip visible
-registry.guideMinChip // exists?
-;
-registry.guideMinChip = registry.guideMinChip || null;
-// minimize via the panel's min button: find head child with class guide-min
+function assert(cond, msg) { if (!cond) throw new Error(msg); }
 function findByClass(n, cls){
   if (n.classList && n.classList.contains(cls)) return n;
   for (const c of (n.children||[])) { const hit = findByClass(c, cls); if (hit) return hit; }
   return null;
 }
-const minBtn = findByClass(registry.guidePanel, 'guide-min');
-minBtn.dispatch('click');
-assert(!registry.guidePanel.classList.contains('open'), 'B2 guide still open');
-const chip = registry.guideMinChip;
-if (!chip || chip.style.display !== 'inline-flex') {
-  throw new Error('guide chip not shown after minimize');
-}
 
-// reopen via chip
-chip.dispatch('click');
-assert(registry.guidePanel.classList.contains('open'), 'B3 chip reopen failed');
-if (chip.style.display !== 'none') throw new Error('chip not hidden after reopen');
+// A: both closed -> FAB visible, no ask chip
+assert(registry.guideFab.style.display !== 'none', 'A fab hidden');
+assert(!registry.askMinChip || registry.askMinChip.style.display !== 'inline-flex', 'A ask chip visible');
 
-// state C: both open — open Ask via context menu on a src-ref element
+// B: Guide open via FAB -> FAB hidden, Guide at corner
+const fab = registry.guideFab;
+fab.dispatch('click');
+assert(registry.guidePanel.classList.contains('open'), 'B guide not open');
+assert(fab.style.display === 'none', 'B fab visible while guide open');
+
+// C: open Ask via context menu -> both open, Ask shifted left
 const anchor = element('a');
 anchor.setAttribute('class','src-ref');
 anchor.setAttribute('data-tip-name','FixtureSystem');
@@ -1208,41 +1184,41 @@ attachClosest(anchor);
 const cm = docListeners.filter(x=>x[0]==='contextmenu').map(x=>x[1]);
 cm[0]({preventDefault(){}, stopPropagation(){}, clientX:5, clientY:5, target:anchor, closest:anchor.closest});
 const menuEl = findByClass(body, 'uses-menu');
-const askItem = menuEl.children.find(c =>
-  c.textContent.indexOf('Ask the model') !== -1);
+const items = menuEl.children.filter(c => c.classList.contains('uses-menu-item'));
+const askItem = items.find(c => c.textContent.indexOf('Ask the model') !== -1);
+assert(askItem, 'C ask menu item missing');
 askItem.dispatch('click');
 const askPanel = registry.askPanel;
 assert(askPanel && askPanel.classList.contains('open'), 'C ask not open');
 assert(bodyClasses.has('chat-both-open'), 'C both-open class missing');
-assert(askPanel.classList.contains('shifted') === false,
-  'C ask should keep the corner');
-assert(registry.guidePanel.classList.contains('shifted'),
-  'C guide should be shifted');
+assert(askPanel.classList.contains('shifted'), 'C ask must shift left of guide');
+assert(!registry.guidePanel.classList.contains('shifted'), 'C guide must own the corner');
 
-// state D: minimize Ask -> chip; reopen keeps context (title/value)
+// D: minimize Ask -> chip appears; Guide keeps corner; chip shifted
 const askMin = findByClass(askPanel, 'ask-min');
-assert(askMin, 'D ask-min button missing');
 askMin.dispatch('click');
-assert(!askPanel.classList.contains('open'), 'D ask still open');
+assert(!askPanel.classList.contains('open'), 'D ask not hidden');
 const askChip = registry.askMinChip;
-assert(askChip && askChip.style.display === 'inline-flex',
-  'D ask chip not shown');
+assert(askChip && askChip.style.display === 'inline-flex', 'D ask chip missing');
+assert(askChip.classList.contains('shifted'), 'D chip not shifted left of guide');
+
+// E: chip restores Ask with element context
 askChip.dispatch('click');
-assert(askPanel.classList.contains('open'), 'D ask chip reopen failed');
+assert(askPanel.classList.contains('open'), 'E ask not restored');
 assert(askPanel.__els.title.textContent === 'FixtureSystem',
-  'D ask element context lost after minimize/reopen');
+  'E element context lost');
 
-// state E: close Ask entirely -> only Guide open, unshifted
-const askClose = findByClass(askPanel, 'ask-close');
-askClose.dispatch('click');
-assert(!askPanel.classList.contains('open'), 'E ask still open');
-assert(!registry.guidePanel.classList.contains('shifted'),
-  'E guide must unshift when ask closes');
+// F: minimize Guide -> FAB returns; Ask (open) owns the corner unshifted
+const guideMin = findByClass(registry.guidePanel, 'guide-min');
+guideMin.dispatch('click');
+assert(!registry.guidePanel.classList.contains('open'), 'F guide not hidden');
+assert(fab.style.display !== 'none', 'F fab missing');
+assert(!askPanel.classList.contains('shifted'), 'F ask must own the corner');
 
-// state F: close Guide too -> FAB returns
-const guideClose = findByClass(registry.guidePanel, 'guide-min');
-guideClose.dispatch('click');
-assert(registry.guideFab.style.display !== 'none', 'F fab must return');
+// G: reopen Guide -> both open again, ask re-shifts
+fab.dispatch('click');
+assert(askPanel.classList.contains('shifted'), 'G ask must re-shift');
+
 console.log('LAYOUT STATES OK');
 """
     result = subprocess.run(
