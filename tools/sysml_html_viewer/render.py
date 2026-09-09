@@ -213,6 +213,8 @@ def _page_shell(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DE4SDV Model Viewer — {esc(title)}</title>
+<link rel="icon" type="image/png" sizes="32x32" href="{esc(css_rel.replace('viewer.css', 'favicon-32.png'))}">
+<link rel="icon" type="image/png" sizes="16x16" href="{esc(css_rel.replace('viewer.css', 'favicon-16.png'))}">
 <script>(function(){{try{{var t=localStorage.getItem('de4sdv-viewer-theme');if(!t){{var q=new URLSearchParams(location.search).get('theme');t=(q==='dark'||q==='light')?q:null;}}if(t==='dark'){{document.documentElement.setAttribute('data-theme','dark');}}}}catch(e){{}}}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
