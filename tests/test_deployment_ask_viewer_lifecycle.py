@@ -87,9 +87,13 @@ def test_deploy_workflow_sets_canonical_origin_on_host_checkout() -> None:
     workflow = (
         REPO / ".github/workflows/deploy-public-ask-viewer.yml"
     ).read_text(encoding="utf-8")
+    # `git remote add` fails with "remote origin already exists": a bundle
+    # clone DOES create an origin remote (pointing at the bundle path).
+    # set-url re-points it, matching the API deploy workflow's mechanism.
     assert (
-        'git -C "$NEXT_DIR" remote add origin '
+        'git -C "$NEXT_DIR" remote set-url origin '
         "https://github.com/de4sdv/DE4SDV.git"
     ) in workflow
+    assert "remote add origin" not in workflow
     # the canonical URL, never a credential-bearing or SSH form
     assert "git@github.com" not in workflow
