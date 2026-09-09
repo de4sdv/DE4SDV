@@ -210,6 +210,76 @@ def compose(*args: str, repo: Path) -> None:
     )
 
 
+def recreate_ask_viewer(repo: Path, git_commit: str) -> None:
+    """Recreate the ask-viewer container for the freshly deployed revision.
+
+    The viewer serves a startup-cached site and grounding index; without a
+    recreate it keeps serving the PREVIOUS revision after the checkout and
+    binding underneath it were replaced (observed 2026-09-08: the container
+    kept serving a 5-day-old revision, its grounding index resolved no
+    element, and warmup crashed the worker mid-request). The compose file
+    requires DE4SDV_APP_GIT_SHA (the entrypoint fails closed unless the
+    mounted checkout HEAD matches it) and DE4SDV_ASK_ENV_FILE carries the
+    ask-model credentials.
+    """
+    env = dict(os.environ)
+    env["DEPLOY_DIR"] = str(DEPLOY_DIR)
+    env["DE4SDV_APP_GIT_SHA"] = git_commit
+    env.setdefault(
+        "DE4SDV_ASK_ENV_FILE", str(DEPLOY_DIR / "ask-viewer.env")
+    )
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(repo / "deployment" / "compose.yaml"),
+            "--env-file",
+            str(DEPLOY_DIR / "sysml2-api.env"),
+            "up",
+            "-d",
+            "--force-recreate",
+            "ask-viewer",
+        ],
+        cwd=repo,
+        env=env,
+        check=True,
+    )
+
+
+def wait_for_ask_viewer(timeout_s: int = 300) -> None:
+    """Poll the ask-viewer health endpoint until the container is healthy.
+
+    The healthcheck exits the fail-closed startup path only after the
+    runtime contract validated; a container stuck restarting means the
+    deployment would serve a broken ask service, so the deployment fails.
+    """
+    deadline = time.monotonic() + timeout_s
+    last_status: str | None = None
+    while time.monotonic() < deadline:
+        try:
+            output = subprocess.check_output(
+                [
+                    "docker",
+                    "inspect",
+                    "-f",
+                    "{{.State.Health.Status}}",
+                    "de4sdv-sysml-api-ask-viewer-1",
+                ],
+                text=True,
+            ).strip()
+        except subprocess.CalledProcessError:
+            output = "missing"
+        last_status = output
+        if output == "healthy":
+            return
+        time.sleep(5)
+    raise DeployError(
+        f"ask-viewer did not become healthy within {timeout_s}s "
+        f"(last health: {last_status})"
+    )
+
+
 def stop_public_proxy(repo: Path) -> None:
     """Stop the public proxy BEFORE any import/mutation touches the stack.
 
@@ -438,6 +508,16 @@ def main() -> int:
 
         status_path = write_status(evidence, deployment)
         print(f"deployment-status written to {status_path}")
+
+        # The ask-viewer must be recreated for THIS revision before the
+        # proxy returns: it serves a startup-cached site and grounding
+        # index, so a surviving container would publicly serve the previous
+        # revision and refuse every ask (observed defect). The recreate is
+        # fail-closed: an unhealthy ask service fails the deployment while
+        # the proxy is still down.
+        recreate_ask_viewer(args.repo, evidence["git_commit"])
+        wait_for_ask_viewer()
+        print("ask-viewer recreated and healthy for the deployed revision")
 
         compose("up", "-d", "caddy", repo=args.repo)
         print("public proxy is up; deployment complete")
