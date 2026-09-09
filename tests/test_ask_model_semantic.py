@@ -268,9 +268,16 @@ def test_api_verified_by_reversed_direction(fixture_repo, monkeypatch):
         "verification_case": "evidenceObjective",
         "sysml_type": "RequirementUsage",
         "element_id": "case-1",
+        "hops": 1,
     }]
-    # family isolation: no other family fired for this corpus
-    assert "verifies" not in ctx
+    # Chained pass 2: from the reached verification case, the forward
+    # direction (verifies) lists the requirements it verifies at hops=2.
+    assert ctx["verifies"] == [{
+        "verified_requirement": "memberProduct",
+        "sysml_type": "RequirementUsage",
+        "element_id": "req-v",
+        "hops": 2,
+    }]
     assert "incoming_dependencies" not in ctx
     assert "realized_by" not in ctx
     ams._SEMANTIC_CTX_CACHE.clear()
@@ -303,8 +310,16 @@ def test_api_verifies_forward_direction(fixture_repo, monkeypatch):
         "verified_requirement": "evidenceContractStateOwnership",
         "sysml_type": "RequirementUsage",
         "element_id": "req-1",
+        "hops": 1,
     }]
-    assert "verified_by" not in ctx
+    # Chained pass 2: the reverse direction (verified_by) lists the same
+    # verification case at hops=2 — multi-hop now reaches both endpoints.
+    assert ctx["verified_by"] == [{
+        "verification_case": "memberProduct",
+        "sysml_type": "RequirementUsage",
+        "element_id": "case-1",
+        "hops": 2,
+    }]
     ams._SEMANTIC_CTX_CACHE.clear()
 
 
@@ -338,6 +353,7 @@ def test_api_incoming_dependencies_with_dependency_name(
         "sysml_type": "RequirementUsage",
         "element_id": "req-s",
         "dependency": "reqRealAAOSRenderingDerivedFromCorrelatableEvidence",
+        "hops": 1,
     }]
     ams._SEMANTIC_CTX_CACHE.clear()
 
@@ -368,6 +384,7 @@ def test_api_realized_by_outgoing_allocations(fixture_repo, monkeypatch):
         "realized_target": "signalTranslator",
         "sysml_type": "PartUsage",
         "element_id": "arch-1",
+        "hops": 1,
     }]
     ams._SEMANTIC_CTX_CACHE.clear()
 
@@ -558,3 +575,60 @@ def test_warmup_failure_labels_ask_path(fixture_repo, monkeypatch):
     subs = ctx.get("requirement_subject_of", [])
     assert any(s.get("id") == "N-SEM-001" for s in subs)
     ams._WARM_STATE.update(status="idle", error=None)
+
+
+class _ChainService(_FakeService):
+    """Requirement -> evidence contract (Dependency) -> verification case
+    (RequirementVerificationMembership): the verification leaf is only
+    reachable at hop 2."""
+
+    @staticmethod
+    def _build_elements():
+        return [
+            {"@type": "RequirementUsage", "@id": "req-1",
+             "declaredName": "reqExample"},
+            {"@type": "Dependency", "@id": "dep-1",
+             "source": [{"@id": "ev-1"}],
+             "target": [{"@id": "req-1"}]},
+            {"@type": "RequirementUsage", "@id": "ev-1",
+             "declaredName": "evidenceContractNominalPath"},
+            {"@type": "RequirementVerificationMembership", "@id": "rvm-1",
+             "memberElement": [{"@id": "ev-1"}],
+             "owningRelatedElement": {"@id": "vc-1"}},
+            {"@type": "VerificationCaseUsage", "@id": "vc-1",
+             "declaredName": "nominalPathVerification"},
+        ]
+
+
+def test_api_context_chains_to_verification_leaf_at_hop_2(fixture_repo, monkeypatch):
+    """A requirement's verification cases attach to its evidence contracts,
+    one hop away: the chained context must reach the verification-case leaf
+    and label it hops=2, while the direct dependency stays hops=1."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    monkeypatch.setattr(ams, "_runtime", lambda: _ChainService())
+    ams._SEMANTIC_CTX_CACHE.clear()
+    ref, files = _resolve(fixture_repo)
+    service = _ChainService()
+    elements = service._element_cache
+    target = next(e for e in elements if e["@id"] == "req-1")
+    ctx = ams.api_method_context(service, [target], elements, max_hops=2)
+    deps = ctx.get("incoming_dependencies", [])
+    assert [d["source_element"] for d in deps] == ["evidenceContractNominalPath"]
+    assert deps[0]["hops"] == 1
+    cases = ctx.get("verified_by", [])
+    assert [c["verification_case"] for c in cases] == ["nominalPathVerification"]
+    assert cases[0]["hops"] == 2
+    ams._SEMANTIC_CTX_CACHE.clear()
+
+
+def test_api_context_max_hops_1_keeps_direct_only(monkeypatch):
+    """max_hops=1 preserves the old one-hop contract: no verification-case
+    leaf when it attaches to a chained element."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    service = _ChainService()
+    elements = service._element_cache
+    target = next(e for e in elements if e["@id"] == "req-1")
+    ctx = ams.api_method_context(service, [target], elements, max_hops=1)
+    assert [d["source_element"] for d in ctx.get("incoming_dependencies", [])] \
+        == ["evidenceContractNominalPath"]
+    assert ctx.get("verified_by") is None
