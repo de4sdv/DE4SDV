@@ -520,6 +520,10 @@ def _docs_page_html(repo_root: Path, md_rel: str, title: str, fallback: str) -> 
         "<meta charset=\"utf-8\">\n"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
         f"<title>{title}</title>\n"
+        "<link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" "
+        "href=\"assets/favicon-32.png\">\n"
+        "<link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" "
+        "href=\"assets/favicon-16.png\">\n"
         "<script>(function(){try{var t=localStorage.getItem('de4sdv-viewer-theme');"
         "if(!t){var q=new URLSearchParams(location.search).get('theme');"
         "t=(q==='dark'||q==='light')?q:null;}"
@@ -848,6 +852,13 @@ def _build_site(
         shutil.copyfile(theme_src, assets_dir / "theme.js")
     js_src = Path(__file__).parent / "viewer.js"
     shutil.copyfile(js_src, assets_dir / "viewer.js")
+    fav_names = ("favicon-32.png", "favicon-16.png")
+    fav_bytes = b""
+    for fav_name in fav_names:
+        fav_src = Path(__file__).parent / "assets" / fav_name
+        if fav_src.is_file():
+            shutil.copyfile(fav_src, assets_dir / fav_name)
+            fav_bytes += fav_src.read_bytes()
 
     # reverse index: declaration -> views whose diagram shows it
     uses_index = _uses_index(files, build_member_index(files))
@@ -865,6 +876,7 @@ def _build_site(
         css_src.read_bytes() + js_src.read_bytes() + uses_js.encode("utf-8")
         + carbon_src.read_bytes()
         + theme_src.read_bytes()
+        + fav_bytes
     ).hexdigest()[:10]
 
     if options is None:
