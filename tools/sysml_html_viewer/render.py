@@ -85,7 +85,10 @@ def _icon(kind: str) -> str:
 def node_data_attrs(node: TreeNode) -> str:
     """data-* attributes for in-tree filtering: every node carries its
     kind; views additionally carry their viewpoint type and the SAF
-    domain/aspect parsed from the viewpoint definition's doc comment."""
+    domain/aspect parsed from the viewpoint definition's doc comment.
+    Element nodes (declared members and views) additionally carry the
+    model-identity data-tip-* attributes the context menu and the hover
+    layer read, so right-click can offer both assistant capabilities."""
     parts = [f'data-kind="{esc(node.kind)}"']
     if node.viewpoint_type:
         parts.append(f'data-vp="{esc(node.viewpoint_type)}"')
@@ -93,6 +96,13 @@ def node_data_attrs(node: TreeNode) -> str:
         parts.append(f'data-domain="{esc(node.saf_domain)}"')
     if node.saf_aspect:
         parts.append(f'data-aspect="{esc(node.saf_aspect)}"')
+    if node.element_file and node.element_line:
+        parts += [
+            f'data-tip-name="{esc(node.label)}"',
+            f'data-tip-kind="{esc(node.kind)}"',
+            f'data-tip-file="{esc(node.element_file)}"',
+            f'data-tip-line="{node.element_line}"',
+        ]
     return " ".join(parts)
 
 
@@ -311,6 +321,13 @@ def render_index(
         <li>Hover labels and connectors in a diagram for documentation and
         source links; right-click an element to list every diagram that uses
         it.</li>
+        <li>Right-click an element — in a diagram, on a page, or in the
+        project tree — to ask about it. Two capabilities, never mixed:
+        <strong>Ask the model… (authoritative query)</strong> answers from
+        the model element itself (declared elements only), while
+        <strong>Ask repo assistant…</strong> opens the DE4SDV Guide, the
+        generated repository/documentation assistant at the bottom right
+        (not a model authority).</li>
       </ul>
     </div>
     <div>
