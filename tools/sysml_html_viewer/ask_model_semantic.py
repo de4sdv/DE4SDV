@@ -230,11 +230,14 @@ def _ref_ids(value) -> list[str]:
 
 
 def api_method_context(service, targets: list[dict],
-                       elements: list[dict]) -> dict:
+                       elements: list[dict],
+                       *, max_hops: int = 2) -> dict:
     """Derive the ontology-mapped method context for elements.
 
-    One pass over the bound revision's elements, collecting every
-    ontology-declared relation family that touches any target:
+    Collects every ontology-declared relation family that touches any
+    target, then CHAINS: reached elements become pass-2 targets so a
+    multi-hop trace (requirement -> evidence contract -> verification
+    case) reaches its leaf. Each pass is the same single sweep:
 
     - requirement_subject_of  (hasSubject: SubjectMembership whose
       memberElement resolves to the element; the owner is the
@@ -252,6 +255,13 @@ def api_method_context(service, targets: list[dict],
     - realized_by             (realizedBy: AllocationUsage edges from
       the element, direction outgoing)
 
+    Every entry records ``hops`` (1 = direct neighbor of the asked
+    element, 2 = reached through one chained element), so a consumer can
+    show direct traces only by filtering on hops == 1. Chaining is
+    bounded by ``max_hops`` and dedupes by element id, so the sweep is
+    finite; entries merge across passes and a family is listed only when
+    the model declares it.
+
     Same-name union applies to every family (subject references inside
     requirements are ReferenceUsage elements while the browsed element
     is typically the PartUsage in its system context; parity-proven
@@ -263,37 +273,6 @@ def api_method_context(service, targets: list[dict],
     ))
     if cache_key and cache_key in _SEMANTIC_CTX_CACHE:
         return _SEMANTIC_CTX_CACHE[cache_key]
-
-    subject_mapping = service.contract.relationship_mapping("hasSubject")
-    subject_types = {
-        str(t) for t in subject_mapping.configuration.get(
-            "membership_types", ["SubjectMembership"])
-    }
-    member_prop = str(subject_mapping.configuration.get(
-        "member_property", "memberElement"))
-    ver_mapping = service.contract.relationship_mapping("verifiedBy")
-    rvm_types = {
-        str(t) for t in ver_mapping.configuration.get(
-            "membership_types", ["RequirementVerificationMembership"])
-    }
-    dep_mapping = service.contract.relationship_mapping(
-        "hasRelevantEvidenceContract")
-    dep_types = {
-        str(t) for t in dep_mapping.configuration.get(
-            "relationship_types", ["Dependency"])
-    }
-    dep_source_prop = str(dep_mapping.configuration.get(
-        "source_property", "source"))
-    dep_target_prop = str(dep_mapping.configuration.get(
-        "target_property", "target"))
-    alloc_mapping = service.contract.relationship_mapping("realizedBy")
-    alloc_types = {
-        str(t) for t in alloc_mapping.configuration.get(
-            "relationship_types", ["AllocationUsage"])
-    }
-
-    target_ids = {str(t.get("@id") or "") for t in targets}
-    target_ids.discard("")
 
     by_id: dict[str, dict] = {}
     for e in elements:
@@ -308,84 +287,158 @@ def api_method_context(service, targets: list[dict],
             "element_id": str(e.get("elementId") or e.get("@id") or ""),
         }
 
-    subject_reqs: dict[str, dict] = {}
-    verifying_cases: dict[str, dict] = {}
-    verified_reqs: dict[str, dict] = {}
-    incoming_deps: dict[tuple[str, str], dict] = {}
-    allocations: dict[str, dict] = {}
+    def collect(target_ids: set[str]) -> tuple[dict, set[str]]:
+        """One sweep: families touching target_ids; returns ctx + reached ids."""
+        subject_reqs: dict[str, dict] = {}
+        verifying_cases: dict[str, dict] = {}
+        verified_reqs: dict[str, dict] = {}
+        incoming_deps: dict[tuple[str, str], dict] = {}
+        allocations: dict[str, dict] = {}
+        reached: set[str] = set()
+        subject_mapping = service.contract.relationship_mapping("hasSubject")
+        subject_types = {
+            str(t) for t in subject_mapping.configuration.get(
+                "membership_types", ["SubjectMembership"])
+        }
+        member_prop = str(subject_mapping.configuration.get(
+            "member_property", "memberElement"))
+        ver_mapping = service.contract.relationship_mapping("verifiedBy")
+        rvm_types = {
+            str(t) for t in ver_mapping.configuration.get(
+                "membership_types", ["RequirementVerificationMembership"])
+        }
+        dep_mapping = service.contract.relationship_mapping(
+            "hasRelevantEvidenceContract")
+        dep_types = {
+            str(t) for t in dep_mapping.configuration.get(
+                "relationship_types", ["Dependency"])
+        }
+        dep_source_prop = str(dep_mapping.configuration.get(
+            "source_property", "source"))
+        dep_target_prop = str(dep_mapping.configuration.get(
+            "target_property", "target"))
+        alloc_mapping = service.contract.relationship_mapping("realizedBy")
+        alloc_types = {
+            str(t) for t in alloc_mapping.configuration.get(
+                "relationship_types", ["AllocationUsage"])
+        }
 
-    for m in elements:
-        mtype = str(m.get("@type") or "")
-        if mtype in subject_types:
-            if not (target_ids & set(_ref_ids(m.get(member_prop)))):
-                continue
-            for oid in _ref_ids(m.get("owningRelatedElement")):
-                owner = by_id.get(oid)
-                if owner is not None:
-                    subject_reqs[oid] = element_ref(owner, "requirement")
-        elif mtype in rvm_types:
-            # Deployed payload shape: the member is the verified
-            # requirement, the owner is the verification case.
-            if target_ids & set(_ref_ids(m.get("memberElement"))):
+        for m in elements:
+            mtype = str(m.get("@type") or "")
+            if mtype in subject_types:
+                if not (target_ids & set(_ref_ids(m.get(member_prop)))):
+                    continue
                 for oid in _ref_ids(m.get("owningRelatedElement")):
                     owner = by_id.get(oid)
                     if owner is not None:
-                        verifying_cases[oid] = element_ref(
-                            owner, "verification_case")
-            if target_ids & set(_ref_ids(m.get("owningRelatedElement"))):
-                for mid in _ref_ids(m.get("memberElement")):
-                    req = by_id.get(mid)
-                    if req is not None:
-                        verified_reqs[mid] = element_ref(
-                            req, "verified_requirement")
-        elif mtype in dep_types:
-            if target_ids & set(_ref_ids(m.get(dep_target_prop))):
-                for sid in _ref_ids(m.get(dep_source_prop)):
-                    src = by_id.get(sid)
-                    if src is not None:
-                        incoming_deps[
-                            (sid, str(m.get("@id") or ""))
-                        ] = {
-                            **element_ref(src, "source_element"),
-                            "dependency": (
-                                m.get("declaredName") or m.get("name") or ""
-                            ),
-                        }
-        elif mtype in alloc_types:
-            if target_ids & set(_ref_ids(m.get("source"))):
-                for tid in _ref_ids(m.get("target")):
-                    tgt = by_id.get(tid)
-                    if tgt is not None:
-                        allocations[tid] = element_ref(
-                            tgt, "realized_target")
+                        subject_reqs[oid] = element_ref(owner, "requirement")
+                        reached.add(oid)
+            elif mtype in rvm_types:
+                # Deployed payload shape: the member is the verified
+                # requirement, the owner is the verification case.
+                if target_ids & set(_ref_ids(m.get("memberElement"))):
+                    for oid in _ref_ids(m.get("owningRelatedElement")):
+                        owner = by_id.get(oid)
+                        if owner is not None:
+                            verifying_cases[oid] = element_ref(
+                                owner, "verification_case")
+                            reached.add(oid)
+                if target_ids & set(_ref_ids(m.get("owningRelatedElement"))):
+                    for mid in _ref_ids(m.get("memberElement")):
+                        req = by_id.get(mid)
+                        if req is not None:
+                            verified_reqs[mid] = element_ref(
+                                req, "verified_requirement")
+                            reached.add(mid)
+            elif mtype in dep_types:
+                if target_ids & set(_ref_ids(m.get(dep_target_prop))):
+                    for sid in _ref_ids(m.get(dep_source_prop)):
+                        src = by_id.get(sid)
+                        if src is not None:
+                            incoming_deps[
+                                (sid, str(m.get("@id") or ""))
+                            ] = {
+                                **element_ref(src, "source_element"),
+                                "dependency": (
+                                    m.get("declaredName") or m.get("name") or ""
+                                ),
+                            }
+                            reached.add(sid)
+            elif mtype in alloc_types:
+                if target_ids & set(_ref_ids(m.get("source"))):
+                    for tid in _ref_ids(m.get("target")):
+                        tgt = by_id.get(tid)
+                        if tgt is not None:
+                            allocations[tid] = element_ref(
+                                tgt, "realized_target")
+                            reached.add(tid)
+        families: dict[str, list] = {}
+        if subject_reqs:
+            families["requirement_subject_of"] = sorted(
+                subject_reqs.values(),
+                key=lambda r: (r["requirement"], r["element_id"]))
+        if verifying_cases:
+            families["verified_by"] = sorted(
+                verifying_cases.values(),
+                key=lambda r: (r["verification_case"], r["element_id"]))
+        if verified_reqs:
+            families["verifies"] = sorted(
+                verified_reqs.values(),
+                key=lambda r: (r["verified_requirement"], r["element_id"]))
+        if incoming_deps:
+            families["incoming_dependencies"] = sorted(
+                incoming_deps.values(),
+                key=lambda r: (r["source_element"], r["element_id"]))
+        if allocations:
+            families["realized_by"] = sorted(
+                allocations.values(),
+                key=lambda r: (r["realized_target"], r["element_id"]))
+        return families, reached
+
+    merged: dict[str, dict[str, dict]] = {}
+    target_ids = {str(t.get("@id") or "") for t in targets}
+    target_ids.discard("")
+    frontier: set[str] = set(target_ids)
+    seen_ids: set[str] = set(target_ids)
+    for hop in range(1, max(1, max_hops) + 1):
+        if not frontier:
+            break
+        families, reached = collect(frontier)
+        for family, entries in families.items():
+            bucket = merged.setdefault(family, {})
+            for entry in entries:
+                key = entry.get("element_id") or ""
+                if not key:
+                    continue
+                existing = bucket.get(key)
+                if existing is None:
+                    entry["hops"] = hop
+                    bucket[key] = entry
+        frontier = {
+            rid for rid in reached
+            if rid not in seen_ids
+        }
+        seen_ids |= frontier
 
     ctx: dict = {}
-    if subject_reqs:
-        ctx["requirement_subject_of"] = sorted(
-            subject_reqs.values(),
-            key=lambda r: (r["requirement"], r["element_id"]))
-    if verifying_cases:
-        ctx["verified_by"] = sorted(
-            verifying_cases.values(),
-            key=lambda r: (r["verification_case"], r["element_id"]))
-    if verified_reqs:
-        ctx["verifies"] = sorted(
-            verified_reqs.values(),
-            key=lambda r: (r["verified_requirement"], r["element_id"]))
-    if incoming_deps:
-        ctx["incoming_dependencies"] = sorted(
-            incoming_deps.values(),
-            key=lambda r: (r["source_element"], r["element_id"]))
-    if allocations:
-        ctx["realized_by"] = sorted(
-            allocations.values(),
-            key=lambda r: (r["realized_target"], r["element_id"]))
+    for family, bucket in merged.items():
+        ctx[family] = sorted(
+            bucket.values(),
+            key=lambda r: (
+                next(iter(v for k, v in r.items()
+                          if k not in ("sysml_type", "element_id", "hops")),
+                     ""),
+                r["element_id"],
+            ))
     if ctx:
         ctx["derivation"] = (
             "API-derived: ontology-declared predicates over the deployed "
             "SysML v2 revision (hasSubject, verifiedBy both directions, "
             "hasRelevantEvidenceContract incoming, realizedBy outgoing), "
-            "same-name elements united"
+            "chained to "
+            f"{max(1, max_hops)} hop(s) so multi-hop traces reach their "
+            "leaf; entries carry hops (1 = direct neighbor of the asked "
+            "element), same-name elements united"
         )
     if cache_key:
         _SEMANTIC_CTX_CACHE[cache_key] = ctx
