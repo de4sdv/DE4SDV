@@ -152,6 +152,47 @@ viewer.de4sdv.org {
 			}
 		}
 
+		# DE4SDV Guide (/api/repo-chat): repository/documentation assistant,
+		# a separate capability from Ask the model. Same proxy hardening
+		# shape as /ask, with its OWN rate-limit budget so the two
+		# capabilities can never consume each other's hourly/daily spend.
+		handle /api/repo-chat {
+			@guidepost method POST
+			handle @guidepost {
+				rate_limit {
+					zone guide_global {
+						key guide-global
+						events 60
+						window 1h
+					}
+					zone guide_daily {
+						key guide-daily
+						events 120
+						window 24h
+					}
+					zone guide_per_ip {
+						key {remote_host}
+						events 3
+						window 1m
+					}
+				}
+				request_body {
+					max_size 16KB
+				}
+				reverse_proxy ask-viewer:8787 {
+					health_uri /ask-status.json
+					health_interval 30s
+					health_timeout 10s
+					transport http {
+						response_header_timeout 180s
+					}
+				}
+			}
+			respond 405 {
+				close
+			}
+		}
+
 		respond 405 {
 			close
 		}
@@ -159,7 +200,8 @@ viewer.de4sdv.org {
 
 	# Preserve browse-only access if the dynamic viewer is unavailable. The
 	# native Pages mirror remains public after its custom domain is removed.
-	# POST /ask is handled above and never reaches this fallback.
+	# POST /ask and POST /api/repo-chat are handled above and never reach
+	# this fallback.
 	handle_errors {
 		@fallback_read method GET HEAD
 		handle @fallback_read {

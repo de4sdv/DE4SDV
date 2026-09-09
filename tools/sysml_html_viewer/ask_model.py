@@ -225,17 +225,20 @@ def build_method_context(ref, files) -> dict:
     return ctx
 
 
-def ask_llm(evidence: dict, question: str, api_key: str,
-            model: str = "") -> str:
+def chat_completion(
+    system_prompt: str, user_content: str, api_key: str, model: str = ""
+) -> str:
+    """One completion through the existing Nous inference transport.
+
+    Shared by ask_model and repo_guide so both capabilities use the
+    identical server-side credential mechanism and HTTP path; the key is
+    never logged or exposed to the browser.
+    """
     body = json.dumps({
         "model": model or MODEL,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": (
-                f"Evidence (from the authoritative model repository):\n"
-                f"```json\n{json.dumps(evidence, indent=2)}\n```\n\n"
-                f"Question: {question}"
-            )},
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
         ],
         "max_tokens": int(os.environ.get("NOUS_MAX_TOKENS", "2000")),
         "temperature": 0.2,
@@ -266,3 +269,17 @@ def ask_llm(evidence: dict, question: str, api_key: str,
             f"raise NOUS_MAX_TOKENS or pick a non-reasoning model"
         )
     return content
+
+
+def ask_llm(evidence: dict, question: str, api_key: str,
+            model: str = "") -> str:
+    return chat_completion(
+        SYSTEM_PROMPT,
+        (
+            f"Evidence (from the authoritative model repository):\n"
+            f"```json\n{json.dumps(evidence, indent=2)}\n```\n\n"
+            f"Question: {question}"
+        ),
+        api_key,
+        model=model,
+    )

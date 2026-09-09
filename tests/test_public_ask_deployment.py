@@ -194,7 +194,15 @@ def test_caddy_applies_global_and_per_ip_ask_quotas_and_method_allowlist():
     assert "reverse_proxy ask-viewer:8787" in caddyfile
     assert "rewrite * /DE4SDV{uri}" in caddyfile
     assert "reverse_proxy https://de4sdv.github.io" in caddyfile
-    assert "POST /ask is handled above and never reaches this fallback" in caddyfile
+    assert (
+        "POST /ask and POST /api/repo-chat are handled above and never reach"
+    ) in caddyfile
+    assert "# this fallback." in caddyfile
+    # DE4SDV Guide: separate hardened route with its own rate-limit budget
+    assert "handle /api/repo-chat {" in caddyfile
+    assert "zone guide_global {" in caddyfile
+    assert "zone guide_daily {" in caddyfile
+    assert "zone guide_per_ip {" in caddyfile
     assert "respond 405" in caddyfile
     assert "output stdout" in caddyfile
     assert "format json" in caddyfile

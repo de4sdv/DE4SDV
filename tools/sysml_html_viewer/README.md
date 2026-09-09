@@ -107,6 +107,44 @@ Switching to a revision that is not built yet shows a progress overlay
 ("Building revision …") while the server generates it; already-built
 revisions switch instantly.
 
+### Two assistant capabilities: DE4SDV Guide and Ask the model
+
+In server mode the viewer offers **two separate** assistant capabilities.
+They never fall back to each other and have separate endpoints, prompts,
+and rate-limit budgets:
+
+**DE4SDV Guide** (`POST /api/repo-chat`, `repo_guide.py`)
+
+- Answers questions about the Git repository: docs, ADRs, tooling, the
+  contribution workflow, product-line material.
+- Grounded in the exact deployed Git checkout: a deterministic SQLite
+  FTS5 index over README, `docs/`, ADRs, CONTRIBUTING, relevant
+  `.sysml`/`.py`/YAML. Secrets, env files, VCS internals, build output,
+  and generated assets are excluded.
+- Not an engineering or model authority: generated answers that state
+  what the repository does not cover, and a refusal when no trustworthy
+  repository context matches. Never queries the Systems Modeling API.
+
+**Ask the model** (`POST /ask`, `ask_model.py`)
+
+- Answers questions about one specific model element the user
+  right-clicked.
+- Grounded in the element's declaration source, doc comment, children,
+  and method-layer relations (semantic layer, server-side only).
+- The element-grounded model capability; unchanged by DE4SDV Guide.
+
+**DE4SDV Guide** is the floating chat widget at the bottom-right of every
+viewer page. It is minimized by default; expanding it keeps the
+conversation while navigating the generated viewer (state lives in the
+browser's `localStorage` only — no server-side user memory), and
+"New chat" clears it. Answers carry source references rendered as GitHub
+links pinned to the deployed application Git SHA, and the LLM receives
+only the question plus the retrieved repository context. The API key
+stays server-side (same mechanism as Ask the model).
+
+**Ask the model** is the element-context-menu capability: right-click any
+model element and ask about that element.
+
 ## Publishing for collaborators
 
 The published site shows **committed content only** — no local working

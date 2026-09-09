@@ -53,6 +53,8 @@ from .ask_model import (
     load_api_key,
     resolve_element,
 )
+from . import repo_guide
+from .repo_guide import MAX_QUESTION_CHARS as GUIDE_MAX_QUESTION_CHARS
 from .ask_model_semantic import build_method_context_api, start_warmup, warm_status
 from .model_parse import ModelFile, build_member_index, load_model
 from .model_parse import ElementRef  # noqa: F401  (type only)
@@ -192,6 +194,12 @@ class ViewerServer(ThreadingHTTPServer):
             str,
             tuple[float, dict[str, list[ElementRef]], list[ModelFile]],
         ] = {}
+        # repo-guide (DE4SDV Guide): deterministic FTS5 index over the
+        # exact checkout, built lazily; state guarded by guide_lock.
+        # The index file lives OUTSIDE the served site dir so it is never
+        # reachable over GET.
+        self.guide_lock = threading.Lock()
+        self.guide_index_path = out_dir.parent / "repo-guide-index" / "repo-guide.sqlite3"
 
     # -- registry ---------------------------------------------------------
     def registry_refresh(self, ttl: float = 60.0) -> dict[str, Target]:
@@ -346,6 +354,28 @@ class ViewerServer(ThreadingHTTPServer):
             self.ask_index[san] = (0.0, index, files)
             return index, files
 
+    # -- repo-guide (DE4SDV Guide) -----------------------------------------
+    def guide_retrieval(
+        self,
+    ) -> tuple[Path, str]:
+        """(index_path, git_sha) for the repository Q&A retrieval layer.
+
+        Built lazily on first use and reused while the checkout's HEAD
+        stays the same SHA; rebuilt when HEAD moves. Raises on failure so
+        the endpoint can fail honestly instead of serving stale grounding.
+        """
+        with self.guide_lock:
+            if repo_guide.index_is_current(
+                self.guide_index_path, self.repo_root
+            ):
+                sha = repo_guide.current_head_sha(self.repo_root)
+                if sha:
+                    return self.guide_index_path, sha
+            stats = repo_guide.build_repo_index(
+                self.repo_root, self.guide_index_path
+            )
+            return self.guide_index_path, stats["git_sha"]
+
     # -- on-demand builds --------------------------------------------------
     def ensure_built(self, san: str) -> bool:
         """Generate (or refresh) refs/<san>/ on first request; True when
@@ -485,29 +515,53 @@ class _Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    # -- ask-model endpoint --------------------------------------------------
+    # -- POST endpoints ------------------------------------------------------
+    # Two separate capabilities, never falling back into each other:
+    #   /ask           element-grounded "Ask the model" (ask_model.py)
+    #   /api/repo-chat repository-grounded "DE4SDV Guide" (repo_guide.py)
+    _MAX_BODY_BYTES = 16384
+
     def do_POST(self) -> None:
         server = cast(ViewerServer, self.server)
         path = urlsplit(self.path).path
-        if path != "/ask":
+        if path not in ("/ask", "/api/repo-chat"):
             self.send_error(404)
             return
         if (server.allowed_origin
                 and self.headers.get("Origin") != server.allowed_origin):
             self._send_json({"error": "origin is not allowed"}, status=403)
             return
+        payload = self._read_json_body()
+        if payload is None:
+            return
+        if path == "/ask":
+            self._handle_ask(payload)
+        else:
+            self._handle_repo_chat(payload)
+
+    def _read_json_body(self) -> dict | None:
+        """Parse+validate the request body; sends the error response and
+        returns None when invalid."""
         try:
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:
             length = 0
-        if length <= 0 or length > 16384:
+        if length <= 0 or length > self._MAX_BODY_BYTES:
             self._send_json({"error": "invalid request body"}, status=400)
-            return
+            return None
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             self._send_json({"error": "invalid JSON"}, status=400)
-            return
+            return None
+        if not isinstance(payload, dict):
+            self._send_json({"error": "request body must be a JSON object"},
+                            status=400)
+            return None
+        return payload
+
+    def _handle_ask(self, payload: dict) -> None:
+        server = cast(ViewerServer, self.server)
         element = str(payload.get("element") or "").strip()
         question = str(payload.get("question") or "").strip()
         ref = str(payload.get("ref") or "").strip()
@@ -600,6 +654,91 @@ class _Handler(SimpleHTTPRequestHandler):
                 {"name": c.name, "file": c.rel_path, "line": c.line}
                 for c in candidates[1:6]
             ] if (len(candidates) > 1 and derivation.startswith("regex")) else [],
+        })
+
+    # -- DE4SDV Guide: repository Q&A (/api/repo-chat) -----------------------
+    # Repository/documentation assistant ONLY. Grounded in the exact
+    # deployed Git checkout via the deterministic FTS5 retrieval layer in
+    # repo_guide.py. Never routes through the Systems Modeling API and
+    # never falls back to "Ask the model" (or vice versa).
+    def _handle_repo_chat(self, payload: dict) -> None:
+        server = cast(ViewerServer, self.server)
+        question = str(payload.get("question") or "").strip()
+        if not question:
+            self._send_json({"error": "question is required"}, status=400)
+            return
+        if len(question) > GUIDE_MAX_QUESTION_CHARS:
+            self._send_json(
+                {"error": "question too long "
+                          f"(max {GUIDE_MAX_QUESTION_CHARS} chars)"},
+                status=400,
+            )
+            return
+
+        # fail closed when the server-side credential is not configured;
+        # the key itself never leaves the server
+        api_key = load_api_key()
+        if not api_key:
+            self._send_json(
+                {"error": "DE4SDV Guide is not configured on this server: "
+                          "set NOUS_API_KEY or the key file"},
+                status=503,
+            )
+            return
+        if not server.ask_slots.acquire(blocking=False):
+            self._send_json(
+                {"error": "DE4SDV Guide is busy; retry later"}, status=429
+            )
+            return
+        try:
+            try:
+                index_path, git_sha = server.guide_retrieval()
+            except Exception as exc:  # noqa: BLE001 — surfaced honestly
+                self._send_json(
+                    {"error": f"repository index unavailable: {exc}"},
+                    status=503,
+                )
+                return
+            sources = repo_guide.search_repo(index_path, question)
+            if not sources:
+                # no trustworthy repository context: refuse instead of
+                # letting the model hallucinate an answer
+                self._send_json(
+                    {"error": "no trustworthy repository context was found "
+                              "for this question; DE4SDV Guide does not "
+                              "guess",
+                     "sources": [], "git_sha": git_sha},
+                    status=404,
+                )
+                return
+            try:
+                answer = repo_guide.guide_llm_answer(
+                    question, sources, api_key
+                )
+            except Exception as exc:  # noqa: BLE001 — surfaced honestly
+                self._send_json(
+                    {"error": f"LLM call failed: {exc}"}, status=502
+                )
+                return
+        finally:
+            server.ask_slots.release()
+        repo_origin = repo_guide.github_origin(server.repo_root)
+        self._send_json({
+            "answer": answer,
+            "repo_blob_base": repo_origin,
+            "sources": [
+                {
+                    "path": s["path"],
+                    "start": s["start"],
+                    "end": s["end"],
+                    "github_url": repo_guide.github_blob_url(
+                        repo_origin, git_sha, s["path"], s["start"], s["end"]
+                    ),
+                }
+                for s in sources
+            ],
+            "git_sha": git_sha,
+            "capability": "de4sdv-guide",
         })
 
     def log_message(self, format: str, *args) -> None:
