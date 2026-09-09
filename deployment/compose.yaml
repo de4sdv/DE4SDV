@@ -98,6 +98,10 @@ services:
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: safe.directory
       GIT_CONFIG_VALUE_0: /srv/de4sdv/DE4SDV
+      # Application identity for the fail-closed runtime contract: the
+      # entrypoint refuses to serve when the mounted checkout HEAD does not
+      # equal this SHA. deploy.py always sets it to the deployed SHA.
+      DE4SDV_APP_GIT_SHA: ${DE4SDV_APP_GIT_SHA:?DE4SDV_APP_GIT_SHA is required (set to the exact deployed SHA)}
     expose:
       - "8787"
     read_only: true
