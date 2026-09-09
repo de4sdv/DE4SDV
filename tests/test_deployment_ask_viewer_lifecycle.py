@@ -76,3 +76,20 @@ def test_deploy_workflow_exports_app_git_sha_in_every_remote_block() -> None:
             "DE4SDV_APP_GIT_SHA; compose interpolation of the required "
             "variable will fail closed"
         )
+
+
+def test_deploy_workflow_sets_canonical_origin_on_host_checkout() -> None:
+    """Live evidence 2026-09-09 (run 34395255931): the deployed checkout is
+    cloned from a local Git bundle, which carries no 'origin' remote, so
+    server-side resolution of the GitHub origin (DE4SDV Guide source
+    links) returned empty and answers shipped unpinned references. The
+    activation step must set the canonical public URL after cloning."""
+    workflow = (
+        REPO / ".github/workflows/deploy-public-ask-viewer.yml"
+    ).read_text(encoding="utf-8")
+    assert (
+        'git -C "$NEXT_DIR" remote add origin '
+        "https://github.com/de4sdv/DE4SDV.git"
+    ) in workflow
+    # the canonical URL, never a credential-bearing or SSH form
+    assert "git@github.com" not in workflow
