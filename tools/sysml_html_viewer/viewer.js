@@ -351,21 +351,6 @@
     panel.appendChild(body);
     panel.appendChild(foot);
 
-    var guideChip = document.createElement('button');
-    guideChip.type = 'button';
-    guideChip.id = 'guideMinChip';
-    guideChip.className = 'chat-chip';
-    guideChip.setAttribute('aria-label', 'Reopen the DE4SDV Guide chat');
-    guideChip.title = 'DE4SDV Guide — minimized';
-    guideChip.textContent = '\u{1F4AC}';
-    guideChip.addEventListener('click', function () {
-      try {
-        window.localStorage.setItem(CHAT_GUIDE_CHIP_KEY, '0');
-      } catch (err) {}
-      applyOpen(true);
-    });
-    document.body.appendChild(guideChip);
-
     document.body.appendChild(fab);
     document.body.appendChild(panel);
 
@@ -551,9 +536,6 @@
 
     fab.addEventListener('click', function () { applyOpen(true); });
     minBtn.addEventListener('click', function () {
-      try {
-        window.localStorage.setItem(CHAT_GUIDE_CHIP_KEY, '1');
-      } catch (err) {}
       applyOpen(false);
     });
     clearBtn.addEventListener('click', function () {
@@ -646,34 +628,31 @@
     document.body.classList.toggle('chat-guide-open', guideOpen);
     document.body.classList.toggle('chat-both-open', both);
 
+    // Fixed order, left to right: [Ask panel/chip] [Guide panel]
+    // Guide always owns the corner slot; Ask shifts left when both open.
     var askPanel = document.getElementById('askPanel');
-    if (askPanel) askPanel.classList.toggle('shifted', both && !guideOpen);
+    if (askPanel) askPanel.classList.toggle('shifted', both);
 
     var guidePanel = document.getElementById('guidePanel');
-    if (guidePanel) guidePanel.classList.toggle('shifted', both && guideOpen);
+    if (guidePanel) guidePanel.classList.remove('shifted');
 
     var fab = document.getElementById('guideFab');
     if (fab) {
-      // FAB doubles as the Guide's restore control: hidden while either
-      // panel is open; visible otherwise.
-      fab.style.display = (askOpen || guideOpen) ? 'none' : '';
+      // The FAB is the single Guide entry point: hidden only while the
+      // Guide panel itself is open.
+      fab.style.display = guideOpen ? 'none' : '';
+      // When Ask is open (or minimized to its chip), the FAB must not sit
+      // under the Ask panel/chip: shift it left of Ask's footprint.
+      fab.classList.toggle('shifted', askOpen || chatAskMinimized());
     }
     var askChip = document.getElementById('askMinChip');
     if (askChip) {
       askChip.style.display =
         (!askOpen && chatAskMinimized()) ? 'inline-flex' : 'none';
-    }
-    var guideChip = document.getElementById('guideMinChip');
-    var guideMinimized = false;
-    try {
-      guideMinimized =
-        window.localStorage.getItem(CHAT_GUIDE_CHIP_KEY) === '1';
-    } catch (err) {}
-    if (guideChip) {
-      guideChip.style.display =
-        (!guideOpen && guideMinimized) ? 'inline-flex' : 'none';
+      askChip.classList.toggle('shifted', guideOpen);
     }
   }
+
 
   function hasContextMenuItems(uses, ask, serverEnabled) {
     return Boolean((uses && uses.length) || (ask && serverEnabled));
