@@ -148,6 +148,10 @@ jobs:
           sudo rm -rf "$NEXT_DIR" "$BACKUP_DIR"
           git clone --no-checkout --branch deploy-ask-source "$BUNDLE" "$NEXT_DIR"
           git -C "$NEXT_DIR" checkout --detach --force "$SHA"
+          # A bundle clone has no 'origin' remote; set the canonical public
+          # URL so server-side tooling (DE4SDV Guide source links) can
+          # resolve the GitHub origin of the deployed checkout.
+          git -C "$NEXT_DIR" remote add origin https://github.com/de4sdv/DE4SDV.git
           git -C "$NEXT_DIR" branch -D deploy-ask-source
           git -C "$NEXT_DIR" reset --hard "$SHA"
           git -C "$NEXT_DIR" clean -ffd
