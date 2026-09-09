@@ -10,6 +10,89 @@
     return s.replace(/\s+/g, ' ').trim();
   }
 
+  /* ---- DE4SDV Guide inline renderer (link-aware) ----
+   * Same inline subset as appendAskInline plus markdown links. Model
+   * output is untrusted and must never reach innerHTML: link URLs are
+   * whitelisted (http(s), mailto, relative repository paths), and text
+   * always enters as text nodes. Relative targets pointing at a
+   * repository path are rewritten to GitHub blob URLs pinned to the
+   * deployed SHA so in-text citations land on the exact revision, and a
+   * bare path with no markdown link is auto-linked the same way. */
+  var GUIDE_LINK_RE =
+    /\[([^\]\n]+)\]\(([^)\s]+)\)/g;
+  var GUIDE_BARE_PATH_RE =
+    /(^|[\s(])([A-Za-z0-9][A-Za-z0-9_./-]*(?:\.md|\.py|\.sysml|\.ya?ml|\.toml))(?=$|[\s.,;:!?)])/g;
+  var GUIDE_SAFE_URL_RE = /^(https?:\/\/|mailto:)/;
+  var GUIDE_REL_PATH_RE = /^[A-Za-z0-9][A-Za-z0-9_./-]+$/;
+
+  function guideIsRepoPath(candidate) {
+    if (!GUIDE_REL_PATH_RE.test(candidate)) return false;
+    if (candidate.indexOf('//') !== -1) return false;
+    return candidate.indexOf('/') !== -1 || candidate.indexOf('.') !== -1;
+  }
+
+  function guideRewriteHref(href, gitSha) {
+    if (GUIDE_SAFE_URL_RE.test(href)) return href;
+    if (!guideIsRepoPath(href)) return '';
+    if (!gitSha) return '';
+    var base = window.GUIDE_REPO_BLOB_BASE || '';
+    if (!base) return '';
+    return base.replace(/\/+$/, '') + '/blob/' + gitSha + '/' + href;
+  }
+
+  function appendGuideInline(parent, text, gitSha) {
+    var pos = 0;
+    var match;
+    GUIDE_LINK_RE.lastIndex = 0;
+    while ((match = GUIDE_LINK_RE.exec(text)) !== null) {
+      if (match.index > pos) {
+        appendAskInline(parent, text.slice(pos, match.index));
+      }
+      var label = match[1];
+      var target = match[2];
+      var href = guideRewriteHref(target, gitSha);
+      if (href) {
+        var a = document.createElement('a');
+        a.href = href;
+        a.textContent = label;
+        if (GUIDE_SAFE_URL_RE.test(href)) {
+          a.target = '_blank';
+          a.rel = 'noopener';
+        }
+        parent.appendChild(a);
+      } else {
+        appendAskInline(parent, label);
+      }
+      pos = match.index + match[0].length;
+    }
+    if (pos < text.length) {
+      var rest = text.slice(pos);
+      var barePos = 0;
+      var bare;
+      GUIDE_BARE_PATH_RE.lastIndex = 0;
+      while ((bare = GUIDE_BARE_PATH_RE.exec(rest)) !== null) {
+        if (bare.index > barePos) {
+          appendAskInline(parent, rest.slice(barePos, bare.index));
+        }
+        var pathCandidate = bare[2];
+        var bareHref = guideRewriteHref(pathCandidate, gitSha);
+        if (bareHref) {
+          var bareA = document.createElement('a');
+          bareA.href = bareHref;
+          bareA.textContent = pathCandidate;
+          bareA.className = 'guide-inline-src';
+          parent.appendChild(bareA);
+        } else {
+          appendAskInline(parent, pathCandidate);
+        }
+        barePos = bare.index + bare[0].length;
+      }
+      if (barePos < rest.length) {
+        appendAskInline(parent, rest.slice(barePos));
+      }
+    }
+  }
+
   /* Render the small Markdown subset commonly returned by the model.  Build
    * nodes explicitly: model output is untrusted and must never reach
    * innerHTML. */
@@ -79,7 +162,10 @@
     }
   }
 
-  function renderAskAnswer(container, text) {
+  function renderAskAnswer(container, text, inlineRenderer) {
+    /* inlineRenderer defaults to appendAskInline; DE4SDV Guide passes a
+     * link-aware variant. Ask-the-model rendering is unchanged. */
+    var inline = inlineRenderer || appendAskInline;
     container.textContent = '';
     var lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
     var i = 0;
@@ -111,7 +197,7 @@
         var h = document.createElement(
           'h' + Math.min(6, heading[1].length + 2)
         );
-        appendAskInline(h, heading[2].trim());
+        inline(h, heading[2].trim());
         container.appendChild(h);
         i += 1;
         continue;
@@ -127,7 +213,7 @@
             : lines[i].match(/^\s*(\d+)[.)]\s+(.+)$/);
           if (!item) break;
           var li = document.createElement('li');
-          appendAskInline(li, item[bullet ? 1 : 2].trim());
+          inline(li, item[bullet ? 1 : 2].trim());
           list.appendChild(li);
           i += 1;
           var nextItem = i;
@@ -153,7 +239,7 @@
         i += 1;
       }
       var p = document.createElement('p');
-      appendAskInline(p, paragraphLines.join(' '));
+      inline(p, paragraphLines.join(' '));
       container.appendChild(p);
     }
   }
@@ -351,6 +437,7 @@
       guideSaveState(state);
       var bubble = guidePendingBubble();
       input.value = '';
+      var answerSha = null;
       fetch('/api/repo-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -361,11 +448,17 @@
         });
       }).then(function (res) {
         bubble.remove();
+        answerSha = res.data.git_sha || null;
+        window.GUIDE_REPO_BLOB_BASE = res.data.repo_blob_base
+          || window.GUIDE_REPO_BLOB_BASE || '';
         var b = document.createElement('div');
         b.className = 'guide-msg guide-msg-guide';
         renderAskAnswer(b, res.data.error
           ? res.data.error
-          : (res.data.answer || '(empty answer)'));
+          : (res.data.answer || '(empty answer)'),
+          function (parent, text) {
+            appendGuideInline(parent, text, answerSha);
+          });
         if (res.data.sources && res.data.sources.length) {
           b.appendChild(guideSourcesBlock(
             res.data.answer, res.data.sources, res.data.git_sha
@@ -376,7 +469,8 @@
           role: 'guide',
           text: res.data.answer || res.data.error || '',
           sources: res.data.sources || [],
-          sha: res.data.git_sha || ''
+          sha: res.data.git_sha || '',
+          repoBlobBase: res.data.repo_blob_base || ''
         });
         guideSaveState(state);
         els.body.scrollTop = els.body.scrollHeight;
@@ -400,7 +494,11 @@
           }
           var b = document.createElement('div');
           b.className = 'guide-msg guide-msg-guide';
-          renderAskAnswer(b, m.text || '');
+          window.GUIDE_REPO_BLOB_BASE = m.repoBlobBase
+            || window.GUIDE_REPO_BLOB_BASE || '';
+          renderAskAnswer(b, m.text || '', function (parent, text) {
+            appendGuideInline(parent, text, m.sha || null);
+          });
           if (m.sources && m.sources.length) {
             b.appendChild(guideSourcesBlock(
               m.text, m.sources, m.sha

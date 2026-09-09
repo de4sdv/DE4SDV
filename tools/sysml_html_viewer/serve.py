@@ -725,6 +725,7 @@ class _Handler(SimpleHTTPRequestHandler):
         repo_origin = repo_guide.github_origin(server.repo_root)
         self._send_json({
             "answer": answer,
+            "repo_blob_base": repo_origin,
             "sources": [
                 {
                     "path": s["path"],

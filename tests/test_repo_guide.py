@@ -587,6 +587,155 @@ def test_ask_endpoint_still_works_after_the_post_dispatcher_refactor(
         server.server_close()
 
 
+def test_guide_inline_renderer_converts_citations_to_sha_pinned_links():
+    """In-text citations like [AGENTS.md](AGENTS.md) render once, as a
+    real link pinned to the deployed SHA; unsafe URLs never become
+    links; without a SHA nothing relative is linked."""
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+
+function textNode(text) {
+  return {nodeType: 3, textContent: String(text), children: []};
+}
+function element(tag) {
+  const node = {
+    nodeType: 1, tagName: String(tag).toUpperCase(), children: [],
+    appendChild(c) { this.children.push(c); return c; },
+  };
+  Object.defineProperty(node, 'textContent', {
+    get() { return this.children.map((c) => c.textContent).join(''); },
+    set(v) { this.children = v ? [textNode(v)] : []; }
+  });
+  return node;
+}
+global.document = {
+  readyState: 'loading',
+  addEventListener() {},
+  createElement: element,
+  createTextNode: textNode
+};
+global.window = { GUIDE_REPO_BLOB_BASE: 'https://github.com/de4sdv/DE4SDV' };
+const SHA = 'a'.repeat(40);
+
+let source = fs.readFileSync(process.argv[1], 'utf8');
+source = source.replace(
+  '  function init() {',
+  '  global.appendGuideInline = appendGuideInline;\n'
+  + '  global.appendAskInline = appendAskInline;\n\n  function init() {'
+);
+vm.runInThisContext(source);
+if (typeof global.appendGuideInline !== 'function') {
+  throw new Error('appendGuideInline was not loaded from the shipped viewer.js');
+}
+
+function linksOf(box) {
+  const out = [];
+  (function walk(n) {
+    (n.children || []).forEach((c) => {
+      if (c.tagName === 'A') out.push(c);
+      walk(c);
+    });
+  })(box);
+  return out;
+}
+
+// 1) markdown citation -> exactly one link, correct label, SHA-pinned
+const box1 = element('div');
+global.appendGuideInline(
+  box1, 'Per [AGENTS.md](AGENTS.md), classify every declaration.', SHA);
+const links1 = linksOf(box1);
+if (links1.length !== 1) {
+  throw new Error('expected 1 link, got ' + links1.length);
+}
+if (links1[0].textContent !== 'AGENTS.md') {
+  throw new Error('label doubled: ' + links1[0].textContent);
+}
+if (links1[0].href !==
+    'https://github.com/de4sdv/DE4SDV/blob/' + SHA + '/AGENTS.md') {
+  throw new Error('href not SHA-pinned: ' + links1[0].href);
+}
+if (box1.textContent.indexOf('[AGENTS.md](AGENTS.md)') !== -1) {
+  throw new Error('literal markdown leaked: ' + box1.textContent);
+}
+
+// 2) bare repository path auto-links with the same pinning
+const box2 = element('div');
+global.appendGuideInline(
+  box2, 'See docs/guides/model-viewer.md for details.', SHA);
+const links2 = linksOf(box2);
+if (links2.length !== 1
+    || !links2[0].href.endsWith('/blob/' + SHA
+        + '/docs/guides/model-viewer.md')) {
+  throw new Error('bare path not auto-linked: '
+    + (links2[0] && links2[0].href));
+}
+
+// 3) unsafe URL never becomes a link
+const box3 = element('div');
+global.appendGuideInline(box3, '[click](javascript:alert(1))', SHA);
+if (linksOf(box3).length !== 0) {
+  throw new Error('unsafe URL became a link');
+}
+
+// 4) without a SHA, relative citations stay inert text
+const box4 = element('div');
+global.appendGuideInline(box4, 'Per [AGENTS.md](AGENTS.md).', '');
+if (linksOf(box4).length !== 0) {
+  throw new Error('relative link emitted without a SHA');
+}
+
+// 5) https links pass through as external rel=noopener links
+const box5 = element('div');
+global.appendGuideInline(box5, '[spec](https://example.com/x)', SHA);
+const links5 = linksOf(box5);
+if (links5.length !== 1 || links5[0].href !== 'https://example.com/x'
+    || links5[0].rel !== 'noopener' || links5[0].target !== '_blank') {
+  throw new Error('external link not passed through safely');
+}
+
+// 6) the default renderer (Ask the model) is unchanged: literal text
+const box6 = element('div');
+global.appendAskInline(box6, 'Per [AGENTS.md](AGENTS.md).');
+if (linksOf(box6).length !== 0) {
+  throw new Error('ask renderer unexpectedly grew links');
+}
+console.log('guide inline renderer OK');
+"""
+    result = subprocess.run(
+        ["node", "-e", script,
+         str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "guide inline renderer OK" in result.stdout
+
+
+def test_repo_chat_response_carries_repo_blob_base(
+    guide_repo, tmp_path, monkeypatch, guide_origin
+):
+    monkeypatch.setenv("NOUS_API_KEY", "test-key")
+    monkeypatch.setattr(
+        repo_guide, "guide_llm_answer",
+        lambda q, sources, key, model="": "see [AGENTS.md](AGENTS.md)",
+    )
+    server = _make_server(guide_repo, tmp_path)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        status, data = _post(
+            server.server_address[1],
+            {"question": "where do architecture decision records live?"},
+        )
+        assert status == 200
+        assert data["repo_blob_base"] == "https://github.com/de4sdv/DE4SDV"
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 # ---- UI generation (node-level, same approach as test_ask_model.py) ----------
 
 def test_guide_panel_is_generated_minimized_and_expandable():
