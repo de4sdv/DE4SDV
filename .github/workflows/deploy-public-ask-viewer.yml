@@ -160,7 +160,8 @@ jobs:
 
           export DEPLOY_DIR
           export DE4SDV_ASK_ENV_FILE="$DEPLOY_DIR/ask-viewer.env"
-          COMPOSE=(sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" -f "$REPO_DIR/deployment/compose.yaml")
+          export DE4SDV_APP_GIT_SHA="$SHA"
+          COMPOSE=(sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" DE4SDV_APP_GIT_SHA="$DE4SDV_APP_GIT_SHA" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" -f "$REPO_DIR/deployment/compose.yaml")
           "${COMPOSE[@]}" config >/dev/null
           "${COMPOSE[@]}" build ask-viewer
           "${COMPOSE[@]}" up -d --no-deps ask-viewer
@@ -226,11 +227,15 @@ jobs:
           fi
           export DEPLOY_DIR
           export DE4SDV_ASK_ENV_FILE="$DEPLOY_DIR/ask-viewer.env"
-          sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" \
+          # The backup checkout is the previously deployed revision; compose
+          # interpolates the required variable for EVERY command (even ones
+          # that do not touch ask-viewer), so it must be set here too.
+          export DE4SDV_APP_GIT_SHA="$(git -C "$BACKUP_DIR" rev-parse HEAD)"
+          sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" DE4SDV_APP_GIT_SHA="$DE4SDV_APP_GIT_SHA" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" \
             -f "$REPO_DIR/deployment/compose.yaml" rm -sf ask-viewer || true
           sudo rm -rf "$REPO_DIR"
           sudo mv "$BACKUP_DIR" "$REPO_DIR"
-          sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" \
+          sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" DE4SDV_APP_GIT_SHA="$DE4SDV_APP_GIT_SHA" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" \
             -f "$REPO_DIR/deployment/compose.yaml" up -d --build --no-deps --force-recreate caddy
           REMOTE
 
