@@ -43,3 +43,36 @@ def test_deploy_py_recreates_and_health_checks_ask_viewer() -> None:
     caddy_at = source.index('compose("up", "-d", "caddy"')
     assert recreate_at < caddy_at, "ask-viewer must be recreated before the proxy returns"
     assert "wait_for_ask_viewer()" in source
+
+
+def test_deploy_workflow_exports_app_git_sha_in_every_remote_block() -> None:
+    """Live evidence 2026-09-09 (run 34392701140): the activation step's
+    remote script never exported DE4SDV_APP_GIT_SHA, so compose refused to
+    interpolate services.ask-viewer.environment and the deploy rolled back.
+    Every heredoc remote block that invokes docker compose must export the
+    variable (compose interpolates the whole file for ANY subcommand)."""
+    workflow = (
+        REPO / ".github/workflows/deploy-public-ask-viewer.yml"
+    ).read_text(encoding="utf-8")
+    blocks: list[list[str]] = []
+    current: list[str] | None = None
+    for line in workflow.splitlines():
+        if "<<'REMOTE'" in line:
+            current = []
+            continue
+        if current is not None:
+            if line.strip() == "REMOTE":
+                blocks.append(current)
+                current = None
+                continue
+            current.append(line[10:] if line.startswith("          ") else line)
+    compose_blocks = [
+        " ".join(b) for b in blocks if "docker compose" in " ".join(b)
+    ]
+    assert compose_blocks, "no remote docker compose block found"
+    for index, block in enumerate(compose_blocks, 1):
+        assert "export DE4SDV_APP_GIT_SHA=" in block, (
+            f"remote compose block {index} does not export "
+            "DE4SDV_APP_GIT_SHA; compose interpolation of the required "
+            "variable will fail closed"
+        )
