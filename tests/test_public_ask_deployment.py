@@ -147,7 +147,13 @@ def test_compose_keeps_ask_viewer_internal_and_mounts_identity_read_only():
                for mount in mounts)
     environment = service["environment"]
     assert "NOUS_API_KEY" not in environment
-    assert "DE4SDV_APP_GIT_SHA" not in environment
+    # The application SHA is a REQUIRED interpolation (":?...") so composing
+    # without the exact deployed SHA fails closed instead of starting with
+    # an empty or stale identity; deploy.py supplies it at deploy time.
+    assert environment["DE4SDV_APP_GIT_SHA"] == (
+        "${DE4SDV_APP_GIT_SHA:?DE4SDV_APP_GIT_SHA is required "
+        "(set to the exact deployed SHA)}"
+    )
     assert environment["NOUS_ASK_SEMANTIC"] == "1"
     assert environment["DE4SDV_SYSML_API_URL"] == "http://sysml2-api:9000"
     assert environment["DE4SDV_ASK_ALLOWED_ORIGIN"] == \
