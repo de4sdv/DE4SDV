@@ -438,6 +438,8 @@ class TreeNode:
     viewpoint_type: str = ""  # views only: referenced viewpoint type
     saf_domain: str = ""      # views only: SAF domain from viewpoint def doc
     saf_aspect: str = ""      # views only: SAF aspect from viewpoint def doc
+    element_file: str = ""    # element nodes only: declaring .sysml rel_path
+    element_line: int = 0     # element nodes only: declaration line (1-based)
 
 
 _SAF_DOMAIN_RE = re.compile(r"SAF\s+([A-Za-z &]+?)\s+Domain")
@@ -508,6 +510,8 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
                     viewpoint_type=v.viewpoint_type,
                     saf_domain=domain,
                     saf_aspect=aspect,
+                    element_file=mf.rel_path,
+                    element_line=v.line,
                 )
             )
         # every declared member links to its declaration line in the source;
@@ -532,6 +536,8 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
                     kind=mm.kind,
                     href=f"pages/{mf.rel_path}.html#src-{mm.line}",
                     meta=mm.kind,
+                    element_file=mf.rel_path,
+                    element_line=mm.line,
                 )
             )
         node.children.append(file_node)

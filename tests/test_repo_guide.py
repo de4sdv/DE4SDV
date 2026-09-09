@@ -957,3 +957,123 @@ setTimeout(() => {
     )
     assert result.returncode == 0, result.stderr or result.stdout
     assert "guide UI OK" in result.stdout
+
+
+def test_tree_context_menu_offers_both_assistants():
+    """Right-clicking an element tree node must offer 'Ask repo assistant'
+    (opens the Guide prefilled) and 'Ask the model… (authoritative query)'.
+    The identity attrs live on the .tree-node container, so askInfoFor must
+    walk up from the matched anchor."""
+    import re
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+const registry = {};
+const docListeners = [];
+function textNode(t){return {nodeType:3, textContent:String(t), children:[]};}
+function element(tag){
+  const node = {nodeType:1, tagName:String(tag).toUpperCase(), children:[],
+    attributes:{}, style:{}, _handlers:{}, value:'',
+    appendChild(c){c._parent=node; this.children.push(c); return c;},
+    remove(){}, setAttribute(k,v){this.attributes[k]=String(v);},
+    getAttribute(k){return k in this.attributes?this.attributes[k]:null;},
+    addEventListener(t,f){(this._handlers[t]=this._handlers[t]||[]).push(f);},
+    dispatch(t,ev){(this._handlers[t]||[]).forEach(f=>f(ev||{preventDefault(){},stopPropagation(){},key:'',clientX:5,clientY:5,target:node}));},
+    querySelectorAll(){return [];}, querySelector(){return null;},
+    focus(){}, contains(){return false;}
+  };
+  Object.defineProperty(node,'parentNode',{get(){return node._parent||null;},set(v){node._parent=v;}});
+  Object.defineProperty(node,'parentElement',{get(){return node._parent||null;},set(v){node._parent=v;}});
+  const classes = new Set();
+  let classNameStr = '';
+  Object.defineProperty(node,'className',{
+    get(){return classNameStr;},
+    set(v){classNameStr=String(v); classes.clear();
+      classNameStr.split(/\s+/).filter(Boolean).forEach(c=>classes.add(c));}
+  });
+  node.classList = {add:c=>classes.add(c), remove:c=>classes.delete(c),
+    toggle(c,on){if(on===undefined){classes.has(c)?classes.delete(c):classes.add(c);}else if(on)classes.add(c);else classes.delete(c);},
+    contains:c=>classes.has(c)};
+  Object.defineProperty(node,'id',{get(){return node.attributes.id||'';},set(v){node.attributes.id=v;registry[v]=node;}});
+  Object.defineProperty(node,'textContent',{get(){return node.children.map(c=>c.textContent).join('');},set(v){node.children=v?[textNode(v)]:[];}});
+  Object.defineProperty(node,'offsetWidth',{get(){return 10;}});
+  return node;
+}
+function attachClosest(node) {
+  node.closest = function (sel) {
+    for (const s of sel.split(',').map(x=>x.trim())) {
+      if (s.indexOf('.tree-node[data-tip-name]') === 0) {
+        const p = node._parent;
+        if (p && p.classList && p.classList.contains('tree-node')
+            && p.attributes['data-tip-name']) return node;
+      }
+    }
+    return null;
+  };
+}
+const body = element('body');
+global.document = {
+  readyState:'complete', body,
+  createElement:element, createTextNode:textNode,
+  getElementById(id){return registry[id]||null;},
+  documentElement:{style:{setProperty(){}}, getAttribute:()=>null,
+    setAttribute(){}, classList:{toggle(){}}},
+  querySelector(){return null;}, querySelectorAll(){return [];},
+  addEventListener(t,f){docListeners.push([t,f]);}
+};
+global.window = {localStorage:{getItem:()=>null,setItem(){}},
+  GUIDE_REPO_BLOB_BASE:'', addEventListener(){}, removeEventListener(){}};
+global.location = {hash:'', pathname:''};
+global.sessionStorage = {getItem:()=>null, setItem(){}};
+global.fetch = () => Promise.resolve({ok:true, json:()=>Promise.resolve({})});
+let source = fs.readFileSync(process.argv[1], 'utf8');
+vm.runInThisContext(source);
+
+const anchor = element('a'); anchor.attributes['href']='pages/x.html#src-3';
+const li = element('li');
+li.setAttribute('class','tree-node tree-part def');
+li.setAttribute('data-kind','part def');
+li.setAttribute('data-tip-name','FixtureSystem');
+li.setAttribute('data-tip-kind','part def');
+li.setAttribute('data-tip-file','textual-notation-of-model/packages/features/fixture/fixture_feature.sysml');
+li.setAttribute('data-tip-line','3');
+li.appendChild(anchor);
+anchor._parent = li;
+attachClosest(anchor);
+global.window.__DE4SDV_VIEWER_SERVER__ = true;
+
+const cm = docListeners.filter(x=>x[0]==='contextmenu').map(x=>x[1]);
+if (!cm.length) throw new Error('no contextmenu listener');
+cm[0]({preventDefault(){}, stopPropagation(){}, clientX:5, clientY:5, target:anchor, closest:anchor.closest});
+
+function findByClass(n, cls){
+  if (n.classList && n.classList.contains(cls)) return n;
+  for (const c of (n.children||[])) { const hit = findByClass(c, cls); if (hit) return hit; }
+  return null;
+}
+const menuEl = findByClass(body, 'uses-menu');
+if (!menuEl) throw new Error('menu not opened');
+const items = menuEl.children.filter(c=>c.classList.contains('uses-menu-item'));
+const labels = items.map(i=>i.textContent);
+if (labels.length !== 2) throw new Error('expected 2 items, got ' + JSON.stringify(labels));
+const repoItem = labels.find(l => l.indexOf('Ask repo assistant') !== -1);
+const askItem = labels.find(l => l.indexOf('Ask the model') !== -1
+  && l.indexOf('(authoritative query)') !== -1);
+if (!repoItem) throw new Error('repo item missing, labels: ' + JSON.stringify(labels));
+if (!askItem) throw new Error('authoritative marker missing: ' + JSON.stringify(labels));
+items[0].dispatch('click');
+const panel = registry.guidePanel;
+const input = registry.guideInput;
+if (!panel || !panel.classList.contains('open')) throw new Error('guide panel not opened');
+if (!input.value || input.value.indexOf('FixtureSystem') === -1) {
+  throw new Error('guide input not prefilled: ' + input.value);
+}
+console.log('TREE MENU OK');
+"""
+    result = subprocess.run(
+        ["node", "-e", script,
+         str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "TREE MENU OK" in result.stdout

@@ -555,6 +555,35 @@
     applyOpen(state.open);
   }
 
+    /* Open the DE4SDV Guide panel with a prefilled question (context-menu
+     * entry point). The question goes into the input so the user can adjust
+     * before sending; the panel expands and keeps its persisted
+     * conversation. */
+    function openGuideWith(question) {
+      var panel = document.getElementById('guidePanel');
+      var input = document.getElementById('guideInput');
+      if (!panel || !input) {
+        initRepoGuide();
+        panel = document.getElementById('guidePanel');
+        input = document.getElementById('guideInput');
+        if (!panel || !input) return;
+      }
+      input.value = question;
+      panel.classList.add('open');
+      var fab = document.getElementById('guideFab');
+      if (fab) fab.style.display = 'none';
+      try {
+        var st = JSON.parse(
+          window.localStorage.getItem(GUIDE_STORAGE_KEY) || '{}'
+        );
+        st.open = true;
+        window.localStorage.setItem(
+          GUIDE_STORAGE_KEY, JSON.stringify(st)
+        );
+      } catch (err) {}
+      input.focus();
+    }
+
   function hasContextMenuItems(uses, ask, serverEnabled) {
     return Boolean((uses && uses.length) || (ask && serverEnabled));
   }
@@ -715,6 +744,17 @@
         var el = target || null;
         while (el) {
           if (el.__askInfo) return el.__askInfo;
+          // tree element nodes carry the identity on the .tree-node
+          // container, not on the matched anchor/label
+          if (el.getAttribute && el.getAttribute('data-tip-name')) {
+            return {
+              kind: el.getAttribute('data-tip-kind') || 'element',
+              name: el.getAttribute('data-tip-name'),
+              doc: el.getAttribute('data-tip-doc') || '',
+              file: el.getAttribute('data-tip-file') || '',
+              line: el.getAttribute('data-tip-line') || ''
+            };
+          }
           el = el.parentElement;
         }
         return null;
@@ -722,12 +762,16 @@
 
       document.addEventListener('contextmenu', function (ev) {
         var a = ev.target && ev.target.closest
-          ? ev.target.closest('a.src-ref, span.src-sym, span.vp-tip') : null;
+          ? ev.target.closest('a.src-ref, span.src-sym, span.vp-tip, '
+            + '.tree-node[data-tip-name] > summary > a, '
+            + '.tree-node[data-tip-name] > a, '
+            + '.tree-node[data-tip-name] > summary > .tree-label') : null;
         var uses = a ? usesFor(a) : null;
         var ask = askInfoFor(ev.target, a);
         var canAsk = ask && window.__DE4SDV_VIEWER_SERVER__;
         if (!hasContextMenuItems(uses, ask,
-                                 window.__DE4SDV_VIEWER_SERVER__)) return;
+                                 window.__DE4SDV_VIEWER_SERVER__)
+            && !canAsk) return;
         ev.preventDefault();
         closeMenu();
         if (uses && uses.length) {
@@ -771,6 +815,26 @@
           var divider = document.createElement('div');
           divider.className = 'uses-menu-divider';
           menu.appendChild(divider);
+          var repoItem = document.createElement('button');
+          repoItem.type = 'button';
+          repoItem.className = 'uses-menu-item';
+          var repoIcon = document.createElement('span');
+          repoIcon.className = 'uses-menu-icon';
+          repoIcon.textContent = '\u{1F4AC}';
+          repoItem.appendChild(repoIcon);
+          var repoLabel = document.createElement('span');
+          repoLabel.textContent = 'Ask repo assistant\u2026';
+          repoItem.appendChild(repoLabel);
+          repoItem.title = 'Open the DE4SDV Guide with this element ' +
+            'named in the question — repository and documentation ' +
+            'context, generated answer (not model authority)';
+          repoItem.addEventListener('click', function (e) {
+            e.stopPropagation();
+            closeMenu();
+            openGuideWith('What is the ' + (ask.kind || 'element')
+              + ' ' + ask.name + ' and where is it documented?');
+          });
+          menu.appendChild(repoItem);
           var askItem = document.createElement('button');
           askItem.type = 'button';
           askItem.className = 'uses-menu-item';
@@ -779,7 +843,7 @@
           askIcon.textContent = '\u2753';
           askItem.appendChild(askIcon);
           var askLabel = document.createElement('span');
-          askLabel.textContent = 'Ask the model\u2026';
+          askLabel.textContent = 'Ask the model\u2026 (authoritative query)';
           askItem.appendChild(askLabel);
           askItem.title = 'Ask a question about ' + ask.name +
             ' — answered from the model element itself';
@@ -882,7 +946,8 @@
         askPanel.__info = info;
         askPanel.classList.add('open');
         els.title.textContent = info.name;
-        els.kind.textContent = info.kind || 'element';
+        els.kind.textContent =
+          (info.kind || 'element') + ' (authoritative query)';
         els.meta.textContent = info.file ? info.file + ':' + info.line : '';
         els.meta.href = info.file
           ? (window.VIEWER_PREFIX || '') + 'pages/' + info.file + '.html#src-' + info.line

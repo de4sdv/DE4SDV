@@ -962,7 +962,8 @@ def test_source_refs_link_to_definitions(tmp_path):
     assert "src-ref" not in seg
     # exactly the four usages of FixtureSystem are annotated (typed parts,
     # expose statements), not the declaration
-    assert html.count('data-tip-name="FixtureSystem"') == 4
+    # 4 source refs + 1 project-tree element node (tree identity attrs)
+    assert html.count('data-tip-name="FixtureSystem"') == 5
 
 
 def test_tree_search(tmp_path):
@@ -1642,3 +1643,34 @@ def test_requirements_records_extraction():
     assert "N-AEBS-008" in links.get("REQ-AEBS-005", [])
     assert "REQ-AEBS-005" in links.get("N-AEBS-008", [])
 
+
+
+def test_tree_element_nodes_carry_ask_identity_attrs(model_files):
+    """Right-click menu identity: declared member and view tree nodes carry
+    data-tip-* model identity (name/kind/file/line); dir and file nodes
+    must not."""
+    from tools.sysml_html_viewer.render import node_data_attrs, render_tree
+
+    tree = build_tree(model_files)
+    element_attrs = []
+    html = render_tree(tree, "")
+
+    import re
+    # every node with an href pointing at a declaration line or view anchor
+    # must carry the full identity attribute set
+    for m in re.finditer(r"<(details|li) class=\"tree-node[^\"]*\"([^>]*)>", html):
+        attrs = m.group(2)
+        href_line = 'href="pages/' in attrs or True  # hrefs live on <a> inside
+        # classify: element nodes are those whose data-kind is not dir/file/root
+        kind = re.search(r'data-kind="([^"]+)"', attrs)
+        if not kind or kind.group(1) in ("dir", "file", "root"):
+            assert "data-tip-name" not in attrs, (kind, attrs)
+            continue
+        # declared member or view node
+        assert 'data-tip-name="' in attrs, (kind, attrs)
+        assert 'data-tip-file="textual-notation-of-model/' in attrs, (
+            kind, attrs
+        )
+        assert 'data-tip-line="' in attrs, (kind, attrs)
+        element_attrs.append(attrs)
+    assert element_attrs, "no element tree nodes rendered"
