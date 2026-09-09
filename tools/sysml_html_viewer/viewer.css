@@ -1129,6 +1129,57 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   }
 }
 
+/* ---- chat panel layout: side-by-side when both open ---- */
+/* Ask keeps the corner; Guide shifts left so both are fully visible. */
+.guide-panel.open.shifted,
+.ask-panel.open.shifted {
+  right: calc(18px + min(430px, calc(100vw - 36px)) + 16px);
+}
+
+/* Ask panel minimize button (same idiom as the guide panel) */
+.ask-min {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.ask-min:hover { color: var(--ink); }
+.ask-close { margin-left: 0; }
+
+/* Minimized chat chips (bottom-right, side by side) */
+.chat-chip {
+  position: fixed;
+  z-index: 4150;
+  bottom: 18px;
+  width: 44px;
+  height: 44px;
+  display: none; /* JS sets inline-flex when its panel is minimized */
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16);
+}
+.chat-chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+#guideMinChip { right: 18px; }
+#askMinChip { right: 74px; }
+@media (max-width: 640px) {
+  #guideMinChip { right: 12px; }
+  #askMinChip { right: 68px; }
+}
+
 /* return path note after arriving via the uses-menu */
 .origin-note {
   margin-left: auto;

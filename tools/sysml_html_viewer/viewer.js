@@ -351,6 +351,18 @@
     panel.appendChild(body);
     panel.appendChild(foot);
 
+    var guideChip = document.createElement('button');
+    guideChip.type = 'button';
+    guideChip.id = 'guideMinChip';
+    guideChip.className = 'chat-chip';
+    guideChip.setAttribute('aria-label', 'Reopen the DE4SDV Guide chat');
+    guideChip.title = 'DE4SDV Guide — minimized';
+    guideChip.textContent = '\u{1F4AC}';
+    guideChip.addEventListener('click', function () {
+      applyOpen(true);
+    });
+    document.body.appendChild(guideChip);
+
     document.body.appendChild(fab);
     document.body.appendChild(panel);
 
@@ -529,8 +541,13 @@
     function applyOpen(open) {
       state.open = !!open;
       panel.classList.toggle('open', state.open);
-      fab.style.display = state.open ? 'none' : '';
       guideSaveState(state);
+      try {
+        window.localStorage.setItem(
+          CHAT_GUIDE_CHIP_KEY, open ? '0' : '1'
+        );
+      } catch (err) {}
+      chatSyncLayout();
       if (state.open) input.focus();
     }
 
@@ -553,6 +570,7 @@
 
     guideReplay();
     applyOpen(state.open);
+    chatSyncLayout();
   }
 
     /* Open the DE4SDV Guide panel with a prefilled question (context-menu
@@ -570,8 +588,10 @@
       }
       input.value = question;
       panel.classList.add('open');
-      var fab = document.getElementById('guideFab');
-      if (fab) fab.style.display = 'none';
+      try {
+        window.localStorage.setItem(CHAT_GUIDE_CHIP_KEY, '0');
+      } catch (err) {}
+      chatSyncLayout();
       try {
         var st = JSON.parse(
           window.localStorage.getItem(GUIDE_STORAGE_KEY) || '{}'
@@ -583,6 +603,74 @@
       } catch (err) {}
       input.focus();
     }
+
+  /* ---- chat panel layout coordinator ----
+   * Two floating panels share the bottom-right corner: Ask the model
+   * (.ask-panel) and DE4SDV Guide (.guide-panel). When both are open they
+   * sit side by side (Ask keeps the corner, Guide shifts left); when only
+   * one is open it takes the corner; the Guide FAB is visible only when
+   * neither is open. Minimized panels reappear as small chips. */
+  var CHAT_ASK_OPEN_KEY = 'de4sdv-ask-open';
+  var CHAT_GUIDE_CHIP_KEY = 'de4sdv-guide-minimized';
+
+  function chatAskMinimized() {
+    try { return window.localStorage.getItem(CHAT_ASK_OPEN_KEY) === '0'; }
+    catch (err) { return false; }
+  }
+
+  function chatSetAskMinimized(min) {
+    try {
+      window.localStorage.setItem(CHAT_ASK_OPEN_KEY, min ? '0' : '1');
+    } catch (err) {}
+  }
+
+  function chatGuidePanelOpen() {
+    var panel = document.getElementById('guidePanel');
+    return !!(panel && panel.classList.contains('open'));
+  }
+
+  function chatAskPanelOpen() {
+    var panel = document.getElementById('askPanel');
+    return !!(panel && panel.classList.contains('open'));
+  }
+
+  function chatSyncLayout() {
+    var askOpen = chatAskPanelOpen();
+    var guideOpen = chatGuidePanelOpen();
+    var both = askOpen && guideOpen;
+
+    document.body.classList.toggle('chat-ask-open', askOpen);
+    document.body.classList.toggle('chat-guide-open', guideOpen);
+    document.body.classList.toggle('chat-both-open', both);
+
+    var askPanel = document.getElementById('askPanel');
+    if (askPanel) askPanel.classList.toggle('shifted', both && !guideOpen);
+
+    var guidePanel = document.getElementById('guidePanel');
+    if (guidePanel) guidePanel.classList.toggle('shifted', both && guideOpen);
+
+    var fab = document.getElementById('guideFab');
+    if (fab) {
+      // FAB doubles as the Guide's restore control: hidden while either
+      // panel is open; visible otherwise.
+      fab.style.display = (askOpen || guideOpen) ? 'none' : '';
+    }
+    var askChip = document.getElementById('askMinChip');
+    if (askChip) {
+      askChip.style.display =
+        (!askOpen && chatAskMinimized()) ? 'inline-flex' : 'none';
+    }
+    var guideChip = document.getElementById('guideMinChip');
+    var guideMinimized = false;
+    try {
+      guideMinimized =
+        window.localStorage.getItem(CHAT_GUIDE_CHIP_KEY) === '1';
+    } catch (err) {}
+    if (guideChip) {
+      guideChip.style.display =
+        (!guideOpen && guideMinimized) ? 'inline-flex' : 'none';
+    }
+  }
 
   function hasContextMenuItems(uses, ask, serverEnabled) {
     return Boolean((uses && uses.length) || (ask && serverEnabled));
@@ -915,7 +1003,20 @@
         askPanel.appendChild(head);
         askPanel.appendChild(meta);
         askPanel.appendChild(body);
+        var askChip = document.createElement('button');
+        askChip.type = 'button';
+        askChip.id = 'askMinChip';
+        askChip.className = 'chat-chip chat-chip-ask';
+        askChip.setAttribute('aria-label',
+          'Reopen the Ask the model panel');
+        askChip.title = 'Ask the model — minimized';
+        askChip.textContent = '\u2753';
+        askChip.addEventListener('click', function () {
+          showAskPanel();
+        });
+        document.body.appendChild(askChip);
         document.body.appendChild(askPanel);
+        chatSyncLayout();
 
         input.addEventListener('keydown', function (ev) {
           if (ev.key === 'Enter' && !ev.shiftKey) {
@@ -928,6 +1029,17 @@
             hideAskPanel();
           }
         });
+        var askMin = document.createElement('button');
+        askMin.type = 'button';
+        askMin.className = 'ask-min';
+        askMin.textContent = '\u2212';
+        askMin.setAttribute('aria-label', 'Minimize the Ask the model panel');
+        askMin.title = 'Minimize (keeps this answer)';
+        askMin.addEventListener('click', function (e) {
+          e.stopPropagation();
+          hideAskPanel();
+        });
+        head.appendChild(askMin);
 
         askPanel.__els = {
           title: askTitle, kind: askKind, meta: meta, input: input,
@@ -937,7 +1049,19 @@
       }
 
       function hideAskPanel() {
-        if (askPanel) askPanel.classList.remove('open');
+        if (askPanel) {
+          askPanel.classList.remove('open');
+          chatSetAskMinimized(true);
+          chatSyncLayout();
+        }
+      }
+
+      function showAskPanel() {
+        if (!askPanel) return;
+        askPanel.classList.add('open');
+        chatSetAskMinimized(false);
+        chatSyncLayout();
+        if (askPanel.__els && askPanel.__els.input) askPanel.__els.input.focus();
       }
 
       function openAskPanel(info) {
@@ -945,6 +1069,8 @@
         var els = askPanel.__els;
         askPanel.__info = info;
         askPanel.classList.add('open');
+        chatSetAskMinimized(false);
+        chatSyncLayout();
         els.title.textContent = info.name;
         els.kind.textContent =
           (info.kind || 'element') + ' (authoritative query)';

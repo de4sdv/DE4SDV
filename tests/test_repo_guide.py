@@ -980,6 +980,7 @@ function element(tag){
     addEventListener(t,f){(this._handlers[t]=this._handlers[t]||[]).push(f);},
     dispatch(t,ev){(this._handlers[t]||[]).forEach(f=>f(ev||{preventDefault(){},stopPropagation(){},key:'',clientX:5,clientY:5,target:node}));},
     querySelectorAll(){return [];}, querySelector(){return null;},
+    removeAttribute(k){delete this.attributes[k];},
     focus(){}, contains(){return false;}
   };
   Object.defineProperty(node,'parentNode',{get(){return node._parent||null;},set(v){node._parent=v;}});
@@ -1077,3 +1078,173 @@ console.log('TREE MENU OK');
     )
     assert result.returncode == 0, result.stderr or result.stdout
     assert "TREE MENU OK" in result.stdout
+
+
+
+def test_chat_panels_layout_states():
+    """Layout states: both closed (FAB), one open (corner), both open
+    (side-by-side via shifted), minimized (chips, ask keeps context)."""
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+const registry = {};
+const docListeners = [];
+function textNode(t){return {nodeType:3, textContent:String(t), children:[]};}
+function element(tag){
+  const node = {nodeType:1, tagName:String(tag).toUpperCase(), children:[],
+    attributes:{}, style:{}, _handlers:{}, value:'',
+    appendChild(c){c._parent=node; this.children.push(c); return c;},
+    remove(){}, setAttribute(k,v){this.attributes[k]=String(v);},
+    getAttribute(k){return k in this.attributes?this.attributes[k]:null;},
+    addEventListener(t,f){(this._handlers[t]=this._handlers[t]||[]).push(f);},
+    dispatch(t,ev){(this._handlers[t]||[]).forEach(f=>f(ev||{preventDefault(){},stopPropagation(){},key:'',clientX:5,clientY:5,target:node}));},
+    querySelectorAll(){return [];}, querySelector(){return null;},
+    removeAttribute(k){delete this.attributes[k];},
+    focus(){}, contains(){return false;}
+  };
+  Object.defineProperty(node,'parentNode',{get(){return node._parent||null;},set(v){node._parent=v;}});
+  Object.defineProperty(node,'parentElement',{get(){return node._parent||null;},set(v){node._parent=v;}});
+  const classes = new Set();
+  let cn = '';
+  Object.defineProperty(node,'className',{
+    get(){return cn;},
+    set(v){cn=String(v); classes.clear();
+      cn.split(/\s+/).filter(Boolean).forEach(c=>classes.add(c));}
+  });
+  node.classList = {add:c=>classes.add(c), remove:c=>classes.delete(c),
+    toggle(c,on){if(on===undefined){classes.has(c)?classes.delete(c):classes.add(c);}else if(on)classes.add(c);else classes.delete(c);},
+    contains:c=>classes.has(c)};
+  Object.defineProperty(node,'id',{get(){return node.attributes.id||'';},set(v){node.attributes.id=v;registry[v]=node;}});
+  Object.defineProperty(node,'textContent',{get(){return node.children.map(c=>c.textContent).join('');},set(v){node.children=v?[textNode(v)]:[];}});
+  Object.defineProperty(node,'offsetWidth',{get(){return 10;}});
+  return node;
+}
+function attachClosest(node) {
+  node.closest = function (sel) {
+    for (const s of sel.split(',').map(x=>x.trim())) {
+      if (s === 'a.src-ref' && (node.attributes['class']||'').includes('src-ref')) return node;
+    }
+    return null;
+  };
+}
+const body = element('body');
+const bodyClasses = new Set();
+body.classList = {add:c=>bodyClasses.add(c), remove:c=>bodyClasses.delete(c),
+  toggle(c,on){if(on===undefined){bodyClasses.has(c)?bodyClasses.delete(c):bodyClasses.add(c);}else if(on)bodyClasses.add(c);else bodyClasses.delete(c);},
+  contains:c=>bodyClasses.has(c)};
+global.document = {
+  readyState:'complete', body,
+  createElement:element, createTextNode:textNode,
+  getElementById(id){return registry[id]||null;},
+  documentElement:{style:{setProperty(){}}, getAttribute:()=>null,
+    setAttribute(){}, classList:{toggle(){}}},
+  querySelector(){return null;}, querySelectorAll(){return [];},
+  addEventListener(t,f){docListeners.push([t,f]);}
+};
+const store = {};
+global.window = {localStorage:{
+  getItem:(k)=> (k in store ? store[k] : null),
+  setItem:(k,v)=> { store[k] = String(v); }
+}, GUIDE_REPO_BLOB_BASE:'', addEventListener(){}, removeEventListener(){}};
+global.location = {hash:'', pathname:''};
+global.sessionStorage = {getItem:()=>null, setItem(){}};
+global.fetch = () => Promise.resolve({ok:true, json:()=>Promise.resolve({})});
+let source = fs.readFileSync(process.argv[1], 'utf8');
+vm.runInThisContext(source);
+global.window.__DE4SDV_VIEWER_SERVER__ = true;
+
+function assert(cond, msg) { if (!cond) throw new Error(msg + ' | state: guide='
+  + registry.guidePanel.classList.contains('open')
+  + ', ask=' + (registry.askPanel ? registry.askPanel.classList.contains('open') : 'none')
+  + ', fab=' + registry.guideFab.style.display
+  + ', body=[' + Array.from(bodyClasses).join(',') + ']'); }
+
+// state A: both closed
+assert(!registry.guidePanel.classList.contains('open'), 'A guide open');
+assert(registry.guideFab.style.display !== 'none', 'A fab hidden');
+
+// open Guide (state B)
+registry.guideFab.dispatch('click');
+assert(registry.guidePanel.classList.contains('open'), 'B guide closed');
+assert(bodyClasses.has('chat-guide-open'), 'B body class missing');
+assert(registry.guideFab.style.display === 'none', 'B fab visible');
+
+// minimize Guide -> chip visible
+registry.guideMinChip // exists?
+;
+registry.guideMinChip = registry.guideMinChip || null;
+// minimize via the panel's min button: find head child with class guide-min
+function findByClass(n, cls){
+  if (n.classList && n.classList.contains(cls)) return n;
+  for (const c of (n.children||[])) { const hit = findByClass(c, cls); if (hit) return hit; }
+  return null;
+}
+const minBtn = findByClass(registry.guidePanel, 'guide-min');
+minBtn.dispatch('click');
+assert(!registry.guidePanel.classList.contains('open'), 'B2 guide still open');
+const chip = registry.guideMinChip;
+if (!chip || chip.style.display !== 'inline-flex') {
+  throw new Error('guide chip not shown after minimize');
+}
+
+// reopen via chip
+chip.dispatch('click');
+assert(registry.guidePanel.classList.contains('open'), 'B3 chip reopen failed');
+if (chip.style.display !== 'none') throw new Error('chip not hidden after reopen');
+
+// state C: both open — open Ask via context menu on a src-ref element
+const anchor = element('a');
+anchor.setAttribute('class','src-ref');
+anchor.setAttribute('data-tip-name','FixtureSystem');
+anchor.setAttribute('data-tip-kind','part def');
+anchor.setAttribute('data-tip-file','fix/fixture.sysml');
+anchor.setAttribute('data-tip-line','3');
+anchor._parent = body;
+attachClosest(anchor);
+const cm = docListeners.filter(x=>x[0]==='contextmenu').map(x=>x[1]);
+cm[0]({preventDefault(){}, stopPropagation(){}, clientX:5, clientY:5, target:anchor, closest:anchor.closest});
+const menuEl = findByClass(body, 'uses-menu');
+const askItem = menuEl.children.find(c =>
+  c.textContent.indexOf('Ask the model') !== -1);
+askItem.dispatch('click');
+const askPanel = registry.askPanel;
+assert(askPanel && askPanel.classList.contains('open'), 'C ask not open');
+assert(bodyClasses.has('chat-both-open'), 'C both-open class missing');
+assert(askPanel.classList.contains('shifted') === false,
+  'C ask should keep the corner');
+assert(registry.guidePanel.classList.contains('shifted'),
+  'C guide should be shifted');
+
+// state D: minimize Ask -> chip; reopen keeps context (title/value)
+const askMin = findByClass(askPanel, 'ask-min');
+assert(askMin, 'D ask-min button missing');
+askMin.dispatch('click');
+assert(!askPanel.classList.contains('open'), 'D ask still open');
+const askChip = registry.askMinChip;
+assert(askChip && askChip.style.display === 'inline-flex',
+  'D ask chip not shown');
+askChip.dispatch('click');
+assert(askPanel.classList.contains('open'), 'D ask chip reopen failed');
+assert(askPanel.__els.title.textContent === 'FixtureSystem',
+  'D ask element context lost after minimize/reopen');
+
+// state E: close Ask entirely -> only Guide open, unshifted
+const askClose = findByClass(askPanel, 'ask-close');
+askClose.dispatch('click');
+assert(!askPanel.classList.contains('open'), 'E ask still open');
+assert(!registry.guidePanel.classList.contains('shifted'),
+  'E guide must unshift when ask closes');
+
+// state F: close Guide too -> FAB returns
+const guideClose = findByClass(registry.guidePanel, 'guide-min');
+guideClose.dispatch('click');
+assert(registry.guideFab.style.display !== 'none', 'F fab must return');
+console.log('LAYOUT STATES OK');
+"""
+    result = subprocess.run(
+        ["node", "-e", script,
+         str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "LAYOUT STATES OK" in result.stdout
