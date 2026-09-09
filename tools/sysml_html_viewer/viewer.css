@@ -1175,6 +1175,11 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
 }
 #guideMinChip { right: 18px; }
 #askMinChip { right: 74px; }
+/* When the Ask panel occupies the corner, the minimized Guide chip must
+ * sit to its LEFT, not underneath the panel. */
+body.chat-ask-open #guideMinChip {
+  right: calc(18px + min(430px, calc(100vw - 36px)) + 16px);
+}
 @media (max-width: 640px) {
   #guideMinChip { right: 12px; }
   #askMinChip { right: 68px; }
