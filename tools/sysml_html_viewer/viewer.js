@@ -520,8 +520,7 @@
           + '\u2014 not from the Systems Modeling API. For a specific '
           + 'model element, right-click it and use Ask the model.');
         els.body.appendChild(intro);
-        ['What is DE4SDV and where do I start?',
-         'How do I contribute to the repository?',
+        ['How do I contribute to the repository?',
          'Where are the architecture decision records (ADRs)?',
          'How is the SysML v2 model organized?',
          'What does the public deployment stack look like?'
