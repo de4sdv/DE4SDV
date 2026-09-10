@@ -318,6 +318,57 @@ def test_pilot_aggregate_examples_derive_from_graph() -> None:
     assert "blocks" in text and "current-candidate" in text
 
 
+def test_pilot_expected_dispositions_are_pinned_vocabulary() -> None:
+    """Every expected disposition must be a literal of the pinned
+    OverrideDisposition vocabulary, verified against the evaluator enum
+    source (R3 M4 probe)."""
+    spec = _load_pilot_yaml()
+    model = (
+        Path(__file__).resolve().parents[1]
+        / "implementation/aebs-autoware-nominal-vehicle-target-bench/src/de4sdv_aebs_009b_bench/de4sdv_aebs_009b_bench/override_matrix.py"
+    )
+    src = model.read_text(encoding="utf-8")
+    enum_section = src.split("class OverrideDisposition")[1].split("class ")[0]
+    literals = {
+        line.split("=")[1].strip().strip('"')
+        for line in enum_section.splitlines()
+        if "=" in line and line.strip().endswith('"') and '="' in line.replace(" = ", "=", 1)
+    }
+    assert literals, "could not parse OverrideDisposition literals from source"
+    for profile, disp in spec["expected_dispositions"].items():
+        assert disp in literals, f"{profile}: expected disposition '{disp}' not in OverrideDisposition enum {sorted(literals)}"
+
+
+def test_pilot_selectors_declare_pinned_subject_sets() -> None:
+    """R3 M2 probe: metadata/selector retargeting must fail. The selector
+    column of the usage-scoped rows must name the six declared usages (the
+    pinned subject set), not requirement targets."""
+    text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
+    spec = _load_pilot_yaml()
+    rows = _pilot_table_rows(text)
+    by_id = {r[1].strip("`"): r for r in rows}
+    usage_rows = [
+        "PC-009D-VC-BINDING",
+        "PC-009D-SUBJECT-MEMBERSHIP",
+        "PC-009D-OBJECTIVE-CONTRACTS",
+        "PC-009D-USAGE-METHOD-METADATA",
+    ]
+    pinned_usage_count = str(len(spec["scope_usages"]))
+    for oid in usage_rows:
+        selector = by_id[oid][3].lower()
+        assert "each of the six" in selector or "the six declared usages" in selector, (
+            f"{oid}: selector must select the pinned six-usage set, got: {selector}"
+        )
+        assert "requirement usage" not in selector, (
+            f"{oid}: selector retargeted to requirements"
+        )
+        # The YAML twin must agree.
+        y = next(o for o in spec["obligations"] if o["id"] == oid)
+        assert y["subjects"] == 6 and y["subject_type"] == "VerificationCaseUsage", (
+            f"{oid}: structured twin drifted from the pinned subject set"
+        )
+
+
 def test_pilot_population_is_per_subject() -> None:
     """R2c regression guard: execution/acceptance obligations count targets per
     profile subject ([1..1] each), never a global [6..6] count over six
