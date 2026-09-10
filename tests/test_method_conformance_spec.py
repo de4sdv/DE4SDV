@@ -268,6 +268,31 @@ def test_pilot_phase_literal_is_exact() -> None:
     )
 
 
+def test_pilot_expected_outcomes_cover_review_examples() -> None:
+    """The maintained contract must declare expected dispositions for the
+    re-review examples: missing case, missing profile, failed execution,
+    incomplete scope, absent attestation."""
+    text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
+    for needle, context in (
+        ("REQUIRED_RELATION_MISSING", "missing case/profile"),
+        ("INPUT_UNAVAILABLE", "incomplete scope"),
+        ("EXECUTION_FAILED", "failed execution"),
+        ("EVIDENCE_SCOPE_MISMATCH", "moved tested boundary"),
+        ("ACCEPTANCE_AUTHORITY_MISSING", "absent attestation"),
+        ("NOT_ATTEMPTED", "prerequisite-blocked children"),
+    ):
+        assert needle in text, f"pilot scope missing expected outcome {needle} ({context})"
+
+
+def test_pilot_declares_expected_aggregate_outcomes() -> None:
+    """Historical-realization and moved-boundary aggregate outcomes must be
+    declared (per-obligation and aggregate), not left for B to invent."""
+    text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
+    assert "Expected aggregate outcomes" in text
+    assert "ASSESSED" in text and "COMPLETE" in text and "FAIL" in text
+    assert "UNASSESSED" in text, "moved-boundary aggregate outcome missing"
+
+
 def test_pilot_scope_names_acceptance_authority_gap() -> None:
     text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
     assert "ConsciousOverrideVerification" in text
