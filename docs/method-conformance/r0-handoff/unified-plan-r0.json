@@ -174,6 +174,12 @@
       "K/B prep in parallel",
       "privileged run against prepared K/B candidate (model first)",
       "PLE-Q preparation continues"
-    ]
+    ],
+    "follow_up": {
+      "verdict": "changes still required; A not accepted; pilot table must not be encoded verbatim",
+      "repairs": "commits 3fcf6f0, 7d08b75, 46a8092 on PR #239: exact model identities (phase10_vvEvidence, six usages, metadata owners), per-subject algebra (MC-03/MC-15/MC-17), single normative state table + rule 9, SUPERSEDED handoff labels, structured pilot-obligations.yaml twin + structural guards, provenance correction",
+      "ci": "34464249414 pass @46a8092",
+      "status": "awaiting re-review of committed tree"
+    }
   }
 }
