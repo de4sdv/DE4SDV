@@ -12,6 +12,7 @@ package DE4SDV_AEBSNeedsRequirements {
       package NeedsRequirements {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
+        private import DerivationConnections::Derivation;
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_AEBSFunctionalArchitecture::Features::AEBS::FunctionalBehavior::*;
         private import DE4SDV_MethodViewpoints::*;
