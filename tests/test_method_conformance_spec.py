@@ -367,6 +367,12 @@ def test_pilot_selectors_declare_pinned_subject_sets() -> None:
         assert y["subjects"] == 6 and y["subject_type"] == "VerificationCaseUsage", (
             f"{oid}: structured twin drifted from the pinned subject set"
         )
+        assert "requirement" not in y["subject_selector"].lower(), (
+            f"{oid}: structured twin selector retargeted to requirements: {y['subject_selector']}"
+        )
+        assert "six" in y["subject_selector"].lower() or "scope usages" in y["subject_selector"].lower(), (
+            f"{oid}: structured twin selector must name the six-usage set: {y['subject_selector']}"
+        )
 
 
 def test_pilot_population_is_per_subject() -> None:
