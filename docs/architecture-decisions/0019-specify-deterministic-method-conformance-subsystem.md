@@ -35,16 +35,31 @@ outputs, which makes them invisible to contributors and CI.
 2. Fix the result algebra exactly as specified in `result-algebra.md`:
    `assessment_coverage`/`evaluation_state`/`conformance_verdict`/`readiness`
    semantics, JSON-null rules, aggregate precedence
-   (ERROR > INDETERMINATE > COMPLETE), and the finite reason vocabulary.
-   Unknown reason codes are serialization errors; extending the vocabulary
-   requires a reviewed amendment.
-3. Declare the pilot's acceptance obligation fail-closed: no authorized
-   attributable decision exists for the 009D campaign, so no evaluation may
-   return acceptance PASS for it; the obligation resolves per its contract with
-   `ACCEPTANCE_AUTHORITY_MISSING`.
-4. Enforce baseline integrity mechanically: a test recomputes the SHA-256 of
-   `docs/method-conformance/conformance-baseline.md` and fails on any drift;
-   `mc-matrix.json` must match a re-extraction from the committed baseline.
+   (ERROR > INDETERMINATE > COMPLETE), the finite reason vocabulary (sixteen
+   codes plus the `PERMITTED_EMPTY` sub-vocabulary), and the normative
+   state/reason compatibility table of legal tuples. Unknown reason codes are
+   serialization errors; extending the vocabulary requires a reviewed
+   amendment.
+3. Declare the pilot's acceptance obligation fail-closed with the explicit
+   FAIL/INDETERMINATE discriminator: authorization absent with evidence
+   present resolves COMPLETE/FAIL; authorization unprovable with an
+   incomplete evidence basis resolves INDETERMINATE. No evaluation may return
+   acceptance PASS without an attributable authorized decision.
+4. Instantiate the bounded pilot contract as specified in `pilot-scope.md`
+   (obligations `PC-009D-VC-EXISTS` through `PC-009D-ACCEPTANCE-AUTHORITY`)
+   with subjects, selectors, population policies, predicates, target filters,
+   cardinalities, evaluation sources, and expected dispositions; B encodes
+   this table verbatim.
+5. Bind evaluation to the candidate revision and compare the declared tested
+   scope separately (rebinding rule): campaign replay is required only when
+   the tested boundary changes or cannot be established — documentation or
+   acceptance-record commits rebind without replay.
+6. Enforce baseline integrity mechanically: a test recomputes the SHA-256 of
+   `docs/method-conformance/conformance-baseline.md` over raw bytes and fails
+   on any drift (including line-ending or encoding mutation); `mc-matrix.json`
+   must match a re-extraction from the committed baseline; the reason
+   vocabulary is pinned by exact set equality with negative probes (removals
+   and additions both fail).
 
 ## Consequences
 

@@ -13,10 +13,16 @@ Phase-10 pilot.
 | [pilot-scope.md](pilot-scope.md) | Declared real Phase-10 pilot, admitted configuration, identities, and the admitted acceptance-authority gap. |
 
 Ownership: A approves this specification (this branch); B implements the
-minimum normative API slice for B-owned cases; C the evaluator and discovery;
-D snapshots and delivery. Method owner: Orkun Yilmaz; independent V&V per
-package. Implementation files proposed by later packages:
+minimum normative API slice for B-owned cases and encodes the pilot obligation
+table (`pilot-scope.md`) verbatim; C the evaluator and discovery; D snapshots
+and delivery. Method owner: Orkun Yilmaz; independent V&V per package.
+Implementation files proposed by later packages:
 `de4sdv/method_conformance/` (`method_contract.py`, `method_evaluator.py`),
 tests under `tests/test_method_contract_binding.py`,
 `tests/test_method_conformance.py`, `tests/test_method_snapshot.py`,
 `tests/test_method_delivery_gate.py`.
+
+Review-amendment record: the independent R0 review (findings R1–R4) was
+addressed on this branch — completed reason vocabulary with state/reason
+compatibility table, instantiated pilot contract, candidate-revision rebinding
+rule, and hardened integrity tests with verified mutation probes.
