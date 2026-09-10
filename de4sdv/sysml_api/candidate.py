@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from de4sdv.sysml_api.revisions import RevisionBinding
+from de4sdv.sysml_api.revisions import OntologyIdentity, RevisionBinding
 
 _FULL_SHA_LEN = 40
 
@@ -166,12 +166,26 @@ class CandidateRegistry:
         project_id: str,
         commit_id: str,
         semantic_validation: str,
+        ontology_path: str = "",
+        ontology_sha256: str = "",
     ) -> RevisionBinding:
-        """Emit a candidate revision binding only after validation passed."""
+        """Emit a candidate revision binding only after validation passed.
+
+        The ontology identity is required and must be the digest of the
+        ontology contract validated during the candidate's import, so the
+        emitted binding round-trips through RevisionBinding.from_dict and
+        carries the same authority tuple as a full-model binding (scope
+        differs, authority does not).
+        """
         if semantic_validation != "passed":
             raise RuntimeError(
                 "candidate binding emission refused: semantic validation "
                 f"has not passed (status {semantic_validation!r})"
+            )
+        if not ontology_path or not ontology_sha256:
+            raise RuntimeError(
+                "candidate binding emission refused: the ontology contract "
+                "identity (path + sha256) validated during import is required"
             )
         record = self.register_candidate(
             git_commit=git_commit, project_id=project_id, commit_id=commit_id
@@ -184,6 +198,8 @@ class CandidateRegistry:
             import_timestamp="synthetic",
             import_tool_version="synthetic",
             semantic_validation=semantic_validation,
-            ontology=None,  # type: ignore[arg-type]
+            ontology=OntologyIdentity(
+                path=ontology_path, sha256=ontology_sha256
+            ),
             scope="candidate",
         )

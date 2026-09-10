@@ -448,9 +448,16 @@ def test_mc37_candidate_binding_requires_validation() -> None:
         project_id="proj-x",
         commit_id="cx-1",
         semantic_validation="passed",
+        ontology_path="approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        ontology_sha256="a" * 64,
     )
     assert binding.semantic_validation == "passed"
     assert binding.scope == "candidate"
+    # The binding must round-trip through the strict loader (authority tuple
+    # complete even for candidate scope).
+    loaded = type(binding).from_dict(binding.to_dict())
+    assert loaded.ontology.path == binding.ontology.path
+    assert loaded.scope == "candidate"
 
 
 # --------------------------------------------------------------------------
