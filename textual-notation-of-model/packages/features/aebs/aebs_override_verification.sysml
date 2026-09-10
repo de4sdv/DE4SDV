@@ -138,6 +138,7 @@ package DE4SDV_AEBSOverrideVerification {
    * the scope binding itself is the increment's contribution.
    * ───────────────────────────────────────────────────────────────── */
   private import ScalarValues::*;
+  private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodConformance::*;
 
   part def AebsOverridePilotScopeBase :> MethodEvaluationScope;
