@@ -45,10 +45,33 @@ semantic evidence), the privileged read-back additionally proves:
 | `VC-AEBS-009D-01…06` | `VerificationCaseUsage` | `VerificationCases::verificationCases` (usage-side anchor) | usages specializing `VC-AEBS-009D-DE` | definition/usage relationship is SysML-implied; per-usage grounding follows the definition chain; subject memberships and usage-level `@VerificationMethod` metadata are explicitly authored |
 | `EC-009D-01…03` | `RequirementUsage` | ODE4HERA requirements-management vocabulary via the DE4SDV method-context adapter (ADR 0009) | `OverrideEvidenceContract` specializations | `RequirementVerificationMembership` witnesses explicitly authored in the objective |
 
-The read-back script reports these as separate fields
-(`definition_grounding_*`, `usage_grounding_*`, `library_*_present`) and
-fails closed when a library anchor is absent from the bound revision
-(pinned-dependency closure incomplete).
+The privileged evidence is produced by two independent serialization
+transactions of the same committed source (candidate-1, candidate-2), each
+imported into its own distinct API project/commit; correspondence is
+verified by `scripts/verify_reimport_correspondence.py` from stable explicit
+identities plus relationship structure, with per-identity UUID attribution
+(UUID equality reported, never required).
+
+The read-back (`scripts/verify_pilot_readback.py`) proves grounding from the
+serializer's ACTUAL relationship representation — discovered by
+`de4sdv/semantic/relationships.py` (relationship-object families:
+Subclassification/FeatureTyping/Generalization/..., or inlined reference
+properties) rather than a hard-coded metaclass — and reports, per identity:
+
+- `definition_grounding`: API metaclass, DE4SDV definition witness, library
+  grounding witness (specialization closure to
+  `VerificationCases::VerificationCase`), provenance, exact hop witness ids;
+- `usage_grounding` (per usage `VC-AEBS-009D-01..06`): API metaclass,
+  DE4SDV definition witness, library grounding witness through the usage
+  closure, the `VerificationCases::verificationCases` anchor grounding INTO
+  the library definition, provenance, exact witness ids, completeness state
+  with diagnostics;
+- `library_VerificationCase_types` / `library_verificationCases_types`: the
+  actual validated API metaclasses of the anchors (the usage-set anchor is
+  not assumed to be a Class/Structure/Package).
+
+Library-anchor presence alone is not grounding; any missing witness fails
+the read-back closed.
 
 ## External-boundary rule (frozen baseline Section 10)
 
