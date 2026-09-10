@@ -462,6 +462,18 @@ classes:
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
       declaration: item def AcceptanceAttestationReference
+  RequirementDerivation:
+    definition: >-
+      Typed marker (semantic metadata) applied to the dependency that carries a
+      derivesRequirementFromNeed assertion. The marker is the predicate
+      discriminator: an annotated dependency whose client grounds Requirement
+      and whose supplier grounds Need states that the requirement is derived
+      from the need. Endpoint types alone never establish derivation, and the
+      marker claims design-input derivation only — never satisfaction,
+      allocation, verification, evidence, or acceptance.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: metadata def RequirementDerivation
 
 relationships:
   addressesConcern:
@@ -482,6 +494,23 @@ relationships:
   derivesRequirementFromNeed:
     domain: Requirement
     range: Need
+    definition: >-
+      Requirement R is derived from stakeholder need N. Design-input
+      derivation; direction R -> N. No satisfaction, allocation, verification,
+      evidence, or acceptance claim.
+    sysml_mapping:
+      strategy: metadata-tagged-dependency
+      relationship_types: [Dependency]
+      metadata_definition: RequirementDerivation
+      annotation_property: ownedRelationship
+      direction: outgoing
+      source_property: source
+      target_property: target
+      source_types: [RequirementUsage]
+      target_types: [RequirementUsage]
+      source_lineage_of: Requirement
+      target_lineage_of: Need
+      semantic_strength: derivation
   constrainedBy:
     domain: Requirement
     range: RegulatoryConstraint

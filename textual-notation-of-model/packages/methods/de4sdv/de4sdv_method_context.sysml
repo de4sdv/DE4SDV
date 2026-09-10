@@ -14,6 +14,7 @@
 
 package DE4SDV_MethodContext {
   private import DE4SDV_SYSMODAdapter::*;
+  private import Metaobjects::SemanticMetadata;
 
   /* Re-exported so feature packages can assign `attribute :>> status =
    * ReqStatus::...` (ADR 0009) without importing the adapter directly. */
@@ -134,6 +135,18 @@ package DE4SDV_MethodContext {
 
   requirement def EvidenceContractTraceabilityRequirementCandidate :> RequirementCandidate {
     doc /* Candidate requirement for evidence-contract traceability to controlled boundaries. */
+  }
+
+  /* Typed marker (semantic metadata) for the derivesRequirementFromNeed
+   * predicate. A dependency annotated with this metadata asserts that its
+   * client (source) requirement is derived from its supplier (target)
+   * stakeholder need. The annotation is the predicate discriminator:
+   * endpoint types alone never establish derivation. This claims
+   * design-input derivation only — never satisfaction, allocation,
+   * verification, evidence, or acceptance. */
+  metadata def RequirementDerivation :> SemanticMetadata {
+    ref :>> annotatedElement : SysML::Dependency;
+    doc /* Requirement R (dependency client) is derived from stakeholder need N (dependency supplier); design-input derivation, direction R -> N. */
   }
 
   requirement def RegulatoryConstraintCandidate :> RequirementsManagementAttributeBase {

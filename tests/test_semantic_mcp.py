@@ -96,6 +96,12 @@ def semantic_service():
             "qualifiedName": "DE4SDV_MethodContext::RequirementCandidate",
         },
         {
+            "@id": "kernel-requirement-derivation",
+            "@type": "MetadataDefinition",
+            "declaredName": "RequirementDerivation",
+            "qualifiedName": "DE4SDV_MethodContext::RequirementDerivation",
+        },
+        {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
             "declaredName": "ProductLineMemberProduct",
@@ -181,6 +187,15 @@ def semantic_service():
                     ),
                     "declaration": "part def ProductLineMemberProduct",
                 },
+                {
+                    "ontology_class": "RequirementDerivation",
+                    "element_id": "kernel-requirement-derivation",
+                    "source_file": (
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_method_context.sysml"
+                    ),
+                    "declaration": "metadata def RequirementDerivation",
+                },
             ],
         }
     )
@@ -243,7 +258,7 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     result = semantic_service.model_status()
 
     assert result["current_baseline"] is True
-    assert result["element_count"] == 10
+    assert result["element_count"] == 11
     assert result["gaps"] == []
 
 

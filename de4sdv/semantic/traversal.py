@@ -50,6 +50,10 @@ class SemanticTraversal:
             return []
         if mapping.strategy in {"dependency", "allocation"}:
             return self._relationship_hops(mapping, source, source_id, elements, by_id)
+        if mapping.strategy == "metadata-tagged-dependency":
+            return self._metadata_tagged_dependency_hops(
+                mapping, source, source_id, elements, by_id
+            )
         if mapping.strategy == "subject-membership":
             return self._subject_membership_hops(mapping, source, source_id, elements)
         if mapping.strategy == "verification-membership":
@@ -142,6 +146,142 @@ class SemanticTraversal:
                 if target is not None:
                     hops.append(self._hop(mapping, source, target, relationship))
         return self._deduplicate(hops)
+
+    def _metadata_tagged_dependency_hops(
+        self,
+        mapping: RelationshipMapping,
+        source: dict[str, Any],
+        source_id: str,
+        elements: list[dict[str, Any]],
+        by_id: dict[str, dict[str, Any]],
+    ) -> list[TraversalHop]:
+        """Traverse dependencies discriminated by a kernel metadata marker.
+
+        A generic Dependency is not evidence of a stronger domain predicate,
+        even when its endpoint types match (plan §10, UG-05). This strategy
+        accepts a dependency only when the modeled discriminator is present:
+        an Annotation owned by the dependency whose annotated element is the
+        dependency itself and whose annotating element is a MetadataUsage
+        typed by the ontology-mapped metadata definition (resolved through
+        ingestion-validated kernel identity, never by name matching against
+        arbitrary elements).
+
+        Serialized witness shape (observed in the validated deployed baseline
+        for the same metadata mechanism, e.g. the ``#AdapterExchangeExcluded``
+        dependencies):
+
+        ``Dependency --ownedRelationship--> Annotation
+        --annotatedElement--> that Dependency
+        --ownedRelatedElement--> MetadataUsage --FeatureTyping--> MetadataDefinition``
+        """
+        config = mapping.configuration
+        allowed_types = {str(item) for item in config.get("relationship_types", [])}
+        marker_name = str(config.get("metadata_definition", ""))
+        if not marker_name:
+            raise ValueError(
+                f"metadata-tagged-dependency strategy for {mapping.name} "
+                f"requires metadata_definition"
+            )
+        source_types = {str(item) for item in config.get("source_types", [])}
+        target_types = {str(item) for item in config.get("target_types", [])}
+        direction = str(config.get("direction", "outgoing"))
+        source_property = str(config.get("source_property", "source"))
+        target_property = str(config.get("target_property", "target"))
+
+        marker_definition_ids = self._marker_definition_ids(marker_name, by_id)
+        if marker_definition_ids is None:
+            # Fail closed: without a validated marker identity the predicate
+            # cannot be discriminated in this revision.
+            raise IdentityNotFoundError(
+                f"no validated kernel binding for metadata definition "
+                f"{marker_name!r}; predicate {mapping.name!r} cannot be "
+                f"evaluated without ingestion-validated binding metadata"
+            )
+
+        # Single-pass index: MetadataUsage id -> typed-by marker?
+        marker_usage_ids: set[str] = set()
+        for element in elements:
+            if str(element.get("@type")) != "FeatureTyping":
+                continue
+            typed = element_id(element.get("type")) or element_id(
+                element.get("general")
+            )
+            if typed is None or typed not in marker_definition_ids:
+                continue
+            feature_id = element_id(element.get("typedFeature")) or element_id(
+                element.get("specific")
+            )
+            if feature_id is not None:
+                marker_usage_ids.add(feature_id)
+
+        # Single-pass index: annotated element id -> annotating metadata
+        # usages. The witness form is Annotation owned by the annotated
+        # element, whose ownedRelatedElement carries the MetadataUsage.
+        annotations_by_target: dict[str, set[str]] = {}
+        for element in elements:
+            if str(element.get("@type")) != "Annotation":
+                continue
+            for usage_id in reference_ids(element.get("ownedRelatedElement")):
+                if usage_id not in marker_usage_ids:
+                    continue
+                for annotated_id in reference_ids(
+                    element.get("annotatedElement")
+                ):
+                    annotations_by_target.setdefault(annotated_id, set()).add(
+                        usage_id
+                    )
+
+        hops: list[TraversalHop] = []
+        for relationship in elements:
+            if allowed_types and str(relationship.get("@type")) not in allowed_types:
+                continue
+            relationship_id = element_id(relationship)
+            if relationship_id is None:
+                continue
+            relationship_sources = reference_ids(relationship.get(source_property))
+            relationship_targets = reference_ids(relationship.get(target_property))
+            if direction == "incoming" and source_id in relationship_targets:
+                neighbor_ids = relationship_sources
+            elif direction == "outgoing" and source_id in relationship_sources:
+                neighbor_ids = relationship_targets
+            else:
+                continue
+            # The discriminator: at least one annotating metadata usage typed
+            # by the marker definition must be owned by this relationship.
+            annotating_usages = annotations_by_target.get(relationship_id, set())
+            if not annotating_usages & marker_usage_ids:
+                continue
+            if source_types and str(source.get("@type")) not in source_types:
+                continue
+            neighbor_ids = [
+                neighbor_id
+                for neighbor_id in neighbor_ids
+                if str(by_id.get(neighbor_id, {}).get("@type")) in target_types
+            ]
+            for neighbor_id in neighbor_ids:
+                target = by_id.get(neighbor_id)
+                if target is not None:
+                    hops.append(self._hop(mapping, source, target, relationship))
+        return self._deduplicate(hops)
+
+    def _marker_definition_ids(
+        self, marker_name: str, by_id: dict[str, dict[str, Any]]
+    ) -> set[str] | None:
+        """Resolve the metadata definition's validated API UUID(s).
+
+        Identity comes from the ingestion-validated kernel binding index (the
+        ontology class entry for the marker), never from element names. The
+        definition UUID must exist in the bound revision with the expected
+        API type.
+        """
+        if self.kernel_bindings is None:
+            return None
+        try:
+            return {
+                self.kernel_bindings.element_id_for(marker_name, by_id)
+            }
+        except IdentityNotFoundError:
+            return None
 
     def _excluded_specialization_ids(
         self,

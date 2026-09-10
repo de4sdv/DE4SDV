@@ -479,7 +479,7 @@ _REQUIREMENT_USAGE_RE = re.compile(
     re.MULTILINE,
 )
 _DEPENDENCY_EDGE_RE = re.compile(
-    r"^\s*dependency\s+[A-Za-z][A-Za-z0-9]*\s+"
+    r"^\s*(?:#[A-Za-z][A-Za-z0-9_]*\s+)?dependency\s+[A-Za-z][A-Za-z0-9]*\s+"
     r"from\s+([\w'.:]+)\s+to\s+([\w'.:]+)\s*;",
     re.MULTILINE | re.DOTALL,
 )
