@@ -236,7 +236,7 @@
   },
   "lane_b": {
     "pr": "https://github.com/de4sdv/DE4SDV/pull/242 (draft)",
-    "head": "b1dd3d4d22605bbd7be28094b760fa0d4e6a2ecf",
+    "head": "28b5b6796e76e92285544cab4a6504e1fd4dedaa",
     "base": "51c4e2323322ecd0cf6c45a8bd6b345fcb4f0a6b (merged A)",
     "governing_plan": "DE4SDV_Unified_Semantic_Engineering_Plan_v1.1.md",
     "dispositions": {
@@ -255,6 +255,16 @@
       "privileged_syside": "run 34505475904 success @b1dd3d4",
       "full_suite": "1042 passed / 4 skipped / 137 subtests",
       "dispatch": "PREPARED \u2014 awaiting explicit maintainer authorization (all five gates green)"
+    },
+    "real_evidence_round": {
+      "B-R3": "privileged workflow runs isolated exact-SHA checkout -> sysand sync -> licensed export FROM checkout -> distinct candidate export + identity artifact -> distinct candidate API project/commit",
+      "MC-14": "two independent serialization transactions (candidate-1/2) into distinct projects; verify_reimport_correspondence.py; UUID equality reported not required; fail-closed",
+      "v1.1 grounding": "representation-tolerant per-usage grounding (relationships.py); anchor metaclass recorded; library-definition presence insufficient; fail-closed",
+      "ci": "run 34516944002 success @28b5b67",
+      "privileged_syside": "run 34516943475 success @28b5b67",
+      "suite": "1051 passed / 4 skipped / 137 subtests + 11 new tests",
+      "env_drift": "local venv mcp 2.0.0 vs repo pin 1.28.1; two semantic_mcp tests local-only failures",
+      "dispatch": "authorized-pending; NOT dispatched"
     }
   }
 }
