@@ -250,6 +250,7 @@ never mistaken for a project ID.
 | `MAP` | Signal mapping record | pilot index | `MAP-MW-008-VEHICLE-SPEED` | CANONICAL |
 | `MC` | Method-conformance matrix case | method-conformance specification (`docs/method-conformance/`) | `MC-01` | CANONICAL |
 | `PC` | Pilot contract obligation | declared method-conformance pilot (`docs/method-conformance/pilot-scope.md`) | `PC-009D-VC-EXISTS` | CANONICAL |
+| `PSC` | Pilot scope record | model-resident evaluation scope for a declared pilot (`textual-notation-of-model/`) | `PSC-009D` | CANONICAL |
 | `UG` | Unified-plan general acceptance case | unified semantic engineering plan (`docs/method-conformance/`) | `UG-05` | CANONICAL |
 | `R0` | Reconciliation work-package handoff item | unified-plan R0 handoff (`docs/method-conformance/r0-handoff/`) | `R0-4` | CANONICAL |
 | `MODEL` | Model artifact index entry | pilot index | `MODEL-AEBS-010-VARIABILITY-CONFIGURATION-SYSML` | CANONICAL |

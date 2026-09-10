@@ -250,6 +250,7 @@ FREE_FORM_PREFIXES = {
     "MAP",  # signal mapping record (pilot index)
     "MC",  # method-conformance matrix case (frozen conformance specification)
     "PC",  # pilot contract obligation (declared method-conformance pilot)
+    "PSC",  # pilot scope record (model-resident evaluation scope for a declared pilot)
     "UG",  # unified-plan general acceptance case (unified semantic engineering plan)
     "R0",  # reconciliation work-package handoff item (unified plan)
     "MODEL",  # model artifact index entry (pilot index)

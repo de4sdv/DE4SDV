@@ -44,6 +44,7 @@ def run_import(
     project_name: str | None,
     git_repository: str,
     api_host_header: str | None = None,
+    candidate: bool = False,
 ) -> dict[str, object]:
     head = _git_head()
     bundle = BaselineExportBundle.load(export_path)
@@ -115,7 +116,7 @@ def run_import(
         import_tool_version="de4sdv-full-model-import/1+official-syside-json",
         semantic_validation="passed",
         ontology=contract.identity,
-        scope="full-model",
+        scope="candidate" if candidate else "full-model",
         kernel_bindings=tuple(
             KernelElementBinding.from_dict(item) for item in kernel_bindings
         ),
@@ -145,9 +146,20 @@ def main() -> int:
             "when the API's AllowedHostsFilter does not accept the raw address."
         ),
     )
+    parser.add_argument(
+        "--candidate",
+        action="store_true",
+        help=(
+            "Emit a candidate-scope binding instead of full-model. A candidate "
+            "binding proves the isolated committed-candidate path (Increment B) "
+            "without touching the published accepted-baseline selection and "
+            "without implying review approval."
+        ),
+    )
     args = parser.parse_args()
     result = run_import(
         api_url=args.api_url,
+        candidate=args.candidate,
         export_path=args.export,
         binding_path=args.binding,
         report_path=args.report,

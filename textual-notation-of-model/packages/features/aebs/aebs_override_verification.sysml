@@ -36,15 +36,15 @@ package DE4SDV_AEBSOverrideVerification {
     attribute scenario : OverrideScenarioIdentity;
   }
   requirement def OverrideEvidenceContract;
-  requirement evidenceContractClosedOverrideScenario : OverrideEvidenceContract {
+  requirement <'EC-009D-01'>evidenceContractClosedOverrideScenario : OverrideEvidenceContract {
     subject bench : OverrideMatrixBench;
     require constraint statement { language "English" /* The bench shall bind exactly one closed override scenario identity. */ }
   }
-  requirement evidenceContractOverrideFreshnessReplay : OverrideEvidenceContract {
+  requirement <'EC-009D-02'>evidenceContractOverrideFreshnessReplay : OverrideEvidenceContract {
     subject bench : OverrideMatrixBench;
     require constraint statement { language "English" /* The bench shall replay source stamp, receipt time, value validity, exact diagnostic-source authorization, and the scenario-specific suppression, release, or degraded disposition. A fresh sample is one with source-stamp-to-receipt age at most 0.2 s; suppression is evaluated within a closed window of 0.25 s; runtime-graph sampling gaps above 0.2 s fail the replay. */ }
   }
-  requirement evidenceContractIndependentVerdict : OverrideEvidenceContract {
+  requirement <'EC-009D-03'>evidenceContractIndependentVerdict : OverrideEvidenceContract {
     subject bench : OverrideMatrixBench;
     require constraint statement { language "English" /* The bench shall retain separate observations, evaluation, provenance, and verdict for each scenario; observer failure shall not pass. */ }
   }
@@ -68,7 +68,7 @@ package DE4SDV_AEBSOverrideVerification {
     attribute :>> scenario = OverrideScenarioIdentity::futureStampedOverride;
   }
 
-  verification def ConsciousOverrideVerification {
+  verification def <'VC-AEBS-009D-DE'>ConsciousOverrideVerification {
     subject verifiedBench : OverrideMatrixBench;
     objective evidenceObjective {
       verify evidenceContractClosedOverrideScenario;
@@ -92,27 +92,27 @@ package DE4SDV_AEBSOverrideVerification {
     }
     return verdict : VerdictKind = evaluateData.verdict;
   }
-  verification overrideFalseControlVerification : ConsciousOverrideVerification {
+  verification <'VC-AEBS-009D-01'>overrideFalseControlVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> overrideFalseControlBench;
   }
-  verification overrideTrueVerification : ConsciousOverrideVerification {
+  verification <'VC-AEBS-009D-02'>overrideTrueVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> overrideTrueBench;
   }
-  verification overrideStaleVerification : ConsciousOverrideVerification {
+  verification <'VC-AEBS-009D-03'>overrideStaleVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> overrideStaleBench;
   }
-  verification overrideMissingVerification : ConsciousOverrideVerification {
+  verification <'VC-AEBS-009D-04'>overrideMissingVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> overrideMissingBench;
   }
-  verification overrideMalformedVerification : ConsciousOverrideVerification {
+  verification <'VC-AEBS-009D-05'>overrideMalformedVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> overrideMalformedBench;
   }
-  verification overrideFutureStampedVerification : ConsciousOverrideVerification {
+  verification <'VC-AEBS-009D-06'>overrideFutureStampedVerification : ConsciousOverrideVerification {
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> overrideFutureStampedBench;
   }
@@ -127,4 +127,25 @@ package DE4SDV_AEBSOverrideVerification {
 
   dependency overrideEvidenceRelevantToOverrideCandidate
     from evidenceContractOverrideFreshnessReplay to reqAllowDriverOverride;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * Lane B: model-resident evaluation scope for the INC-AEBS-009D
+   * method-conformance pilot (ADR 0019; docs/method-conformance/).
+   *
+   * The scope binds the six declared verification usages by their stable
+   * explicit identifiers. Contribution set and evaluation scope are
+   * distinct: the usages are reused scope members (contributes = false);
+   * the scope binding itself is the increment's contribution.
+   * ───────────────────────────────────────────────────────────────── */
+  private import DE4SDV_MethodConformance::*;
+
+  part def AebsOverridePilotScopeBase {
+    attribute incrementId : String;
+    attribute subjectType : String;
+  }
+
+  part <'PSC-009D'>aebsOverridePilotScope : AebsOverridePilotScopeBase {
+    attribute :>> incrementId = "INC-AEBS-009D";
+    attribute :>> subjectType = "VerificationCaseUsage";
+  }
 }

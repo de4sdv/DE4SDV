@@ -61,6 +61,14 @@ def resolve_identity(
         or identifier == str(item.get("reqId") or "")
         or identifier == str(item.get("declaredShortName") or item.get("shortName") or "")
     ]
+    if expected_type:
+        # Normative conformance (frozen baseline Section 5): a resolved
+        # explicit identifier must be type-compatible; otherwise the binding
+        # is incompatible and errors instead of falling through to a
+        # weaker match level.
+        explicit = [
+            item for item in explicit if item.get("@type") == expected_type
+        ]
     if result := _one(identifier, "stable-explicit-id", explicit):
         return result
 

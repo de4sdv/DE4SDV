@@ -137,6 +137,18 @@ jobs:
             --expected-git-revision "$(git rev-parse HEAD)" \
             --output /tmp/de4sdv-semantic-mcp-validation.json
 
+      - name: Import isolated candidate revision and verify pilot read-back
+        run: |
+          python scripts/import_sysml_api_baseline.py \
+            --api-url http://127.0.0.1:9000 \
+            --export /tmp/de4sdv-full-model-export.json \
+            --binding /tmp/de4sdv-candidate-binding.json \
+            --report /tmp/de4sdv-candidate-semantic-validation.json \
+            --candidate
+          python scripts/verify_pilot_readback.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-candidate-binding.json \
+            --output /tmp/de4sdv-pilot-readback.json
       - name: Run production-ingestion tests
         run: |
           python -m pytest \
@@ -158,4 +170,7 @@ jobs:
             /tmp/de4sdv-product-line-scope-validation.json
             /tmp/de4sdv-semantic-mcp-validation.json
             /tmp/de4sdv-full-model-export.json
+            /tmp/de4sdv-candidate-binding.json
+            /tmp/de4sdv-candidate-semantic-validation.json
+            /tmp/de4sdv-pilot-readback.json
             /tmp/sysml-api.log

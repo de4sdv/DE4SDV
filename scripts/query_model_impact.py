@@ -54,7 +54,7 @@ REQUIREMENT_RE = re.compile(
 # ``requirement <name>`` usages that declare evidence contracts
 # (the convention in the model is ``evidenceContract...``).
 EVIDENCE_CONTRACT_RE = re.compile(
-    r"\brequirement\s+(evidenceContract\w+)\b"
+    r"\brequirement\s+(?:<'[^']*'>)?(evidenceContract\w+)\b"
 )
 
 # A SysML v2 textual-notation dependency spans two lines, e.g.::
@@ -75,11 +75,11 @@ DEPENDENCY_INLINE_RE = re.compile(
 )
 
 # ``verification def Name`` declarations.
-VERIFICATION_DEF_RE = re.compile(r"\bverification\s+def\s+([A-Za-z_]\w*)\b")
+VERIFICATION_DEF_RE = re.compile(r"\bverification\s+def\s+(?:<'[^']*'>)?([A-Za-z_]\w*)\b")
 
 # ``verification <usageName> : <defName>`` usages.
 VERIFICATION_USAGE_RE = re.compile(
-    r"\bverification\s+([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)"
+    r"\bverification\s+(?:<'[^']*'>)?([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)"
 )
 
 
