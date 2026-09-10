@@ -74,7 +74,11 @@
         if (bare.index > barePos) {
           appendAskInline(parent, rest.slice(barePos, bare.index));
         }
+        var pathPrefix = bare[1];
         var pathCandidate = bare[2];
+        if (pathPrefix) {
+          appendAskInline(parent, pathPrefix);
+        }
         var bareHref = guideRewriteHref(pathCandidate, gitSha);
         if (bareHref) {
           var bareA = document.createElement('a');
