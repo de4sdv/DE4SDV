@@ -200,6 +200,16 @@ jobs:
             tests/test_sysml_api_semantic.py \
             tests/test_semantic_mcp.py -q
 
+      - name: Trim API service log for upload
+        # The raw API-service log reaches multi-GB per run; reviewers only ever
+        # need the tail (where failures surface). Upload a bounded tail so
+        # artifact downloads stay small and never blow up review workstations.
+        if: always()
+        run: |
+          if [ -f /tmp/sysml-api.log ]; then
+            tail -c 100000000 /tmp/sysml-api.log > /tmp/sysml-api.tail.log
+          fi
+
       - name: Upload exact-head ingestion evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -224,4 +234,4 @@ jobs:
             /tmp/de4sdv-candidate-semantic-validation-2.json
             /tmp/de4sdv-reimport-correspondence.json
             /tmp/de4sdv-pilot-readback.json
-            /tmp/sysml-api.log
+            /tmp/sysml-api.tail.log
