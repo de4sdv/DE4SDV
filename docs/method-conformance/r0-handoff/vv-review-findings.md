@@ -20,7 +20,7 @@ Mechanical, reproducible checks (`vv-scripted-findings.json`):
 | Lane consistency on critical rows (K/T/PLE/O + frozen signatures) | PASS |
 | Signature rows (deployedTo, allocatedTo, instantiatesCanonicalArchitecture) marked unresolved/yes | PASS |
 | k-predicate-selection alternative treatment | PASS — allocatedTo documented as fallback with reason |
-| Projection/profile separation (plan §8.1) | PASS — one keyword hit (PROJ-SEP) rejected as false positive: the flagged line is the prohibition statement itself (projection-profile-v0.md:37) |
+| Projection/profile separation (plan §8.1) | PASS — one keyword hit (finding 'projection separation keyword hit') rejected as false positive: the flagged line is the prohibition statement itself (projection-profile-v0.md:37) |
 | PLE-Q scope covers Gate B topics (XOR, FeatureBinding, groups, bindingTime, serializer, AdapterRealizationRule) | PASS |
 | Blocker records carry blocker/required/parallel-work (plan §18) | PASS (3 blockers) |
 | Overclaim scan (vocabulary-as-supported, proposal-as-implemented, historical-as-current) | PASS — no hits |
