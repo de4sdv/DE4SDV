@@ -233,5 +233,28 @@
       "scope": "no 009D acceptance, no policy activation, no mandatory checks, no merge",
       "status": "A contract delivered for review and acceptance decision"
     }
+  },
+  "lane_b": {
+    "pr": "https://github.com/de4sdv/DE4SDV/pull/242 (draft)",
+    "head": "b1dd3d4d22605bbd7be28094b760fa0d4e6a2ecf",
+    "base": "51c4e2323322ecd0cf6c45a8bd6b345fcb4f0a6b (merged A)",
+    "governing_plan": "DE4SDV_Unified_Semantic_Engineering_Plan_v1.1.md",
+    "dispositions": {
+      "B-R1": "metadata witnesses from actual MetadataUsage objects; or-True removed; missing witness = incomplete+diagnostic",
+      "B-R2": "specialization witness required per usage; counts asserted; completeness honest",
+      "B-R3": "prepare_isolated_checkout (detached clean worktree at exact SHA); privileged export from that checkout; same-export-twice rejected as proof",
+      "B-R4": "PSC-009D actual field values asserted from imported attribute JSON",
+      "B-R5": "six EvaluationScopeMembership items model-resident; read-back discovers them",
+      "B-R6": "11 PC-009D-* obligations + TestedScopeDeclaration + AcceptanceAttestationReference model-resident",
+      "MC-10": "empty-registry scope-validation failure test + carrier rejection + shared-type legality",
+      "MC-14": "independent-transaction correspondence test; real two-import evidence from privileged run",
+      "v1.1 grounding": "read-back proves VerificationCases::VerificationCase / verificationCases anchors + specialization closure; @type alone insufficient"
+    },
+    "evidence": {
+      "ci": "run 34505475897 success @b1dd3d4",
+      "privileged_syside": "run 34505475904 success @b1dd3d4",
+      "full_suite": "1042 passed / 4 skipped / 137 subtests",
+      "dispatch": "PREPARED \u2014 awaiting explicit maintainer authorization (all five gates green)"
+    }
   }
 }
