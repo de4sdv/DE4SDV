@@ -180,6 +180,23 @@
       "repairs": "commits 3fcf6f0, 7d08b75, 46a8092 on PR #239: exact model identities (phase10_vvEvidence, six usages, metadata owners), per-subject algebra (MC-03/MC-15/MC-17), single normative state table + rule 9, SUPERSEDED handoff labels, structured pilot-obligations.yaml twin + structural guards, provenance correction",
       "ci": "34464249414 pass @46a8092",
       "status": "awaiting re-review of committed tree"
+    },
+    "second_follow_up": {
+      "reviewed_head": "418abde6832cc9bcd3387438ec54b64b9c9f9c70",
+      "verified_by_reviewer": [
+        "CI green at current head",
+        "1023 passed local run",
+        "phase/metadata/usage/cardinality repairs confirmed",
+        "row-deletion probes fail correctly"
+      ],
+      "findings": "R1 dependency-graph vs aggregate conflict; R2 policy undefined; R3 guards overstate; R4 historical identities",
+      "owner_decisions": {
+        "r4": "all obligations evaluate the current candidate model; historical-realization removed; scope equality decides evidence usability; renames belong to T/O lane",
+        "r2": "proposed policy de4sdv.acceptance.maintainer-decision.v1 defined (acceptance-policy.md): maintainer authority, decision-record schema, closed-universe completeness, conflict/supersession, unresolved=>ERROR; status Proposed, activation Orkun's"
+      },
+      "repairs": "commits fffd354, eefb0f9, 871e1f6: dependency graph in md+yaml asserted equal; applicability purged; aggregates derived from graph; full record comparison + forbidden types; 4 reviewer mutations fail committed-tree guards",
+      "verification": "full suite 1027 passed / 4 skipped / 137 subtests @871e1f6; check_repo+smoke pass; CI run 34470997803 pass",
+      "status": "awaiting re-review of committed tree; B only after A acceptance; K/PLE-Q prep independent"
     }
   }
 }
