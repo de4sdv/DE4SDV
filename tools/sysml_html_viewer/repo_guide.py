@@ -62,7 +62,6 @@ Rules:
 """
 
 GUIDE_STARTER_QUESTIONS = (
-    "What is DE4SDV and where do I start?",
     "How do I contribute to the repository?",
     "Where are the architecture decision records (ADRs)?",
     "How is the SysML v2 model organized?",

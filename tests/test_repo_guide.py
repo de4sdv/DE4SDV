@@ -857,8 +857,8 @@ if (fab.style.display === 'none') {
 const bodyEl = registry.guideBody;
 const starters = bodyEl.children.filter(
   (c) => c.classList && c.classList.contains('guide-starter'));
-if (starters.length !== 5) {
-  throw new Error('expected 5 starter questions, got ' + starters.length);
+if (starters.length !== 4) {
+  throw new Error('expected 4 starter questions, got ' + starters.length);
 }
 
 // expand
