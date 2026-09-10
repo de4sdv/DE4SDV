@@ -1178,12 +1178,13 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
  * ask-the-model chip. When panels are open, panels follow the same
  * order (Ask panel shifted left of the Guide panel). */
 #askMinChip {
-  /* left of the Guide FAB (corner, right: 18px); bottom edges flush */
-  right: 96px;
+  /* left of the Guide FAB (corner, right: 18px; FAB pill is ~93px wide):
+   * 18 + 93 + 12 gap = 123px. Bottom edges flush. */
+  right: 123px;
   bottom: 18px;
 }
 @media (max-width: 640px) {
-  #askMinChip { right: 82px; }
+  #askMinChip { right: 104px; }
 }
 
 /* return path note after arriving via the uses-menu */
