@@ -76,6 +76,41 @@ outputs, which makes them invisible to contributors and CI.
 
 - No evaluator, contract-binding, snapshot, or delivery implementation is
   approved or shipped here (Packages C/D and the MC cases they own).
+### Amendment (follow-up review repairs, 2026-09-10)
+
+The follow-up review returned R2a–R2c, R1/R3/R4 follow-ups, and a provenance
+correction. Repairs, all bounded to the A contract and its guards:
+
+1. **Exact model identities.** The pilot population is the six named
+   verification usages (not the shared definition, not phase metadata); the
+   exact phase literal is `phase10_vvEvidence`; method metadata is observed on
+   its real owners (usage-level metadata; definition action-level metadata);
+   `hasSubject` (Requirement → MemberProduct) is not claimed; kernel class
+   bindings are declared non-instance bindings.
+2. **Per-subject algebra.** Profile subjects carry `[1..1]` canonical-record,
+   execution-outcome, scope-equality, and acceptance obligations each; the
+   six-profile population is its own scope-composition obligation. No global
+   counts (MC-03 preserved); a separate passing-execution obligation exists
+   (MC-15); conservative scope equality is over pinned provenance fingerprint
+   fields (MC-17/18).
+3. **Single normative state/reason table.** Validity rules reference the
+   compatibility table as the single normative source; rule 9 added —
+   obligation prerequisites are not applicability (dependent children are
+   UNASSESSED/`NOT_ATTEMPTED`, never `NOT_APPLICABLE`); the old pilot
+   shorthand was removed.
+4. **Handoff hygiene.** R0 handoff copies that conflict with the maintained
+   contract are labeled SUPERSEDED with pointers; the zero-risk claim was
+   withdrawn and corrected; provenance records the review as an AI-assisted
+   direct review returning changes requested.
+5. **Specification-integrity guards.** `pilot-obligations.yaml` is the
+   structured twin of the obligation table, asserted row-for-row (IDs, exact
+   phase literal verified against the method kernel, subject/target types,
+   per-subject bounds, evaluation sources); the compatibility table is
+   asserted by exact state tuples; duplicate reason declarations are
+   rejected; expected outcomes for missing-case, missing-profile,
+   failed-execution, incomplete-scope, absent-attestation, and
+   prerequisite-blocked children are pinned by test.
+
 - No acceptance decision for the 009D campaign is made or implied.
 - No readiness target is activated; advisory evaluation and later mandatory
   checks remain separate authorized activations.
