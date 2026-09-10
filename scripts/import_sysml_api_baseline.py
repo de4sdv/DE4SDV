@@ -59,10 +59,15 @@ def run_import(
     # raw bridge-IP Host header with 400. Public exposure is unchanged.
     default_headers = {"Host": api_host_header} if api_host_header else {}
     client = ApiClient(api_url, timeout=600.0, default_headers=default_headers)
+    default_name = (
+        f"DE4SDV candidate {head[:12]} {datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+        if candidate
+        else f"DE4SDV full baseline {head[:12]}"
+    )
     imported = import_baseline(
         client,
         bundle,
-        project_name=project_name or f"DE4SDV full baseline {head[:12]}",
+        project_name=project_name or default_name,
     )
     repository = SysMLRepository(client)
     elements = repository.list_elements(imported.project_id, imported.commit_id)
@@ -92,6 +97,7 @@ def run_import(
         "sysml_project_id": imported.project_id,
         "sysml_commit_id": imported.commit_id,
         "source_export_sha256": hashlib.sha256(export_path.read_bytes()).hexdigest(),
+        "export_scope": "candidate" if candidate else "full-model",
         "source_document_count": len(set(bundle.element_sources.values())),
         "element_count": imported.element_count,
         "internal_reference_count": imported.internal_reference_count,
