@@ -34,7 +34,7 @@ NEED_ID = "need-uuid-0002"
 DEP_ID = "dep-uuid-0003"
 ANN_ID = "ann-uuid-0004"
 MARKER_USAGE_ID = "meta-uuid-0005"
-MARKER_DEF_ID = "metadef-uuid-0006"
+MARKER_DEF_ID = "metadef-uuid-0006"  # now the library Derivation ConnectionDefinition
 OTHER_REQ_ID = "req-uuid-0030"
 BARE_DEP_ID = "dep-uuid-0031"
 REQ_DEF_ID = "reqdef-uuid-0021"
@@ -109,34 +109,36 @@ def _element_listing() -> list[dict]:
         },
         {
             "@id": DEP_ID,
-            "@type": "Dependency",
-            "declaredName": "reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability",
-            "source": [{"@id": REQ_ID}],
-            "target": [{"@id": NEED_ID}],
-            "ownedRelationship": [{"@id": ANN_ID}],
+            "@type": "ConnectionUsage",
+            "declaredName": "reqCommandEmergencyBrakingDerivation",
+            "ownedRelationship": [
+                {"@id": "conn-end-need"},
+                {"@id": "conn-end-req"},
+                {"@id": "conn-typing"},
+            ],
         },
         {
-            "@id": ANN_ID,
-            "@type": "Annotation",
-            "annotatedElement": {"@id": DEP_ID},
+            "@id": "conn-end-need",
+            "@type": "EndFeatureMembership",
             "owningRelatedElement": {"@id": DEP_ID},
-            "ownedRelatedElement": [{"@id": MARKER_USAGE_ID}],
+            "ownedRelatedElement": [{"@id": NEED_ID}],
         },
         {
-            "@id": MARKER_USAGE_ID,
-            "@type": "MetadataUsage",
-            "ownedRelationship": [{"@id": "ft-uuid-0007"}],
+            "@id": "conn-end-req",
+            "@type": "EndFeatureMembership",
+            "owningRelatedElement": {"@id": DEP_ID},
+            "ownedRelatedElement": [{"@id": REQ_ID}],
         },
         {
-            "@id": "ft-uuid-0007",
+            "@id": "conn-typing",
             "@type": "FeatureTyping",
-            "typedFeature": {"@id": MARKER_USAGE_ID},
+            "typedFeature": {"@id": DEP_ID},
             "type": {"@id": MARKER_DEF_ID},
         },
         {
             "@id": MARKER_DEF_ID,
-            "@type": "MetadataDefinition",
-            "declaredName": "RequirementDerivation",
+            "@type": "ConnectionDefinition",
+            "declaredName": "Derivation",
         },
     ]
 
@@ -196,13 +198,12 @@ class _BindingStub:
         self.ontology = ontology_identity
         self.kernel_bindings = [
             KernelElementBinding(
-                ontology_class="RequirementDerivation",
+                ontology_class="DerivationConnections::Derivation",
                 element_id=MARKER_DEF_ID,
                 source_file=(
-                    "textual-notation-of-model/packages/methods/de4sdv/"
-                    "de4sdv_method_context.sysml"
+                    "sysml-library/requirement-derivation-domain-library.kpar"
                 ),
-                declaration="metadata def RequirementDerivation",
+                declaration="connection def Derivation",
             ),
             KernelElementBinding(
                 ontology_class="Requirement",
@@ -255,7 +256,7 @@ def test_runtime_consumer_returns_discriminated_derivation_edge() -> None:
     edge = result["edges"][0]
     assert edge["predicate"] == "derivesRequirementFromNeed"
     assert edge["semantic_strength"] == "derivation"
-    assert edge["api_object_type"] == "Dependency"
+    assert edge["api_object_type"] == "ConnectionUsage"
     assert edge["api_object_id"] == DEP_ID
     assert edge["source"] == REQ_ID
     assert edge["target"] == NEED_ID
@@ -270,8 +271,8 @@ def test_runtime_consumer_does_not_fire_on_unmarked_dependency() -> None:
         "reqAllowDriverOverride",
         predicates=["derivesRequirementFromNeed"],
     )
-    # The requirement exists and has a Requirement->Requirement dependency,
-    # but without the marker the result must be an explicit gap, not an edge.
+    # The requirement exists but has no Derivation connection witness:
+    # the result must be an explicit gap, not an edge.
     assert result["edges"] == []
     assert result["gaps"], "absence was reported without an explicit gap"
     assert result["gaps"][0]["category"] == "derivesRequirementFromNeed"
@@ -343,55 +344,60 @@ def _assert_fail_closed(mutate, case: str) -> None:
         )
 
 
-def test_missing_metadata_usage_fails_closed() -> None:
+def test_missing_library_typing_fails_closed() -> None:
+    """A Derivation connection whose typing witness is removed has incomplete
+    closure — but since it no longer claims derivation at all, it is a quiet
+    absence (like an unmarked dependency). Retained as behavior pin."""
     def mutate(listing, by_id):
-        listing[:] = [e for e in listing if e["@id"] != MARKER_USAGE_ID]
+        listing[:] = [e for e in listing if e["@id"] != "conn-typing"]
 
-    _assert_fail_closed(mutate, "missing_metadata_usage")
+    service = _service_with_listing(_mutated_listing(mutate))
+    result = service.semantic_neighbors(
+        "reqCommandEmergencyBraking",
+        predicates=["derivesRequirementFromNeed"],
+    )
+    assert result["edges"] == []
+    assert result["gaps"], "absence was reported without an explicit gap"
 
 
-def test_wrong_metadata_usage_type_fails_closed() -> None:
+def test_missing_end_fails_closed() -> None:
+    """R2: a Derivation connection missing the originalRequirement end has
+    corrupted closure — fail closed, never a quiet absence."""
     def mutate(listing, by_id):
-        by_id[MARKER_USAGE_ID]["@type"] = "PartUsage"
+        by_id[DEP_ID]["ownedRelationship"] = [
+            r for r in by_id[DEP_ID]["ownedRelationship"] if r["@id"] != "conn-end-need"
+        ]
 
-    _assert_fail_closed(mutate, "wrong_metadata_type")
+    _assert_fail_closed(mutate, "missing_end")
 
 
-def test_missing_dependency_ownership_fails_closed() -> None:
+def test_out_of_lineage_derived_end_fails_closed() -> None:
+    """R1: the derived end must ground in the Requirement lineage."""
     def mutate(listing, by_id):
-        by_id[DEP_ID]["ownedRelationship"] = []
+        # Point the derived end at a usage with no Requirement grounding.
+        by_id["conn-end-req"]["ownedRelatedElement"] = [{"@id": BARE_DEP_ID}]
 
-    _assert_fail_closed(mutate, "missing_dependency_ownership")
+    _assert_fail_closed(mutate, "out_of_lineage_derived_end")
 
 
-def test_contradictory_annotation_owner_fails_closed() -> None:
+def test_ungrounded_end_fails_closed() -> None:
+    """R1: an end that grounds in neither the Need nor the Requirement
+    lineage is a corrupted witness."""
     def mutate(listing, by_id):
-        by_id[ANN_ID]["owningRelatedElement"] = {"@id": BARE_DEP_ID}
-
-    _assert_fail_closed(mutate, "contradictory_annotation_owner")
-
-
-def test_out_of_lineage_target_fails_closed() -> None:
-    """R1: an unrelated RequirementUsage target does not satisfy the Need
-    range even though the marker witness is intact."""
-    import copy
-
-    def mutate(listing, by_id):
-        # The target loses its Need lineage typing and points at an
-        # unrelated requirement definition instead.
-        by_id["need-typing"]["type"] = {"@id": REQ_DEF_ID}
-        by_id[NEED_ID]["ownedRelationship"] = [{"@id": "out-typing"}]
+        # Give the need end a non-Need, non-Requirement grounding.
         listing.append(
             {
-                "@id": "out-typing",
+                "@id": "part-typing",
                 "@type": "FeatureTyping",
                 "owningRelatedElement": {"@id": NEED_ID},
                 "typedFeature": {"@id": NEED_ID},
-                "type": {"@id": REQ_DEF_ID},
+                "type": {"@id": "some-part-def"},
             }
         )
+        listing.append({"@id": "some-part-def", "@type": "PartDefinition"})
+        by_id["need-typing"]["type"] = {"@id": "some-part-def"}
 
-    _assert_fail_closed(mutate, "out_of_lineage_target")
+    _assert_fail_closed(mutate, "ungrounded_end")
 
 
 def test_valid_witness_alongside_broken_one_still_proves_valid() -> None:
@@ -410,6 +416,9 @@ def test_valid_witness_alongside_broken_one_still_proves_valid() -> None:
         predicates=["derivesRequirementFromNeed"],
     )
     assert [edge["api_object_id"] for edge in result["edges"]] == [DEP_ID]
-    assert result["edges"][0]["witness"]["marker_usage_ids"] == [
-        MARKER_USAGE_ID
+    assert result["edges"][0]["witness"]["library_definition"] == (
+        "DerivationConnections::Derivation"
+    )
+    assert result["edges"][0]["witness"]["original_requirement_end_id"] == [
+        NEED_ID
     ]

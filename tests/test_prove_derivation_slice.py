@@ -95,30 +95,30 @@ def _good_edges() -> dict:
         "reqBicycleTargetResponse": "uuid-need-bike",
     }
     for name, source in pairs.items():
+        witness = {
+            "connection_id": f"conn-{name}",
+            "library_definition": "DerivationConnections::Derivation",
+            "original_requirement_end_id": [needs[name]],
+            "derived_requirement_end_id": [source],
+        }
         cases[(source, proof.FORWARD_PREDICATE)] = [
             {
                 "source": source,
                 "target": needs[name],
-                "api_object_id": f"dep-{name}",
+                "api_object_id": f"conn-{name}",
+                "api_object_type": "ConnectionUsage",
                 "semantic_strength": "derivation",
-                "witness": {
-                    "relationship_id": f"dep-{name}",
-                    "marker_usage_ids": [f"meta-{name}"],
-                    "annotation_owner_ids": [f"dep-{name}"],
-                },
+                "witness": witness,
             }
         ]
         cases.setdefault((needs[name], proof.INVERSE_PREDICATE), []).append(
             {
                 "source": needs[name],
                 "target": source,
-                "api_object_id": f"dep-{name}",
+                "api_object_id": f"conn-{name}",
+                "api_object_type": "ConnectionUsage",
                 "semantic_strength": "derivation",
-                "witness": {
-                    "relationship_id": f"dep-{name}",
-                    "marker_usage_ids": [f"meta-{name}"],
-                    "annotation_owner_ids": [f"dep-{name}"],
-                },
+                "witness": witness,
             }
         )
     return cases
@@ -187,7 +187,8 @@ def test_wrong_target_fails(tmp_path: Path) -> None:
 def test_incomplete_witness_fails(tmp_path: Path) -> None:
     edges = _good_edges()
     edges[("uuid-brake", proof.FORWARD_PREDICATE)][0]["witness"] = {
-        "relationship_id": "dep-reqCommandEmergencyBraking"
+        "connection_id": "conn-reqCommandEmergencyBraking",
+        "library_definition": "DerivationConnections::Derivation",
     }
     rc, payload = _run(FakeService(edges=edges, gaps={}), tmp_path)
     assert rc == 1

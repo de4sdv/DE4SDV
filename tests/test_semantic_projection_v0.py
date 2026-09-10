@@ -29,8 +29,10 @@ from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_derivation_predicate_traversal import (  # noqa: E402
-    MARKER_DEF_ID,
+from test_derivation_connection_traversal import (  # noqa: E402
+    DEF_DERIV_ID,
+    NEED_DEF_ID,
+    REQ_DEF_ID,
     _binding_index,
     _contract,
     _default_binding_entries,
@@ -44,36 +46,15 @@ REVISION = RevisionIdentity(
     sysml_commit_id="commit-0001",
 )
 
-REQ_DEF_ID = "reqdef-uuid-0021"
-NEED_DEF_ID = "needdef-uuid-0022"
-
-
-def _definition_elements() -> list[dict]:
-    return [
-        {
-            "@id": REQ_DEF_ID,
-            "@type": "RequirementDefinition",
-            "declaredName": "RequirementCandidate",
-        },
-        {
-            "@id": NEED_DEF_ID,
-            "@type": "RequirementDefinition",
-            "declaredName": "StakeholderNeedCandidate",
-        },
-    ]
-
 
 def _projection_binding_index() -> KernelBindingIndex:
     # _default_binding_entries already carries Requirement/Need (R1 lineages)
-    # bound to the definition UUIDs used by this module.
+    # and the library Derivation definition grounding used by this module.
     return _binding_index(list(_default_binding_entries()))
 
 
 def _by_id() -> dict[str, dict]:
-    return {
-        item["@id"]: item
-        for item in [*_elements(), *_definition_elements()]
-    }
+    return {item["@id"]: item for item in _elements()}
 
 
 def _build(**kwargs) -> dict:
@@ -111,15 +92,20 @@ def test_projection_row_binds_revision_and_validated_groundings() -> None:
     assert set(generated_from["model_definitions"]) == {
         REQ_DEF_ID,
         NEED_DEF_ID,
-        MARKER_DEF_ID,
+        DEF_DERIV_ID,
     }
+    grounding = generated_from["native_library_grounding"]
+    assert grounding["definition"] == "DerivationConnections::Derivation"
+    assert grounding["element_id"] == DEF_DERIV_ID
+    assert grounding["need_role"] == "originalRequirements"
+    assert grounding["requirement_role"] == "derivedRequirements"
 
 
 def test_projection_binds_recomputed_contract_identity() -> None:
     """The contract identity is recomputed from the actual file, not trusted."""
     projection = _build()
     identity = projection["revision_binding"]["generated_from"][
-        "ontology_contract"
+        "ontology_contract_parity_oracle"
     ]
     expected = contract_identity_from_file(ROOT)
     assert identity == expected
@@ -191,11 +177,11 @@ def test_profile_carries_mechanics_and_echoes_projection_meaning() -> None:
     assert profile["schema"] == PROFILE_SCHEMA
     assert profile["for_predicate"] == "derivesRequirementFromNeed"
     witness = profile["witness"]
-    assert witness["api_metaclass"] == "Dependency"
+    assert witness["api_metaclass"] == "ConnectionUsage"
     # Mechanics are derived from the executable mapping.
-    assert witness["property_paths"]["source"] == "source"
-    assert witness["property_paths"]["target"] == "target"
-    assert witness["direction"] == "outgoing"
+    assert witness["property_paths"]["need_end"] == "originalRequirements"
+    assert witness["property_paths"]["requirement_end"] == "derivedRequirements"
+    assert witness["query_direction"] == "inverse"
     # Meaning fields are echoes of the projection row, not independent values.
     assert profile["domain_from_projection"] == "Requirement"
     assert profile["range_from_projection"] == "Need"
@@ -209,11 +195,11 @@ def test_profile_compatibility_gate_rejects_mapping_contradiction() -> None:
     profile = _build_profile()
     assert_profile_compatible(contract, profile)  # passes unmodified
     mutated = json.loads(json.dumps(profile))
-    mutated["witness"]["property_paths"]["source"] = "supplier"
+    mutated["witness"]["property_paths"]["need_end"] = "someOtherRole"
     with pytest.raises(ValueError, match="contradicts"):
         assert_profile_compatible(contract, mutated)
     mutated2 = json.loads(json.dumps(profile))
-    mutated2["witness"]["direction"] = "incoming"
+    mutated2["witness"]["query_direction"] = "forward"
     with pytest.raises(ValueError, match="contradicts"):
         assert_profile_compatible(contract, mutated2)
 
@@ -224,11 +210,11 @@ def test_profile_mechanics_follow_the_mapping_not_constants() -> None:
     the compatibility gate catches hand-written contradictions instead."""
     contract = _contract()
     contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"][
-        "source_property"
-    ] = "supplier"
+        "need_role"
+    ] = "someOtherRole"
     contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"][
-        "direction"
-    ] = "incoming"
+        "query_direction"
+    ] = "forward"
     profile = build_representation_profile(
         contract,
         _projection_binding_index(),
@@ -236,8 +222,8 @@ def test_profile_mechanics_follow_the_mapping_not_constants() -> None:
         _by_id(),
         repository_root=ROOT,
     )
-    assert profile["witness"]["property_paths"]["source"] == "supplier"
-    assert profile["witness"]["direction"] == "incoming"
+    assert profile["witness"]["property_paths"]["need_end"] == "someOtherRole"
+    assert profile["witness"]["query_direction"] == "forward"
     # And the generated profile passes its own compatibility gate.
     assert_profile_compatible(contract, profile)
 

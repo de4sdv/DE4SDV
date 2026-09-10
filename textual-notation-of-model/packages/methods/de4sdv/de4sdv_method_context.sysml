@@ -14,7 +14,7 @@
 
 package DE4SDV_MethodContext {
   private import DE4SDV_SYSMODAdapter::*;
-  private import Metaobjects::SemanticMetadata;
+  private import DerivationConnections::Derivation;
 
   /* Re-exported so feature packages can assign `attribute :>> status =
    * ReqStatus::...` (ADR 0009) without importing the adapter directly. */
@@ -137,16 +137,17 @@ package DE4SDV_MethodContext {
     doc /* Candidate requirement for evidence-contract traceability to controlled boundaries. */
   }
 
-  /* Typed marker (semantic metadata) for the derivesRequirementFromNeed
-   * predicate. A dependency annotated with this metadata asserts that its
-   * client (source) requirement is derived from its supplier (target)
-   * stakeholder need. The annotation is the predicate discriminator:
-   * endpoint types alone never establish derivation. This claims
-   * design-input derivation only — never satisfaction, allocation,
-   * verification, evidence, or acceptance. */
-  metadata def RequirementDerivation :> SemanticMetadata {
-    doc /* Requirement R (dependency client) is derived from stakeholder need N (dependency supplier); design-input derivation, direction R -> N. Applies to the dependency that carries the derivation assertion. */
-  }
+  /* Requirement derivation discriminator: the standard Requirement
+   * Derivation Domain Library (pinned 2.0.0) provides DerivationConnections::Derivation,
+   * a ConnectionDefinition whose originalRequirement end carries the
+   * design-input origin (the stakeholder Need) and whose
+   * derivedRequirements ends carry the derived design-input requirements.
+   * DE4SDV query semantics: Need -> Requirement is the native direction;
+   * Requirement -> Need (derivesRequirementFromNeed) is inverse navigation
+   * over the same witness. This claims design-input derivation only —
+   * never satisfaction, allocation, verification, evidence, or acceptance.
+   * The library's originalImpliesDerived constraint is standard library
+   * semantics, not an additional DE4SDV claim. */
 
   requirement def RegulatoryConstraintCandidate :> RequirementsManagementAttributeBase {
     doc /* Constraint or reference derived from a standard, regulation, or homologation-relevant source. Carries controlled source identity and never implies compliance. Grounds the ontology RegulatoryConstraint class and R003 derivation targets. */

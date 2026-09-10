@@ -1,5 +1,17 @@
 # K slice: representation decision for `derivesRequirementFromNeed`
 
+> **STATUS: SUPERSEDED by [v11-reconciliation.md](v11-reconciliation.md)
+> (plan v1.1, 2026-09-10).** The SemanticMetadata marker below was withdrawn:
+> plan v1.1's normative restriction (and SysML v2 §7.27.3) requires
+> SemanticMetadata annotated elements to be Types with a bound baseType — a
+> Dependency is a Relationship, not a Type. The selected representation is
+> now the standard Requirement Derivation Domain Library `Derivation`
+> connection (originalRequirement = Need, derivedRequirements = derived
+> Requirement); DE4SDV's Requirement -> Need query is inverse navigation over
+> that witness. The R1–R5 fail-closed contracts (lineage checks, witness
+> closure, revision binding, inverse traversal, proof CLI) are preserved.
+> This section is retained as the decision audit trail.
+
 Status: decision recorded from live repository + deployed-baseline evidence on
 2026-09-10, before implementation. Scope: one predicate
 (`derivesRequirementFromNeed`, Requirement -> Need), one real AEBS derivation

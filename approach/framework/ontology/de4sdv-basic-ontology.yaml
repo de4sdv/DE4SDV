@@ -462,18 +462,25 @@ classes:
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
       declaration: item def AcceptanceAttestationReference
-  RequirementDerivation:
+  DerivationConnections::Derivation:
     definition: >-
-      Typed marker (semantic metadata) applied to the dependency that carries a
-      derivesRequirementFromNeed assertion. The marker is the predicate
-      discriminator: an annotated dependency whose client grounds Requirement
-      and whose supplier grounds Need states that the requirement is derived
-      from the need. Endpoint types alone never establish derivation, and the
-      marker claims design-input derivation only — never satisfaction,
-      allocation, verification, evidence, or acceptance.
+      Standard-library grounding for the derivesRequirementFromNeed predicate:
+      the Requirement Derivation Domain Library (pinned 2.0.0) Derivation
+      connection definition. Its originalRequirements end carries the
+      design-input origin (the DE4SDV stakeholder Need); its
+      derivedRequirements ends carry the derived design-input requirements.
+      The originalImpliesDerived and originalNotDerived constraints are
+      standard library semantics. Library identity is consumed through this
+      binding at runtime; the library itself remains under the adoption gate
+      (no floating upgrade, no upstream contact without authorization).
     kernel:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
-      declaration: metadata def RequirementDerivation
+      external: >-
+        Standard SysML Requirement Derivation Domain Library 2.0.0 (pinned in
+        sysand-lock.toml; identifier
+        https://www.omg.org/spec/SysML/20250201/Requirement-Derivation-Domain-Library.kpar),
+        DerivationConnections::Derivation connection definition. Materialized
+        and validated at ingestion via sysand sync at the exact head; runtime
+        consumes the ingestion-validated library definition UUID.
 
 relationships:
   addressesConcern:
@@ -497,17 +504,21 @@ relationships:
     definition: >-
       Requirement R is derived from stakeholder need N. Design-input
       derivation; direction R -> N. No satisfaction, allocation, verification,
-      evidence, or acceptance claim.
+      evidence, or acceptance claim. Grounded in the pinned standard
+      Requirement Derivation Domain Library: the Need is the
+      DerivationConnections::Derivation originalRequirement end, the derived
+      design requirement is the derivedRequirements end. DE4SDV's
+      Requirement -> Need query is inverse navigation over that native
+      witness.
     sysml_mapping:
-      strategy: metadata-tagged-dependency
-      relationship_types: [Dependency]
-      metadata_definition: RequirementDerivation
-      annotation_property: ownedRelationship
+      strategy: derivation-connection
+      native_library_definition: DerivationConnections::Derivation
+      original_role: originalRequirements
+      derived_role: derivedRequirements
+      need_role: originalRequirements
+      requirement_role: derivedRequirements
+      query_direction: inverse
       direction: outgoing
-      source_property: source
-      target_property: target
-      source_types: [RequirementUsage]
-      target_types: [RequirementUsage]
       source_lineage_of: Requirement
       target_lineage_of: Need
       semantic_strength: derivation
@@ -522,15 +533,14 @@ relationships:
       in the reverse direction (incoming), with the same lineage grounding and
       fail-closed closure semantics.
     sysml_mapping:
-      strategy: metadata-tagged-dependency
-      relationship_types: [Dependency]
-      metadata_definition: RequirementDerivation
-      annotation_property: ownedRelationship
+      strategy: derivation-connection
+      native_library_definition: DerivationConnections::Derivation
+      original_role: originalRequirements
+      derived_role: derivedRequirements
+      need_role: originalRequirements
+      requirement_role: derivedRequirements
+      query_direction: forward
       direction: incoming
-      source_property: source
-      target_property: target
-      source_types: [RequirementUsage]
-      target_types: [RequirementUsage]
       source_lineage_of: Need
       target_lineage_of: Requirement
       semantic_strength: derivation

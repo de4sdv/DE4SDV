@@ -97,9 +97,9 @@ def semantic_service():
         },
         {
             "@id": "kernel-requirement-derivation",
-            "@type": "MetadataDefinition",
-            "declaredName": "RequirementDerivation",
-            "qualifiedName": "DE4SDV_MethodContext::RequirementDerivation",
+            "@type": "ConnectionDefinition",
+            "declaredName": "Derivation",
+            "qualifiedName": "DerivationConnections::Derivation",
         },
         {
             "@id": "kernel-need",
@@ -168,30 +168,33 @@ def semantic_service():
             "typedFeature": ref("need-1"),
         },
         {
-            "@id": "derivation-ann",
-            "@type": "Annotation",
-            "annotatedElement": ref("derivation-dep"),
-            "owningRelatedElement": ref("derivation-dep"),
-            "ownedRelatedElement": [ref("derivation-meta")],
+            "@id": "derivation-conn",
+            "@type": "ConnectionUsage",
+            "declaredName": "reqCommandEmergencyBrakingDerivation",
+            "ownedRelationship": [
+                ref("derivation-end-need"),
+                ref("derivation-end-req"),
+                ref("derivation-conn-typing"),
+            ],
         },
         {
-            "@id": "derivation-meta",
-            "@type": "MetadataUsage",
+            "@id": "derivation-end-need",
+            "@type": "EndFeatureMembership",
+            "owningRelatedElement": ref("derivation-conn"),
+            "ownedRelatedElement": [ref("need-1")],
         },
         {
-            "@id": "derivation-meta-typing",
+            "@id": "derivation-end-req",
+            "@type": "EndFeatureMembership",
+            "owningRelatedElement": ref("derivation-conn"),
+            "ownedRelatedElement": [ref("req-1")],
+        },
+        {
+            "@id": "derivation-conn-typing",
             "@type": "FeatureTyping",
-            "owningRelatedElement": ref("derivation-meta"),
+            "owningRelatedElement": ref("derivation-conn"),
             "type": ref("kernel-requirement-derivation"),
-            "typedFeature": ref("derivation-meta"),
-        },
-        {
-            "@id": "derivation-dep",
-            "@type": "Dependency",
-            "declaredName": "reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability",
-            "source": [ref("req-1")],
-            "target": [ref("need-1")],
-            "ownedRelationship": [ref("derivation-ann")],
+            "typedFeature": ref("derivation-conn"),
         },
         {
             "@id": "verification-1",
@@ -249,13 +252,12 @@ def semantic_service():
                     "declaration": "requirement def StakeholderNeedCandidate",
                 },
                 {
-                    "ontology_class": "RequirementDerivation",
+                    "ontology_class": "DerivationConnections::Derivation",
                     "element_id": "kernel-requirement-derivation",
                     "source_file": (
-                        "textual-notation-of-model/packages/methods/de4sdv/"
-                        "de4sdv_method_context.sysml"
+                        "sysml-library/requirement-derivation-domain-library.kpar"
                     ),
-                    "declaration": "metadata def RequirementDerivation",
+                    "declaration": "connection def Derivation",
                 },
             ],
         }

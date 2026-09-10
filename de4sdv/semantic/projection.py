@@ -122,18 +122,18 @@ def build_projection(
     """
     mapping = contract.relationship_mapping(_PREDICATE)
     config = mapping.configuration
-    marker_name = str(config.get("metadata_definition", ""))
-    marker_id = kernel_bindings.element_id_for(marker_name, by_id)
+    library_definition = str(config.get("native_library_definition", ""))
+    library_id = kernel_bindings.element_id_for(library_definition, by_id)
     requirement_id = kernel_bindings.element_id_for(
         str(config.get("source_lineage_of", "")), by_id
     )
     need_id = kernel_bindings.element_id_for(
         str(config.get("target_lineage_of", "")), by_id
     )
-    if not marker_name or not requirement_id or not need_id:
+    if not library_definition or not requirement_id or not need_id:
         raise ValueError(
-            "projection requires validated groundings for the marker, "
-            "Requirement, and Need definitions"
+            "projection requires validated groundings for the native "
+            "library definition, Requirement, and Need definitions"
         )
     return {
         "schema": PROJECTION_SCHEMA,
@@ -142,14 +142,32 @@ def build_projection(
             "sysml_project": revision.sysml_project_id,
             "sysml_commit": revision.sysml_commit_id,
             "generated_from": {
-                "model_definitions": [requirement_id, need_id, marker_id],
-                # O0/O1 honesty: the executable meaning for this unmigrated
-                # slice lives in the authored ontology/kernel contract. This
-                # is the contract identity whose digest was recomputed at
-                # generation time — not a claim that the definitions are
-                # model-resident yet.
-                "ontology_contract": contract_identity_from_file(
-                    repository_root
+                "model_definitions": [
+                    requirement_id,
+                    need_id,
+                    library_id,
+                ],
+                # K authority (plan v1.1 §16 K row): identity/meaning/
+                # domain/range/direction/strength for this predicate are
+                # grounded in the validated model + standard library
+                # definition. The ontology contract identity is carried as
+                # the O0/O1 parity oracle, not as the semantic authority.
+                "native_library_grounding": {
+                    "library": (
+                        "SysML Requirement Derivation Domain Library 2.0.0"
+                    ),
+                    "definition": library_definition,
+                    "element_id": library_id,
+                    "need_role": str(config.get("need_role", "")),
+                    "requirement_role": str(config.get("requirement_role", "")),
+                    "grounding_provenance": (
+                        "explicit connection typing; library constraints "
+                        "(originalImpliesDerived, originalNotDerived) are "
+                        "standard semantics"
+                    ),
+                },
+                "ontology_contract_parity_oracle": (
+                    contract_identity_from_file(repository_root)
                 ),
             },
         },
@@ -174,14 +192,15 @@ def build_projection(
             "semantic_exclusions": [],
             "applicability_scope": "de4sdv method increments (System 2)",
             "native_grounding": {
-                "metaclass": "MetadataUsage",
-                "metadata_definition": marker_name,
+                "api_metaclass": "ConnectionUsage",
+                "library_definition": library_definition,
+                "need_role": str(config.get("need_role", "")),
+                "requirement_role": str(config.get("requirement_role", "")),
                 "witness_uuids_required": [
-                    "relationship",
-                    "annotation",
-                    "marker_usage",
-                    "source",
-                    "target",
+                    "connection",
+                    "original_requirement_end",
+                    "derived_requirement_end",
+                    "library_typing",
                 ],
             },
             "model_external_boundary": "none",
@@ -204,24 +223,28 @@ def assert_profile_compatible(
     mapping = contract.relationship_mapping(_PREDICATE)
     config = mapping.configuration
     paths = profile["witness"]["property_paths"]
-    if str(paths.get("source")) != str(config.get("source_property", "source")):
+    if str(paths.get("need_end")) != str(
+        config.get("need_role", "originalRequirements")
+    ):
         raise ValueError(
-            f"profile source property {paths.get('source')!r} contradicts "
-            f"the executable mapping source_property "
-            f"{config.get('source_property')!r} for {_PREDICATE}"
+            f"profile need end {paths.get('need_end')!r} contradicts the "
+            f"executable mapping need_role "
+            f"{config.get('need_role')!r} for {_PREDICATE}"
         )
-    if str(paths.get("target")) != str(config.get("target_property", "target")):
+    if str(paths.get("requirement_end")) != str(
+        config.get("requirement_role", "derivedRequirements")
+    ):
         raise ValueError(
-            f"profile target property {paths.get('target')!r} contradicts "
-            f"the executable mapping target_property "
-            f"{config.get('target_property')!r} for {_PREDICATE}"
+            f"profile requirement end {paths.get('requirement_end')!r} "
+            f"contradicts the executable mapping requirement_role "
+            f"{config.get('requirement_role')!r} for {_PREDICATE}"
         )
-    profile_direction = str(profile["witness"].get("direction", ""))
-    mapping_direction = str(config.get("direction", "outgoing"))
+    profile_direction = str(profile["witness"].get("query_direction", ""))
+    mapping_direction = str(config.get("query_direction", ""))
     if profile_direction and profile_direction != mapping_direction:
         raise ValueError(
-            f"profile direction {profile_direction!r} contradicts the "
-            f"executable mapping direction {mapping_direction!r} for "
+            f"profile query direction {profile_direction!r} contradicts the "
+            f"executable mapping query_direction {mapping_direction!r} for "
             f"{_PREDICATE}"
         )
 
@@ -257,59 +280,61 @@ def build_representation_profile(
     )
     predicate = projection["predicate"]
     config = contract.relationship_mapping(_PREDICATE).configuration
-    source_property = str(config.get("source_property", "source"))
-    target_property = str(config.get("target_property", "target"))
-    direction = str(config.get("direction", "outgoing"))
+    need_role = str(config.get("need_role", "originalRequirements"))
+    requirement_role = str(config.get("requirement_role", "derivedRequirements"))
+    query_direction = str(config.get("query_direction", "inverse"))
     profile: dict[str, Any] = {
         "schema": PROFILE_SCHEMA,
         "profile_identity": PROFILE_IDENTITY,
         "for_predicate": predicate["identity"],
         "model_revision_binding": projection["revision_binding"],
         "witness": {
-            "api_metaclass": str(
-                (config.get("relationship_types") or ["Dependency"])[0]
-            ),
-            "relationship_kind": "Annotation-owned metadata application",
+            "api_metaclass": "ConnectionUsage",
+            "relationship_kind": "Typed derivation connection (standard "
+            "library definition; typed via FeatureTyping)",
             "property_paths": {
-                "source": source_property,
-                "target": target_property,
-                "annotation": "ownedRelationship[@type=Annotation]",
-                "annotated_element": "annotatedElement",
-                "metadata_usage": "ownedRelatedElement",
-                "metadata_typing": "FeatureTyping.type",
+                "need_end": need_role,
+                "requirement_end": requirement_role,
+                "ends": "ownedRelationship[@type=EndFeatureMembership]",
+                "library_typing": "FeatureTyping.type",
             },
-            "direction": direction,
+            "query_direction": query_direction,
             "direction_extraction": (
-                f"Dependency {source_property} is the "
-                f"{predicate['domain']} ({source_property}); "
-                f"{target_property} is the {predicate['range']}; canonical "
-                f"direction {predicate['canonical_direction']} "
-                f"({direction})"
+                f"The end grounding in {predicate['range']} lineage is the "
+                f"{need_role} (originalRequirement; the Need); the end "
+                f"grounding in {predicate['domain']} lineage is the "
+                f"{requirement_role} (the derived requirement). Canonical "
+                f"direction {predicate['canonical_direction']}; DE4SDV "
+                f"query direction: {query_direction} over the native "
+                f"witness"
             ),
             "ownership_traversal": (
-                "Annotation owned by the Dependency (owningRelatedElement = "
-                "the dependency); MetadataUsage owned by the Annotation "
-                "(ownedRelatedElement)"
+                "Ends are EndFeatureMembership ownedRelationships of the "
+                "ConnectionUsage; the connection is typed by the validated "
+                "library Derivation definition via FeatureTyping"
             ),
             "reference_vs_containment": (
-                "source/target are element references; metadata usage is "
-                "related-element ownership, not namespace membership"
+                "Ends are referential usages (validateUsageIsReferential); "
+                "the connection itself is owned by its enclosing namespace"
             ),
         },
         "serializer_importer_compatibility": {
             "known_omissions": [],
             "uuid_preservation": "single-transaction-required",
             "out_of_export_risk": (
-                "C1 closure: the Annotation/MetadataUsage/FeatureTyping "
-                "witness must survive official export, API import, and "
-                "read-back; pruning any witness element makes the predicate "
-                "unsupported for that revision (UG-06)"
+                "C1 closure: the ConnectionUsage, its EndFeatureMembership "
+                "ends, and the library FeatureTyping must survive official "
+                "export, API import, and read-back; pruning any witness "
+                "element makes the predicate unsupported for that revision "
+                "(UG-06)"
             ),
         },
         "completeness_check": (
-            "derivesRequirementFromNeed.marker-closure (fail closed: a "
-            "validated binding for the marker definition is required, and a "
-            "dependency without the full witness is not a derivation)"
+            "derivesRequirementFromNeed.derivation-connection-closure (fail "
+            "closed: a validated binding for the library Derivation "
+            "definition is required, and a connection missing an end, with "
+            "an out-of-lineage end, or without the library typing is not a "
+            "derivation)"
         ),
         "semantic_strength_from_projection": predicate["semantic_strength"],
         "domain_from_projection": predicate["domain"],

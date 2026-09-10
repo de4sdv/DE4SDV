@@ -200,29 +200,50 @@ def main() -> int:
                         f"{edge['semantic_strength']!r}"
                     )
                 witness = edge.get("witness") or {}
-                relationship_id = str(witness.get("relationship_id", ""))
-                marker_usage_ids = [
-                    str(item) for item in witness.get("marker_usage_ids") or []
+                connection_id = str(witness.get("connection_id", ""))
+                original_ends = [
+                    str(item)
+                    for item in witness.get("original_requirement_end_id") or []
                 ]
-                owner_ids = [
-                    str(item) for item in witness.get("annotation_owner_ids") or []
+                derived_ends = [
+                    str(item)
+                    for item in witness.get("derived_requirement_end_id") or []
                 ]
-                if not (
-                    relationship_id
-                    and marker_usage_ids
-                    and all(marker_usage_ids)
-                    and owner_ids
-                    and all(owner_ids)
+                if witness.get("library_definition") != (
+                    "DerivationConnections::Derivation"
+                ):
+                    failures.append(
+                        f"positive case {name}: witness does not ground in "
+                        f"the standard Derivation library definition "
+                        f"({witness!r})"
+                    )
+                elif not (
+                    connection_id
+                    and original_ends
+                    and all(original_ends)
+                    and derived_ends
+                    and all(derived_ends)
                 ):
                     failures.append(
                         f"positive case {name}: incomplete discriminator "
                         f"witness {witness!r}"
                     )
-                elif edge["api_object_id"] != relationship_id:
+                elif edge["api_object_id"] != connection_id:
                     failures.append(
-                        f"positive case {name}: witness relationship "
-                        f"{relationship_id!r} does not match the edge "
-                        f"dependency {edge['api_object_id']!r}"
+                        f"positive case {name}: witness connection "
+                        f"{connection_id!r} does not match the edge "
+                        f"connection {edge['api_object_id']!r}"
+                    )
+                elif need_id not in original_ends:
+                    failures.append(
+                        f"positive case {name}: resolved need {need_id!r} "
+                        f"not carried as the originalRequirement end"
+                    )
+                elif source_id not in derived_ends:
+                    failures.append(
+                        f"positive case {name}: resolved requirement "
+                        f"{source_id!r} not carried as a derivedRequirements "
+                        f"end"
                     )
                 # Inverse navigation over the same witness from the need.
                 inverse = service.semantic_neighbors(
