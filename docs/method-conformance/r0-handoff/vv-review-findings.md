@@ -60,9 +60,16 @@ review attempts is resolved or verified harmless; all scripted checks pass.
 Independent human review (Orkun) remains the open acceptance authority for R0.
 
 
-## Human independent review (accepted, 2026-09-10)
+## AI-assisted direct review — changes requested (2026-09-10)
 
-Findings R1–R6 received and **accepted in full**:
+*Provenance corrected per follow-up review: the R1–R6 review was an
+AI-assisted direct review by the maintainer, returning **changes requested**
+— not an independent human acceptance of the repairs. Author acceptance of
+the findings and maintainer acceptance of them are distinct from reviewer
+acceptance of the repairs; neither constitutes acceptance of the A contract.*
+
+Findings R1–R6 received and **accepted in full** (by the author, as work
+order):
 
 - R1–R4 (A-branch): fixed in commits `70f3498` and `725388c` of
   `feat/method-conformance-package-a` (PR #239); mutation probes re-run and

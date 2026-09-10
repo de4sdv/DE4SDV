@@ -1,5 +1,13 @@
 # R0-7: Phase-10 conformance pilot identification
 
+> **STATUS: SUPERSEDED (specification record).** This is the R0 identification
+> record, retained for provenance. The maintained, normative pilot contract —
+> including the instantiated obligation table, the candidate-revision
+> rebinding rule (which REPLACES the replay-on-HEAD-move wording below), and
+> the reviewed FAIL/INDETERMINATE discriminator — lives in
+> [`../pilot-scope.md`](../pilot-scope.md). Where this record and the
+> maintained contract disagree, the maintained contract governs.
+
 ## Pilot (real, admitted, evidence-bearing)
 
 **Verification case:** `ConsciousOverrideVerification` (verification usage

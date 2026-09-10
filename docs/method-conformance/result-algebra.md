@@ -109,10 +109,15 @@ special-cased Python.
 1. `conformance_verdict` is non-null only when `evaluation_state = "COMPLETE"`.
 2. `evaluation_state` is null only when `assessment_coverage = "UNASSESSED"`;
    then `conformance_verdict` is null.
-3. `ASSESSED` + `ERROR` => verdict null with `INVALID_CONTRACT`,
-   `BINDING_MISMATCH`, or `SCOPE_RESOLUTION_ERROR` (plus diagnostics).
-4. `ASSESSED` + `INDETERMINATE` => verdict null with `APPLICABILITY_UNRESOLVED`
-   or `INPUT_UNAVAILABLE` (plus diagnostics).
+3. `ASSESSED` + `ERROR` => verdict null, reasons per the State/reason
+   compatibility table (required content row `ERROR`).
+4. `ASSESSED` + `INDETERMINATE` => verdict null, reasons per the State/reason
+   compatibility table (required content row `INDETERMINATE`).
+
+The State/reason compatibility table above is the **single normative source**
+for legal reason combinations. Where any earlier rule text or example appears
+to restrict reasons differently, the table governs; contradictory
+restatements elsewhere in the repository are superseded by this table.
 5. `COMPLETE` + `FAIL` is a valid, expected outcome (completed evaluation,
    violated obligation); reasons carry the violated-condition class.
 6. `NOT_APPLICABLE` requires a retained reason (explicit supported
@@ -121,6 +126,15 @@ special-cased Python.
    evaluation (`ASSESSED`/`ERROR`), never disguised as "no contract".
 8. Result-schema validation rejects illegal field combinations BEFORE
    serialization; no client invents interpretation rules.
+9. **Obligation prerequisites are not applicability.** A failed or unresolved
+   prerequisite obligation leaves each dependent required obligation
+   `UNASSESSED`/null/null with reason `NOT_ATTEMPTED` and a `diagnostics`
+   entry naming the failed prerequisite — never `NOT_APPLICABLE` and never a
+   silent skip. Dependent children stay individually listed; aggregate
+   coverage is `UNASSESSED` while any required child is unassessed, and known
+   child failures remain visible. Only a supported explicit applicability
+   expression (typed condition over pinned model/configuration data) can make
+   an obligation `NOT_APPLICABLE`.
 
 ## Aggregation (unchanged from frozen baseline)
 

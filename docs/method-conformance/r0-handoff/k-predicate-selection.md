@@ -1,5 +1,13 @@
 # R0-4: First bounded K predicate selection
 
+> **STATUS: SUPERSEDED IN PART (specification record).** The selection of
+> `derivesRequirementFromNeed` and the `allocatedTo` alternative analysis
+> remain current. The zero-risk claim in reason 2 below is WITHDRAWN per
+> review: introducing a model-native discriminator for a vocabulary-only
+> predicate is a semantic change to the model even though no implemented
+> runtime mapping is repurposed; it requires the full review discipline
+> (reviewed meaning, tests, exact-toolchain evidence) from the start.
+
 ## Selection: `derivesRequirementFromNeed` (Requirement -> Need)
 
 Selection reason (per plan §5 and handoff step 3):
@@ -16,9 +24,11 @@ Selection reason (per plan §5 and handoff step 3):
    (Function -> LogicalElement) risks colliding with the frozen `realizedBy`
    signature boundary (plan §10). Derivation is the cleaner first proof.
 
-2. **Vocabulary-only today: zero silent-change risk.** No sysml_mapping exists;
-   nothing implemented can be silently repurposed. UG-04 risk is zero for the
-   first proof.
+2. **Vocabulary-only today.** No sysml_mapping exists; nothing implemented
+   can be silently repurposed. NOTE (review correction): this removes silent
+   *repurposing* risk only — introducing a model-native discriminator for a
+   vocabulary-only predicate is itself a semantic change to the model and
+   carries full review obligations.
 
 3. **Real, current semantic need in the model.** AEBS requirements express
    derivation as free-text `source` attributes ("Derived from N-AEBS-001") in
