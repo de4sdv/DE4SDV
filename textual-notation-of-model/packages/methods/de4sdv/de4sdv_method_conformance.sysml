@@ -21,6 +21,7 @@ package DE4SDV_MethodConformance {
 
   private import ScalarValues::*;
   private import Metaobjects::SemanticMetadata;
+  private import DE4SDV_MethodProcess::*;
 
   /* Evaluation-source kinds from the frozen baseline Section 7 schema:
      pinned model record | pinned repository artifact | live delivery adapter. */

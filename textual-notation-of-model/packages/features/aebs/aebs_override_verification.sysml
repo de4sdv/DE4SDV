@@ -137,6 +137,7 @@ package DE4SDV_AEBSOverrideVerification {
    * distinct: the usages are reused scope members (contributes = false);
    * the scope binding itself is the increment's contribution.
    * ───────────────────────────────────────────────────────────────── */
+  private import ScalarValues::*;
   private import DE4SDV_MethodConformance::*;
 
   part def AebsOverridePilotScopeBase {
