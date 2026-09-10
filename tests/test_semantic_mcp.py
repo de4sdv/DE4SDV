@@ -102,6 +102,12 @@ def semantic_service():
             "qualifiedName": "DE4SDV_MethodContext::RequirementDerivation",
         },
         {
+            "@id": "kernel-need",
+            "@type": "RequirementDefinition",
+            "declaredName": "StakeholderNeedCandidate",
+            "qualifiedName": "DE4SDV_MethodContext::StakeholderNeedCandidate",
+        },
+        {
             "@id": "kernel-member-product",
             "@type": "PartDefinition",
             "declaredName": "ProductLineMemberProduct",
@@ -140,6 +146,52 @@ def semantic_service():
             "@type": "Dependency",
             "source": [ref("evidence-1")],
             "target": [ref("req-1")],
+        },
+        {
+            "@id": "need-1",
+            "@type": "RequirementUsage",
+            "declaredName": "needCommonAEBSCapability",
+            "qualifiedName": "DE4SDV_AEBSNeedsRequirements::needCommonAEBSCapability",
+        },
+        {
+            "@id": "req-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("req-1"),
+            "type": ref("kernel-requirement"),
+            "typedFeature": ref("req-1"),
+        },
+        {
+            "@id": "need-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("need-1"),
+            "type": ref("kernel-need"),
+            "typedFeature": ref("need-1"),
+        },
+        {
+            "@id": "derivation-ann",
+            "@type": "Annotation",
+            "annotatedElement": ref("derivation-dep"),
+            "owningRelatedElement": ref("derivation-dep"),
+            "ownedRelatedElement": [ref("derivation-meta")],
+        },
+        {
+            "@id": "derivation-meta",
+            "@type": "MetadataUsage",
+        },
+        {
+            "@id": "derivation-meta-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("derivation-meta"),
+            "type": ref("kernel-requirement-derivation"),
+            "typedFeature": ref("derivation-meta"),
+        },
+        {
+            "@id": "derivation-dep",
+            "@type": "Dependency",
+            "declaredName": "reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability",
+            "source": [ref("req-1")],
+            "target": [ref("need-1")],
+            "ownedRelationship": [ref("derivation-ann")],
         },
         {
             "@id": "verification-1",
@@ -186,6 +238,15 @@ def semantic_service():
                         "de4sdv_product_line.sysml"
                     ),
                     "declaration": "part def ProductLineMemberProduct",
+                },
+                {
+                    "ontology_class": "Need",
+                    "element_id": "kernel-need",
+                    "source_file": (
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_method_context.sysml"
+                    ),
+                    "declaration": "requirement def StakeholderNeedCandidate",
                 },
                 {
                     "ontology_class": "RequirementDerivation",
@@ -258,7 +319,7 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     result = semantic_service.model_status()
 
     assert result["current_baseline"] is True
-    assert result["element_count"] == 11
+    assert result["element_count"] == 19
     assert result["gaps"] == []
 
 
@@ -338,10 +399,12 @@ def test_semantic_neighbors_only_use_ontology_declared_predicates(semantic_servi
     result = semantic_service.semantic_neighbors("req-1")
 
     assert {edge["predicate"] for edge in result["edges"]} == {
+        "derivesRequirementFromNeed",
         "hasRelevantEvidenceContract",
         "hasSubject",
     }
     assert {edge["semantic_strength"] for edge in result["edges"]} == {
+        "derivation",
         "relevance",
         "native-reference",
     }

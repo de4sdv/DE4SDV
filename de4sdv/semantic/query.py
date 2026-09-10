@@ -140,6 +140,11 @@ class SemanticQueryService:
             "semantic_strength": hop.semantic_strength,
             "api_object_id": api_object_id,
             "api_object_type": str(hop.api_object.get("@type") or ""),
+            **(
+                {"witness": hop.witness}
+                if getattr(hop, "witness", None)
+                else {}
+            ),
             "provenance": (
                 f"sysml://{self.binding.sysml_project_id}/"
                 f"{self.binding.sysml_commit_id}/{api_object_id}"

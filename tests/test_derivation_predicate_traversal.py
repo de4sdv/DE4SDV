@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQ_ID = "req-uuid-0001"
 NEED_ID = "need-uuid-0002"
+REQ_DEF_ID = "reqdef-uuid-0021"
+NEED_DEF_ID = "needdef-uuid-0022"
 DEP_ID = "dep-uuid-0003"
 ANN_ID = "ann-uuid-0004"
 MARKER_USAGE_ID = "meta-uuid-0005"
@@ -40,6 +42,17 @@ def _requirement() -> dict:
         "@id": REQ_ID,
         "@type": "RequirementUsage",
         "declaredName": "reqCommandEmergencyBraking",
+        "ownedRelationship": [{"@id": "req-typing"}],
+    }
+
+
+def _requirement_typing() -> dict:
+    return {
+        "@id": "req-typing",
+        "@type": "FeatureTyping",
+        "owningRelatedElement": {"@id": REQ_ID},
+        "typedFeature": {"@id": REQ_ID},
+        "type": {"@id": REQ_DEF_ID},
     }
 
 
@@ -48,7 +61,33 @@ def _need() -> dict:
         "@id": NEED_ID,
         "@type": "RequirementUsage",
         "declaredName": "needCommonAEBSCapability",
+        "ownedRelationship": [{"@id": "need-typing"}],
     }
+
+
+def _need_typing() -> dict:
+    return {
+        "@id": "need-typing",
+        "@type": "FeatureTyping",
+        "owningRelatedElement": {"@id": NEED_ID},
+        "typedFeature": {"@id": NEED_ID},
+        "type": {"@id": NEED_DEF_ID},
+    }
+
+
+def _definition_elements() -> list[dict]:
+    return [
+        {
+            "@id": REQ_DEF_ID,
+            "@type": "RequirementDefinition",
+            "declaredName": "RequirementCandidate",
+        },
+        {
+            "@id": NEED_DEF_ID,
+            "@type": "RequirementDefinition",
+            "declaredName": "StakeholderNeedCandidate",
+        },
+    ]
 
 
 def _tagged_dependency() -> dict:
@@ -102,6 +141,9 @@ def _elements() -> list[dict]:
     return [
         _requirement(),
         _need(),
+        _requirement_typing(),
+        _need_typing(),
+        *_definition_elements(),
         _tagged_dependency(),
         _annotation(),
         _marker_usage(),
@@ -136,6 +178,16 @@ def _binding_entry(
 def _default_binding_entries() -> list[KernelElementBinding]:
     return [
         _binding_entry(),
+        _binding_entry(
+            ontology_class="Requirement",
+            declaration="requirement def RequirementCandidate",
+            element_id=REQ_DEF_ID,
+        ),
+        _binding_entry(
+            ontology_class="Need",
+            declaration="requirement def StakeholderNeedCandidate",
+            element_id=NEED_DEF_ID,
+        ),
     ]
 
 
@@ -193,7 +245,9 @@ def test_unmarked_dependency_with_identical_endpoints_is_not_a_derivation() -> N
     assert [hop.api_object["@id"] for hop in hops] == [DEP_ID]
 
 
-def test_wrong_type_annotation_does_not_discriminate() -> None:
+def test_wrong_type_annotation_fails_closed() -> None:
+    """A metadata usage typed by a different definition is a corrupted
+    discriminator witness, not a quiet absence (R2)."""
     traversal = SemanticTraversal(_contract(), kernel_bindings=_binding_index())
     untyped = list(_elements())
     # The marker usage is no longer typed by the marker definition.
@@ -207,7 +261,10 @@ def test_wrong_type_annotation_does_not_discriminate() -> None:
         stale_typing if item.get("@id") == "ft-uuid-0007" else item
         for item in untyped
     ]
-    assert traversal.traverse("derivesRequirementFromNeed", _requirement(), replaced) == []
+    with pytest.raises(IdentityNotFoundError, match="not typed by the marker"):
+        traversal.traverse(
+            "derivesRequirementFromNeed", _requirement(), replaced
+        )
 
 
 def test_missing_validated_marker_binding_fails_closed() -> None:
@@ -273,6 +330,14 @@ def test_multiple_distinct_derivation_witnesses_are_all_returned() -> None:
         "@id": "need-uuid-0012",
         "@type": "RequirementUsage",
         "declaredName": "needBoundedDegradationAndAvailability",
+        "ownedRelationship": [{"@id": "need2-typing"}],
+    }
+    second_need_typing = {
+        "@id": "need2-typing",
+        "@type": "FeatureTyping",
+        "owningRelatedElement": {"@id": "need-uuid-0012"},
+        "typedFeature": {"@id": "need-uuid-0012"},
+        "type": {"@id": NEED_DEF_ID},
     }
     hops = traversal.traverse(
         "derivesRequirementFromNeed",
@@ -280,6 +345,7 @@ def test_multiple_distinct_derivation_witnesses_are_all_returned() -> None:
         [
             *_elements(),
             second_need,
+            second_need_typing,
             second_dep,
             second_ann,
             second_usage,
@@ -292,7 +358,9 @@ def test_multiple_distinct_derivation_witnesses_are_all_returned() -> None:
     ])
 
 
-def test_wrong_endpoint_type_is_filtered() -> None:
+def test_wrong_endpoint_type_fails_closed() -> None:
+    """R1: a tagged dependency with an out-of-lineage target is a corrupted
+    derivation assertion, not a filtered quiet absence."""
     traversal = SemanticTraversal(_contract(), kernel_bindings=_binding_index())
     # Supplier is a PartUsage (wrong type for the Need range).
     wrong_dependency = {
@@ -326,19 +394,19 @@ def test_wrong_endpoint_type_is_filtered() -> None:
         "@type": "PartUsage",
         "declaredName": "somePart",
     }
-    hops = traversal.traverse(
-        "derivesRequirementFromNeed",
-        _requirement(),
-        [
-            *_elements(),
-            wrong_target,
-            wrong_dependency,
-            wrong_ann,
-            wrong_usage,
-            wrong_typing,
-        ],
-    )
-    assert [hop.api_object["@id"] for hop in hops] == [DEP_ID]
+    with pytest.raises(IdentityNotFoundError, match="outside the declared"):
+        traversal.traverse(
+            "derivesRequirementFromNeed",
+            _requirement(),
+            [
+                *_elements(),
+                wrong_target,
+                wrong_dependency,
+                wrong_ann,
+                wrong_usage,
+                wrong_typing,
+            ],
+        )
 
 
 def test_kernel_binding_type_contradiction_is_detected() -> None:
@@ -347,3 +415,47 @@ def test_kernel_binding_type_contradiction_is_detected() -> None:
     by_id = {item["@id"]: item for item in _elements()}
     with pytest.raises(IdentityNotFoundError, match="contradicting"):
         index.element_id_for("RequirementDerivation", by_id)
+
+def _inverse_binding_index() -> KernelBindingIndex:
+    """Binding index for the inverse predicate (same validated lineages)."""
+    return _binding_index()
+
+
+def test_ontology_declares_inverse_navigation_predicate() -> None:
+    mapping = _contract().relationship_mapping("derivedRequirementsOfNeed")
+    assert mapping.strategy == "metadata-tagged-dependency"
+    assert mapping.semantic_strength == "derivation"
+    assert mapping.configuration["direction"] == "incoming"
+    assert mapping.configuration["source_lineage_of"] == "Need"
+    assert mapping.configuration["target_lineage_of"] == "Requirement"
+
+
+def test_inverse_navigation_reuses_the_same_witness() -> None:
+    """R4: querying the Need returns the same dependency witness reversed."""
+    traversal = SemanticTraversal(
+        _contract(), kernel_bindings=_inverse_binding_index()
+    )
+    hops = traversal.traverse(
+        "derivedRequirementsOfNeed", _need(), _elements()
+    )
+    assert len(hops) == 1
+    hop = hops[0]
+    assert hop.predicate == "derivedRequirementsOfNeed"
+    assert hop.target["@id"] == REQ_ID
+    # Same native witness as the forward traversal.
+    assert hop.api_object["@id"] == DEP_ID
+    assert hop.witness["relationship_id"] == DEP_ID
+
+
+def test_forward_and_inverse_share_witness_identity() -> None:
+    forward = SemanticTraversal(
+        _contract(), kernel_bindings=_inverse_binding_index()
+    ).traverse("derivesRequirementFromNeed", _requirement(), _elements())
+    inverse = SemanticTraversal(
+        _contract(), kernel_bindings=_inverse_binding_index()
+    ).traverse("derivedRequirementsOfNeed", _need(), _elements())
+    assert forward and inverse
+    assert forward[0].api_object["@id"] == inverse[0].api_object["@id"]
+    assert forward[0].witness == inverse[0].witness
+    assert forward[0].target["@id"] == _need()["@id"]
+    assert inverse[0].target["@id"] == _requirement()["@id"]

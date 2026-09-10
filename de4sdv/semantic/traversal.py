@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
@@ -20,6 +20,7 @@ class TraversalHop:
     source: dict[str, Any]
     target: dict[str, Any]
     api_object: dict[str, Any]
+    witness: dict[str, Any] = field(default_factory=dict)
 
 
 class SemanticTraversal:
@@ -159,12 +160,18 @@ class SemanticTraversal:
 
         A generic Dependency is not evidence of a stronger domain predicate,
         even when its endpoint types match (plan §10, UG-05). This strategy
-        accepts a dependency only when the modeled discriminator is present:
-        an Annotation owned by the dependency whose annotated element is the
-        dependency itself and whose annotating element is a MetadataUsage
-        typed by the ontology-mapped metadata definition (resolved through
-        ingestion-validated kernel identity, never by name matching against
-        arbitrary elements).
+        accepts a dependency only when BOTH hold:
+
+        1. the full discriminator witness is present and consistent:
+           the dependency owns an Annotation, the Annotation annotates that
+           same dependency, the Annotation owns a MetadataUsage element that
+           actually exists with API type ``MetadataUsage``, and that usage is
+           typed by the ontology-mapped metadata definition (resolved through
+           ingestion-validated kernel identity, never by names); and
+        2. both endpoints ground in the declared kernel lineages
+           (``source_lineage_of`` / ``target_lineage_of``) through
+           typing/specialization witnesses resolved from validated kernel
+           UUIDs — endpoint metatypes alone never satisfy the predicate.
 
         Serialized witness shape (observed in the validated deployed baseline
         for the same metadata mechanism, e.g. the ``#AdapterExchangeExcluded``
@@ -173,6 +180,12 @@ class SemanticTraversal:
         ``Dependency --ownedRelationship--> Annotation
         --annotatedElement--> that Dependency
         --ownedRelatedElement--> MetadataUsage --FeatureTyping--> MetadataDefinition``
+
+        A relationship that resembles the witness but misses any required
+        element, ownership link, or lineage grounding raises
+        :class:`IdentityNotFoundError` (incomplete/unsupported closure), so a
+        corrupted witness can never degrade into an ordinary empty result
+        (UG-06): callers see an explicit error, not an absence-based pass.
         """
         config = mapping.configuration
         allowed_types = {str(item) for item in config.get("relationship_types", [])}
@@ -182,11 +195,9 @@ class SemanticTraversal:
                 f"metadata-tagged-dependency strategy for {mapping.name} "
                 f"requires metadata_definition"
             )
-        source_types = {str(item) for item in config.get("source_types", [])}
-        target_types = {str(item) for item in config.get("target_types", [])}
-        direction = str(config.get("direction", "outgoing"))
         source_property = str(config.get("source_property", "source"))
         target_property = str(config.get("target_property", "target"))
+        direction = str(config.get("direction", "outgoing"))
 
         marker_definition_ids = self._marker_definition_ids(marker_name, by_id)
         if marker_definition_ids is None:
@@ -198,38 +209,62 @@ class SemanticTraversal:
                 f"evaluated without ingestion-validated binding metadata"
             )
 
-        # Single-pass index: MetadataUsage id -> typed-by marker?
+        # Lineage resolvers for both endpoints (R1): each configured lineage
+        # key names an ontology class whose kernel UUID is validated at
+        # ingestion. A lineage key that fails to ground is a hard error —
+        # silently skipping the check would let out-of-lineage endpoints
+        # borrow the predicate.
+        lineage_resolvers = {
+            key: self._lineage_resolver(str(lineage_class), by_id)
+            for key, lineage_class in (
+                ("source_lineage_of", config.get("source_lineage_of")),
+                ("target_lineage_of", config.get("target_lineage_of")),
+            )
+            if lineage_class
+        }
+
+        # Witness index R2: only MetadataUsage elements that actually exist
+        # with the MetadataUsage API type and a FeatureTyping to a marker
+        # definition qualify as discriminator instances.
         marker_usage_ids: set[str] = set()
         for element in elements:
-            if str(element.get("@type")) != "FeatureTyping":
+            if str(element.get("@type")) != "MetadataUsage":
                 continue
-            typed = element_id(element.get("type")) or element_id(
-                element.get("general")
-            )
-            if typed is None or typed not in marker_definition_ids:
+            usage_id = element_id(element)
+            if usage_id is None:
                 continue
-            feature_id = element_id(element.get("typedFeature")) or element_id(
-                element.get("specific")
-            )
-            if feature_id is not None:
-                marker_usage_ids.add(feature_id)
+            for typing in elements:
+                if str(typing.get("@type")) != "FeatureTyping":
+                    continue
+                typed = element_id(typing.get("type")) or element_id(
+                    typing.get("general")
+                )
+                if typed is None or typed not in marker_definition_ids:
+                    continue
+                if element_id(typing.get("typedFeature")) or element_id(
+                    typing.get("specific")
+                ) == usage_id:
+                    marker_usage_ids.add(usage_id)
+                    break
 
-        # Single-pass index: annotated element id -> annotating metadata
-        # usages. The witness form is Annotation owned by the annotated
-        # element, whose ownedRelatedElement carries the MetadataUsage.
-        annotations_by_target: dict[str, set[str]] = {}
+        # Annotation index R2: (annotated element, annotation owner) pairs.
+        # The usage referenced in ownedRelatedElement must itself exist as a
+        # qualifying MetadataUsage; a dangling reference never qualifies.
+        annotations_by_target: dict[str, dict[str, str]] = {}
         for element in elements:
             if str(element.get("@type")) != "Annotation":
                 continue
+            owners = reference_ids(element.get("owningRelatedElement"))
             for usage_id in reference_ids(element.get("ownedRelatedElement")):
                 if usage_id not in marker_usage_ids:
                     continue
                 for annotated_id in reference_ids(
                     element.get("annotatedElement")
                 ):
-                    annotations_by_target.setdefault(annotated_id, set()).add(
-                        usage_id
-                    )
+                    for owner_id in owners:
+                        annotations_by_target.setdefault(annotated_id, {})[
+                            owner_id
+                        ] = usage_id
 
         hops: list[TraversalHop] = []
         for relationship in elements:
@@ -246,23 +281,298 @@ class SemanticTraversal:
                 neighbor_ids = relationship_targets
             else:
                 continue
-            # The discriminator: at least one annotating metadata usage typed
-            # by the marker definition must be owned by this relationship.
-            annotating_usages = annotations_by_target.get(relationship_id, set())
-            if not annotating_usages & marker_usage_ids:
-                continue
-            if source_types and str(source.get("@type")) not in source_types:
-                continue
-            neighbor_ids = [
-                neighbor_id
-                for neighbor_id in neighbor_ids
-                if str(by_id.get(neighbor_id, {}).get("@type")) in target_types
+            # Discriminator witness R2: an Annotation owned by THIS
+            # relationship, annotating THIS relationship, whose owned
+            # MetadataUsage exists and is typed by the marker definition.
+            usage_by_owner = annotations_by_target.get(relationship_id, {})
+            witness_usage_ids = [
+                usage_id
+                for usage_id in usage_by_owner.values()
+                if usage_id in marker_usage_ids
+                and usage_id in {element_id(e) for e in elements}
             ]
+            # Ownership consistency on the accept path: every Annotation
+            # that annotates this dependency and carries the marker must be
+            # owned by this dependency (its @id in ownedRelationship), and
+            # the dependency must not own a marker Annotation that annotates
+            # something else.
+            owned_annotation_ids = set(
+                reference_ids(relationship.get("ownedRelationship"))
+            )
+            annotating_annotation_ids = set()
+            for element in by_id.values():
+                if str(element.get("@type")) != "Annotation":
+                    continue
+                if relationship_id not in reference_ids(
+                    element.get("annotatedElement")
+                ):
+                    continue
+                if not (
+                    set(reference_ids(element.get("ownedRelatedElement")))
+                    & marker_usage_ids
+                ):
+                    continue
+                annotating_annotation_ids.add(str(element.get("@id")))
+                owner_ids = reference_ids(element.get("owningRelatedElement"))
+                if owner_ids and relationship_id not in owner_ids:
+                    raise IdentityNotFoundError(
+                        f"incomplete discriminator witness for predicate "
+                        f"{mapping.name!r} on dependency "
+                        f"{str(relationship.get('declaredName') or relationship_id)!r}: "
+                        f"annotation {element.get('@id')} is owned by "
+                        f"{owner_ids}, not this dependency"
+                    )
+            if not annotating_annotation_ids <= owned_annotation_ids:
+                raise IdentityNotFoundError(
+                    f"incomplete discriminator witness for predicate "
+                    f"{mapping.name!r} on dependency "
+                    f"{str(relationship.get('declaredName') or relationship_id)!r}: "
+                    f"annotation ownership contradicts the dependency's "
+                    f"ownedRelationship"
+                )
+            if not witness_usage_ids:
+                # Distinguish a dependency with NO marker application at all
+                # (quiet absence: not this predicate's business) from a
+                # dependency that carries broken marker closure (fail closed
+                # with a precise diagnostic, never a silent empty result).
+                broken = self._broken_witness_reason(
+                    relationship,
+                    relationship_id,
+                    marker_definition_ids,
+                    by_id,
+                )
+                if broken:
+                    raise IdentityNotFoundError(
+                        f"incomplete discriminator witness for predicate "
+                        f"{mapping.name!r} on dependency "
+                        f"{str(relationship.get('declaredName') or relationship_id)!r}: "
+                        f"{broken}"
+                    )
+                continue
+            else:
+                # Witness present: an out-of-lineage endpoint is a corrupted
+                # derivation assertion, not a quiet absence (R1).
+                source_ok = self._endpoint_in_lineage(
+                    source, lineage_resolvers["source_lineage_of"], by_id
+                )
+                for neighbor_id in neighbor_ids:
+                    neighbor = by_id.get(neighbor_id)
+                    if neighbor is None:
+                        continue
+                    if not self._endpoint_in_lineage(
+                        neighbor,
+                        lineage_resolvers["target_lineage_of"],
+                        by_id,
+                    ):
+                        raise IdentityNotFoundError(
+                            f"discriminator witness on dependency "
+                            f"{str(relationship.get('declaredName') or relationship_id)!r} "
+                            f"has target {neighbor_id!r} outside the declared "
+                            f"{mapping.configuration.get('target_lineage_of')!r} lineage"
+                        )
+                if not source_ok:
+                    raise IdentityNotFoundError(
+                        f"discriminator witness on dependency "
+                        f"{str(relationship.get('declaredName') or relationship_id)!r} "
+                        f"has source outside the declared "
+                        f"{mapping.configuration.get('source_lineage_of')!r} lineage"
+                    )
+            # Endpoint lineage enforcement R1: the traversal-side endpoint
+            # (source of the hop) and every neighbor must ground in the
+            # declared kernel lineages. Out-of-lineage endpoints invalidate
+            # the witness for this predicate.
+            if not self._endpoint_in_lineage(
+                source, lineage_resolvers["source_lineage_of"], by_id
+            ):
+                continue
+            resolved_neighbors: list[tuple[str, dict[str, Any]]] = []
             for neighbor_id in neighbor_ids:
-                target = by_id.get(neighbor_id)
-                if target is not None:
-                    hops.append(self._hop(mapping, source, target, relationship))
+                neighbor = by_id.get(neighbor_id)
+                if neighbor is None:
+                    continue
+                if not self._endpoint_in_lineage(
+                    neighbor, lineage_resolvers["target_lineage_of"], by_id
+                ):
+                    continue
+                resolved_neighbors.append((neighbor_id, neighbor))
+            if not resolved_neighbors:
+                continue
+            for neighbor_id, target in resolved_neighbors:
+                hop = self._hop(mapping, source, target, relationship)
+                hop = replace(
+                    hop,
+                    witness={
+                        "relationship_id": relationship_id,
+                        "marker_usage_ids": sorted(witness_usage_ids),
+                        "annotation_owner_ids": sorted(usage_by_owner),
+                    },
+                )
+                hops.append(hop)
         return self._deduplicate(hops)
+
+    def _broken_witness_reason(
+        self,
+        relationship: dict[str, Any],
+        relationship_id: str,
+        marker_definition_ids: set[str],
+        by_id: dict[str, dict[str, Any]],
+    ) -> str | None:
+        """Return a diagnostic when a dependency carries partial marker
+        closure, or None when the dependency simply has no marker application
+        (a bare dependency is quietly skipped — it is another predicate's
+        business)."""
+        annotations: list[dict[str, Any]] = []
+        for reference in reference_ids(relationship.get("ownedRelationship")):
+            element = by_id.get(reference)
+            if element is not None and str(element.get("@type")) == "Annotation":
+                annotations.append(element)
+        if not annotations:
+            # No annotation is owned by this dependency — but if any
+            # annotation elsewhere still references it (dangling witness
+            # side), closure is broken too.
+            for element in by_id.values():
+                if str(element.get("@type")) != "Annotation":
+                    continue
+                if relationship_id in reference_ids(
+                    element.get("annotatedElement")
+                ):
+                    return (
+                        f"annotation {element.get('@id')} references this "
+                        f"dependency but is not owned by it "
+                        f"(owner={element.get('owningRelatedElement')})"
+                    )
+            return None
+        for annotation in annotations:
+            annotation_id = str(annotation.get("@id"))
+            annotated_ids = reference_ids(annotation.get("annotatedElement"))
+            usage_ids = reference_ids(annotation.get("ownedRelatedElement"))
+            owner_ids = reference_ids(annotation.get("owningRelatedElement"))
+            problems: list[str] = []
+            if relationship_id not in annotated_ids:
+                problems.append(
+                    f"annotation {annotation_id} does not annotate this "
+                    f"dependency"
+                )
+            if owner_ids and relationship_id not in owner_ids:
+                problems.append(
+                    f"annotation {annotation_id} is owned by "
+                    f"{owner_ids}, not this dependency"
+                )
+            for usage_id in usage_ids:
+                usage = by_id.get(usage_id)
+                if usage is None:
+                    problems.append(
+                        f"metadata usage {usage_id} referenced by annotation "
+                        f"{annotation_id} does not exist in the revision"
+                    )
+                    continue
+                if str(usage.get("@type")) != "MetadataUsage":
+                    problems.append(
+                        f"element {usage_id} has type "
+                        f"{str(usage.get('@type'))!r}, not MetadataUsage"
+                    )
+                    continue
+                typed_ok = False
+                for element in by_id.values():
+                    if str(element.get("@type")) != "FeatureTyping":
+                        continue
+                    typed = element_id(element.get("type")) or element_id(
+                        element.get("general")
+                    )
+                    feature = element_id(element.get("typedFeature")) or (
+                        element_id(element.get("specific"))
+                    )
+                    if (
+                        feature == usage_id
+                        and typed is not None
+                        and typed in marker_definition_ids
+                    ):
+                        typed_ok = True
+                        break
+                if not typed_ok:
+                    problems.append(
+                        f"metadata usage {usage_id} is not typed by the "
+                        f"marker definition"
+                    )
+            if problems:
+                return "; ".join(problems)
+        return None
+
+    def _endpoint_in_lineage(
+        self,
+        endpoint: dict[str, Any],
+        resolver: dict[str, Any] | None,
+        by_id: dict[str, dict[str, Any]],
+    ) -> bool:
+        """Return whether one endpoint grounds in the declared lineage.
+
+        The resolver carries the validated kernel UUID and the precomputed
+        lineage id set. An endpoint grounds when its own UUID is in the
+        lineage or a FeatureTyping/typing witness connects it to a lineage
+        member. When no lineage is configured for this side the check is
+        vacuous (returns True) — the mapping must configure both sides for
+        this strategy, which the ontology contract does.
+        """
+        if resolver is None:
+            return True
+        endpoint_id = element_id(endpoint)
+        if endpoint_id is None:
+            return False
+        if endpoint_id in resolver["lineage_ids"]:
+            return True
+        for typing_id in resolver["typed_by"].get(endpoint_id, ()):
+            if typing_id in resolver["lineage_ids"]:
+                return True
+        return False
+
+    def _lineage_resolver(
+        self, lineage_class: str, by_id: dict[str, dict[str, Any]]
+    ) -> dict[str, Any] | None:
+        """Ground one ontology lineage class and precompute its member ids.
+
+        The root UUID comes from the ingestion-validated kernel binding
+        index; lineage membership follows Subclassification witnesses from
+        the bound revision and usage typing via FeatureTyping. A class
+        without a validated binding fails closed.
+        """
+        if self.kernel_bindings is None:
+            raise IdentityNotFoundError(
+                f"no validated kernel binding index is available; lineage "
+                f"root {lineage_class!r} cannot be resolved without "
+                f"ingestion-validated binding metadata"
+            )
+        root_id = self.kernel_bindings.element_id_for(lineage_class, by_id)
+        specifics_by_general: dict[str, set[str]] = {}
+        typed_by: dict[str, set[str]] = {}
+        for element in by_id.values():
+            element_type = str(element.get("@type"))
+            if element_type == "Subclassification":
+                general = element_id(element.get("superclassifier")) or (
+                    element_id(element.get("general"))
+                )
+                specific = element_id(element.get("subclassifier")) or (
+                    element_id(element.get("specific"))
+                )
+                if general is not None and specific is not None:
+                    specifics_by_general.setdefault(general, set()).add(specific)
+            elif element_type == "FeatureTyping":
+                usage_id = element_id(element.get("owningRelatedElement"))
+                if usage_id is None:
+                    continue
+                typed = element_id(element.get("type")) or element_id(
+                    element.get("general")
+                )
+                if typed is not None:
+                    typed_by.setdefault(usage_id, set()).add(typed)
+        lineage_ids: set[str] = set()
+        frontier: list[str | None] = [root_id]
+        while frontier:
+            current = frontier.pop()
+            if current is None or current in lineage_ids:
+                continue
+            lineage_ids.add(current)
+            frontier.extend(specifics_by_general.get(current, ()))
+        return {"lineage_ids": lineage_ids, "typed_by": typed_by}
 
     def _marker_definition_ids(
         self, marker_name: str, by_id: dict[str, dict[str, Any]]

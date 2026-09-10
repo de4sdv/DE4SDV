@@ -511,6 +511,29 @@ relationships:
       source_lineage_of: Requirement
       target_lineage_of: Need
       semantic_strength: derivation
+  derivedRequirementsOfNeed:
+    domain: Need
+    range: Requirement
+    definition: >-
+      Inverse navigation of derivesRequirementFromNeed over the SAME
+      discriminator witness: the need N is the design-input origin of the
+      derived requirement R. This predicate declares no new model fact; it
+      reuses the identical #RequirementDerivation-tagged dependency traversed
+      in the reverse direction (incoming), with the same lineage grounding and
+      fail-closed closure semantics.
+    sysml_mapping:
+      strategy: metadata-tagged-dependency
+      relationship_types: [Dependency]
+      metadata_definition: RequirementDerivation
+      annotation_property: ownedRelationship
+      direction: incoming
+      source_property: source
+      target_property: target
+      source_types: [RequirementUsage]
+      target_types: [RequirementUsage]
+      source_lineage_of: Need
+      target_lineage_of: Requirement
+      semantic_strength: derivation
   constrainedBy:
     domain: Requirement
     range: RegulatoryConstraint

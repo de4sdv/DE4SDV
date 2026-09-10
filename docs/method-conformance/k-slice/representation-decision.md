@@ -134,3 +134,45 @@ Free-text `source = "Derived from N-AEBS-001"` attributes are discovery leads.
 Each converted edge requires confirming the engineering derivation itself.
 The first slice converts exactly the witnesses needed for the proof; the
 remaining edges migrate in bounded follow-ups (UG-03/UG-20 gates apply).
+
+## 5. Independent review repair record (2026-09-10)
+
+The independent review at head `cf9f48bc` returned R1–R6 (changes requested).
+All finding probes were re-executed locally, then repaired:
+
+- **R1 (endpoint lineage):** traversal now grounds both endpoints in the
+  declared `source_lineage_of` / `target_lineage_of` kernel lineages via
+  ingestion-validated UUIDs plus Subclassification/FeatureTyping witnesses.
+  A tagged dependency with an out-of-lineage endpoint fails closed with a
+  precise diagnostic; it is never a quiet absence.
+- **R2 (witness closure):** the discriminator requires the complete witness —
+  the dependency owns an Annotation that annotates that same dependency, the
+  Annotation owns an existing `MetadataUsage` typed by the validated marker
+  definition, and annotation ownership is consistent in both directions
+  (dangling, mistyped, orphaned, or contradictory-ownership witnesses fail
+  closed). Witness identity (relationship, marker usage, owner) is carried on
+  every hop and echoed in query edges.
+- **R3 (projection/profile):** `RevisionIdentity` only accepts a full 40-hex
+  SHA + project/commit ids and is constructed from a validated revision
+  binding; the ontology contract identity (path + SHA-256) is recomputed from
+  the actual file at generation time; `support_state` is `vocabulary-only`
+  until exact-candidate closure evidence is supplied (`witness_closure_verified`);
+  profile mechanics are derived from the executable mapping and the generated
+  profile passes a semantic compatibility gate (`assert_profile_compatible`)
+  that rejects contradictions with the mapping (UG-25). The YAML is honestly
+  labeled the ontology/kernel contract (O0/O1 authority), not a
+  model-resident contract.
+- **R4 (inverse navigation):** `derivedRequirementsOfNeed` added as an
+  incoming `metadata-tagged-dependency` mapping over the SAME witness with
+  swapped lineage sides; forward/inverse witness-identity equality is tested.
+- **R5 (proof CLI):** `scripts/prove_derivation_slice.py` v2 requires an
+  independently supplied `--expected-revision` (validated against the
+  binding), resolves case identities from the revision, asserts exact
+  endpoint/witness sets, treats explicit gaps as failures, proves inverse
+  navigation per case, and imports fail-safe from any cwd. Fault-injection
+  tests cover wrong source/target, incomplete witness, gap-with-edge,
+  adversarial edge, wrong revision, and missing expected revision.
+- **R6 (ingestion proof):** still pending by design — the authorized
+  exact-candidate privileged ingestion runs only after this repair passes
+  independent re-review. PR stays draft; claims stay PREPARED, not PROVEN.
+

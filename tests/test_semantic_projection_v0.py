@@ -1,9 +1,13 @@
 """Tests for the DE4SDV Semantic Projection v0 / API Representation Profile v0
-(K slice: derivesRequirementFromNeed)."""
+(K slice: derivesRequirementFromNeed).
+
+Covers the R3 review requirements: validated-revision binding, contract
+identity recomputation, honest O0/O1 support state, semantic compatibility
+gate, and determinism.
+"""
 
 from __future__ import annotations
 
-import copy
 import json
 from pathlib import Path
 
@@ -15,8 +19,10 @@ from de4sdv.semantic.projection import (
     PROFILE_SCHEMA,
     PROJECTION_SCHEMA,
     RevisionIdentity,
+    assert_profile_compatible,
     build_projection,
     build_representation_profile,
+    contract_identity_from_file,
 )
 from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 
@@ -27,8 +33,8 @@ from test_derivation_predicate_traversal import (  # noqa: E402
     MARKER_DEF_ID,
     _binding_index,
     _contract,
-    _elements,
     _default_binding_entries,
+    _elements,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,29 +64,9 @@ def _definition_elements() -> list[dict]:
 
 
 def _projection_binding_index() -> KernelBindingIndex:
-    return _binding_index(
-        [
-            *_default_binding_entries(),
-            KernelElementBinding(
-                ontology_class="Requirement",
-                element_id=REQ_DEF_ID,
-                source_file=(
-                    "textual-notation-of-model/packages/methods/de4sdv/"
-                    "de4sdv_method_context.sysml"
-                ),
-                declaration="requirement def RequirementCandidate",
-            ),
-            KernelElementBinding(
-                ontology_class="Need",
-                element_id=NEED_DEF_ID,
-                source_file=(
-                    "textual-notation-of-model/packages/methods/de4sdv/"
-                    "de4sdv_method_context.sysml"
-                ),
-                declaration="requirement def StakeholderNeedCandidate",
-            ),
-        ]
-    )
+    # _default_binding_entries already carries Requirement/Need (R1 lineages)
+    # bound to the definition UUIDs used by this module.
+    return _binding_index(list(_default_binding_entries()))
 
 
 def _by_id() -> dict[str, dict]:
@@ -90,10 +76,30 @@ def _by_id() -> dict[str, dict]:
     }
 
 
-def test_projection_row_binds_revision_and_validated_groundings() -> None:
-    projection = build_projection(
-        _contract(), _projection_binding_index(), REVISION, _by_id()
+def _build(**kwargs) -> dict:
+    return build_projection(
+        _contract(),
+        _projection_binding_index(),
+        REVISION,
+        _by_id(),
+        repository_root=ROOT,
+        **kwargs,
     )
+
+
+def _build_profile(**kwargs) -> dict:
+    return build_representation_profile(
+        _contract(),
+        _projection_binding_index(),
+        REVISION,
+        _by_id(),
+        repository_root=ROOT,
+        **kwargs,
+    )
+
+
+def test_projection_row_binds_revision_and_validated_groundings() -> None:
+    projection = _build()
     assert projection["schema"] == PROJECTION_SCHEMA
     assert projection["revision_binding"]["git_commit"] == REVISION.git_commit
     predicate = projection["predicate"]
@@ -101,7 +107,6 @@ def test_projection_row_binds_revision_and_validated_groundings() -> None:
     assert predicate["domain"] == "Requirement"
     assert predicate["range"] == "Need"
     assert predicate["semantic_strength"] == "derivation"
-    assert predicate["support_state"] == "supported"
     generated_from = projection["revision_binding"]["generated_from"]
     assert set(generated_from["model_definitions"]) == {
         REQ_DEF_ID,
@@ -110,10 +115,41 @@ def test_projection_row_binds_revision_and_validated_groundings() -> None:
     }
 
 
-def test_projection_forbids_representation_mechanics() -> None:
-    projection = build_projection(
-        _contract(), _projection_binding_index(), REVISION, _by_id()
+def test_projection_binds_recomputed_contract_identity() -> None:
+    """The contract identity is recomputed from the actual file, not trusted."""
+    projection = _build()
+    identity = projection["revision_binding"]["generated_from"][
+        "ontology_contract"
+    ]
+    expected = contract_identity_from_file(ROOT)
+    assert identity == expected
+    assert identity["sha256"] == expected["sha256"]
+
+
+def test_projection_support_state_is_honest_without_closure_evidence() -> None:
+    """O0/O1 honesty: without exact-candidate closure evidence the generated
+    projection reports vocabulary-only, never supported (UG-06/UG-24)."""
+    assert _build()["predicate"]["support_state"] == "vocabulary-only"
+    assert (
+        _build(witness_closure_verified=True)["predicate"]["support_state"]
+        == "supported"
     )
+
+
+def test_projection_definition_comes_from_contract_not_python_constant() -> None:
+    definition = _build()["predicate"]["definition"]
+    assert "Design-input" in definition or "design-input" in definition.lower()
+    # The definition text is taken from the contract's declared definition.
+    contract_definition = _contract().relationships["derivesRequirementFromNeed"].get(
+        "definition"
+    )
+    if contract_definition:
+        first_words = " ".join(str(contract_definition).split()[:3])
+        assert definition.startswith(first_words)
+
+
+def test_projection_forbids_representation_mechanics() -> None:
+    projection = _build()
     text = json.dumps(projection)
     for forbidden in ("property_path", "serializer", "dispatch", "transport"):
         assert forbidden not in text.lower()
@@ -121,37 +157,97 @@ def test_projection_forbids_representation_mechanics() -> None:
 
 def test_projection_deterministic_for_identical_inputs() -> None:
     """UG-23: same semantic inputs produce the same canonical payload."""
-    first = build_projection(_contract(), _projection_binding_index(), REVISION, _by_id())
-    second = build_projection(_contract(), _projection_binding_index(), REVISION, _by_id())
+    first = _build()
+    second = _build()
     assert json.dumps(first, sort_keys=True) == json.dumps(second, sort_keys=True)
+
+
+def test_projection_rejects_unverified_revision_labels() -> None:
+    """R3: arbitrary caller-supplied revision labels are rejected."""
+    with pytest.raises(ValueError, match="40-hex"):
+        build_projection(
+            _contract(),
+            _projection_binding_index(),
+            RevisionIdentity("unrelated", "other-project", "other-commit"),
+            _by_id(),
+            repository_root=ROOT,
+        )
 
 
 def test_projection_fails_closed_without_marker_binding() -> None:
     """UG-24: missing validated grounding blocks generation."""
     with pytest.raises(IdentityNotFoundError):
         build_projection(
-            _contract(), _binding_index([]), REVISION, _by_id()
+            _contract(),
+            _binding_index([]),
+            REVISION,
+            _by_id(),
+            repository_root=ROOT,
         )
 
 
 def test_profile_carries_mechanics_and_echoes_projection_meaning() -> None:
-    profile = build_representation_profile(
-        _contract(), _projection_binding_index(), REVISION, _by_id()
-    )
+    profile = _build_profile()
     assert profile["schema"] == PROFILE_SCHEMA
     assert profile["for_predicate"] == "derivesRequirementFromNeed"
     witness = profile["witness"]
     assert witness["api_metaclass"] == "Dependency"
+    # Mechanics are derived from the executable mapping.
     assert witness["property_paths"]["source"] == "source"
-    # The profile may not redefine meaning: its domain/range/strength fields
-    # are echoes of the projection row, not independent definitions.
+    assert witness["property_paths"]["target"] == "target"
+    assert witness["direction"] == "outgoing"
+    # Meaning fields are echoes of the projection row, not independent values.
     assert profile["domain_from_projection"] == "Requirement"
     assert profile["range_from_projection"] == "Need"
     assert profile["semantic_strength_from_projection"] == "derivation"
+    assert profile["support_state"] == "vocabulary-only"
+
+
+def test_profile_compatibility_gate_rejects_mapping_contradiction() -> None:
+    """UG-25: a profile must not contradict the executable mapping."""
+    contract = _contract()
+    profile = _build_profile()
+    assert_profile_compatible(contract, profile)  # passes unmodified
+    mutated = json.loads(json.dumps(profile))
+    mutated["witness"]["property_paths"]["source"] = "supplier"
+    with pytest.raises(ValueError, match="contradicts"):
+        assert_profile_compatible(contract, mutated)
+    mutated2 = json.loads(json.dumps(profile))
+    mutated2["witness"]["direction"] = "incoming"
+    with pytest.raises(ValueError, match="contradicts"):
+        assert_profile_compatible(contract, mutated2)
+
+
+def test_profile_mechanics_follow_the_mapping_not_constants() -> None:
+    """R3: profile mechanics are derived from the executable mapping, so a
+    mapping change is reflected (never contradicted) by a regenerated profile;
+    the compatibility gate catches hand-written contradictions instead."""
+    contract = _contract()
+    contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"][
+        "source_property"
+    ] = "supplier"
+    contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"][
+        "direction"
+    ] = "incoming"
+    profile = build_representation_profile(
+        contract,
+        _projection_binding_index(),
+        REVISION,
+        _by_id(),
+        repository_root=ROOT,
+    )
+    assert profile["witness"]["property_paths"]["source"] == "supplier"
+    assert profile["witness"]["direction"] == "incoming"
+    # And the generated profile passes its own compatibility gate.
+    assert_profile_compatible(contract, profile)
 
 
 def test_profile_without_projection_inputs_fails_closed() -> None:
     with pytest.raises(IdentityNotFoundError):
         build_representation_profile(
-            _contract(), _binding_index([]), REVISION, _by_id()
+            _contract(),
+            _binding_index([]),
+            REVISION,
+            _by_id(),
+            repository_root=ROOT,
         )
