@@ -48,9 +48,19 @@ semantic evidence), the privileged read-back additionally proves:
 The privileged evidence is produced by two independent serialization
 transactions of the same committed source (candidate-1, candidate-2), each
 imported into its own distinct API project/commit; correspondence is
-verified by `scripts/verify_reimport_correspondence.py` from stable explicit
-identities plus relationship structure, with per-identity UUID attribution
-(UUID equality reported, never required).
+verified by `scripts/verify_reimport_correspondence.py` from PERSISTENT
+explicit identities only (`declaredShortName`), plus relationship structure
+in persistent-identity space. `declaredName` never establishes identity and
+is never a fallback key — names are compared only as attributes after the
+persistent identity has been established. Elements without a persistent
+identity stay out of the global correspondence key-space; serializer-internal
+anonymous witnesses are matched structurally only inside an
+already-corresponded witness path. Duplicate or missing persistent
+identities fail closed. UUIDs are attributed per identity by transaction
+(`uuid_by_transaction`); UUID equality is reported, never required or
+assumed. The required Lane B pilot identities
+(`VC-AEBS-009D-DE`, `VC-AEBS-009D-01..06`, `EC-009D-01..03`, `PSC-009D`)
+must carry a persistent identity in BOTH transactions.
 
 The read-back (`scripts/verify_pilot_readback.py`) proves grounding from the
 serializer's ACTUAL relationship representation — discovered by

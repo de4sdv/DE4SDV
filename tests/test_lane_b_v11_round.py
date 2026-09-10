@@ -204,11 +204,20 @@ def test_correspondence_two_independent_transactions_uuids_differ(tmp_path, monk
 
     binding_a = _binding(tmp_path, "proj-a", "commit-a", sha)
     binding_b = _binding(tmp_path, "proj-b", "commit-b", sha)
-    report = vrc.verify("http://x", binding_a, binding_b)
+    report = vrc.verify(
+        "http://x", binding_a, binding_b,
+        required_identities=("VC-AEBS-009D-DE", "VC-AEBS-009D-01"),
+    )
     assert report["passed"] is True
     assert report["uuid_attribution"]["identical_uuids"] == 0
     assert report["uuid_attribution"]["differing_uuids"] == 2
     assert report["correspondence"]["uuid_reuse_assumed"] is False
+    # Zero name-based identity correspondence.
+    assert report["correspondence"]["name_based_correspondence_used"] is False
+    assert report["correspondence"]["declared_name_used_as_identity_key"] is False
+    assert report["correspondence"]["persistent_identity_field"] == "declaredShortName"
+    assert report["semantic_witness_equivalence"]["mismatched"] == 0
+    assert report["identities_compared"] == 2
     by_id = {row["identity"]: row for row in report["per_identity"]}
     assert by_id["VC-AEBS-009D-01"]["relationships_match"] is True
     uuids = by_id["VC-AEBS-009D-01"]["uuid_by_transaction"]
@@ -236,7 +245,8 @@ def test_correspondence_fails_on_relationship_mismatch(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(vrc, "ApiClient", lambda url, timeout=600.0: None)
     report = vrc.verify(
-        "http://x", _binding(tmp_path, "proj-a", "commit-a", sha), _binding(tmp_path, "proj-b", "commit-b", sha)
+        "http://x", _binding(tmp_path, "proj-a", "commit-a", sha), _binding(tmp_path, "proj-b", "commit-b", sha),
+        required_identities=("VC-AEBS-009D-DE", "VC-AEBS-009D-01"),
     )
     assert report["passed"] is False
     assert "VC-AEBS-009D-01" in report["relationship_mismatches"]
@@ -256,10 +266,11 @@ def test_correspondence_fails_on_duplicate_identity(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(vrc, "ApiClient", lambda url, timeout=600.0: None)
     report = vrc.verify(
-        "http://x", _binding(tmp_path, "proj-a", "commit-a", sha), _binding(tmp_path, "proj-b", "commit-b", sha)
+        "http://x", _binding(tmp_path, "proj-a", "commit-a", sha), _binding(tmp_path, "proj-b", "commit-b", sha),
+        required_identities=(),
     )
     assert report["passed"] is False
-    assert any("duplicate explicit identity" in failure for failure in report["failures"])
+    assert any("duplicate persistent identity" in failure for failure in report["failures"])
 
 
 def test_correspondence_rejects_same_project_commit(tmp_path, monkeypatch):
@@ -275,9 +286,83 @@ def test_correspondence_rejects_same_project_commit(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(vrc, "ApiClient", lambda url, timeout=600.0: None)
     same = _binding(tmp_path, "proj-a", "commit-a", sha)
-    report = vrc.verify("http://x", same, same)
+    report = vrc.verify("http://x", same, same, required_identities=())
     assert report["passed"] is False
     assert any("not independent transactions" in failure for failure in report["failures"])
+
+
+
+
+def test_correspondence_never_merges_by_declared_name(tmp_path, monkeypatch):
+    """Two different elements that share ONLY a declared name (no persistent
+    identity on either side) are NOT corresponded."""
+    import scripts.verify_reimport_correspondence as vrc
+
+    sha = "e" * 40
+    elements_a = [
+        {"@id": "11111111-0000-4000-8000-000000000001", "@type": "PartUsage", "declaredName": "sharedName"},
+    ]
+    elements_b = [
+        {"@id": "22222222-0000-4000-8000-000000000001", "@type": "PartUsage", "declaredName": "sharedName"},
+    ]
+    monkeypatch.setattr(
+        vrc, "SysMLRepository",
+        lambda client: _FakeRepository({"proj-a": elements_a, "proj-b": elements_b}),
+    )
+    monkeypatch.setattr(vrc, "ApiClient", lambda url, timeout=600.0: None)
+    report = vrc.verify(
+        "http://x",
+        _binding(tmp_path, "proj-a", "commit-a", sha),
+        _binding(tmp_path, "proj-b", "commit-b", sha),
+        required_identities=(),
+    )
+    assert report["identities_compared"] == 0
+    assert report["per_identity"] == []
+    assert report["correspondence"]["name_based_correspondence_used"] is False
+    assert report["transactions"]["transaction-a"]["elements_without_persistent_identity"] == 1
+    assert report["transactions"]["transaction-b"]["elements_without_persistent_identity"] == 1
+
+
+def test_name_only_element_never_becomes_correspondence(tmp_path, monkeypatch):
+    """An element WITHOUT a persistent identity cannot become cross-transaction
+    correspondence merely because declaredName matches the other side's name."""
+    import scripts.verify_reimport_correspondence as vrc
+
+    sha = "f" * 40
+    elements_a = [
+        {
+            "@id": "11111111-0000-4000-8000-000000000001",
+            "@type": "VerificationCaseUsage",
+            "declaredShortName": "VC-AEBS-009D-01",
+            "declaredName": "overrideVerification01",
+        },
+    ]
+    elements_b = [
+        # Same DECLARED NAME, but this is a different element with no
+        # persistent identity: it must not be corresponded to the identified
+        # element in transaction A.
+        {"@id": "22222222-0000-4000-8000-000000000009", "@type": "VerificationCaseUsage", "declaredName": "overrideVerification01"},
+    ]
+    monkeypatch.setattr(
+        vrc, "SysMLRepository",
+        lambda client: _FakeRepository({"proj-a": elements_a, "proj-b": elements_b}),
+    )
+    monkeypatch.setattr(vrc, "ApiClient", lambda url, timeout=600.0: None)
+    report = vrc.verify(
+        "http://x",
+        _binding(tmp_path, "proj-a", "commit-a", sha),
+        _binding(tmp_path, "proj-b", "commit-b", sha),
+        required_identities=(),
+    )
+    # Fail closed: the persistent identity is missing on the B side and is
+    # never silently recovered by name.
+    assert report["passed"] is False
+    assert any(
+        "present only in transaction-a" in failure for failure in report["failures"]
+    )
+    assert all(row["identity"] != "overrideVerification01" for row in report["per_identity"])
+    assert report["correspondence"]["name_based_correspondence_used"] is False
+    assert report["transactions"]["transaction-b"]["elements_without_persistent_identity"] == 1
 
 
 # ---------------------------------------------------------------------------

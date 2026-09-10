@@ -367,10 +367,12 @@ def test_mc14_duplicate_explicit_identifier_fails_closed() -> None:
 
 def test_mc14_independent_transactions_correspond_by_explicit_id() -> None:
     """MC-14 two-transaction design: two INDEPENDENT export transactions of
-    the same source carry different serializer UUIDs but the same explicit
-    identities. Correspondence is proven by explicit id + declared name,
-    never by UUID equality or name merging. (The privileged two-import run
-    provides the real-serializer version of this evidence.)"""
+    the same source carry different serializer UUIDs but the same persistent
+    explicit identities. Correspondence is established by persistent identity
+    alone; declared names are compared only as attributes after identity is
+    established, never as keys, and never by UUID equality.
+    (The privileged two-import run provides the real-serializer version of
+    this evidence.)"""
     from de4sdv.semantic.method_contract import CorrespondenceMap
 
     first = _pilot_graph()

@@ -1,16 +1,28 @@
 #!/usr/bin/env python3
-"""MC-14: correspondence across two INDEPENDENT serialization/import transactions.
+"""MC-14 / UG-03: correspondence across two INDEPENDENT serialization/import transactions.
 
-The frozen contract requires correspondence evidence that does not assume UUID
-reuse: two independent export transactions of the same committed source are
-imported into two distinct API revisions, then compared. Raw API UUID equality
-is neither required nor assumed; correspondence is established from stable
-explicit identities (declared short name / declared name, with the API metaclass
-as a type constraint) plus the semantic relationships reachable from each
-identity. Name merging, duplicate identities and contradictory pairs fail
-closed.
+The frozen contract and the v1.1 plan require PERSISTENT-ID correspondence:
+two independent export transactions of the same committed source are imported
+into two distinct API revisions and compared using stable explicit identities
+(the model-authored persistent short identity, ``declaredShortName``) only.
 
-Each UUID in the report is attributed to the transaction it came from.
+Rules enforced here:
+
+- ``declaredName`` NEVER establishes correspondence and is never used as a
+  fallback key. Names are compared only as attributes, after identity has
+  been established.
+- Duplicate or missing persistent identities never silently fall back to
+  names; duplicates fail closed, and every identity required by the Lane B
+  pilot contract must be present with a persistent identity in BOTH
+  transactions.
+- Raw API UUID equality is neither required nor assumed; UUIDs are reported
+  per transaction (``uuid_by_transaction``) and attributed accordingly.
+- Semantic relationship structure is compared using the persistent
+  identities of semantic endpoints where available, plus relationship
+  kind/metaclass, endpoint metaclass, and explicit/implied provenance.
+  Serializer-internal anonymous witness objects (no persistent identity) are
+  matched structurally as part of an already-corresponded witness path; they
+  are never globally merged by name.
 """
 
 from __future__ import annotations
@@ -19,7 +31,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -32,36 +44,72 @@ from de4sdv.sysml_api.revisions import RevisionBinding  # noqa: E402
 
 SCHEMA = "de4sdv-reimport-correspondence/v1"
 
+#: The persistent-identity mechanism: the model-authored declared short name
+#: (the same stable explicit identity the pilot contract selects subjects by).
+PERSISTENT_IDENTITY_FIELD = "declaredShortName"
 
-def _explicit_key(element: dict[str, Any]) -> str | None:
-    short = str(element.get("declaredShortName") or "").strip()
-    if short:
-        return short
-    name = str(element.get("declaredName") or "").strip()
-    return name or None
+#: Identities the Lane B pilot contract requires in every candidate revision.
+REQUIRED_PILOT_IDENTITIES: tuple[str, ...] = (
+    "VC-AEBS-009D-DE",
+    "VC-AEBS-009D-01",
+    "VC-AEBS-009D-02",
+    "VC-AEBS-009D-03",
+    "VC-AEBS-009D-04",
+    "VC-AEBS-009D-05",
+    "VC-AEBS-009D-06",
+    "EC-009D-01",
+    "EC-009D-02",
+    "EC-009D-03",
+    "PSC-009D",
+)
+
+
+def _persistent_key(element: dict[str, Any]) -> str | None:
+    """The element's persistent explicit identity, or None.
+
+    ``declaredShortName`` only — deliberately NO ``declaredName`` fallback:
+    names must never establish identity across transactions.
+    """
+    short = str(element.get(PERSISTENT_IDENTITY_FIELD) or "").strip()
+    return short or None
 
 
 def _inventory(
     elements: list[dict[str, Any]],
-) -> tuple[dict[str, dict[str, Any]], list[str]]:
-    """Explicit-identity inventory; duplicates are a fail-closed condition."""
+) -> tuple[dict[str, dict[str, Any]], list[str], int]:
+    """Persistent-identity inventory.
+
+    Returns (inventory, duplicate keys, count of elements without a persistent
+    identity). Duplicate persistent identities are a fail-closed condition;
+    an element without a persistent identity is excluded from the global
+    correspondence key-space and is never recovered by name.
+    """
     inventory: dict[str, dict[str, Any]] = {}
     duplicates: list[str] = []
+    without_identity = 0
     for element in elements:
-        key = _explicit_key(element)
+        key = _persistent_key(element)
         if key is None:
+            without_identity += 1
             continue
         if key in inventory:
             duplicates.append(key)
             continue
         inventory[key] = element
-    return inventory, sorted(set(duplicates))
+    return inventory, sorted(set(duplicates)), without_identity
 
 
 def _edge_signature(
-    graph, key: str, element: dict[str, Any], inventory: dict[str, dict[str, Any]]
+    graph, element: dict[str, Any], inventory: dict[str, dict[str, Any]]
 ) -> list[list[str]]:
-    """Relationship signature in explicit-identity space."""
+    """Semantic relationship signature in persistent-identity space.
+
+    Each row is [relationship kind, provenance, endpoint metaclass,
+    endpoint persistent identity or "<anonymous>"]. Anonymous serializer
+    witness targets are matched structurally (kind + metaclass + provenance
+    + path position via multiset) inside this already-corresponded witness
+    path; they are never merged globally by name.
+    """
     reverse = {
         str(item["@id"]): item_key
         for item_key, item in inventory.items()
@@ -71,9 +119,16 @@ def _edge_signature(
     signature = []
     for hop in graph.outgoing(element_id_value):
         target_key = reverse.get(hop.target)
-        if target_key is None:
-            continue
-        signature.append([hop.kind, target_key])
+        target_element = graph.element(hop.target) or {}
+        target_metaclass = str(target_element.get("@type") or "")
+        signature.append(
+            [
+                hop.kind,
+                hop.provenance,
+                target_metaclass,
+                target_key if target_key is not None else "<anonymous>",
+            ]
+        )
     return sorted(signature)
 
 
@@ -83,6 +138,7 @@ def verify(
     binding_b_path: Path,
     label_a: str = "transaction-a",
     label_b: str = "transaction-b",
+    required_identities: Iterable[str] = REQUIRED_PILOT_IDENTITIES,
 ) -> dict[str, Any]:
     binding_a = RevisionBinding.from_dict(json.loads(binding_a_path.read_text()))
     binding_b = RevisionBinding.from_dict(json.loads(binding_b_path.read_text()))
@@ -105,27 +161,49 @@ def verify(
             "both bindings reference the same API commit: not independent transactions"
         )
 
-    inventory_a, duplicates_a = _inventory(elements_a)
-    inventory_b, duplicates_b = _inventory(elements_b)
+    inventory_a, duplicates_a, anonymous_a = _inventory(elements_a)
+    inventory_b, duplicates_b, anonymous_b = _inventory(elements_b)
     for key in duplicates_a:
-        failures.append(f"{label_a}: duplicate explicit identity {key!r}")
+        failures.append(
+            f"{label_a}: duplicate persistent identity {key!r} "
+            "(no name-based fallback is attempted)"
+        )
     for key in duplicates_b:
-        failures.append(f"{label_b}: duplicate explicit identity {key!r}")
+        failures.append(
+            f"{label_b}: duplicate persistent identity {key!r} "
+            "(no name-based fallback is attempted)"
+        )
 
     graph_a = build_relationship_graph(elements_a)
     graph_b = build_relationship_graph(elements_b)
 
+    required = sorted(set(required_identities))
+    missing_required_a = sorted(set(required) - set(inventory_a))
+    missing_required_b = sorted(set(required) - set(inventory_b))
+    for key in missing_required_a:
+        failures.append(
+            f"required pilot identity {key!r} has no persistent identity in {label_a}"
+        )
+    for key in missing_required_b:
+        failures.append(
+            f"required pilot identity {key!r} has no persistent identity in {label_b}"
+        )
+
+    # Global correspondence key-space: persistent identities only. Elements
+    # without a persistent identity are never matched by name (they may only
+    # participate structurally inside an already-corresponded witness path).
     only_a = sorted(set(inventory_a) - set(inventory_b))
     only_b = sorted(set(inventory_b) - set(inventory_a))
     for key in only_a:
-        failures.append(f"identity present only in {label_a}: {key!r}")
+        failures.append(f"persistent identity present only in {label_a}: {key!r}")
     for key in only_b:
-        failures.append(f"identity present only in {label_b}: {key!r}")
+        failures.append(f"persistent identity present only in {label_b}: {key!r}")
 
     per_identity: list[dict[str, Any]] = []
     uuid_equal = 0
     uuid_differing = 0
     relationship_mismatches: list[str] = []
+    name_attribute_mismatches: list[str] = []
     for key in sorted(set(inventory_a) & set(inventory_b)):
         element_a = inventory_a[key]
         element_b = inventory_b[key]
@@ -134,13 +212,15 @@ def verify(
         equal = bool(uuid_a) and uuid_a == uuid_b
         uuid_equal += int(equal)
         uuid_differing += int(not equal)
+        # Names are attributes, compared only AFTER identity is established.
         name_a = str(element_a.get("declaredName") or "")
         name_b = str(element_b.get("declaredName") or "")
         metaclass_a = str(element_a.get("@type") or "")
         metaclass_b = str(element_b.get("@type") or "")
         if name_a != name_b:
+            name_attribute_mismatches.append(key)
             failures.append(
-                f"{key!r}: declared name differs across transactions "
+                f"{key!r}: declared-name attribute differs across transactions "
                 f"({label_a}={name_a!r}, {label_b}={name_b!r})"
             )
         if metaclass_a != metaclass_b:
@@ -148,23 +228,27 @@ def verify(
                 f"{key!r}: API metaclass differs across transactions "
                 f"({label_a}={metaclass_a!r}, {label_b}={metaclass_b!r})"
             )
-        signature_a = _edge_signature(graph_a, key, element_a, inventory_a)
-        signature_b = _edge_signature(graph_b, key, element_b, inventory_b)
+        signature_a = _edge_signature(graph_a, element_a, inventory_a)
+        signature_b = _edge_signature(graph_b, element_b, inventory_b)
         relationships_match = signature_a == signature_b
         if not relationships_match:
             relationship_mismatches.append(key)
             failures.append(
-                f"{key!r}: semantic relationships differ across transactions"
+                f"{key!r}: semantic relationship structure differs across transactions"
             )
         per_identity.append(
             {
                 "identity": key,
-                "declared_name": name_a,
+                "identity_mechanism": PERSISTENT_IDENTITY_FIELD,
+                "declared_name_attribute": name_a,
                 "metaclass": metaclass_a,
                 "uuid_by_transaction": {label_a: uuid_a, label_b: uuid_b},
                 "uuid_equal": equal,
                 "relationships_match": relationships_match,
                 "relationship_count": len(signature_a),
+                "anonymous_witness_targets": sum(
+                    1 for row in signature_a if row[3] == "<anonymous>"
+                ),
             }
         )
 
@@ -173,10 +257,23 @@ def verify(
         "passed": not failures,
         "failures": failures,
         "correspondence": {
-            "method": "explicit-identity-v1",
+            "method": "persistent-explicit-identity-v1",
+            "persistent_identity_field": PERSISTENT_IDENTITY_FIELD,
+            "name_based_correspondence_used": False,
+            "declared_name_used_as_identity_key": False,
+            "declared_name_role": (
+                "attribute comparison only, after identity is established; "
+                "names never establish identity and are never a fallback key"
+            ),
             "uuid_reuse_assumed": False,
             "uuid_equality_required": False,
-            "name_merge_used": False,
+            "anonymous_witness_policy": (
+                "serializer-internal objects without a persistent identity are "
+                "excluded from the global correspondence key-space and are "
+                "matched structurally (relationship kind, endpoint metaclass, "
+                "provenance, multiset position) inside an already-corresponded "
+                "witness path only"
+            ),
         },
         "transactions": {
             label_a: {
@@ -186,7 +283,8 @@ def verify(
                 "scope": binding_a.scope,
                 "import_timestamp": binding_a.import_timestamp,
                 "element_count": len(elements_a),
-                "explicit_identity_count": len(inventory_a),
+                "persistent_identity_count": len(inventory_a),
+                "elements_without_persistent_identity": anonymous_a,
             },
             label_b: {
                 "api_project_id": binding_b.sysml_project_id,
@@ -195,7 +293,8 @@ def verify(
                 "scope": binding_b.scope,
                 "import_timestamp": binding_b.import_timestamp,
                 "element_count": len(elements_b),
-                "explicit_identity_count": len(inventory_b),
+                "persistent_identity_count": len(inventory_b),
+                "elements_without_persistent_identity": anonymous_b,
             },
         },
         "uuid_attribution": {
@@ -203,11 +302,25 @@ def verify(
             "differing_uuids": uuid_differing,
             "note": (
                 "UUID equality is reported, never required. Correspondence was "
-                "established from explicit identities and relationship "
-                "structure; each UUID above is attributed to its transaction."
+                "established from persistent explicit identities and "
+                "relationship structure; each UUID above is attributed to its "
+                "transaction and no UUID-stability assumption is made."
             ),
         },
+        "required_identities": {
+            "count": len(required),
+            "missing_in_" + label_a: missing_required_a,
+            "missing_in_" + label_b: missing_required_b,
+        },
         "identities_compared": len(per_identity),
+        "identities_compared_list": [row["identity"] for row in per_identity],
+        "semantic_witness_equivalence": {
+            "compared": len(per_identity),
+            "matched": len(per_identity) - len(relationship_mismatches),
+            "mismatched": len(relationship_mismatches),
+            "mismatched_identities": relationship_mismatches,
+        },
+        "name_attribute_mismatches": name_attribute_mismatches,
         "relationship_mismatches": relationship_mismatches,
         "per_identity": per_identity,
         "source_commit_agreement": binding_a.git_commit == binding_b.git_commit,
@@ -245,9 +358,11 @@ def main() -> int:
         print(json.dumps(report, indent=2))
         return 1
     print(
-        f"correspondence verified across {report['identities_compared']} explicit "
-        f"identities ({report['uuid_attribution']['identical_uuids']} identical "
-        f"UUIDs, {report['uuid_attribution']['differing_uuids']} differing)"
+        f"persistent-identity correspondence verified across "
+        f"{report['identities_compared']} identities "
+        f"({report['uuid_attribution']['identical_uuids']} identical UUIDs, "
+        f"{report['uuid_attribution']['differing_uuids']} differing; "
+        f"name-based correspondence used: false)"
     )
     return 0
 
