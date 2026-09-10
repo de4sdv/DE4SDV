@@ -162,5 +162,18 @@
     "verification": "full pytest suite 1016 passed / 4 skipped / 137 subtests @ exact head; check_repo pass; smoke pass; git diff --check clean",
     "exit_gate": "A gate satisfied: all MC outcomes/owners defined; pilot scope + acceptance authority identified; implementation deliberately excluded"
   },
-  "vv_review": "see vv-review-findings.md: 2 delegated reviewers timed out; scripted cross-checks all pass; R0 = COMPLETE-PENDING-INDEPENDENT-REVIEW"
+  "vv_review": "see vv-review-findings.md: 2 delegated reviewers timed out; scripted cross-checks all pass; R0 = COMPLETE-PENDING-INDEPENDENT-REVIEW",
+  "human_review": {
+    "findings": "R1-R6 accepted in full",
+    "r1_r4": "fixed on PR #239 (70f3498, 725388c); mutation probes verified against committed state",
+    "r5_r6": "fixed in R0 package (inventory target_authority; identity-ambiguity rule)",
+    "durable_record": "docs/method-conformance/r0-handoff/ on PR #239 (6fe333d)",
+    "r0_status": "repaired and submitted for acceptance together with PR #239 (A contract before B implementation)",
+    "continuation_orders": [
+      "B real API proof before C evaluator",
+      "K/B prep in parallel",
+      "privileged run against prepared K/B candidate (model first)",
+      "PLE-Q preparation continues"
+    ]
+  }
 }
