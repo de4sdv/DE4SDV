@@ -248,6 +248,7 @@ FREE_FORM_PREFIXES = {
     "LCOMP",  # logical component (pilot index)
     "LPORT",  # logical port (pilot index)
     "MAP",  # signal mapping record (pilot index)
+    "MC",  # method-conformance matrix case (frozen conformance specification)
     "MODEL",  # model artifact index entry (pilot index)
     "PL",  # product line (feature-model root)
     "PORT",  # port (pilot index)
