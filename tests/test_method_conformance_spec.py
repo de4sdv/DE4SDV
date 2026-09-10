@@ -375,6 +375,95 @@ def test_pilot_selectors_declare_pinned_subject_sets() -> None:
         )
 
 
+def test_reason_legality_per_row_is_pinned() -> None:
+    """R3-M3 probe: which codes are REQUIRED/LEGAL per compatibility row is
+    pinned exactly — replacing the FAIL row's required set with a wrong code
+    must fail (set membership, not wording)."""
+    import yaml as _yaml
+
+    spec = _yaml.safe_load((DOCS / "pilot-obligations.yaml").read_text(encoding="utf-8"))
+    text = (DOCS / "result-algebra.md").read_text(encoding="utf-8")
+    rows = _compat_table_rows(text)
+    by_state = {(r[0], r[1], r[2]): r[3] for r in rows}
+
+    for row in spec["compatibility_table"]:
+        state = tuple("null" if v is None else v for v in row["state"])
+        assert state in by_state, f"structured row {state} missing from markdown table"
+        md_cell = by_state[state]
+        if row.get("required") == []:
+            assert md_cell == "`[]`", f"{state}: expected empty required set, md says {md_cell}"
+            continue
+        # Required set: every pinned required code must appear in the md cell.
+        required = row.get("required_any_of") or row.get("required_exactly_one_of") or []
+        for code in required:
+            assert code in md_cell, f"{state}: pinned required code {code} missing from md: {md_cell}"
+        # And nothing beyond the pinned set: extract code-shaped tokens from md.
+        codes_in_md = {
+            tok for tok in _NON_REASON_UPPER.__class__(
+                re.findall(r"[A-Z][A-Z_]{3,}", md_cell)
+            )
+            if tok not in _NON_REASON_UPPER | {"PERMITTED_EMPTY"}
+        }
+        allowed = set(required) | set(row.get("forbidden", []))
+        unexpected = codes_in_md - allowed
+        assert not unexpected, (
+            f"{state}: md cell names codes outside the pinned set: {unexpected} (cell: {md_cell})"
+        )
+        # Forbidden codes must appear only in the NOT-permitted diagnostics cell (column 5), never in column 4.
+        for code in row.get("forbidden", []):
+            assert code not in md_cell, f"{state}: forbidden code {code} appears in required-content cell"
+
+
+def test_yaml_required_and_applicability_match_markdown() -> None:
+    """R3 probe: YAML required:true->false or invented applicability must fail —
+    the structured twin's required and applicability fields are compared
+    against the markdown table."""
+    text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
+    rows = _pilot_table_rows(text)
+    spec = _load_pilot_yaml()
+    assert len(rows) == len(spec["obligations"]) == 11
+    for md_row, y in zip(rows, spec["obligations"]):
+        assert md_row[1].strip("`") == y["id"]
+        # requiredness
+        md_required = md_row[9] == "required"
+        assert md_required == bool(y["required"]), (
+            f"{y['id']}: requiredness drift md={md_required} yaml={y['required']}"
+        )
+        # applicability: normalized (all separators stripped) yaml value must
+        # appear in the normalized md applicability cell
+        norm = lambda s: "".join(c for c in s.lower() if c.isalnum())
+        md_app = norm(md_row[4])
+        y_app = norm(y["applicability"])
+        assert y_app in md_app, (
+            f"{y['id']}: invented/changed applicability detected: yaml={y['applicability']!r} md={md_row[4]!r}"
+        )
+
+
+def test_expected_disposition_mapping_is_exact() -> None:
+    """R3 probe: enum membership is insufficient — the exact per-profile
+    expected-disposition MAPPING is pinned (a valid-but-wrong mapping must
+    fail)."""
+    import yaml as _yaml
+
+    spec = _yaml.safe_load((DOCS / "pilot-obligations.yaml").read_text(encoding="utf-8"))
+    text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
+    # The markdown row 9 must enumerate each profile->disposition pair exactly.
+    rows = _pilot_table_rows(text)
+    md_row9 = next(r for r in rows if r[1].strip("`") == "PC-009D-EXECUTION-OUTCOME")
+    for profile, disp in spec["expected_dispositions"].items():
+        pair = f"{profile}\u2192`{disp}`"
+        assert pair in md_row9[6], (
+            f"expected-disposition mapping drift: {pair} not pinned in markdown: {md_row9[6][:120]}"
+        )
+    # And no extra pairs: count arrows in the cell.
+    import re as _re
+
+    pairs = _re.findall(r"([a-z_]+)\u2192`([a-z_]+)`", md_row9[6])
+    assert len(pairs) == len(spec["expected_dispositions"]) == 6, (
+        f"markdown disposition mapping count drift: {pairs}"
+    )
+
+
 def test_pilot_population_is_per_subject() -> None:
     """R2c regression guard: execution/acceptance obligations count targets per
     profile subject ([1..1] each), never a global [6..6] count over six

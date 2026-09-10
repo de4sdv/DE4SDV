@@ -42,7 +42,7 @@ obligations:
 - id: PC-009D-SCOPE-POPULATION
   subject_selector: declared-pilot-scope
   subjects: 1
-  applicability: candidate-declares-scope
+  applicability: candidate revision declares the INC-AEBS-009D pilot scope
   predicate: scope-composition
   subject_type: the declared pilot scope itself
   target_type: VerificationCaseUsage
@@ -55,7 +55,7 @@ obligations:
 - id: PC-009D-VC-BINDING
   subject_selector: scope usages
   subjects: 6
-  applicability: binding-resolved
+  applicability: candidate revision declares the INC-AEBS-009D pilot scope
   predicate: binding-resolution
   subject_type: VerificationCaseUsage
   target_type: API element
@@ -69,7 +69,7 @@ obligations:
 - id: PC-009D-SUBJECT-MEMBERSHIP
   subject_selector: scope usages
   subjects: 6
-  applicability: binding-resolved
+  applicability: (no applicability condition)
   predicate: verification-subject-membership
   subject_type: VerificationCaseUsage
   target_type: OverrideMatrixBench
@@ -83,7 +83,7 @@ obligations:
 - id: PC-009D-OBJECTIVE-CONTRACTS
   subject_selector: scope usages
   subjects: 6
-  applicability: binding-resolved
+  applicability: (no applicability condition)
   predicate: verifiedBy-reverse-witness
   subject_type: VerificationCaseUsage
   target_type: requirement usages
@@ -97,7 +97,7 @@ obligations:
 - id: PC-009D-USAGE-METHOD-METADATA
   subject_selector: scope usages
   subjects: 6
-  applicability: binding-resolved
+  applicability: (no applicability condition)
   predicate: verification-method-metadata
   subject_type: VerificationCaseUsage
   target_type: '@VerificationMethod'
@@ -111,7 +111,7 @@ obligations:
 - id: PC-009D-DEFINITION-METHOD-METADATA
   subject_selector: ConsciousOverrideVerification
   subjects: 1
-  applicability: definition-bound
+  applicability: (no applicability condition)
   predicate: verification-method-metadata
   subject_type: VerificationCaseDefinition
   target_type: '@VerificationMethod'
@@ -125,7 +125,7 @@ obligations:
 - id: PC-009D-PROFILE-POPULATION
   subject_selector: declared-tested-scope
   subjects: 1
-  applicability: candidate-declares-tested-scope
+  applicability: candidate declares the INC-AEBS-009D tested-scope manifest
   predicate: scope-composition
   subject_type: the declared tested scope
   target_type: OverrideScenario
@@ -138,7 +138,7 @@ obligations:
 - id: PC-009D-EXECUTION-RECORD
   subject_selector: declared profiles
   subjects: 6
-  applicability: profile-in-declared-scope
+  applicability: (no applicability condition)
   predicate: external-evidence-reference
   subject_type: each profile
   target_type: campaign-manifest.json
@@ -151,7 +151,7 @@ obligations:
 - id: PC-009D-EXECUTION-OUTCOME
   subject_selector: canonical records
   subjects: 6
-  applicability: record-resolved
+  applicability: (no applicability condition)
   predicate: execution-outcome
   subject_type: canonical record
   target_type: evaluation.passed
@@ -165,7 +165,7 @@ obligations:
 - id: PC-009D-SCOPE-EQUALITY
   subject_selector: canonical records
   subjects: 6
-  applicability: record-resolved
+  applicability: (no applicability condition)
   predicate: conservative-scope-equality
   subject_type: canonical record
   target_type: provenance
@@ -181,7 +181,7 @@ obligations:
 - id: PC-009D-ACCEPTANCE-AUTHORITY
   subject_selector: canonical records
   subjects: 6
-  applicability: record-resolved
+  applicability: (no applicability condition)
   predicate: acceptance-record-match
   subject_type: canonical record
   target_type: acceptance-policy.md
@@ -194,3 +194,65 @@ obligations:
   fail_reason: ACCEPTANCE_AUTHORITY_MISSING
   indeterminate_reason: ACCEPTANCE_AUTHORITY_MISSING
   policy: de4sdv.acceptance.maintainer-decision.v1
+compatibility_table:
+- state:
+  - ASSESSED
+  - COMPLETE
+  - PASS
+  required: []
+  permitted_diagnostics: []
+- state:
+  - ASSESSED
+  - COMPLETE
+  - FAIL
+  required_any_of:
+  - REQUIRED_RELATION_MISSING
+  - EXECUTION_FAILED
+  - EVIDENCE_SCOPE_MISMATCH
+  - ACCEPTANCE_AUTHORITY_MISSING
+  - POPULATION_POLICY_VIOLATION
+  permitted_diagnostics: []
+- state:
+  - ASSESSED
+  - COMPLETE
+  - NOT_APPLICABLE
+  required_exactly_one_of:
+  - NOT_APPLICABLE_REASON
+  permitted_diagnostics: []
+- state:
+  - ASSESSED
+  - INDETERMINATE
+  - null
+  required_any_of:
+  - APPLICABILITY_UNRESOLVED
+  - INPUT_UNAVAILABLE
+  - ACCEPTANCE_AUTHORITY_MISSING
+  permitted_diagnostics: []
+  forbidden:
+  - OUTSIDE_REQUESTED_SCOPE
+  - NOT_ATTEMPTED
+  - CONTRACT_UNAVAILABLE
+  - STALE_INPUT
+- state:
+  - ASSESSED
+  - ERROR
+  - null
+  required_any_of:
+  - INVALID_CONTRACT
+  - BINDING_MISMATCH
+  - SCOPE_RESOLUTION_ERROR
+  - EVALUATOR_FAILURE
+  permitted_diagnostics: []
+  forbidden:
+  - INPUT_UNAVAILABLE
+- state:
+  - UNASSESSED
+  - null
+  - null
+  required_any_of:
+  - CONTRACT_UNAVAILABLE
+  - OUTSIDE_REQUESTED_SCOPE
+  - NOT_ATTEMPTED
+  permitted_diagnostics: []
+  forbidden:
+  - STALE_INPUT
