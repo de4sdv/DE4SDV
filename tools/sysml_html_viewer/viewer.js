@@ -641,15 +641,11 @@
       // The FAB is the single Guide entry point: hidden only while the
       // Guide panel itself is open.
       fab.style.display = guideOpen ? 'none' : '';
-      // When Ask is open (or minimized to its chip), the FAB must not sit
-      // under the Ask panel/chip: shift it left of Ask's footprint.
-      fab.classList.toggle('shifted', askOpen || chatAskMinimized());
     }
     var askChip = document.getElementById('askMinChip');
     if (askChip) {
       askChip.style.display =
         (!askOpen && chatAskMinimized()) ? 'inline-flex' : 'none';
-      askChip.classList.toggle('shifted', guideOpen);
     }
   }
 
