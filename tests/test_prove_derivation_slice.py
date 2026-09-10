@@ -97,8 +97,8 @@ def _good_edges() -> dict:
     for name, source in pairs.items():
         witness = {
             "connection_id": f"conn-{name}",
-            "library_definition": "DerivationConnections::Derivation",
-            "original_requirement_end_id": [needs[name]],
+            "connection_definition": "DerivesFromNeed",
+            "need_end_id": [needs[name]],
             "derived_requirement_end_id": [source],
         }
         cases[(source, proof.FORWARD_PREDICATE)] = [
@@ -188,7 +188,7 @@ def test_incomplete_witness_fails(tmp_path: Path) -> None:
     edges = _good_edges()
     edges[("uuid-brake", proof.FORWARD_PREDICATE)][0]["witness"] = {
         "connection_id": "conn-reqCommandEmergencyBraking",
-        "library_definition": "DerivationConnections::Derivation",
+        "connection_definition": "DerivesFromNeed",
     }
     rc, payload = _run(FakeService(edges=edges, gaps={}), tmp_path)
     assert rc == 1

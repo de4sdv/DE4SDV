@@ -1,8 +1,8 @@
 """Tests for the v1.1 reconciliation: native Derivation connection representation.
 
 The predicate is carried by a ConnectionUsage typed by the pinned library's
-DerivationConnections::Derivation definition. Ends are identified by role:
-originalRequirements (the Need side) vs derivedRequirements (the derived
+DerivesFromNeed application definition. Ends are identified by role:
+need (the Need side) vs derivedRequirement (the derived
 Requirement side). DE4SDV's Requirement -> Need query is inverse navigation
 over the same witness. All fail-closed contracts from the R1-R5 repair are
 preserved.
@@ -56,8 +56,8 @@ def _binding_entry(ontology_class, element_id, declaration):
 def _default_binding_entries() -> list:
     return [
         _binding_entry(
-            "DerivationConnections::Derivation", DEF_DERIV_ID,
-            "connection def Derivation",
+            "DerivesFromNeed", DEF_DERIV_ID,
+            "connection def DerivesFromNeed",
         ),
         _binding_entry(
             "Requirement", REQ_DEF_ID,
@@ -177,22 +177,40 @@ def _end_derived() -> dict:
 
 
 def _definition_library_elements() -> list:
-    """Library definition grounding: Derivation definition + its end features."""
+    """Model-resident authority: DerivesFromNeed definition with typed ends
+    (need : StakeholderNeedCandidate, derivedRequirement : RequirementCandidate)
+    and the role-binding/claim-boundary doc."""
     return [
         {
             "@id": DEF_DERIV_ID,
             "@type": "ConnectionDefinition",
-            "declaredName": "Derivation",
+            "declaredName": "DerivesFromNeed",
+            "ownedMember": [
+                {"@id": "def-end-need"},
+                {"@id": "def-end-derived"},
+            ],
+            "documentation": [{"@id": "def-doc"}],
         },
         {
-            "@id": "lib-end-orig",
-            "@type": "Feature",
-            "declaredName": "originalRequirements",
+            "@id": "def-end-need",
+            "@type": "ReferenceUsage",
+            "declaredName": "need",
+            "variant": {"@id": NEED_DEF_ID},
         },
         {
-            "@id": "lib-end-deriv",
-            "@type": "Feature",
-            "declaredName": "derivedRequirements",
+            "@id": "def-end-derived",
+            "@type": "ReferenceUsage",
+            "declaredName": "derivedRequirement",
+            "variant": {"@id": REQ_DEF_ID},
+        },
+        {
+            "@id": "def-doc",
+            "@type": "Documentation",
+            "body": "Design-input provenance: the derivedRequirement "
+            "originates from the stakeholder need. Provenance/traceability "
+            "semantics only: neither satisfaction nor logical implication "
+            "between the connected usages is claimed; verification, "
+            "evidence, and acceptance claims are out of scope.",
         },
     ]
 
@@ -216,12 +234,9 @@ def test_ontology_declares_native_derivation_connection_strategy() -> None:
     mapping = _contract().relationship_mapping("derivesRequirementFromNeed")
     assert mapping.strategy == "derivation-connection"
     assert mapping.semantic_strength == "derivation"
-    assert (
-        mapping.configuration["native_library_definition"]
-        == "DerivationConnections::Derivation"
-    )
+    assert mapping.configuration["connection_definition"] == "DerivesFromNeed"
     # Canonical DE4SDV query: Requirement -> Need = inverse of the native
-    # originalRequirement -> derivedRequirements direction.
+    # need -> derivedRequirement direction.
     assert mapping.configuration["query_direction"] == "inverse"
 
 
@@ -234,8 +249,9 @@ def test_derivation_traversal_returns_requirement_to_need_edge() -> None:
     hop = hops[0]
     assert hop.target["@id"] == NEED_ID
     assert hop.api_object["@id"] == CONN_ID
-    # Witness carries the native end-role identities.
-    assert hop.witness["original_requirement_end_id"] == [NEED_ID]
+    # Witness carries the model-native end-role identities.
+    assert hop.witness["connection_definition"] == "DerivesFromNeed"
+    assert hop.witness["need_end_id"] == [NEED_ID]
     assert hop.witness["derived_requirement_end_id"] == [REQ_ID]
 
 

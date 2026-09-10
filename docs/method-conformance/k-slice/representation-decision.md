@@ -1,6 +1,7 @@
 # K slice: representation decision for `derivesRequirementFromNeed`
 
-> **STATUS: SUPERSEDED by [v11-reconciliation.md](v11-reconciliation.md)
+> **STATUS: SUPERSEDED by [v11-reconciliation.md](v11-reconciliation.md),
+> itself superseded by [v11-final-decision.md](v11-final-decision.md)
 > (plan v1.1, 2026-09-10).** The SemanticMetadata marker below was withdrawn:
 > plan v1.1's normative restriction (and SysML v2 §7.27.3) requires
 > SemanticMetadata annotated elements to be Types with a bound baseType — a

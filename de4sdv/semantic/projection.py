@@ -1,13 +1,19 @@
 """DE4SDV Semantic Projection v0 and API Representation Profile v0 (K slice).
 
 The projection is a consumer-facing, revision-bound artifact generated for
-the one-predicate K slice. During the O0/O1 migration stages the executable
-meaning of the predicate lives in the reviewed ontology/kernel contract
-(``de4sdv-basic-ontology.yaml``); the projection is generated FROM that
-contract identity plus the ingestion-validated model groundings and is
-therefore a projection, not an independent semantic authority. It may not
-define serializer property paths, runtime dispatch, importer quirks, or
-transport behavior — those live in the representation profile.
+the one-predicate K slice. Its semantic fields are derived from the
+VALIDATED MODEL representation (plan v1.1 §16 final decision): the
+application connection definition ``DerivesFromNeed`` is an ontology-mapped
+kernel declaration whose typed ends (``need : StakeholderNeedCandidate``,
+``derivedRequirement : RequirementCandidate``) carry the predicate's
+domain, range, and direction in the model itself; the kernel role-binding
+contract (connection definition + end types + role-binding doc) carries the
+meaning and claim boundary. The authored ontology YAML is loaded ONLY as
+the O0/O1 parity oracle: it is compared against the model-derived fields
+and any unintended drift fails generation — it never supplies a semantic
+field. The projection may not define serializer property paths, runtime
+dispatch, importer quirks, or transport behavior — those live in the
+representation profile.
 
 Every generated artifact binds:
 
@@ -15,8 +21,8 @@ Every generated artifact binds:
   must be provided by the caller from a validated revision binding — the
   builders never invent or accept unverified revision labels; and
 - the ontology contract identity (path + SHA-256) whose digest is recomputed
-  from the actual contract file at generation time, so a projection cannot
-  be produced against contract content other than what was validated.
+  from the actual contract file at generation time, recording exactly which
+  oracle text the parity check compared against.
 
 v0 covers exactly one predicate (``derivesRequirementFromNeed``); this module
 deliberately does not generalize the schema (plan §8.1).
@@ -36,6 +42,23 @@ PROFILE_IDENTITY = "de4sdv.api-representation-profile.v0#derivesRequirementFromN
 CONTRACT_REPOSITORY_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 
 _PREDICATE = "derivesRequirementFromNeed"
+
+# Model-resident authority for the K predicate (plan v1.1 §16): the
+# application connection definition and its typed end roles.
+_CONNECTION_DEFINITION = "DerivesFromNeed"
+_NEED_ROLE = "need"
+_REQUIREMENT_ROLE = "derivedRequirement"
+
+# Role-binding contract carried in the kernel definition's doc (validated
+# model text). The projection compares the ingested documentation of the
+# bound definition against this contract; a missing or divergent role
+# binding fails generation — the runtime never inherits meaning from an
+# unreviewed doc edit.
+_CLAIM_BOUNDARY = (
+    "Design-input provenance only: neither satisfaction nor logical "
+    "implication between the connected usages is claimed; verification, "
+    "evidence, and acceptance claims are out of scope."
+)
 
 
 @dataclass(frozen=True)
@@ -101,6 +124,174 @@ def _support_state(
     return "vocabulary-only"
 
 
+def _model_derived_semantics(
+    definition_id: str,
+    by_id: dict[str, dict[str, Any]],
+    contract: Any,
+) -> dict[str, Any]:
+    """Derive the predicate's semantic fields from the validated model.
+
+    Authority chain (plan v1.1 §16): the application connection definition
+    ``DerivesFromNeed`` carries the predicate. Identity comes from the
+    ingestion-validated kernel binding (no name fallback); the typed end
+    declarations on the definition element carry domain/range/roles; the
+    definition's ingested documentation carries the meaning and claim
+    boundary. The ontology YAML is consulted ONLY as the parity oracle and
+    compared against these model-derived fields.
+    """
+    definition = by_id.get(definition_id)
+    if definition is None:
+        raise ValueError(
+            "model authority missing: the validated DerivesFromNeed "
+            "definition is not present in the bound revision"
+        )
+
+    # Model-resident end types: the definition's owned end features.
+    # A connection definition's ends appear as owned features (reference
+    # usages); their types are the model-resident domain/range carrier.
+    need_type: str | None = None
+    requirement_type: str | None = None
+    for member_id in _reference_ids(definition.get("ownedMember")) or []:
+        member = by_id.get(member_id, {})
+        end_name = str(member.get("declaredName") or "")
+        end_type = _first_reference_name(member.get("variant"), by_id)
+        if end_name == _NEED_ROLE and end_type:
+            need_type = end_type
+        elif end_name == _REQUIREMENT_ROLE and end_type:
+            requirement_type = end_type
+    if need_type is None or requirement_type is None:
+        raise ValueError(
+            "model authority incomplete: the validated DerivesFromNeed "
+            "definition does not expose typed `need` and "
+            "`derivedRequirement` ends; the model does not carry the "
+            "predicate's domain/range"
+        )
+
+    # Model-resident meaning: the definition's ingested documentation.
+    documentation = _definition_documentation(definition, by_id)
+    claim_boundary = _CLAIM_BOUNDARY
+    for line in documentation:
+        if "neither satisfaction nor logical implication" in line:
+            claim_boundary = line.strip()
+            break
+    else:
+        raise ValueError(
+            "model authority incomplete: the validated DerivesFromNeed "
+            "definition carries no role-binding/claim-boundary doc; the "
+            "model does not state the predicate's claim boundary"
+        )
+    meaning = documentation[0].strip() if documentation else claim_boundary
+
+    # Parity oracle (NOT authority): compare the model-derived fields with
+    # the authored ontology YAML; unintended drift fails generation.
+    oracle = contract.relationship_mapping(_PREDICATE)
+    oracle_config = oracle.configuration
+    drift: list[str] = []
+    if str(oracle_config.get("connection_definition", "")) != _CONNECTION_DEFINITION:
+        drift.append(
+            f"oracle connection_definition "
+            f"{oracle_config.get('connection_definition')!r} != model "
+            f"{_CONNECTION_DEFINITION!r}"
+        )
+    if str(oracle_config.get("need_role", "")) != _NEED_ROLE:
+        drift.append(
+            f"oracle need_role {oracle_config.get('need_role')!r} != model "
+            f"{_NEED_ROLE!r}"
+        )
+    if str(oracle_config.get("requirement_role", "")) != _REQUIREMENT_ROLE:
+        drift.append(
+            f"oracle requirement_role "
+            f"{oracle_config.get('requirement_role')!r} != model "
+            f"{_REQUIREMENT_ROLE!r}"
+        )
+    oracle_need_type = str(
+        contract.classes.get("Need", {}).get("kernel", {}).get("declaration", "")
+    ).partition(" def ")[2]
+    oracle_requirement_type = str(
+        contract.classes.get("Requirement", {})
+        .get("kernel", {})
+        .get("declaration", "")
+    ).partition(" def ")[2]
+    if need_type != oracle_need_type:
+        drift.append(
+            f"model need end type {need_type!r} != oracle Need kernel "
+            f"declaration {oracle_need_type!r}"
+        )
+    if requirement_type != oracle_requirement_type:
+        drift.append(
+            f"model derivedRequirement end type {requirement_type!r} != "
+            f"oracle Requirement kernel declaration {oracle_requirement_type!r}"
+        )
+    if oracle.semantic_strength != "derivation":
+        drift.append(
+            f"oracle semantic_strength {oracle.semantic_strength!r} != "
+            f"model claim 'derivation' (provenance only)"
+        )
+    if drift:
+        raise ValueError(
+            "ontology parity oracle drift for " + _PREDICATE + ": "
+            + "; ".join(drift)
+        )
+
+    return {
+        "definition": _CONNECTION_DEFINITION,
+        "definition_id": definition_id,
+        "need_role": _NEED_ROLE,
+        "requirement_role": _REQUIREMENT_ROLE,
+        "need_end_type": need_type,
+        "requirement_end_type": requirement_type,
+        "meaning": meaning,
+        "claim_boundary": claim_boundary,
+        "authority_provenance": (
+            "ingestion-validated DerivesFromNeed definition: typed ends "
+            "carry domain/range; ingested definition doc carries meaning "
+            "and claim boundary; ontology YAML compared as O0/O1 parity "
+            "oracle only"
+        ),
+    }
+
+
+def _definition_documentation(
+    definition: dict[str, Any], by_id: dict[str, dict[str, Any]]
+) -> list[str]:
+    """Ingested documentation of the definition element (API-resident)."""
+    bodies: list[str] = []
+    for document_id in _reference_ids(definition.get("documentation")):
+        document = by_id.get(document_id, {})
+        body = document.get("body") or document.get("bodyText")
+        if body:
+            bodies.append(str(body))
+    return bodies
+
+
+def _reference_ids(value: Any) -> list[str]:
+    """Extract @id references from a serializer field."""
+    if value is None:
+        return []
+    if isinstance(value, dict):
+        item_id = value.get("@id")
+        return [str(item_id)] if item_id else []
+    if isinstance(value, list):
+        found: list[str] = []
+        for item in value:
+            found.extend(_reference_ids(item))
+        return found
+    return []
+
+
+def _first_reference_name(value: Any, by_id: dict[str, dict[str, Any]]) -> str | None:
+    """Declared name of the first referenced element (e.g. an end's type)."""
+    for reference_id in _reference_ids(value):
+        element = by_id.get(reference_id)
+        if element is not None and element.get("declaredName"):
+            return str(element["declaredName"])
+        # The referenced element may not be in this listing; its @id then
+        # cannot be resolved to a name here — the caller validated the
+        # definition itself, and end-type names are model-resident on the
+        # same element.
+    return None
+
+
 def build_projection(
     contract: Any,
     kernel_bindings: Any,
@@ -110,7 +301,7 @@ def build_projection(
     repository_root: Path,
     witness_closure_verified: bool = False,
 ) -> dict[str, Any]:
-    """Generate the v0 projection row from contract + validated bindings.
+    """Generate the v0 projection row from the validated model authority.
 
     Fails closed when any grounding required by the slice is missing from the
     validated binding index or absent from the bound revision: a projection
@@ -118,22 +309,17 @@ def build_projection(
     runtime cannot ground (UG-24). ``witness_closure_verified`` must only be
     passed as True after the exact-candidate export/import/read-back proof;
     it is what turns ``support_state`` from ``vocabulary-only`` into
-    ``supported``.
+    ``supported``. The ontology YAML is loaded only for the parity
+    comparison; every semantic field originates from the model.
     """
-    mapping = contract.relationship_mapping(_PREDICATE)
-    config = mapping.configuration
-    library_definition = str(config.get("native_library_definition", ""))
-    library_id = kernel_bindings.element_id_for(library_definition, by_id)
-    requirement_id = kernel_bindings.element_id_for(
-        str(config.get("source_lineage_of", "")), by_id
-    )
-    need_id = kernel_bindings.element_id_for(
-        str(config.get("target_lineage_of", "")), by_id
-    )
-    if not library_definition or not requirement_id or not need_id:
+    definition_id = kernel_bindings.element_id_for(_CONNECTION_DEFINITION, by_id)
+    model_semantics = _model_derived_semantics(definition_id, by_id, contract)
+    requirement_id = kernel_bindings.element_id_for("Requirement", by_id)
+    need_id = kernel_bindings.element_id_for("Need", by_id)
+    if not definition_id or not requirement_id or not need_id:
         raise ValueError(
-            "projection requires validated groundings for the native "
-            "library definition, Requirement, and Need definitions"
+            "projection requires validated groundings for the application "
+            "connection definition, Requirement, and Need definitions"
         )
     return {
         "schema": PROJECTION_SCHEMA,
@@ -145,26 +331,26 @@ def build_projection(
                 "model_definitions": [
                     requirement_id,
                     need_id,
-                    library_id,
+                    definition_id,
                 ],
-                # K authority (plan v1.1 §16 K row): identity/meaning/
-                # domain/range/direction/strength for this predicate are
-                # grounded in the validated model + standard library
-                # definition. The ontology contract identity is carried as
-                # the O0/O1 parity oracle, not as the semantic authority.
-                "native_library_grounding": {
-                    "library": (
-                        "SysML Requirement Derivation Domain Library 2.0.0"
-                    ),
-                    "definition": library_definition,
-                    "element_id": library_id,
-                    "need_role": str(config.get("need_role", "")),
-                    "requirement_role": str(config.get("requirement_role", "")),
-                    "grounding_provenance": (
-                        "explicit connection typing; library constraints "
-                        "(originalImpliesDerived, originalNotDerived) are "
-                        "standard semantics"
-                    ),
+                # K authority (plan v1.1 §16 final decision): identity/
+                # meaning/domain/range/direction/strength for this predicate
+                # are grounded in the validated model — the application
+                # connection definition and its typed ends. The ontology
+                # contract identity is carried as the O0/O1 parity oracle,
+                # not as the semantic authority.
+                "model_semantic_authority": {
+                    "connection_definition": model_semantics["definition"],
+                    "element_id": model_semantics["definition_id"],
+                    "need_role": model_semantics["need_role"],
+                    "requirement_role": model_semantics["requirement_role"],
+                    "need_end_type": model_semantics["need_end_type"],
+                    "requirement_end_type": model_semantics[
+                        "requirement_end_type"
+                    ],
+                    "authority_provenance": model_semantics[
+                        "authority_provenance"
+                    ],
                 },
                 "ontology_contract_parity_oracle": (
                     contract_identity_from_file(repository_root)
@@ -173,34 +359,35 @@ def build_projection(
         },
         "predicate": {
             "identity": _PREDICATE,
-            "definition": str(
-                contract.relationships[_PREDICATE].get("definition")
-                or (
-                    "Requirement R is derived from stakeholder need N. "
-                    "Design-input derivation; no satisfaction, allocation, "
-                    "verification, evidence, or acceptance claim."
-                )
-            ).strip(),
-            "domain": str(config.get("source_lineage_of", "")),
-            "range": str(config.get("target_lineage_of", "")),
+            "definition": model_semantics["meaning"],
+            "domain": "Requirement",
+            "range": "Need",
             "canonical_direction": (
-                f"{config.get('source_lineage_of')} -> "
-                f"{config.get('target_lineage_of')}"
+                f"{model_semantics['need_role']} -> "
+                f"{model_semantics['requirement_role']} (model-native); "
+                f"Requirement -> Need query"
             ),
             "inverse_navigation_identity": "derivedRequirementsOfNeed",
-            "semantic_strength": mapping.semantic_strength,
-            "semantic_exclusions": [],
+            "semantic_strength": "derivation",
+            "claim_boundary": model_semantics["claim_boundary"],
+            "semantic_exclusions": [
+                "satisfaction",
+                "allocation",
+                "verification",
+                "evidence",
+                "acceptance",
+            ],
             "applicability_scope": "de4sdv method increments (System 2)",
             "native_grounding": {
                 "api_metaclass": "ConnectionUsage",
-                "library_definition": library_definition,
-                "need_role": str(config.get("need_role", "")),
-                "requirement_role": str(config.get("requirement_role", "")),
+                "connection_definition": model_semantics["definition"],
+                "need_role": model_semantics["need_role"],
+                "requirement_role": model_semantics["requirement_role"],
                 "witness_uuids_required": [
                     "connection",
-                    "original_requirement_end",
+                    "need_end",
                     "derived_requirement_end",
-                    "library_typing",
+                    "definition_typing",
                 ],
             },
             "model_external_boundary": "none",
@@ -212,40 +399,31 @@ def build_projection(
 def assert_profile_compatible(
     contract: Any, profile: dict[str, Any]
 ) -> None:
-    """Semantic compatibility gate (UG-25): profile mechanics vs runtime mapping.
+    """Semantic compatibility gate (UG-25): profile mechanics vs model authority.
 
-    The profile's representation mechanics are checked against the executable
-    ontology mapping: the property paths and direction must match the
-    mapping's configured source/target properties and direction. A profile
-    that contradicts the executable mapping raises ``ValueError`` —
-    representation mechanics cannot silently redefine meaning.
+    The profile's representation mechanics are checked against the
+    model-resident role binding (the same fields the runtime consumes): the
+    end roles and query direction must match. A profile that contradicts the
+    model authority raises ``ValueError`` — representation mechanics cannot
+    silently redefine meaning.
     """
-    mapping = contract.relationship_mapping(_PREDICATE)
-    config = mapping.configuration
     paths = profile["witness"]["property_paths"]
-    if str(paths.get("need_end")) != str(
-        config.get("need_role", "originalRequirements")
-    ):
+    if str(paths.get("need_end")) != _NEED_ROLE:
         raise ValueError(
             f"profile need end {paths.get('need_end')!r} contradicts the "
-            f"executable mapping need_role "
-            f"{config.get('need_role')!r} for {_PREDICATE}"
+            f"model authority need_role {_NEED_ROLE!r} for {_PREDICATE}"
         )
-    if str(paths.get("requirement_end")) != str(
-        config.get("requirement_role", "derivedRequirements")
-    ):
+    if str(paths.get("requirement_end")) != _REQUIREMENT_ROLE:
         raise ValueError(
             f"profile requirement end {paths.get('requirement_end')!r} "
-            f"contradicts the executable mapping requirement_role "
-            f"{config.get('requirement_role')!r} for {_PREDICATE}"
+            f"contradicts the model authority requirement_role "
+            f"{_REQUIREMENT_ROLE!r} for {_PREDICATE}"
         )
     profile_direction = str(profile["witness"].get("query_direction", ""))
-    mapping_direction = str(config.get("query_direction", ""))
-    if profile_direction and profile_direction != mapping_direction:
+    if profile_direction and profile_direction != "inverse":
         raise ValueError(
             f"profile query direction {profile_direction!r} contradicts the "
-            f"executable mapping query_direction {mapping_direction!r} for "
-            f"{_PREDICATE}"
+            f"model authority query_direction 'inverse' for {_PREDICATE}"
         )
 
 
@@ -262,10 +440,10 @@ def build_representation_profile(
 
     Representation mechanics only: witness shape, property paths, direction
     extraction, and the fail-closed completeness check. The mechanics are
-    DERIVED from the executable ontology mapping (not hard-coded beside it),
+    DERIVED from the model-resident authority (not hard-coded beside it),
     and the generated profile is validated with
     :func:`assert_profile_compatible` before it is returned, so a future
-    mapping change that the derived description no longer matches fails
+    authority change that the derived description no longer matches fails
     generation instead of shipping a contradiction (UG-25). Domain, range,
     direction, and semantic strength are echoes of the projection row built
     from the same inputs.
@@ -279,10 +457,11 @@ def build_representation_profile(
         witness_closure_verified=witness_closure_verified,
     )
     predicate = projection["predicate"]
-    config = contract.relationship_mapping(_PREDICATE).configuration
-    need_role = str(config.get("need_role", "originalRequirements"))
-    requirement_role = str(config.get("requirement_role", "derivedRequirements"))
-    query_direction = str(config.get("query_direction", "inverse"))
+    authority = projection["revision_binding"]["generated_from"][
+        "model_semantic_authority"
+    ]
+    need_role = str(authority["need_role"])
+    requirement_role = str(authority["requirement_role"])
     profile: dict[str, Any] = {
         "schema": PROFILE_SCHEMA,
         "profile_identity": PROFILE_IDENTITY,
@@ -290,28 +469,27 @@ def build_representation_profile(
         "model_revision_binding": projection["revision_binding"],
         "witness": {
             "api_metaclass": "ConnectionUsage",
-            "relationship_kind": "Typed derivation connection (standard "
-            "library definition; typed via FeatureTyping)",
+            "relationship_kind": "Typed DE4SDV application connection "
+            "(DerivesFromNeed; typed via FeatureTyping)",
             "property_paths": {
                 "need_end": need_role,
                 "requirement_end": requirement_role,
                 "ends": "ownedRelationship[@type=EndFeatureMembership]",
-                "library_typing": "FeatureTyping.type",
+                "definition_typing": "FeatureTyping.type",
             },
-            "query_direction": query_direction,
+            "query_direction": "inverse",
             "direction_extraction": (
-                f"The end grounding in {predicate['range']} lineage is the "
-                f"{need_role} (originalRequirement; the Need); the end "
-                f"grounding in {predicate['domain']} lineage is the "
-                f"{requirement_role} (the derived requirement). Canonical "
-                f"direction {predicate['canonical_direction']}; DE4SDV "
-                f"query direction: {query_direction} over the native "
-                f"witness"
+                f"The end grounding in the {predicate['domain']} lineage is "
+                f"the {requirement_role} (the derived requirement); the end "
+                f"grounding in the {predicate['range']} lineage is the "
+                f"{need_role} (the need). Model-native direction "
+                f"{predicate['canonical_direction']}; DE4SDV query "
+                f"direction: inverse over the native witness"
             ),
             "ownership_traversal": (
                 "Ends are EndFeatureMembership ownedRelationships of the "
                 "ConnectionUsage; the connection is typed by the validated "
-                "library Derivation definition via FeatureTyping"
+                "DerivesFromNeed application definition via FeatureTyping"
             ),
             "reference_vs_containment": (
                 "Ends are referential usages (validateUsageIsReferential); "
@@ -323,23 +501,23 @@ def build_representation_profile(
             "uuid_preservation": "single-transaction-required",
             "out_of_export_risk": (
                 "C1 closure: the ConnectionUsage, its EndFeatureMembership "
-                "ends, and the library FeatureTyping must survive official "
-                "export, API import, and read-back; pruning any witness "
-                "element makes the predicate unsupported for that revision "
-                "(UG-06)"
+                "ends, and the definition FeatureTyping must survive "
+                "official export, API import, and read-back; pruning any "
+                "witness element makes the predicate unsupported for that "
+                "revision (UG-06)"
             ),
         },
         "completeness_check": (
             "derivesRequirementFromNeed.derivation-connection-closure (fail "
-            "closed: a validated binding for the library Derivation "
-            "definition is required, and a connection missing an end, with "
-            "an out-of-lineage end, or without the library typing is not a "
-            "derivation)"
+            "closed: a validated binding for the DerivesFromNeed "
+            "application definition is required, and a connection missing "
+            "an end, with an out-of-lineage end, or without the definition "
+            "typing is not a derivation)"
         ),
-        "semantic_strength_from_projection": predicate["semantic_strength"],
+                "semantic_strength_from_projection": predicate["semantic_strength"],
         "domain_from_projection": predicate["domain"],
         "range_from_projection": predicate["range"],
-        "support_state": predicate["support_state"],
+        "claim_boundary_from_projection": predicate["claim_boundary"],
     }
     assert_profile_compatible(contract, profile)
     return profile

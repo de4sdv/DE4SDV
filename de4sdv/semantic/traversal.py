@@ -157,59 +157,58 @@ class SemanticTraversal:
         elements: list[dict[str, Any]],
         by_id: dict[str, dict[str, Any]],
     ) -> list[TraversalHop]:
-        """Traverse native Derivation connections (Requirement Derivation
-        Domain Library, pinned 2.0.0).
+        """Traverse the DE4SDV ``DerivesFromNeed`` application connections
+        (plan v1.1 §16 final representation decision).
 
-        The discriminator is the standard library itself: only a
-        ConnectionUsage typed by the validated
-        ``DerivationConnections::Derivation`` definition carries the
-        predicate (plan v1.1 §5). The connection's ends identify the roles:
-        the end that grounds in the ``original_role`` lineage
-        (originalRequirements — the stakeholder Need) versus the end in the
-        ``derived_role`` lineage (derivedRequirements — the derived design
-        requirement). DE4SDV's canonical Requirement -> Need query traverses
-        the witness inversely (``query_direction: inverse``); the native
-        modeled direction Need -> Requirement is ``query_direction:
-        forward``.
+        The discriminator is the DE4SDV application connection definition:
+        only a ConnectionUsage typed by the validated
+        ``connection def DerivesFromNeed`` (an ontology-mapped kernel
+        declaration) carries the predicate. The definition's typed ends —
+        ``need : StakeholderNeedCandidate`` and
+        ``derivedRequirement : RequirementCandidate`` — are the
+        model-resident role carrier; the runtime identifies each witness
+        end by its own typing against the Need/Requirement kernel lineages
+        (R1), NOT by end order and NOT by the query direction. The native
+        modeled direction is ``need -> derivedRequirement``; DE4SDV's
+        canonical ``derivesRequirementFromNeed`` query traverses the same
+        witness inversely (``query_direction: inverse``).
 
         Fail-closed contracts (plan v1.1 UG-05/06/28/29/30, R1/R2 of the
         independent review):
 
         - a generic Dependency with identical endpoint types is never a
-          derivation (the ConnectionUsage metaclass + validated library
+          derivation (the ConnectionUsage metaclass + validated definition
           typing is the discriminator, never names);
-        - a connection typed by anything other than the validated library
+        - a connection typed by anything other than the validated
           definition, or missing an end, or with an end outside the declared
-          kernel lineage, raises :class:`IdentityNotFoundError` — corrupted
+          kernel lineages, raises :class:`IdentityNotFoundError` — corrupted
           witnesses cannot degrade into quiet absences;
-        - library identity comes from the ingestion-validated kernel binding
-          index, never from element names.
+        - definition identity comes from the ingestion-validated kernel
+          binding index, never from element names.
         """
         config = mapping.configuration
-        library_definition = str(config.get("native_library_definition", ""))
-        if not library_definition:
+        definition_name = str(config.get("connection_definition", ""))
+        if not definition_name:
             raise ValueError(
                 f"derivation-connection strategy for {mapping.name} requires "
-                f"native_library_definition"
+                f"connection_definition"
             )
-        need_role = str(config.get("need_role", "originalRequirements"))
-        derived_role = str(config.get("derived_role", "derivedRequirements"))
         query_direction = str(config.get("query_direction", "inverse"))
 
-        # Validated library definition identity (kernel binding; no names).
-        library_definition_ids = self._library_definition_ids(
-            library_definition, by_id
-        )
-        if library_definition_ids is None:
+        # Validated application-definition identity (kernel binding; no
+        # names). Missing validated identity fails closed: without it the
+        # predicate has no model-resident discriminator at all.
+        definition_ids = self._bound_definition_ids(definition_name, by_id)
+        if definition_ids is None:
             raise IdentityNotFoundError(
-                f"no validated kernel binding for the native library "
-                f"definition {library_definition!r}; predicate "
+                f"no validated kernel binding for the application "
+                f"connection definition {definition_name!r}; predicate "
                 f"{mapping.name!r} cannot be evaluated without "
                 f"ingestion-validated binding metadata"
             )
 
-        # Lineage resolvers (R1 preserved): Need lineage and Requirement
-        # lineage from validated kernel UUIDs.
+        # Role resolvers from the declared kernel lineages (R1 preserved):
+        # Need lineage and Requirement lineage from validated kernel UUIDs.
         lineage_resolvers = {
             key: self._lineage_resolver(str(lineage_class), by_id)
             for key, lineage_class in (
@@ -222,21 +221,23 @@ class SemanticTraversal:
         def _grounded(element: dict[str, Any], resolver: dict[str, Any]) -> bool:
             return self._endpoint_in_lineage(element, resolver, by_id)
 
+        definition_closure = self._definition_lineage_ids(definition_ids, by_id)
+
         hops: list[TraversalHop] = []
         for element in elements:
             # Discriminator: metaclass ConnectionUsage (an API metaclass is
-            # representation evidence; the validated library typing below is
-            # the semantic grounding — UG-28).
+            # representation evidence; the validated definition typing below
+            # is the semantic grounding — UG-28).
             if str(element.get("@type")) != "ConnectionUsage":
                 continue
             connection_id = element_id(element)
             if connection_id is None:
                 continue
 
-            # Validated library typing: a FeatureTyping from this connection
-            # to the bound Derivation definition (any declaration/usage pair
-            # of the library definition grounds through the lineage).
-            typed_by_library = False
+            # Validated definition typing: a FeatureTyping from this
+            # connection to the bound DerivesFromNeed definition (the
+            # subclassification closure of the definition also grounds).
+            typed_by_definition = False
             for candidate in elements:
                 if str(candidate.get("@type")) != "FeatureTyping":
                     continue
@@ -245,23 +246,12 @@ class SemanticTraversal:
                 typed = element_id(candidate.get("type")) or element_id(
                     candidate.get("general")
                 )
-                if typed is not None and typed in library_definition_ids:
-                    typed_by_library = True
+                if typed is not None and typed in definition_closure:
+                    typed_by_definition = True
                     break
-                # A FeatureTyping to a definition that specializes the
-                # library Derivation definition also grounds (the lineage
-                # index covers the subclassification closure).
-                if (
-                    typed is not None
-                    and typed in self._library_lineage_ids(
-                        library_definition_ids, by_id
-                    )
-                ):
-                    typed_by_library = True
-                    break
-            if not typed_by_library:
-                # A ConnectionUsage NOT typed by the library definition is
-                # simply another connection (quiet absence). A connection
+            if not typed_by_definition:
+                # A ConnectionUsage NOT typed by the application definition
+                # is simply another connection (quiet absence). A connection
                 # that owns a BROKEN typing reference (dangling FeatureTyping
                 # id) also stays quiet here — it never claimed derivation.
                 continue
@@ -276,21 +266,22 @@ class SemanticTraversal:
                     f"incomplete derivation witness for predicate "
                     f"{mapping.name!r} on connection "
                     f"{str(element.get('declaredName') or connection_id)!r}: "
-                    f"a Derivation connection must have an "
-                    f"{need_role!r} end and a {derived_role!r} end"
+                    f"a DerivesFromNeed connection must have a {definition_name}.need "
+                    f"end and a {definition_name}.derivedRequirement end"
                 )
 
             # Role resolution: each end must ground in exactly one of the
-            # declared lineages; the original/derived roles are assigned by
-            # lineage membership (Need lineage = originalRequirements,
-            # Requirement lineage = derivedRequirements). An end grounding
-            # in neither lineage is a corrupted witness.
+            # declared kernel lineages — Need lineage (the definition's
+            # `need` end role) versus Requirement lineage
+            # (`derivedRequirement`). Identification is by the end's own
+            # typing against the lineage, direction-independent. An end
+            # grounding in neither lineage is a corrupted witness.
             need_resolver = self._role_resolver(mapping, config, "need")
             requirement_resolver = self._role_resolver(
                 mapping, config, "requirement"
             )
-            original_ids: list[str] = []
-            derived_ids: list[str] = []
+            need_end_ids: list[str] = []
+            derived_end_ids: list[str] = []
             for end_id in end_ids:
                 end = by_id.get(end_id)
                 if end is None:
@@ -315,9 +306,9 @@ class SemanticTraversal:
                         f"{config.get('target_lineage_of')!r} lineages"
                     )
                 if in_need:
-                    original_ids.append(end_id)
+                    need_end_ids.append(end_id)
                 elif in_requirement:
-                    derived_ids.append(end_id)
+                    derived_end_ids.append(end_id)
                 else:
                     raise IdentityNotFoundError(
                         f"corrupted derivation witness for predicate "
@@ -327,29 +318,30 @@ class SemanticTraversal:
                         f"{config.get('source_lineage_of')!r} nor the "
                         f"{config.get('target_lineage_of')!r} lineage"
                     )
-            if not original_ids or not derived_ids:
+            if not need_end_ids or not derived_end_ids:
                 raise IdentityNotFoundError(
                     f"incomplete derivation witness for predicate "
                     f"{mapping.name!r} on connection "
                     f"{str(element.get('declaredName') or connection_id)!r}: "
-                    f"missing {'original' if not original_ids else 'derived'} "
+                    f"missing "
+                    f"{'need' if not need_end_ids else 'derivedRequirement'} "
                     f"role end"
                 )
 
-            # Query-direction mapping. Native witness:
-            # originalRequirements (Need) -> derivedRequirements (Req).
+            # Query-direction mapping over the SAME witness. Native model
+            # direction: need -> derivedRequirement.
             if query_direction == "inverse":
                 # DE4SDV derivesRequirementFromNeed: query source is the
-                # derived requirement; target is the original need.
-                if source_id not in derived_ids:
+                # derived requirement; target is the need.
+                if source_id not in derived_end_ids:
                     continue
-                targets = original_ids
+                targets = need_end_ids
             else:
-                # derivedRequirementsOfNeed: query source is the original
-                # need; targets are the derived requirements.
-                if source_id not in original_ids:
+                # derivedRequirementsOfNeed: query source is the need;
+                # targets are the derived requirements.
+                if source_id not in need_end_ids:
                     continue
-                targets = derived_ids
+                targets = derived_end_ids
 
             for target_id in targets:
                 if target_id == source_id:
@@ -362,9 +354,10 @@ class SemanticTraversal:
                     hop,
                     witness={
                         "connection_id": connection_id,
-                        "library_definition": library_definition,
-                        "original_requirement_end_id": sorted(original_ids),
-                        "derived_requirement_end_id": sorted(derived_ids),
+                        "connection_definition": definition_name,
+                        "connection_definition_id": sorted(definition_ids)[0],
+                        "need_end_id": sorted(need_end_ids),
+                        "derived_requirement_end_id": sorted(derived_end_ids),
                     },
                 )
                 hops.append(hop)
@@ -381,7 +374,9 @@ class SemanticTraversal:
         The Need role resolves through the lineage that the mapping declares
         for the Need side (``target_lineage_of`` when the query direction is
         inverse, ``source_lineage_of`` when forward) and the Requirement
-        role through the opposite side. Raises when the declared lineage
+        role through the opposite side. Role RESOLVERS are direction-keyed
+        for lineage lookup only; end identification is by the end's own
+        typing, never by witness end order. Raises when the declared lineage
         class cannot be grounded.
         """
         inverse = str(config.get("query_direction", "inverse")) == "inverse"
@@ -397,10 +392,10 @@ class SemanticTraversal:
             )
         return self._lineage_resolver(str(lineage_class), self._current_by_id)
 
-    def _library_lineage_ids(
+    def _definition_lineage_ids(
         self, definition_ids: set[str], by_id: dict[str, dict[str, Any]]
     ) -> set[str]:
-        """Subclassification closure of the library definition ids."""
+        """Subclassification closure of the application definition ids."""
         specifics: dict[str, set[str]] = {}
         for element in by_id.values():
             if str(element.get("@type")) != "Subclassification":
@@ -520,25 +515,24 @@ class SemanticTraversal:
             frontier.extend(specifics_by_general.get(current, ()))
         return {"lineage_ids": lineage_ids, "typed_by": typed_by}
 
-    def _library_definition_ids(
-        self, qualified_name: str, by_id: dict[str, dict[str, Any]]
+    def _bound_definition_ids(
+        self, ontology_class: str, by_id: dict[str, dict[str, Any]]
     ) -> set[str] | None:
-        """Resolve the native library definition's validated API UUID(s).
+        """Resolve the application definition's validated API UUID(s).
 
         Identity comes from the ingestion-validated kernel binding index
-        (ontology class entry whose kernel mapping grounds the library
-        definition), never from element names. The UUID must exist in the
-        bound revision with the expected API type.
+        (ontology class entry whose kernel mapping grounds the definition),
+        never from element names. The UUID must exist in the bound revision
+        with the expected API type.
         """
         if self.kernel_bindings is None:
             return None
         try:
             return {
-                self.kernel_bindings.element_id_for(qualified_name, by_id)
+                self.kernel_bindings.element_id_for(ontology_class, by_id)
             }
         except IdentityNotFoundError:
             return None
-
 
     def _excluded_specialization_ids(
         self,

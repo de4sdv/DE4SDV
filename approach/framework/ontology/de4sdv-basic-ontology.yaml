@@ -462,25 +462,22 @@ classes:
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
       declaration: item def AcceptanceAttestationReference
-  DerivationConnections::Derivation:
+  DerivesFromNeed:
     definition: >-
-      Standard-library grounding for the derivesRequirementFromNeed predicate:
-      the Requirement Derivation Domain Library (pinned 2.0.0) Derivation
-      connection definition. Its originalRequirements end carries the
-      design-input origin (the DE4SDV stakeholder Need); its
-      derivedRequirements ends carry the derived design-input requirements.
-      The originalImpliesDerived and originalNotDerived constraints are
-      standard library semantics. Library identity is consumed through this
-      binding at runtime; the library itself remains under the adoption gate
-      (no floating upgrade, no upstream contact without authorization).
+      DE4SDV application connection definition for design-input derivation:
+      the derivedRequirement originates from the stakeholder need.
+      Provenance/traceability semantics only - neither satisfaction nor
+      logical implication between the connected usages is claimed. The
+      typed connection ends (need : StakeholderNeedCandidate,
+      derivedRequirement : RequirementCandidate) carry the predicate's
+      domain and range in the model itself. The standard Requirement
+      Derivation Domain Library remains pinned but unadopted: its
+      originalImpliesDerived semantics change the claim (upstream adoption
+      gate still applies; no floating upgrade, no upstream contact without
+      authorization).
     kernel:
-      external: >-
-        Standard SysML Requirement Derivation Domain Library 2.0.0 (pinned in
-        sysand-lock.toml; identifier
-        https://www.omg.org/spec/SysML/20250201/Requirement-Derivation-Domain-Library.kpar),
-        DerivationConnections::Derivation connection definition. Materialized
-        and validated at ingestion via sysand sync at the exact head; runtime
-        consumes the ingestion-validated library definition UUID.
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: connection def DerivesFromNeed
 
 relationships:
   addressesConcern:
@@ -504,21 +501,17 @@ relationships:
     definition: >-
       Requirement R is derived from stakeholder need N. Design-input
       derivation; direction R -> N. No satisfaction, allocation, verification,
-      evidence, or acceptance claim. Grounded in the pinned standard
-      Requirement Derivation Domain Library: the Need is the
-      DerivationConnections::Derivation originalRequirement end, the derived
-      design requirement is the derivedRequirements end. DE4SDV's
-      Requirement -> Need query is inverse navigation over that native
-      witness.
+      evidence, or acceptance claim. Grounded in the DE4SDV application
+      connection definition DerivesFromNeed: the Need grounds the `need` end,
+      the derived design requirement grounds the `derivedRequirement` end.
+      DE4SDV's Requirement -> Need query is inverse navigation over that
+      native witness.
     sysml_mapping:
       strategy: derivation-connection
-      native_library_definition: DerivationConnections::Derivation
-      original_role: originalRequirements
-      derived_role: derivedRequirements
-      need_role: originalRequirements
-      requirement_role: derivedRequirements
+      connection_definition: DerivesFromNeed
+      need_role: need
+      requirement_role: derivedRequirement
       query_direction: inverse
-      direction: outgoing
       source_lineage_of: Requirement
       target_lineage_of: Need
       semantic_strength: derivation
@@ -529,18 +522,15 @@ relationships:
       Inverse navigation of derivesRequirementFromNeed over the SAME
       discriminator witness: the need N is the design-input origin of the
       derived requirement R. This predicate declares no new model fact; it
-      reuses the identical #RequirementDerivation-tagged dependency traversed
-      in the reverse direction (incoming), with the same lineage grounding and
-      fail-closed closure semantics.
+      reuses the identical DerivesFromNeed connection traversed in the reverse
+      direction, with the same lineage grounding and fail-closed closure
+      semantics.
     sysml_mapping:
       strategy: derivation-connection
-      native_library_definition: DerivationConnections::Derivation
-      original_role: originalRequirements
-      derived_role: derivedRequirements
-      need_role: originalRequirements
-      requirement_role: derivedRequirements
+      connection_definition: DerivesFromNeed
+      need_role: need
+      requirement_role: derivedRequirement
       query_direction: forward
-      direction: incoming
       source_lineage_of: Need
       target_lineage_of: Requirement
       semantic_strength: derivation

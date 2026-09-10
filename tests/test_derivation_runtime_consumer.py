@@ -34,7 +34,7 @@ NEED_ID = "need-uuid-0002"
 DEP_ID = "dep-uuid-0003"
 ANN_ID = "ann-uuid-0004"
 MARKER_USAGE_ID = "meta-uuid-0005"
-MARKER_DEF_ID = "metadef-uuid-0006"  # now the library Derivation ConnectionDefinition
+MARKER_DEF_ID = "metadef-uuid-0006"  # the DerivesFromNeed ConnectionDefinition
 OTHER_REQ_ID = "req-uuid-0030"
 BARE_DEP_ID = "dep-uuid-0031"
 REQ_DEF_ID = "reqdef-uuid-0021"
@@ -138,7 +138,33 @@ def _element_listing() -> list[dict]:
         {
             "@id": MARKER_DEF_ID,
             "@type": "ConnectionDefinition",
-            "declaredName": "Derivation",
+            "declaredName": "DerivesFromNeed",
+            "ownedMember": [
+                {"@id": "def-end-need"},
+                {"@id": "def-end-derived"},
+            ],
+            "documentation": [{"@id": "def-doc"}],
+        },
+        {
+            "@id": "def-end-need",
+            "@type": "ReferenceUsage",
+            "declaredName": "need",
+            "variant": {"@id": NEED_DEF_ID},
+        },
+        {
+            "@id": "def-end-derived",
+            "@type": "ReferenceUsage",
+            "declaredName": "derivedRequirement",
+            "variant": {"@id": REQ_DEF_ID},
+        },
+        {
+            "@id": "def-doc",
+            "@type": "Documentation",
+            "body": "Design-input provenance: the derivedRequirement "
+            "originates from the stakeholder need. Provenance/traceability "
+            "semantics only: neither satisfaction nor logical implication "
+            "between the connected usages is claimed; verification, "
+            "evidence, and acceptance claims are out of scope.",
         },
     ]
 
@@ -198,12 +224,13 @@ class _BindingStub:
         self.ontology = ontology_identity
         self.kernel_bindings = [
             KernelElementBinding(
-                ontology_class="DerivationConnections::Derivation",
+                ontology_class="DerivesFromNeed",
                 element_id=MARKER_DEF_ID,
                 source_file=(
-                    "sysml-library/requirement-derivation-domain-library.kpar"
+                    "textual-notation-of-model/packages/methods/de4sdv/"
+                    "de4sdv_method_context.sysml"
                 ),
-                declaration="connection def Derivation",
+                declaration="connection def DerivesFromNeed",
             ),
             KernelElementBinding(
                 ontology_class="Requirement",
@@ -416,9 +443,7 @@ def test_valid_witness_alongside_broken_one_still_proves_valid() -> None:
         predicates=["derivesRequirementFromNeed"],
     )
     assert [edge["api_object_id"] for edge in result["edges"]] == [DEP_ID]
-    assert result["edges"][0]["witness"]["library_definition"] == (
-        "DerivationConnections::Derivation"
+    assert result["edges"][0]["witness"]["connection_definition"] == (
+        "DerivesFromNeed"
     )
-    assert result["edges"][0]["witness"]["original_requirement_end_id"] == [
-        NEED_ID
-    ]
+    assert result["edges"][0]["witness"]["need_end_id"] == [NEED_ID]

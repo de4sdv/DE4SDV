@@ -12,7 +12,6 @@ package DE4SDV_AEBSNeedsRequirements {
       package NeedsRequirements {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
-        private import DerivationConnections::Derivation;
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_AEBSFunctionalArchitecture::Features::AEBS::FunctionalBehavior::*;
         private import DE4SDV_MethodViewpoints::*;
@@ -302,18 +301,18 @@ package DE4SDV_AEBSNeedsRequirements {
           }
         }
 
-        connection reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability : Derivation connect needCommonAEBSCapability to reqDetectForwardCollisionRisk;
-        connection reqProvideCollisionWarningDerivedFromCommonAEBSCapability : Derivation connect needCommonAEBSCapability to reqProvideCollisionWarning;
-        connection reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability : Derivation connect needCommonAEBSCapability to reqCommandEmergencyBraking;
+        connection reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability : DerivesFromNeed connect needCommonAEBSCapability to reqDetectForwardCollisionRisk;
+        connection reqProvideCollisionWarningDerivedFromCommonAEBSCapability : DerivesFromNeed connect needCommonAEBSCapability to reqProvideCollisionWarning;
+        connection reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability : DerivesFromNeed connect needCommonAEBSCapability to reqCommandEmergencyBraking;
         dependency reqAllowDriverOverrideDerivedFromCommonAEBSCapability from reqAllowDriverOverride to needCommonAEBSCapability;
         dependency reqDetectAEBSFailureConditionDerivedFromBoundedDegradationAndAvailability from reqDetectAEBSFailureCondition to needBoundedDegradationAndAvailability;
         dependency reqDerivedFromNeedBoundedDegradation from reqHandleDegradedUnavailableInputs to needBoundedDegradationAndAvailability;
         dependency reqIndicateDegradedUnavailableStatusDerivedFromBoundedDegradationAndAvailability from reqIndicateDegradedUnavailableStatus to needBoundedDegradationAndAvailability;
         dependency reqResistFalseReactionDerivedFromTrustworthyInterventionDecisions from reqResistFalseReaction to needTrustworthyInterventionDecisions;
         dependency reqResistFalseBrakingCommandDerivedFromTrustworthyInterventionDecisions from reqResistFalseBrakingCommand to needTrustworthyInterventionDecisions;
-        connection reqPedestrianTargetResponseDerivedFromPedestrianCollisionRiskReduction : Derivation connect needPedestrianCollisionRiskReduction to reqPedestrianTargetResponse;
+        connection reqPedestrianTargetResponseDerivedFromPedestrianCollisionRiskReduction : DerivesFromNeed connect needPedestrianCollisionRiskReduction to reqPedestrianTargetResponse;
         dependency reqPedestrianTargetControlledResponseDerivedFromPedestrianCollisionRiskReduction from reqPedestrianTargetControlledResponse to needPedestrianCollisionRiskReduction;
-        connection reqBicycleTargetResponseDerivedFromBicycleCollisionRiskReduction : Derivation connect needBicycleCollisionRiskReduction to reqBicycleTargetResponse;
+        connection reqBicycleTargetResponseDerivedFromBicycleCollisionRiskReduction : DerivesFromNeed connect needBicycleCollisionRiskReduction to reqBicycleTargetResponse;
         dependency reqBicycleTargetControlledResponseDerivedFromBicycleCollisionRiskReduction from reqBicycleTargetControlledResponse to needBicycleCollisionRiskReduction;
         dependency reqKeepProductLineClassificationExplicitDerivedFromProductLineClassification from reqKeepProductLineClassificationExplicit to needProductLineClassification;
         dependency reqTraceRequirementVVAndGapsDerivedFromVisibleRegulatoryAssumptions from reqTraceRequirementVVAndGaps to needVisibleRegulatoryAssumptions;

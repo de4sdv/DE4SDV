@@ -1,5 +1,7 @@
 # K slice — v1.1 semantic reconciliation (post-`ee19627`)
 
+> **STATUS: representation choice SUPERSEDED by [v11-final-decision.md](v11-final-decision.md)** — the standard `Derivation` library was NOT adopted; its `originalImpliesDerived` semantics change the DE4SDV claim. The selected representation is the minimal DE4SDV application connection definition `DerivesFromNeed`. The SemanticMetadata withdrawal, the Need/Role analysis, and the fail-closed contracts in this record remain valid.
+
 Status: bounded reconciliation per `DE4SDV_Unified_Semantic_Engineering_Plan_v1.1.md`
 (§5 "Normative `SemanticMetadata` restriction", §5 "Requirement-derivation
 preference", UG-29, UG-30). Baseline: `ee19627` (R1–R5 repair accepted). No

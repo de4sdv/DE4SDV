@@ -201,26 +201,23 @@ def main() -> int:
                     )
                 witness = edge.get("witness") or {}
                 connection_id = str(witness.get("connection_id", ""))
-                original_ends = [
-                    str(item)
-                    for item in witness.get("original_requirement_end_id") or []
+                need_ends = [
+                    str(item) for item in witness.get("need_end_id") or []
                 ]
                 derived_ends = [
                     str(item)
                     for item in witness.get("derived_requirement_end_id") or []
                 ]
-                if witness.get("library_definition") != (
-                    "DerivationConnections::Derivation"
-                ):
+                if witness.get("connection_definition") != "DerivesFromNeed":
                     failures.append(
                         f"positive case {name}: witness does not ground in "
-                        f"the standard Derivation library definition "
-                        f"({witness!r})"
+                        f"the DE4SDV application connection definition "
+                        f"DerivesFromNeed ({witness!r})"
                     )
                 elif not (
                     connection_id
-                    and original_ends
-                    and all(original_ends)
+                    and need_ends
+                    and all(need_ends)
                     and derived_ends
                     and all(derived_ends)
                 ):
@@ -234,15 +231,15 @@ def main() -> int:
                         f"{connection_id!r} does not match the edge "
                         f"connection {edge['api_object_id']!r}"
                     )
-                elif need_id not in original_ends:
+                elif need_id not in need_ends:
                     failures.append(
                         f"positive case {name}: resolved need {need_id!r} "
-                        f"not carried as the originalRequirement end"
+                        f"not carried as the need end"
                     )
                 elif source_id not in derived_ends:
                     failures.append(
                         f"positive case {name}: resolved requirement "
-                        f"{source_id!r} not carried as a derivedRequirements "
+                        f"{source_id!r} not carried as a derivedRequirement "
                         f"end"
                     )
                 # Inverse navigation over the same witness from the need.

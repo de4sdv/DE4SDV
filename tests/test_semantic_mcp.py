@@ -98,8 +98,8 @@ def semantic_service():
         {
             "@id": "kernel-requirement-derivation",
             "@type": "ConnectionDefinition",
-            "declaredName": "Derivation",
-            "qualifiedName": "DerivationConnections::Derivation",
+            "declaredName": "DerivesFromNeed",
+            "qualifiedName": "DE4SDV_MethodContext::DerivesFromNeed",
         },
         {
             "@id": "kernel-need",
@@ -252,12 +252,13 @@ def semantic_service():
                     "declaration": "requirement def StakeholderNeedCandidate",
                 },
                 {
-                    "ontology_class": "DerivationConnections::Derivation",
+                    "ontology_class": "DerivesFromNeed",
                     "element_id": "kernel-requirement-derivation",
                     "source_file": (
-                        "sysml-library/requirement-derivation-domain-library.kpar"
+                        "textual-notation-of-model/packages/methods/de4sdv/"
+                        "de4sdv_method_context.sysml"
                     ),
-                    "declaration": "connection def Derivation",
+                    "declaration": "connection def DerivesFromNeed",
                 },
             ],
         }

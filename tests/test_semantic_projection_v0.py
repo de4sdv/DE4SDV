@@ -47,6 +47,17 @@ REVISION = RevisionIdentity(
 )
 
 
+def definition_claim() -> str:
+    """The claim boundary exactly as carried in the fixture definition doc."""
+    return (
+        "Design-input provenance: the derivedRequirement originates from the "
+        "stakeholder need. Provenance/traceability semantics only: neither "
+        "satisfaction nor logical implication between the connected usages "
+        "is claimed; verification, evidence, and acceptance claims are out "
+        "of scope."
+    )
+
+
 def _projection_binding_index() -> KernelBindingIndex:
     # _default_binding_entries already carries Requirement/Need (R1 lineages)
     # and the library Derivation definition grounding used by this module.
@@ -94,11 +105,14 @@ def test_projection_row_binds_revision_and_validated_groundings() -> None:
         NEED_DEF_ID,
         DEF_DERIV_ID,
     }
-    grounding = generated_from["native_library_grounding"]
-    assert grounding["definition"] == "DerivationConnections::Derivation"
+    grounding = generated_from["model_semantic_authority"]
+    assert grounding["connection_definition"] == "DerivesFromNeed"
     assert grounding["element_id"] == DEF_DERIV_ID
-    assert grounding["need_role"] == "originalRequirements"
-    assert grounding["requirement_role"] == "derivedRequirements"
+    assert grounding["need_role"] == "need"
+    assert grounding["requirement_role"] == "derivedRequirement"
+    assert grounding["need_end_type"] == "StakeholderNeedCandidate"
+    assert grounding["requirement_end_type"] == "RequirementCandidate"
+    assert "ingestion-validated" in grounding["authority_provenance"]
 
 
 def test_projection_binds_recomputed_contract_identity() -> None:
@@ -122,16 +136,44 @@ def test_projection_support_state_is_honest_without_closure_evidence() -> None:
     )
 
 
-def test_projection_definition_comes_from_contract_not_python_constant() -> None:
+def test_projection_definition_comes_from_model_doc_not_yaml() -> None:
+    """Plan v1.1 §16 Q2: the projection's semantic fields originate from the
+    validated model (the definition's ingested doc), never from the YAML
+    oracle. Editing the YAML definition must NOT change the projection, and
+    a model doc missing the claim boundary must fail generation."""
+    import copy
+
+    import de4sdv.semantic.projection as projection_module
+
     definition = _build()["predicate"]["definition"]
-    assert "Design-input" in definition or "design-input" in definition.lower()
-    # The definition text is taken from the contract's declared definition.
-    contract_definition = _contract().relationships["derivesRequirementFromNeed"].get(
-        "definition"
+    assert definition.startswith("Design-input provenance")
+    assert "neither satisfaction nor logical implication" in definition
+
+    # YAML drift in definition text does NOT leak into the projection.
+    contract = _contract()
+    contract.relationships["derivesRequirementFromNeed"]["definition"] = (
+        "TAMPERED definition text that must never reach the projection."
     )
-    if contract_definition:
-        first_words = " ".join(str(contract_definition).split()[:3])
-        assert definition.startswith(first_words)
+    tampered = build_projection(
+        contract,
+        _projection_binding_index(),
+        REVISION,
+        _by_id(),
+        repository_root=ROOT,
+    )
+    assert tampered["predicate"]["definition"] == definition
+
+    # A definition element without the claim-boundary doc fails closed.
+    by_id = _by_id()
+    del by_id["def-doc"]
+    with pytest.raises(ValueError, match="claim boundary"):
+        build_projection(
+            _contract(),
+            _projection_binding_index(),
+            REVISION,
+            by_id,
+            repository_root=ROOT,
+        )
 
 
 def test_projection_forbids_representation_mechanics() -> None:
@@ -178,15 +220,23 @@ def test_profile_carries_mechanics_and_echoes_projection_meaning() -> None:
     assert profile["for_predicate"] == "derivesRequirementFromNeed"
     witness = profile["witness"]
     assert witness["api_metaclass"] == "ConnectionUsage"
-    # Mechanics are derived from the executable mapping.
-    assert witness["property_paths"]["need_end"] == "originalRequirements"
-    assert witness["property_paths"]["requirement_end"] == "derivedRequirements"
+    # Mechanics are derived from the model authority.
+    assert witness["property_paths"]["need_end"] == "need"
+    assert witness["property_paths"]["requirement_end"] == "derivedRequirement"
     assert witness["query_direction"] == "inverse"
     # Meaning fields are echoes of the projection row, not independent values.
     assert profile["domain_from_projection"] == "Requirement"
     assert profile["range_from_projection"] == "Need"
     assert profile["semantic_strength_from_projection"] == "derivation"
-    assert profile["support_state"] == "vocabulary-only"
+    assert profile["claim_boundary_from_projection"] == definition_claim()
+    assert (
+        profile["model_revision_binding"]["generated_from"]
+        is not None
+    )
+    # Support state stays on the projection predicate (the profile echoes
+    # mechanics; support is a projection-level honesty field).
+    projection_predicate_support = _build()["predicate"]["support_state"]
+    assert projection_predicate_support == "vocabulary-only"
 
 
 def test_profile_compatibility_gate_rejects_mapping_contradiction() -> None:
@@ -204,28 +254,22 @@ def test_profile_compatibility_gate_rejects_mapping_contradiction() -> None:
         assert_profile_compatible(contract, mutated2)
 
 
-def test_profile_mechanics_follow_the_mapping_not_constants() -> None:
-    """R3: profile mechanics are derived from the executable mapping, so a
-    mapping change is reflected (never contradicted) by a regenerated profile;
-    the compatibility gate catches hand-written contradictions instead."""
+def test_profile_mechanics_follow_model_authority_and_oracle_drift_fails() -> None:
+    """R3 (v1.1 §16): profile mechanics derive from the MODEL authority. The
+    YAML oracle may not redefine them: a tampered oracle mapping now FAILS
+    the parity gate at generation instead of being echoed into the profile."""
     contract = _contract()
     contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"][
         "need_role"
     ] = "someOtherRole"
-    contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"][
-        "query_direction"
-    ] = "forward"
-    profile = build_representation_profile(
-        contract,
-        _projection_binding_index(),
-        REVISION,
-        _by_id(),
-        repository_root=ROOT,
-    )
-    assert profile["witness"]["property_paths"]["need_end"] == "someOtherRole"
-    assert profile["witness"]["query_direction"] == "forward"
-    # And the generated profile passes its own compatibility gate.
-    assert_profile_compatible(contract, profile)
+    with pytest.raises(ValueError, match="parity oracle drift"):
+        build_representation_profile(
+            contract,
+            _projection_binding_index(),
+            REVISION,
+            _by_id(),
+            repository_root=ROOT,
+        )
 
 
 def test_profile_without_projection_inputs_fails_closed() -> None:

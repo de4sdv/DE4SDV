@@ -484,12 +484,13 @@ _DEPENDENCY_EDGE_RE = re.compile(
     re.MULTILINE | re.DOTALL,
 )
 
-# Native Requirement Derivation Domain Library witnesses (plan v1.1 §5):
-# `connection <name> : Derivation connect <need> to <req>;`
-# The first connector end is the originalRequirement (the Need); the second
-# is the derived requirement. Both ends must be requirement usages.
+# DE4SDV application derivation witnesses (plan v1.1 §16 final decision):
+# `connection <name> : DerivesFromNeed connect <need> to <req>;`
+# The first connector end is the `need` (StakeholderNeedCandidate lineage);
+# the second is the `derivedRequirement` (RequirementCandidate lineage).
+# Both ends must be requirement usages.
 _DERIVATION_CONNECTION_RE = re.compile(
-    r"^\s*connection\s+[A-Za-z][A-Za-z0-9]*\s*:\s*Derivation\b"
+    r"^\s*connection\s+[A-Za-z][A-Za-z0-9]*\s*:\s*DerivesFromNeed\b"
     r"[^;]*?connect\s+([\w'.:]+)\s+to\s+([\w'.:]+)\s*;",
     re.MULTILINE | re.DOTALL,
 )
@@ -1064,11 +1065,10 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
         slice_prefixes = tuple(_r003_nested_package_prefixes(code))
         usages_in_slice = set(_REQUIREMENT_USAGE_RE.findall(code))
         edges = _DEPENDENCY_EDGE_RE.findall(code)
-        # Native Derivation connections (Requirement Derivation Domain
-        # Library): the first connector end is the originalRequirement
-        # (Need), the second is the derived requirement. An outgoing
-        # derivation from a requirement to a need is the inverse traversal
-        # of that native witness (plan v1.1 §5).
+        # DE4SDV DerivesFromNeed application connections: the first
+        # connector end is the `need`, the second the `derivedRequirement`.
+        # An outgoing derivation from a requirement to a need is the inverse
+        # traversal of that native witness (plan v1.1 §16).
         edges += [
             (derived, original)
             for original, derived in _DERIVATION_CONNECTION_RE.findall(code)
