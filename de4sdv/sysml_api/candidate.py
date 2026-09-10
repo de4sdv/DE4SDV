@@ -55,6 +55,46 @@ class ExportIdentity:
             raise KeyError(key) from exc
 
 
+def prepare_isolated_checkout(
+    repository: Path, git_commit: str, worktree_path: Path
+) -> Path:
+    """Create an isolated clean worktree at the exact selected commit.
+
+    The worktree is the export source for candidate production: Syside runs
+    against THIS checkout, so uncommitted content in the originating
+    repository cannot leak (frozen baseline Section 12 step 1). The caller
+    owns worktree_path cleanup.
+    """
+    if len(git_commit) != _FULL_SHA_LEN:
+        raise ValueError("selected commit must be a full 40-character SHA")
+    try:
+        resolved = _git(repository, "rev-parse", f"{git_commit}^{{commit}}")
+    except subprocess.CalledProcessError as exc:
+        raise ValueError(
+            f"commit {git_commit} does not resolve in this repository"
+        ) from exc
+    if resolved != git_commit:
+        raise ValueError(f"commit {git_commit} does not resolve in this repository")
+    if worktree_path.exists():
+        raise ValueError(f"worktree path already exists: {worktree_path}")
+    subprocess.run(
+        [
+            "git", "-C", str(repository), "worktree", "add",
+            "--detach", str(worktree_path), git_commit,
+        ],
+        check=True,
+        capture_output=True,
+    )
+    head = _git(worktree_path, "rev-parse", "HEAD")
+    if head != git_commit:
+        raise RuntimeError(
+            f"isolated checkout HEAD {head} does not match selected {git_commit}"
+        )
+    if _is_dirty(worktree_path):
+        raise RuntimeError("isolated checkout is dirty; this is a setup defect")
+    return worktree_path
+
+
 def export_selected_commit(
     repository: Path, git_commit: str, *, allow_dirty: bool = False
 ) -> tuple[dict[str, list[dict[str, Any]]], ExportIdentity]:
@@ -67,7 +107,12 @@ def export_selected_commit(
     """
     if len(git_commit) != _FULL_SHA_LEN:
         raise ValueError("selected commit must be a full 40-character SHA")
-    resolved = _git(repository, "rev-parse", f"{git_commit}^{{commit}}")
+    try:
+        resolved = _git(repository, "rev-parse", f"{git_commit}^{{commit}}")
+    except subprocess.CalledProcessError as exc:
+        raise ValueError(
+            f"commit {git_commit} does not resolve in this repository"
+        ) from exc
     if resolved != git_commit:
         raise ValueError(f"commit {git_commit} does not resolve in this repository")
 

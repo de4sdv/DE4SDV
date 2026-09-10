@@ -89,6 +89,25 @@ def _pilot_graph(
             declaredShortName=short,
         )
         elements.append(usage)
+        # Usage-level verification-method metadata: a MetadataUsage owned by
+        # the usage (the honest API shape for @VerificationMethod{...}).
+        elements.append(
+            {
+                "@id": uuid[:-2] + "mu1",
+                "@type": "MetadataUsage",
+                "owner": {"@id": uuid},
+                "declaredName": "VerificationMethod",
+            }
+        )
+        # Specialization witness: the usage specializes the shared definition.
+        elements.append(
+            {
+                "@id": uuid[:-2] + "g1",
+                "@type": "Generalization",
+                "owner": {"@id": uuid},
+                "general": {"@id": "00000000-0000-4000-8000-0000000000d0"},
+            }
+        )
         # SubjectMembership: usage owns a bench member
         bench_id = uuid[:-2] + "b1"
         elements.append(
@@ -144,6 +163,25 @@ def _pilot_graph(
                 "@type": "RequirementVerificationMembership",
                 "owningRelatedElement": {"@id": "00000000-0000-4000-8000-0000000000e0"},
                 "memberElement": {"@id": req_id},
+            }
+        )
+    # Definition-action metadata: MetadataUsage owned by each action usage.
+    for action_id in ("00000000-0000-4000-8000-0000000000a1",
+                      "00000000-0000-4000-8000-0000000000a2",
+                      "00000000-0000-4000-8000-0000000000a3"):
+        elements.append(
+            {
+                "@id": action_id,
+                "@type": "ActionUsage",
+                "owner": {"@id": "00000000-0000-4000-8000-0000000000d0"},
+            }
+        )
+        elements.append(
+            {
+                "@id": action_id[:-2] + "mu",
+                "@type": "MetadataUsage",
+                "owner": {"@id": action_id},
+                "declaredName": "VerificationMethod",
             }
         )
     return elements
@@ -217,6 +255,31 @@ def test_mc10_method_contract_objects_rejected_from_engineering_populations() ->
     assert [element_id for element_id, _ in population] == [
         "00000000-0000-4000-8000-000000000c02"
     ]
+
+
+def test_mc10_scope_validation_failure_on_empty_registry() -> None:
+    """The defined scope-validation failure: MC-10 rejection requires a
+    non-empty governed prefix registry; an empty registry is a refused
+    evaluation, not a silently unfiltered population."""
+    from de4sdv.semantic.method_contract import engineering_subjects_only
+
+    method_object = _base_element(
+        "00000000-0000-4000-8000-000000000c01",
+        "PartUsage",
+        "phase10MethodContractObligationCarrier",
+        declaredShortName="PC-009D-01",
+    )
+    engineering_element = _base_element(
+        "00000000-0000-4000-8000-000000000c02",
+        "VerificationCaseUsage",
+        "overrideTrueVerification",
+    )
+    with pytest.raises(ValueError, match="method_id_prefixes"):
+        engineering_subjects_only(
+            [method_object, engineering_element],
+            eligible_types={"VerificationCaseUsage"},
+            method_id_prefixes=set(),
+        )
 
 
 def test_mc10_shared_type_references_remain_legal() -> None:
@@ -302,6 +365,44 @@ def test_mc14_duplicate_explicit_identifier_fails_closed() -> None:
         resolve_identity("VC-AEBS-009D-02", graph)
 
 
+def test_mc14_independent_transactions_correspond_by_explicit_id() -> None:
+    """MC-14 two-transaction design: two INDEPENDENT export transactions of
+    the same source carry different serializer UUIDs but the same explicit
+    identities. Correspondence is proven by explicit id + declared name,
+    never by UUID equality or name merging. (The privileged two-import run
+    provides the real-serializer version of this evidence.)"""
+    from de4sdv.semantic.method_contract import CorrespondenceMap
+
+    first = _pilot_graph()
+    second = _pilot_graph(
+        usage_uuids=tuple(f"22222222-0000-4000-8000-{i:012d}" for i in range(1, 7))
+    )
+    first_by_short = {
+        e["declaredShortName"]: e
+        for e in first
+        if "declaredShortName" in e and e["declaredShortName"].startswith("VC-AEBS-009D-0")
+    }
+    second_by_short = {
+        e["declaredShortName"]: e
+        for e in second
+        if "declaredShortName" in e and e["declaredShortName"].startswith("VC-AEBS-009D-0")
+    }
+    mapping = CorrespondenceMap(
+        {
+            short: second_by_short[short]["@id"]
+            for short in first_by_short
+        }
+    )
+    for short, original in first_by_short.items():
+        reimported_id = mapping.uuid_for(short)
+        assert reimported_id != original["@id"], (
+            "independent transactions must NOT reuse serializer UUIDs"
+        )
+        assert second_by_short[short]["declaredName"] == original["declaredName"]
+    # Correspondence covers every explicit identity exactly once.
+    assert len(mapping.mapping) == 6
+
+
 def test_mc14_wrong_target_type_fails_closed() -> None:
     from de4sdv.sysml_api.identity import resolve_identity
     from de4sdv.sysml_api.errors import IdentityNotFoundError
@@ -385,6 +486,35 @@ def test_mc36_selected_commit_export_excludes_uncommitted_work(tmp_path: Path) -
     # The export declares its commit identity.
     assert identity["git_commit"] == committed
     assert identity["tree_was_dirty"] is True
+
+
+def test_mc36_isolated_checkout_at_exact_commit(tmp_path: Path) -> None:
+    from de4sdv.sysml_api.candidate import prepare_isolated_checkout
+
+    repo, committed = _synthetic_repo(tmp_path)
+    # An isolated worktree is created at the exact SHA, detached and clean.
+    worktree = tmp_path / "isolated"
+    prepare_isolated_checkout(repo, committed, worktree)
+    head = subprocess.check_output(
+        ["git", "-C", str(worktree), "rev-parse", "HEAD"], text=True
+    ).strip()
+    assert head == committed
+    # Uncommitted work in the ORIGIN repo does not appear in the worktree.
+    (repo / "textual-notation-of-model" / "b.sysml").write_text("package Q { }\n")
+    worktree_files = {
+        p.name for p in (worktree / "textual-notation-of-model").iterdir()
+    }
+    assert worktree_files == {"a.sysml"}
+
+
+def test_mc36_isolated_checkout_rejects_wrong_sha(tmp_path: Path) -> None:
+    from de4sdv.sysml_api.candidate import prepare_isolated_checkout
+
+    repo, committed = _synthetic_repo(tmp_path)
+    with pytest.raises(ValueError, match="40-character"):
+        prepare_isolated_checkout(repo, "short-sha", tmp_path / "w")
+    with pytest.raises(ValueError, match="does not resolve"):
+        prepare_isolated_checkout(repo, "f" * 40, tmp_path / "w2")
 
 
 def test_mc36_dirty_tree_evaluation_request_refused(tmp_path: Path) -> None:

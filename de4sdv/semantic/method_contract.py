@@ -157,6 +157,7 @@ class BoundPilotUsage:
     subject_members: tuple[str, ...]
     verify_witnesses: tuple[str, ...]
     method_metadata_owners: tuple[str, ...]
+    specializes_definition: bool = False
 
 
 @dataclass
@@ -177,6 +178,68 @@ def _subject_members(
             continue
         members.extend(reference_ids(element.get("memberElement")))
     return tuple(sorted(set(members)))
+
+
+def _generalization_parents(
+    element_id: str, elements: list[dict[str, Any]]
+) -> set[str]:
+    """Direct specialization parents of one element (Generalization edges)."""
+    parents: set[str] = set()
+    for element in elements:
+        if str(element.get("@type")) != "Generalization":
+            continue
+        owners = set(reference_ids(element.get("owningRelatedElement"))) | set(
+            reference_ids(element.get("owner"))
+        )
+        if element_id not in owners:
+            continue
+        parents.update(reference_ids(element.get("general")))
+    return parents
+
+
+def _metadata_witnesses(
+    owner_id: str, elements: list[dict[str, Any]]
+) -> tuple[str, ...]:
+    """Metadata witnesses that correspond to actual API objects.
+
+    A SysML v2 metadata annotation serializes as a ``MetadataUsage`` element
+    (the annotating element) linked to the annotated element — either owned
+    directly (``owner``/``owningRelatedElement``) or through a
+    ``MetadataAnnotation`` whose ``annotatedElement`` references the usage.
+    A usage with no owned/referencing MetadataUsage has no metadata
+    witness; inventing one from ``ownedElement is not None`` would
+    fabricate semantics (B-R1).
+    """
+    annotation_ids: set[str] = set()
+    for element in elements:
+        if str(element.get("@type")) != "MetadataAnnotation":
+            continue
+        if owner_id in reference_ids(element.get("annotatedElement")):
+            member = element_id(element)
+            if member:
+                annotation_ids.add(member)
+    witnesses: set[str] = set()
+    for element in elements:
+        if str(element.get("@type")) != "MetadataUsage":
+            continue
+        current = element_id(element)
+        if current is None:
+            continue
+        owners = set(reference_ids(element.get("owningRelatedElement"))) | set(
+            reference_ids(element.get("owner"))
+        )
+        direct = owner_id in owners
+        via_annotation = bool(
+            annotation_ids
+            & (
+                set(reference_ids(element.get("owningRelatedElement")))
+                | set(reference_ids(element.get("owner")))
+                | set(reference_ids(element.get("owningNamespace")))
+            )
+        )
+        if direct or via_annotation:
+            witnesses.add(current)
+    return tuple(sorted(witnesses))
 
 
 def _verify_witnesses(
@@ -288,6 +351,23 @@ def bind_pilot_usages(
                 f"provenance (level {level!r}); explicit-identity binding is "
                 "required for pilot scope membership"
             )
+        metadata = _metadata_witnesses(usage_id, elements)
+        if not metadata:
+            binding.diagnostics.append(
+                f"scope usage {explicit!r} has no owned MetadataUsage witness; "
+                "usage-level verification-method metadata closure is unresolved"
+            )
+        specializes = (
+            definition_id is not None
+            and definition_id
+            in _generalization_parents(usage_id, elements)
+        )
+        if definition_id is not None and not specializes:
+            binding.diagnostics.append(
+                f"scope usage {explicit!r} does not specialize the pilot "
+                f"definition {declared.get('definition_short_name')!r}; "
+                "definition/usage relationship witness is unresolved"
+            )
         binding.usages.append(
             BoundPilotUsage(
                 explicit_id=explicit,
@@ -298,9 +378,8 @@ def bind_pilot_usages(
                 resolution_level=level,
                 subject_members=subjects,
                 verify_witnesses=witnesses,
-                method_metadata_owners=(usage_id,)
-                if element.get("ownedElement") is not None or True
-                else (),
+                method_metadata_owners=metadata,
+                specializes_definition=specializes,
             )
         )
 
