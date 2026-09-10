@@ -40,10 +40,69 @@ POPULATION_POLICY_VIOLATION  non-empty population required but empty under the
 EVIDENCE_SCOPE_MISMATCH   declared execution scope does not match the tested scope
 ACCEPTANCE_AUTHORITY_MISSING  no attributable authorized acceptance decision exists
 STALE_INPUT               delivery input moved or was re-read as changed (delivery projection)
+REQUIRED_RELATION_MISSING  required relation demonstrably absent in a complete, correctly
+                          resolved scope (completeness flag must be COMPLETE)
+EXECUTION_FAILED          an execution record exists for the subject but its observed
+                          result does not satisfy the obligation's required outcome
+EVALUATOR_FAILURE         the evaluator could not complete a step it attempted
+                          (tooling/internal failure; distinct from missing inputs)
+NOT_APPLICABLE_REASON     explicit supported non-applicability or an explicitly
+                          permitted-empty disposition holds (retained reason REQUIRED;
+                          one code from the PERMITTED_EMPTY sub-vocabulary below)
 ```
 
 Unknown reason codes are a serialization error. Extending this vocabulary
 requires a reviewed amendment to this document.
+
+### PERMITTED_EMPTY sub-vocabulary (dispositions for explicit empty populations)
+
+```text
+NO_ELIGIBLE_SUBJECTS      typed scope correctly resolves to zero subjects under the
+                          declared population policy
+EXPLICIT_DISPOSITION      a reviewed model-resident or policy disposition declares
+                          this obligation not applicable to the resolved scope
+```
+
+## State/reason compatibility table (normative)
+
+`reason_codes` is a non-empty array exactly when the row requires it below; it
+carries at least one code from the Reason column and may carry additional
+**diagnostic codes** from the same finite vocabulary, provided each is legal
+for that state (diagnostic rules below). An empty `reason_codes` array is legal
+only where the table shows `[]`. Diagnostic detail beyond the finite vocabulary
+belongs in a separate `diagnostics` field, never in `reason_codes`.
+
+| assessment_coverage | evaluation_state | conformance_verdict | reason_codes (required content) | Additional diagnostic codes permitted |
+|---|---|---|---|---|
+| ASSESSED | COMPLETE | PASS | `[]` | none — a pass carries no reason codes |
+| ASSESSED | COMPLETE | FAIL | at least one of REQUIRED_RELATION_MISSING, EXECUTION_FAILED, EVIDENCE_SCOPE_MISMATCH, ACCEPTANCE_AUTHORITY_MISSING, POPULATION_POLICY_VIOLATION | CONTRACT_UNAVAILABLE, BINDING_MISMATCH are NOT permitted here |
+| ASSESSED | COMPLETE | NOT_APPLICABLE | exactly one of NOT_APPLICABLE_REASON (with its PERMITTED_EMPTY sub-code in diagnostics) | none |
+| ASSESSED | INDETERMINATE | null | at least one of APPLICABILITY_UNRESOLVED, INPUT_UNAVAILABLE, ACCEPTANCE_AUTHORITY_MISSING | OUTSIDE_REQUESTED_SCOPE, NOT_ATTEMPTED, CONTRACT_UNAVAILABLE, STALE_INPUT are NOT permitted |
+| ASSESSED | ERROR | null | at least one of INVALID_CONTRACT, BINDING_MISMATCH, SCOPE_RESOLUTION_ERROR, EVALUATOR_FAILURE | INPUT_UNAVAILABLE is NOT permitted here |
+| UNASSESSED | null | null | at least one of CONTRACT_UNAVAILABLE, OUTSIDE_REQUESTED_SCOPE, NOT_ATTEMPTED | STALE_INPUT not permitted |
+
+Illegal combinations are rejected at result validation before serialization.
+
+### Distinguishing FAIL vs INDETERMINATE for the acceptance obligation (pilot rule)
+
+The pilot's acceptance obligation (no attributable authorized acceptance
+decision exists for the retained 009D campaign) resolves as follows:
+
+- **COMPLETE / FAIL** with `ACCEPTANCE_AUTHORITY_MISSING` when the evaluation
+  could establish everything the obligation requires EXCEPT the attributable
+  decision — execution records, tested scope, and acceptance records all
+  available and complete; the missing element is precisely the authorized
+  decision. The obligation is answered: it is not satisfied.
+- **INDETERMINATE / null** with `ACCEPTANCE_AUTHORITY_MISSING` (plus
+  `INPUT_UNAVAILABLE` as a permitted diagnostic) when the evaluation cannot
+  establish the evidence basis itself — required execution or acceptance
+  records unavailable, incomplete, or out of export closure.
+
+The discriminator is **evidence availability**, not severity: authorization
+absent + evidence present = FAIL; authorization unprovable + evidence
+incomplete = INDETERMINATE. B must encode this rule in the pilot contract's
+`attestation_policy_ref` semantics; C implements it as a typed condition, not
+special-cased Python.
 
 ## Validity rules (from frozen baseline §8, unchanged)
 
