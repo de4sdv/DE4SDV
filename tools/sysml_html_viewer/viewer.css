@@ -1187,8 +1187,15 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   right: 123px;
   bottom: 18px;
 }
+/* When the Guide PANEL is open, the chip must clear the panel, not just
+ * the FAB: panel spans right 18px..448px (width 430 + 18), so the chip
+ * moves to 448 + 12 = 460px. */
+body.chat-guide-open #askMinChip {
+  right: 460px;
+}
 @media (max-width: 640px) {
   #askMinChip { right: 104px; }
+  body.chat-guide-open #askMinChip { right: 448px; }
 }
 
 /* return path note after arriving via the uses-menu */
