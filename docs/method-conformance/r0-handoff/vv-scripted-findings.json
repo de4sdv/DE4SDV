@@ -1,0 +1,8 @@
+[
+  {
+    "severity": "major",
+    "id": "PROJECTION_SEPARATION_KEYWORD_HIT",
+    "finding": "projection schema contains representation mechanics",
+    "fix": "move to profile"
+  }
+]

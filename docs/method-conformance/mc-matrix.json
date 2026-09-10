@@ -1,0 +1,252 @@
+{
+  "source": "docs/method-conformance/conformance-baseline.md (frozen, digest 427410f3070ed591287ec0dd3b819be7e95ee22fa7608b4c87d1e82192abd661)",
+  "extraction": "rows where the stripped line starts with '| MC-'; 4 cells per row; header excluded",
+  "count": 40,
+  "owners": {
+    "C": 29,
+    "B": 4,
+    "D": 7
+  },
+  "cases": [
+    {
+      "id": "MC-01",
+      "scenario": "Complete scoped pilot; passing executions, authorized attestations, exact execution-scope matches",
+      "outcome": "`COMPLETE` / `PASS` for the declared pilot only",
+      "owner": "C"
+    },
+    {
+      "id": "MC-02",
+      "scenario": "One subject has no required evidence in an otherwise complete graph",
+      "outcome": "`COMPLETE` / `FAIL`; identify the subject and missing relationship",
+      "owner": "C"
+    },
+    {
+      "id": "MC-03",
+      "scenario": "One case has several records; another case has none",
+      "outcome": "Fail the uncovered case; no global-count pass",
+      "owner": "C"
+    },
+    {
+      "id": "MC-04",
+      "scenario": "Several graph paths reach the same evidence target",
+      "outcome": "Count one distinct target per subject",
+      "owner": "C"
+    },
+    {
+      "id": "MC-05",
+      "scenario": "Valid scope resolves to no subjects despite non-empty policy",
+      "outcome": "`COMPLETE` / `FAIL` with population diagnostic",
+      "owner": "C"
+    },
+    {
+      "id": "MC-06",
+      "scenario": "Missing membership, broken selector, ambiguous ID, or wrong target type",
+      "outcome": "Error/indeterminate as specified; never an empty-population pass",
+      "owner": "C"
+    },
+    {
+      "id": "MC-07",
+      "scenario": "Explicit, supported non-applicability",
+      "outcome": "`NOT_APPLICABLE` with reason, not completed engineering work",
+      "owner": "C"
+    },
+    {
+      "id": "MC-08",
+      "scenario": "Unknown applicability, missing API page/reference, or truncated traversal",
+      "outcome": "`INDETERMINATE`; no pass",
+      "owner": "C"
+    },
+    {
+      "id": "MC-09",
+      "scenario": "Unsupported predicate, invalid cardinality, or unknown status literal",
+      "outcome": "Contract `ERROR` before normative evaluation",
+      "owner": "C"
+    },
+    {
+      "id": "MC-10",
+      "scenario": "Ordinary selector includes a method contract",
+      "outcome": "Scope validation error; shared type references alone remain legal",
+      "owner": "B"
+    },
+    {
+      "id": "MC-11",
+      "scenario": "Different Git/API/ontology/method/evaluator/policy identity",
+      "outcome": "Refuse the mismatched evaluation",
+      "owner": "C"
+    },
+    {
+      "id": "MC-12",
+      "scenario": "API enumeration order and timestamps differ, semantic inputs identical",
+      "outcome": "Same canonical conformance payload",
+      "owner": "C"
+    },
+    {
+      "id": "MC-13",
+      "scenario": "Configuration, evaluation scope, or meaningful ordered collection changes",
+      "outcome": "Different evaluation identity; recompute rather than reuse",
+      "owner": "C"
+    },
+    {
+      "id": "MC-14",
+      "scenario": "Reimport changes API UUIDs while explicit IDs and meaning remain stable",
+      "outcome": "Preserve identity correspondence without name-based merging",
+      "owner": "B"
+    },
+    {
+      "id": "MC-15",
+      "scenario": "Accepted evidence records a failed execution",
+      "outcome": "Fail an obligation requiring a passing execution",
+      "owner": "C"
+    },
+    {
+      "id": "MC-16",
+      "scenario": "Record says accepted but lacks attributable authorized decision",
+      "outcome": "No acceptance pass; missing authority is explicit",
+      "owner": "C"
+    },
+    {
+      "id": "MC-17",
+      "scenario": "Verification-case text unchanged, implementation/configuration/test/inputs change",
+      "outcome": "No automatic evidence carry-forward; scope mismatch fails",
+      "owner": "C"
+    },
+    {
+      "id": "MC-18",
+      "scenario": "Execution scope cannot establish required dependency boundary",
+      "outcome": "Indeterminate validity, not inferred freshness",
+      "owner": "C"
+    },
+    {
+      "id": "MC-19",
+      "scenario": "Evidence is committed after execution",
+      "outcome": "Compare tested-scope identity; no impossible self-containing Git SHA requirement",
+      "owner": "C"
+    },
+    {
+      "id": "MC-20",
+      "scenario": "Conflicting acceptance/rejection decisions lack valid supersession",
+      "outcome": "Unresolved acceptance; no timestamp-based winner",
+      "owner": "C"
+    },
+    {
+      "id": "MC-21",
+      "scenario": "Snapshot corrupt, incomplete, wrong-bound, or self-attested without trusted provenance",
+      "outcome": "Reject snapshot; never silently load latest",
+      "owner": "D"
+    },
+    {
+      "id": "MC-22",
+      "scenario": "Same verified inputs loaded through API and snapshot",
+      "outcome": "Identical canonical conformance payload",
+      "owner": "D"
+    },
+    {
+      "id": "MC-23",
+      "scenario": "Product candidate weakens obligation, interpretation, evaluator, or policy",
+      "outcome": "Governing-policy mismatch/migration blocker; no self-acceptance",
+      "owner": "C"
+    },
+    {
+      "id": "MC-24",
+      "scenario": "PR head/base moves while status is gathered",
+      "outcome": "`readiness = BLOCKED` for the exact PR-merge target, with `STALE_INPUT` and a head-moved/base-moved reason; no successful delivery verdict",
+      "owner": "D"
+    },
+    {
+      "id": "MC-25",
+      "scenario": "Required delivery obligation unsupported; model pilot passes",
+      "outcome": "Model pass stays scoped; full readiness does not pass",
+      "owner": "D"
+    },
+    {
+      "id": "MC-26",
+      "scenario": "Hindsight claims evidence exists but graph does not",
+      "outcome": "Memory does not change the result",
+      "owner": "C"
+    },
+    {
+      "id": "MC-27",
+      "scenario": "Blocking prerequisite cycle versus legitimate feedback loop",
+      "outcome": "Reject unsupported blocking cycle; allow separate feedback relation",
+      "owner": "C"
+    },
+    {
+      "id": "MC-28",
+      "scenario": "Remote artifact later unavailable; pinned record unchanged",
+      "outcome": "Historical model verdict reproducible; availability reported separately",
+      "owner": "D"
+    },
+    {
+      "id": "MC-29",
+      "scenario": "All selected obligations explicitly not applicable versus no executable phase contract",
+      "outcome": "First case: ASSESSED / COMPLETE / NOT_APPLICABLE; second: UNASSESSED / null / null; neither claims completed engineering work",
+      "owner": "C"
+    },
+    {
+      "id": "MC-30",
+      "scenario": "Evaluator API/snapshot comparison and independent manual pilot review disagree",
+      "outcome": "Block readiness and investigate; neither timeout nor partial result counts as acceptance",
+      "owner": "D"
+    },
+    {
+      "id": "MC-31",
+      "scenario": "Unmerged candidate revision is validated/imported with complete scope",
+      "outcome": "Conformance may be evaluated against that exact candidate revision; merge is not required",
+      "owner": "C"
+    },
+    {
+      "id": "MC-32",
+      "scenario": "Same verified candidate evaluated through API and validated local/CI snapshot",
+      "outcome": "Same canonical conformance payload",
+      "owner": "D"
+    },
+    {
+      "id": "MC-33",
+      "scenario": "A non-Phase-10 contract uses the same generic operators",
+      "outcome": "Evaluate without phase-specific code path; phase number does not alter semantics",
+      "owner": "C"
+    },
+    {
+      "id": "MC-34",
+      "scenario": "Phase has no reviewed executable contract yet",
+      "outcome": "UNASSESSED / null / null with CONTRACT_UNAVAILABLE reason; required broader exit readiness remains BLOCKED",
+      "owner": "C"
+    },
+    {
+      "id": "MC-35",
+      "scenario": "Approved phase contract exists; candidate is absent, invalid, or missing scope",
+      "outcome": "phase_contract returns method identity, obligations, and unresolved applicability inputs without a conformance verdict; no obligations silently disappear",
+      "owner": "C"
+    },
+    {
+      "id": "MC-36",
+      "scenario": "Caller has uncommitted edits or requests dirty-working-tree evaluation",
+      "outcome": "Export of a selected commit excludes uncommitted content and declares its commit identity; an explicit dirty-tree evaluation request is refused",
+      "owner": "B"
+    },
+    {
+      "id": "MC-37",
+      "scenario": "Candidate is imported and validated before merge, including concurrent candidates",
+      "outcome": "Candidate bindings remain isolated; published accepted-baseline selection is unchanged; validation does not imply approval",
+      "owner": "B"
+    },
+    {
+      "id": "MC-38",
+      "scenario": "Result fields include illegal combinations or missing required reasons/target",
+      "outcome": "Reject serialization; no verdict for INDETERMINATE/ERROR/UNASSESSED, null evaluation fields only as specified, and readiness always names its target",
+      "owner": "C"
+    },
+    {
+      "id": "MC-39",
+      "scenario": "Candidate fails a required exit condition while a corrective task has satisfied entry prerequisites",
+      "outcome": "Phase-exit readiness BLOCKED and corrective-task entry readiness READY may coexist under distinct explicit targets",
+      "owner": "C"
+    },
+    {
+      "id": "MC-40",
+      "scenario": "Broader scope mixes attempted and unassessed required units, including known child failures",
+      "outcome": "Preserve all child results and coverage lists/counts; aggregate coverage UNASSESSED with null evaluation/verdict, and broader exit readiness BLOCKED",
+      "owner": "C"
+    }
+  ]
+}

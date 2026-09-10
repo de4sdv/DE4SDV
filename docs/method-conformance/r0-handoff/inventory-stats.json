@@ -1,0 +1,28 @@
+{
+  "total_rows": 84,
+  "classes": 51,
+  "relationships": 33,
+  "vocabulary_only_relationships": 26,
+  "implemented_relationships": 7,
+  "semantic_change_unresolved": [
+    "FeatureConfiguration",
+    "EvidenceArtifact",
+    "specifiesFeature",
+    "specifiesCommonCapability",
+    "allocatedTo",
+    "deployedTo",
+    "appliesToMemberProduct",
+    "selectsFeature",
+    "includesCommonCapability",
+    "variesAt",
+    "selectsVariant"
+  ],
+  "lane_exits": {
+    "O": 69,
+    "PLE": 8,
+    "T/E": 2,
+    "T": 4,
+    "K": 1
+  },
+  "note": "regenerated 2026-09-10 after K-row lane fix; stats file previously stale (missing K=1, O=70). Flagged by timed-out V&V reviewer transcript, confirmed and fixed by author."
+}

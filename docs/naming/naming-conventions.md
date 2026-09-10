@@ -248,6 +248,10 @@ never mistaken for a project ID.
 | `LCOMP` | Logical component | pilot index | `LCOMP-AEBS-001` | CANONICAL |
 | `LPORT` | Logical port | pilot index | `LPORT-AEBS-IN-001` | CANONICAL |
 | `MAP` | Signal mapping record | pilot index | `MAP-MW-008-VEHICLE-SPEED` | CANONICAL |
+| `MC` | Method-conformance matrix case | method-conformance specification (`docs/method-conformance/`) | `MC-01` | CANONICAL |
+| `PC` | Pilot contract obligation | declared method-conformance pilot (`docs/method-conformance/pilot-scope.md`) | `PC-009D-VC-EXISTS` | CANONICAL |
+| `UG` | Unified-plan general acceptance case | unified semantic engineering plan (`docs/method-conformance/`) | `UG-05` | CANONICAL |
+| `R0` | Reconciliation work-package handoff item | unified-plan R0 handoff (`docs/method-conformance/r0-handoff/`) | `R0-4` | CANONICAL |
 | `MODEL` | Model artifact index entry | pilot index | `MODEL-AEBS-010-VARIABILITY-CONFIGURATION-SYSML` | CANONICAL |
 | `PORT` | Port | pilot index | `PORT-AEBS-IN-001` | CANONICAL |
 | `PROBE` | Realization-readiness probe | pilot index | `PROBE-MW-008-AAOS-CUTTLEFISH-BOOT` | CANONICAL |
