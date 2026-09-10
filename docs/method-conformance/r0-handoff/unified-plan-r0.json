@@ -224,6 +224,14 @@
       },
       "verification": "full suite 1030 passed / 4 skipped / 137 subtests @76b5fbb; CI 34474260178 pass; PR body rebound to 76b5fbb",
       "status": "A ready for Orkun's acceptance decision; B starts stacked after acceptance (API proof before C); K/PLE-Q prep independent"
+    },
+    "policy_correction": {
+      "verdict": "seven guard repairs verified; A closes with one tightly scoped policy correction",
+      "repairs": "commit 7cd82e2: registry completeness defined independently of profile completeness (FAIL requires proven complete registry scan; missing/truncated=INDETERMINATE; schema-invalid record=ERROR); conflict tuple corrected to ASSESSED/INDETERMINATE/null; disposition mapping normalized; two new policy guards",
+      "probe_matrix": "9/9 caught at committed head 7cd82e2 (7 prior + registry-independence removal + conflict-tuple regression)",
+      "verification": "full suite 1032 passed / 4 skipped / 137 subtests @7cd82e2; CI 34477479209 pass; PR body rebound to 7cd82e2",
+      "scope": "no 009D acceptance, no policy activation, no mandatory checks, no merge",
+      "status": "A contract delivered for review and acceptance decision"
     }
   }
 }
