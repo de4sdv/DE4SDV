@@ -375,6 +375,35 @@ def test_pilot_selectors_declare_pinned_subject_sets() -> None:
         )
 
 
+def test_acceptance_policy_registry_completeness_is_independent() -> None:
+    """Registry completeness (scan provenance) must be defined separately from
+    profile completeness (enumeration), and a FAIL must require a proven
+    complete registry scan."""
+    text = (DOCS / "acceptance-policy.md").read_text(encoding="utf-8")
+    assert "Registry completeness (independent of profile completeness)" in text
+    assert "registry_path: docs/acceptance-decisions/" in text
+    # FAIL requires proven complete scan (order matters: the mapping table
+    # must state the precondition, not just the outcome).
+    assert "Registry proven completely scanned" in text
+    assert "Registry location missing, unreadable, or truncated" in text
+    assert "Record schema-invalid in registry" in text
+    # No FAIL without scan proof: the independence statement present.
+    assert "no FAIL may be derived from an incompletely scanned registry" in text
+
+
+def test_acceptance_policy_conflict_tuple_is_legal() -> None:
+    """The conflict disposition must be a legal result tuple:
+    ASSESSED/INDETERMINATE/null (INDETERMINATE is an evaluation state, never
+    a verdict) — the invalid COMPLETE/INDETERMINATE/null form must not
+    appear anywhere in the policy."""
+    text = (DOCS / "acceptance-policy.md").read_text(encoding="utf-8")
+    assert "COMPLETE/INDETERMINATE" not in text, (
+        "invalid result tuple COMPLETE/INDETERMINATE present in policy"
+    )
+    section = text.split("## Conflict and supersession")[1].split("## ")[0]
+    assert "`ASSESSED`/`INDETERMINATE`/null" in section
+
+
 def test_reason_legality_per_row_is_pinned() -> None:
     """R3-M3 probe: which codes are REQUIRED/LEGAL per compatibility row is
     pinned exactly — replacing the FAIL row's required set with a wrong code
