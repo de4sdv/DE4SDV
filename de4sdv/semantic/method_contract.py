@@ -59,7 +59,20 @@ def engineering_subjects_only(
     Legitimate shared type references do not create membership: a
     method object whose declared type references an engineering type is
     still excluded by its method identity.
+
+    The prefix set must be non-empty and callers must source it from the
+    governed method-identity registry (the registered method-carrier
+    prefixes of the naming gate, e.g. {"PC-", "PSC-"}); an empty set would
+    silently disable method-carrier rejection and is refused. Exclusion
+    depends on carriers carrying their declared method short name — that
+    convention is enforced by the naming gate on model content.
     """
+    if not method_id_prefixes:
+        raise ValueError(
+            "method_id_prefixes must be a non-empty set sourced from the "
+            "governed method-identity registry; an empty set would silently "
+            "disable MC-10 method-carrier rejection"
+        )
     population: list[tuple[str, dict[str, Any]]] = []
     for element in elements:
         api_type = str(element.get("@type") or "")
@@ -263,6 +276,18 @@ def bind_pilot_usages(
                 f"scope usage {explicit!r} has no subject membership; required "
                 "subject closure is unresolved"
             )
+        level = resolution_level_of(explicit, element)
+        if level != "stable-explicit-id":
+            # The module identity rule forbids name-derived binding: a usage
+            # that arrived through a weaker resolver tier (qualified name or
+            # structural declaredName match) has no explicit-identity
+            # provenance, so the binding is incomplete — never a complete
+            # success (frozen baseline Section 5).
+            binding.diagnostics.append(
+                f"scope usage {explicit!r} resolved without stable explicit-id "
+                f"provenance (level {level!r}); explicit-identity binding is "
+                "required for pilot scope membership"
+            )
         binding.usages.append(
             BoundPilotUsage(
                 explicit_id=explicit,
@@ -270,7 +295,7 @@ def bind_pilot_usages(
                 declared_name=str(
                     element.get("declaredName") or element.get("name") or ""
                 ),
-                resolution_level=resolution_level_of(explicit, element),
+                resolution_level=level,
                 subject_members=subjects,
                 verify_witnesses=witnesses,
                 method_metadata_owners=(usage_id,)

@@ -384,7 +384,7 @@ def test_mc36_selected_commit_export_excludes_uncommitted_work(tmp_path: Path) -
     assert "dirty edit" not in "".join(str(x) for x in source_docs.values())
     # The export declares its commit identity.
     assert identity["git_commit"] == committed
-    assert identity["dirty_tree_excluded"] is True
+    assert identity["tree_was_dirty"] is True
 
 
 def test_mc36_dirty_tree_evaluation_request_refused(tmp_path: Path) -> None:
@@ -435,19 +435,28 @@ def test_mc37_candidate_binding_requires_validation() -> None:
     from de4sdv.sysml_api.candidate import CandidateRegistry
 
     registry = CandidateRegistry()
-    # Binding emission without passing validation is refused.
+    # Binding emission without passing validation is refused (provenance is
+    # complete here so the refusal is attributable to validation alone).
     with pytest.raises(RuntimeError, match="validation"):
         registry.emit_binding(
             git_commit="e" * 40,
             project_id="proj-x",
             commit_id="cx-1",
             semantic_validation="failed",
+            git_repository="de4sdv/DE4SDV",
+            import_timestamp="2026-09-10T00:00:00+00:00",
+            import_tool_version="de4sdv-full-model-import/1+official-syside-json",
+            ontology_path="approach/framework/ontology/de4sdv-basic-ontology.yaml",
+            ontology_sha256="a" * 64,
         )
     binding = registry.emit_binding(
         git_commit="e" * 40,
         project_id="proj-x",
         commit_id="cx-1",
         semantic_validation="passed",
+        git_repository="de4sdv/DE4SDV",
+        import_timestamp="2026-09-10T00:00:00+00:00",
+        import_tool_version="de4sdv-full-model-import/1+official-syside-json",
         ontology_path="approach/framework/ontology/de4sdv-basic-ontology.yaml",
         ontology_sha256="a" * 64,
     )

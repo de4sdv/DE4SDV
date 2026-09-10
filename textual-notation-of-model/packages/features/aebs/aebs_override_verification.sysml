@@ -140,10 +140,7 @@ package DE4SDV_AEBSOverrideVerification {
   private import ScalarValues::*;
   private import DE4SDV_MethodConformance::*;
 
-  part def AebsOverridePilotScopeBase {
-    attribute incrementId : String;
-    attribute subjectType : String;
-  }
+  part def AebsOverridePilotScopeBase :> MethodEvaluationScope;
 
   part <'PSC-009D'>aebsOverridePilotScope : AebsOverridePilotScopeBase {
     attribute :>> incrementId = "INC-AEBS-009D";

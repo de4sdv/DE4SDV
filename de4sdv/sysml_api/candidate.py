@@ -39,7 +39,13 @@ def _is_dirty(repo: Path) -> bool:
 @dataclass(frozen=True)
 class ExportIdentity:
     git_commit: str
-    dirty_tree_excluded: bool
+    tree_was_dirty: bool
+    """True when the working tree had uncommitted changes at export time.
+
+    This records the tree state, NOT whether dirty content was excluded:
+    exclusion is structural (blobs are read from the selected commit), so
+    dirty content cannot leak regardless of this flag.
+    """
     tool_identity: str
 
     def __getitem__(self, key: str) -> Any:
@@ -71,9 +77,9 @@ def export_selected_commit(
             "dirty working tree evaluation is refused in V1: only committed "
             "revisions are evaluated; commit or stash the working tree first"
         )
-    # Even without an explicit request, refuse when the caller asked for a
-    # dirty checkout as the evaluation source (the committed content is still
-    # exportable; the refusal is about *evaluating the dirty tree*).
+    # Export BOTH validated model roots (textual-notation-of-model and
+    # model-based-product-line-engineering/product-models — AGENTS.md model
+    # roots) by reading committed blobs from the object database.
     tracked = _git(
         repository,
         "ls-tree",
@@ -83,6 +89,7 @@ def export_selected_commit(
         git_commit,
         "--",
         "textual-notation-of-model",
+        "model-based-product-line-engineering/product-models",
     )
     source_docs: dict[str, list[dict[str, Any]]] = {}
     for entry in tracked.split("\0"):
@@ -94,7 +101,7 @@ def export_selected_commit(
         source_docs[entry] = [{"_committed_source": blob.decode("utf-8", "replace")}]
     identity = ExportIdentity(
         git_commit=git_commit,
-        dirty_tree_excluded=dirty,
+        tree_was_dirty=dirty,
         tool_identity="git-object-read/v1",
     )
     return source_docs, identity
@@ -166,13 +173,17 @@ class CandidateRegistry:
         project_id: str,
         commit_id: str,
         semantic_validation: str,
+        git_repository: str,
+        import_timestamp: str,
+        import_tool_version: str,
         ontology_path: str = "",
         ontology_sha256: str = "",
     ) -> RevisionBinding:
         """Emit a candidate revision binding only after validation passed.
 
-        The ontology identity is required and must be the digest of the
-        ontology contract validated during the candidate's import, so the
+        Provenance is real, not placeholder: repository identity, import
+        timestamp, and tool version are required, as is the ontology
+        contract identity validated during the candidate's import. The
         emitted binding round-trips through RevisionBinding.from_dict and
         carries the same authority tuple as a full-model binding (scope
         differs, authority does not).
@@ -182,21 +193,32 @@ class CandidateRegistry:
                 "candidate binding emission refused: semantic validation "
                 f"has not passed (status {semantic_validation!r})"
             )
-        if not ontology_path or not ontology_sha256:
+        missing = [
+            name
+            for name, value in (
+                ("git_repository", git_repository),
+                ("import_timestamp", import_timestamp),
+                ("import_tool_version", import_tool_version),
+                ("ontology_path", ontology_path),
+                ("ontology_sha256", ontology_sha256),
+            )
+            if not value
+        ]
+        if missing:
             raise RuntimeError(
-                "candidate binding emission refused: the ontology contract "
-                "identity (path + sha256) validated during import is required"
+                "candidate binding emission refused: required provenance "
+                f"missing: {sorted(missing)}"
             )
         record = self.register_candidate(
             git_commit=git_commit, project_id=project_id, commit_id=commit_id
         )
         return RevisionBinding(
-            git_repository="synthetic",
+            git_repository=git_repository,
             git_commit=git_commit,
             sysml_project_id=record.sysml_project_id,
             sysml_commit_id=record.sysml_commit_id,
-            import_timestamp="synthetic",
-            import_tool_version="synthetic",
+            import_timestamp=import_timestamp,
+            import_tool_version=import_tool_version,
             semantic_validation=semantic_validation,
             ontology=OntologyIdentity(
                 path=ontology_path, sha256=ontology_sha256
