@@ -197,6 +197,33 @@
       "repairs": "commits fffd354, eefb0f9, 871e1f6: dependency graph in md+yaml asserted equal; applicability purged; aggregates derived from graph; full record comparison + forbidden types; 4 reviewer mutations fail committed-tree guards",
       "verification": "full suite 1027 passed / 4 skipped / 137 subtests @871e1f6; check_repo+smoke pass; CI run 34470997803 pass",
       "status": "awaiting re-review of committed tree; B only after A acceptance; K/PLE-Q prep independent"
+    },
+    "third_follow_up": {
+      "reviewed_head": "ce4dd8bb0943bf6b4f6f6a3ac200f43e9fa0402c",
+      "closed": [
+        "R1 dependency graph",
+        "R2 policy definition",
+        "R4 historical identities",
+        "earlier row-deletion probes"
+      ],
+      "open_at_review": [
+        "M3 per-row legality",
+        "valid-but-wrong disposition",
+        "YAML applicability/required unsynced",
+        "doc-sync debt (ADR 0019, PR body)"
+      ],
+      "repairs": "commit 3edc956 (per-row reason legality via compatibility_table in twin; yaml required/applicability sync; exact disposition mapping pinned pair-by-pair) + 76b5fbb (ADR refresh, PR body rebind via REST after gh edit silently failed)",
+      "probe_matrix": {
+        "M1": "caught",
+        "M2": "caught",
+        "M3": "caught",
+        "M4": "caught",
+        "valid-but-wrong disposition": "caught",
+        "invented applicability": "caught",
+        "required true->false": "caught"
+      },
+      "verification": "full suite 1030 passed / 4 skipped / 137 subtests @76b5fbb; CI 34474260178 pass; PR body rebound to 76b5fbb",
+      "status": "A ready for Orkun's acceptance decision; B starts stacked after acceptance (API proof before C); K/PLE-Q prep independent"
     }
   }
 }
