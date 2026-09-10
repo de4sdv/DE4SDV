@@ -34,6 +34,22 @@ definitions in `de4sdv_method_conformance.sysml`
 contract schema materializes into; the INC-AEBS-009D scope usage
 (`PSC-009D`) instantiates the scope in the pilot package.
 
+## v1.1 native/library grounding (read-back proof requirements)
+
+Per the v1.1 plan invariant (an `@type` check alone is not sufficient
+semantic evidence), the privileged read-back additionally proves:
+
+| Identity | API metaclass | Standard-library grounding | DE4SDV application definition | Explicit vs implied |
+|---|---|---|---|---|
+| `VC-AEBS-009D-DE` | `VerificationCaseDefinition` | `VerificationCases::VerificationCase` via specialization closure (direct or transitive Generalization chain) | the DE4SDV verification definition itself (`ConsciousOverrideVerification`) | specialization chain: DE4SDV authors write `verification def` (native); grounding to the library is SysML-implied and proven from the validated import closure |
+| `VC-AEBS-009D-01…06` | `VerificationCaseUsage` | `VerificationCases::verificationCases` (usage-side anchor) | usages specializing `VC-AEBS-009D-DE` | definition/usage relationship is SysML-implied; per-usage grounding follows the definition chain; subject memberships and usage-level `@VerificationMethod` metadata are explicitly authored |
+| `EC-009D-01…03` | `RequirementUsage` | ODE4HERA requirements-management vocabulary via the DE4SDV method-context adapter (ADR 0009) | `OverrideEvidenceContract` specializations | `RequirementVerificationMembership` witnesses explicitly authored in the objective |
+
+The read-back script reports these as separate fields
+(`definition_grounding_*`, `usage_grounding_*`, `library_*_present`) and
+fails closed when a library anchor is absent from the bound revision
+(pinned-dependency closure incomplete).
+
 ## External-boundary rule (frozen baseline Section 10)
 
 Evidence records, decision registry, and provenance fingerprints keep
