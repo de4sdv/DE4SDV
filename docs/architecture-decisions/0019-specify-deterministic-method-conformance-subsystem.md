@@ -46,10 +46,12 @@ outputs, which makes them invisible to contributors and CI.
    incomplete evidence basis resolves INDETERMINATE. No evaluation may return
    acceptance PASS without an attributable authorized decision.
 4. Instantiate the bounded pilot contract as specified in `pilot-scope.md`
-   (obligations `PC-009D-VC-EXISTS` through `PC-009D-ACCEPTANCE-AUTHORITY`)
-   with subjects, selectors, population policies, predicates, target filters,
-   cardinalities, evaluation sources, and expected dispositions; B encodes
-   this table verbatim.
+   (obligations `PC-009D-SCOPE-POPULATION` through
+   `PC-009D-ACCEPTANCE-AUTHORITY`, with the normative obligation dependency
+   graph and the structured twin `pilot-obligations.yaml` asserted
+   row-for-row against the markdown table) with subjects, selectors,
+   population policies, predicates, target filters, cardinalities, evaluation
+   sources, and expected dispositions; B encodes this table verbatim.
 5. Bind evaluation to the candidate revision and compare the declared tested
    scope separately (rebinding rule): campaign replay is required only when
    the tested boundary changes or cannot be established — documentation or
@@ -63,8 +65,10 @@ outputs, which makes them invisible to contributors and CI.
 
 ## Consequences
 
-- Package A's exit gate is satisfied in-repo: every MC case has a defined
-  outcome and owner; pilot scope and acceptance authority are identified.
+- When accepted, Package A's exit gate is satisfied in-repo: every MC case
+  has a defined outcome and owner; pilot scope and acceptance authority are
+  identified. Until Orkun accepts the A contract, this ADR remains Proposed
+  and B does not start.
 - B/C/D gain a pinned, machine-checkable specification; drift is caught by CI
   rather than review memory.
 - The reason vocabulary is intentionally small; real evaluations that need new
@@ -120,6 +124,9 @@ correction. Repairs, all bounded to the A contract and its guards:
 ## Links
 
 - Frozen baseline: `docs/method-conformance/conformance-baseline.md`
+- Proposed authorization policy: `docs/method-conformance/acceptance-policy.md`
+  (`de4sdv.acceptance.maintainer-decision.v1`, Proposed — activation is the
+  maintainer's)
 - Unified plan: DE4SDV_Unified_Semantic_Engineering_Plan_Final.md (§13, §16)
 - ADR 0017 (engineering authority separation), ADR 0010 (revision-bound
   semantic reads), ADR 0014 (admitted product scope)
