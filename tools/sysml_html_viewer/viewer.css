@@ -1155,12 +1155,16 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   position: fixed;
   z-index: 4150;
   bottom: 18px;
-  width: 44px;
-  height: 44px;
+  /* same visual metrics as .guide-fab: height 37px, font 13px/600 */
+  height: 37px;
+  min-width: 37px;
+  padding: 0 16px;
   display: none; /* JS sets inline-flex when its panel is minimized */
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
   font-family: var(--sans);
   color: var(--ink);
   background: var(--panel);
