@@ -1173,26 +1173,17 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   border-color: var(--accent);
   background: var(--accent-soft);
 }
-/* Fixed horizontal order (left -> right): Ask chip, FAB / Guide panel.
- * right: 18px = corner slot (Guide panel + its FAB).
- * right: calc(18px + panelWidth + 16px) = the Ask slot left of Guide. */
+/* Chat chips and the Guide FAB align flush on the bottom line:
+ * rightmost = repo assistant (Guide FAB, corner slot); left of it the
+ * ask-the-model chip. When panels are open, panels follow the same
+ * order (Ask panel shifted left of the Guide panel). */
 #askMinChip {
-  right: calc(18px + min(430px, calc(100vw - 36px)) + 16px);
-}
-/* Guide FAB shifts left of the Ask panel/chip footprint while Ask is open
- * or minimized, so nothing stacks underneath anything else. */
-.guide-fab.shifted {
-  right: calc(18px + min(430px, calc(100vw - 36px)) + 16px
-    + 44px + 12px);
+  /* left of the Guide FAB (corner, right: 18px); bottom edges flush */
+  right: 96px;
+  bottom: 18px;
 }
 @media (max-width: 640px) {
-  #askMinChip {
-    right: calc(12px + min(430px, calc(100vw - 16px)) + 12px);
-  }
-  .guide-fab.shifted {
-    right: calc(12px + min(430px, calc(100vw - 16px)) + 12px
-      + 44px + 10px);
-  }
+  #askMinChip { right: 82px; }
 }
 
 /* return path note after arriving via the uses-menu */
