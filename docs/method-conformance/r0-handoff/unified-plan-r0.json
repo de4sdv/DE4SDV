@@ -1,0 +1,166 @@
+{
+  "goal": "DE4SDV Unified Semantic Engineering Plan \u2014 R0",
+  "items": [
+    {
+      "id": 1,
+      "item": "R0-1 Reconcile plan vs HEAD/toolchain; record discrepancies",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "item": "R0-2 Recover frozen PLEML Gate A work (read-only)",
+      "status": "completed"
+    },
+    {
+      "id": 3,
+      "item": "R0-3 Produce Semantic Authority Inventory (51 classes, 33 relationships)",
+      "status": "completed"
+    },
+    {
+      "id": 4,
+      "item": "R0-4 Select first bounded K predicate (prefer derivesRequirementFromNeed)",
+      "status": "completed"
+    },
+    {
+      "id": 5,
+      "item": "R0-5 Define Semantic Projection v0 + API Representation Profile v0 for K slice",
+      "status": "completed"
+    },
+    {
+      "id": 6,
+      "item": "R0-6 Define bounded PLEML requalification scope (XOR, FeatureBinding, groups, bindingTime)",
+      "status": "completed"
+    },
+    {
+      "id": 7,
+      "item": "R0-7 Identify Phase-10 conformance pilot, subjects, evidence, acceptance authority, gaps",
+      "status": "completed"
+    },
+    {
+      "id": 8,
+      "item": "R0-8 Identify API/export/import closure needs before implementation",
+      "status": "completed"
+    }
+  ],
+  "findings": {
+    "r0_1": {
+      "head_matches_plan_basis": true,
+      "origin_main_moved_since_plan": "81d4e80 -> 1363027e (viewer-only commits: tests/test_repo_guide.py, tools/sysml_html_viewer/*; no semantic/MBPLE/governance impact)",
+      "conformance_baseline_located": "/home/mrk/.hermes/outputs/de4sdv-unified-plan-review/conformance-baseline.md",
+      "conformance_baseline_digest_verified": "427410f3070ed591287ec0dd3b819be7e95ee22fa7608b4c87d1e82192abd661 MATCH",
+      "toolchain_lock_verified": "sysand-lock.toml: OMG 20250201 kernel libs, ODE4HERA RM 2.0.1, SysML Req Derivation Lib 2.0.0 (locked, unconsumed), Syside Views 0.10.3, SYSMOD 5.1.1"
+    },
+    "r0_2": {
+      "gate_a_head_recovered": "6a99626b4af7cd01108f27dac88bf5b55bba207a (in object store; all 10 files verified; read-only via git show, no checkout)",
+      "external_pleml_submodule_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e MATCH",
+      "pr175": "CLOSED (not merged)",
+      "evidence_runs_verified": {
+        "privileged_gate_a": "33543909037 success @6a99626b",
+        "ci": "33543909098 success @6a99626b"
+      },
+      "gate_b_record": "docs/product-line-engineering/gate-b-source-informed-experimental-override.md (source-informed override, upstream deferred, re-verification triggers listed)",
+      "gate_c_adr0014": "Accepted; 2 admitted members (Standalone, AAOS-Integrated); variability = Vehicle Platform Integration Mode bound at Development; Gate B disposition embedded"
+    },
+    "r0_3": {
+      "inventory": "semantic-authority-inventory.csv (84 rows: 51 classes, 33 relationships)",
+      "lane_distribution": {
+        "K": 1,
+        "T": 4,
+        "T/E": 2,
+        "PLE": 8,
+        "O": 69
+      },
+      "runtime_status_verified": "7 relationships runtime-implemented (dependency/allocation/subject-membership/verification-membership/external strategies in traversal.py); 26 vocabulary-only"
+    },
+    "r0_4_to_8": {
+      "k_predicate": "derivesRequirementFromNeed \u2014 selected; rationale + witnesses + negatives + closure in k-predicate-selection.md",
+      "projection_profile_v0": "defined for K slice only (projection-profile-v0.md)",
+      "ple_q_scope": "6 bounded cases on current exact toolchain (ple-requalification-scope.md)",
+      "pilot": "ConsciousOverrideVerification (INC-AEBS-009D) + AEBSAutowareLinuxLidarCamera; acceptance authority gap ADMITTED (phase10-pilot.md)",
+      "closure_needs": "C1-C4 privileged exact-toolchain; C5 D-exit (api-closure-needs.md)"
+    },
+    "r0_regression_baseline": {
+      "semantic_kernel_contract_tests": "65 passed (ontology-kernel contract, native semantic traversal, semantic MCP, sysml API semantic)",
+      "ple_tests": "72 passed + 29 subtests (configure_variant, execution_environment_ple, gate_c_product_line_scope)",
+      "check_repo": "pass",
+      "smoke_test": "pass",
+      "git_diff_check": "clean",
+      "validate_sysml": "UNAVAILABLE locally: Syside Modeler CLI is x86_64-only; qemu-x86_64 cannot load ld-linux on aarch64 (exit 255). Licensed validation remains CI/privileged-owned \u2014 matches frozen Gate A README and memory. Plan \u00a718 local-source tests do not substitute for it."
+    }
+  },
+  "blockers": [
+    {
+      "lane": "K (implementation)",
+      "blocker": "C1/C3 closure evidence requires privileged exact-toolchain run (licensed Syside unavailable on aarch64 host)",
+      "required": "exact-head privileged validation/export/import/read-back of a derivation witness",
+      "parallel_work": "author synthetic K fixture + failing tests + projection/profile v0 code; PLE-Q case prep; conformance contract ADR drafting",
+      "owner": "Hermes (execute privileged closure run on a K work branch); Orkun only if GCP cost cap (\u20ac300) is at risk"
+    },
+    {
+      "lane": "B (pilot binding)",
+      "blocker": "C2 verification-membership closure on real AEBS packages requires the same privileged run",
+      "required": "exact-head read-back of pilot witnesses",
+      "parallel_work": "B-owned failing tests against recorded shapes; pilot identity registry",
+      "owner": "Hermes (same privileged run covers C2 read-back); Orkun for acceptance decision later"
+    },
+    {
+      "lane": "K/B implementation evidence",
+      "blocker": "No local licensed SysML validation or API ingestion on aarch64 host (qemu loader failure)",
+      "required": "privileged exact-head run for C1-C4 closure evidence (validation/export/import/read-back)",
+      "parallel_work": "synthetic K fixture + failing tests; projection/profile v0 implementation; PLE-Q case prep; contract ADR drafting",
+      "owner": "Hermes (CI/privileged evidence); Orkun for policy/authorization activations"
+    }
+  ],
+  "notes": [
+    "R0 outputs live OUTSIDE the repo (/home/mrk/de4sdv-unified-plan/r0) until Orkun approves a review branch; repo was not modified (worktree clean, untracked files untouched).",
+    "origin/main moved 81d4e80->1363027e (viewer-only); no semantic/MBPLE/governance impact on plan assumptions.",
+    "Conformance baseline digest verified against the review-output copy; attachment copies differ \u2014 use the verified copy as frozen baseline."
+  ],
+  "assignments": {
+    "note": "Plan \u00a716: roles are accountability boundaries; named before starting a work package.",
+    "K": {
+      "implementer": "Hermes (this agent)",
+      "reviewer": "independent semantic QA (delegated subagent)",
+      "exit": "K gate: native/library def -> validation/export -> API witness -> generated projection/profile -> runtime consumer proof"
+    },
+    "O": {
+      "implementer": "Hermes",
+      "reviewer": "Orkun (ontology/method authority) + independent QA",
+      "exit": "per-subset O0-O4 gates"
+    },
+    "PLE_R_Q": {
+      "implementer": "Hermes",
+      "reviewer": "product-line lead (Orkun)",
+      "exit": "PLE-R inventory complete; PLE-Q 6-case requalification on current exact toolchain"
+    },
+    "PLE_S_A": {
+      "decision_authority": "Orkun only",
+      "exit": "governed-scope comparison then authorized adoption cutover"
+    },
+    "A_B_C_D": {
+      "implementer": "Hermes",
+      "reviewer": "independent V&V per package; maintainer (Orkun) for policy/activation",
+      "exit": "MC matrix per plan \u00a713 + UG cases at owning lanes"
+    },
+    "privileged_runs": {
+      "path": ".github/workflows/privileged-full-model-api-ingestion.yml (workflow_dispatch; 35-60 min; feeds C1-C4 evidence when K/B branches exist)",
+      "validation": ".github/workflows/privileged-syside-validation.yml (per-PR)",
+      "note": "no dispatch until a K/B work branch exists; nightly run covers main"
+    }
+  },
+  "package_a": {
+    "status": "delivered as draft PR #239 (specification only)",
+    "branch": "feat/method-conformance-package-a @ 99455a0 (worktree off origin/main 1363027)",
+    "url": "https://github.com/de4sdv/DE4SDV/pull/239",
+    "deliverables": [
+      "docs/method-conformance/{README,conformance-baseline,result-algebra,mc-outcome-owner-matrix,pilot-scope}.md",
+      "docs/method-conformance/mc-matrix.json (40 cases, B:4 C:29 D:7)",
+      "docs/architecture-decisions/0019-specify-deterministic-method-conformance-subsystem.md",
+      "tests/test_method_conformance_spec.py (5 tests)",
+      "MC prefix registered in naming checker + conventions doc"
+    ],
+    "verification": "full pytest suite 1016 passed / 4 skipped / 137 subtests @ exact head; check_repo pass; smoke pass; git diff --check clean",
+    "exit_gate": "A gate satisfied: all MC outcomes/owners defined; pilot scope + acceptance authority identified; implementation deliberately excluded"
+  },
+  "vv_review": "see vv-review-findings.md: 2 delegated reviewers timed out; scripted cross-checks all pass; R0 = COMPLETE-PENDING-INDEPENDENT-REVIEW"
+}

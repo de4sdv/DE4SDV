@@ -1,0 +1,8 @@
+[
+  {
+    "severity": "major",
+    "id": "PROJ-SEP",
+    "finding": "projection schema contains representation mechanics",
+    "fix": "move to profile"
+  }
+]

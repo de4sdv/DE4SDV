@@ -1,0 +1,16 @@
+{
+  "external_pleml_tree": "160000 commit 5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e\texternal/pleml",
+  "files": {
+    "tools/pleml_gate_a.py": 59219,
+    "scripts/export_pleml_gate_a.py": 3772,
+    "scripts/run_pleml_gate_a.py": 19064,
+    ".github/workflows/privileged-pleml-gate-a.yml": 5016,
+    "docs/spikes/pleml-gate-a/README.md": 5042,
+    "docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml": 9344,
+    "tests/test_pleml_adapter_rule_api.py": 11296,
+    "tests/test_pleml_api_observability.py": 2849,
+    "tests/test_pleml_gate_a_report.py": 1106,
+    "tests/test_pleml_group_semantics.py": 15637
+  },
+  "pr175": "Unknown JSON field: \"headRefOid\"\nAvailable fields:\n  additions\n  assignees\n  author"
+}

@@ -1,0 +1,89 @@
+{
+  "local_head": "816ad1198ff90b8cd8293b3ca07011268400783a",
+  "plan_inspection_basis_head": "816ad1198ff90b8cd8293b3ca07011268400783a",
+  "plan_inspection_basis_origin_main": "81d4e800b273b56971a06dde35fd1557d928c107",
+  "live_origin_main": "1363027ebd56326d6b43875808709b7159f39932",
+  "discrepancy_main_moved": true,
+  "main_progress_since_plan": " 3 files changed, 17 insertions(+), 25 deletions(-)",
+  "head_vs_live_main": " 3 files changed, 322 insertions(+), 5 deletions(-)",
+  "locked_libraries": [
+    [
+      "Kernel Data Type Library",
+      "1.0.0"
+    ],
+    [
+      "Kernel Function Library",
+      "1.0.0"
+    ],
+    [
+      "Kernel Semantic Library",
+      "1.0.0"
+    ],
+    [
+      "Requirements Management",
+      "2.0.1"
+    ],
+    [
+      "SysML Analysis Library",
+      "2.0.0"
+    ],
+    [
+      "SysML Cause and Effect Library",
+      "2.0.0"
+    ],
+    [
+      "SysML Geometry Library",
+      "2.0.0"
+    ],
+    [
+      "SysML Metadata Library",
+      "2.0.0"
+    ],
+    [
+      "SysML Quantities and Units Library",
+      "2.0.0"
+    ],
+    [
+      "SysML Requirement Derivation Library",
+      "2.0.0"
+    ],
+    [
+      "SysML Systems Library",
+      "2.0.0"
+    ],
+    [
+      "Syside Views",
+      "0.10.3"
+    ],
+    [
+      "de4sdv-model",
+      "0.1.1"
+    ],
+    [
+      "sysmod",
+      "5.1.1"
+    ]
+  ],
+  "ode4hera_requirements_management": "2.0.1",
+  "syside_views": "0.10.3",
+  "sysmod": "5.1.1",
+  "kernel_libraries": "KerML/SysML 20250201",
+  "pleml_frozen_upstream_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
+  "gate_a_head": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
+  "gate_a_commit_in_object_store": true,
+  "conformance_baseline_digest_local_file": "2288a2ffd999bd60d3e94aa207f596d259d5ead401a5a7c96594ef06d1d73cca",
+  "conformance_baseline_expected_digest": "427410f3070ed591287ec0dd3b819be7e95ee22fa7608b4c87d1e82192abd661",
+  "conformance_digest_match": false,
+  "ontology_classes": 51,
+  "ontology_relationships": 33,
+  "relationships_with_sysml_mapping": [
+    "realizedBy",
+    "specifiesFunction",
+    "hasRelevantArchitecture",
+    "verifiedBy",
+    "hasEvidence",
+    "hasSubject",
+    "hasRelevantEvidenceContract"
+  ],
+  "plan_claim_51_33": true
+}
