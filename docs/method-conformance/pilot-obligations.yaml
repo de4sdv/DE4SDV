@@ -1,17 +1,12 @@
-# Pilot obligation table — structured source of truth.
-# This file is the machine-readable form of the obligation table in
-# pilot-scope.md (§ "Bounded pilot obligation table"). The markdown table and
-# this file must stay row-for-row identical; test_pilot_contract_structure
-# asserts it. Editing one without the other fails the guard.
 schema: de4sdv.pilot-obligations.v1
 phase_literal: phase10_vvEvidence
 scope_usages:
-  - overrideFalseControlVerification
-  - overrideTrueVerification
-  - overrideStaleVerification
-  - overrideMissingVerification
-  - overrideMalformedVerification
-  - overrideFutureStampedVerification
+- overrideFalseControlVerification
+- overrideTrueVerification
+- overrideStaleVerification
+- overrideMissingVerification
+- overrideMalformedVerification
+- overrideFutureStampedVerification
 expected_dispositions:
   fresh_false_control: control_clear
   fresh_true_conscious_override: conscious_override
@@ -20,114 +15,182 @@ expected_dispositions:
   malformed: error_malformed_source
   future_stamped: error_future_source
 attestation_policy: de4sdv.acceptance.maintainer-decision.v1
+attestation_policy_definition: docs/method-conformance/acceptance-policy.md
+attestation_policy_status: Proposed
+dependency_graph:
+  PC-009D-SCOPE-POPULATION: []
+  PC-009D-VC-BINDING:
+  - PC-009D-SCOPE-POPULATION
+  PC-009D-SUBJECT-MEMBERSHIP:
+  - PC-009D-VC-BINDING
+  PC-009D-OBJECTIVE-CONTRACTS:
+  - PC-009D-VC-BINDING
+  PC-009D-USAGE-METHOD-METADATA:
+  - PC-009D-VC-BINDING
+  PC-009D-DEFINITION-METHOD-METADATA:
+  - PC-009D-SCOPE-POPULATION
+  PC-009D-PROFILE-POPULATION: []
+  PC-009D-EXECUTION-RECORD:
+  - PC-009D-PROFILE-POPULATION
+  PC-009D-EXECUTION-OUTCOME:
+  - PC-009D-EXECUTION-RECORD
+  PC-009D-SCOPE-EQUALITY:
+  - PC-009D-EXECUTION-RECORD
+  PC-009D-ACCEPTANCE-AUTHORITY:
+  - PC-009D-EXECUTION-RECORD
 obligations:
-  - id: PC-009D-SCOPE-POPULATION
-    subject_selector: declared-pilot-scope
-    subjects: 1
-    applicability: candidate-declares-scope
-    predicate: scope-composition
-    subject_type: declared scope (no model element)
-    target_type: VerificationCaseUsage
-    per_subject_cardinality: [6, 6]
-    evaluation_source: pinned-model-record
-    required: true
-  - id: PC-009D-VC-BINDING
-    subject_selector: scope usages
-    subjects: 6
-    applicability: binding-resolved
-    predicate: binding-resolution
-    subject_type: VerificationCaseUsage
-    target_type: api-element
-    per_subject_cardinality: [1, 1]
-    evaluation_source: pinned-model-record
-    required: true
-  - id: PC-009D-SUBJECT-MEMBERSHIP
-    subject_selector: scope usages
-    subjects: 6
-    applicability: binding-resolved
-    predicate: verification-subject-membership
-    subject_type: VerificationCaseUsage
-    target_type: OverrideMatrixBench-specialization
-    per_subject_cardinality: [1, 1]
-    evaluation_source: pinned-model-record
-    required: true
-  - id: PC-009D-OBJECTIVE-CONTRACTS
-    subject_selector: scope usages
-    subjects: 6
-    applicability: binding-resolved
-    predicate: verifiedBy-reverse-witness
-    subject_type: VerificationCaseUsage
-    target_type: evidence-contract-requirement-usage
-    per_subject_cardinality: [3, 3]
-    evaluation_source: pinned-model-record
-    required: true
-  - id: PC-009D-USAGE-METHOD-METADATA
-    subject_selector: scope usages
-    subjects: 6
-    applicability: binding-resolved
-    predicate: verification-method-metadata
-    subject_type: VerificationCaseUsage
-    target_type: VerificationMethod-metadata{test,analyze}
-    per_subject_cardinality: [1, 1]
-    evaluation_source: pinned-model-record
-    required: true
-  - id: PC-009D-DEFINITION-METHOD-METADATA
-    subject_selector: ConsciousOverrideVerification
-    subjects: 1
-    applicability: definition-bound
-    predicate: verification-method-metadata
-    subject_type: VerificationCaseDefinition
-    target_type: action-metadata{collectData:test,processData:analyze,evaluateData:analyze}
-    per_subject_cardinality: [3, 3]
-    evaluation_source: pinned-model-record
-    required: true
-  - id: PC-009D-PROFILE-POPULATION
-    subject_selector: declared-tested-scope
-    subjects: 1
-    applicability: candidate-declares-tested-scope
-    predicate: scope-composition
-    subject_type: declared tested scope (no model element)
-    target_type: OverrideScenario-identity
-    per_subject_cardinality: [6, 6]
-    evaluation_source: pinned-repository-artifact
-    required: true
-  - id: PC-009D-EXECUTION-RECORD
-    subject_selector: declared profiles
-    subjects: 6
-    applicability: profile-in-declared-scope
-    predicate: external-evidence-reference
-    subject_type: OverrideScenario-identity
-    target_type: canonical-scenario-evidence-record
-    per_subject_cardinality: [1, 1]
-    evaluation_source: pinned-repository-artifact
-    required: true
-  - id: PC-009D-EXECUTION-OUTCOME
-    subject_selector: canonical records
-    subjects: 6
-    applicability: record-resolved
-    predicate: execution-outcome
-    subject_type: canonical record
-    target_type: passed==true AND pinned expected disposition
-    per_subject_cardinality: [1, 1]
-    evaluation_source: pinned-repository-artifact
-    required: true
-  - id: PC-009D-SCOPE-EQUALITY
-    subject_selector: canonical records
-    subjects: 6
-    applicability: record-resolved
-    predicate: conservative-scope-equality
-    subject_type: canonical record
-    target_type: pinned provenance fingerprint fields
-    per_subject_cardinality: [1, 1]
-    evaluation_source: pinned-repository-artifact+candidate-declared-manifest
-    required: true
-  - id: PC-009D-ACCEPTANCE-AUTHORITY
-    subject_selector: canonical records
-    subjects: 6
-    applicability: record-resolved
-    predicate: acceptance-record-match
-    subject_type: canonical record
-    target_type: attributable-authorized-decision
-    per_subject_cardinality: [1, 1]
-    evaluation_source: pinned-repository-artifact
-    required: true
+- id: PC-009D-SCOPE-POPULATION
+  subject_selector: declared-pilot-scope
+  subjects: 1
+  applicability: candidate-declares-scope
+  predicate: scope-composition
+  subject_type: the declared pilot scope itself
+  target_type: VerificationCaseUsage
+  per_subject_cardinality:
+  - 6
+  - 6
+  evaluation_source: pinned-model-record
+  required: true
+  expected_reason_default: '[]'
+- id: PC-009D-VC-BINDING
+  subject_selector: scope usages
+  subjects: 6
+  applicability: binding-resolved
+  predicate: binding-resolution
+  subject_type: VerificationCaseUsage
+  target_type: API element
+  per_subject_cardinality:
+  - 1
+  - 1
+  evaluation_source: pinned-model-record
+  required: true
+  forbidden_subject_type: RequirementUsage
+  expected_reason_default: '[]'
+- id: PC-009D-SUBJECT-MEMBERSHIP
+  subject_selector: scope usages
+  subjects: 6
+  applicability: binding-resolved
+  predicate: verification-subject-membership
+  subject_type: VerificationCaseUsage
+  target_type: OverrideMatrixBench
+  per_subject_cardinality:
+  - 1
+  - 1
+  evaluation_source: pinned-model-record
+  required: true
+  forbidden_subject_type: RequirementUsage
+  expected_reason_default: '[]'
+- id: PC-009D-OBJECTIVE-CONTRACTS
+  subject_selector: scope usages
+  subjects: 6
+  applicability: binding-resolved
+  predicate: verifiedBy-reverse-witness
+  subject_type: VerificationCaseUsage
+  target_type: requirement usages
+  per_subject_cardinality:
+  - 3
+  - 3
+  evaluation_source: pinned-model-record
+  required: true
+  per_subject_targets: 3
+  expected_reason_default: '[]'
+- id: PC-009D-USAGE-METHOD-METADATA
+  subject_selector: scope usages
+  subjects: 6
+  applicability: binding-resolved
+  predicate: verification-method-metadata
+  subject_type: VerificationCaseUsage
+  target_type: '@VerificationMethod'
+  per_subject_cardinality:
+  - 1
+  - 1
+  evaluation_source: pinned-model-record
+  required: true
+  forbidden_subject_type: RequirementUsage
+  expected_reason_default: '[]'
+- id: PC-009D-DEFINITION-METHOD-METADATA
+  subject_selector: ConsciousOverrideVerification
+  subjects: 1
+  applicability: definition-bound
+  predicate: verification-method-metadata
+  subject_type: VerificationCaseDefinition
+  target_type: '@VerificationMethod'
+  per_subject_cardinality:
+  - 3
+  - 3
+  evaluation_source: pinned-model-record
+  required: true
+  per_subject_targets: 3
+  expected_reason_default: '[]'
+- id: PC-009D-PROFILE-POPULATION
+  subject_selector: declared-tested-scope
+  subjects: 1
+  applicability: candidate-declares-tested-scope
+  predicate: scope-composition
+  subject_type: the declared tested scope
+  target_type: OverrideScenario
+  per_subject_cardinality:
+  - 6
+  - 6
+  evaluation_source: pinned-repository-artifact
+  required: true
+  expected_reason_default: '[]'
+- id: PC-009D-EXECUTION-RECORD
+  subject_selector: declared profiles
+  subjects: 6
+  applicability: profile-in-declared-scope
+  predicate: external-evidence-reference
+  subject_type: each profile
+  target_type: campaign-manifest.json
+  per_subject_cardinality:
+  - 1
+  - 1
+  evaluation_source: pinned-repository-artifact
+  required: true
+  expected_reason_default: '[]'
+- id: PC-009D-EXECUTION-OUTCOME
+  subject_selector: canonical records
+  subjects: 6
+  applicability: record-resolved
+  predicate: execution-outcome
+  subject_type: canonical record
+  target_type: evaluation.passed
+  per_subject_cardinality:
+  - 1
+  - 1
+  evaluation_source: pinned-repository-artifact
+  required: true
+  expected_reason_default: '[]'
+  fail_reason: EXECUTION_FAILED
+- id: PC-009D-SCOPE-EQUALITY
+  subject_selector: canonical records
+  subjects: 6
+  applicability: record-resolved
+  predicate: conservative-scope-equality
+  subject_type: canonical record
+  target_type: provenance
+  per_subject_cardinality:
+  - 1
+  - 1
+  evaluation_source: pinned-repository-artifact+candidate-declared-manifest
+  required: true
+  expected_reason_default: '[]'
+  fail_reason: EVIDENCE_SCOPE_MISMATCH
+  indeterminate_reason: INPUT_UNAVAILABLE
+  blocks_current_candidate_conformance: true
+- id: PC-009D-ACCEPTANCE-AUTHORITY
+  subject_selector: canonical records
+  subjects: 6
+  applicability: record-resolved
+  predicate: acceptance-record-match
+  subject_type: canonical record
+  target_type: acceptance-policy.md
+  per_subject_cardinality:
+  - 1
+  - 1
+  evaluation_source: pinned-repository-artifact
+  required: true
+  expected_reason_default: '[]'
+  fail_reason: ACCEPTANCE_AUTHORITY_MISSING
+  indeterminate_reason: ACCEPTANCE_AUTHORITY_MISSING
+  policy: de4sdv.acceptance.maintainer-decision.v1

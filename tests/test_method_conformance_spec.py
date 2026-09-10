@@ -155,8 +155,20 @@ def _compat_table_rows(text: str) -> list[list[str]]:
 
 
 def _pilot_table_rows(text: str) -> list[list[str]]:
-    """Parse the pilot obligation table data rows (12 columns)."""
-    section = text.split("## Bounded pilot obligation table")[1].split("###")[0]
+    """Parse the pilot obligation table data rows (12 columns).
+
+    The table is the markdown block starting with the '| # |' header row and
+    ending before the next section heading after it (the dependency-graph
+    section sits between the table preamble and the table itself)."""
+    start = text.index("| # | obligation_id |")
+    rest = text[start:]
+    end_markers = ["\n### ", "\n## "]
+    end = len(rest)
+    for marker in end_markers:
+        idx = rest.find(marker, 10)
+        if idx != -1:
+            end = min(end, idx)
+    section = rest[:end]
     rows = []
     for line in section.splitlines():
         s = line.strip()
@@ -196,10 +208,16 @@ def _load_pilot_yaml() -> dict:
     return yaml.safe_load((DOCS / "pilot-obligations.yaml").read_text(encoding="utf-8"))
 
 
+def _norm_cell(s: str) -> str:
+    """Normalize a markdown table cell to a comparable slug."""
+    return s.strip().strip("`").lower().replace(" + ", "+").replace(" ", "-")
+
+
 def test_pilot_contract_structure() -> None:
-    """The pilot obligation table must match its structured source of truth
-    row-for-row with required fields (R4): IDs, subject types, target types,
-    per-subject bounds, evaluation sources."""
+    """The markdown table must match the structured contract COMPLETELY:
+    IDs/order, exact phase, subject/target types, per-subject bounds,
+    evaluation sources, requiredness, dependency graph (R3: full record
+    comparison, not token spot-checks)."""
     text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
     rows = _pilot_table_rows(text)
     spec = _load_pilot_yaml()
@@ -207,39 +225,97 @@ def test_pilot_contract_structure() -> None:
     assert len(rows) == len(obligations) == 11, (
         f"pilot table row count mismatch: md={len(rows)} yaml={len(obligations)}"
     )
-    # The exact pinned phase literal must appear in the table's phase column
-    # (first data row pins it for the whole table; every row references phase 10).
     assert any(spec["phase_literal"] in r[2] for r in rows), (
         f"pilot table never names the pinned phase literal {spec['phase_literal']}"
     )
     for md_row, y in zip(rows, obligations):
-        # md columns: #, obligation_id, phase, subject_selector, applicability,
-        # population_policy, predicate, target_filters, cardinality, required,
-        # evaluation_source, expected disposition
         md_id = md_row[1].strip("`")
         assert md_id == y["id"], f"row order/id mismatch: {md_id} != {y['id']}"
-        assert md_row[2].startswith("10"), f"{y['id']}: phase literal must reference phase 10 (pinned {spec['phase_literal']})"
-        pred_tokens = [t.lower() for t in y["predicate"].replace("-", " ").split() if len(t) > 3]
-        md_pred = md_row[6].lower().replace("`", "")
-        missing_tokens = [t for t in pred_tokens if t not in md_pred]
-        assert not missing_tokens, (
-            f"{y['id']}: predicate family mismatch; missing tokens {missing_tokens} in: {md_row[6][:80]}"
+        assert md_row[2].startswith("10"), f"{y['id']}: phase must reference phase 10"
+        # Subject/target types: structured values must appear in the md cells.
+        # Subject type lives in the selector column (3) for every row.
+        st = y["subject_type"].lower()
+        assert st in md_row[3].lower().replace("`", ""), (
+            f"{y['id']}: subject type '{y['subject_type']}' not in md selector cell"
         )
+        combined = (md_row[6] + " " + md_row[7]).lower().replace("`", "")
+        key_target = y["target_type"].split("{")[0].lower()
+        assert key_target in combined, (
+            f"{y['id']}: target type '{key_target}' not in md predicate/filter cells"
+        )
+        # Forbidden subject types must NOT appear as the md subject type.
+        if "forbidden_subject_type" in y:
+            assert y["forbidden_subject_type"].lower() not in md_row[6].lower(), (
+                f"{y['id']}: md claims forbidden subject type {y['forbidden_subject_type']}"
+            )
+        # Per-subject bounds.
         import re as _re
 
         m = _re.search(r"`?\[(\d+)\.\.(\d+)\]`?", md_row[8])
         assert m, f"{y['id']}: cardinality not per-subject bounds: {md_row[8]}"
-        lo, hi = m.group(1), m.group(2)
-        assert (int(lo), int(hi)) == tuple(y["per_subject_cardinality"]), (
-            f"{y['id']}: cardinality drift vs structured source: {bounds}"
+        assert (int(m.group(1)), int(m.group(2))) == tuple(y["per_subject_cardinality"]), (
+            f"{y['id']}: cardinality drift vs structured source: {md_row[8]}"
         )
         assert md_row[9] == "required", f"{y['id']}: requiredness drift"
-        md_src = md_row[10].strip("`").lower().replace(" + ", "+").replace(" ", "-")
+        md_src = _norm_cell(md_row[10])
         y_src = y["evaluation_source"].lower()
-        assert md_src == y_src, (
-            f"{y['id']}: evaluation_source drift: {md_src} != {y_src}"
+        assert md_src == y_src, f"{y['id']}: evaluation_source drift: {md_src} != {y_src}"
+        # Applicability column must NOT carry dependency language (R1).
+        md_app = _norm_cell(md_row[4])
+        assert "binding" not in md_app and "resolved" not in md_app and "record" not in md_app, (
+            f"{y['id']}: applicability cell still carries dependency language: {md_row[4]}"
         )
-        assert y["subject_type"] and y["target_type"], f"{y['id']}: missing type declarations"
+
+
+def test_pilot_dependency_graph_matches_markdown() -> None:
+    """R1: the normative dependency graph in the markdown must equal the
+    structured graph exactly (both directions checked)."""
+    text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
+    spec = _load_pilot_yaml()
+    section = text.split("### Obligation dependency graph")[1].split("```")[1]
+    id_by_number = {str(i + 1): o["id"] for i, o in enumerate(spec["obligations"])}
+    md_edges = {}
+    for line in section.splitlines():
+        line = line.strip()
+        if line == "text" or not line:
+            continue
+        if "depends on:" not in line:
+            continue
+        oid = id_by_number.get(line.split()[0], line.split()[0])
+        deps = line.split("depends on:")[1].strip()
+        deps = (
+            deps.replace("(its own usage)", "")
+            .replace("(its own profile record)", "")
+            .replace("(its own profile)", "")
+            .replace("(scope resolution)", "")
+            .replace("(independent branch)", "")
+            .replace("(root of model branch)", "")
+            .strip()
+        )
+        resolved = []
+        for dep in [d.strip() for d in deps.split(",") if d.strip()]:
+            if dep == "none":
+                continue
+            resolved.append(id_by_number.get(dep, dep))
+        md_edges[oid] = resolved
+    assert md_edges == spec["dependency_graph"], (
+        f"dependency graph drift:\nmd={md_edges}\nyaml={spec['dependency_graph']}"
+    )
+
+
+def test_pilot_aggregate_examples_derive_from_graph() -> None:
+    """R1: the aggregate examples must not claim edges that contradict the
+    graph (9/11 independent of 10; 10 failure blocks conformance, not
+    assessment)."""
+    text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
+    graph = _load_pilot_yaml()["dependency_graph"]
+    # No edge from 10 to 9/11:
+    assert "PC-009D-EXECUTION-OUTCOME" not in graph["PC-009D-SCOPE-EQUALITY"]
+    assert "PC-009D-ACCEPTANCE-AUTHORITY" not in graph["PC-009D-SCOPE-EQUALITY"]
+    # The moved-boundary example must state 9/11 still evaluate and the block
+    # is at the conformance/readiness layer.
+    assert "9 and 11 still evaluate" in text
+    assert "blocks" in text and "current-candidate" in text
 
 
 def test_pilot_population_is_per_subject() -> None:

@@ -58,33 +58,88 @@ entry naming the failed prerequisite (rule 9 in result-algebra.md) — never
 pinned strings; resolution is by ingestion-validated binding, never by name
 matching.
 
+### Obligation dependency graph (normative)
+
+```text
+1  PC-009D-SCOPE-POPULATION        depends on: none (root of model branch)
+2  PC-009D-VC-BINDING              depends on: 1
+3  PC-009D-SUBJECT-MEMBERSHIP      depends on: 2 (its own usage)
+4  PC-009D-OBJECTIVE-CONTRACTS     depends on: 2 (its own usage)
+5  PC-009D-USAGE-METHOD-METADATA   depends on: 2 (its own usage)
+6  PC-009D-DEFINITION-METHOD-METADATA   depends on: 1 (scope resolution)
+7  PC-009D-PROFILE-POPULATION      depends on: none (independent branch)
+8  PC-009D-EXECUTION-RECORD        depends on: 7 (its own profile)
+9  PC-009D-EXECUTION-OUTCOME       depends on: 8 (its own profile record)
+10 PC-009D-SCOPE-EQUALITY          depends on: 8 (its own profile record)
+11 PC-009D-ACCEPTANCE-AUTHORITY    depends on: 8 (its own profile record)
+```
+
+The graph is the **single** dependency source: no table cell may add or imply
+dependencies beyond it, and the aggregate examples below are derived from it
+mechanically. Two independent branches exist: the model branch (1→2→{3,4,5},
+1→6) and the evidence branch (7→8→{9,10,11}). **No edge crosses between the
+branches**: execution-outcome (9) and acceptance (11) observe the retained
+records independently of scope equality (10). A `SCOPE_EQUALITY` failure does
+not unassess anything — it blocks **current-candidate conformance claims** at
+the readiness layer (a required scope-equality FAIL makes the pilot's
+declared-scope conformance claim BLOCKED for current-candidate use, while the
+per-obligation results stay individually visible).
+
 | # | obligation_id | phase | subject_selector | applicability | population_policy | predicate (exact subject → target types) | target_filters | cardinality (per subject) | required | evaluation_source | expected disposition at time of writing |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `PC-009D-SCOPE-POPULATION` | 10 (`phase10_vvEvidence`) | the declared pilot scope itself (one subject: the declared scope) | candidate revision declares the INC-AEBS-009D pilot scope | exactly 1 scope subject | scope-composition check: declared usage set = the six pinned usage names, as distinct identities | element type `VerificationCaseUsage` | `[6..6]` distinct usages in scope | required | pinned model record | COMPLETE/PASS at a candidate containing the slice; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) if a declared usage is absent in complete scope; INDETERMINATE (`INPUT_UNAVAILABLE`) if scope input is missing/incomplete |
-| 2 | `PC-009D-VC-BINDING` | 10 | each of the six declared usages | scope population resolved (obligation 1) | min 1, exactly 6 expected | binding-resolution check: usage identity → API element | element type `VerificationCaseUsage` | `[1..1]` API element per usage | required | pinned model record | COMPLETE/PASS; ERROR (`BINDING_MISMATCH`/`SCOPE_RESOLUTION_ERROR`) on ambiguous or contradictory binding |
-| 3 | `PC-009D-SUBJECT-MEMBERSHIP` | 10 | each of the six usages (obligation 2) | binding resolved for that usage | min 1 per usage | native verification-subject membership: `VerificationCaseUsage` (owner) → `OverrideMatrixBench` specialization usage (member, role `verifiedBench`) | member element type `OverrideMatrixBench` specialization | `[1..1]` member per usage | required | pinned model record | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on absent member in complete scope |
-| 4 | `PC-009D-OBJECTIVE-CONTRACTS` | 10 | each of the six usages (obligation 2) | binding resolved for that usage | min 1 per usage | `verifiedBy`-family verification-membership, direction reverse (requirement ← verified), witness path: usage → specialization of `ConsciousOverrideVerification` → `evidenceObjective` → verify memberships → requirement usages | target type: the three pinned requirement usages (evidence-contract requirements) | `[3..3]` distinct requirements per usage | required | pinned model record | COMPLETE/PASS with full inherited witness path returned per usage (UG-07: no fabricated direct membership); COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on missing objective member in complete scope |
-| 5 | `PC-009D-USAGE-METHOD-METADATA` | 10 | each of the six usages (obligation 2) | binding resolved for that usage | min 1 per usage | metadata observation on the usage's real owner: `@VerificationMethod` metadata feature on the `VerificationCaseUsage` | method-kind value set exactly `{test, analyze}` | `[1..1]` metadata witness per usage | required | pinned model record | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on missing metadata in complete scope |
-| 6 | `PC-009D-DEFINITION-METHOD-METADATA` | 10 | the shared definition `ConsciousOverrideVerification` (one subject) | definition bound at the candidate | exactly 1 definition subject | metadata observation on the definition's actions: `@VerificationMethod` on `collectData`, `processData`, `evaluateData` | per-action kind: `collectData`→`test`; `processData`→`analyze`; `evaluateData`→`analyze` | `[3..3]` action-metadata witnesses on the definition | required | pinned model record | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on missing/retargeted metadata |
+| 2 | `PC-009D-VC-BINDING` | 10 | each of the six declared usages (`VerificationCaseUsage`) | candidate revision declares the INC-AEBS-009D pilot scope | min 1, exactly 6 expected | binding-resolution check: usage identity → API element | element type `VerificationCaseUsage` | `[1..1]` API element per usage | required | pinned model record | COMPLETE/PASS; ERROR (`BINDING_MISMATCH`/`SCOPE_RESOLUTION_ERROR`) on ambiguous or contradictory binding |
+| 3 | `PC-009D-SUBJECT-MEMBERSHIP` | 10 | each of the six usages (`VerificationCaseUsage`) | (no applicability condition) | min 1 per usage | native verification-subject membership: `VerificationCaseUsage` (owner) → `OverrideMatrixBench` specialization usage (member, role `verifiedBench`) | member element type `OverrideMatrixBench` specialization | `[1..1]` member per usage | required | pinned model record | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on absent member in complete scope |
+| 4 | `PC-009D-OBJECTIVE-CONTRACTS` | 10 | each of the six usages (`VerificationCaseUsage`) | (no applicability condition) | min 1 per usage | `verifiedBy`-family verification-membership, direction reverse (requirement ← verified), witness path: usage → specialization of `ConsciousOverrideVerification` → `evidenceObjective` → verify memberships → requirement usages | target type: the three pinned requirement usages (evidence-contract requirements) | `[3..3]` distinct requirements per usage | required | pinned model record | COMPLETE/PASS with full inherited witness path returned per usage (UG-07: no fabricated direct membership); COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on missing objective member in complete scope |
+| 5 | `PC-009D-USAGE-METHOD-METADATA` | 10 | each of the six usages (`VerificationCaseUsage`) | (no applicability condition) | min 1 per usage | metadata observation on the usage's real owner: `@VerificationMethod` metadata feature on the `VerificationCaseUsage` | method-kind value set exactly `{test, analyze}` | `[1..1]` metadata witness per usage | required | pinned model record | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on missing metadata in complete scope |
+| 6 | `PC-009D-DEFINITION-METHOD-METADATA` | 10 | the shared verification definition `ConsciousOverrideVerification` (`VerificationCaseDefinition`) | (no applicability condition) | exactly 1 definition subject | metadata observation on the definition's actions: `@VerificationMethod` on `collectData`, `processData`, `evaluateData` | per-action kind: `collectData`→`test`; `processData`→`analyze`; `evaluateData`→`analyze` | `[3..3]` action-metadata witnesses on the definition | required | pinned model record | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on missing/retargeted metadata |
 | 7 | `PC-009D-PROFILE-POPULATION` | 10 | the declared tested scope (one subject: the scope) | candidate declares the INC-AEBS-009D tested-scope manifest | exactly 1 scope subject | scope-composition check: declared profile set = the six pinned `OverrideScenario` identities | profile identity equality (pinned set, exact) | `[6..6]` distinct profiles in scope | required | pinned repository artifact | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) on a missing declared profile; COMPLETE/FAIL (`EVIDENCE_SCOPE_MISMATCH`) on an extra undeclared profile |
-| 8 | `PC-009D-EXECUTION-RECORD` | 10 | each profile in the declared tested scope (obligation 7) | profile present in declared scope | min 1 per profile | external evidence-reference match: profile → its one canonical record declared by `campaign-manifest.json` | record integrity: `sha256` of `scenario-evidence.json` matches the manifest entry | `[1..1]` canonical record per profile | required | pinned repository artifact | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) when no canonical record; ERROR (`BINDING_MISMATCH`) on digest mismatch; INDETERMINATE (`INPUT_UNAVAILABLE`) when the record is unreadable/absent from retained storage |
-| 9 | `PC-009D-EXECUTION-OUTCOME` | 10 | each profile's canonical record (obligation 8) | record resolved and integrity-verified for that profile | min 1 per profile | execution-outcome observation: record `evaluation.passed == true` AND `evaluation.disposition` equals the pinned per-profile expected value (fresh_false_control→`control_clear`; fresh_true_conscious_override→`conscious_override`; stale→`degraded_stale_source`; missing→`inconclusive_missing_source`; malformed→`error_malformed_source`; future_stamped→`error_future_source`) | disposition from the pinned `OverrideDisposition` vocabulary; unknown disposition literal ⇒ ERROR (`INVALID_CONTRACT`) | `[1..1]` outcome per record | required | pinned repository artifact | COMPLETE/PASS (all six retained records currently satisfy this); COMPLETE/FAIL (`EXECUTION_FAILED`) otherwise |
-| 10 | `PC-009D-SCOPE-EQUALITY` | 10 | each profile's canonical record (obligation 8) | record resolved and integrity-verified for that profile | min 1 per profile | conservative equality: record `provenance` fields (`repository_head`, `override_matrix_sha256`, `override_execution_manifest_sha256`, `execution_manifest_sha256`, `runtime_lock_sha256` incl. `inherited_009a`, `image_digest`, `map_digest`, `host_arch`) equal the candidate's declared tested-scope manifest values for that profile | all pinned fields compared; no field may be skipped | `[1..1]` comparison per record | required | pinned repository artifact + candidate-declared manifest | COMPLETE/PASS at the evidence's own execution head; COMPLETE/FAIL (`EVIDENCE_SCOPE_MISMATCH`) on any known mismatch; INDETERMINATE (`INPUT_UNAVAILABLE`) when any required field is missing from either side — matching profiles alone never proves scope equality |
-| 11 | `PC-009D-ACCEPTANCE-AUTHORITY` | 10 | each profile's canonical record (obligation 8) | record resolved and integrity-verified for that profile | min 1 per profile | acceptance-record match under the pinned attestation policy `de4sdv.acceptance.maintainer-decision.v1` (ADR 0019 §5): an attributable, authorized decision record referencing the campaign scope and the profiles it covers | decision population completeness: a decision covers exactly the profiles it enumerates; profiles outside every decision's enumeration have no acceptance | `[1..1]` applicable decision per profile | required | pinned repository artifact | discriminator per result-algebra.md (evidence availability): currently expected COMPLETE/FAIL (`ACCEPTANCE_AUTHORITY_MISSING`) — records and STATUS are retained and complete, the authorized decision is absent |
+| 8 | `PC-009D-EXECUTION-RECORD` | 10 | each profile in the declared tested scope (obligation 7) | (no applicability condition) | min 1 per profile | external evidence-reference match: profile → its one canonical record declared by `campaign-manifest.json` | record integrity: `sha256` of `scenario-evidence.json` matches the manifest entry | `[1..1]` canonical record per profile | required | pinned repository artifact | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) when no canonical record; ERROR (`BINDING_MISMATCH`) on digest mismatch; INDETERMINATE (`INPUT_UNAVAILABLE`) when the record is unreadable/absent from retained storage |
+| 9 | `PC-009D-EXECUTION-OUTCOME` | 10 | each profile's canonical record (obligation 8) | (no applicability condition) | min 1 per profile | execution-outcome observation: record `evaluation.passed == true` AND `evaluation.disposition` equals the pinned per-profile expected value (fresh_false_control→`control_clear`; fresh_true_conscious_override→`conscious_override`; stale→`degraded_stale_source`; missing→`inconclusive_missing_source`; malformed→`error_malformed_source`; future_stamped→`error_future_source`) | disposition from the pinned `OverrideDisposition` vocabulary; unknown disposition literal ⇒ ERROR (`INVALID_CONTRACT`) | `[1..1]` outcome per record | required | pinned repository artifact | COMPLETE/PASS (all six retained records currently satisfy this); COMPLETE/FAIL (`EXECUTION_FAILED`) otherwise |
+| 10 | `PC-009D-SCOPE-EQUALITY` | 10 | each profile's canonical record (obligation 8) | (no applicability condition) | min 1 per profile | conservative equality: record `provenance` fields (`repository_head`, `override_matrix_sha256`, `override_execution_manifest_sha256`, `execution_manifest_sha256`, `runtime_lock_sha256` incl. `inherited_009a`, `image_digest`, `map_digest`, `host_arch`) equal the candidate's declared tested-scope manifest values for that profile | all pinned fields compared; no field may be skipped | `[1..1]` comparison per record | required | pinned repository artifact + candidate-declared manifest | COMPLETE/PASS at the evidence's own execution head; COMPLETE/FAIL (`EVIDENCE_SCOPE_MISMATCH`) on any known mismatch; INDETERMINATE (`INPUT_UNAVAILABLE`) when any required field is missing from either side — matching profiles alone never proves scope equality |
+| 11 | `PC-009D-ACCEPTANCE-AUTHORITY` | 10 | each profile's canonical record (obligation 8) | (no applicability condition) | min 1 per profile | acceptance-record match under the proposed policy `de4sdv.acceptance.maintainer-decision.v1` ([acceptance-policy.md](acceptance-policy.md)): an attributable, authorized decision record referencing the campaign scope and enumerating covered profiles | decision-population completeness over the closed six-profile universe (policy §Decision-population completeness); conflicts without supersession ⇒ INDETERMINATE | `[1..1]` applicable decision per profile | required | pinned repository artifact | discriminator per result-algebra.md (evidence availability): currently expected COMPLETE/FAIL (`ACCEPTANCE_AUTHORITY_MISSING`) — records and STATUS are retained and complete, the authorized decision is absent |
 
-### Expected aggregate outcomes (declared, at time of writing)
+### Expected aggregate outcomes (declared, derived from the dependency graph)
 
-- **At the evidence's own execution head (historical-realization check):**
-  obligations 1–11 all COMPLETE/PASS except 11 ⇒ aggregate: every required
-  unit attempted ⇒ `ASSESSED` / `COMPLETE` / **FAIL** (child failure:
-  `ACCEPTANCE_AUTHORITY_MISSING`), readiness BLOCKED for any exit target
-  requiring acceptance.
-- **At a candidate that moved the tested boundary:** 1–6 resolve against the
-  candidate model (expected PASS); 7–8 resolve against the declared scope
-  (expected PASS); 9 PASS as historical observation only if 10 permits; 10
-  FAILs (`EVIDENCE_SCOPE_MISMATCH`); 9 and 11 are then UNASSESSED children
-  (rule 9) ⇒ aggregate `UNASSESSED` / null / null with the 10-FAIL preserved
-  as a visible child result; readiness BLOCKED.
+Evaluation model: **all obligations always evaluate the current candidate's
+model** (bindings, memberships, metadata). Retained execution records are
+external observations; their **usability for the current candidate** is
+decided solely by the scope-equality obligation (10). There is no
+"evaluation of the historical model" in this contract: at the recorded
+execution head the model slice used different declaration names
+(`ConsciousOverrideVerification009D` family in `aebs_009d_verification.sysml`,
+renamed by later reviewed PRs), so binding today's identities against that
+revision is meaningless and is not attempted. A reviewed identity migration
+mapping (old→new declaration names) belongs to the T/O rename-tracking lane,
+not to this pilot contract.
+
+- **Candidate whose declared tested scope matches the retained evidence
+  (scope-equality PASS per profile):** 1–8 PASS; 9 PASS (records show
+  `passed=true` with pinned dispositions); 10 PASS; 11 FAIL
+  (`ACCEPTANCE_AUTHORITY_MISSING` — records complete, decision absent).
+  All required units attempted ⇒ aggregate `ASSESSED` / `COMPLETE` / **FAIL**;
+  readiness BLOCKED for any exit target requiring acceptance.
+- **Candidate whose tested boundary moved (scope-equality FAIL, known
+  mismatch):** model branch 1–6 resolves and passes against the candidate;
+  evidence branch 7–8 PASS (profiles declared, records found); 10 FAIL
+  (`EVIDENCE_SCOPE_MISMATCH`); 9 and 11 still evaluate (graph has no
+  10→9/10→11 edges) and their individual results stand — 9 PASS as a
+  historical observation, 11 FAIL — but the **scope-equality FAIL blocks
+  current-candidate conformance**: the pilot's declared-scope claim is not
+  usable for the current candidate and readiness is BLOCKED with the 10-FAIL
+  as a blocking reason, all child results visible.
+- **Missing profile / missing record:** 7 FAIL (`REQUIRED_RELATION_MISSING`)
+  or 8 FAIL/INDETERMINATE per its row; dependents on the failed edge (9/10/11
+  for that profile) are UNASSESSED/`NOT_ATTEMPTED` children (rule 9) ⇒
+  aggregate `UNASSESSED`/null/null with the failed parent visible; readiness
+  BLOCKED.
+- **Failed execution:** 9 FAIL (`EXECUTION_FAILED`) independently; 10 and 11
+  still evaluate (no 9→10/9→11 edges); a failed execution may be validly
+  accepted as an observation (MC-15) — it does not satisfy a passing-outcome
+  obligation but does not block the acceptance record from being evaluated.
+- **Incomplete declared scope (missing required field on either side):**
+  10 INDETERMINATE (`INPUT_UNAVAILABLE`) — matching profiles alone never
+  proves scope equality (MC-08).
 - Missing-scope or missing-record conditions never produce empty-population
   passes (MC-05/06/08); conflicting decisions without supersession stay
   unresolved (MC-20).
