@@ -138,7 +138,12 @@ jobs:
             --output /tmp/de4sdv-semantic-mcp-validation.json
 
       - name: Produce isolated committed-candidate export (transaction 1)
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
+          # Fail in seconds, not after a 60-minute run, if the license secret
+          # is missing from this step's environment.
+          test -n "$SYSIDE_LICENSE_KEY"
           python scripts/prepare_candidate_export.py \
             --repository "$GITHUB_WORKSPACE" \
             --git-commit "$(git rev-parse HEAD)" \
@@ -149,7 +154,10 @@ jobs:
             --baseline-export /tmp/de4sdv-full-model-export.json
 
       - name: Produce second independent serialization transaction (MC-14)
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
+          test -n "$SYSIDE_LICENSE_KEY"
           python scripts/prepare_candidate_export.py \
             --repository "$GITHUB_WORKSPACE" \
             --git-commit "$(git rev-parse HEAD)" \

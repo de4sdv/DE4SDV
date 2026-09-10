@@ -152,6 +152,84 @@ def test_candidate_export_rejects_wrong_commit_export(tmp_path, monkeypatch):
         )
 
 
+
+
+def test_prepare_candidate_export_cli_accepts_workflow_flags(tmp_path):
+    """The exact CLI invocations used by the privileged workflow must work end
+    to end (a run died at argparse-equivalent wiring before; function-level
+    tests alone do not cover the flags the workflow passes).
+
+    Both transactions are exercised through subprocess with a stub serializer
+    committed in the synthetic repository, mirroring CI: transaction 1 creates
+    the isolated worktree, transaction 2 reuses it with --sync-deps=false.
+    """
+    repo, sha = _synthetic_repo(tmp_path)
+    # Stub the licensed serializer inside the synthetic repository. The
+    # realistic path: the isolated checkout's own export script is invoked.
+    serial_dir = repo / "scripts"
+    serial_dir.mkdir()
+    (serial_dir / "export_sysml_api_baseline.py").write_text(
+        "import json, sys\n"
+        "args = sys.argv\n"
+        "git_commit = args[args.index('--git-commit') + 1]\n"
+        "output = args[args.index('--output') + 1]\n"
+        "payload = {\n"
+        "    'schema': 'de4sdv-sysml-api-baseline-export/v1',\n"
+        "    'git_commit': git_commit,\n"
+        "    'elements': [{'@id': '00000000-0000-4000-8000-000000000001',"
+        " '@type': 'Package', 'declaredName': 'P'}],\n"
+        "    'source_manifest': [],\n"
+        "}\n"
+        "open(output, 'w').write(json.dumps(payload) + '\\n')\n"
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t",
+         "commit", "-qm", "stub serializer"],
+        check=True,
+    )
+    sha = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+
+    import scripts.prepare_candidate_export as pce
+
+    worktree = tmp_path / "iso"
+    cmd1 = [
+        "python3", str(pce.__file__),
+        "--repository", str(repo),
+        "--git-commit", sha,
+        "--worktree", str(worktree),
+        "--output", str(tmp_path / "c1.json"),
+        "--identity", str(tmp_path / "i1.json"),
+        "--transaction-label", "candidate-1",
+        "--sync-deps=false",
+        "--baseline-export", str(repo / "missing-baseline.json"),
+    ]
+    result1 = subprocess.run(cmd1, capture_output=True, text=True)
+    assert result1.returncode == 0, result1.stderr
+    cmd2 = [
+        "python3", str(pce.__file__),
+        "--repository", str(repo),
+        "--git-commit", sha,
+        "--worktree", str(worktree),
+        "--output", str(tmp_path / "c2.json"),
+        "--identity", str(tmp_path / "i2.json"),
+        "--transaction-label", "candidate-2",
+        "--reuse-checkout",
+        "--sync-deps=false",
+    ]
+    result2 = subprocess.run(cmd2, capture_output=True, text=True)
+    assert result2.returncode == 0, result2.stderr
+    identity2 = json.loads((tmp_path / "i2.json").read_text())
+    assert identity2["transaction_label"] == "candidate-2"
+    assert identity2["git_commit"] == sha
+    assert identity2["source_checkout_head"] == sha
+    # Transaction 1 identity also recorded, with baseline comparison handled.
+    identity1 = json.loads((tmp_path / "i1.json").read_text())
+    assert identity1["transaction_label"] == "candidate-1"
+
+
 # ---------------------------------------------------------------------------
 # MC-14 correspondence script (fail-closed)
 # ---------------------------------------------------------------------------
