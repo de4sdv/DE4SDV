@@ -145,8 +145,7 @@ package DE4SDV_MethodContext {
    * design-input derivation only — never satisfaction, allocation,
    * verification, evidence, or acceptance. */
   metadata def RequirementDerivation :> SemanticMetadata {
-    ref :>> annotatedElement : SysML::Dependency;
-    doc /* Requirement R (dependency client) is derived from stakeholder need N (dependency supplier); design-input derivation, direction R -> N. */
+    doc /* Requirement R (dependency client) is derived from stakeholder need N (dependency supplier); design-input derivation, direction R -> N. Applies to the dependency that carries the derivation assertion. */
   }
 
   requirement def RegulatoryConstraintCandidate :> RequirementsManagementAttributeBase {

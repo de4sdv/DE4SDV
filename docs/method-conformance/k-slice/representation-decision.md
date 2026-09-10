@@ -73,13 +73,28 @@ acceptance claim.
    contract during migration; the marker makes the dependency an instance of
    the predicate instead of an untyped edge.
 
-**Exact form (to be validated by the licensed toolchain in CI):**
+**Exact form (validated form corrected by the licensed toolchain, see below):**
 
 - `metadata def RequirementDerivation :> SemanticMetadata` in the method
-  kernel (`de4sdv_method_context.sysml`), with
-  `ref :>> annotatedElement : SysML::Dependency;` and a doc comment carrying
+  kernel (`de4sdv_method_context.sysml`), with a doc comment carrying
   the engineering meaning and non-claims.
 - The chosen AEBS derivation dependencies carry `#RequirementDerivation`.
+
+**Licensed-validator correction (2026-09-10, exact-head CI run 34487362191):**
+the initial draft typed the metadata feature
+(`ref :>> annotatedElement : SysML::Dependency;`). The licensed SysIDE
+validation rejected every application with
+`metadata-feature-annotated-element: Metadata feature cannot annotate
+Dependency` — a metadata *feature* cannot annotate a Relationship in the
+pinned toolchain, even though the spec's CausationMetadata annotates
+Connection*Definition* elements. The accepted form carries **no typed
+annotatedElement feature**: the marker is a plain SemanticMetadata
+specialization (the same shape as the already-deployed
+`AdapterExchangeExcluded` marker), applied with the `#` prefix, and the
+dependency-annotation binding is established by the `#` application itself.
+The discriminating power is unchanged: the marker identity is still resolved
+through the ingestion-validated kernel binding, not by name or endpoint
+types.
 
 **Subject/target types and direction:** source (client) = RequirementUsage
 grounded in `RequirementCandidate` lineage; target (supplier) = RequirementUsage
