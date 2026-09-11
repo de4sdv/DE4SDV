@@ -10,6 +10,14 @@ from de4sdv.sysml_api.repository import element_id, reference_ids
 
 from .kernel_binding_index import KernelBindingIndex
 from .kernel_contract import KernelContract, RelationshipMapping
+from .model_edges import (
+    closure as lineage_closure,
+    end_feature_ids,
+    is_typing_hop,
+    lineage_index,
+    typing_index,
+)
+from .relationships import build_relationship_graph
 
 
 @dataclass(frozen=True)
@@ -207,10 +215,18 @@ class SemanticTraversal:
                 f"ingestion-validated binding metadata"
             )
 
+        # Post-Lane-B graph: the licensed export runs with
+        # include_implied=True, so tool-implied relationships and inlined
+        # references are present alongside authored ones. K consumes the
+        # shared representation-tolerant reader and keeps explicit vs
+        # implied provenance separable: an implied relationship never stands
+        # in for an authored derivation assertion.
+        graph = build_relationship_graph(list(by_id.values()))
+
         # Role resolvers from the declared kernel lineages (R1 preserved):
         # Need lineage and Requirement lineage from validated kernel UUIDs.
         lineage_resolvers = {
-            key: self._lineage_resolver(str(lineage_class), by_id)
+            key: self._lineage_resolver(str(lineage_class), by_id, graph)
             for key, lineage_class in (
                 ("source_lineage_of", config.get("source_lineage_of")),
                 ("target_lineage_of", config.get("target_lineage_of")),
@@ -218,10 +234,10 @@ class SemanticTraversal:
             if lineage_class
         }
 
-        def _grounded(element: dict[str, Any], resolver: dict[str, Any]) -> bool:
-            return self._endpoint_in_lineage(element, resolver, by_id)
+        def _grounded(element: dict[str, Any], resolver: dict[str, Any]) -> str | None:
+            return self._endpoint_grounding(element, resolver)
 
-        definition_closure = self._definition_lineage_ids(definition_ids, by_id)
+        definition_closure = self._definition_closure(graph, definition_ids, by_id)
 
         hops: list[TraversalHop] = []
         for element in elements:
@@ -234,26 +250,23 @@ class SemanticTraversal:
             if connection_id is None:
                 continue
 
-            # Validated definition typing: a FeatureTyping from this
-            # connection to the bound DerivesFromNeed definition (the
-            # subclassification closure of the definition also grounds).
-            typed_by_definition = False
-            for candidate in elements:
-                if str(candidate.get("@type")) != "FeatureTyping":
+            # Validated definition typing: an AUTHORED typing edge from this
+            # connection to the bound DerivesFromNeed definition (or to a
+            # definition specializing it). Representation-tolerant (object
+            # FeatureTyping or inlined reference), but an implied typing is
+            # NOT an authored derivation assertion: it stays quiet absence.
+            typing_provenance: str | None = None
+            for hop in graph.outgoing(connection_id):
+                if hop.is_implied or not is_typing_hop(hop):
                     continue
-                if element_id(candidate.get("typedFeature")) != connection_id:
-                    continue
-                typed = element_id(candidate.get("type")) or element_id(
-                    candidate.get("general")
-                )
-                if typed is not None and typed in definition_closure:
-                    typed_by_definition = True
+                if hop.target in definition_closure:
+                    typing_provenance = "authored"
                     break
-            if not typed_by_definition:
+            if typing_provenance is None:
                 # A ConnectionUsage NOT typed by the application definition
                 # is simply another connection (quiet absence). A connection
-                # that owns a BROKEN typing reference (dangling FeatureTyping
-                # id) also stays quiet here — it never claimed derivation.
+                # that owns a BROKEN typing reference (dangling typing id)
+                # also stays quiet here — it never claimed derivation.
                 continue
 
             # Collect the connection's ends in declared order. Ends are the
@@ -261,6 +274,14 @@ class SemanticTraversal:
             # members) reachable via EndFeatureMembership ownedRelationships
             # or direct ownedMember references.
             end_ids = self._connection_end_ids(element, by_id)
+            if not end_ids:
+                # Representation fallback only: when the connection carries no
+                # object-shape EndFeatureMembership entries (a serializer
+                # variant), the graph's membership hops are the only witness.
+                # The object shape stays authoritative when present, so an
+                # incomplete ownedRelationship list is still a corrupted
+                # witness (R2 fail-closed contract).
+                end_ids = end_feature_ids(graph, connection_id)
             if len(end_ids) < 2:
                 raise IdentityNotFoundError(
                     f"incomplete derivation witness for predicate "
@@ -276,12 +297,15 @@ class SemanticTraversal:
             # (`derivedRequirement`). Identification is by the end's own
             # typing against the lineage, direction-independent. An end
             # grounding in neither lineage is a corrupted witness.
-            need_resolver = self._role_resolver(mapping, config, "need")
+            need_resolver = self._role_resolver(
+                mapping, config, "need", by_id, graph
+            )
             requirement_resolver = self._role_resolver(
-                mapping, config, "requirement"
+                mapping, config, "requirement", by_id, graph
             )
             need_end_ids: list[str] = []
             derived_end_ids: list[str] = []
+            role_provenance = "explicit"
             for end_id in end_ids:
                 end = by_id.get(end_id)
                 if end is None:
@@ -293,6 +317,8 @@ class SemanticTraversal:
                     )
                 in_need = _grounded(end, need_resolver)
                 in_requirement = _grounded(end, requirement_resolver)
+                if "implied" in (in_need, in_requirement):
+                    role_provenance = "implied-fallback"
                 if in_need and in_requirement:
                     # Ambiguous end grounding: a usage grounded in both
                     # lineages cannot be assigned a role safely (plan §17
@@ -358,6 +384,12 @@ class SemanticTraversal:
                         "connection_definition_id": sorted(definition_ids)[0],
                         "need_end_id": sorted(need_end_ids),
                         "derived_requirement_end_id": sorted(derived_end_ids),
+                        # Provenance discipline (post-Lane-B include_implied
+                        # graph): the discriminator must be an AUTHORED
+                        # assertion; role classification may fall back to
+                        # tool-implied lineage and says so.
+                        "definition_typing_provenance": typing_provenance,
+                        "role_lineage_provenance": role_provenance,
                     },
                 )
                 hops.append(hop)
@@ -368,6 +400,8 @@ class SemanticTraversal:
         mapping: RelationshipMapping,
         config: dict[str, Any],
         role: str,
+        by_id: dict[str, dict[str, Any]],
+        graph: Any = None,
     ) -> dict[str, Any]:
         """Return the lineage resolver for one derivation role.
 
@@ -390,42 +424,17 @@ class SemanticTraversal:
                 f"mapping for {mapping.name!r} declares no {key} lineage; "
                 f"derivation roles cannot be resolved"
             )
-        return self._lineage_resolver(str(lineage_class), self._current_by_id)
-
-    def _definition_lineage_ids(
-        self, definition_ids: set[str], by_id: dict[str, dict[str, Any]]
-    ) -> set[str]:
-        """Subclassification closure of the application definition ids."""
-        specifics: dict[str, set[str]] = {}
-        for element in by_id.values():
-            if str(element.get("@type")) != "Subclassification":
-                continue
-            general = element_id(element.get("superclassifier")) or element_id(
-                element.get("general")
-            )
-            specific = element_id(element.get("subclassifier")) or element_id(
-                element.get("specific")
-            )
-            if general is not None and specific is not None:
-                specifics.setdefault(general, set()).add(specific)
-        closure: set[str] = set()
-        frontier = list(definition_ids)
-        while frontier:
-            current = frontier.pop()
-            if current in closure:
-                continue
-            closure.add(current)
-            frontier.extend(specifics.get(current, ()))
-        return closure
+        return self._lineage_resolver(str(lineage_class), by_id, graph)
 
     def _connection_end_ids(
         self, connection: dict[str, Any], by_id: dict[str, dict[str, Any]]
     ) -> list[str]:
-        """Collect the connection usage's end element ids in declared order.
+        """Collect the connection's end element ids in declared order.
 
         Ends appear as EndFeatureMembership ownedRelationships (each owning a
         reference to the connected usage) or as direct owned member
-        references on the connection usage.
+        references. Graph-discovered EndFeatureMembership hops (object or
+        inlined serializer shapes) are unioned by the caller.
         """
         end_ids: list[str] = []
         for reference in reference_ids(connection.get("ownedRelationship")):
@@ -438,44 +447,56 @@ class SemanticTraversal:
             end_ids.extend(reference_ids(connection.get("ownedMember")))
         return end_ids
 
-    def _endpoint_in_lineage(
+    def _endpoint_grounding(
         self,
         endpoint: dict[str, Any],
         resolver: dict[str, Any] | None,
-        by_id: dict[str, dict[str, Any]],
-    ) -> bool:
-        """Return whether one endpoint grounds in the declared lineage.
+    ) -> str | None:
+        """Classify one endpoint against the declared lineage.
 
-        The resolver carries the validated kernel UUID and the precomputed
-        lineage id set. An endpoint grounds when its own UUID is in the
-        lineage or a FeatureTyping/typing witness connects it to a lineage
-        member. When no lineage is configured for this side the check is
-        vacuous (returns True) — the mapping must configure both sides for
-        this strategy, which the ontology contract does.
+        Returns ``"explicit"`` when authored evidence carries the grounding,
+        ``"implied"`` when only tool-implied lineage does (the caller records
+        the fallback in the witness), and ``None`` when the endpoint grounds
+        in neither — a corrupted witness the caller fails closed on. When no
+        lineage is configured for this side the check is vacuous (returns
+        ``"explicit"``): the mapping must configure both sides, which the
+        ontology contract does.
         """
         if resolver is None:
-            return True
+            return "explicit"
         endpoint_id = element_id(endpoint)
         if endpoint_id is None:
-            return False
-        if endpoint_id in resolver["lineage_ids"]:
-            return True
-        for typing_id in resolver["typed_by"].get(endpoint_id, ()):
-            if typing_id in resolver["lineage_ids"]:
-                return True
-        return False
+            return None
+        explicit_ids = resolver["explicit_lineage_ids"]
+        all_ids = resolver["lineage_ids"]
+        if endpoint_id in explicit_ids:
+            return "explicit"
+        for typed in resolver["typed_by"].get(endpoint_id, ()):
+            if typed in explicit_ids:
+                return "explicit"
+        if endpoint_id in all_ids:
+            return "implied"
+        typed_implied = set(resolver["typed_by"].get(endpoint_id, ()))
+        typed_implied |= set(resolver["typed_by_implied"].get(endpoint_id, ()))
+        for typed in typed_implied:
+            if typed in all_ids:
+                return "implied"
+        return None
 
     def _lineage_resolver(
-        self, lineage_class: str, by_id: dict[str, dict[str, Any]]
+        self,
+        lineage_class: str,
+        by_id: dict[str, dict[str, Any]],
+        graph: Any = None,
     ) -> dict[str, Any] | None:
         """Ground one ontology lineage class and precompute its member ids.
 
         The root UUID comes from the ingestion-validated kernel binding
-        index; lineage membership follows Subclassification witnesses from
-        the bound revision and usage typing via FeatureTyping. A class
-        without a validated binding fails closed.
+        index; lineage membership follows the representation-tolerant
+        relationship graph (authored and tool-implied subsumption kept
+        separate) and usage typing. A class without a validated binding
+        fails closed.
         """
-        self._current_by_id = by_id
         if self.kernel_bindings is None:
             raise IdentityNotFoundError(
                 f"no validated kernel binding index is available; lineage "
@@ -483,37 +504,39 @@ class SemanticTraversal:
                 f"ingestion-validated binding metadata"
             )
         root_id = self.kernel_bindings.element_id_for(lineage_class, by_id)
-        specifics_by_general: dict[str, set[str]] = {}
-        typed_by: dict[str, set[str]] = {}
-        for element in by_id.values():
-            element_type = str(element.get("@type"))
-            if element_type == "Subclassification":
-                general = element_id(element.get("superclassifier")) or (
-                    element_id(element.get("general"))
-                )
-                specific = element_id(element.get("subclassifier")) or (
-                    element_id(element.get("specific"))
-                )
-                if general is not None and specific is not None:
-                    specifics_by_general.setdefault(general, set()).add(specific)
-            elif element_type == "FeatureTyping":
-                usage_id = element_id(element.get("owningRelatedElement"))
-                if usage_id is None:
-                    continue
-                typed = element_id(element.get("type")) or element_id(
-                    element.get("general")
-                )
-                if typed is not None:
-                    typed_by.setdefault(usage_id, set()).add(typed)
-        lineage_ids: set[str] = set()
-        frontier: list[str | None] = [root_id]
-        while frontier:
-            current = frontier.pop()
-            if current is None or current in lineage_ids:
-                continue
-            lineage_ids.add(current)
-            frontier.extend(specifics_by_general.get(current, ()))
-        return {"lineage_ids": lineage_ids, "typed_by": typed_by}
+        graph = graph if graph is not None else build_relationship_graph(
+            list(by_id.values())
+        )
+        node_ids = list(by_id)
+        explicit_specifics, implied_specifics = lineage_index(graph, node_ids)
+        typed_by, typed_by_implied = typing_index(graph, node_ids)
+        explicit_lineage = lineage_closure({root_id}, explicit_specifics)
+        full_lineage = lineage_closure(
+            {root_id}, _merge_specifics(explicit_specifics, implied_specifics)
+        )
+        return {
+            "root_id": root_id,
+            "lineage_ids": full_lineage,
+            "explicit_lineage_ids": explicit_lineage,
+            "typed_by": typed_by,
+            "typed_by_implied": typed_by_implied,
+        }
+
+    def _definition_closure(
+        self,
+        graph: Any,
+        definition_ids: set[str],
+        by_id: dict[str, dict[str, Any]],
+    ) -> set[str]:
+        """Authored specialization closure of the application definition.
+
+        The closure covers definitions that specialize DerivesFromNeed, so a
+        typed specialization still grounds. Tool-implied subsumption cannot
+        widen the discriminator: only authored subsumption widens what counts
+        as an authored derivation typing.
+        """
+        explicit_specifics, _implied = lineage_index(graph, list(by_id))
+        return lineage_closure(definition_ids, explicit_specifics)
 
     def _bound_definition_ids(
         self, ontology_class: str, by_id: dict[str, dict[str, Any]]
@@ -893,3 +916,13 @@ class SemanticTraversal:
             )
             unique[key] = hop
         return list(unique.values())
+
+def _merge_specifics(
+    *maps: dict[str, set[str]],
+) -> dict[str, set[str]]:
+    """Merge ``general -> {specific}`` maps without losing provenance."""
+    merged: dict[str, set[str]] = {}
+    for mapping in maps:
+        for general, specifics in mapping.items():
+            merged.setdefault(general, set()).update(specifics)
+    return merged

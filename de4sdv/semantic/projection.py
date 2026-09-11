@@ -35,6 +35,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .model_edges import end_feature_ids, typing_index
+from .relationships import build_relationship_graph
+
 PROJECTION_SCHEMA = "de4sdv.semantic-projection.v0"
 PROFILE_SCHEMA = "de4sdv.api-representation-profile.v0"
 PROFILE_IDENTITY = "de4sdv.api-representation-profile.v0#derivesRequirementFromNeed"
@@ -146,15 +149,42 @@ def _model_derived_semantics(
             "definition is not present in the bound revision"
         )
 
-    # Model-resident end types: the definition's owned end features.
-    # A connection definition's ends appear as owned features (reference
-    # usages); their types are the model-resident domain/range carrier.
+    # Model-resident end types: the definition's end features and their
+    # types. The post-Lane-B graph carries both object-shape memberships and
+    # inlined references, so end discovery and typing are
+    # representation-tolerant; `ownedMember` + inlined `variant` remain as
+    # the fallback shape. Explicit provenance is preferred, and an
+    # implied-only typing is recorded as such (never silently promoted).
+    graph = build_relationship_graph(list(by_id.values()))
+    end_ids = end_feature_ids(graph, definition_id)
+    if not end_ids:
+        end_ids = _reference_ids(definition.get("ownedMember"))
+    typed_explicit, typed_implied = typing_index(graph, list(by_id))
+
     need_type: str | None = None
     requirement_type: str | None = None
-    for member_id in _reference_ids(definition.get("ownedMember")) or []:
-        member = by_id.get(member_id, {})
-        end_name = str(member.get("declaredName") or "")
-        end_type = _first_reference_name(member.get("variant"), by_id)
+    end_type_provenance = "explicit"
+    for end_id in end_ids:
+        end = by_id.get(end_id, {})
+        end_name = str(end.get("declaredName") or "")
+        end_type: str | None = None
+        end_type_id: str | None = None
+        explicit_types = typed_explicit.get(end_id, set())
+        implied_types = typed_implied.get(end_id, set())
+        for candidate in sorted(explicit_types):
+            element = by_id.get(candidate, {})
+            if element.get("declaredName"):
+                end_type, end_type_id = str(element["declaredName"]), candidate
+                break
+        if end_type is None:
+            for candidate in sorted(implied_types):
+                element = by_id.get(candidate, {})
+                if element.get("declaredName"):
+                    end_type, end_type_id = str(element["declaredName"]), candidate
+                    end_type_provenance = "implied-fallback"
+                    break
+        if end_type is None:
+            end_type = _first_reference_name(end.get("variant"), by_id)
         if end_name == _NEED_ROLE and end_type:
             need_type = end_type
         elif end_name == _REQUIREMENT_ROLE and end_type:
@@ -242,6 +272,7 @@ def _model_derived_semantics(
         "requirement_end_type": requirement_type,
         "meaning": meaning,
         "claim_boundary": claim_boundary,
+        "end_type_provenance": end_type_provenance,
         "authority_provenance": (
             "ingestion-validated DerivesFromNeed definition: typed ends "
             "carry domain/range; ingested definition doc carries meaning "
@@ -347,6 +378,9 @@ def build_projection(
                     "need_end_type": model_semantics["need_end_type"],
                     "requirement_end_type": model_semantics[
                         "requirement_end_type"
+                    ],
+                    "end_type_provenance": model_semantics[
+                        "end_type_provenance"
                     ],
                     "authority_provenance": model_semantics[
                         "authority_provenance"
