@@ -1,0 +1,43 @@
+name: Probe include_implied serialization
+
+# Throwaway diagnostic (probe/syside-include-implied): determines whether
+# SerializationOptions.include_implied=True materializes the implicit library
+# grounding (VerificationCases::VerificationCase / verificationCases) in the
+# exported closure. Read-only; informs the Lane B read-back design.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Sysand and pinned model dependencies
+        run: |
+          curl -fsSL https://sysand.com/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/sysand" sync
+
+      - name: Install official Syside Automator serializer
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          test -n "$SYSIDE_LICENSE_KEY"
+          python -m pip install --disable-pip-version-check "syside==0.10.3" "PyYAML==6.0.2"
+
+      - name: Probe implied-relationship serialization
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: python scripts/probe_include_implied.py
