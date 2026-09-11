@@ -12,9 +12,13 @@ Scope boundary (frozen baseline §14, Increment D):
 - trust comes from the controlled validated importer/build artifact chain:
   every load is checked against a retained validation record supplied by the
   caller (the validated binding + export identity of the exact privileged
-  run). A bundle cannot authorize itself by carrying its own claimed hash —
-  self-attested provenance is rejected, and so is a handle whose digests do
-  not match the retained record;
+  run) ***and*** an externally trusted canonical content digest supplied
+  outside the snapshot. A bundle cannot authorize itself: self-attested
+  provenance is rejected, a handle whose digests do not match the retained
+  record is rejected, and content that was modified and re-forged to internal
+  digest consistency still fails because the externally trusted payload
+  binding — which transitively covers the graph, file inventories, scope,
+  method, evaluator and completeness sections — no longer matches;
 - loads are revision-explicit and fail closed: corrupt, incomplete,
   wrong-bound, or untrusted snapshots raise; there is NO fallback such as
   "invalid snapshot -> load latest API state", and no code path here can
@@ -310,8 +314,17 @@ class TrustedSnapshotBinding:
     """The retained validation record of the exact privileged run.
 
     Values are read from the controlled importer artifacts (validated candidate
-    binding + export identity). They are supplied out-of-band by the caller;
-    the snapshot must match them, never the other way around.
+    binding + export identity) and from the retained snapshot-build record.
+    They are supplied out-of-band by the caller; the snapshot must match them,
+    never the other way around.
+
+    ``expected_payload_digest`` is the externally trusted canonical payload
+    digest of the build output: the loader recomputes the payload digest from
+    the snapshot's own contents and refuses unless it equals this externally
+    supplied value. It transitively covers every semantic snapshot section
+    (graph elements, file inventories, scope/method/evaluator bindings,
+    completeness and provenance). The optional per-section digests add
+    independently trusted anchors; they never override the payload binding.
     """
 
     git_commit: str
@@ -319,8 +332,12 @@ class TrustedSnapshotBinding:
     sysml_commit_id: str
     scope: str
     export_sha256: str
+    expected_payload_digest: str
     binding_sha256: str | None = None
     validation_run: str = ""
+    expected_elements_digest: str | None = None
+    expected_candidate_files_digest: str | None = None
+    expected_tested_files_digest: str | None = None
 
 
 @dataclass(frozen=True)
@@ -429,7 +446,10 @@ def load_snapshot(
 
     Verification order: structure -> trusted record -> provenance handle ->
     identity -> expectations (method/evaluator/scope/completeness) -> integrity
-    digests -> file decode. Any mismatch raises; no partial load is returned.
+    digests -> externally trusted content binding -> file decode. The
+    externally trusted expected payload digest is compared against a value
+    recomputed from the snapshot's contents and is never read from the
+    snapshot itself. Any mismatch raises; no partial load is returned.
     """
     payload = read_snapshot(path)
 
@@ -462,6 +482,24 @@ def load_snapshot(
     _require_full_sha(trusted.git_commit, "trusted git_commit")
     _require_sha256(trusted.export_sha256, "trusted export_sha256")
     _require_sha256(trusted.binding_sha256, "trusted binding_sha256", optional=True)
+    _require_sha256(
+        trusted.expected_payload_digest, "trusted expected_payload_digest"
+    )
+    _require_sha256(
+        trusted.expected_elements_digest,
+        "trusted expected_elements_digest",
+        optional=True,
+    )
+    _require_sha256(
+        trusted.expected_candidate_files_digest,
+        "trusted expected_candidate_files_digest",
+        optional=True,
+    )
+    _require_sha256(
+        trusted.expected_tested_files_digest,
+        "trusted expected_tested_files_digest",
+        optional=True,
+    )
 
     # 3. Provenance kind and handle.
     provenance = payload["provenance"]
@@ -659,6 +697,7 @@ def load_snapshot(
                 continue
             decoded[file_path] = blob
         decoded_sources[role] = decoded
+    recomputed_files: dict[str, dict[str, Any]] = {}
     if not integrity_reasons:
         recomputed_files = _file_source_digest_view(file_sources)
         stored_file_digests = integrity.get("file_source_digests") or {}
@@ -681,6 +720,44 @@ def load_snapshot(
                 f"{recomputed_payload!r}"
             ],
         )
+
+    # 6b. Externally trusted content binding. The canonical payload digest —
+    # recomputed from the snapshot's own contents — must equal the value
+    # supplied OUTSIDE the snapshot by the retained build/evidence process. A
+    # bundle cannot authorize its own contents: content modified and re-forged
+    # to internal digest consistency still fails here, and the trusted value is
+    # never read from the snapshot being validated.
+    external_reasons: list[str] = []
+    if recomputed_payload != trusted.expected_payload_digest:
+        external_reasons.append(
+            "expected_payload_digest: externally trusted content binding "
+            f"{trusted.expected_payload_digest!r} does not match the snapshot "
+            f"contents {recomputed_payload!r}"
+        )
+    if (
+        trusted.expected_elements_digest
+        and recomputed_elements != trusted.expected_elements_digest
+    ):
+        external_reasons.append(
+            "expected_elements_digest: externally trusted value "
+            f"{trusted.expected_elements_digest!r} does not match the snapshot "
+            f"contents {recomputed_elements!r}"
+        )
+    for label, role in (
+        ("expected_candidate_files_digest", ROLE_CANDIDATE),
+        ("expected_tested_files_digest", ROLE_TESTED),
+    ):
+        expected = getattr(trusted, label)
+        if not expected:
+            continue
+        observed = (recomputed_files.get(role) or {}).get("files_digest")
+        if observed != expected:
+            external_reasons.append(
+                f"{label}: externally trusted value {expected!r} does not match "
+                f"the snapshot {role} file inventory {observed!r}"
+            )
+    if external_reasons:
+        raise _refuse(SnapshotValidationError, path, external_reasons)
 
     # 7. Loaded inputs.
     elements = tuple(dict(element) for element in graph.get("elements") or [])

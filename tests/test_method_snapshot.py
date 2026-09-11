@@ -22,6 +22,7 @@ exercised by tests/test_method_contract_binding.py.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -384,18 +385,44 @@ def expectations(**overrides) -> sn.SnapshotExpectations:
     return sn.SnapshotExpectations(**values)
 
 
-def trusted(**overrides) -> sn.TrustedSnapshotBinding:
+def trusted(payload: dict | None = None, **overrides) -> sn.TrustedSnapshotBinding:
+    """Build the retained-record values a caller supplies out-of-band.
+
+    When ``payload`` is given, the externally trusted content digest is taken
+    from that payload (the honest build flow: the operator records the digest
+    the build produced). When omitted, a valid-shaped placeholder is used —
+    only refusal tests that fail before the content binding may rely on it.
+    """
     values = dict(
         git_commit=REV_SHA,
         sysml_project_id=PROJECT_ID,
         sysml_commit_id=SYSML_COMMIT,
         scope="candidate",
         export_sha256=EXPORT_SHA,
+        expected_payload_digest=(
+            sn.payload_digest_of(payload) if payload is not None else "e0" * 32
+        ),
         binding_sha256=BINDING_SHA,
         validation_run="34576049742",
     )
     values.update(overrides)
     return sn.TrustedSnapshotBinding(**values)
+
+
+def _reforge(payload: dict) -> dict:
+    """Simulate a competent attacker: recompute every internal digest.
+
+    Updates each file's recorded sha256 from its (mutated) content, then runs
+    ``finalize_payload`` so every internal digest — per-file, per-role file
+    inventory, elements, and payload — is self-consistent with the mutation.
+    Only the externally trusted content binding can stop this.
+    """
+    forged = json.loads(json.dumps(payload))
+    for entry in forged["file_sources"].values():
+        for file_entry in entry["files"].values():
+            blob = base64.b64decode(file_entry["content_b64"])
+            file_entry["sha256"] = hashlib.sha256(blob).hexdigest()
+    return sn.finalize_payload(forged)
 
 
 def build_payload(**overrides) -> dict:
@@ -443,8 +470,9 @@ def reload_payload(tmp_path: Path, payload: dict, name: str = "snapshot.json") -
 
 
 def test_mc21_valid_exact_bound_snapshot_loads(tmp_path: Path) -> None:
-    path = reload_payload(tmp_path, build_payload())
-    loaded = sn.load_snapshot(path, trusted=trusted(), expectations=expectations())
+    payload = build_payload()
+    path = reload_payload(tmp_path, payload)
+    loaded = sn.load_snapshot(path, trusted=trusted(payload), expectations=expectations())
     assert loaded.revision == me.RevisionIdentity(
         git_commit=REV_SHA,
         sysml_project_id=PROJECT_ID,
@@ -591,7 +619,8 @@ def test_mc21_no_silent_latest_fallback(tmp_path: Path) -> None:
     """An invalid snapshot is refused by name; a valid newer snapshot in the
     same directory is never silently substituted, and loading stays
     revision-explicit."""
-    good = reload_payload(tmp_path, build_payload(), name="good.json")
+    good_payload = build_payload()
+    good = reload_payload(tmp_path, good_payload, name="good.json")
     bad_payload = build_payload()
     bad_payload["integrity"]["elements_digest"] = "0" * 64
     bad = write_snapshot(tmp_path, bad_payload, name="bad.json")
@@ -607,7 +636,9 @@ def test_mc21_no_silent_latest_fallback(tmp_path: Path) -> None:
     # The requested revision remains authoritative: loading `good.json` with
     # the matching trusted record returns exactly that revision, not the
     # "latest" one.
-    loaded = sn.load_snapshot(good, trusted=trusted(), expectations=expectations())
+    loaded = sn.load_snapshot(
+        good, trusted=trusted(good_payload), expectations=expectations()
+    )
     assert loaded.revision.git_commit == REV_SHA
     assert loaded.revision.git_commit != OTHER_SHA
 
@@ -725,9 +756,10 @@ def _evaluate_snapshot(
 ):
     """Load one snapshot and run it through the SAME assembly + evaluator as
     the API transport (there is no snapshot-specific evaluator)."""
+    raw = sn.read_snapshot(path)
     loaded = sn.load_snapshot(
         path,
-        trusted=trusted_binding or trusted(),
+        trusted=trusted_binding or trusted(raw),
         expectations=exp or expectations(),
     )
     approved = mp.load_approved_contract_from_yaml(
@@ -773,7 +805,7 @@ def _parity_pair(tmp_path: Path, *, git_commit: str = REV_SHA, scope: str = "can
     )
     loaded = sn.load_snapshot(
         snapshot_path,
-        trusted=trusted(git_commit=git_commit),
+        trusted=trusted(payload, git_commit=git_commit),
         expectations=expectations(),
     )
     snapshot_assembly = mp.assemble_pilot_context(
@@ -846,3 +878,114 @@ def test_reordered_serialization_same_canonical_result(tmp_path: Path) -> None:
     assert json.dumps(twice.increment_status(), sort_keys=True) == json.dumps(
         baseline.increment_status(), sort_keys=True
     )
+
+
+# ---------------------------------------------------------------------------
+# R1: externally trusted snapshot CONTENT binding
+#
+# The retained record externally binds the canonical content digest. An
+# attacker who mutates content and recomputes every internal digest produces
+# an internally self-consistent bundle that still cannot match the external
+# binding — a bundle never authorizes its own contents.
+# ---------------------------------------------------------------------------
+
+
+def test_r1_missing_external_content_binding_refused(tmp_path: Path) -> None:
+    payload = build_payload()
+    path = reload_payload(tmp_path, payload)
+    with pytest.raises(ValueError, match="expected_payload_digest"):
+        sn.load_snapshot(
+            path,
+            trusted=trusted(payload, expected_payload_digest=""),
+            expectations=expectations(),
+        )
+
+
+def test_r1_element_mutation_with_reforged_digests_refused(tmp_path: Path) -> None:
+    payload = build_payload()
+    binding = trusted(payload)
+    forged = json.loads(json.dumps(payload))
+    forged["graph"]["elements"][3]["declaredName"] = "TamperedElement"
+    forged = sn.finalize_payload(forged)
+    path = write_snapshot(tmp_path, forged)
+    with pytest.raises(sn.SnapshotValidationError, match="expected_payload_digest"):
+        sn.load_snapshot(path, trusted=binding, expectations=expectations())
+
+
+def test_r1_candidate_file_mutation_with_reforged_digests_refused(
+    tmp_path: Path,
+) -> None:
+    payload = build_payload()
+    binding = trusted(payload)
+    forged = json.loads(json.dumps(payload))
+    entry = forged["file_sources"]["candidate"]
+    first = sorted(entry["files"])[0]
+    entry["files"][first]["content_b64"] = base64.b64encode(
+        b"tampered-candidate-content"
+    ).decode()
+    forged = _reforge(forged)
+    path = write_snapshot(tmp_path, forged)
+    with pytest.raises(sn.SnapshotValidationError, match="expected_payload_digest"):
+        sn.load_snapshot(path, trusted=binding, expectations=expectations())
+
+
+def test_r1_tested_source_mutation_with_reforged_digests_refused(
+    tmp_path: Path,
+) -> None:
+    payload = build_payload()
+    binding = trusted(payload)
+    forged = json.loads(json.dumps(payload))
+    entry = forged["file_sources"]["tested"]
+    first = sorted(entry["files"])[0]
+    entry["files"][first]["content_b64"] = base64.b64encode(
+        b"tampered-tested-content"
+    ).decode()
+    forged = _reforge(forged)
+    path = write_snapshot(tmp_path, forged)
+    with pytest.raises(sn.SnapshotValidationError, match="expected_payload_digest"):
+        sn.load_snapshot(path, trusted=binding, expectations=expectations())
+
+
+def test_r1_copied_handle_into_foreign_payload_refused(tmp_path: Path) -> None:
+    """The provenance handle is copied verbatim into a different, internally
+    self-consistent payload; only the external content binding can refuse it."""
+    payload = build_payload()
+    binding = trusted(payload)
+    forged = json.loads(json.dumps(payload))
+    forged["graph"]["elements"] = list(reversed(forged["graph"]["elements"]))
+    forged["graph"]["elements"][0]["declaredName"] = "ForeignPayload"
+    forged = sn.finalize_payload(forged)
+    assert forged["provenance"] == payload["provenance"]  # handle copied
+    path = write_snapshot(tmp_path, forged)
+    with pytest.raises(sn.SnapshotValidationError, match="expected_payload_digest"):
+        sn.load_snapshot(path, trusted=binding, expectations=expectations())
+
+
+def test_r1_stored_value_spoof_cannot_satisfy_external_binding(
+    tmp_path: Path,
+) -> None:
+    """Setting the snapshot's stored payload digest to the externally trusted
+    value does not help: the loader recomputes from contents, so the spoofed
+    stored value no longer matches the recomputation, and the external binding
+    is still unsatisfied."""
+    payload = build_payload()
+    binding = trusted(payload)
+    forged = json.loads(json.dumps(payload))
+    forged["graph"]["elements"][0]["declaredName"] = "SpoofedElement"
+    forged = sn.finalize_payload(forged)
+    forged["integrity"]["payload_digest"] = binding.expected_payload_digest
+    path = write_snapshot(tmp_path, forged)
+    with pytest.raises(sn.SnapshotError, match="payload_digest"):
+        sn.load_snapshot(path, trusted=binding, expectations=expectations())
+
+
+def test_r1_external_section_digest_bindings_enforced(tmp_path: Path) -> None:
+    """The optional externally trusted section digests are enforced too."""
+    payload = build_payload()
+    path = reload_payload(tmp_path, payload)
+    binding = trusted(
+        payload,
+        expected_elements_digest="0" * 64,
+    )
+    with pytest.raises(sn.SnapshotValidationError, match="expected_elements_digest"):
+        sn.load_snapshot(path, trusted=binding, expectations=expectations())
