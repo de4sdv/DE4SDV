@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Exercise all DE4SDV semantic MCP tools against one exact API binding."""
+"""Exercise the required DE4SDV semantic MCP proof tools against one exact API binding.
+
+The privileged full-model proof calls the seven required semantic proof tools.
+The surface gate is a required-subset contract: every required proof tool must
+be present (missing ones fail closed), additive strictly read-only tools are
+allowed, and *every* exposed MCP tool - required or additive - must satisfy
+the strict read-only annotations. Additive tools are counted, never called by
+this proof; only the required seven are exercised.
+
+"""
 
 from __future__ import annotations
 
@@ -7,7 +16,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import anyio
 from mcp import ClientSession, StdioServerParameters
@@ -19,7 +28,10 @@ if str(ROOT) not in sys.path:
 
 from de4sdv.sysml_api.revisions import RevisionBinding
 
-TOOL_NAMES = {
+#: The seven full-model semantic proof tools this validator exercises. The
+#: exposed surface may be larger (strictly read-only additions are allowed);
+#: these are the tools whose results carry the semantic proof.
+REQUIRED_SEMANTIC_PROOF_TOOLS = {
     "model_status",
     "resolve_element",
     "inspect_element",
@@ -30,11 +42,55 @@ TOOL_NAMES = {
 }
 
 
+def validate_tool_surface(tools: Iterable[Any]) -> dict[str, int]:
+    """Fail closed unless the exposed MCP surface is complete and safe.
+
+    Required-subset semantics: every required semantic proof tool must be
+    present; additive tools are allowed. Every exposed tool - required or
+    additive - must satisfy the strict read-only annotations (readOnlyHint
+    true, destructiveHint false, idempotentHint true, openWorldHint false).
+    Destructive or open-world tools are refused even when all required tools
+    are present.
+
+    Returns the distinct counts for output clarity: ``exposed_tool_count``
+    (everything on the surface) and ``required_tool_count`` (the proof set).
+    """
+    exposed: dict[str, Any] = {}
+    for tool in tools:
+        name = str(getattr(tool, "name", "") or "")
+        if not name:
+            raise RuntimeError("MCP surface exposed a tool without a name")
+        exposed[name] = tool
+
+    missing = REQUIRED_SEMANTIC_PROOF_TOOLS - exposed.keys()
+    if missing:
+        raise RuntimeError(
+            "read-only MCP surface is missing required semantic proof tools: "
+            f"{sorted(missing)}"
+        )
+
+    for name in sorted(exposed):
+        annotations = getattr(exposed[name], "annotations", None)
+        if (
+            annotations is None
+            or not annotations.readOnlyHint
+            or annotations.destructiveHint
+            or not annotations.idempotentHint
+            or annotations.openWorldHint
+        ):
+            raise RuntimeError(f"MCP tool {name} is not strictly read-only")
+
+    return {
+        "exposed_tool_count": len(exposed),
+        "required_tool_count": len(REQUIRED_SEMANTIC_PROOF_TOOLS),
+    }
+
+
 def validate_semantic_results(
     results: dict[str, dict[str, Any]], *, expected_revision: dict[str, Any]
 ) -> None:
     """Fail closed unless the MCP proof retains exact native semantics."""
-    missing = TOOL_NAMES - results.keys()
+    missing = REQUIRED_SEMANTIC_PROOF_TOOLS - results.keys()
     if missing:
         raise RuntimeError(f"MCP proof did not exercise tools: {sorted(missing)}")
     for name, result in results.items():
@@ -112,21 +168,7 @@ async def run_mcp_validation(
         async with ClientSession(read, write) as session:
             await session.initialize()
             listed = await session.list_tools()
-            names = {tool.name for tool in listed.tools}
-            if names != TOOL_NAMES:
-                raise RuntimeError(
-                    f"read-only MCP tool surface mismatch: {sorted(names)}"
-                )
-            for tool in listed.tools:
-                annotations = tool.annotations
-                if (
-                    annotations is None
-                    or not annotations.readOnlyHint
-                    or annotations.destructiveHint
-                    or not annotations.idempotentHint
-                    or annotations.openWorldHint
-                ):
-                    raise RuntimeError(f"MCP tool {tool.name} is not strictly read-only")
+            surface = validate_tool_surface(listed.tools)
 
             results["model_status"] = _structured(
                 await session.call_tool("model_status", {}), "model_status"
@@ -182,6 +224,13 @@ async def run_mcp_validation(
         "schema": "de4sdv-semantic-mcp-validation/v1",
         "read_only": True,
         "revision": expected_revision,
+        # Output clarity: ``tool_count`` keeps its backward-compatible meaning
+        # (the exercised required proof tools). ``exposed_tool_count`` is the
+        # declared surface, which may include additive strictly read-only
+        # tools that this proof counts - and validates annotations for - but
+        # does not call.
+        "exposed_tool_count": surface["exposed_tool_count"],
+        "exercised_tool_count": len(results),
         "tool_count": len(results),
         "tools": results,
     }
@@ -216,7 +265,8 @@ def main() -> int:
             {
                 "output": str(args.output),
                 "read_only": result["read_only"],
-                "tool_count": result["tool_count"],
+                "exposed_tool_count": result["exposed_tool_count"],
+                "exercised_tool_count": result["exercised_tool_count"],
             },
             indent=2,
             sort_keys=True,
