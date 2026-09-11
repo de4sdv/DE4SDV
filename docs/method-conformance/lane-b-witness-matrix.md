@@ -41,9 +41,21 @@ semantic evidence), the privileged read-back additionally proves:
 
 | Identity | API metaclass | Standard-library grounding | DE4SDV application definition | Explicit vs implied |
 |---|---|---|---|---|
-| `VC-AEBS-009D-DE` | `VerificationCaseDefinition` | `VerificationCases::VerificationCase` via specialization closure (direct or transitive Generalization chain) | the DE4SDV verification definition itself (`ConsciousOverrideVerification`) | specialization chain: DE4SDV authors write `verification def` (native); grounding to the library is SysML-implied and proven from the validated import closure |
-| `VC-AEBS-009D-01…06` | `VerificationCaseUsage` | `VerificationCases::verificationCases` (usage-side anchor) | usages specializing `VC-AEBS-009D-DE` | definition/usage relationship is SysML-implied; per-usage grounding follows the definition chain; subject memberships and usage-level `@VerificationMethod` metadata are explicitly authored |
+| `VC-AEBS-009D-DE` | `VerificationCaseDefinition` | toolchain-materialized implied `Subclassification` to `VerificationCases::VerificationCase` (`isImplied: true`, target `@uri` into the pinned `Systems Library/VerificationCases.sysml`; target id equals the anchor the licensed exporter resolved BY NAME) | the DE4SDV verification definition itself (`ConsciousOverrideVerification`) | grounding is SysML-implied (`checkVerificationCaseDefinitionSpecialization`); the licensed serializer materializes it via `SerializationOptions include_implied`, so the closure carries the relationship with implied provenance — no redundant authorship required |
+| `VC-AEBS-009D-01…06` | `VerificationCaseUsage` | toolchain-materialized implied `Subsetting` to `VerificationCases::verificationCases` (same implied markers, target `@uri`, anchor id cross-check) | explicit `FeatureTyping` witness to `VC-AEBS-009D-DE` (the serializer's real shape for `verification … : Def`) | definition/usage typing is explicitly authored and serialized; library subsetting is implied and materialized by the toolchain; subject memberships and usage-level `@VerificationMethod` metadata are explicitly authored |
 | `EC-009D-01…03` | `RequirementUsage` | ODE4HERA requirements-management vocabulary via the DE4SDV method-context adapter (ADR 0009) | `OverrideEvidenceContract` specializations | `RequirementVerificationMembership` witnesses explicitly authored in the objective |
+
+Grounding evidence chain: the export runs with
+`SerializationOptions.minimal().with_options(include_implied=True)` (KerML
+10.3 `includesImplied`; `minimal()` alone documents that it EXCLUDES implied
+relationships) and records `library_anchors` — the ids of
+`VerificationCases::VerificationCase` and `VerificationCases::verificationCases`
+resolved by the licensed toolchain by name from the pinned library documents.
+The read-back then proves, from the imported closure, that each implied edge
+exists with `isImplied`, targets exactly the recorded anchor id, and carries
+an inline `@uri` into `VerificationCases.sysml`. A missing edge, missing
+anchor, non-implied edge to a library target, or wrong target id fails the
+read-back closed.
 
 The privileged evidence is produced by two independent serialization
 transactions of the same committed source (candidate-1, candidate-2), each
@@ -55,8 +67,13 @@ is never a fallback key — names are compared only as attributes after the
 persistent identity has been established. Elements without a persistent
 identity stay out of the global correspondence key-space; serializer-internal
 anonymous witnesses are matched structurally only inside an
-already-corresponded witness path. Duplicate or missing persistent
-identities fail closed. UUIDs are attributed per identity by transaction
+already-corresponded witness path. Ambiguous persistent identities — the
+same short name on multiple elements within one transaction, legal across
+namespaces and used by the pinned upstream libraries (e.g. sysmod's per-view
+`soi`/`soiImpl`) — are excluded from global correspondence with recorded
+occurrence counts and are never matched arbitrarily; a required pilot
+identity that is missing OR ambiguous fails closed. UUIDs are attributed per
+identity by transaction
 (`uuid_by_transaction`); UUID equality is reported, never required or
 assumed. The required Lane B pilot identities
 (`VC-AEBS-009D-DE`, `VC-AEBS-009D-01..06`, `EC-009D-01..03`, `PSC-009D`)
@@ -76,9 +93,10 @@ properties) rather than a hard-coded metaclass — and reports, per identity:
   closure, the `VerificationCases::verificationCases` anchor grounding INTO
   the library definition, provenance, exact witness ids, completeness state
   with diagnostics;
-- `library_VerificationCase_types` / `library_verificationCases_types`: the
-  actual validated API metaclasses of the anchors (the usage-set anchor is
-  not assumed to be a Class/Structure/Package).
+- `library_anchors`: the name-resolved anchor ids recorded by the licensed
+  exporter (`VerificationCases::VerificationCase`,
+  `VerificationCases::verificationCases`), cross-checked against the
+  implied edges' targets in the imported closure.
 
 Library-anchor presence alone is not grounding; any missing witness fails
 the read-back closed.

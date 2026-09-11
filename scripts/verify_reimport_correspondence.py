@@ -76,27 +76,36 @@ def _persistent_key(element: dict[str, Any]) -> str | None:
 
 def _inventory(
     elements: list[dict[str, Any]],
-) -> tuple[dict[str, dict[str, Any]], list[str], int]:
+) -> tuple[dict[str, dict[str, Any]], dict[str, int], int]:
     """Persistent-identity inventory.
 
-    Returns (inventory, duplicate keys, count of elements without a persistent
-    identity). Duplicate persistent identities are a fail-closed condition;
-    an element without a persistent identity is excluded from the global
-    correspondence key-space and is never recovered by name.
+    Returns (inventory, ambiguous, count of elements without a persistent
+    identity).
+
+    An identity is AMBIGUOUS when multiple elements in the same transaction
+    carry the same ``declaredShortName`` (legal SysML across namespaces —
+    the pinned upstream libraries use per-view short names such as ``soi``).
+    Ambiguous identities are excluded from the global correspondence
+    key-space and recorded with their occurrence counts: they are never
+    matched arbitrarily and never recovered by name. Required pilot
+    identities are checked separately against both missing and ambiguous
+    cases and fail closed.
     """
-    inventory: dict[str, dict[str, Any]] = {}
-    duplicates: list[str] = []
+    counts: dict[str, int] = {}
+    first: dict[str, dict[str, Any]] = {}
     without_identity = 0
     for element in elements:
         key = _persistent_key(element)
         if key is None:
             without_identity += 1
             continue
-        if key in inventory:
-            duplicates.append(key)
-            continue
-        inventory[key] = element
-    return inventory, sorted(set(duplicates)), without_identity
+        counts[key] = counts.get(key, 0) + 1
+        first.setdefault(key, element)
+    ambiguous = {key: count for key, count in counts.items() if count > 1}
+    inventory = {
+        key: element for key, element in first.items() if counts[key] == 1
+    }
+    return inventory, ambiguous, without_identity
 
 
 def _edge_signature(
@@ -161,33 +170,37 @@ def verify(
             "both bindings reference the same API commit: not independent transactions"
         )
 
-    inventory_a, duplicates_a, anonymous_a = _inventory(elements_a)
-    inventory_b, duplicates_b, anonymous_b = _inventory(elements_b)
-    for key in duplicates_a:
-        failures.append(
-            f"{label_a}: duplicate persistent identity {key!r} "
-            "(no name-based fallback is attempted)"
-        )
-    for key in duplicates_b:
-        failures.append(
-            f"{label_b}: duplicate persistent identity {key!r} "
-            "(no name-based fallback is attempted)"
-        )
+    inventory_a, ambiguous_a, anonymous_a = _inventory(elements_a)
+    inventory_b, ambiguous_b, anonymous_b = _inventory(elements_b)
 
     graph_a = build_relationship_graph(elements_a)
     graph_b = build_relationship_graph(elements_b)
 
     required = sorted(set(required_identities))
-    missing_required_a = sorted(set(required) - set(inventory_a))
-    missing_required_b = sorted(set(required) - set(inventory_b))
+
+    def _required_problem(key: str, label: str, inventory: dict, ambiguous: dict) -> str | None:
+        if key in ambiguous:
+            return (
+                f"required pilot identity {key!r} is ambiguous in {label}: "
+                f"{ambiguous[key]} elements share this short name "
+                "(excluded from correspondence; must resolve uniquely)"
+            )
+        if key not in inventory:
+            return (
+                f"required pilot identity {key!r} has no persistent identity in {label}"
+            )
+        return None
+
+    missing_required_a = [
+        key for key in required if (problem := _required_problem(key, label_a, inventory_a, ambiguous_a))
+    ]
+    missing_required_b = [
+        key for key in required if (problem := _required_problem(key, label_b, inventory_b, ambiguous_b))
+    ]
     for key in missing_required_a:
-        failures.append(
-            f"required pilot identity {key!r} has no persistent identity in {label_a}"
-        )
+        failures.append(_required_problem(key, label_a, inventory_a, ambiguous_a) or "")
     for key in missing_required_b:
-        failures.append(
-            f"required pilot identity {key!r} has no persistent identity in {label_b}"
-        )
+        failures.append(_required_problem(key, label_b, inventory_b, ambiguous_b) or "")
 
     # Global correspondence key-space: persistent identities only. Elements
     # without a persistent identity are never matched by name (they may only
@@ -274,6 +287,15 @@ def verify(
                 "provenance, multiset position) inside an already-corresponded "
                 "witness path only"
             ),
+            "ambiguous_identity_policy": (
+                "an identity is ambiguous when multiple elements in one "
+                "transaction carry the same declaredShortName (legal across "
+                "namespaces; the pinned upstream libraries reuse per-view short "
+                "names). Ambiguous identities are excluded from global "
+                "correspondence with recorded occurrence counts and are never "
+                "matched arbitrarily; required pilot identities must resolve "
+                "uniquely or the check fails closed"
+            ),
         },
         "transactions": {
             label_a: {
@@ -311,6 +333,14 @@ def verify(
             "count": len(required),
             "missing_in_" + label_a: missing_required_a,
             "missing_in_" + label_b: missing_required_b,
+        },
+        "ambiguous_persistent_identities": {
+            label_a: ambiguous_a,
+            label_b: ambiguous_b,
+            "note": (
+                "excluded from global correspondence; recorded for "
+                "transparency, never matched by name"
+            ),
         },
         "identities_compared": len(per_identity),
         "identities_compared_list": [row["identity"] for row in per_identity],

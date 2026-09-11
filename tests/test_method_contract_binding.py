@@ -99,13 +99,18 @@ def _pilot_graph(
                 "declaredName": "VerificationMethod",
             }
         )
-        # Specialization witness: the usage specializes the shared definition.
+        # Specialization witness in the serializer's real shape: a
+        # FeatureTyping whose specific end is the usage and whose general/type
+        # end is the shared definition (verified against a real export).
         elements.append(
             {
                 "@id": uuid[:-2] + "g1",
-                "@type": "Generalization",
-                "owner": {"@id": uuid},
+                "@type": "FeatureTyping",
+                "owningRelatedElement": {"@id": uuid},
+                "specific": {"@id": uuid},
+                "typedFeature": {"@id": uuid},
                 "general": {"@id": "00000000-0000-4000-8000-0000000000d0"},
+                "type": {"@id": "00000000-0000-4000-8000-0000000000d0"},
             }
         )
         # SubjectMembership: usage owns a bench member

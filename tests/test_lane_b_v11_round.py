@@ -330,7 +330,10 @@ def test_correspondence_fails_on_relationship_mismatch(tmp_path, monkeypatch):
     assert "VC-AEBS-009D-01" in report["relationship_mismatches"]
 
 
-def test_correspondence_fails_on_duplicate_identity(tmp_path, monkeypatch):
+def test_ambiguous_required_identity_fails_closed(tmp_path, monkeypatch):
+    """A REQUIRED pilot identity shared by multiple elements in one transaction
+    is ambiguous: the check fails closed (it must resolve uniquely) and the
+    identity is not compared."""
     import scripts.verify_reimport_correspondence as vrc
 
     sha = "c" * 40
@@ -345,10 +348,47 @@ def test_correspondence_fails_on_duplicate_identity(tmp_path, monkeypatch):
     monkeypatch.setattr(vrc, "ApiClient", lambda url, timeout=600.0: None)
     report = vrc.verify(
         "http://x", _binding(tmp_path, "proj-a", "commit-a", sha), _binding(tmp_path, "proj-b", "commit-b", sha),
-        required_identities=(),
+        required_identities=("VC-AEBS-009D-01",),
     )
     assert report["passed"] is False
-    assert any("duplicate persistent identity" in failure for failure in report["failures"])
+    assert any("ambiguous" in failure for failure in report["failures"])
+    assert all(
+        row["identity"] != "VC-AEBS-009D-01" for row in report["per_identity"]
+    ), "an ambiguous identity must never be compared"
+
+
+def test_ambiguous_non_required_identities_excluded_not_failed(tmp_path, monkeypatch):
+    """Upstream libraries legitimately reuse per-view short names across
+    namespaces (e.g. sysmod's soi/soiImpl). Such identities are excluded from
+    global correspondence with recorded counts — never matched arbitrarily,
+    never a failure by themselves."""
+    import scripts.verify_reimport_correspondence as vrc
+
+    sha = "c" * 40
+    elements = [
+        # Ambiguous upstream-style short names.
+        {"@id": "11111111-0000-4000-8000-000000000010", "@type": "PartUsage", "declaredShortName": "soi", "declaredName": "logicalSystem"},
+        {"@id": "11111111-0000-4000-8000-000000000011", "@type": "PartUsage", "declaredShortName": "soi", "declaredName": "functionalSystem"},
+        {"@id": "11111111-0000-4000-8000-000000000012", "@type": "PartUsage", "declaredShortName": "soiImpl", "declaredName": "productSystem"},
+        {"@id": "11111111-0000-4000-8000-000000000013", "@type": "PartUsage", "declaredShortName": "soiImpl", "declaredName": "specificationSystemImpl"},
+        # One unambiguous pilot identity.
+        {"@id": "11111111-0000-4000-8000-000000000001", "@type": "VerificationCaseUsage", "declaredShortName": "VC-AEBS-009D-01", "declaredName": "v1"},
+    ]
+    monkeypatch.setattr(
+        vrc, "SysMLRepository",
+        lambda client: _FakeRepository({"proj-a": elements, "proj-b": list(elements)}),
+    )
+    monkeypatch.setattr(vrc, "ApiClient", lambda url, timeout=600.0: None)
+    report = vrc.verify(
+        "http://x", _binding(tmp_path, "proj-a", "commit-a", sha), _binding(tmp_path, "proj-b", "commit-b", sha),
+        required_identities=("VC-AEBS-009D-01",),
+    )
+    assert report["passed"] is True
+    assert report["identities_compared"] == 1
+    assert [row["identity"] for row in report["per_identity"]] == ["VC-AEBS-009D-01"]
+    ambiguous = report["ambiguous_persistent_identities"]
+    assert ambiguous["transaction-a"] == {"soi": 2, "soiImpl": 2}
+    assert ambiguous["transaction-b"] == {"soi": 2, "soiImpl": 2}
 
 
 def test_correspondence_rejects_same_project_commit(tmp_path, monkeypatch):
@@ -476,64 +516,76 @@ class _FakeRepository:
 
 
 def _full_pilot_import():
-    """Synthetic validated import satisfying every read-back section, with
-    library grounding carried by Subclassification/FeatureTyping edges."""
+    """Synthetic validated import satisfying every read-back section.
+
+    Library grounding is carried exactly as the licensed serializer emits it
+    with include_implied=True: implied Subclassification (definition) and
+    implied Subsetting (each usage) relationships whose external targets
+    carry inline @uri references into the bundled
+    Systems Library/VerificationCases.sysml document."""
     elements = _pilot_graph()
-    lib_def = "99999999-0000-4000-8000-00000000000a"
-    lib_usage_set = "99999999-0000-4000-8000-00000000000b"
     definition_id = "00000000-0000-4000-8000-0000000000d0"
-    elements.extend(
-        [
+    lib_uri = (
+        "file:///opt/hostedtoolcache/Python/3.12/site-packages/_syside/"
+        "sysml.library/Systems%20Library/VerificationCases.sysml"
+    )
+    elements.append(
+        {
+            "@id": "99999999-0000-4000-8000-0000000000d1",
+            "@type": "Subclassification",
+            "isImplied": True,
+            "isImpliedIncluded": True,
+            "subclassifier": {"@id": definition_id},
+            "specific": {"@id": definition_id},
+            "owningRelatedElement": {"@id": definition_id},
+            "superclassifier": {"@id": LIBRARY_DEFINITION_ANCHOR, "@uri": lib_uri},
+            "general": {"@id": LIBRARY_DEFINITION_ANCHOR, "@uri": lib_uri},
+        }
+    )
+    for index in range(1, 7):
+        usage_id = f"00000000-0000-4000-8000-{index:012d}"
+        elements.append(
             {
-                "@id": lib_def,
-                "@type": "Class",
-                "declaredName": "VerificationCase",
-            },
-            {
-                "@id": lib_usage_set,
-                "@type": "ItemUsage",
-                "declaredName": "verificationCases",
-            },
-            {
-                "@id": "99999999-0000-4000-8000-00000000000c",
-                "@type": "FeatureTyping",
-                "typedFeature": {"@id": lib_usage_set},
-                "type": {"@id": lib_def},
-            },
-            # Definition grounds into the library definition.
-            {
-                "@id": "99999999-0000-4000-8000-00000000000d",
-                "@type": "Subclassification",
-                "subclassifier": {"@id": definition_id},
-                "superclassifier": {"@id": lib_def},
-            },
-            # Scope record with actual field values (B-R4): a PartUsage
-            # carrying owned attribute usages (the model-resident shape).
-            {
-                "@id": "00000000-0000-4000-8000-000000000600",
-                "@type": "PartUsage",
-                "declaredName": "aebsOverridePilotScope",
-                "declaredShortName": "PSC-009D",
-                "ownedElement": [
-                    {
-                        "@id": "00000000-0000-4000-8000-000000000601",
-                        "@type": "AttributeUsage",
-                        "declaredName": "incrementId",
-                        "ownedElement": [
-                            {"@type": "LiteralString", "value": "INC-AEBS-009D"}
-                        ],
-                    },
-                    {
-                        "@id": "00000000-0000-4000-8000-000000000602",
-                        "@type": "AttributeUsage",
-                        "declaredName": "subjectType",
-                        "ownedElement": [
-                            {"@type": "LiteralString", "value": "VerificationCaseUsage"}
-                        ],
-                    },
-                ],
-            },
-        ]
+                "@id": usage_id[:-4] + f"ss{index:02d}",
+                "@type": "Subsetting",
+                "isImplied": True,
+                "isImpliedIncluded": True,
+                "subsettingFeature": {"@id": usage_id},
+                "specific": {"@id": usage_id},
+                "owningRelatedElement": {"@id": usage_id},
+                "subsettedFeature": {
+                    "@id": LIBRARY_USAGE_SET_ANCHOR,
+                    "@uri": lib_uri,
+                },
+            }
+        )
+    # Scope record with actual field values (B-R4): a PartUsage
+    # carrying owned attribute usages (the model-resident shape).
+    elements.append(
+        {
+            "@id": "00000000-0000-4000-8000-000000000600",
+            "@type": "PartUsage",
+            "declaredName": "aebsOverridePilotScope",
+            "declaredShortName": "PSC-009D",
+            "ownedElement": [
+                {
+                    "@id": "00000000-0000-4000-8000-000000000601",
+                    "@type": "AttributeUsage",
+                    "declaredName": "incrementId",
+                    "ownedElement": [
+                        {"@type": "LiteralString", "value": "INC-AEBS-009D"}
+                    ],
+                },
+                {
+                    "@id": "00000000-0000-4000-8000-000000000602",
+                    "@type": "AttributeUsage",
+                    "declaredName": "subjectType",
+                    "ownedElement": [
+                        {"@type": "LiteralString", "value": "VerificationCaseUsage"}
+                    ],
+                },
+            ],
+        }
     )
     # Six model-resident evaluation-scope memberships (B-R5 shape).
     for index in range(1, 7):
@@ -602,8 +654,11 @@ def _full_pilot_import():
     return elements
 
 
+LIBRARY_DEFINITION_ANCHOR = "99999999-0000-4000-8000-00000000000a"
+LIBRARY_USAGE_SET_ANCHOR = "99999999-0000-4000-8000-00000000000b"
 
-def _run_readback(monkeypatch, tmp_path, elements):
+
+def _run_readback(monkeypatch, tmp_path, elements, *, anchors=True):
     import sys
 
     import scripts.verify_pilot_readback as vpr
@@ -615,11 +670,29 @@ def _run_readback(monkeypatch, tmp_path, elements):
     monkeypatch.setattr(vpr, "ApiClient", lambda url, timeout=600.0: None)
     binding_path = tmp_path / "binding.json"
     binding_path.write_text(json.dumps(PILOT_BINDING))
+    export_path = tmp_path / "candidate-export.json"
+    export_path.write_text(
+        json.dumps(
+            {
+                "schema": "de4sdv-sysml-api-baseline-export/v1",
+                "git_commit": "e" * 40,
+                "library_anchors": (
+                    {
+                        "VerificationCases::VerificationCase": LIBRARY_DEFINITION_ANCHOR,
+                        "VerificationCases::verificationCases": LIBRARY_USAGE_SET_ANCHOR,
+                    }
+                    if anchors
+                    else {}
+                ),
+            }
+        )
+    )
     out = tmp_path / "readback.json"
     monkeypatch.setattr(
         sys, "argv",
         ["verify_pilot_readback.py", "--api-url", "http://x",
-         "--binding", str(binding_path), "--output", str(out)],
+         "--binding", str(binding_path), "--export", str(export_path),
+         "--output", str(out)],
     )
     exit_code = None
     try:
@@ -632,47 +705,46 @@ def _run_readback(monkeypatch, tmp_path, elements):
 def test_usage_grounding_proven_per_usage(tmp_path, monkeypatch):
     out, _ = _run_readback(monkeypatch, tmp_path, _full_pilot_import())
     report = json.loads(out.read_text())
+    assert report["passed"] is True
+    definition = report["definition_grounding"]
+    assert definition["metaclass"] == "VerificationCaseDefinition"
+    assert definition["grounding"]["target"] == LIBRARY_DEFINITION_ANCHOR
+    assert definition["provenance"] == "implied"
     grounding = report["usage_grounding"]["VC-AEBS-009D-01"]
     assert grounding["completeness"] == "complete"
-    assert grounding["definition_witness"]["target"] == (
-        "00000000-0000-4000-8000-0000000000d0"
+    assert grounding["definition_witness"]["kind"] == "FeatureTyping"
+    assert grounding["definition_witness_provenance"] == "explicit"
+    assert grounding["library_grounding_witness"]["kind"] == "Subsetting"
+    assert grounding["library_grounding_witness"]["target"] == LIBRARY_USAGE_SET_ANCHOR
+    assert grounding["library_grounding_provenance"] == "implied"
+    assert grounding["library_grounding_witness"]["target_uri"].endswith(
+        "VerificationCases.sysml"
     )
-    assert grounding["library_grounding_witness"]["target"] == (
-        "99999999-0000-4000-8000-00000000000a"
-    )
-    assert grounding["library_usage_anchor_witness"]["anchor_metaclass"] == "ItemUsage"
-    assert report["definition_grounding"]["library_grounding_witness"]["target"] == (
-        "99999999-0000-4000-8000-00000000000a"
-    )
-    assert report["passed"] is True
 
 
-def test_usage_grounding_fails_when_library_def_present_but_unreachable(tmp_path, monkeypatch):
-    """Library definition PRESENT but no specialization closure: read-back
-    must fail — mere presence is not grounding proof."""
-    elements = _full_pilot_import()
+def test_grounding_fails_when_implied_definition_edge_missing(tmp_path, monkeypatch):
+    """The library definition could not be reached: the toolchain-materialized
+    implied Subclassification is absent, so grounding fails closed."""
     elements = [
         element
-        for element in elements
-        if element.get("@id") != "99999999-0000-4000-8000-00000000000d"
+        for element in _full_pilot_import()
+        if element.get("@id") != "99999999-0000-4000-8000-0000000000d1"
     ]
     out, exit_code = _run_readback(monkeypatch, tmp_path, elements)
     report = json.loads(out.read_text())
     assert report["passed"] is False
     assert exit_code == 1
     assert any(
-        "VerificationCases::VerificationCase" in failure
-        for failure in report["failures"]
+        "implied Subclassification" in failure for failure in report["failures"]
     )
 
 
-def test_usage_grounding_fails_when_usage_edge_missing(tmp_path, monkeypatch):
-    """A usage without its definition relationship fails per-usage grounding
-    even though the definition itself grounds."""
-    elements = _full_pilot_import()
+def test_grounding_fails_when_usage_edge_missing(tmp_path, monkeypatch):
+    """A usage without its FeatureTyping witness fails per-usage grounding even
+    though the definition itself grounds."""
     elements = [
         element
-        for element in elements
+        for element in _full_pilot_import()
         if element.get("@id") != "00000000-0000-4000-8000-0000000000g1"
     ]
     out, exit_code = _run_readback(monkeypatch, tmp_path, elements)
@@ -680,7 +752,33 @@ def test_usage_grounding_fails_when_usage_edge_missing(tmp_path, monkeypatch):
     assert report["passed"] is False
     grounding = report["usage_grounding"]["VC-AEBS-009D-01"]
     assert grounding["completeness"] == "incomplete"
-    assert any("no relationship edge" in d for d in grounding["diagnostics"])
+    assert any("FeatureTyping witness" in d for d in grounding["diagnostics"])
+
+
+def test_grounding_fails_when_anchors_missing(tmp_path, monkeypatch):
+    """Without the export-recorded library anchors the grounding proof is
+    unavailable and the read-back fails closed."""
+    out, exit_code = _run_readback(
+        monkeypatch, tmp_path, _full_pilot_import(), anchors=False
+    )
+    report = json.loads(out.read_text())
+    assert report["passed"] is False
+    assert any("library anchors missing" in failure for failure in report["failures"])
+
+
+def test_grounding_fails_when_implied_subsetting_missing(tmp_path, monkeypatch):
+    """A usage whose implied Subsetting to verificationCases is absent fails."""
+    elements = [
+        element
+        for element in _full_pilot_import()
+        if element.get("@id") != "00000000-0000-4000-8000-00000000ss01"
+    ]
+    out, exit_code = _run_readback(monkeypatch, tmp_path, elements)
+    report = json.loads(out.read_text())
+    assert report["passed"] is False
+    assert any(
+        "implied Subsetting" in failure for failure in report["failures"]
+    )
 
 
 def test_relationship_graph_discovers_inline_typing_representation():

@@ -27,7 +27,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 130
+    timeout-minutes: 180
     services:
       postgres:
         image: postgres:16
@@ -200,6 +200,7 @@ jobs:
           python scripts/verify_pilot_readback.py \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-candidate-binding.json \
+            --export /tmp/de4sdv-candidate-export.json \
             --output /tmp/de4sdv-pilot-readback.json
       - name: Run production-ingestion tests
         run: |

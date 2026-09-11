@@ -79,21 +79,36 @@ class Hop:
     target: str
     kind: str
     witness_id: str | None
+    is_implied: bool = False
+    target_uri: str | None = None
 
     @property
     def provenance(self) -> str:
-        """``explicit`` for authored relationship objects, ``implied`` for
-        inlined reference properties that SysML semantics imply."""
+        """Relationship provenance.
+
+        ``implied`` when the licensed serialization marked the relationship
+        object as implied (``isImplied``/``isImpliedIncluded``,
+        materialized by ``SerializationOptions.include_implied``) or when it
+        came from an inlined reference property that SysML semantics imply;
+        ``explicit`` for authored relationship objects.
+        """
+        if self.is_implied:
+            return "implied"
         return "explicit" if self.kind[:1].isupper() else "implied"
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "source": self.source,
             "target": self.target,
             "kind": self.kind,
             "witness_id": self.witness_id,
             "provenance": self.provenance,
         }
+        if self.is_implied:
+            payload["is_implied"] = True
+        if self.target_uri:
+            payload["target_uri"] = self.target_uri
+        return payload
 
 
 class RelationshipGraph:
@@ -145,11 +160,28 @@ class RelationshipGraph:
             for extra in reference_ids(node.get("ownedRelatedElement")):
                 if extra != node_id and extra not in target_ids:
                     target_ids.append(extra)
+            implied = bool(node.get("isImplied") or node.get("isImpliedIncluded"))
+            target_uris: dict[str, str] = {}
+            for key in ("superclassifier", "general", "type", "subsettedFeature",
+                        "redefinedFeature", "target", "declaredType"):
+                value = node.get(key)
+                for item in (value if isinstance(value, list) else [value]):
+                    if isinstance(item, dict) and item.get("@id") and item.get("@uri"):
+                        target_uris[str(item["@id"])] = str(item["@uri"])
             for source in source_ids:
                 for target in target_ids:
                     if source == target:
                         continue
-                    self._add(Hop(source, target, type_name, node_id))
+                    self._add(
+                        Hop(
+                            source,
+                            target,
+                            type_name,
+                            node_id,
+                            is_implied=implied,
+                            target_uri=target_uris.get(target),
+                        )
+                    )
         elif node_id:
             # Inlined reference properties: the containing element references
             # another element directly (serializer-dependent shape).

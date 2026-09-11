@@ -26,10 +26,9 @@ if str(ROOT) not in sys.path:
 from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 from de4sdv.semantic.method_contract import bind_pilot_usages
 from de4sdv.sysml_api.client import ApiClient
-from de4sdv.semantic.relationships import (
-    LINEAGE_FAMILIES,
-    build_relationship_graph,
-)
+from urllib.parse import unquote
+
+from de4sdv.semantic.relationships import build_relationship_graph
 from de4sdv.sysml_api.repository import SysMLRepository
 from de4sdv.sysml_api.revisions import RevisionBinding
 
@@ -50,6 +49,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api-url", required=True)
     parser.add_argument("--binding", type=Path, required=True)
+    parser.add_argument(
+        "--export",
+        type=Path,
+        default=None,
+        help=(
+            "Candidate export artifact consumed by the import; its "
+            "library_anchors carry the VerificationCases anchor ids the "
+            "licensed exporter resolved by name (required grounding input)."
+        ),
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -262,177 +271,141 @@ def main() -> int:
         if "phase10" not in attrs.get("phase", "").lower():
             failures.append(f"{oid}: phase not pinned to phase10_vvEvidence")
 
-    # 6. v1.1 native/library grounding, per identity (v1.1 invariant: an API
-    # metaclass check alone is not grounding evidence). The proof uses the
-    # serializer's ACTUAL relationship representation — discovered by
-    # de4sdv.semantic.relationships rather than assumed to be Generalization —
-    # and fails closed when a required witness is absent.
+    # 6. v1.1 library grounding from the validated closure. The licensed
+    # serializer materializes the SysML-implied library specializations
+    # (SerializationOptions include_implied): the definition carries an
+    # implied Subclassification to VerificationCases::VerificationCase and
+    # each usage an implied Subsetting to VerificationCases::verificationCases
+    # (spec semantic constraints checkVerificationCaseDefinitionSpecialization
+    # and the VerificationCaseUsage subsetting rule). The read-back proves
+    # these edges exist, are marked implied, and target exactly the anchor ids
+    # the licensed exporter resolved BY NAME from the pinned library
+    # (library_anchors in the export artifact). An @type check alone is not
+    # grounding; any missing edge, missing anchor or wrong target id fails
+    # closed.
+    anchors: dict[str, str] = {}
+    if args.export is not None and args.export.is_file():
+        export_artifact = json.loads(args.export.read_text(encoding="utf-8"))
+        anchors = {
+            str(key): str(value)
+            for key, value in (export_artifact.get("library_anchors") or {}).items()
+        }
+    else:
+        failures.append(
+            "export artifact is required for the grounding proof "
+            "(--export with library_anchors); read-back is fail-closed without it"
+        )
+    results["library_anchors"] = anchors
+    anchor_definition = anchors.get("VerificationCases::VerificationCase")
+    anchor_usage_set = anchors.get("VerificationCases::verificationCases")
+    if not anchor_definition or not anchor_usage_set:
+        failures.append(
+            "library anchors missing/incomplete in the export artifact: "
+            f"VerificationCase={anchor_definition!r}, verificationCases={anchor_usage_set!r}"
+        )
+
     graph = build_relationship_graph(elements)
     results["relationship_families_seen"] = graph.families_seen
 
-    def _find_by_declared_name(name: str) -> list[dict]:
-        return [
-            element
-            for element in elements
-            if str(element.get("declaredName") or "") == name
-        ]
-
-    library_definition_matches = _find_by_declared_name("VerificationCase")
-    library_usage_matches = _find_by_declared_name("verificationCases")
-    results["library_VerificationCase_types"] = sorted(
-        {str(m.get("@type")) for m in library_definition_matches}
-    )
-    results["library_verificationCases_types"] = sorted(
-        {str(m.get("@type")) for m in library_usage_matches}
-    )
-    if not library_definition_matches:
-        failures.append(
-            "library grounding anchor missing: VerificationCases::VerificationCase "
-            "is not present in the bound revision (pinned dependency closure "
-            "incomplete)"
-        )
-    if not library_usage_matches:
-        failures.append(
-            "library grounding anchor missing: VerificationCases::verificationCases "
-            "is not present in the bound revision (pinned dependency closure "
-            "incomplete)"
-        )
+    def _implied_hop(source_id, kind_prefix, target_id):
+        for hop in graph.outgoing(source_id):
+            if not hop.kind.startswith(kind_prefix):
+                continue
+            if hop.target != target_id or not hop.is_implied:
+                continue
+            uri = unquote(hop.target_uri or "")
+            if "VerificationCases.sysml" not in uri:
+                continue
+            return hop
+        return None
 
     definition_element = by_short.get(PILOT_DEFINITION)
-    if definition_element is None:
-        failures.append(f"pilot definition missing: {PILOT_DEFINITION}")
     definition_id = str((definition_element or {}).get("@id") or "")
-    results["definition_metaclass"] = str((definition_element or {}).get("@type") or "")
-
-    # Definition grounding: specialization closure from the DE4SDV definition
-    # to the library VerificationCase definition.
-    library_definition_ids = {
-        str(m["@id"]) for m in library_definition_matches if m.get("@id")
-    }
     definition_closure: dict[str, object] = {
-        "metaclass": results["definition_metaclass"],
-        "definition_witness": None,
-        "library_grounding_witness": None,
+        "metaclass": str((definition_element or {}).get("@type") or ""),
+        "grounding": None,
+        "provenance": None,
+        "diagnostics": [],
     }
-    if definition_id and library_definition_ids:
-        for target in sorted(library_definition_ids):
-            path = graph.path(definition_id, target, LINEAGE_FAMILIES)
-            if path is not None and path:
-                definition_closure["library_grounding_witness"] = {
-                    "target": target,
-                    "hops": [hop.to_dict() for hop in path],
-                    "provenance": sorted({hop.provenance for hop in path}),
-                }
-                break
-        # The DE4SDV definition is itself a native declaration: its own
-        # identity witness is the classification carried by the model.
-        definition_closure["definition_witness"] = {
-            "id": definition_id,
-            "declared_name": str(definition_element.get("declaredName") or ""),
-            "declared_short_name": str(
-                definition_element.get("declaredShortName") or ""
-            ),
-        }
-    if definition_closure["library_grounding_witness"] is None:
-        failures.append(
-            "VC-AEBS-009D-DE does not reach VerificationCases::VerificationCase "
-            "through the specialization closure present in the validated import"
+    definition_problems: list[str] = []
+    if definition_element is None:
+        definition_problems.append(f"pilot definition missing: {PILOT_DEFINITION}")
+    elif definition_closure["metaclass"] != "VerificationCaseDefinition":
+        definition_problems.append(
+            f"{PILOT_DEFINITION}: API metaclass {definition_closure['metaclass']!r}, "
+            "expected 'VerificationCaseDefinition'"
         )
+    elif anchor_definition:
+        hop = _implied_hop(definition_id, "Subclassification", anchor_definition)
+        if hop is None:
+            definition_problems.append(
+                f"{PILOT_DEFINITION}: no toolchain-materialized implied "
+                "Subclassification to VerificationCases::VerificationCase "
+                f"(anchor id {anchor_definition})"
+            )
+        else:
+            definition_closure["grounding"] = hop.to_dict()
+            definition_closure["provenance"] = hop.provenance
+    definition_closure["diagnostics"] = definition_problems
+    if definition_problems:
+        failures.extend(f"definition grounding: {problem}" for problem in definition_problems)
     results["definition_grounding"] = definition_closure
 
-    # Usage grounding: per usage — exact API metaclass, DE4SDV definition
-    # witness, standard-library grounding witness through
-    # VerificationCases::verificationCases, explicit/implied provenance,
-    # exact witness ids, and a completeness state.
-    if not library_usage_matches:
-        results["usage_grounding"] = {}
-    else:
-        usage_grounding: dict[str, dict] = {}
-        for usage_short in PILOT_SCOPE_USAGES:
-            usage = by_short.get(usage_short)
-            entry: dict[str, object] = {
-                "api_metaclass": str((usage or {}).get("@type") or ""),
-                "element_present": usage is not None,
-                "definition_witness": None,
-                "library_grounding_witness": None,
-                "completeness": "incomplete",
-                "diagnostics": [],
-            }
-            problems: list[str] = []
-            if usage is None:
-                problems.append(f"{usage_short}: element not present in the import")
-            else:
-                usage_id = str(usage.get("@id") or "")
-                if entry["api_metaclass"] != "VerificationCaseUsage":
-                    problems.append(
-                        f"{usage_short}: API metaclass is {entry['api_metaclass']!r}, "
-                        "expected 'VerificationCaseUsage'"
-                    )
-                # (a) DE4SDV definition witness: usage specialized/typed by the
-                # pilot definition, proven from an actual relationship edge.
-                if usage_id and definition_id:
-                    hop = graph.witness(usage_id, definition_id, LINEAGE_FAMILIES)
-                    if hop is not None:
-                        entry["definition_witness"] = hop.to_dict()
-                    else:
-                        problems.append(
-                            f"{usage_short}: no relationship edge to "
-                            f"{PILOT_DEFINITION} present in the validated import"
-                        )
-                # (b) Standard-library grounding witness: the usage's own
-                # definition chain must reach the library VerificationCase, and
-                # the library usage-set anchor must resolve into that same
-                # library definition (not merely exist).
-                if usage_id and library_definition_ids:
-                    for target in sorted(library_definition_ids):
-                        path = graph.path(usage_id, target, LINEAGE_FAMILIES)
-                        if path is not None and path:
-                            entry["library_grounding_witness"] = {
-                                "target": target,
-                                "hops": [hop.to_dict() for hop in path],
-                                "provenance": sorted(
-                                    {hop.provenance for hop in path}
-                                ),
-                            }
-                            break
-                if entry["library_grounding_witness"] is None:
-                    problems.append(
-                        f"{usage_short}: no specialization closure from the usage "
-                        "to VerificationCases::VerificationCase"
-                    )
-                # The usage-side library anchor must itself ground: resolve
-                # verificationCases -> VerificationCase and record the witness.
-                anchor_witness = None
-                for anchor in library_usage_matches:
-                    anchor_id = str(anchor.get("@id") or "")
-                    for target in sorted(library_definition_ids):
-                        path = graph.path(anchor_id, target, LINEAGE_FAMILIES)
-                        if path is not None and path:
-                            anchor_witness = {
-                                "anchor_id": anchor_id,
-                                "anchor_metaclass": str(anchor.get("@type") or ""),
-                                "target": target,
-                                "hops": [hop.to_dict() for hop in path],
-                            }
-                            break
-                    if anchor_witness:
-                        break
-                if anchor_witness is None:
-                    problems.append(
-                        f"{usage_short}: VerificationCases::verificationCases does "
-                        "not ground into VerificationCases::VerificationCase "
-                        "within the bound revision"
-                    )
-                entry["library_usage_anchor_witness"] = anchor_witness
-            entry["diagnostics"] = problems
-            if not problems:
-                entry["completeness"] = "complete"
-            else:
-                failures.extend(
-                    f"usage grounding: {problem}" for problem in problems
+    # Per usage: API metaclass, DE4SDV definition witness (explicit
+    # FeatureTyping to the pilot definition), library grounding witness
+    # (implied Subsetting to VerificationCases::verificationCases), exact
+    # witness ids, provenance and completeness.
+    usage_grounding: dict[str, dict] = {}
+    for usage_short in PILOT_SCOPE_USAGES:
+        usage = by_short.get(usage_short)
+        entry: dict[str, object] = {
+            "api_metaclass": str((usage or {}).get("@type") or ""),
+            "element_present": usage is not None,
+            "definition_witness": None,
+            "definition_witness_provenance": None,
+            "library_grounding_witness": None,
+            "library_grounding_provenance": None,
+            "completeness": "incomplete",
+            "diagnostics": [],
+        }
+        problems: list[str] = []
+        if usage is None:
+            problems.append(f"{usage_short}: element not present in the import")
+        else:
+            usage_id = str(usage.get("@id") or "")
+            if entry["api_metaclass"] != "VerificationCaseUsage":
+                problems.append(
+                    f"{usage_short}: API metaclass is {entry['api_metaclass']!r}, "
+                    "expected 'VerificationCaseUsage'"
                 )
-            usage_grounding[usage_short] = entry
-        results["usage_grounding"] = usage_grounding
+            if usage_id and definition_id:
+                for hop in graph.outgoing(usage_id):
+                    if hop.kind == "FeatureTyping" and hop.target == definition_id:
+                        entry["definition_witness"] = hop.to_dict()
+                        entry["definition_witness_provenance"] = hop.provenance
+                        break
+                if entry["definition_witness"] is None:
+                    problems.append(
+                        f"{usage_short}: no FeatureTyping witness to {PILOT_DEFINITION}"
+                    )
+            if usage_id and anchor_usage_set:
+                hop = _implied_hop(usage_id, "Subsetting", anchor_usage_set)
+                if hop is None:
+                    problems.append(
+                        f"{usage_short}: no toolchain-materialized implied Subsetting "
+                        "to VerificationCases::verificationCases "
+                        f"(anchor id {anchor_usage_set})"
+                    )
+                else:
+                    entry["library_grounding_witness"] = hop.to_dict()
+                    entry["library_grounding_provenance"] = hop.provenance
+        entry["diagnostics"] = problems
+        if not problems:
+            entry["completeness"] = "complete"
+        else:
+            failures.extend(f"usage grounding: {problem}" for problem in problems)
+        usage_grounding[usage_short] = entry
+    results["usage_grounding"] = usage_grounding
 
     results["passed"] = not failures
     results["failures"] = failures

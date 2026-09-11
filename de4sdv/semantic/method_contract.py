@@ -180,20 +180,46 @@ def _subject_members(
     return tuple(sorted(set(members)))
 
 
+#: Relationship kinds that carry a direct definition-usage specialization or
+#: typing edge. The licensed serializer emits ``FeatureTyping`` for typed
+#: usages (``verification x : Def``) and ``Subclassification`` for definition
+#: specialization; ``Generalization`` is retained for older fixtures.
+_SPECIALIZATION_EDGE_TYPES = (
+    "FeatureTyping",
+    "Subclassification",
+    "Specialization",
+    "Generalization",
+)
+
+
 def _generalization_parents(
     element_id: str, elements: list[dict[str, Any]]
 ) -> set[str]:
-    """Direct specialization parents of one element (Generalization edges)."""
+    """Direct specialization/typing parents of one element.
+
+    Reads the relationship-object shapes the licensed serializer actually
+    emits (verified against a real export): the specific end is carried by
+    ``owningRelatedElement``/``specific``/``typedFeature``/``subclassifier``
+    and the general end by ``type``/``general``/``superclassifier``.
+    """
     parents: set[str] = set()
     for element in elements:
-        if str(element.get("@type")) != "Generalization":
+        if str(element.get("@type")) not in _SPECIALIZATION_EDGE_TYPES:
             continue
-        owners = set(reference_ids(element.get("owningRelatedElement"))) | set(
-            reference_ids(element.get("owner"))
-        )
+        owners = set()
+        for key in (
+            "owningRelatedElement",
+            "owner",
+            "specific",
+            "typedFeature",
+            "subclassifier",
+            "subsettingFeature",
+        ):
+            owners.update(reference_ids(element.get(key)))
         if element_id not in owners:
             continue
-        parents.update(reference_ids(element.get("general")))
+        for key in ("general", "type", "superclassifier", "subsettedFeature"):
+            parents.update(reference_ids(element.get(key)))
     return parents
 
 
