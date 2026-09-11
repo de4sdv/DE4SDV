@@ -69,6 +69,42 @@ def _serialize(model, options) -> list[dict]:
     return elements
 
 
+def _all_docs_elements(model, options) -> list[dict]:
+    """Serialize every built document INCLUDING the standard library, so
+    implied relationship targets that resolve into the bundled libraries can
+    be named in the same load context as the model that emitted them."""
+    elements: list[dict] = []
+    for document in model.all_docs:
+        try:
+            with document.lock() as locked:
+                serialized = syside.json.dumps(locked.root_node, options)
+                url = str(getattr(locked, "url", ""))
+        except Exception as exc:  # pragma: no cover - diagnostic probe
+            elements.append({"@type": "_document_error", "error": str(exc)})
+            continue
+        loaded = json.loads(serialized)
+        if isinstance(loaded, list):
+            for element in loaded:
+                element.setdefault("_document", url)
+            elements.extend(loaded)
+    return elements
+
+
+def _name_index(elements: list[dict]) -> dict:
+    index = {}
+    for element in elements:
+        eid = str(element.get("@id") or "")
+        if not eid:
+            continue
+        index[eid] = {
+            "type": element.get("@type"),
+            "declaredName": element.get("declaredName"),
+            "declaredShortName": element.get("declaredShortName"),
+            "document": element.get("_document", ""),
+        }
+    return index
+
+
 def _ids(value: object) -> list[str]:
     if isinstance(value, dict):
         candidate = value.get("@id")
@@ -126,6 +162,49 @@ def _library_ids() -> dict[str, str]:
     return report  # type: ignore[return-value]
 
 
+def _resolve_edges(model, elements: list[dict], source_id: str, check: dict, key: str) -> None:
+    """Resolve every relationship edge out of source_id with target names taken
+    from an all-documents (library-inclusive) serialization."""
+    all_elements = _all_docs_elements(
+        model, syside.SerializationOptions.minimal()
+    )
+    names = _name_index(all_elements)
+    edges = []
+    for edge in _relationship_edges(elements):
+        if edge["source"] != source_id:
+            continue
+        target = names.get(edge["target"], {})
+        edges.append(
+            {
+                "kind": edge["kind"],
+                "witness_id": edge["witness_id"],
+                "target": edge["target"],
+                "target_type": target.get("type"),
+                "target_name": target.get("declaredName"),
+                "target_qualified": (
+                    (target.get("document") or "").split("/")[-1]
+                    + "::"
+                    + str(target.get("declaredName") or "")
+                ),
+                "target_is_library": (
+                    "sysml.library" in (target.get("document") or "")
+                ),
+                "target_in_user_scope": edge["target"]
+                in {str(e.get("@id")) for e in elements},
+            }
+        )
+    # de-duplicate (the edge extractor can emit the same pair several times)
+    unique = []
+    seen = set()
+    for edge in edges:
+        marker = (edge["kind"], edge["witness_id"], edge["target"])
+        if marker in seen:
+            continue
+        seen.add(marker)
+        unique.append(edge)
+    check[key] = unique
+
+
 def _synthetic(check: dict) -> None:
     doc = Path("/tmp/probe_model.sysml")
     doc.write_text(
@@ -147,20 +226,15 @@ def _synthetic(check: dict) -> None:
         "minimal": len(minimal_elements),
         "include_implied": len(implied_elements),
     }
-    for label, elements in (("minimal", minimal_elements), ("include_implied", implied_elements)):
-        edges = _relationship_edges(elements)
-        check[f"synthetic_edges_{label}"] = edges
+    check["synthetic_raw_implied_elements"] = [
+        element
+        for element in implied_elements
+        if element.get("@id") not in {str(e.get("@id")) for e in minimal_elements}
+    ][:6]
     defn = _by_name(implied_elements, "MyCheck")
     check["synthetic_definition_ids"] = [d.get("@id") for d in defn]
-    all_ids = {str(e.get("@id")) for e in implied_elements}
-    external_targets = sorted(
-        {
-            edge["target"]
-            for edge in _relationship_edges(implied_elements)
-            if edge["target"] not in all_ids
-        }
-    )
-    check["synthetic_external_targets"] = external_targets
+    if defn:
+        _resolve_edges(model, implied_elements, str(defn[0].get("@id")), check, "synthetic_definition_edges")
 
 
 def _real_model(check: dict) -> None:
@@ -176,8 +250,6 @@ def _real_model(check: dict) -> None:
         syside.SerializationOptions.minimal().with_options(include_implied=True),
     )
     check["real_element_count_include_implied"] = len(implied_elements)
-    elements_by_id = {str(e.get("@id")): e for e in implied_elements}
-    all_ids = set(elements_by_id)
     for short_name in ("VC-AEBS-009D-DE", "VC-AEBS-009D-01"):
         element = next(
             (e for e in implied_elements if e.get("declaredShortName") == short_name), None
@@ -185,30 +257,14 @@ def _real_model(check: dict) -> None:
         if element is None:
             check[f"real_{short_name}"] = "MISSING"
             continue
-        element_id = str(element.get("@id"))
-        edges = [
-            edge
-            for edge in _relationship_edges(implied_elements)
-            if edge["source"] == element_id
-        ]
-        check[f"real_{short_name}"] = {
-            "metaclass": element.get("@type"),
-            "edges": [
-                {
-                    **edge,
-                    "target_in_revision": edge["target"] in all_ids,
-                    "target_name": str(
-                        (elements_by_id.get(edge["target"]) or {}).get("declaredName") or ""
-                    ),
-                }
-                for edge in edges
-            ],
-        }
+        check[f"real_{short_name}"] = {"metaclass": element.get("@type")}
+        _resolve_edges(
+            model, implied_elements, str(element.get("@id")), check, f"real_{short_name}_edges"
+        )
 
 
 def main() -> int:
     report: dict[str, object] = {}
-    report["library"] = _library_ids()
     _synthetic(report)
     _real_model(report)
     print(json.dumps(report, indent=2, sort_keys=True))
