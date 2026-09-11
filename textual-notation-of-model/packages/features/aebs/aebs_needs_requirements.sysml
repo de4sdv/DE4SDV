@@ -301,18 +301,18 @@ package DE4SDV_AEBSNeedsRequirements {
           }
         }
 
-        dependency reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability from reqDetectForwardCollisionRisk to needCommonAEBSCapability;
-        dependency reqProvideCollisionWarningDerivedFromCommonAEBSCapability from reqProvideCollisionWarning to needCommonAEBSCapability;
-        dependency reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability from reqCommandEmergencyBraking to needCommonAEBSCapability;
+        connection reqDetectForwardCollisionRiskDerivedFromCommonAEBSCapability : DerivesFromNeed connect needCommonAEBSCapability to reqDetectForwardCollisionRisk;
+        connection reqProvideCollisionWarningDerivedFromCommonAEBSCapability : DerivesFromNeed connect needCommonAEBSCapability to reqProvideCollisionWarning;
+        connection reqCommandEmergencyBrakingDerivedFromCommonAEBSCapability : DerivesFromNeed connect needCommonAEBSCapability to reqCommandEmergencyBraking;
         dependency reqAllowDriverOverrideDerivedFromCommonAEBSCapability from reqAllowDriverOverride to needCommonAEBSCapability;
         dependency reqDetectAEBSFailureConditionDerivedFromBoundedDegradationAndAvailability from reqDetectAEBSFailureCondition to needBoundedDegradationAndAvailability;
         dependency reqDerivedFromNeedBoundedDegradation from reqHandleDegradedUnavailableInputs to needBoundedDegradationAndAvailability;
         dependency reqIndicateDegradedUnavailableStatusDerivedFromBoundedDegradationAndAvailability from reqIndicateDegradedUnavailableStatus to needBoundedDegradationAndAvailability;
         dependency reqResistFalseReactionDerivedFromTrustworthyInterventionDecisions from reqResistFalseReaction to needTrustworthyInterventionDecisions;
         dependency reqResistFalseBrakingCommandDerivedFromTrustworthyInterventionDecisions from reqResistFalseBrakingCommand to needTrustworthyInterventionDecisions;
-        dependency reqPedestrianTargetResponseDerivedFromPedestrianCollisionRiskReduction from reqPedestrianTargetResponse to needPedestrianCollisionRiskReduction;
+        connection reqPedestrianTargetResponseDerivedFromPedestrianCollisionRiskReduction : DerivesFromNeed connect needPedestrianCollisionRiskReduction to reqPedestrianTargetResponse;
         dependency reqPedestrianTargetControlledResponseDerivedFromPedestrianCollisionRiskReduction from reqPedestrianTargetControlledResponse to needPedestrianCollisionRiskReduction;
-        dependency reqBicycleTargetResponseDerivedFromBicycleCollisionRiskReduction from reqBicycleTargetResponse to needBicycleCollisionRiskReduction;
+        connection reqBicycleTargetResponseDerivedFromBicycleCollisionRiskReduction : DerivesFromNeed connect needBicycleCollisionRiskReduction to reqBicycleTargetResponse;
         dependency reqBicycleTargetControlledResponseDerivedFromBicycleCollisionRiskReduction from reqBicycleTargetControlledResponse to needBicycleCollisionRiskReduction;
         dependency reqKeepProductLineClassificationExplicitDerivedFromProductLineClassification from reqKeepProductLineClassificationExplicit to needProductLineClassification;
         dependency reqTraceRequirementVVAndGapsDerivedFromVisibleRegulatoryAssumptions from reqTraceRequirementVVAndGaps to needVisibleRegulatoryAssumptions;

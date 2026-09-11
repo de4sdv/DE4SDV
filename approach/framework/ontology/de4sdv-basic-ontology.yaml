@@ -462,6 +462,22 @@ classes:
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
       declaration: item def AcceptanceAttestationReference
+  DerivesFromNeed:
+    definition: >-
+      DE4SDV application connection definition for design-input derivation:
+      the derivedRequirement originates from the stakeholder need.
+      Provenance/traceability semantics only - neither satisfaction nor
+      logical implication between the connected usages is claimed. The
+      typed connection ends (need : StakeholderNeedCandidate,
+      derivedRequirement : RequirementCandidate) carry the predicate's
+      domain and range in the model itself. The standard Requirement
+      Derivation Domain Library remains pinned but unadopted: its
+      originalImpliesDerived semantics change the claim (upstream adoption
+      gate still applies; no floating upgrade, no upstream contact without
+      authorization).
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: connection def DerivesFromNeed
 
 relationships:
   addressesConcern:
@@ -482,6 +498,42 @@ relationships:
   derivesRequirementFromNeed:
     domain: Requirement
     range: Need
+    definition: >-
+      Requirement R is derived from stakeholder need N. Design-input
+      derivation; direction R -> N. No satisfaction, allocation, verification,
+      evidence, or acceptance claim. Grounded in the DE4SDV application
+      connection definition DerivesFromNeed: the Need grounds the `need` end,
+      the derived design requirement grounds the `derivedRequirement` end.
+      DE4SDV's Requirement -> Need query is inverse navigation over that
+      native witness.
+    sysml_mapping:
+      strategy: derivation-connection
+      connection_definition: DerivesFromNeed
+      need_role: need
+      requirement_role: derivedRequirement
+      query_direction: inverse
+      source_lineage_of: Requirement
+      target_lineage_of: Need
+      semantic_strength: derivation
+  derivedRequirementsOfNeed:
+    domain: Need
+    range: Requirement
+    definition: >-
+      Inverse navigation of derivesRequirementFromNeed over the SAME
+      discriminator witness: the need N is the design-input origin of the
+      derived requirement R. This predicate declares no new model fact; it
+      reuses the identical DerivesFromNeed connection traversed in the reverse
+      direction, with the same lineage grounding and fail-closed closure
+      semantics.
+    sysml_mapping:
+      strategy: derivation-connection
+      connection_definition: DerivesFromNeed
+      need_role: need
+      requirement_role: derivedRequirement
+      query_direction: forward
+      source_lineage_of: Need
+      target_lineage_of: Requirement
+      semantic_strength: derivation
   constrainedBy:
     domain: Requirement
     range: RegulatoryConstraint

@@ -14,6 +14,23 @@
 
 package DE4SDV_MethodContext {
   private import DE4SDV_SYSMODAdapter::*;
+  /* Requirement derivation discriminator: DE4SDV application connection
+   * definition. A requirement usage connected as derivedRequirement
+   * originates from the stakeholder need connected as need. The typed ends
+   * carry the predicate's domain and range; the definition documentation
+   * carries its native direction, claim strength, and claim boundary.
+   * Design-input provenance only — no satisfaction, implication,
+   * verification, evidence, or acceptance claim. */
+
+  connection def DerivesFromNeed {
+    end need : StakeholderNeedCandidate;
+    end derivedRequirement : RequirementCandidate;
+    doc /* Design-input provenance: the derivedRequirement originates from
+         * the stakeholder need. Native direction: need -> derivedRequirement.
+         * Claim strength: derivation (provenance only: neither satisfaction
+         * nor logical implication between the connected usages; no
+         * allocation, verification, evidence, or acceptance claim). */
+  }
 
   /* Re-exported so feature packages can assign `attribute :>> status =
    * ReqStatus::...` (ADR 0009) without importing the adapter directly. */

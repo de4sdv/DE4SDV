@@ -57,6 +57,36 @@ class KernelBindingIndex:
             by_class[item.ontology_class] = item
         return cls(bindings=binding.kernel_bindings, _by_class=by_class)
 
+    def ontology_class_for(
+        self, element_id_value: str, by_id: dict[str, dict[str, Any]]
+    ) -> str:
+        """Return the ontology class whose validated binding grounds an element.
+
+        This is the model->vocabulary direction of the same ingestion-validated
+        contract ``element_id_for`` consumes: the caller has already resolved a
+        model element (for example a connection definition's typed end) and
+        needs the governed class name for it. Fails closed when no binding
+        claims the element or when several do — an ambiguous vocabulary
+        identity must not be guessed.
+        """
+        matches = sorted(
+            item.ontology_class
+            for item in self.bindings
+            if item.element_id == element_id_value
+        )
+        if not matches:
+            raise IdentityNotFoundError(
+                f"no validated kernel binding claims element "
+                f"{element_id_value!r}; the model does not ground an ontology "
+                f"class for it"
+            )
+        if len(matches) > 1:
+            raise IdentityNotFoundError(
+                f"element {element_id_value!r} is claimed by multiple kernel "
+                f"bindings {matches!r}; vocabulary identity is ambiguous"
+            )
+        return matches[0]
+
     def element_id_for(self, ontology_class: str, by_id: dict[str, dict[str, Any]]) -> str:
         """Return the validated API UUID for one file-mapped ontology class.
 
