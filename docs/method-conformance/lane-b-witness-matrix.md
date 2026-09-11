@@ -12,11 +12,11 @@ candidate revision — **verified only by the privileged run's
 
 | A obligation | Model identity (stable explicit id) | Model element (kind / package) | Serialized/API witness (expected) |
 |---|---|---|---|
-| PC-009D-SCOPE-POPULATION | `PSC-009D` | `part aebsOverridePilotScope : AebsOverridePilotScopeBase` in `DE4SDV_AEBSOverrideVerification` | PartUsage with `declaredShortName=PSC-009D`; `attribute incrementId = "INC-AEBS-009D"`; six scope usages resolvable by short name |
-| PC-009D-VC-BINDING | `VC-AEBS-009D-01…06` | six `verification` usages specializing `<'VC-AEBS-009D-DE'>ConsciousOverrideVerification` | VerificationCaseUsage per short name; `Generalization` edge to the shared definition; definition distinct (its own short name) |
+| PC-009D-SCOPE-POPULATION | `PSC-009D` | `part aebsOverridePilotScope : AebsOverridePilotScopeBase` in `DE4SDV_AEBSOverrideVerification` | PartUsage with `declaredShortName=PSC-009D`; six scope usages resolvable by short name; field values resolve through the serialized chain `FeatureMembership(memberName)` → attribute usage → `FeatureValue` → literal (enumeration values via `FeatureReferenceExpression` → membership → enumeration literal) |
+| PC-009D-VC-BINDING | `VC-AEBS-009D-01…06` | six `verification` usages specializing `<'VC-AEBS-009D-DE'>ConsciousOverrideVerification` | VerificationCaseUsage per short name; `FeatureTyping` edge to the shared definition (the licensed serializer emits `FeatureTyping`, not `Generalization`); definition distinct (its own short name) |
 | PC-009D-SUBJECT-MEMBERSHIP | per-usage `verifiedBench` | `subject verifiedBench :> override<Scenario>Bench` on each usage | `SubjectMembership` owned by each usage; memberElement → `OverrideMatrixBench` specialization part usage |
 | PC-009D-OBJECTIVE-CONTRACTS | `EC-009D-01…03` | `requirement evidenceContract…` usages verified by `evidenceObjective` | Inherited witness path: usage → (specialization) → definition → `ObjectiveMembership` → objective `RequirementUsage` → `RequirementVerificationMembership` ×3 → requirement usages |
-| PC-009D-USAGE-METHOD-METADATA | on each `VC-AEBS-009D-0N` usage | `@VerificationMethod{ kind = (test, analyze); }` owned by each usage | Metadata annotation feature owned by the usage; owner = usage UUID |
+| PC-009D-USAGE-METHOD-METADATA | on each `VC-AEBS-009D-0N` usage | `@VerificationMethod{ kind = (test, analyze); }` owned by each usage | `MetadataUsage` owned through an `OwningMembership` whose owning element is the usage (the serializer emits no `Annotation`/`MetadataAnnotation` elements for this annotation) |
 | PC-009D-DEFINITION-METHOD-METADATA | on `VC-AEBS-009D-DE` definition | `@VerificationMethod{kind=test}` on `collectData`; `kind=analyze` on `processData`, `evaluateData` | Metadata annotations owned by the three action usages of the definition |
 | PC-009D-PROFILE-POPULATION | `INC-AEBS-009D` (external) | ` TestedScopeDeclaration` model vocabulary + retained `campaign-manifest.json` (external, digest-pinned) | External identity: manifest `profiles` keys = the six `OverrideScenario` identities; NOT API UUIDs |
 | PC-009D-EXECUTION-RECORD | run ids e.g. `20260727T222325Z-d6cda4ace4b3a9ca` | `RetainedExecutionRecordReference` model vocabulary; retained records under `implementation/…/evidence/009d/` (external) | External identity: manifest per-profile `run_id` + `sha256` of `scenario-evidence.json`; bytes stay external |
@@ -108,3 +108,35 @@ explicit external identities (path + digest + run id). No API UUID is
 invented for them. Model references (`RetainedExecutionRecordReference`,
 `AcceptanceAttestationReference`, `TestedScopeDeclaration`) carry the typed
 identity of the reference, not the bytes.
+
+## Real-artifact offline verification (`include_implied` shapes)
+
+The candidate path serializes with `SerializationOptions.minimal()` plus
+`include_implied=True`. That closure differs from the pre-change baseline by
++21,729 toolchain-materialized implied elements (82,011 total; 21,602 marked
+`isImplied`, plus split out-of-bundle references recorded in
+`external_references`). The privileged run at `0fd7d768` produced that real
+export and failed closed at the product-line scope step, exposing five shape
+assumptions. Each was reproduced and repaired against the captured artifact:
+
+| Gap found on real data | Resolution |
+|---|---|
+| `variant_occurrences` counted 4 alternatives for 2 real ones (authored + implied duplicate relationship per alternative) | occurrences are distinct; the real export validates (`expected 2, found 2`) |
+| explicit-identity resolution saw two elements per pilot short name | an implied `PerformActionUsage` carries a resolved `shortName`; explicit identity is now AUTHORED identity (`declaredShortName`) only |
+| `isImpliedIncluded` was treated as provenance | it is the serialization setting flag on nearly every element; provenance uses `isImplied` only |
+| attribute values were read from a nested `ownedElement` shape that the serializer never emits | values resolve through `FeatureMembership(memberName)` → `FeatureValue` → literal / `FeatureReferenceExpression` → enumeration literal |
+| implied library grounding was expected inline | the exporter splits out-of-bundle references; grounding is proven from the implied witness plus the export's `external_references` rows (`source_element_id` + `property_path` + `target_id` + `uri`) |
+
+Offline verification of the repaired code against that same real artifact:
+
+- pilot read-back **passed**: binding completeness `complete`, six
+  `VerificationCaseUsage`s resolved, all six usages grounded
+  (`mechanism: external-reference`), `PSC-009D` fields
+  (`INC-AEBS-009D` / `VerificationCaseUsage`), six scope memberships, eleven
+  obligations;
+- MC-14 correspondence **passed** across 29 identities (11/11 required
+  present in both transactions), `name_based_correspondence_used: false`.
+
+The privileged run remains the authority for the candidate path; these
+offline checks establish that the repaired code consumes the exact closure the
+run produces.
