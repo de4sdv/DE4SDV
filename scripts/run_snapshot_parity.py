@@ -184,8 +184,14 @@ def _trusted_from_json(payload: dict) -> sn.TrustedSnapshotBinding:
         sysml_commit_id=str(payload["sysml_commit_id"]),
         scope=str(payload["scope"]),
         export_sha256=str(payload["export_sha256"]),
+        expected_payload_digest=str(payload["expected_payload_digest"]),
         binding_sha256=payload.get("binding_sha256"),
         validation_run=str(payload.get("validation_run") or ""),
+        expected_elements_digest=payload.get("expected_elements_digest"),
+        expected_candidate_files_digest=payload.get(
+            "expected_candidate_files_digest"
+        ),
+        expected_tested_files_digest=payload.get("expected_tested_files_digest"),
     )
 
 
@@ -399,6 +405,14 @@ def mode_build(args: argparse.Namespace) -> int:
                 "sysml_commit_id": identity.sysml_commit_id,
                 "scope": identity.scope,
                 "export_sha256": export_sha,
+                "expected_payload_digest": payload["integrity"]["payload_digest"],
+                "expected_elements_digest": payload["integrity"]["elements_digest"],
+                "expected_candidate_files_digest": payload["integrity"][
+                    "file_source_digests"
+                ]["candidate"],
+                "expected_tested_files_digest": payload["integrity"][
+                    "file_source_digests"
+                ]["tested"],
                 "binding_sha256": binding_sha,
                 "validation_run": str(args.validation_run or ""),
             },
@@ -717,6 +731,54 @@ def mode_tamper(args: argparse.Namespace) -> int:
     mutated = copy.deepcopy(original)
     mutated["file_sources"]["tested"]["revision"] = "9" * 40
     attempt("wrong-tested-head", mutated, trusted, expect_refusal=True, finalize=True)
+
+    def reforge(payload: dict) -> dict:
+        """Recompute every internal digest — the competent-attacker model."""
+        forged = copy.deepcopy(payload)
+        for entry in forged["file_sources"].values():
+            for file_entry in entry["files"].values():
+                blob = base64.b64decode(file_entry["content_b64"])
+                file_entry["sha256"] = hashlib.sha256(blob).hexdigest()
+        return sn.finalize_payload(forged)
+
+    mutated = copy.deepcopy(original)
+    if mutated["graph"]["elements"]:
+        mutated["graph"]["elements"][0]["declaredName"] = "ReforgedTamper"
+    attempt(
+        "element-mutation-reforged",
+        sn.finalize_payload(mutated),
+        trusted,
+        expect_refusal=True,
+        finalize=False,
+    )
+
+    mutated = copy.deepcopy(original)
+    candidate_entry = mutated["file_sources"]["candidate"]
+    first = sorted(candidate_entry["files"])[0]
+    candidate_entry["files"][first]["content_b64"] = base64.b64encode(
+        b"reforged-candidate-tamper"
+    ).decode()
+    attempt(
+        "candidate-file-mutation-reforged",
+        reforge(mutated),
+        trusted,
+        expect_refusal=True,
+        finalize=False,
+    )
+
+    mutated = copy.deepcopy(original)
+    tested_entry = mutated["file_sources"]["tested"]
+    first = sorted(tested_entry["files"])[0]
+    tested_entry["files"][first]["content_b64"] = base64.b64encode(
+        b"reforged-tested-tamper"
+    ).decode()
+    attempt(
+        "tested-file-mutation-reforged",
+        reforge(mutated),
+        trusted,
+        expect_refusal=True,
+        finalize=False,
+    )
 
     attempt("missing-trusted-record", original, None, expect_refusal=True, finalize=False)
 

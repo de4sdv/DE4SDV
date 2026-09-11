@@ -99,6 +99,27 @@ def main() -> int:
     parser.add_argument("--evaluator-disposition", default="")
     parser.add_argument("--independent-disposition", default="")
     parser.add_argument("--independent-source", default="")
+    parser.add_argument(
+        "--cross-check-evaluation-key",
+        default="",
+        help=(
+            "evaluation_key the comparison covered; defaults to the summary's "
+            "key when --summary is supplied"
+        ),
+    )
+    parser.add_argument(
+        "--cross-check-git-commit",
+        default="",
+        help=(
+            "exact revision the comparison covered; defaults to the summary's "
+            "git_commit when --summary is supplied"
+        ),
+    )
+    parser.add_argument(
+        "--cross-check-contract-digest",
+        default="",
+        help="optional additional contract binding for the cross-check",
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
 
@@ -122,16 +143,25 @@ def main() -> int:
         policy_bearing_paths=tuple(args.policy_bearing_path),
         extra_required_obligations=tuple(args.extra_required_obligation),
     )
+    conformance = _load_summary(args.summary) if args.summary is not None else None
     cross_check = None
     if args.cross_check is not None:
+        evaluation_key = args.cross_check_evaluation_key
+        git_commit = args.cross_check_git_commit
+        contract_digest = args.cross_check_contract_digest
+        if conformance is not None:
+            evaluation_key = evaluation_key or conformance.evaluation_key
+            git_commit = git_commit or conformance.git_commit
+            contract_digest = contract_digest or conformance.contract_digest
         cross_check = dg.CrossCheckRecord(
             parity=args.cross_check,
             parity_detail=args.cross_check_detail,
             evaluator_disposition=args.evaluator_disposition,
             independent_disposition=args.independent_disposition,
+            evaluation_key=evaluation_key,
+            git_commit=git_commit,
+            contract_digest=contract_digest,
         )
-
-    conformance = _load_summary(args.summary) if args.summary is not None else None
     payload = dg.pr_gate_status(
         repository=args.repository,
         pr_number=args.pr,
