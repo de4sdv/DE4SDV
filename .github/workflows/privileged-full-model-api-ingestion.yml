@@ -27,7 +27,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 180
     services:
       postgres:
         image: postgres:16
@@ -137,12 +137,87 @@ jobs:
             --expected-git-revision "$(git rev-parse HEAD)" \
             --output /tmp/de4sdv-semantic-mcp-validation.json
 
+      - name: Produce isolated committed-candidate export (transaction 1)
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          # Fail in seconds, not after a 60-minute run, if the license secret
+          # is missing from this step's environment.
+          test -n "$SYSIDE_LICENSE_KEY"
+          python scripts/prepare_candidate_export.py \
+            --repository "$GITHUB_WORKSPACE" \
+            --git-commit "$(git rev-parse HEAD)" \
+            --worktree /tmp/de4sdv-candidate-checkout \
+            --output /tmp/de4sdv-candidate-export.json \
+            --identity /tmp/de4sdv-candidate-export-identity.json \
+            --transaction-label candidate-1 \
+            --baseline-export /tmp/de4sdv-full-model-export.json
+
+      - name: Produce second independent serialization transaction (MC-14)
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          test -n "$SYSIDE_LICENSE_KEY"
+          python scripts/prepare_candidate_export.py \
+            --repository "$GITHUB_WORKSPACE" \
+            --git-commit "$(git rev-parse HEAD)" \
+            --worktree /tmp/de4sdv-candidate-checkout \
+            --output /tmp/de4sdv-candidate-export-2.json \
+            --identity /tmp/de4sdv-candidate-export-identity-2.json \
+            --transaction-label candidate-2 \
+            --reuse-checkout \
+            --sync-deps=false
+
+      - name: Import candidate transaction 1 into a distinct API project
+        run: |
+          python scripts/import_sysml_api_baseline.py \
+            --api-url http://127.0.0.1:9000 \
+            --export /tmp/de4sdv-candidate-export.json \
+            --binding /tmp/de4sdv-candidate-binding.json \
+            --report /tmp/de4sdv-candidate-semantic-validation.json \
+            --candidate
+
+      - name: Import candidate transaction 2 into a second distinct API project
+        run: |
+          python scripts/import_sysml_api_baseline.py \
+            --api-url http://127.0.0.1:9000 \
+            --export /tmp/de4sdv-candidate-export-2.json \
+            --binding /tmp/de4sdv-candidate-binding-2.json \
+            --report /tmp/de4sdv-candidate-semantic-validation-2.json \
+            --candidate
+
+      - name: MC-14 correspondence across the two independent transactions
+        run: |
+          python scripts/verify_reimport_correspondence.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding-a /tmp/de4sdv-candidate-binding.json \
+            --binding-b /tmp/de4sdv-candidate-binding-2.json \
+            --label-a transaction-1 --label-b transaction-2 \
+            --output /tmp/de4sdv-reimport-correspondence.json
+
+      - name: Verify pilot read-back against candidate transaction 1
+        run: |
+          python scripts/verify_pilot_readback.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-candidate-binding.json \
+            --export /tmp/de4sdv-candidate-export.json \
+            --output /tmp/de4sdv-pilot-readback.json
       - name: Run production-ingestion tests
         run: |
           python -m pytest \
             tests/test_sysml_full_ingestion.py \
             tests/test_sysml_api_semantic.py \
             tests/test_semantic_mcp.py -q
+
+      - name: Trim API service log for upload
+        # The raw API-service log reaches multi-GB per run; reviewers only ever
+        # need the tail (where failures surface). Upload a bounded tail so
+        # artifact downloads stay small and never blow up review workstations.
+        if: always()
+        run: |
+          if [ -f /tmp/sysml-api.log ]; then
+            tail -c 100000000 /tmp/sysml-api.log > /tmp/sysml-api.tail.log
+          fi
 
       - name: Upload exact-head ingestion evidence
         if: always()
@@ -158,4 +233,14 @@ jobs:
             /tmp/de4sdv-product-line-scope-validation.json
             /tmp/de4sdv-semantic-mcp-validation.json
             /tmp/de4sdv-full-model-export.json
-            /tmp/sysml-api.log
+            /tmp/de4sdv-candidate-export.json
+            /tmp/de4sdv-candidate-export-identity.json
+            /tmp/de4sdv-candidate-export-2.json
+            /tmp/de4sdv-candidate-export-identity-2.json
+            /tmp/de4sdv-candidate-binding.json
+            /tmp/de4sdv-candidate-binding-2.json
+            /tmp/de4sdv-candidate-semantic-validation.json
+            /tmp/de4sdv-candidate-semantic-validation-2.json
+            /tmp/de4sdv-reimport-correspondence.json
+            /tmp/de4sdv-pilot-readback.json
+            /tmp/sysml-api.tail.log

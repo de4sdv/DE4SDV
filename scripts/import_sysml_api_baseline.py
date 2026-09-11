@@ -44,6 +44,7 @@ def run_import(
     project_name: str | None,
     git_repository: str,
     api_host_header: str | None = None,
+    candidate: bool = False,
 ) -> dict[str, object]:
     head = _git_head()
     bundle = BaselineExportBundle.load(export_path)
@@ -58,10 +59,15 @@ def run_import(
     # raw bridge-IP Host header with 400. Public exposure is unchanged.
     default_headers = {"Host": api_host_header} if api_host_header else {}
     client = ApiClient(api_url, timeout=600.0, default_headers=default_headers)
+    default_name = (
+        f"DE4SDV candidate {head[:12]} {datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+        if candidate
+        else f"DE4SDV full baseline {head[:12]}"
+    )
     imported = import_baseline(
         client,
         bundle,
-        project_name=project_name or f"DE4SDV full baseline {head[:12]}",
+        project_name=project_name or default_name,
     )
     repository = SysMLRepository(client)
     elements = repository.list_elements(imported.project_id, imported.commit_id)
@@ -91,6 +97,7 @@ def run_import(
         "sysml_project_id": imported.project_id,
         "sysml_commit_id": imported.commit_id,
         "source_export_sha256": hashlib.sha256(export_path.read_bytes()).hexdigest(),
+        "export_scope": "candidate" if candidate else "full-model",
         "source_document_count": len(set(bundle.element_sources.values())),
         "element_count": imported.element_count,
         "internal_reference_count": imported.internal_reference_count,
@@ -115,7 +122,7 @@ def run_import(
         import_tool_version="de4sdv-full-model-import/1+official-syside-json",
         semantic_validation="passed",
         ontology=contract.identity,
-        scope="full-model",
+        scope="candidate" if candidate else "full-model",
         kernel_bindings=tuple(
             KernelElementBinding.from_dict(item) for item in kernel_bindings
         ),
@@ -145,9 +152,20 @@ def main() -> int:
             "when the API's AllowedHostsFilter does not accept the raw address."
         ),
     )
+    parser.add_argument(
+        "--candidate",
+        action="store_true",
+        help=(
+            "Emit a candidate-scope binding instead of full-model. A candidate "
+            "binding proves the isolated committed-candidate path (Increment B) "
+            "without touching the published accepted-baseline selection and "
+            "without implying review approval."
+        ),
+    )
     args = parser.parse_args()
     result = run_import(
         api_url=args.api_url,
+        candidate=args.candidate,
         export_path=args.export,
         binding_path=args.binding,
         report_path=args.report,

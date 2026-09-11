@@ -371,6 +371,30 @@ def test_api_scope_validation_resolves_exact_members_and_semantic_classes() -> N
     assert "engineeringExecutionEnvironments" in result["excluded_system2"]
 
 
+def test_api_scope_validation_counts_distinct_alternatives_with_implied_subsettings() -> None:
+    """Regression from privileged run 34568230286: with
+    SerializationOptions include_implied the licensed serializer emits an
+    implied Subsetting alongside the authored variant relationship for the
+    SAME alternative; the alternative population must stay distinct
+    ('expected 2, found 4' otherwise)."""
+    from de4sdv.sysml_api.product_line_scope import validate_scope_elements
+
+    elements, sources = _scope_fixture()
+    for usage in ("standalone-mode", "integrated-mode"):
+        implied = _subsetting(f"implied-subset-{usage}", usage, "integration-mode")
+        implied["isImplied"] = True
+        implied["isImpliedIncluded"] = True
+        elements.append(implied)
+        sources[f"implied-subset-{usage}"] = SCOPE_SOURCE
+
+    result = validate_scope_elements(elements, sources)
+
+    assert result["vehicle_platform_integration_mode"]["alternatives"] == {
+        "aaosIntegrated": "integrated-mode",
+        "standalone": "standalone-mode",
+    }
+
+
 def test_api_scope_validation_rejects_a_third_planned_member() -> None:
     from de4sdv.sysml_api.product_line_scope import ScopeSemanticError, validate_scope_elements
 

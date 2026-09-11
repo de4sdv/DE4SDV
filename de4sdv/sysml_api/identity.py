@@ -59,8 +59,21 @@ def resolve_identity(
         for item in elements
         if identifier in {str(alias) for alias in item.get("aliasIds", [])}
         or identifier == str(item.get("reqId") or "")
-        or identifier == str(item.get("declaredShortName") or item.get("shortName") or "")
+        # Explicit identity is AUTHORED identity: declared short names only.
+        # Resolved `shortName`/`name` fields appear on implied elements the
+        # licensed serializer materializes (e.g. an implied PerformActionUsage
+        # sharing a verification usage's short name with include_implied);
+        # they must not create explicit-identity ambiguity.
+        or identifier == str(item.get("declaredShortName") or "")
     ]
+    if expected_type:
+        # Normative conformance (frozen baseline Section 5): a resolved
+        # explicit identifier must be type-compatible; otherwise the binding
+        # is incompatible and errors instead of falling through to a
+        # weaker match level.
+        explicit = [
+            item for item in explicit if item.get("@type") == expected_type
+        ]
     if result := _one(identifier, "stable-explicit-id", explicit):
         return result
 

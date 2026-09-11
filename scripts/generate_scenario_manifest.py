@@ -144,12 +144,12 @@ def _extract_package_name(source: str) -> str | None:
 
 
 def _extract_verification_defs(source: str) -> list[str]:
-    return re.findall(r"\bverification\s+def\s+(\w+)", source)
+    return re.findall(r"\bverification\s+def\s+(?:<'[^']*'>)?(\w+)", source)
 
 
 def _extract_verification_usages(source: str) -> list[str]:
     """``verification <usageName> :`` usage declarations."""
-    return re.findall(r"\bverification\s+(\w+)\s*:\s*\w+", source)
+    return re.findall(r"\bverification\s+(?:<'[^']*'>)?(\w+)\s*:\s*\w+", source)
 
 
 def _extract_bench_definitions(source: str) -> list[str]:
