@@ -247,6 +247,12 @@ def build_projection(
                     ],
                     "end_type_provenance": semantics["end_type_provenance"],
                     "end_order_source": semantics["end_order_source"],
+                    "claim_strength_witness": semantics[
+                        "claim_strength_witness"
+                    ],
+                    "documentation_witness": semantics[
+                        "documentation_witness"
+                    ],
                     "native_direction": semantics["native_direction"],
                     "canonical_direction": semantics["canonical_direction"],
                     "query_direction": semantics["query_direction"],
@@ -390,12 +396,51 @@ def build_representation_profile(
         "witness": {
             "api_metaclass": "ConnectionUsage",
             "relationship_kind": "Typed DE4SDV application connection "
-            "(DerivesFromNeed; typed via FeatureTyping)",
+            "(DerivesFromNeed; typed via authored FeatureTyping)",
             "property_paths": {
                 "need_end": need_role,
                 "requirement_end": requirement_role,
-                "ends": "ownedRelationship[@type=EndFeatureMembership]",
-                "definition_typing": "FeatureTyping.type",
+                "end_membership": (
+                    "ownedRelationship[@type=EndFeatureMembership] "
+                    "(memberName = end role)"
+                ),
+                "end_feature": (
+                    "memberElement|ownedRelatedElement (synthesized end "
+                    "Feature, isEnd=true)"
+                ),
+                "reference_subsetting": (
+                    "ReferenceSubsetting.referencedFeature (authored; never "
+                    "implied)"
+                ),
+                "connected_usage": (
+                    "the ReferenceSubsetting target (or the end element itself "
+                    "for legacy shapes)"
+                ),
+                "definition_typing": "FeatureTyping.type|general (authored)",
+            },
+            "supported_witness_forms": {
+                "connection_assertion": [
+                    "ConnectionUsage",
+                    "authored FeatureTyping -> DerivesFromNeed (an implied "
+                    "typing is not an authored derivation assertion)",
+                    "EndFeatureMembership (memberName = need|derivedRequirement)",
+                    "end Feature (isEnd=true)",
+                    "authored ReferenceSubsetting",
+                    "connected engineering usage",
+                    "connected usage FeatureTyping -> candidate definition",
+                    "Subclassification* -> governed Need|Requirement lineage",
+                ],
+                "definition_semantic_authority": [
+                    "ConnectionDefinition DerivesFromNeed",
+                    "FeatureMembership (object-shape EndFeatureMembership is a "
+                    "compatible variant)",
+                    "end Feature (isEnd=true) in authored membership order",
+                    "authored FeatureTyping -> StakeholderNeedCandidate | "
+                    "RequirementCandidate",
+                    "owned Documentation via OwningMembership/memberElement "
+                    "(direct documentation reference array is a compatible "
+                    "variant)",
+                ],
             },
             "query_direction": query_direction,
             "direction_extraction": (
@@ -409,8 +454,11 @@ def build_representation_profile(
             ),
             "ownership_traversal": (
                 "Ends are EndFeatureMembership ownedRelationships of the "
-                "ConnectionUsage; the connection is typed by the validated "
-                "DerivesFromNeed application definition via FeatureTyping"
+                "ConnectionUsage; each end membership owns a synthesized end "
+                "Feature whose authored ReferenceSubsetting names the "
+                "connected engineering usage; the connection is typed by the "
+                "validated DerivesFromNeed application definition via an "
+                "authored FeatureTyping"
             ),
             "reference_vs_containment": (
                 "Ends are referential usages (validateUsageIsReferential); "
@@ -422,18 +470,20 @@ def build_representation_profile(
             "uuid_preservation": "single-transaction-required",
             "out_of_export_risk": (
                 "C1 closure: the ConnectionUsage, its EndFeatureMembership "
-                "ends, and the definition FeatureTyping must survive "
-                "official export, API import, and read-back; pruning any "
-                "witness element makes the predicate unsupported for that "
-                "revision (UG-06)"
+                "ends, each end Feature's authored ReferenceSubsetting, the "
+                "connected usage typings, and the definition FeatureTyping "
+                "must survive official export, API import, and read-back; "
+                "pruning any witness element makes the predicate unsupported "
+                "for that revision (UG-06)"
             ),
         },
         "completeness_check": (
             "derivesRequirementFromNeed.derivation-connection-closure (fail "
-            "closed: a validated binding for the DerivesFromNeed "
-            "application definition is required, and a connection missing "
-            "an end, with an out-of-lineage end, or without the definition "
-            "typing is not a derivation)"
+            "closed: a validated binding for the DerivesFromNeed application "
+            "definition is required, and a connection missing an end, with a "
+            "missing/ambiguous/implied-only ReferenceSubsetting, with a "
+            "connected usage outside the Need/Requirement lineages, or "
+            "without the authored definition typing is not a derivation)"
         ),
                 # Echo of the model-derived projection row (not an independent
         # semantic definition): the gate below compares these back against

@@ -51,6 +51,28 @@ TYPING_INLINE_KEYS: tuple[str, ...] = (
 #: Membership family that owns connection ends.
 END_FAMILIES: tuple[str, ...] = ("EndFeatureMembership",)
 
+#: Membership families that own definition ends (the real serializer uses a
+#: plain ``FeatureMembership`` on a ConnectionDefinition; object-shape
+#: ``EndFeatureMembership`` remains valid as a compatible variant).
+DEFINITION_END_FAMILIES: tuple[str, ...] = (
+    "EndFeatureMembership",
+    "FeatureMembership",
+)
+
+#: Relationship family that binds a synthesized end Feature to the connected
+#: engineering usage (the real serialized witness path).
+REFERENCE_SUBSETTING_FAMILIES: tuple[str, ...] = ("ReferenceSubsetting",)
+
+#: Inlined reference keys that can carry the reference-subsetting target.
+REFERENCE_SUBSETTING_INLINE_KEYS: tuple[str, ...] = ("referencedFeature",)
+
+
+def is_reference_subsetting_hop(hop: Any) -> bool:
+    """True when a hop carries a reference-subsetting (object or inlined)."""
+    return is_family(hop.kind, REFERENCE_SUBSETTING_FAMILIES) or (
+        hop.kind in REFERENCE_SUBSETTING_INLINE_KEYS
+    )
+
 
 def is_subsumption_hop(hop: Any) -> bool:
     """True when a hop carries subsumption lineage (object or inlined)."""

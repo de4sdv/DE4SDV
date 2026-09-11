@@ -20,7 +20,12 @@ from typing import Any
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 
-from .model_edges import end_feature_ids, typing_index
+from .model_edges import (
+    DEFINITION_END_FAMILIES,
+    end_feature_ids,
+    is_typing_hop,
+    typing_index,
+)
 from .relationships import build_relationship_graph
 
 #: Locator for the predicate identity's subject/object vocabulary names
@@ -53,17 +58,128 @@ def _reference_ids(value: Any) -> list[str]:
     return []
 
 
+def _documentation_candidates(
+    definition: dict[str, Any], by_id: dict[str, dict[str, Any]]
+) -> list[dict[str, str]]:
+    """Documentation/comment elements OWNED by the definition.
+
+    Two serializer representations are supported:
+
+    * the real one: an owned membership (``OwningMembership`` or a feature
+      membership) whose member element is a ``Documentation``/``Comment``;
+    * the direct ``documentation`` reference array (compatible variant).
+
+    Only elements owned by / attributable to this definition are returned —
+    the text is never found by scanning the model globally, and never by name
+    matching. Each candidate records its exact model-resident origin.
+    """
+    candidates: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for reference in _reference_ids(definition.get("ownedRelationship")):
+        member = by_id.get(reference)
+        if member is None:
+            continue
+        if str(member.get("@type")) not in {
+            "OwningMembership",
+            "FeatureMembership",
+            "EndFeatureMembership",
+            "Membership",
+        }:
+            continue
+        for target in _reference_ids(member.get("memberElement")) + _reference_ids(
+            member.get("ownedRelatedElement")
+        ):
+            element = by_id.get(target)
+            if element is None or target in seen:
+                continue
+            if str(element.get("@type")) not in {"Documentation", "Comment"}:
+                continue
+            body = element.get("body") or element.get("bodyText")
+            if not body:
+                continue
+            seen.add(target)
+            candidates.append(
+                {
+                    "element_id": target,
+                    "membership_id": reference,
+                    "element_type": str(element.get("@type")),
+                    "body": str(body),
+                }
+            )
+    for reference in _reference_ids(definition.get("documentation")):
+        element = by_id.get(reference)
+        if element is None or reference in seen:
+            continue
+        body = element.get("body") or element.get("bodyText")
+        if not body:
+            continue
+        seen.add(reference)
+        candidates.append(
+            {
+                "element_id": reference,
+                "membership_id": "",
+                "element_type": str(element.get("@type") or "Documentation"),
+                "body": str(body),
+            }
+        )
+    return candidates
+
+
 def _normalized_documentation(
     definition: dict[str, Any], by_id: dict[str, dict[str, Any]]
 ) -> str:
     """Ingested documentation of the definition element, as one text block."""
-    bodies = []
-    for document_id in _reference_ids(definition.get("documentation")):
-        document = by_id.get(document_id, {})
-        body = document.get("body") or document.get("bodyText")
-        if body:
-            bodies.append(str(body))
+    bodies = [
+        candidate["body"]
+        for candidate in _documentation_candidates(definition, by_id)
+    ]
     return " ".join(bodies)
+
+
+def _membership_end_records(
+    definition: dict[str, Any], by_id: dict[str, dict[str, Any]]
+) -> list[dict[str, str]]:
+    """Definition end features reached through their authored memberships.
+
+    The real serialized shape is ``ConnectionDefinition -> FeatureMembership
+    -> memberElement -> end Feature (isEnd=true)``; object-shape
+    ``EndFeatureMembership`` remains a compatible variant. Only actual end
+    features (``isEnd`` true) count — ordinary owned features are ignored.
+    Authored membership order is preserved as serialized.
+    """
+    records: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for reference in _reference_ids(definition.get("ownedRelationship")):
+        member = by_id.get(reference)
+        if member is None:
+            continue
+        type_name = str(member.get("@type") or "")
+        if not any(family in type_name for family in DEFINITION_END_FAMILIES):
+            continue
+        targets = _reference_ids(member.get("memberElement")) + _reference_ids(
+            member.get("ownedRelatedElement")
+        )
+        for target in targets:
+            element = by_id.get(target)
+            if element is None or target in seen:
+                continue
+            if element.get("isEnd") is not True:
+                continue
+            seen.add(target)
+            records.append(
+                {
+                    "membership_id": reference,
+                    "membership_kind": type_name,
+                    "end_feature_id": target,
+                    "role_name": str(
+                        element.get("declaredName")
+                        or member.get("memberName")
+                        or element.get("name")
+                        or ""
+                    ),
+                }
+            )
+    return records
 
 
 def definition_ends(
@@ -73,13 +189,22 @@ def definition_ends(
 ) -> list[dict[str, str]]:
     """Resolve the definition's ends: role name, ontology class, provenance.
 
-    End discovery and typing are representation-tolerant (object membership /
-    typing shapes or inlined references), following the post-Lane-B
-    relationship graph. Each end's TYPE is resolved to its governed ontology
-    class through the ingestion-validated binding index — so ``Need`` /
-    ``Requirement`` come from the model's end typing, never from a Python
-    literal. Authored typing is preferred; an implied-only typing is reported
-    as such rather than silently promoted.
+    End discovery, in descending authority order:
+
+    1. the definition's AUTHORED membership order — ``ownedRelationship``
+       memberships (``FeatureMembership`` / ``EndFeatureMembership``) whose
+       member element is an actual end feature (``isEnd=true``); this is the
+       representation the real serializer produces and the source of the
+       authored end order (the model-native direction);
+    2. graph ``EndFeatureMembership`` hops (compatible variant);
+    3. declared owned members with inlined ``variant`` typing (compatible
+       variant).
+
+    Each end's TYPE is resolved through the relationship graph to its
+    governed ontology class via the ingestion-validated binding index, so
+    ``Need`` / ``Requirement`` come from the model's end typing, never from a
+    Python literal. Authored typing is preferred; an implied-only typing is
+    reported as such rather than silently promoted.
     """
     definition = by_id.get(definition_id)
     if definition is None:
@@ -88,29 +213,48 @@ def definition_ends(
             f"the bound revision"
         )
     graph = build_relationship_graph(list(by_id.values()))
-    # End discovery, in descending authority order:
-    #   1. the definition's AUTHORED membership order (ownedRelationship ->
-    #      EndFeatureMembership -> end), which is what the authored end order —
-    #      and therefore the model's native direction — is declared in;
-    #   2. declared owned members (legacy serializer shape);
-    #   3. graph membership hops (representation fallback; listing order only,
-    #      reported as such because the order is then not authored).
-    end_ids = _authored_membership_end_ids(definition, by_id)
-    order_source = "authored-membership-order"
-    if not end_ids:
-        end_ids = _reference_ids(definition.get("ownedMember"))
-        order_source = "declared-owned-member-order"
-    if not end_ids:
-        end_ids = end_feature_ids(graph, definition_id)
-        order_source = "graph-listing-fallback"
     typed_explicit, typed_implied = typing_index(graph, list(by_id))
 
+    records = _membership_end_records(definition, by_id)
+    order_source = "authored-membership-order"
+    if not records:
+        end_ids = end_feature_ids(graph, definition_id)
+        if end_ids:
+            order_source = "graph-listing-fallback"
+            records = [
+                {
+                    "membership_id": "",
+                    "membership_kind": "EndFeatureMembership",
+                    "end_feature_id": end_id,
+                    "role_name": str(
+                        (by_id.get(end_id) or {}).get("declaredName") or ""
+                    ),
+                }
+                for end_id in end_ids
+            ]
+    if not records:
+        declared = _reference_ids(definition.get("ownedMember"))
+        if declared:
+            order_source = "declared-owned-member-order"
+            records = [
+                {
+                    "membership_id": "",
+                    "membership_kind": "ownedMember",
+                    "end_feature_id": end_id,
+                    "role_name": str(
+                        (by_id.get(end_id) or {}).get("declaredName") or ""
+                    ),
+                }
+                for end_id in declared
+            ]
+
     ends: list[dict[str, str]] = []
-    for end_id in end_ids:
+    for record in records:
+        end_id = record["end_feature_id"]
         end = by_id.get(end_id)
         if end is None:
             continue
-        role = str(end.get("declaredName") or "")
+        role = record["role_name"]
         if not role:
             continue
         type_id: str | None = None
@@ -125,7 +269,6 @@ def definition_ends(
                     type_id, provenance = candidate, "implied-fallback"
                     break
         if type_id is None:
-            # Inlined `variant` reference (legacy serializer shape).
             variant_ids = _reference_ids(end.get("variant"))
             type_id = variant_ids[0] if variant_ids else None
             provenance = "inlined"
@@ -144,26 +287,13 @@ def definition_ends(
                     (by_id.get(type_id) or {}).get("declaredName") or ""
                 ),
                 "element_id": type_id,
+                "end_feature_id": end_id,
+                "membership_id": record["membership_id"],
                 "provenance": provenance,
+                "order_source": order_source,
             }
         )
-    for end in ends:
-        end["order_source"] = order_source
     return ends
-
-
-def _authored_membership_end_ids(
-    definition: dict[str, Any], by_id: dict[str, dict[str, Any]]
-) -> list[str]:
-    """End ids in the definition's authored membership order."""
-    end_ids: list[str] = []
-    for reference in _reference_ids(definition.get("ownedRelationship")):
-        member = by_id.get(reference)
-        if member is None:
-            continue
-        if str(member.get("@type")) == "EndFeatureMembership":
-            end_ids.extend(_reference_ids(member.get("ownedRelatedElement")))
-    return end_ids
 
 
 def model_semantics(
@@ -222,24 +352,50 @@ def model_semantics(
         "forward" if canonical_direction == native_direction else "inverse"
     )
 
-    # Meaning, claim strength, claim boundary: ingested model documentation.
-    documentation = _normalized_documentation(
-        by_id.get(definition_id, {}), by_id
-    )
-    if not documentation.strip():
+    # Meaning, claim strength, claim boundary: documentation OWNED by the
+    # validated definition (real shape: OwningMembership -> Documentation).
+    candidates = _documentation_candidates(by_id.get(definition_id, {}), by_id)
+    if not candidates:
         raise ValueError(
             "model authority missing: the validated definition carries no "
-            "documentation; meaning and claim strength must come from the model"
+            "owned documentation; meaning and claim strength must come from "
+            "the model"
         )
-    strength_match = CLAIM_STRENGTH.search(
-        " ".join(documentation.replace("*", " ").split())
-    )
-    if strength_match is None:
+    statements: list[tuple[str, str, dict[str, str]]] = []
+    for candidate in candidates:
+        match = CLAIM_STRENGTH.search(
+            " ".join(candidate["body"].replace("*", " ").split())
+        )
+        if match is not None:
+            statements.append(
+                (
+                    match.group("strength"),
+                    match.group("boundary").strip(),
+                    candidate,
+                )
+            )
+    distinct = {(strength, boundary) for strength, boundary, _ in statements}
+    if len(distinct) > 1:
+        raise ValueError(
+            "model authority ambiguous: the definition owns "
+            f"{len(distinct)} conflicting claim-strength statements; refusing "
+            "to pick one"
+        )
+    if not statements:
         raise ValueError(
             "model authority missing: the validated definition documentation "
             "does not state 'Claim strength: <token> (<claim boundary>)'; the "
             "model does not carry the predicate's claim strength"
         )
+    strength, claim_boundary, statement_witness = statements[0]
+    documentation_witness = [
+        {
+            "element_id": candidate["element_id"],
+            "membership_id": candidate["membership_id"],
+            "element_type": candidate["element_type"],
+        }
+        for candidate in candidates
+    ]
 
     return {
         "connection_definition": definition_name,
@@ -261,9 +417,16 @@ def model_semantics(
         "query_direction": query_direction,
         "domain": subject,
         "range": obj,
-        "semantic_strength": strength_match.group("strength"),
-        "claim_boundary": strength_match.group("boundary").strip(),
-        "meaning": " ".join(documentation.split()),
+        "semantic_strength": strength,
+        "claim_boundary": claim_boundary,
+        "claim_strength_witness": {
+            "element_id": statement_witness["element_id"],
+            "membership_id": statement_witness["membership_id"],
+        },
+        "documentation_witness": documentation_witness,
+        "meaning": " ".join(
+            candidate["body"] for candidate in candidates
+        ),
         "authority_provenance": (
             "validated model: typed definition ends (domain/range, roles), "
             "authored end order (native direction), predicate identity matched "

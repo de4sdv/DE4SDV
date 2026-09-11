@@ -13,11 +13,12 @@ from .kernel_contract import KernelContract, RelationshipMapping
 from .model_edges import (
     closure as lineage_closure,
     end_feature_ids,
+    is_reference_subsetting_hop,
     is_typing_hop,
     lineage_index,
     typing_index,
 )
-from .relationships import build_relationship_graph
+from .relationships import build_relationship_graph, is_family
 
 
 @dataclass(frozen=True)
@@ -202,6 +203,8 @@ class SemanticTraversal:
                 f"connection_definition"
             )
         query_direction = str(config.get("query_direction", "inverse"))
+        need_role_name = str(config.get("need_role", "need"))
+        requirement_role_name = str(config.get("requirement_role", "derivedRequirement"))
 
         # Validated application-definition identity (kernel binding; no
         # names). Missing validated identity fails closed: without it the
@@ -256,11 +259,13 @@ class SemanticTraversal:
             # FeatureTyping or inlined reference), but an implied typing is
             # NOT an authored derivation assertion: it stays quiet absence.
             typing_provenance: str | None = None
+            definition_typing_id: str | None = None
             for hop in graph.outgoing(connection_id):
                 if hop.is_implied or not is_typing_hop(hop):
                     continue
                 if hop.target in definition_closure:
                     typing_provenance = "authored"
+                    definition_typing_id = hop.witness_id
                     break
             if typing_provenance is None:
                 # A ConnectionUsage NOT typed by the application definition
@@ -270,33 +275,28 @@ class SemanticTraversal:
                 continue
 
             # Collect the connection's ends in declared order. Ends are the
-            # connection's owned ReferenceUsage members (ConnectorEnd
-            # members) reachable via EndFeatureMembership ownedRelationships
-            # or direct ownedMember references.
-            end_ids = self._connection_end_ids(element, by_id)
-            if not end_ids:
-                # Representation fallback only: when the connection carries no
-                # object-shape EndFeatureMembership entries (a serializer
-                # variant), the graph's membership hops are the only witness.
-                # The object shape stays authoritative when present, so an
-                # incomplete ownedRelationship list is still a corrupted
-                # witness (R2 fail-closed contract).
-                end_ids = end_feature_ids(graph, connection_id)
-            if len(end_ids) < 2:
+            # connection's owned EndFeatureMembership members (object shape is
+            # authoritative); graph membership hops remain a fallback for
+            # serializer variants that inline the memberships.
+            end_records = self._connection_end_records(element, by_id, graph)
+            if len(end_records) < 2:
                 raise IdentityNotFoundError(
                     f"incomplete derivation witness for predicate "
                     f"{mapping.name!r} on connection "
                     f"{str(element.get('declaredName') or connection_id)!r}: "
-                    f"a DerivesFromNeed connection must have a {definition_name}.need "
-                    f"end and a {definition_name}.derivedRequirement end"
+                    f"a {definition_name} connection must have a "
+                    f"{need_role_name} end and a {requirement_role_name} end"
                 )
 
-            # Role resolution: each end must ground in exactly one of the
-            # declared kernel lineages — Need lineage (the definition's
-            # `need` end role) versus Requirement lineage
-            # (`derivedRequirement`). Identification is by the end's own
-            # typing against the lineage, direction-independent. An end
-            # grounding in neither lineage is a corrupted witness.
+            # Role resolution over the REAL serialized witness path: each end
+            # membership owns a synthesized end Feature whose AUTHORED
+            # ReferenceSubsetting names the connected engineering usage; the
+            # connected usage's own typing grounds it in the Need or the
+            # Requirement kernel lineage. Legacy shapes that point the
+            # membership at the connected usage directly are supported by the
+            # same helper. Classification is never by end position, and the
+            # modeled end role (from the membership/member name) must agree
+            # with the lineage the connected usage actually grounds in.
             need_resolver = self._role_resolver(
                 mapping, config, "need", by_id, graph
             )
@@ -306,7 +306,9 @@ class SemanticTraversal:
             need_end_ids: list[str] = []
             derived_end_ids: list[str] = []
             role_provenance = "explicit"
-            for end_id in end_ids:
+            end_roles: dict[str, dict[str, Any]] = {}
+            for record in end_records:
+                end_id = record["end_element_id"]
                 end = by_id.get(end_id)
                 if end is None:
                     raise IdentityNotFoundError(
@@ -315,36 +317,100 @@ class SemanticTraversal:
                         f"{str(element.get('declaredName') or connection_id)!r}: "
                         f"end {end_id!r} does not exist in the bound revision"
                     )
-                in_need = _grounded(end, need_resolver)
-                in_requirement = _grounded(end, requirement_resolver)
-                if "implied" in (in_need, in_requirement):
-                    role_provenance = "implied-fallback"
-                if in_need and in_requirement:
-                    # Ambiguous end grounding: a usage grounded in both
-                    # lineages cannot be assigned a role safely (plan §17
-                    # ambiguous identity).
-                    raise IdentityNotFoundError(
-                        f"ambiguous derivation witness for predicate "
-                        f"{mapping.name!r} on connection "
-                        f"{str(element.get('declaredName') or connection_id)!r}: "
-                        f"end {end_id!r} grounds in both the "
-                        f"{config.get('source_lineage_of')!r} and "
-                        f"{config.get('target_lineage_of')!r} lineages"
-                    )
-                if in_need:
-                    need_end_ids.append(end_id)
-                elif in_requirement:
-                    derived_end_ids.append(end_id)
-                else:
+                connected_id, subsetting_id, subsetting_kind = (
+                    self._connected_usage_id(end_id, graph, by_id)
+                )
+                connected = by_id.get(connected_id)
+                if connected is None:
                     raise IdentityNotFoundError(
                         f"corrupted derivation witness for predicate "
                         f"{mapping.name!r} on connection "
                         f"{str(element.get('declaredName') or connection_id)!r}: "
-                        f"end {end_id!r} grounds in neither the "
+                        f"connected usage {connected_id!r} does not exist in "
+                        f"the bound revision"
+                    )
+                in_need = _grounded(connected, need_resolver)
+                in_requirement = _grounded(connected, requirement_resolver)
+                if "implied" in (in_need, in_requirement):
+                    role_provenance = "implied-fallback"
+                if in_need and in_requirement:
+                    raise IdentityNotFoundError(
+                        f"ambiguous derivation witness for predicate "
+                        f"{mapping.name!r} on connection "
+                        f"{str(element.get('declaredName') or connection_id)!r}: "
+                        f"connected usage {connected_id!r} grounds in both the "
+                        f"{config.get('source_lineage_of')!r} and "
+                        f"{config.get('target_lineage_of')!r} lineages"
+                    )
+                if not in_need and not in_requirement:
+                    raise IdentityNotFoundError(
+                        f"corrupted derivation witness for predicate "
+                        f"{mapping.name!r} on connection "
+                        f"{str(element.get('declaredName') or connection_id)!r}: "
+                        f"end {end_id!r} resolves to connected usage "
+                        f"{connected_id!r}, which grounds in neither the "
                         f"{config.get('source_lineage_of')!r} nor the "
                         f"{config.get('target_lineage_of')!r} lineage"
                     )
-            if not need_end_ids or not derived_end_ids:
+                lineage = "Need" if in_need else "Requirement"
+                expected_role = need_role_name if in_need else requirement_role_name
+                # The modeled end ROLE comes from the end membership's
+                # memberName, or from the synthesized end Feature's own name.
+                # When the membership points at the connected usage directly
+                # (legacy shape) there is no role name to cross-check, and the
+                # lineage alone decides — never end position.
+                named_role = record["role_name"]
+                if not named_role and subsetting_id is not None:
+                    named_role = str(
+                        end.get("declaredName") or end.get("name") or ""
+                    )
+                if named_role and named_role != expected_role:
+                    raise IdentityNotFoundError(
+                        f"contradictory derivation witness for predicate "
+                        f"{mapping.name!r} on connection "
+                        f"{str(element.get('declaredName') or connection_id)!r}: "
+                        f"end {end_id!r} is modeled as {named_role!r} but its "
+                        f"connected usage grounds in the {lineage} lineage"
+                    )
+                (
+                    connected_typing_id,
+                    connected_typing_witness_id,
+                    connected_typing_provenance,
+                ) = self._typing_witness(graph, connected_id)
+                end_roles[expected_role] = {
+                    "role": expected_role,
+                    "role_source": (
+                        "end-membership-name" if named_role else "lineage-only"
+                    ),
+                    "end_membership_id": record["membership_id"],
+                    "end_feature_id": end_id,
+                    "end_feature_kind": str(end.get("@type") or ""),
+                    "end_feature_is_end": bool(end.get("isEnd")),
+                    "reference_subsetting_id": subsetting_id,
+                    "reference_subsetting_kind": subsetting_kind,
+                    "connected_usage_id": connected_id,
+                    "connected_usage_typing_id": connected_typing_witness_id,
+                    "connected_usage_type_id": connected_typing_id,
+                    "connected_usage_typing_provenance": (
+                        connected_typing_provenance
+                    ),
+                    "lineage": lineage,
+                    "lineage_root_id": (
+                        need_resolver["root_id"]
+                        if in_need
+                        else requirement_resolver["root_id"]
+                    ),
+                    "lineage_provenance": in_need or in_requirement,
+                }
+                if in_need:
+                    need_end_ids.append(connected_id)
+                else:
+                    derived_end_ids.append(connected_id)
+            if (
+                not need_end_ids
+                or not derived_end_ids
+                or set(end_roles) != {need_role_name, requirement_role_name}
+            ):
                 raise IdentityNotFoundError(
                     f"incomplete derivation witness for predicate "
                     f"{mapping.name!r} on connection "
@@ -382,13 +448,23 @@ class SemanticTraversal:
                         "connection_id": connection_id,
                         "connection_definition": definition_name,
                         "connection_definition_id": sorted(definition_ids)[0],
+                        # Complete serialized witness path (R6 repair): the
+                        # connection's authored definition typing, each end's
+                        # membership -> end feature -> ReferenceSubsetting ->
+                        # connected usage chain, and the lineage that grounds
+                        # the connected usage.
+                        "definition_typing_id": definition_typing_id,
+                        "definition_typing_provenance": typing_provenance,
+                        "need_end": end_roles.get(need_role_name),
+                        "derived_requirement_end": end_roles.get(
+                            requirement_role_name
+                        ),
                         "need_end_id": sorted(need_end_ids),
                         "derived_requirement_end_id": sorted(derived_end_ids),
                         # Provenance discipline (post-Lane-B include_implied
                         # graph): the discriminator must be an AUTHORED
                         # assertion; role classification may fall back to
                         # tool-implied lineage and says so.
-                        "definition_typing_provenance": typing_provenance,
                         "role_lineage_provenance": role_provenance,
                     },
                 )
@@ -425,6 +501,130 @@ class SemanticTraversal:
                 f"derivation roles cannot be resolved"
             )
         return self._lineage_resolver(str(lineage_class), by_id, graph)
+
+    def _connection_end_records(
+        self,
+        connection: dict[str, Any],
+        by_id: dict[str, dict[str, Any]],
+        graph: Any,
+    ) -> list[dict[str, str]]:
+        """End membership records of a connection usage, in authored order.
+
+        Object shape is authoritative: the connection's ownedRelationship
+        lists its EndFeatureMembership members (each carrying memberName and
+        the end element). Graph membership hops are a fallback only for
+        serializer variants that inline the memberships.
+        """
+        records: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for reference in reference_ids(connection.get("ownedRelationship")):
+            member = by_id.get(reference)
+            if member is None:
+                continue
+            if str(member.get("@type")) != "EndFeatureMembership":
+                continue
+            end_ids = reference_ids(member.get("ownedRelatedElement"))
+            member_element = element_id(member.get("memberElement"))
+            if member_element and member_element not in end_ids:
+                end_ids.append(member_element)
+            for end_id in end_ids:
+                if end_id in seen:
+                    continue
+                seen.add(end_id)
+                records.append(
+                    {
+                        "membership_id": reference,
+                        "end_element_id": end_id,
+                        "role_name": str(member.get("memberName") or ""),
+                    }
+                )
+        if not records:
+            for hop in graph.outgoing(element_id(connection) or ""):
+                if not is_family(hop.kind, ("EndFeatureMembership",)):
+                    continue
+                if hop.target in seen:
+                    continue
+                seen.add(hop.target)
+                records.append(
+                    {
+                        "membership_id": hop.witness_id or "",
+                        "end_element_id": hop.target,
+                        "role_name": "",
+                    }
+                )
+        return records
+
+    def _connected_usage_id(
+        self,
+        end_id: str,
+        graph: Any,
+        by_id: dict[str, dict[str, Any]],
+    ) -> tuple[str, str | None, str]:
+        """Resolve one end to its connected engineering usage.
+
+        Real serialized shape: the end element is a synthesized end Feature
+        carrying an AUTHORED ReferenceSubsetting whose target is the connected
+        usage. Legacy shape: the membership points at the connected usage
+        directly. Multiple authored reference subsettings, an implied-only
+        reference subsetting, or a dangling target fail closed; the end
+        element itself is used only when no reference subsetting exists.
+        """
+        hops = [
+            hop for hop in graph.outgoing(end_id) if is_reference_subsetting_hop(hop)
+        ]
+        authored = [hop for hop in hops if not hop.is_implied]
+        # One serialized ReferenceSubsetting element aliases its ends under
+        # several keys (specific/owningRelatedElement/subsettingFeature and
+        # general/subsettedFeature), so the graph yields the same edge several
+        # times. Ambiguity means DISTINCT authored targets, not hop count.
+        authored_targets = {hop.target for hop in authored}
+        if len(authored_targets) > 1:
+            raise IdentityNotFoundError(
+                f"ambiguous derivation witness: end {end_id!r} carries "
+                f"authored ReferenceSubsetting witnesses to "
+                f"{sorted(authored_targets)}; the connected usage cannot be "
+                f"resolved unambiguously"
+            )
+        if authored_targets:
+            target = next(iter(authored_targets))
+            if by_id.get(target) is None:
+                raise IdentityNotFoundError(
+                    f"corrupted derivation witness: end {end_id!r} "
+                    f"ReferenceSubsetting targets {target!r}, which does not "
+                    f"exist in the bound revision"
+                )
+            witness_ids = sorted(
+                {
+                    hop.witness_id
+                    for hop in authored
+                    if hop.target == target and hop.witness_id
+                }
+            )
+            return (
+                target,
+                witness_ids[0] if witness_ids else None,
+                authored[0].kind,
+            )
+        if hops:
+            raise IdentityNotFoundError(
+                f"corrupted derivation witness: end {end_id!r} carries only "
+                f"tool-implied ReferenceSubsetting witnesses; an implied link "
+                f"is not an authored connected usage"
+            )
+        return end_id, None, "end-element-itself"
+
+    def _typing_witness(
+        self, graph: Any, element_id_value: str
+    ) -> tuple[str | None, str | None, str]:
+        """Authored typing witness of an element: (type, witness, provenance)."""
+        for hop in graph.outgoing(element_id_value):
+            if hop.is_implied or not is_typing_hop(hop):
+                continue
+            return hop.target, hop.witness_id, "explicit"
+        for hop in graph.outgoing(element_id_value):
+            if is_typing_hop(hop):
+                return hop.target, hop.witness_id, "implied-fallback"
+        return None, None, "absent"
 
     def _connection_end_ids(
         self, connection: dict[str, Any], by_id: dict[str, dict[str, Any]]

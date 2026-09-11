@@ -149,12 +149,14 @@ def _element_listing() -> list[dict]:
             "@id": "def-end-need",
             "@type": "ReferenceUsage",
             "declaredName": "need",
+            "isEnd": True,
             "variant": {"@id": NEED_DEF_ID},
         },
         {
             "@id": "def-end-derived",
             "@type": "ReferenceUsage",
             "declaredName": "derivedRequirement",
+            "isEnd": True,
             "variant": {"@id": REQ_DEF_ID},
         },
         {

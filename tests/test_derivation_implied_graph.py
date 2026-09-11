@@ -163,8 +163,8 @@ def _base_elements(
             "owningRelatedElement": {"@id": DEF_ID},
             "ownedRelatedElement": [{"@id": DEF_END_REQ}],
         },
-        {"@id": DEF_END_NEED, "@type": "ReferenceUsage", "declaredName": "need"},
-        {"@id": DEF_END_REQ, "@type": "ReferenceUsage", "declaredName": "derivedRequirement"},
+        {"@id": DEF_END_NEED, "@type": "ReferenceUsage", "declaredName": "need", "isEnd": True},
+        {"@id": DEF_END_REQ, "@type": "ReferenceUsage", "declaredName": "derivedRequirement", "isEnd": True},
         _typing("def-end-need-typing", DEF_END_NEED, NEED_DEF_ID),
         _typing("def-end-req-typing", DEF_END_REQ, REQ_DEF_ID),
         {
