@@ -7,6 +7,10 @@ name: Probe include_implied serialization
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/probe_include_implied.py"
+      - ".github/workflows/probe-include-implied.yml"
 
 permissions:
   contents: read
