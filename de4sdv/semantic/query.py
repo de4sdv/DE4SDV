@@ -3,12 +3,19 @@
 This module is the reusable application layer exposed by CLI, MCP, or any other
 client protocol. It contains no MCP- or Hermes-specific behavior. All engineering
 relationships come from the ontology contract and :class:`SemanticTraversal`.
+
+Lane C adds the four method-conformance surfaces specified by the frozen
+baseline Section 13 (``phase_contract``, ``increment_status``, ``method_gaps``,
+``next_obligation``). They reuse this service and the bound revision; no
+parallel graph or second service is introduced. The three evaluation
+projections share one canonical evaluation identity through
+:class:`~de4sdv.semantic.method_evaluator.MethodConformanceService`.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from de4sdv.sysml_api.errors import ApiError
 from de4sdv.sysml_api.identity import IdentityResolution, resolve_identity
@@ -18,6 +25,12 @@ from de4sdv.sysml_api.revisions import RevisionBinding
 from .api_binding import OntologyApiBinder
 from .impact import ImpactService
 from .kernel_contract import KernelContract
+from .method_evaluator import (
+    EvaluationContext,
+    MethodConformanceService,
+    ReadinessTarget,
+    ReadinessBlock,
+)
 from .traversal import SemanticTraversal, TraversalHop
 
 
@@ -32,6 +45,10 @@ class SemanticQueryService:
     traversal: SemanticTraversal
     impact_service: ImpactService
     expected_git_revision: str
+    method_conformance: MethodConformanceService | None = field(default=None)
+    method_context_provider: Callable[[], EvaluationContext] | None = field(
+        default=None
+    )
     _element_cache: list[dict[str, Any]] | None = field(
         default=None, init=False, repr=False
     )
@@ -436,3 +453,60 @@ class SemanticQueryService:
             "gaps": verification_gaps,
             "provenance": report["provenance"],
         }
+
+    # ------------------------------------------------------------------
+    # Method-conformance surfaces (frozen baseline Section 13; Lane C)
+    # ------------------------------------------------------------------
+
+    def _require_method_conformance(self) -> MethodConformanceService:
+        if self.method_conformance is None:
+            raise RuntimeError(
+                "method-conformance evaluation is not configured for this runtime"
+            )
+        return self.method_conformance
+
+    def _method_context(self) -> EvaluationContext:
+        if self.method_context_provider is None:
+            raise RuntimeError(
+                "no method-evaluation context provider is configured for this runtime"
+            )
+        return self.method_context_provider()
+
+    def phase_contract(
+        self, phase: str, candidate_context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Candidate-independent read of the approved phase contract.
+
+        Method-only provenance; never a conformance verdict, and no candidate
+        Git/API binding is fabricated. Optional candidate context resolves
+        applicability only; obligations are never removed.
+        """
+        return self._require_method_conformance().phase_contract(
+            phase, candidate_context
+        )
+
+    def increment_status(
+        self,
+        phase: str,
+        *,
+        requested_readiness: list[ReadinessTarget] | None = None,
+    ) -> dict[str, Any]:
+        """Scoped model-contract conformance projection."""
+        service = self._require_method_conformance()
+        return service.increment_status(
+            phase,
+            self._method_context(),
+            requested_readiness=tuple(requested_readiness or ()),
+        )
+
+    def method_gaps(self, phase: str) -> dict[str, Any]:
+        """Explicit violations, unresolved inputs, and out-of-scope obligations."""
+        return self._require_method_conformance().method_gaps(
+            phase, self._method_context()
+        )
+
+    def next_obligation(self, phase: str) -> dict[str, Any]:
+        """Deterministic next actionable obligation (no agent assignment)."""
+        return self._require_method_conformance().next_obligation(
+            phase, self._method_context()
+        )

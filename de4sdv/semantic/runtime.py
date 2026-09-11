@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.repository import SysMLRepository
@@ -23,6 +24,8 @@ def build_semantic_runtime(
     expected_git_revision: str,
     ontology_path: Path,
     api_timeout: float = 600.0,
+    method_conformance: Any = None,
+    method_context_provider: Any = None,
 ) -> SemanticQueryService:
     """Assemble the existing API-first semantic architecture for one revision.
 
@@ -34,6 +37,10 @@ def build_semantic_runtime(
     ingestion-validated kernel bindings carried by the revision binding
     (ADR 0011: no runtime source-text parsing); classes without a validated
     binding fail closed.
+
+    ``method_conformance`` and ``method_context_provider`` optionally attach
+    the Lane C method-conformance surfaces; a runtime without them reports the
+    method queries as not configured rather than fabricating an evaluation.
     """
     binding = RevisionBinding.load(binding_path)
     contract = KernelContract.load(ontology_path)
@@ -63,4 +70,6 @@ def build_semantic_runtime(
         traversal=traversal,
         impact_service=impact_service,
         expected_git_revision=expected_git_revision,
+        method_conformance=method_conformance,
+        method_context_provider=method_context_provider,
     )
