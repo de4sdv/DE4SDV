@@ -16,24 +16,20 @@ package DE4SDV_MethodContext {
   private import DE4SDV_SYSMODAdapter::*;
   /* Requirement derivation discriminator: DE4SDV application connection
    * definition. A requirement usage connected as derivedRequirement
-   * originates from the stakeholder need connected as need. This claims
-   * design-input provenance ONLY: neither satisfaction nor logical
-   * implication between the connected usages (the standard Requirement
-   * Derivation Domain Library's originalImpliesDerived constraint is
-   * deliberately not adopted), and no verification, evidence, or acceptance
-   * claim. Native direction: need -> derivedRequirement; the DE4SDV
-   * consumer predicate derivesRequirementFromNeed queries the same witness
-   * from the requirement side. */
+   * originates from the stakeholder need connected as need. The typed ends
+   * carry the predicate's domain and range; the definition documentation
+   * carries its native direction, claim strength, and claim boundary.
+   * Design-input provenance only — no satisfaction, implication,
+   * verification, evidence, or acceptance claim. */
 
   connection def DerivesFromNeed {
     end need : StakeholderNeedCandidate;
     end derivedRequirement : RequirementCandidate;
     doc /* Design-input provenance: the derivedRequirement originates from
-         * the stakeholder need. Provenance/traceability semantics only:
-         * neither satisfaction nor logical implication between the
-         * connected usages is claimed; verification, evidence, and
-         * acceptance claims are out of scope. Native direction:
-         * need -> derivedRequirement. */
+         * the stakeholder need. Native direction: need -> derivedRequirement.
+         * Claim strength: derivation (provenance only: neither satisfaction
+         * nor logical implication between the connected usages; no
+         * allocation, verification, evidence, or acceptance claim). */
   }
 
   /* Re-exported so feature packages can assign `attribute :>> status =
@@ -156,18 +152,6 @@ package DE4SDV_MethodContext {
   requirement def EvidenceContractTraceabilityRequirementCandidate :> RequirementCandidate {
     doc /* Candidate requirement for evidence-contract traceability to controlled boundaries. */
   }
-
-  /* Requirement derivation discriminator: the standard Requirement
-   * Derivation Domain Library (pinned 2.0.0) provides DerivationConnections::Derivation,
-   * a ConnectionDefinition whose originalRequirement end carries the
-   * design-input origin (the stakeholder Need) and whose
-   * derivedRequirements ends carry the derived design-input requirements.
-   * DE4SDV query semantics: Need -> Requirement is the native direction;
-   * Requirement -> Need (derivesRequirementFromNeed) is inverse navigation
-   * over the same witness. This claims design-input derivation only —
-   * never satisfaction, allocation, verification, evidence, or acceptance.
-   * The library's originalImpliesDerived constraint is standard library
-   * semantics, not an additional DE4SDV claim. */
 
   requirement def RegulatoryConstraintCandidate :> RequirementsManagementAttributeBase {
     doc /* Constraint or reference derived from a standard, regulation, or homologation-relevant source. Carries controlled source identity and never implies compliance. Grounds the ontology RegulatoryConstraint class and R003 derivation targets. */

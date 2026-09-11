@@ -170,11 +170,12 @@ def _base_elements(
         {
             "@id": "def-doc-graph",
             "@type": "Documentation",
-            "body": "Design-input provenance: the derivedRequirement "
-            "originates from the stakeholder need. Provenance/traceability "
-            "semantics only: neither satisfaction nor logical implication "
-            "between the connected usages is claimed; verification, "
-            "evidence, and acceptance claims are out of scope.",
+            "body": "Design-input provenance: the derivedRequirement originates from "
+            "the stakeholder need. Native direction: need -> "
+            "derivedRequirement. Claim strength: derivation "
+            "(provenance only: neither satisfaction nor logical "
+            "implication between the connected usages; no "
+            "allocation, verification, evidence, or acceptance claim).",
         },
         {"@id": NEED_ID, "@type": "RequirementUsage", "declaredName": "needCommonAEBSCapability"},
         {"@id": REQ_ID, "@type": "RequirementUsage", "declaredName": "reqCommandEmergencyBraking"},
@@ -290,9 +291,17 @@ def test_projection_resolves_definition_ends_from_the_graph() -> None:
     assert predicate["domain"] == "Requirement"
     assert predicate["range"] == "Need"
     authority = projection["revision_binding"]["generated_from"]["model_semantic_authority"]
-    assert authority["need_end_type"] == "StakeholderNeedCandidate"
-    assert authority["requirement_end_type"] == "RequirementCandidate"
+    assert authority["need_end_type"] == "Need"
+    assert authority["requirement_end_type"] == "Requirement"
+    assert authority["need_end_type_declaration"] == "StakeholderNeedCandidate"
+    assert authority["requirement_end_type_declaration"] == "RequirementCandidate"
     assert authority["end_type_provenance"] == "explicit"
+    # Direction/strength/claim boundary come from the model, not Python.
+    assert authority["native_direction"] == "Need -> Requirement"
+    assert authority["canonical_direction"] == "Requirement -> Need"
+    assert authority["query_direction"] == "inverse"
+    assert authority["semantic_strength"] == "derivation"
+    assert "provenance only" in authority["claim_boundary"]
     assert predicate["support_state"] == "vocabulary-only"
 
 

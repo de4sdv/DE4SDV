@@ -160,11 +160,12 @@ def _element_listing() -> list[dict]:
         {
             "@id": "def-doc",
             "@type": "Documentation",
-            "body": "Design-input provenance: the derivedRequirement "
-            "originates from the stakeholder need. Provenance/traceability "
-            "semantics only: neither satisfaction nor logical implication "
-            "between the connected usages is claimed; verification, "
-            "evidence, and acceptance claims are out of scope.",
+            "body": "Design-input provenance: the derivedRequirement originates from "
+            "the stakeholder need. Native direction: need -> "
+            "derivedRequirement. Claim strength: derivation "
+            "(provenance only: neither satisfaction nor logical "
+            "implication between the connected usages; no "
+            "allocation, verification, evidence, or acceptance claim).",
         },
     ]
 

@@ -50,11 +50,9 @@ REVISION = RevisionIdentity(
 def definition_claim() -> str:
     """The claim boundary exactly as carried in the fixture definition doc."""
     return (
-        "Design-input provenance: the derivedRequirement originates from the "
-        "stakeholder need. Provenance/traceability semantics only: neither "
-        "satisfaction nor logical implication between the connected usages "
-        "is claimed; verification, evidence, and acceptance claims are out "
-        "of scope."
+        "provenance only: neither satisfaction nor logical implication "
+        "between the connected usages; no allocation, verification, "
+        "evidence, or acceptance claim"
     )
 
 
@@ -110,9 +108,16 @@ def test_projection_row_binds_revision_and_validated_groundings() -> None:
     assert grounding["element_id"] == DEF_DERIV_ID
     assert grounding["need_role"] == "need"
     assert grounding["requirement_role"] == "derivedRequirement"
-    assert grounding["need_end_type"] == "StakeholderNeedCandidate"
-    assert grounding["requirement_end_type"] == "RequirementCandidate"
-    assert "ingestion-validated" in grounding["authority_provenance"]
+    assert grounding["need_end_type"] == "Need"
+    assert grounding["requirement_end_type"] == "Requirement"
+    assert grounding["need_end_type_declaration"] == "StakeholderNeedCandidate"
+    assert grounding["requirement_end_type_declaration"] == "RequirementCandidate"
+    assert grounding["native_direction"] == "Need -> Requirement"
+    assert grounding["canonical_direction"] == "Requirement -> Need"
+    assert grounding["query_direction"] == "inverse"
+    provenance = grounding["authority_provenance"]
+    assert "validated model" in provenance
+    assert "parity oracle" in provenance
 
 
 def test_projection_binds_recomputed_contract_identity() -> None:
@@ -166,7 +171,7 @@ def test_projection_definition_comes_from_model_doc_not_yaml() -> None:
     # A definition element without the claim-boundary doc fails closed.
     by_id = _by_id()
     del by_id["def-doc"]
-    with pytest.raises(ValueError, match="claim boundary"):
+    with pytest.raises(ValueError, match="claim strength"):
         build_projection(
             _contract(),
             _projection_binding_index(),
@@ -225,10 +230,10 @@ def test_profile_carries_mechanics_and_echoes_projection_meaning() -> None:
     assert witness["property_paths"]["requirement_end"] == "derivedRequirement"
     assert witness["query_direction"] == "inverse"
     # Meaning fields are echoes of the projection row, not independent values.
-    assert profile["domain_from_projection"] == "Requirement"
-    assert profile["range_from_projection"] == "Need"
-    assert profile["semantic_strength_from_projection"] == "derivation"
-    assert profile["claim_boundary_from_projection"] == definition_claim()
+    assert profile["predicate_echo"]["domain_from_projection"] == "Requirement"
+    assert profile["predicate_echo"]["range_from_projection"] == "Need"
+    assert profile["predicate_echo"]["semantic_strength_from_projection"] == "derivation"
+    assert profile["predicate_echo"]["claim_boundary_from_projection"] == definition_claim()
     assert (
         profile["model_revision_binding"]["generated_from"]
         is not None
@@ -243,15 +248,15 @@ def test_profile_compatibility_gate_rejects_mapping_contradiction() -> None:
     """UG-25: a profile must not contradict the executable mapping."""
     contract = _contract()
     profile = _build_profile()
-    assert_profile_compatible(contract, profile)  # passes unmodified
+    assert_profile_compatible(profile)  # passes unmodified
     mutated = json.loads(json.dumps(profile))
     mutated["witness"]["property_paths"]["need_end"] = "someOtherRole"
     with pytest.raises(ValueError, match="contradicts"):
-        assert_profile_compatible(contract, mutated)
+        assert_profile_compatible(mutated)
     mutated2 = json.loads(json.dumps(profile))
     mutated2["witness"]["query_direction"] = "forward"
     with pytest.raises(ValueError, match="contradicts"):
-        assert_profile_compatible(contract, mutated2)
+        assert_profile_compatible(mutated2)
 
 
 def test_profile_mechanics_follow_model_authority_and_oracle_drift_fails() -> None:
