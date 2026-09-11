@@ -92,7 +92,10 @@ Read in full (repository, base SHA above):
 - Regression check executed locally at the Phase-1 head: `python3 -m pytest` on
   `tests/test_derivation_connection_traversal.py tests/test_semantic_projection_v0.py
   tests/test_projection_model_authority.py tests/test_prove_derivation_slice.py` →
-  **44 passed**; `python3 scripts/check_model_sync.py` → passed.
+  **44 passed**; `python3 scripts/check_model_sync.py` → passed. Full local suite at
+  that head: **1320 passed, 3 skipped, 137 subtests passed** (184 s); `scripts/check_repo.py`
+  and `tools/check_markdown_links.py` also pass. Only the two `docs/method-conformance/o1/`
+  files differ from the base SHA — no runtime or model file changed.
 
 Located by mechanical search (not each line reviewed): the remaining consumers of the
 ontology contract listed in §6.
