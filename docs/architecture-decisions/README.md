@@ -29,7 +29,7 @@ the replacement, for example:
 ```markdown
 ## Status
 
-Superseded by [ADR 0007](0007-example.md)
+Superseded by [ADR 0007](0007-pin-sysmod-sysand-dependency.md)
 ```
 
 Acceptable edits to accepted ADRs:
