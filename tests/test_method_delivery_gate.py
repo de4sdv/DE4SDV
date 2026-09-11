@@ -42,7 +42,7 @@ BASE_B = "2" * 40
 # ---------------------------------------------------------------------------
 
 
-def pr_state(*, head: str, base: str, state: str = "open", draft: bool = True) -> dict:
+def pr_state(*, head: str, base: str, state: str = "open", draft: bool = False) -> dict:
     return {
         "head_sha": head,
         "base_sha": base,
@@ -56,8 +56,18 @@ def check_run(name: str, head_sha: str, conclusion: str = "success", status: str
     return {"name": name, "status": status, "conclusion": conclusion, "head_sha": head_sha}
 
 
-def review(state: str, commit_id: str, reviewer: str = "maintainer") -> dict:
-    return {"state": state, "commit_id": commit_id, "reviewer": reviewer}
+def review(
+    state: str,
+    commit_id: str,
+    reviewer: str = "maintainer",
+    submitted_at: str | None = None,
+) -> dict:
+    return {
+        "state": state,
+        "commit_id": commit_id,
+        "reviewer": reviewer,
+        "submitted_at": submitted_at,
+    }
 
 
 class FakeDeliverySource:
@@ -159,7 +169,23 @@ def agreed_cross_check() -> dg.CrossCheckRecord:
         parity_detail="API/snapshot canonical payloads identical",
         evaluator_disposition="ASSESSED / INDETERMINATE / null",
         independent_disposition="ASSESSED / INDETERMINATE / null",
+        evaluation_key="k" * 64,
+        git_commit=HEAD_A,
     )
+
+
+def make_cross_check(**overrides) -> dg.CrossCheckRecord:
+    values = dict(
+        parity="agreed",
+        parity_detail="API/snapshot canonical payloads identical",
+        evaluator_disposition="ASSESSED / INDETERMINATE / null",
+        independent_disposition="ASSESSED / INDETERMINATE / null",
+        evaluation_key="k" * 64,
+        git_commit=HEAD_A,
+        contract_digest="",
+    )
+    values.update(overrides)
+    return dg.CrossCheckRecord(**values)
 
 
 def ready_source() -> FakeDeliverySource:
@@ -455,6 +481,8 @@ def test_disagreement_blocks_with_investigation_reason() -> None:
         parity_detail="API/snapshot payloads differ in PC-009D-SCOPE-EQUALITY",
         evaluator_disposition="ASSESSED / INDETERMINATE / null",
         independent_disposition="COMPLETE / FAIL",
+        evaluation_key="k" * 64,
+        git_commit=HEAD_A,
     )
     payload = run_gate(ready_source(), cross_check=cross)
     assert payload["readiness"] == "BLOCKED"
@@ -469,8 +497,10 @@ def test_disagreement_blocks_with_investigation_reason() -> None:
 
 def test_timeout_or_partial_never_counts_as_acceptance() -> None:
     for parity in ("timeout", "partial", "not-run"):
-        cross = dg.CrossCheckRecord(parity=parity)
-        payload = run_gate(ready_source(), cross_check=cross)
+        payload = run_gate(
+            ready_source(),
+            cross_check=make_cross_check(parity=parity),
+        )
         assert payload["readiness"] == "BLOCKED"
         assert "AGREEMENT_UNESTABLISHED" in blocking_reasons(payload)
 
@@ -533,9 +563,204 @@ def test_delivery_reason_vocabulary_is_finite() -> None:
             "EVALUATION_DISAGREEMENT",
             "AGREEMENT_UNESTABLISHED",
             "TARGET_NOT_OPEN",
+            "TARGET_NOT_READY",
             "POLICY_REVISION_MISMATCH",
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# R2: cross-check evidence bound to the exact evaluation/head
+# ---------------------------------------------------------------------------
+
+
+def test_r2_agreement_bound_to_exact_evaluation_and_head_satisfied() -> None:
+    payload = run_gate(ready_source(), cross_check=make_cross_check())
+    assert payload["readiness"] == "READY"
+    obligations = {item["id"]: item for item in payload["obligations"]}
+    assert obligations["cross-check-agreement"]["state"] == "satisfied"
+
+
+def test_r2_agreement_for_previous_head_blocks() -> None:
+    payload = run_gate(
+        ready_source(), cross_check=make_cross_check(git_commit=HEAD_B)
+    )
+    assert payload["readiness"] == "BLOCKED"
+    assert "AGREEMENT_UNESTABLISHED" in blocking_reasons(payload)
+    obligations = {item["id"]: item for item in payload["obligations"]}
+    assert obligations["cross-check-agreement"]["state"] == "failed"
+    assert any(
+        "foreign comparison" in diagnostic
+        for diagnostic in obligations["cross-check-agreement"]["diagnostics"]
+    )
+
+
+def test_r2_agreement_with_foreign_evaluation_key_blocks() -> None:
+    payload = run_gate(
+        ready_source(), cross_check=make_cross_check(evaluation_key="x" * 64)
+    )
+    assert payload["readiness"] == "BLOCKED"
+    assert "AGREEMENT_UNESTABLISHED" in blocking_reasons(payload)
+
+
+def test_r2_missing_cross_check_identity_blocks() -> None:
+    for record in (
+        make_cross_check(evaluation_key=""),
+        make_cross_check(git_commit=""),
+    ):
+        payload = run_gate(ready_source(), cross_check=record)
+        assert payload["readiness"] == "BLOCKED"
+        assert "AGREEMENT_UNESTABLISHED" in blocking_reasons(payload)
+        obligations = {item["id"]: item for item in payload["obligations"]}
+        assert obligations["cross-check-agreement"]["state"] == "unassessed"
+
+
+def test_r2_foreign_contract_digest_blocks() -> None:
+    payload = run_gate(
+        ready_source(), cross_check=make_cross_check(contract_digest="d" * 64)
+    )
+    assert payload["readiness"] == "BLOCKED"
+    assert "AGREEMENT_UNESTABLISHED" in blocking_reasons(payload)
+
+
+# ---------------------------------------------------------------------------
+# R3: a Draft PR never projects READY
+# ---------------------------------------------------------------------------
+
+
+def test_r3_draft_pr_never_ready() -> None:
+    source = FakeDeliverySource(
+        pr_reads=[
+            pr_state(head=HEAD_A, base=BASE_A, draft=True),
+            pr_state(head=HEAD_A, base=BASE_A, draft=True),
+        ],
+        checks=[check_run("checks", HEAD_A)],
+        reviews=[review("APPROVED", HEAD_A)],
+    )
+    payload = run_gate(source)
+    assert payload["readiness"] == "BLOCKED"
+    assert "TARGET_NOT_READY" in blocking_reasons(payload)
+    assert "TARGET_NOT_OPEN" not in blocking_reasons(payload)
+    assert payload["observation"]["draft"] is True
+    assert payload["observation"]["draft_moved"] is False
+
+
+def test_r3_same_pr_after_undraft_ready() -> None:
+    # ready_source() is not a draft; all obligations satisfied -> READY.
+    payload = run_gate(ready_source())
+    assert payload["readiness"] == "READY"
+    assert "TARGET_NOT_READY" not in blocking_reasons(payload)
+    assert payload["observation"]["draft"] is False
+
+
+def test_r3_draft_change_during_observation_blocks() -> None:
+    source = FakeDeliverySource(
+        pr_reads=[
+            pr_state(head=HEAD_A, base=BASE_A, draft=True),
+            pr_state(head=HEAD_A, base=BASE_A, draft=False),
+        ],
+        checks=[check_run("checks", HEAD_A)],
+        reviews=[review("APPROVED", HEAD_A)],
+    )
+    payload = run_gate(source)
+    assert payload["readiness"] == "BLOCKED"
+    assert "STALE_INPUT" in blocking_reasons(payload)
+    assert payload["observation"]["draft_moved"] is True
+    assert payload["observation"]["draft"] is False
+    assert payload["observation"]["draft_before"] is True
+    assert payload["obligations"] == []
+
+
+# ---------------------------------------------------------------------------
+# R4: distinct effective approvers, not approval records
+# ---------------------------------------------------------------------------
+
+
+def _review_source(reviews: list[dict]) -> FakeDeliverySource:
+    return FakeDeliverySource(
+        pr_reads=[pr_state(head=HEAD_A, base=BASE_A), pr_state(head=HEAD_A, base=BASE_A)],
+        checks=[check_run("checks", HEAD_A)],
+        reviews=reviews,
+    )
+
+
+def test_r4_same_reviewer_double_approval_counts_once() -> None:
+    source = _review_source(
+        [
+            review("APPROVED", HEAD_A, "alice", "2026-09-11T10:00:00Z"),
+            review("APPROVED", HEAD_A, "alice", "2026-09-11T11:00:00Z"),
+        ]
+    )
+    payload = run_gate(source, policy=make_policy(required_approvals=2))
+    assert payload["readiness"] == "BLOCKED"
+    obligations = {item["id"]: item for item in payload["obligations"]}
+    assert obligations["review-approval"]["state"] == "failed"
+    # evidence lists the one counted distinct reviewer
+    assert len(obligations["review-approval"]["evidence"]) == 1
+
+
+def test_r4_two_distinct_reviewers_satisfy() -> None:
+    source = _review_source(
+        [
+            review("APPROVED", HEAD_A, "alice", "2026-09-11T10:00:00Z"),
+            review("APPROVED", HEAD_A, "bob", "2026-09-11T11:00:00Z"),
+        ]
+    )
+    payload = run_gate(source, policy=make_policy(required_approvals=2))
+    assert payload["readiness"] == "READY"
+
+
+def test_r4_old_head_plus_exact_head_approval_from_same_user_counts_once() -> None:
+    source = _review_source(
+        [
+            review("APPROVED", HEAD_B, "alice", "2026-09-11T10:00:00Z"),
+            review("APPROVED", HEAD_A, "alice", "2026-09-11T11:00:00Z"),
+        ]
+    )
+    payload = run_gate(source, policy=make_policy(required_approvals=2))
+    assert payload["readiness"] == "BLOCKED"
+    obligations = {item["id"]: item for item in payload["obligations"]}
+    assert len(obligations["review-approval"]["evidence"]) == 1
+    assert obligations["review-approval"]["evidence"][0]["commit_id"] == HEAD_A
+
+
+def test_r4_changes_requested_supersedes_exact_head_approval() -> None:
+    source = _review_source(
+        [
+            review("APPROVED", HEAD_A, "alice", "2026-09-11T10:00:00Z"),
+            review("CHANGES_REQUESTED", HEAD_A, "alice", "2026-09-11T11:00:00Z"),
+        ]
+    )
+    payload = run_gate(source)
+    assert payload["readiness"] == "BLOCKED"
+    obligations = {item["id"]: item for item in payload["obligations"]}
+    assert obligations["review-approval"]["state"] == "failed"
+
+
+def test_r4_dismissed_approval_not_counted() -> None:
+    source = _review_source(
+        [
+            review("APPROVED", HEAD_A, "alice", "2026-09-11T10:00:00Z"),
+            review("DISMISSED", HEAD_A, "alice", "2026-09-11T11:00:00Z"),
+        ]
+    )
+    payload = run_gate(source)
+    assert payload["readiness"] == "BLOCKED"
+    obligations = {item["id"]: item for item in payload["obligations"]}
+    assert obligations["review-approval"]["state"] == "failed"
+
+
+def test_r4_later_comment_does_not_revoke_approval() -> None:
+    # GitHub review semantics: a COMMENTED record is not a decision state and
+    # does not supersede an earlier APPROVED decision from the same reviewer.
+    source = _review_source(
+        [
+            review("APPROVED", HEAD_A, "alice", "2026-09-11T10:00:00Z"),
+            review("COMMENTED", HEAD_A, "alice", "2026-09-11T11:00:00Z"),
+        ]
+    )
+    payload = run_gate(source)
+    assert payload["readiness"] == "READY"
 
 
 # ---------------------------------------------------------------------------

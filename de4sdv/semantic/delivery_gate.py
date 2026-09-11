@@ -37,6 +37,7 @@ assigns it to the delivery projection):
     EVALUATION_DISAGREEMENT        cross-check disagreement; investigation required
     AGREEMENT_UNESTABLISHED        cross-check timeout/partial/missing; not acceptance
     TARGET_NOT_OPEN                the PR merge decision is terminal (merged/closed)
+    TARGET_NOT_READY               the PR is a draft; not a valid merge-readiness target
     POLICY_REVISION_MISMATCH       observed governance policy revision differs from the required one
 """
 
@@ -58,6 +59,7 @@ EVIDENCE_UNAVAILABLE = "EVIDENCE_UNAVAILABLE"
 EVALUATION_DISAGREEMENT = "EVALUATION_DISAGREEMENT"
 AGREEMENT_UNESTABLISHED = "AGREEMENT_UNESTABLISHED"
 TARGET_NOT_OPEN = "TARGET_NOT_OPEN"
+TARGET_NOT_READY = "TARGET_NOT_READY"
 POLICY_REVISION_MISMATCH = "POLICY_REVISION_MISMATCH"
 
 DELIVERY_REASONS: frozenset[str] = frozenset(
@@ -71,6 +73,7 @@ DELIVERY_REASONS: frozenset[str] = frozenset(
         EVALUATION_DISAGREEMENT,
         AGREEMENT_UNESTABLISHED,
         TARGET_NOT_OPEN,
+        TARGET_NOT_READY,
         POLICY_REVISION_MISMATCH,
     }
 )
@@ -198,12 +201,22 @@ class CrossCheckRecord:
     ``parity`` is one of ``agreed`` / ``disagreed`` / ``timeout`` / ``partial``
     / ``not-run``. Only ``agreed`` counts as an established comparison; a
     timeout, partial, or missing comparison is never acceptance.
+
+    The record binds the comparison to the exact evidence it compared:
+    ``evaluation_key`` (the supplied canonical conformance evaluation) and
+    ``git_commit`` (the exact revision it covered). An agreement from another
+    candidate/head never satisfies the current exact-head gate; missing or
+    mismatched identity blocks. ``contract_digest`` is an optional additional
+    binding checked when supplied.
     """
 
     parity: str
     parity_detail: str = ""
     evaluator_disposition: str = ""
     independent_disposition: str = ""
+    evaluation_key: str = ""
+    git_commit: str = ""
+    contract_digest: str = ""
 
 
 class DeliveryEvidenceSource(Protocol):
@@ -291,8 +304,14 @@ def pr_gate_status(
         return payload
     head_before = str(first.get("head_sha") or "")
     base_before = str(first.get("base_sha") or "")
+    draft_before = bool(first.get("draft"))
     payload["observation"].update(
-        {"head_sha": head_before or None, "base_sha": base_before or None, "state": first.get("state")}
+        {
+            "head_sha": head_before or None,
+            "base_sha": base_before or None,
+            "state": first.get("state"),
+            "draft": draft_before,
+        }
     )
 
     # 2. Collect review / CI / policy evidence (bound to the first-observed head).
@@ -315,8 +334,10 @@ def pr_gate_status(
         return payload
     head_after = str(second.get("head_sha") or "")
     base_after = str(second.get("base_sha") or "")
+    draft_after = bool(second.get("draft"))
     head_moved = head_before != head_after
     base_moved = base_before != base_after
+    draft_moved = draft_before != draft_after
     payload["observation"].update(
         {
             "head_sha": head_after or None,
@@ -326,21 +347,34 @@ def pr_gate_status(
             "state": second.get("state"),
             "head_moved": head_moved,
             "base_moved": base_moved,
+            "draft": draft_after,
+            "draft_before": draft_before,
+            "draft_moved": draft_moved,
         }
     )
     payload["policy"]["observed_revision"] = policy_observation.get("revision")
 
-    if head_moved or base_moved:
+    if head_moved or base_moved or draft_moved:
         movement = []
         if head_moved:
             movement.append(f"head moved: {head_before} -> {head_after}")
         if base_moved:
             movement.append(f"base moved: {base_before} -> {base_after}")
+        if draft_moved:
+            movement.append(f"draft state changed: {draft_before} -> {draft_after}")
         diagnostics.append(
             "delivery input moved during evidence collection; no successful "
             "delivery verdict is published from stale evidence: " + "; ".join(movement)
         )
-        units = [name for name, moved in (("head-moved", head_moved), ("base-moved", base_moved)) if moved]
+        units = [
+            name
+            for name, moved in (
+                ("head-moved", head_moved),
+                ("base-moved", base_moved),
+                ("draft-moved", draft_moved),
+            )
+            if moved
+        ]
         _finalize(payload, [], [STALE_INPUT], units, diagnostics)
         return payload
 
@@ -352,6 +386,12 @@ def pr_gate_status(
         diagnostics.append(
             f"the PR merge decision is terminal (state={state!r}); there is no "
             "pending merge decision to assess"
+        )
+    elif draft_after:
+        blocking.append(TARGET_NOT_READY)
+        blocking_units.append("target-draft")
+        diagnostics.append(
+            "the PR is a draft; a draft is not a valid merge-readiness target"
         )
     observed_revision = str(policy_observation.get("revision") or "")
     if observed_revision != str(policy.revision):
@@ -369,7 +409,7 @@ def pr_gate_status(
         _ci_obligation(policy, checks, head_after),
         _review_obligation(policy, reviews, head_after),
         _method_change_obligation(policy, changed_files),
-        _cross_check_obligation(policy, cross_check),
+        _cross_check_obligation(policy, cross_check, conformance, head_after),
     ]
     for name in policy.extra_required_obligations:
         obligations.append(
@@ -430,8 +470,11 @@ def _observation(observed_at: str) -> dict[str, Any]:
         "head_sha_before": None,
         "base_sha_before": None,
         "state": None,
+        "draft": None,
+        "draft_before": None,
         "head_moved": False,
         "base_moved": False,
+        "draft_moved": False,
     }
 
 
@@ -606,6 +649,44 @@ def _ci_obligation(
     )
 
 
+#: Review states that carry a decision. COMMENTED / PENDING records are not
+#: decisions and never override an earlier decision state.
+_DECISION_REVIEW_STATES = frozenset({"APPROVED", "CHANGES_REQUESTED", "DISMISSED"})
+
+
+def _effective_head_approvals(
+    reviews: Sequence[Mapping[str, Any]], head_sha: str
+) -> list[Mapping[str, Any]]:
+    """Distinct reviewers whose LATEST exact-head decision state is APPROVED.
+
+    GitHub's review endpoint is historical: one reviewer may submit several
+    reviews and a later decision supersedes an earlier one. Reduce each
+    reviewer to their latest decision-bearing review (chronological by
+    ``submitted_at``, stable by input order), then count the reviewer only
+    when that effective state is ``APPROVED`` AND bound to the exact head.
+    A later CHANGES_REQUESTED or DISMISSED never leaves an older approval
+    countable, and a stale (other-commit) approval never counts.
+    """
+    latest_by_reviewer: dict[str, Mapping[str, Any]] = {}
+    ordered = sorted(
+        enumerate(reviews), key=lambda pair: (str(pair[1].get("submitted_at") or ""), pair[0])
+    )
+    for _, review in ordered:
+        state = str(review.get("state") or "").upper()
+        if state not in _DECISION_REVIEW_STATES:
+            continue
+        reviewer = str(review.get("reviewer") or "")
+        latest_by_reviewer[reviewer] = review
+    approvals: list[Mapping[str, Any]] = []
+    for review in latest_by_reviewer.values():
+        if (
+            str(review.get("state") or "").upper() == "APPROVED"
+            and str(review.get("commit_id") or "") == head_sha
+        ):
+            approvals.append(review)
+    return approvals
+
+
 def _review_obligation(
     policy: DeliveryPolicy, reviews: Sequence[Mapping[str, Any]], head_sha: str
 ) -> dict[str, Any]:
@@ -620,17 +701,13 @@ def _review_obligation(
             evidence=None,
             diagnostics=["no approving reviews are required by the delivery policy"],
         )
-    approvals = [
-        review
-        for review in reviews
-        if str(review.get("commit_id") or "") == head_sha
-        and str(review.get("state") or "").upper() == "APPROVED"
-    ]
+    approvals = _effective_head_approvals(reviews, head_sha)
     evidence = [
         {
             "reviewer": review.get("reviewer"),
             "state": review.get("state"),
             "commit_id": review.get("commit_id"),
+            "submitted_at": review.get("submitted_at"),
         }
         for review in approvals
     ]
@@ -652,8 +729,11 @@ def _review_obligation(
         reasons=[DELIVERY_OBLIGATION_FAILED],
         evidence=evidence or None,
         diagnostics=[
-            f"{len(approvals)} approving review(s) bound to the exact head; "
-            f"{required} required. Comments and approvals for other commits do not count"
+            f"{len(approvals)} distinct reviewer(s) with an effective exact-head "
+            f"APPROVED state; {required} required. One reviewer counts once, the "
+            "latest decision state per reviewer governs (a later CHANGES_REQUESTED "
+            "or DISMISSED removes an earlier approval), and approvals for other "
+            "commits do not count"
         ],
     )
 
@@ -707,7 +787,10 @@ def _method_change_obligation(
 
 
 def _cross_check_obligation(
-    policy: DeliveryPolicy, cross_check: CrossCheckRecord | None
+    policy: DeliveryPolicy,
+    cross_check: CrossCheckRecord | None,
+    conformance: ConformanceSummary | None,
+    head_sha: str,
 ) -> dict[str, Any]:
     if not policy.require_cross_check:
         return _obligation(
@@ -737,7 +820,67 @@ def _cross_check_obligation(
         "parity_detail": cross_check.parity_detail,
         "evaluator_disposition": cross_check.evaluator_disposition,
         "independent_disposition": cross_check.independent_disposition,
+        "evaluation_key": cross_check.evaluation_key,
+        "git_commit": cross_check.git_commit,
+        "contract_digest": cross_check.contract_digest,
     }
+
+    # Exact-identity binding (R2): the comparison must identify the exact
+    # evaluation and head it covers. A foreign comparison is never silently
+    # chosen or reinterpreted.
+    identity_reasons: list[str] = []
+    if not cross_check.git_commit or not cross_check.evaluation_key:
+        return _obligation(
+            obligation_id=OBLIGATION_CROSS_CHECK,
+            required=True,
+            supported=True,
+            state=_STATE_UNASSESSED,
+            reasons=[AGREEMENT_UNESTABLISHED],
+            evidence=evidence,
+            diagnostics=[
+                "the cross-check record does not identify the evaluation and "
+                "revision it compared; an unidentified comparison is not acceptance"
+            ],
+        )
+    if cross_check.git_commit != head_sha:
+        identity_reasons.append(
+            f"cross-check git_commit {cross_check.git_commit!r} does not match the "
+            f"observed exact head {head_sha!r}"
+        )
+    if conformance is None:
+        identity_reasons.append(
+            "no canonical conformance evaluation was supplied to bind the "
+            "cross-check to"
+        )
+    elif cross_check.evaluation_key != conformance.evaluation_key:
+        identity_reasons.append(
+            f"cross-check evaluation_key {cross_check.evaluation_key!r} does not "
+            f"match the supplied canonical evaluation {conformance.evaluation_key!r}"
+        )
+    if (
+        cross_check.contract_digest
+        and conformance is not None
+        and cross_check.contract_digest != conformance.contract_digest
+    ):
+        identity_reasons.append(
+            "cross-check contract_digest does not match the supplied canonical "
+            "evaluation's contract"
+        )
+    if identity_reasons:
+        return _obligation(
+            obligation_id=OBLIGATION_CROSS_CHECK,
+            required=True,
+            supported=True,
+            state=_STATE_FAILED,
+            reasons=[AGREEMENT_UNESTABLISHED],
+            evidence=evidence,
+            diagnostics=[
+                "cross-check evidence is bound to a different revision/evaluation; "
+                "a foreign comparison never satisfies the current exact-head gate: "
+                + "; ".join(identity_reasons)
+            ],
+        )
+
     if cross_check.parity == "agreed":
         return _obligation(
             obligation_id=OBLIGATION_CROSS_CHECK,
