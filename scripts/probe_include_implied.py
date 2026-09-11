@@ -29,7 +29,23 @@ from pathlib import Path
 import syside
 
 ROOT = Path(__file__).resolve().parents[1]
-LIBRARY_DIR = Path(str(syside.__file__)).resolve().parent / "sysml.library"
+
+
+def _library_dir() -> Path:
+    import _syside  # type: ignore[import-not-found]
+
+    candidates = [
+        Path(str(_syside.__file__)).resolve().parent / "sysml.library",
+        Path(str(syside.__file__)).resolve().parent / "sysml.library",
+        Path(str(syside.__file__)).resolve().parent.parent / "_syside" / "sysml.library",
+    ]
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    raise RuntimeError(f"could not locate sysml.library; tried: {candidates}")
+
+
+LIBRARY_DIR = _library_dir()
 VERIFICATION_CASES = LIBRARY_DIR / "Systems Library" / "VerificationCases.sysml"
 
 RELATIONSHIP_TYPES = {
