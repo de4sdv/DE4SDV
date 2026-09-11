@@ -421,7 +421,7 @@ def test_ambiguous_identity_fails_closed(semantic_service) -> None:
         semantic_service.resolve_element("reqCommandEmergencyBraking")
 
 
-def test_mcp_surface_exposes_only_seven_read_only_semantic_tools(
+def test_mcp_surface_exposes_only_the_declared_read_only_semantic_tools(
     semantic_service,
 ) -> None:
     import asyncio
@@ -439,6 +439,11 @@ def test_mcp_surface_exposes_only_seven_read_only_semantic_tools(
         "impact",
         "trace",
         "verification_coverage",
+        # Lane C method-conformance surfaces (frozen baseline Section 13)
+        "phase_contract",
+        "increment_status",
+        "method_gaps",
+        "next_obligation",
     }
     assert all(tool.annotations.readOnlyHint for tool in tools)
     assert all(not tool.annotations.destructiveHint for tool in tools)
@@ -638,6 +643,11 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
                     "impact",
                     "trace",
                     "verification_coverage",
+                    # Lane C method-conformance surfaces (frozen baseline Section 13)
+                    "phase_contract",
+                    "increment_status",
+                    "method_gaps",
+                    "next_obligation",
                 }
                 result = await session.call_tool(
                     "verification_coverage",

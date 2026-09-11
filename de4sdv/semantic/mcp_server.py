@@ -74,4 +74,28 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         """Report API-backed verification cases or explicit verification gaps."""
         return service.verification_coverage(requirement_identifier)
 
+    # ------------------------------------------------------------------
+    # Method-conformance surfaces (Lane C; frozen baseline Section 13)
+    # ------------------------------------------------------------------
+
+    @mcp.tool(annotations=_READ_ONLY, structured_output=True)
+    def phase_contract(phase: str) -> dict[str, Any]:
+        """Return the approved phase contract; method-only provenance, no verdict."""
+        return service.phase_contract(phase)
+
+    @mcp.tool(annotations=_READ_ONLY, structured_output=True)
+    def increment_status(phase: str) -> dict[str, Any]:
+        """Project scoped model-contract conformance for one phase contract."""
+        return service.increment_status(phase)
+
+    @mcp.tool(annotations=_READ_ONLY, structured_output=True)
+    def method_gaps(phase: str) -> dict[str, Any]:
+        """List explicit violations, unresolved inputs, and out-of-scope units."""
+        return service.method_gaps(phase)
+
+    @mcp.tool(annotations=_READ_ONLY, structured_output=True)
+    def next_obligation(phase: str) -> dict[str, Any]:
+        """Return the deterministic next actionable obligation, unassigned."""
+        return service.next_obligation(phase)
+
     return mcp
