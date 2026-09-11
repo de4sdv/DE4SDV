@@ -89,14 +89,28 @@ def _pilot_graph(
             declaredShortName=short,
         )
         elements.append(usage)
-        # Usage-level verification-method metadata: a MetadataUsage owned by
-        # the usage (the honest API shape for @VerificationMethod{...}).
+        # Usage-level verification-method metadata: the @VerificationMethod
+        # annotation serializes as a MetadataUsage owned via an
+        # OwningMembership whose memberElement is the metadata usage (real
+        # licensed-export shape).
+        elements.append(
+            {
+                "@id": uuid[:-2] + "mm1",
+                "@type": "OwningMembership",
+                "owningRelatedElement": {"@id": uuid},
+                "memberElement": {"@id": uuid[:-2] + "mu1"},
+                "ownedRelatedElement": [{"@id": uuid[:-2] + "mu1"}],
+            }
+        )
+        usage: dict = elements[-2]
+        usage.setdefault("ownedRelationship", []).append(
+            {"@id": uuid[:-2] + "mm1"}
+        )
         elements.append(
             {
                 "@id": uuid[:-2] + "mu1",
                 "@type": "MetadataUsage",
-                "owner": {"@id": uuid},
-                "declaredName": "VerificationMethod",
+                "owningRelationship": {"@id": uuid[:-2] + "mm1"},
             }
         )
         # Specialization witness in the serializer's real shape: a

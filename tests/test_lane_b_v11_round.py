@@ -559,63 +559,123 @@ def _full_pilot_import():
                 },
             }
         )
-    # Scope record with actual field values (B-R4): a PartUsage
-    # carrying owned attribute usages (the model-resident shape).
-    elements.append(
-        {
-            "@id": "00000000-0000-4000-8000-000000000600",
-            "@type": "PartUsage",
-            "declaredName": "aebsOverridePilotScope",
-            "declaredShortName": "PSC-009D",
-            "ownedElement": [
-                {
-                    "@id": "00000000-0000-4000-8000-000000000601",
-                    "@type": "AttributeUsage",
-                    "declaredName": "incrementId",
-                    "ownedElement": [
-                        {"@type": "LiteralString", "value": "INC-AEBS-009D"}
-                    ],
-                },
-                {
-                    "@id": "00000000-0000-4000-8000-000000000602",
-                    "@type": "AttributeUsage",
-                    "declaredName": "subjectType",
-                    "ownedElement": [
-                        {"@type": "LiteralString", "value": "VerificationCaseUsage"}
-                    ],
-                },
-            ],
+    # Scope record with actual field values (B-R4) in the serializer's real
+    # chain: parent -> membership(memberName) -> attribute usage ->
+    # FeatureValue -> literal.
+    def _literal(mid: str, kind: str, value: object) -> dict:
+        return {"@id": mid, "@type": kind, "value": value}
+
+    def _feature_value(mid: str, feature: str, value_id: str) -> dict:
+        return {
+            "@id": mid,
+            "@type": "FeatureValue",
+            "owningRelatedElement": {"@id": feature},
+            "memberElement": {"@id": value_id},
+            "ownedRelatedElement": [{"@id": value_id}],
         }
-    )
-    # Six model-resident evaluation-scope memberships (B-R5 shape).
+
+    def _feature_membership(mid: str, owner: str, member_name: str, member: str) -> dict:
+        return {
+            "@id": mid,
+            "@type": "FeatureMembership",
+            "owningRelatedElement": {"@id": owner},
+            "memberName": member_name,
+            "memberElement": {"@id": member},
+            "ownedRelatedElement": [{"@id": member}],
+        }
+
+    def _valued_attribute(attr_id: str, name: str, value_id: str) -> tuple[list[dict], dict]:
+        literal = _literal(value_id, "LiteralString", f"value-of-{name}")
+        attribute = {
+            "@id": attr_id,
+            "@type": "AttributeUsage",
+            "declaredName": name,
+            "ownedRelationship": [{"@id": attr_id + "-fv"}],
+        }
+        return [literal, _feature_value(attr_id + "-fv", attr_id, value_id)], attribute
+
+    scope_attachments = []
+    scope_elements: list[dict] = []
+    for attr, value in (("incrementId", "INC-AEBS-009D"), ("subjectType", "VerificationCaseUsage")):
+        chain, attribute = _valued_attribute(
+            f"00000000-0000-4000-8000-0000000006{1 if attr == 'incrementId' else 2}0",
+            attr,
+            f"00000000-0000-4000-8000-0000000006{1 if attr == 'incrementId' else 2}1",
+        )
+        chain[0]["value"] = value
+        scope_elements.extend(chain)
+        scope_elements.append(attribute)
+        scope_attachments.append(
+            _feature_membership(
+                f"00000000-0000-4000-8000-0000000006{3 if attr == 'incrementId' else 4}0",
+                "00000000-0000-4000-8000-000000000600",
+                attr,
+                attribute["@id"],
+            )
+        )
+    scope_record = {
+        "@id": "00000000-0000-4000-8000-000000000600",
+        "@type": "PartUsage",
+        "declaredName": "aebsOverridePilotScope",
+        "declaredShortName": "PSC-009D",
+        "ownedRelationship": [{"@id": m["@id"]} for m in scope_attachments],
+    }
+    elements.append(scope_record)
+    elements.extend(scope_attachments)
+    elements.extend(scope_elements)
+
+    # Six model-resident evaluation-scope memberships (B-R5 shape) with real
+    # value chains (scopeId/subjectId LiteralString, contributes LiteralBoolean).
     for index in range(1, 7):
+        base = f"00000000-0000-4000-8000-0000000007{index:02d}"
+        memberships_for_item = []
+        for offset, (field_name, value, literal_kind) in enumerate(
+            (
+                ("scopeId", "PSC-009D", "LiteralString"),
+                ("subjectId", f"VC-AEBS-009D-{index:02d}", "LiteralString"),
+                ("contributes", False, "LiteralBoolean"),
+            )
+        ):
+            attr_id = f"{base}a{offset}"
+            value_id = f"{base}v{offset}"
+            literal = _literal(value_id, literal_kind, value)
+            attribute = {
+                "@id": attr_id,
+                "@type": "AttributeUsage",
+                "declaredName": field_name,
+                "ownedRelationship": [{"@id": attr_id + "-fv"}],
+            }
+            membership = _feature_membership(
+                f"{base}m{offset}", base, field_name, attr_id
+            )
+            memberships_for_item.append(membership)
+            elements.extend(
+                (
+                    literal,
+                    _feature_value(attr_id + "-fv", attr_id, value_id),
+                    attribute,
+                    membership,
+                )
+            )
         elements.append(
             {
-                "@id": f"00000000-0000-4000-8000-0000000007{index:02d}",
+                "@id": base,
                 "@type": "ItemUsage",
                 "declaredName": f"scopeMember{index:02d}",
-                "ownedElement": [
-                    {
-                        "@type": "AttributeUsage",
-                        "declaredName": "scopeId",
-                        "ownedElement": [{"@type": "LiteralString", "value": "PSC-009D"}],
-                    },
-                    {
-                        "@type": "AttributeUsage",
-                        "declaredName": "subjectId",
-                        "ownedElement": [
-                            {"@type": "LiteralString", "value": f"VC-AEBS-009D-{index:02d}"}
-                        ],
-                    },
-                    {
-                        "@type": "AttributeUsage",
-                        "declaredName": "contributes",
-                        "ownedElement": [{"@type": "LiteralBoolean", "value": False}],
-                    },
-                ],
+                "ownedRelationship": [{"@id": m["@id"]} for m in memberships_for_item],
             }
         )
-    # Eleven model-resident obligations (B-R6 shape; required + phase pinned).
+
+    # Eleven model-resident obligations (B-R6 shape) with real value chains;
+    # phase is a FeatureReferenceExpression to the phase10_vvEvidence
+    # enumeration literal (as the serializer emits).
+    elements.append(
+        {
+            "@id": "00000000-0000-4000-8000-000000000900",
+            "@type": "EnumerationUsage",
+            "declaredName": "phase10_vvEvidence",
+        }
+    )
     obligation_ids = [
         "PC-009D-SCOPE-POPULATION", "PC-009D-VC-BINDING",
         "PC-009D-SUBJECT-MEMBERSHIP", "PC-009D-OBJECTIVE-CONTRACTS",
@@ -625,30 +685,57 @@ def _full_pilot_import():
         "PC-009D-ACCEPTANCE-AUTHORITY",
     ]
     for index, obligation_id in enumerate(obligation_ids):
+        base = f"00000000-0000-4000-8000-0000000008{index:02d}"
+        memberships_for_item = []
+        for offset, field_name in enumerate(("obligationId", "required", "phase")):
+            attr_id = f"{base}a{offset}"
+            value_id = f"{base}v{offset}"
+            membership_id = f"{base}m{offset}"
+            if field_name == "obligationId":
+                chain = [_literal(value_id, "LiteralString", obligation_id)]
+                value_element: dict = chain[0]
+            elif field_name == "required":
+                chain = [_literal(value_id, "LiteralBoolean", True)]
+                value_element = chain[0]
+            else:
+                # FeatureReferenceExpression -> Membership -> enumeration literal
+                chain = [
+                    {
+                        "@id": value_id,
+                        "@type": "FeatureReferenceExpression",
+                        "ownedRelationship": [{"@id": value_id + "-m"}],
+                    },
+                    {
+                        "@id": value_id + "-m",
+                        "@type": "Membership",
+                        "memberElement": {"@id": "00000000-0000-4000-8000-000000000900"},
+                    },
+                ]
+                value_element = chain[0]
+            attribute = {
+                "@id": attr_id,
+                "@type": "AttributeUsage",
+                "declaredName": field_name,
+                "ownedRelationship": [{"@id": attr_id + "-fv"}],
+            }
+            membership = _feature_membership(
+                membership_id, base, field_name, attr_id
+            )
+            memberships_for_item.append(membership)
+            elements.extend(
+                chain
+                + [
+                    _feature_value(attr_id + "-fv", attr_id, value_id),
+                    attribute,
+                    membership,
+                ]
+            )
         elements.append(
             {
-                "@id": f"00000000-0000-4000-8000-0000000008{index:02d}",
+                "@id": base,
                 "@type": "ItemUsage",
                 "declaredName": f"obligation{index:02d}",
-                "ownedElement": [
-                    {
-                        "@type": "AttributeUsage",
-                        "declaredName": "obligationId",
-                        "ownedElement": [{"@type": "LiteralString", "value": obligation_id}],
-                    },
-                    {
-                        "@type": "AttributeUsage",
-                        "declaredName": "required",
-                        "ownedElement": [{"@type": "LiteralBoolean", "value": True}],
-                    },
-                    {
-                        "@type": "AttributeUsage",
-                        "declaredName": "phase",
-                        "ownedElement": [
-                            {"@type": "LiteralString", "value": "phase10_vvEvidence"}
-                        ],
-                    },
-                ],
+                "ownedRelationship": [{"@id": m["@id"]} for m in memberships_for_item],
             }
         )
     return elements
@@ -658,7 +745,8 @@ LIBRARY_DEFINITION_ANCHOR = "99999999-0000-4000-8000-00000000000a"
 LIBRARY_USAGE_SET_ANCHOR = "99999999-0000-4000-8000-00000000000b"
 
 
-def _run_readback(monkeypatch, tmp_path, elements, *, anchors=True):
+def _run_readback(monkeypatch, tmp_path, elements, *, anchors=True,
+                  external_references=None):
     import sys
 
     import scripts.verify_pilot_readback as vpr
@@ -684,6 +772,7 @@ def _run_readback(monkeypatch, tmp_path, elements, *, anchors=True):
                     if anchors
                     else {}
                 ),
+                "external_references": external_references or [],
             }
         )
     )
@@ -714,10 +803,13 @@ def test_usage_grounding_proven_per_usage(tmp_path, monkeypatch):
     assert grounding["completeness"] == "complete"
     assert grounding["definition_witness"]["kind"] == "FeatureTyping"
     assert grounding["definition_witness_provenance"] == "explicit"
-    assert grounding["library_grounding_witness"]["kind"] == "Subsetting"
+    assert grounding["library_grounding_witness"]["witness_id"] == (
+        "00000000-0000-4000-8000-00000000ss01"
+    )
     assert grounding["library_grounding_witness"]["target"] == LIBRARY_USAGE_SET_ANCHOR
+    assert grounding["library_grounding_witness"]["mechanism"] == "inline-reference"
     assert grounding["library_grounding_provenance"] == "implied"
-    assert grounding["library_grounding_witness"]["target_uri"].endswith(
+    assert grounding["library_grounding_witness"]["uri"].endswith(
         "VerificationCases.sysml"
     )
 
@@ -774,6 +866,78 @@ def test_grounding_fails_when_implied_subsetting_missing(tmp_path, monkeypatch):
         if element.get("@id") != "00000000-0000-4000-8000-00000000ss01"
     ]
     out, exit_code = _run_readback(monkeypatch, tmp_path, elements)
+    report = json.loads(out.read_text())
+    assert report["passed"] is False
+    assert any(
+        "implied Subsetting" in failure for failure in report["failures"]
+    )
+
+
+def test_usage_grounding_via_split_external_reference(tmp_path, monkeypatch):
+    """The reviewed exporter splits out-of-bundle references: an implied
+    Subsetting from a usage then carries only its specific end, and the
+    library target id + uri live in the export artifact's
+    external_references. Grounding must still be proven from that recorded
+    two-layer evidence (this is the real-run shape)."""
+    witness_id = "00000000-0000-4000-8000-00000000ss02"
+    elements = _full_pilot_import()
+    for element in elements:
+        if element.get("@id") == witness_id:
+            element.pop("subsettedFeature", None)
+            element.pop("general", None)
+    lib_uri = (
+        "file:///opt/hostedtoolcache/Python/3.12/site-packages/_syside/"
+        "sysml.library/Systems%20Library/VerificationCases.sysml"
+    )
+    out, _ = _run_readback(
+        monkeypatch,
+        tmp_path,
+        elements,
+        external_references=[
+            {
+                "source_element_id": witness_id,
+                "property_path": "subsettedFeature",
+                "target_id": LIBRARY_USAGE_SET_ANCHOR,
+                "uri": lib_uri,
+            },
+            {
+                "source_element_id": witness_id,
+                "property_path": "general",
+                "target_id": LIBRARY_USAGE_SET_ANCHOR,
+                "uri": lib_uri,
+            },
+        ],
+    )
+    report = json.loads(out.read_text())
+    assert report["passed"] is True
+    grounding = report["usage_grounding"]["VC-AEBS-009D-02"]
+    assert grounding["completeness"] == "complete"
+    assert grounding["library_grounding_witness"]["mechanism"] == "external-reference"
+    assert grounding["library_grounding_witness"]["target"] == LIBRARY_USAGE_SET_ANCHOR
+
+
+def test_grounding_fails_when_split_reference_points_elsewhere(tmp_path, monkeypatch):
+    """A split reference whose recorded target is NOT the pinned anchor fails
+    closed (no name-based repair, no fallback to 'some library element')."""
+    witness_id = "00000000-0000-4000-8000-00000000ss03"
+    elements = _full_pilot_import()
+    for element in elements:
+        if element.get("@id") == witness_id:
+            element.pop("subsettedFeature", None)
+            element.pop("general", None)
+    out, _ = _run_readback(
+        monkeypatch,
+        tmp_path,
+        elements,
+        external_references=[
+            {
+                "source_element_id": witness_id,
+                "property_path": "subsettedFeature",
+                "target_id": "11111111-1111-4111-8111-111111111111",
+                "uri": "file:///wrong/library/SomewhereElse.sysml",
+            },
+        ],
+    )
     report = json.loads(out.read_text())
     assert report["passed"] is False
     assert any(

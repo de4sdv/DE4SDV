@@ -180,6 +180,15 @@ class _ScopeGraph:
         return frozenset(variants)
 
     def variant_occurrences(self, variation_id: str) -> list[str]:
+        """Distinct alternative occurrences of a variation point.
+
+        Occurrences are de-duplicated by element: the licensed serializer
+        with include_implied materializes an implied ``Subsetting`` alongside
+        the authored variant relationship for the SAME alternative, and both
+        refer to one alternative — counting them twice would misreport the
+        alternative population (2 authored alternatives became "4" before
+        this guard).
+        """
         occurrences: list[str] = []
         for relationship in self.elements:
             if relationship.get("@type") == "Subsetting":
@@ -195,7 +204,8 @@ class _ScopeGraph:
                 )
                 if specific:
                     self.require(specific)
-                    occurrences.append(specific)
+                    if specific not in occurrences:
+                        occurrences.append(specific)
                 continue
             if relationship.get("@type") != "VariantMembership":
                 continue
@@ -208,7 +218,8 @@ class _ScopeGraph:
             )
             if member_id:
                 self.require(member_id)
-                occurrences.append(member_id)
+                if member_id not in occurrences:
+                    occurrences.append(member_id)
         return occurrences
 
 

@@ -160,7 +160,11 @@ class RelationshipGraph:
             for extra in reference_ids(node.get("ownedRelatedElement")):
                 if extra != node_id and extra not in target_ids:
                     target_ids.append(extra)
-            implied = bool(node.get("isImplied") or node.get("isImpliedIncluded"))
+            # ``isImplied`` marks a relationship the toolchain materialized as
+            # semantically implied. ``isImpliedIncluded`` is only the
+            # serialization setting flag (present on nearly every element) and
+            # is NOT a provenance marker.
+            implied = node.get("isImplied") is True
             target_uris: dict[str, str] = {}
             for key in ("superclassifier", "general", "type", "subsettedFeature",
                         "redefinedFeature", "target", "declaredType"):

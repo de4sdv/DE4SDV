@@ -236,15 +236,38 @@ def _metadata_witnesses(
     witness; inventing one from ``ownedElement is not None`` would
     fabricate semantics (B-R1).
     """
+    by_id: dict[str, dict[str, Any]] = {}
+    for element in elements:
+        current = element_id(element)
+        if current:
+            by_id[current] = element
+    # Real serializer shape (verified against a licensed export): the
+    # annotated element owns a Membership whose memberElement is the
+    # MetadataUsage (``@VerificationMethod`` annotation serializes as an
+    # owned MetadataUsage, not as an Annotation element).
+    witnesses: set[str] = set()
+    owner = by_id.get(owner_id)
+    if owner is not None:
+        for reference in owner.get("ownedRelationship") or []:
+            relationship = by_id.get(element_id(reference) or "")
+            if relationship is None:
+                continue
+            if not str(relationship.get("@type") or "").endswith("Membership"):
+                continue
+            member = element_id(relationship.get("memberElement"))
+            member_element = by_id.get(member or "")
+            if member_element is not None and str(
+                member_element.get("@type")
+            ) == "MetadataUsage":
+                witnesses.add(member)  # type: ignore[arg-type]
     annotation_ids: set[str] = set()
     for element in elements:
-        if str(element.get("@type")) != "MetadataAnnotation":
+        if str(element.get("@type")) not in {"MetadataAnnotation", "Annotation"}:
             continue
         if owner_id in reference_ids(element.get("annotatedElement")):
             member = element_id(element)
             if member:
                 annotation_ids.add(member)
-    witnesses: set[str] = set()
     for element in elements:
         if str(element.get("@type")) != "MetadataUsage":
             continue
@@ -423,10 +446,13 @@ def bind_pilot_usages(
 
 
 def resolution_level_of(explicit: str, element: dict[str, Any]) -> str:
-    """Identity provenance for one resolved element (explicit-id binding)."""
-    short = str(
-        element.get("declaredShortName") or element.get("shortName") or ""
-    )
+    """Identity provenance for one resolved element (explicit-id binding).
+
+    Only AUTHORED identity counts: ``declaredShortName`` (plus alias ids).
+    Resolved ``shortName``/``name`` values on implied elements are not
+    explicit-identity provenance.
+    """
+    short = str(element.get("declaredShortName") or "")
     if explicit == short:
         return "stable-explicit-id"
     if explicit in {str(alias) for alias in element.get("aliasIds", [])}:

@@ -29,7 +29,7 @@ from de4sdv.sysml_api.client import ApiClient
 from urllib.parse import unquote
 
 from de4sdv.semantic.relationships import build_relationship_graph
-from de4sdv.sysml_api.repository import SysMLRepository
+from de4sdv.sysml_api.repository import SysMLRepository, reference_ids
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 PILOT_SCOPE_USAGES = (
@@ -97,16 +97,83 @@ def main() -> int:
         """
         return json.dumps(attr.get("ownedElement", []), sort_keys=True)
 
-    # Library grounding anchors: resolve the pinned Systems Model Library
-    # elements by their declared names (they are library constants of the
-    # pinned toolchain, resolved inside the validated import closure).
-    by_id_library = {
-        str(element.get("declaredName") or ""): str(element.get("@id"))
-        for element in elements
-        if str(element.get("@type")) in {"Class", "Structure", "Package"}
-        and str(element.get("declaredName") or "")
-        in {"VerificationCase", "verificationCases"}
-    }
+    def _membership_member(parent: dict, member_name: str) -> str | None:
+        """Owned member of ``parent`` by ``memberName`` (serializer's real
+        shape: the element owns a Membership whose memberElement is the
+        member, e.g. FeatureMembership(memberName="incrementId"))."""
+        for reference in parent.get("ownedRelationship") or []:
+            relationship = elements_by_id.get(str((reference or {}).get("@id") or ""))
+            if relationship is None:
+                continue
+            if not str(relationship.get("@type") or "").endswith("Membership"):
+                continue
+            name = str(
+                relationship.get("memberName")
+                or relationship.get("declaredName")
+                or ""
+            )
+            if name != member_name:
+                continue
+            member = relationship.get("memberElement")
+            member_id = str(member.get("@id") if isinstance(member, dict) else "") or None
+            if member_id:
+                return member_id
+        return None
+
+    def _value_text(value_id: str) -> str | None:
+        """Text of a serialized value element.
+
+        Literal values return their text ("true"/"false" for booleans);
+        feature/enumeration references (FeatureReferenceExpression, e.g.
+        ``MethodPhase::phase10_vvEvidence``) resolve to the referenced
+        element's declared name."""
+        element = elements_by_id.get(value_id)
+        if element is None:
+            return None
+        kind = str(element.get("@type") or "")
+        if kind.startswith("Literal"):
+            value = element.get("value")
+            if value is None:
+                return None
+            if isinstance(value, bool):
+                return "true" if value else "false"
+            return str(value)
+        if kind == "FeatureReferenceExpression":
+            for reference in element.get("ownedRelationship") or []:
+                relationship = elements_by_id.get(str((reference or {}).get("@id") or ""))
+                if relationship is None:
+                    continue
+                if not str(relationship.get("@type") or "").endswith("Membership"):
+                    continue
+                member = relationship.get("memberElement")
+                member_id = str(member.get("@id") if isinstance(member, dict) else "") or None
+                target = elements_by_id.get(member_id or "")
+                if target is not None:
+                    name = target.get("declaredName") or target.get("name")
+                    if name:
+                        return str(name)
+        return None
+
+    def _member_value(parent: dict, member_name: str) -> tuple[str | None, str | None]:
+        """(member id, resolved value text) through Membership -> FeatureValue
+        -> literal/reference, the chain the licensed serializer emits."""
+        member_id = _membership_member(parent, member_name)
+        if member_id is None:
+            return None, None
+        feature = elements_by_id.get(member_id) or {}
+        value_target: str | None = None
+        for reference in feature.get("ownedRelationship") or []:
+            relationship = elements_by_id.get(str((reference or {}).get("@id") or ""))
+            if relationship is None:
+                continue
+            if str(relationship.get("@type")) != "FeatureValue":
+                continue
+            member = relationship.get("memberElement") or relationship.get("value")
+            value_target = str(member.get("@id") if isinstance(member, dict) else "") or None
+        if value_target is None:
+            return member_id, None
+        return member_id, _value_text(value_target)
+
     results: dict[str, object] = {
         "schema": "de4sdv-pilot-readback/v1",
         "git_commit": binding.git_commit,
@@ -149,56 +216,49 @@ def main() -> int:
     if bound.completeness != "complete":
         failures.extend(bound.diagnostics)
 
-    # 4. Method metadata owners: usage-level annotations present on each usage.
-    # The serializer records metadata annotations as owned elements; verify
-    # each usage has owned content (the @VerificationMethod annotation).
-    # Exact annotation read-back shape is asserted by the runtime bind above
-    # through the API graph; here we verify the usage elements exist and the
-    # full element listing completed.
+    # 4. Method metadata owners: usage-level @VerificationMethod annotations.
+    # Covered by the binding above (metadata completeness diagnostics).
 
-    # 5. Pilot scope record present WITH actual field values (B-R4).
+    # 5. Pilot scope record present WITH actual field values (B-R4). Values
+    # resolve through the serializer's real chain: scope record -> membership
+    # (memberName) -> attribute usage -> FeatureValue -> literal.
     scope_element = by_short.get(PILOT_SCOPE_RECORD)
     results["scope_record_present"] = scope_element is not None
     if scope_element is None:
         failures.append(f"pilot scope record missing: {PILOT_SCOPE_RECORD}")
     else:
-        attrs = {
-            str(a.get("declaredName") or ""): _attr_text(a)
-            for a in scope_element.get("ownedElement", [])
-            if isinstance(a, dict) and str(a.get("@type", "")).startswith("AttributeUsage")
-        }
-        results["scope_record_fields"] = attrs
-        if "INC-AEBS-009D" not in attrs.get("incrementId", ""):
+        scope_fields: dict[str, str | None] = {}
+        for field_name in ("incrementId", "subjectType"):
+            _, text = _member_value(scope_element, field_name)
+            scope_fields[field_name] = text
+        results["scope_record_fields"] = scope_fields
+        if scope_fields.get("incrementId") != "INC-AEBS-009D":
             failures.append(
-                f"PSC-009D incrementId value wrong/missing: {attrs.get('incrementId', '')[:120]}"
+                f"PSC-009D incrementId value wrong/missing: {scope_fields.get('incrementId')!r}"
             )
-        if "VerificationCaseUsage" not in attrs.get("subjectType", ""):
+        if scope_fields.get("subjectType") != "VerificationCaseUsage":
             failures.append(
-                f"PSC-009D subjectType value wrong/missing: {attrs.get('subjectType', '')[:120]}"
+                f"PSC-009D subjectType value wrong/missing: {scope_fields.get('subjectType')!r}"
             )
 
     # 5b. Model-resident evaluation-scope memberships (B-R5): six
-    # EvaluationScopeMembership item usages referencing the pinned subject ids.
-    memberships = {}
+    # EvaluationScopeMembership item usages carrying PSC-009D + the pinned
+    # subject ids, contributes=false, all resolved from the real value chain.
+    memberships: dict[str, dict[str, str | None]] = {}
     for element in elements:
         if str(element.get("@type")) != "ItemUsage":
             continue
         name = str(element.get("declaredName") or "")
         if not name.startswith("scopeMember"):
             continue
-        attrs = {
-            str(a.get("declaredName") or ""): _attr_text(a)
-            for a in element.get("ownedElement", [])
-            if isinstance(a, dict) and str(a.get("@type", "")).startswith("AttributeUsage")
-        }
-        memberships[name] = attrs
+        member_values: dict[str, str | None] = {}
+        for field_name in ("scopeId", "subjectId", "contributes"):
+            _, text = _member_value(element, field_name)
+            member_values[field_name] = text
+        memberships[name] = member_values
     results["scope_membership_count"] = len(memberships)
     pinned_subjects = {f"VC-AEBS-009D-{i:02d}" for i in range(1, 7)}
-    covered_subjects: set[str] = set()
-    for attrs in memberships.values():
-        for pinned in pinned_subjects:
-            if pinned in attrs.get("subjectId", ""):
-                covered_subjects.add(pinned)
+    covered_subjects = {m.get("subjectId") for m in memberships.values()}
     if len(memberships) != 6:
         failures.append(
             f"expected 6 model-resident evaluation-scope memberships, found {len(memberships)}"
@@ -207,15 +267,22 @@ def main() -> int:
         failures.append(
             f"membership subjects incomplete: {sorted(pinned_subjects - covered_subjects)}"
         )
+    wrong_scope_id = [
+        name for name, values in memberships.items() if values.get("scopeId") != "PSC-009D"
+    ]
+    if wrong_scope_id:
+        failures.append(f"scope memberships with wrong scopeId: {wrong_scope_id}")
     wrong_contributes = [
-        name
-        for name, attrs in memberships.items()
-        if "false" not in attrs.get("contributes", "").lower()
+        name for name, values in memberships.items() if values.get("contributes") != "false"
     ]
     if wrong_contributes:
-        failures.append(f"scope memberships must be reused members (contributes=false): {wrong_contributes}")
+        failures.append(
+            f"scope memberships must be reused members (contributes=false): {wrong_contributes}"
+        )
 
     # 5c. Method-contract obligation instances (B-R6): all eleven PC-009D-*
+    # obligations as model-resident MethodContractObligation items with the
+    # accepted A-spec values, resolved through the real value chain.
     expected_obligation_ids = (
         "PC-009D-SCOPE-POPULATION",
         "PC-009D-VC-BINDING",
@@ -229,46 +296,33 @@ def main() -> int:
         "PC-009D-SCOPE-EQUALITY",
         "PC-009D-ACCEPTANCE-AUTHORITY",
     )
-    # obligations instantiated as model-resident MethodContractObligation items.
-    obligations: dict[str, dict] = {}
+    obligations: dict[str, dict[str, str | None]] = {}
     for element in elements:
         if str(element.get("@type")) != "ItemUsage":
             continue
         name = str(element.get("declaredName") or "")
-        if name.startswith("obligation"):
-            attrs = {
-                str(a.get("declaredName") or ""): _attr_text(a)
-                for a in element.get("ownedElement", [])
-                if isinstance(a, dict) and str(a.get("@type", "")).startswith("AttributeUsage")
-            }
-            oid = name
-            for candidate in expected_obligation_ids:
-                if candidate in attrs.get("obligationId", ""):
-                    oid = candidate
-                    break
-            obligations[oid] = attrs
+        if not name.startswith("obligation"):
+            continue
+        values: dict[str, str | None] = {}
+        for field_name in ("obligationId", "required", "phase"):
+            _, text = _member_value(element, field_name)
+            values[field_name] = text
+        obligations[name] = values
     results["model_obligation_count"] = len(obligations)
-    expected_obligations = {
-        "PC-009D-SCOPE-POPULATION",
-        "PC-009D-VC-BINDING",
-        "PC-009D-SUBJECT-MEMBERSHIP",
-        "PC-009D-OBJECTIVE-CONTRACTS",
-        "PC-009D-USAGE-METHOD-METADATA",
-        "PC-009D-DEFINITION-METHOD-METADATA",
-        "PC-009D-PROFILE-POPULATION",
-        "PC-009D-EXECUTION-RECORD",
-        "PC-009D-EXECUTION-OUTCOME",
-        "PC-009D-SCOPE-EQUALITY",
-        "PC-009D-ACCEPTANCE-AUTHORITY",
-    }
-    missing_obligations = sorted(expected_obligations - set(obligations))
+    found_obligation_ids = {values.get("obligationId") for values in obligations.values()}
+    missing_obligations = sorted(set(expected_obligation_ids) - found_obligation_ids)
     if missing_obligations:
         failures.append(f"model-resident obligations missing: {missing_obligations}")
-    # Requiredness + phase pinned on every obligation (spot integrity).
-    for oid, attrs in obligations.items():
-        if "true" not in attrs.get("required", "").lower():
+    unexpected_obligations = sorted(found_obligation_ids - set(expected_obligation_ids))
+    if unexpected_obligations:
+        failures.append(
+            f"unexpected model-resident obligation ids: {unexpected_obligations}"
+        )
+    for name, values in obligations.items():
+        oid = values.get("obligationId") or name
+        if values.get("required") != "true":
             failures.append(f"{oid}: required is not true in the model")
-        if "phase10" not in attrs.get("phase", "").lower():
+        if "phase10" not in (values.get("phase") or ""):
             failures.append(f"{oid}: phase not pinned to phase10_vvEvidence")
 
     # 6. v1.1 library grounding from the validated closure. The licensed
@@ -284,12 +338,18 @@ def main() -> int:
     # grounding; any missing edge, missing anchor or wrong target id fails
     # closed.
     anchors: dict[str, str] = {}
+    external_references: list[dict] = []
     if args.export is not None and args.export.is_file():
         export_artifact = json.loads(args.export.read_text(encoding="utf-8"))
         anchors = {
             str(key): str(value)
             for key, value in (export_artifact.get("library_anchors") or {}).items()
         }
+        external_references = [
+            reference
+            for reference in (export_artifact.get("external_references") or [])
+            if isinstance(reference, dict)
+        ]
     else:
         failures.append(
             "export artifact is required for the grounding proof "
@@ -307,16 +367,75 @@ def main() -> int:
     graph = build_relationship_graph(elements)
     results["relationship_families_seen"] = graph.families_seen
 
-    def _implied_hop(source_id, kind_prefix, target_id):
-        for hop in graph.outgoing(source_id):
-            if not hop.kind.startswith(kind_prefix):
+    def _implied_grounding(
+        source_id: str,
+        kinds: tuple[str, ...],
+        specific_keys: tuple[str, ...],
+        target_keys: tuple[str, ...],
+        anchor_id: str,
+    ) -> dict | None:
+        """Toolchain-materialized implied grounding from ``source_id`` to the
+        library anchor, from either real serialized shape:
+
+        - inline target reference (the relationship carries the target id and
+          an ``@uri``), or
+        - split out-of-bundle reference: the relationship carries only its
+          specific end, while the export artifact records the target in
+          ``external_references`` (property_path general/superclassifier/
+          subsettedFeature + target_id + uri) — the shape the reviewed
+          exporter produces for references into the pinned libraries.
+
+        The witness must be marked ``isImplied``; a missing witness, wrong
+        target id, or a uri outside VerificationCases.sysml fails closed.
+        """
+        for element in elements:
+            if str(element.get("@type")) not in kinds:
                 continue
-            if hop.target != target_id or not hop.is_implied:
+            if element.get("isImplied") is not True:
                 continue
-            uri = unquote(hop.target_uri or "")
-            if "VerificationCases.sysml" not in uri:
+            specific: set[str] = set()
+            for key in specific_keys:
+                specific.update(reference_ids(element.get(key)))
+            if source_id not in specific:
                 continue
-            return hop
+            witness_id = str(element.get("@id") or "")
+            # route 1: inline target with @uri
+            for key in target_keys:
+                value = element.get(key)
+                for item in (value if isinstance(value, list) else [value]):
+                    if not isinstance(item, dict):
+                        continue
+                    if str(item.get("@id") or "") != anchor_id:
+                        continue
+                    uri = unquote(str(item.get("@uri") or ""))
+                    if "VerificationCases.sysml" in uri:
+                        return {
+                            "witness_id": witness_id,
+                            "target": anchor_id,
+                            "uri": uri,
+                            "mechanism": "inline-reference",
+                            "provenance": "implied",
+                        }
+            # route 2: split out-of-bundle reference in the export artifact
+            for reference in external_references:
+                if str(reference.get("source_element_id") or "") != witness_id:
+                    continue
+                if str(reference.get("target_id") or "") != anchor_id:
+                    continue
+                path = str(reference.get("property_path") or "")
+                if path not in (*target_keys, "general", "superclassifier", "subsettedFeature", "type"):
+                    continue
+                uri = unquote(str(reference.get("uri") or ""))
+                if "VerificationCases.sysml" not in uri:
+                    continue
+                return {
+                    "witness_id": witness_id,
+                    "target": anchor_id,
+                    "uri": uri,
+                    "property_path": path,
+                    "mechanism": "external-reference",
+                    "provenance": "implied",
+                }
         return None
 
     definition_element = by_short.get(PILOT_DEFINITION)
@@ -336,16 +455,22 @@ def main() -> int:
             "expected 'VerificationCaseDefinition'"
         )
     elif anchor_definition:
-        hop = _implied_hop(definition_id, "Subclassification", anchor_definition)
-        if hop is None:
+        grounding = _implied_grounding(
+            definition_id,
+            ("Subclassification",),
+            ("subclassifier", "specific", "owningRelatedElement"),
+            ("general", "superclassifier"),
+            anchor_definition,
+        )
+        if grounding is None:
             definition_problems.append(
                 f"{PILOT_DEFINITION}: no toolchain-materialized implied "
                 "Subclassification to VerificationCases::VerificationCase "
                 f"(anchor id {anchor_definition})"
             )
         else:
-            definition_closure["grounding"] = hop.to_dict()
-            definition_closure["provenance"] = hop.provenance
+            definition_closure["grounding"] = grounding
+            definition_closure["provenance"] = "implied"
     definition_closure["diagnostics"] = definition_problems
     if definition_problems:
         failures.extend(f"definition grounding: {problem}" for problem in definition_problems)
@@ -389,16 +514,22 @@ def main() -> int:
                         f"{usage_short}: no FeatureTyping witness to {PILOT_DEFINITION}"
                     )
             if usage_id and anchor_usage_set:
-                hop = _implied_hop(usage_id, "Subsetting", anchor_usage_set)
-                if hop is None:
+                grounding = _implied_grounding(
+                    usage_id,
+                    ("Subsetting",),
+                    ("subsettingFeature", "specific", "owningRelatedElement"),
+                    ("subsettedFeature", "general"),
+                    anchor_usage_set,
+                )
+                if grounding is None:
                     problems.append(
                         f"{usage_short}: no toolchain-materialized implied Subsetting "
                         "to VerificationCases::verificationCases "
                         f"(anchor id {anchor_usage_set})"
                     )
                 else:
-                    entry["library_grounding_witness"] = hop.to_dict()
-                    entry["library_grounding_provenance"] = hop.provenance
+                    entry["library_grounding_witness"] = grounding
+                    entry["library_grounding_provenance"] = "implied"
         entry["diagnostics"] = problems
         if not problems:
             entry["completeness"] = "complete"
