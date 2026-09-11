@@ -3,6 +3,11 @@
  "revision": 2,
  "edition": "review-correction-pass-1",
  "status": "phase-1-review-draft",
+ "superseded_by": {
+  "artifact": "docs/method-conformance/o1/semantic-authority-inventory.json",
+  "generated_by": "scripts/generate_semantic_authority_inventory.py",
+  "note": "Retained as the Phase-1 review record only. The generated canonical inventory (O1 Wave 0a) supersedes this draft as the migration inventory; this file is historical review evidence, is not an input to the generator, and is never runtime authority."
+ },
  "warning": "Phase-1 analysis draft for independent review; NOT a generated artifact of a reviewed generator; NOT a runtime input. Reviewed-layer fields are governance/migration metadata only and must never become runtime semantic authority.",
  "base_sha": "e99f46d0455376815859aa4afeb1812e3463690f",
  "branch": "feat/o1-semantic-authority-inventory",

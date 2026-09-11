@@ -1,0 +1,1728 @@
+schema: de4sdv.semantic-authority-reviews/v1
+status: reviewed-decisions layer
+warning: Governance/migration metadata for the O1 Semantic Authority Inventory. This dataset is reviewed
+  through pull requests and is NEVER runtime semantic authority; the runtime does not read it. Authority
+  and evidence are separate dimensions; targets are never proof; conditional targets carry their gate
+  and are not current authority.
+dimensions:
+  authority_source:
+  - model-authoritative
+  - native-sysml
+  - native-kerml
+  - accepted-library-grounded
+  - de4sdv-application-semantic
+  - external-reference
+  - legacy-yaml
+  - unknown
+  evidence_state:
+  - proposed
+  - repository-evidenced
+  - parity-reviewed
+  - exact-toolchain-validated
+  - privileged-closure-proven
+  - blocked
+  - unknown
+  adoption_status:
+  - accepted
+  - pinned-not-adopted
+  - candidate
+  - rejected
+  - not-applicable
+entries:
+  EngineeringIncrement:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  FeatureIncrement:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  NeedsRequirementsIncrement:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  IncrementEngineeringQuestion:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  IncrementLifecycleDecision:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  IncrementTraceabilityShell:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  MethodPhase:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Enum literals carry per-phase docs in the model; YAML summary; conformance consumers reference
+      phases. Declaration + doc model-resident; reviewed definition text still YAML-established; parity
+      not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  SignalMappingDisposition:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Enum literal docs resident. Declaration + doc model-resident; reviewed definition text still
+      YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  LogicalToSoftwareSignalMappingRecord:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Attribute-level docs resident. Declaration + doc model-resident; reviewed definition text still
+      YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  SystemToSoftwareSignalMappingCandidate:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: Allocation def with non-claiming doc; allocation realization semantics unresolved. Declaration
+      + doc model-resident; reviewed definition text still YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  IncrementSize:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  SystemLayer:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  ProductLine:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  MemberProduct:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Kernel declaration ProductLineMemberProduct; specialization lineage consumed by the hasRelevantArchitecture
+      exclusion. Declaration + doc model-resident; reviewed definition text still YAML-established; parity
+      not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  Feature:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: ISO 26580 rule carried by specialization structure + R001 review. Declaration + doc model-resident;
+      reviewed definition text still YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  ProductLineCharacteristic:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  CommonCapability:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  DeferredProductLineScope:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  VariationPoint:
+    authority_current: native-sysml
+    authority_target: native-sysml
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: O2+ (parity pointer)
+    note: Native SysML variation definition/usage. YAML row is a vocabulary pointer; representation/usage
+      conventions remain method context.
+    unknowns: []
+    required_evidence:
+    - exact-fit + standard-construct grounding record at a bound revision
+    exact_fit_decision: 'retained: native variation construct carries the concept; do not model as a part
+      taxonomy.'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  Variant:
+    authority_current: native-sysml
+    authority_target: native-sysml
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: O2+ (parity pointer)
+    note: Native variant usage. YAML row is a vocabulary pointer; representation/usage conventions remain
+      method context.
+    unknowns: []
+    required_evidence:
+    - exact-fit + standard-construct grounding record at a bound revision
+    exact_fit_decision: 'retained: native variant usage owned by a variation point.'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  FeatureConfiguration:
+    authority_current: external-reference
+    authority_target: accepted-library-grounded
+    evidence_state: blocked
+    adoption_status: pinned-not-adopted
+    transition_gate: PLE-R -> PLE-Q -> PLE-S -> PLE-A
+    conditional_target: true
+    disposition: retain-explicit-external-boundary
+    confidence: high
+    stage: PLE
+    note: Bill-of-Features YAML under model-based-product-line-engineering/; operational authority until
+      an authorized PLE cutover; PLEML target is conditional on adoption (do not count as adopted).
+    unknowns: []
+    required_evidence:
+    - PLE-Q/S qualification + authorized PLE-A adoption before any library-grounded claim
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  Stakeholder:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: candidate
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Roles source-backed from the GfSE SAF stakeholder library (re-declared as part defs; Apache-2.0;
+      see saf-source.yaml); adoption/publication disposition for that source is not recorded - flagged.
+    unknowns:
+    - Adoption/publication disposition of the GfSE SAF stakeholder source (upstream-involvement question).
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    - GfSE SAF source adoption disposition
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  Concern:
+    authority_current: native-sysml
+    authority_target: native-sysml
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: O2+ (parity pointer)
+    note: Native concern def/usage; SAF viewpoint selections in kernel. YAML row is a vocabulary pointer;
+      representation/usage conventions remain method context.
+    unknowns: []
+    required_evidence:
+    - exact-fit + standard-construct grounding record at a bound revision
+    exact_fit_decision: 'retained: SysML concern construct carries the stakeholder-interest requirement
+      meaning; DE4SDV viewpoints are method framing, not redefinition.'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  Need:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: StakeholderNeedCandidate requirement def; ODE4HERA attribute set via ADR 0009; consumed by K
+      lineage and R003. Declaration + doc model-resident; reviewed definition text still YAML-established;
+      parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  Requirement:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: RequirementCandidate requirement def; SYSMOD seam + ODE4HERA attrs; consumed by impact/K. Declaration
+      + doc model-resident; reviewed definition text still YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  ProblemStatement:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: R003 exclusion grounding (traced into, not out of). Declaration + doc model-resident; reviewed
+      definition text still YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  ArchitectureDecisionRecord:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: R003 origin grounding. Declaration + doc model-resident; reviewed definition text still YAML-established;
+      parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  RegulatoryConstraint:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: R003 origin grounding; no-compliance-claim boundary must stay model-carried. Declaration + doc
+      model-resident; reviewed definition text still YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  ArchitectureElement:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: O2+ (design decision)
+    note: Umbrella over native part/port/behavior definitions used in architecture slices. No model-resident
+      definition home exists yet; reviewed decision needed on where the umbrella definition lives.
+    unknowns:
+    - Model-resident home for umbrella vocabulary undecided.
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  Function:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: O2+ (design decision)
+    note: Umbrella over native action/state/behavior definitions in functional-architecture slices. No
+      model-resident definition home exists yet; reviewed decision needed on where the umbrella definition
+      lives.
+    unknowns:
+    - Model-resident home for umbrella vocabulary undecided.
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  LogicalElement:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: O2+ (design decision)
+    note: Umbrella over native part defs in logical-architecture slices. No model-resident definition
+      home exists yet; reviewed decision needed on where the umbrella definition lives.
+    unknowns:
+    - Model-resident home for umbrella vocabulary undecided.
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  PhysicalElement:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: O2+ (design decision)
+    note: Umbrella over native part defs in physical/software realization slices. No model-resident definition
+      home exists yet; reviewed decision needed on where the umbrella definition lives.
+    unknowns:
+    - Model-resident home for umbrella vocabulary undecided.
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  Interface:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: O2+ (design decision)
+    note: Umbrella over native port defs and connection elements. No model-resident definition home exists
+      yet; reviewed decision needed on where the umbrella definition lives.
+    unknowns:
+    - Model-resident home for umbrella vocabulary undecided.
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  Scenario:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: 'RECLASSIFIED from native-sysml: operational-context parts + scenario-identity enums are representation,
+      not native "Scenario" semantics; meaning established by the DE4SDV definition.'
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: 'not exact-fit native: no native SysML concept named Scenario; representation
+      primitives only.'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  VerificationCase:
+    authority_current: native-sysml
+    authority_target: native-sysml
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: c2
+    note: Native verification case; plan Section 10 requires standard Systems Model Library grounding
+      (VerificationCases::VerificationCase / verificationCases) before stronger claims.
+    unknowns: []
+    required_evidence:
+    - standard-library grounding witness for a real verification case (UG-28)
+    exact_fit_decision: 'retained: SysML verification case is a native construct; DE4SDV use adds no competing
+      semantics.'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  ValidationScenario:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: O2+
+    note: 'RECLASSIFIED from native-sysml: scenario parts with bounded outcomes are representation; no
+      native/library validation semantics established (see validatedBy/validatesFitnessForUse unknowns).'
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: 'not exact-fit native: no native validation-scenario construct identified.'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  VerificationMethod:
+    authority_current: accepted-library-grounded
+    authority_target: accepted-library-grounded
+    evidence_state: repository-evidenced
+    adoption_status: accepted
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: O2+ (parity)
+    note: ODE4HERA requirements-management library verificationMethod attribute populated with standard
+      VerificationMethodKind values (ADR 0009 amendment).
+    unknowns: []
+    required_evidence:
+    - ADR 0009 grounding record (upstream attribute + standard method-kind vocabulary)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  AcceptanceCriterion:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: Kernel mapping points at MiddlewareAcceptanceCriterion in a feature slice (cross-slice mapping);
+      decide kernel promotion vs retained slice mapping.
+    unknowns:
+    - Should the reusable declaration move to the method kernel, or remain a governed cross-slice mapping?
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  EvidenceArtifact:
+    authority_current: external-reference
+    authority_target: external-reference
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: retain-explicit-external-boundary
+    confidence: high
+    stage: T/E
+    note: Evidence registers and retained-evidence items; plan Section 10/12 evidence-reference modeling
+      pending.
+    unknowns:
+    - Model-resident execution/reference semantics design (T/E lane)
+    required_evidence:
+    - T/E evidence-reference design (boundary retained until reviewed)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  EvidenceContract:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: 'RECLASSIFIED from native-sysml: "Requirement usages associated with verification cases" is
+      representation; the bounded-observations contract is a DE4SDV method concept.'
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: 'not exact-fit native: requirement-usage association does not establish native
+      EvidenceContract semantics.'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  EvidenceStatus:
+    authority_current: accepted-library-grounded
+    authority_target: accepted-library-grounded
+    evidence_state: repository-evidenced
+    adoption_status: accepted
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: O2+ (parity)
+    note: ODE4HERA VVStatus via the method-context adapter; no parallel status vocabulary.
+    unknowns: []
+    required_evidence:
+    - ADR 0009 grounding record (VVStatus via method-context adapter)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  Assumption:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  Gap:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: IncrementGap; "must not be hidden" boundary. Declaration + doc model-resident; reviewed definition
+      text still YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  MissingRealizationRecord:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  BlockedRealizationBranchRecord:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  AssuranceClaim:
+    authority_current: unknown
+    authority_target: unknown
+    evidence_state: unknown
+    adoption_status: not-applicable
+    transition_gate: grounding inspection
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: O2+
+    note: YAML claims "Claim usages framed by the argumentation-assurance viewpoint"; no standard argumentation
+      construct identified; mechanism evidence absent.
+    unknowns:
+    - Native construct, accepted library, or required DE4SDV application definition?
+    required_evidence:
+    - grounding inspection before any authority claim
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  Viewpoint:
+    authority_current: native-sysml
+    authority_target: native-sysml
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: O2+ (parity pointer)
+    note: Native viewpoint def; selections in DE4SDV_MethodViewpoints + SAF_Viewpoints. YAML row is a
+      vocabulary pointer; representation/usage conventions remain method context.
+    unknowns: []
+    required_evidence:
+    - exact-fit + standard-construct grounding record at a bound revision
+    exact_fit_decision: 'retained: SysML viewpoint construct (conventions/expected content for views).'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  View:
+    authority_current: native-sysml
+    authority_target: native-sysml
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: O2+ (parity pointer)
+    note: Native view. YAML row is a vocabulary pointer; representation/usage conventions remain method
+      context.
+    unknowns: []
+    required_evidence:
+    - exact-fit + standard-construct grounding record at a bound revision
+    exact_fit_decision: 'retained: SysML view construct (representation produced per viewpoint).'
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  TraceLink:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
+      yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  RequiredTraceChain:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: Chain vocabulary used in review; no executable chain validation. Declaration + doc model-resident;
+      reviewed definition text still YAML-established; parity not yet reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  Baseline:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: DE4SDVEvidenceBaseline; "review/evidence baseline without implying accepted evidence" boundary.
+      Declaration + doc model-resident; reviewed definition text still YAML-established; parity not yet
+      reviewed.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  MethodContractObligation:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: c1 (conformance batch)
+    note: Model carries attribute-level schema docs (richer than YAML); schema intent model-resident.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  EvaluationSourceKind:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: c1 (conformance batch)
+    note: Enum literal docs model-resident.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  MethodEvaluationScope:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: c1 (conformance batch)
+    note: Scope binding semantics model-resident; R0 baseline Section 6 lineage.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  EvaluationScopeMembership:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: c1 (conformance batch)
+    note: contributes-flag semantics model-resident.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  TestedScopeDeclaration:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: c1 (conformance batch)
+    note: Conservative scope-equality fields model-resident.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  RetainedExecutionRecordReference:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: c1 (conformance batch)
+    note: External bytes + digest reference contract model-resident; no def-level doc (attribute docs).
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  AcceptanceAttestationReference:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: c1 (conformance batch)
+    note: Policy reference boundary model-resident; policy status external.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: review-required
+  DerivesFromNeed:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: privileged-closure-proven
+    adoption_status: rejected
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: K
+    note: DE4SDV application connection definition; typed ends + owned Documentation carry domain/range/roles/strength/boundary.
+      Standard Requirement Derivation library evaluated and deliberately not adopted (originalImpliesDerived
+      overclaims).
+    unknowns: []
+    required_evidence:
+    - explicit reviewed equivalence record (wording differs from the model doc) or model-side definition
+      update; fuzzy similarity is not parity
+    exact_fit_decision: null
+    closure_evidence_ref: r6-3
+    semantic_text_equivalence: review-required
+  addressesConcern:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  hasStakeholder:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  selectedViewpoint:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  producesView:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  derivesNeedFromConcern:
+    authority_current: legacy-yaml
+    authority_target: de4sdv-application-semantic
+    evidence_state: blocked
+    adoption_status: not-applicable
+    transition_gate: concern-usage inventory resolves endpoint semantics
+    conditional_target: true
+    disposition: introduce-minimal-de4sdv-relation
+    confidence: medium
+    stage: c4
+    note: 'Same family as K; Need -> Concern provenance: "the stakeholder need N originates from stakeholder
+      concern C" - provenance only. No exact native requirement-to-concern derivation identified; minimal
+      application connection applies only if concern usages exist to ground the ends.'
+    unknowns:
+    - Does the model contain concern usages that needs can connect to?
+    - Is the origin a concern or a problem statement?
+    required_evidence:
+    - concern-usage model inventory
+    - reviewed claim boundary before any representation
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  derivesRequirementFromNeed:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: privileged-closure-proven
+    adoption_status: rejected
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: K
+    note: Requirement -> Need; inverse traversal over the same witness; YAML row is the O0/O1 parity oracle.
+      Standard Requirement Derivation library evaluated and deliberately not adopted (originalImpliesDerived
+      overclaims).
+    unknowns: []
+    required_evidence: []
+    exact_fit_decision: null
+    closure_evidence_ref: r6-3
+    semantic_text_equivalence: null
+  derivedRequirementsOfNeed:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: privileged-closure-proven
+    adoption_status: rejected
+    transition_gate: null
+    conditional_target: false
+    disposition: keep-as-is
+    confidence: high
+    stage: K
+    note: Forward traversal over the same witness; declares no new model fact. Standard Requirement Derivation
+      library evaluated and deliberately not adopted (originalImpliesDerived overclaims).
+    unknowns: []
+    required_evidence: []
+    exact_fit_decision: null
+    closure_evidence_ref: r6-3
+    semantic_text_equivalence: null
+  constrainedBy:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: Regulatory constraint provenance; R003 family; no executable mapping planned.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  specifiesFeature:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: blocked
+    adoption_status: pinned-not-adopted
+    transition_gate: PLE-R -> PLE-Q -> PLE-S -> PLE-A
+    conditional_target: true
+    disposition: defer
+    confidence: medium
+    stage: PLE
+    note: Product-line relationship; PLEML target is conditional on adoption for the admitted scope; signature/strength
+      decision pending (plan Section 10).
+    unknowns: []
+    required_evidence:
+    - PLE-Q/S qualification + authorized PLE-A adoption
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  specifiesCommonCapability:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: blocked
+    adoption_status: pinned-not-adopted
+    transition_gate: PLE-R -> PLE-Q -> PLE-S -> PLE-A
+    conditional_target: true
+    disposition: defer
+    confidence: medium
+    stage: PLE
+    note: Product-line relationship; PLEML target is conditional on adoption for the admitted scope; signature/strength
+      decision pending (plan Section 10).
+    unknowns: []
+    required_evidence:
+    - PLE-Q/S qualification + authorized PLE-A adoption
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  realizedBy:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: c5
+    note: Allocation facts model-resident; signature frozen (plan Section 10); reviewed semantic-fit (allocation
+      vs realization) required before strength migration.
+    unknowns:
+    - Exact reviewed claim boundary vs native Allocations library semantics
+    required_evidence:
+    - reviewed allocation-vs-realization boundary decision (UG-04)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  specifiesFunction:
+    authority_current: legacy-yaml
+    authority_target: de4sdv-application-semantic
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: c5
+    note: Relevance only over generic Dependency with typed endpoint filters; endpoint types alone never
+      establish stronger meaning (UG-05).
+    unknowns: []
+    required_evidence:
+    - reviewed relevance claim boundary + UG-05 negative tests
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  hasRelevantArchitecture:
+    authority_current: legacy-yaml
+    authority_target: de4sdv-application-semantic
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: c5
+    note: Incoming dependency relevance with MemberProduct-lineage source exclusion (application semantics
+      currently in YAML config + code).
+    unknowns: []
+    required_evidence:
+    - reviewed exclusion semantics + negative tests
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  allocatedTo:
+    authority_current: legacy-yaml
+    authority_target: unknown
+    evidence_state: blocked
+    adoption_status: not-applicable
+    transition_gate: native-allocation proof
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: T/E
+    note: Function -> LogicalElement; native allocation ends proof required; collision risk with the frozen
+      realizedBy signature (plan Section 10).
+    unknowns:
+    - Native allocation ends + exact types before advertising support
+    required_evidence:
+    - native allocation representation proof
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  deployedTo:
+    authority_current: legacy-yaml
+    authority_target: unknown
+    evidence_state: blocked
+    adoption_status: not-applicable
+    transition_gate: signature decision
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: T/E
+    note: LogicalElement -> PhysicalElement; realization vs software-deployment distinction unresolved.
+    unknowns:
+    - Migrate signature vs distinct reviewed predicate
+    required_evidence:
+    - signature decision (plan Section 10)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  verifiedBy:
+    authority_current: legacy-yaml
+    authority_target: native-sysml
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: c2
+    note: Native RequirementVerificationMembership reverse traversal; verification-objective semantics;
+      coverage is not execution success; plan Section 10 library grounding required.
+    unknowns: []
+    required_evidence:
+    - standard-library grounding + preserved subject/objective witnesses (plan Section 10)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  usesVerificationMethod:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: repository-evidenced
+    adoption_status: accepted
+    transition_gate: null
+    conditional_target: false
+    disposition: adopt-accepted-library-relation
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: Method carried natively by VerificationMethod metadata with standard method-kind vocabulary
+      (ADR 0009 amendment).
+    unknowns: []
+    required_evidence:
+    - 'grounding record: relationship vs native metadata attribute decision'
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  hasAcceptanceCriterion:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: Verification-case objective/criterion vocabulary; consider native verification objective representation
+      during verification-family work.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  validatedBy:
+    authority_current: legacy-yaml
+    authority_target: unknown
+    evidence_state: blocked
+    adoption_status: not-applicable
+    transition_gate: native validation-construct inspection
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: O2+
+    note: Need -> ValidationScenario; native validation construct not yet inspected.
+    unknowns:
+    - Which native or library validation relation (if any) fits fitness-for-use validation semantics?
+    required_evidence:
+    - inspection of SysML v2 validation constructs against the pinned toolchain
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  validatesFitnessForUse:
+    authority_current: legacy-yaml
+    authority_target: unknown
+    evidence_state: blocked
+    adoption_status: not-applicable
+    transition_gate: native validation-construct inspection
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: O2+
+    note: ValidationScenario -> Need; inverse family of validatedBy.
+    unknowns:
+    - Same as validatedBy.
+    required_evidence:
+    - same as validatedBy
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  hasEvidence:
+    authority_current: external-reference
+    authority_target: external-reference
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: retain-explicit-external-boundary
+    confidence: high
+    stage: T/E
+    note: Explicit external boundary (external-data-required); traversal returns nothing by design; model-resident
+      reference semantics only via T/E design.
+    unknowns: []
+    required_evidence:
+    - T/E evidence-reference design (boundary retained until reviewed)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  hasEvidenceStatus:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: repository-evidenced
+    adoption_status: accepted
+    transition_gate: null
+    conditional_target: false
+    disposition: adopt-accepted-library-relation
+    confidence: medium
+    stage: batched-parity (post-0a/0b)
+    note: Connects external evidence artifacts to the ODE4HERA VVStatus vocabulary; status already carried
+      in model slices.
+    unknowns: []
+    required_evidence:
+    - grounding record for the external-to-library vocabulary connection
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  recordsAssumption:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  recordsGap:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: high
+    stage: batched-parity (post-0a/0b)
+    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    unknowns: []
+    required_evidence:
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  supportedByEvidence:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: O2+
+    note: Assurance-claim family; contract migrates with the claim-design decision (see AssuranceClaim).
+    unknowns: []
+    required_evidence:
+    - claim-design decision (AssuranceClaim) before migration
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  appliesToMemberProduct:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: blocked
+    adoption_status: pinned-not-adopted
+    transition_gate: PLE-R -> PLE-Q -> PLE-S -> PLE-A
+    conditional_target: true
+    disposition: defer
+    confidence: medium
+    stage: PLE
+    note: Product-line relationship; PLEML target is conditional on adoption for the admitted scope; signature/strength
+      decision pending (plan Section 10).
+    unknowns: []
+    required_evidence:
+    - PLE-Q/S qualification + authorized PLE-A adoption
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  hasSubject:
+    authority_current: legacy-yaml
+    authority_target: native-sysml
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: c3
+    note: Native SubjectMembership; separate the native subject semantics from the DE4SDV member-product
+      restriction explicitly; do NOT widen beyond declared member-product subjects.
+    unknowns: []
+    required_evidence:
+    - separated native SubjectMembership semantics vs DE4SDV member-product restriction record
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  hasRelevantEvidenceContract:
+    authority_current: legacy-yaml
+    authority_target: de4sdv-application-semantic
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: c5
+    note: Incoming dependency relevance restricted to requirement-usage sources; disjointness with specifiesFunction
+      must stay enforced.
+    unknowns: []
+    required_evidence:
+    - reviewed relevance contract + disjointness tests
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  selectsFeature:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: blocked
+    adoption_status: pinned-not-adopted
+    transition_gate: PLE-R -> PLE-Q -> PLE-S -> PLE-A
+    conditional_target: true
+    disposition: defer
+    confidence: medium
+    stage: PLE
+    note: Product-line relationship; PLEML target is conditional on adoption for the admitted scope; signature/strength
+      decision pending (plan Section 10).
+    unknowns: []
+    required_evidence:
+    - PLE-Q/S qualification + authorized PLE-A adoption
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  instantiatesCanonicalArchitecture:
+    authority_current: legacy-yaml
+    authority_target: unknown
+    evidence_state: blocked
+    adoption_status: not-applicable
+    transition_gate: canonical-usage selector review
+    conditional_target: false
+    disposition: defer
+    confidence: low
+    stage: T/E
+    note: Vocabulary only; requires an explicit canonical-usage selector (no name-based filter).
+    unknowns:
+    - Canonical-usage selector design
+    required_evidence:
+    - selector design + reachability proof
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  includesCommonCapability:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: blocked
+    adoption_status: pinned-not-adopted
+    transition_gate: PLE-R -> PLE-Q -> PLE-S -> PLE-A
+    conditional_target: true
+    disposition: defer
+    confidence: medium
+    stage: PLE
+    note: Product-line relationship; PLEML target is conditional on adoption for the admitted scope; signature/strength
+      decision pending (plan Section 10).
+    unknowns: []
+    required_evidence:
+    - PLE-Q/S qualification + authorized PLE-A adoption
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  variesAt:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: blocked
+    adoption_status: pinned-not-adopted
+    transition_gate: PLE-R -> PLE-Q -> PLE-S -> PLE-A
+    conditional_target: true
+    disposition: defer
+    confidence: medium
+    stage: PLE
+    note: Product-line relationship; PLEML target is conditional on adoption for the admitted scope; signature/strength
+      decision pending (plan Section 10).
+    unknowns: []
+    required_evidence:
+    - PLE-Q/S qualification + authorized PLE-A adoption
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  selectsVariant:
+    authority_current: legacy-yaml
+    authority_target: accepted-library-grounded
+    evidence_state: blocked
+    adoption_status: pinned-not-adopted
+    transition_gate: PLE-R -> PLE-Q -> PLE-S -> PLE-A
+    conditional_target: true
+    disposition: defer
+    confidence: medium
+    stage: PLE
+    note: Product-line relationship; PLEML target is conditional on adoption for the admitted scope; signature/strength
+      decision pending (plan Section 10).
+    unknowns: []
+    required_evidence:
+    - PLE-Q/S qualification + authorized PLE-A adoption
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  capturedInBaseline:
+    authority_current: legacy-yaml
+    authority_target: model-authoritative
+    evidence_state: repository-evidenced
+    adoption_status: not-applicable
+    transition_gate: null
+    conditional_target: false
+    disposition: move-meaning-into-model
+    confidence: medium
+    stage: O2+
+    note: Evidence-to-baseline provenance; T/E evidence design dependent.
+    unknowns: []
+    required_evidence:
+    - T/E evidence-reference design
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+runtime_strategies:
+  verification:
+    classification: unassociated-capability-pending-review
+    note: 'Implemented reverse-reference traversal: candidate elements that reference the source through
+      a configured reference property are returned as hops. No ontology relationship declares this strategy
+      (Phase-1 unassociated runtime capability); pending review — either associate a reviewed ontology
+      mapping or retire the dispatch branch.'
+  property-reference:
+    classification: unassociated-capability-pending-review
+    note: 'Implemented owning-object property traversal: a configured reference property on the owner
+      yields typed target hops. No ontology relationship declares this strategy (Phase-1 unassociated
+      runtime capability); pending review — either associate a reviewed ontology mapping or retire the
+      dispatch branch.'
