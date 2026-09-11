@@ -28,7 +28,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from de4sdv.semantic.method_contract import (
     _generalization_parents,
@@ -47,6 +47,7 @@ from .method_evaluator import (
     DeclaredEvaluationScope,
     EvaluationContext,
     FileSource,
+    ManifestMismatchError,
     MethodContract,
     ObligationSpec,
     RegistryScan,
@@ -59,6 +60,7 @@ from .method_evaluator import (
     SELECTOR_UPSTREAM,
     ScopeEqualityComparison,
     verify_candidate_policy_closure,
+    verify_manifest_identity,
 )
 
 # ---------------------------------------------------------------------------
@@ -1213,6 +1215,104 @@ class PilotAssembly:
     diagnostics: tuple[str, ...]
 
 
+FULL_GIT_SHA = re.compile(r"\A[0-9a-f]{40}\Z")
+
+
+def establish_candidate_identity(
+    *,
+    binding: Mapping[str, Any],
+    export: Mapping[str, Any],
+    requested_revision: str | None = None,
+    relation_probe: Callable[[str, str], str] | None = None,
+) -> tuple[RevisionIdentity | None, tuple[str, ...]]:
+    """Establish ONE exact candidate identity, or fail closed (MC-11).
+
+    The evaluated candidate revision, the validated candidate binding's Git
+    commit, and the candidate export's Git commit must be the same exact Git
+    SHA; the SysML project/commit identity is then bound to that SHA by
+    construction. A selected ``requested_revision`` may only repeat the SHA the
+    binding already carries — it never rebinds a binding onto another commit.
+
+    Missing identity or any divergence refuses the evaluation: binding and
+    integrity mismatches are error/refusal conditions, never PASS, FAIL, or
+    INDETERMINATE outcomes caused by missing engineering evidence.
+
+    ``relation_probe`` may supply a subtree-comparison string purely as
+    diagnostic provenance; it is never authorization to evaluate a different
+    Git revision with the binding's API identity.
+    """
+    binding_git = str(binding.get("git_commit") or "")
+    export_git = str(export.get("git_commit") or "")
+    project_id = str(binding.get("sysml_project_id") or "")
+    commit_id = str(binding.get("sysml_commit_id") or "")
+    selected = str(requested_revision or "")
+
+    missing = [
+        name
+        for name, value in (
+            ("candidate binding git_commit", binding_git),
+            ("candidate export git_commit", export_git),
+            ("candidate binding sysml_project_id", project_id),
+            ("candidate binding sysml_commit_id", commit_id),
+        )
+        if not value
+    ]
+    if missing:
+        return None, tuple(
+            f"missing required revision identity: {name}" for name in missing
+        )
+
+    malformed = [
+        f"{name} {value!r} is not a full 40-character Git SHA"
+        for name, value in (
+            ("candidate binding git_commit", binding_git),
+            ("candidate export git_commit", export_git),
+            ("selected --candidate-revision", selected),
+        )
+        if value and not FULL_GIT_SHA.match(value.lower())
+    ]
+    if malformed:
+        return None, tuple(
+            ["different Git/API identity: refusing the mismatched evaluation"]
+            + malformed
+        )
+
+    mismatches: list[str] = []
+    for label, other in (
+        ("candidate export git_commit", export_git),
+        (
+            "selected --candidate-revision",
+            selected or binding_git,
+        ),
+    ):
+        try:
+            verify_manifest_identity({"git_commit": binding_git}, {"git_commit": other})
+        except ManifestMismatchError as error:
+            mismatches.extend(f"{label} vs candidate binding: {m}" for m in error.mismatches)
+
+    if mismatches:
+        diagnostics = [
+            "different Git/API identity: refusing the mismatched evaluation",
+            *mismatches,
+        ]
+        if relation_probe is not None and export_git != binding_git:
+            diagnostics.append(
+                "subtree relation diagnostic (never authorization to evaluate a "
+                f"different Git revision): {relation_probe(binding_git, export_git)}"
+            )
+        return None, tuple(diagnostics)
+
+    return (
+        RevisionIdentity(
+            git_commit=binding_git,
+            sysml_project_id=project_id,
+            sysml_commit_id=commit_id,
+            scope=str(binding.get("scope") or ""),
+        ),
+        (),
+    )
+
+
 def assemble_pilot_context(
     *,
     approved_contract: MethodContract,
@@ -1360,6 +1460,7 @@ __all__ = [
     "decode_approved_contract",
     "decode_declared_tested_scope",
     "decode_model_obligation_closure",
+    "establish_candidate_identity",
     "load_approved_contract_from_yaml",
     "load_campaign_manifest",
     "load_records",

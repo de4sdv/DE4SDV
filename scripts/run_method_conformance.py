@@ -15,8 +15,14 @@ Usage:
         --candidate-binding /path/de4sdv-candidate-binding.json \
         --output /path/disposition.json
 
-Exit codes: 0 evaluation produced; 2 refused (policy-closure mismatch or
-unsupported input), never a fabricated green result.
+Exit codes: 0 evaluation produced; 2 refused (identity mismatch, policy-closure
+mismatch, or unsupported input), never a fabricated green result.
+
+Identity discipline (MC-11): the evaluated candidate revision, the validated
+candidate binding's Git commit, and the candidate export's Git commit must be
+the same exact Git SHA, established before any evaluation context is assembled.
+A missing or divergent identity refuses the run; Git-identical subtrees are
+diagnostic provenance only and never authorize a mixed-revision evaluation.
 """
 
 from __future__ import annotations
@@ -32,10 +38,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from de4sdv.semantic.method_evaluator import (  # noqa: E402
+    BINDING_MISMATCH,
     ApprovedMethodSelection,
     MethodConformanceService,
     ReadinessTarget,
-    RevisionIdentity,
 )
 from de4sdv.semantic.method_pilot import (  # noqa: E402
     BENCH_ROOT,
@@ -52,7 +58,12 @@ def main() -> int:
     parser.add_argument(
         "--candidate-revision",
         default=None,
-        help="Git revision of the evaluated candidate (default: binding git_commit)",
+        help=(
+            "Optional selection of the evaluated candidate; it must repeat the "
+            "exact Git SHA already carried by the validated candidate binding "
+            "and export (default: that SHA). It never rebinds the binding's API "
+            "identity onto another Git commit."
+        ),
     )
     parser.add_argument(
         "--spec",
@@ -73,6 +84,59 @@ def main() -> int:
     )
 
 
+def _subtree_relation(repo: Path, left: str, right: str) -> str:
+    """Subtree comparison between two Git revisions (diagnostic only).
+
+    Never authorization to evaluate a different Git revision with the binding's
+    API identity: it exists to make a refusal actionable, not to permit it.
+    """
+    probe = subprocess.run(
+        [
+            "git", "-C", str(repo), "diff", "--stat", left, right,
+            "--", "textual-notation-of-model", BENCH_ROOT,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if probe.returncode != 0:
+        return f"cannot compare {left}..{right}: {probe.stderr.strip()}"
+    diff_lines = [line for line in probe.stdout.splitlines() if line.strip()]
+    return "subtree-identical" if not diff_lines else f"SUBTREE-DIFFERS: {diff_lines}"
+
+
+def _main_head(repo: Path) -> tuple[str, str]:
+    """The authoritative main ref and its commit, preferring ``origin/main``."""
+    for ref in ("origin/main", "main"):
+        probe = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "--verify", f"{ref}^{{commit}}"],
+            capture_output=True,
+            text=True,
+        )
+        if probe.returncode == 0 and probe.stdout.strip():
+            return ref, probe.stdout.strip()
+    return "", ""
+
+
+def _relation_to_main(repo: Path, revision: str, ref: str, main_head: str) -> str:
+    if not main_head:
+        return "unknown (no main ref in this checkout)"
+    if revision == main_head:
+        return f"is-{ref}@{main_head}"
+    probe = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", revision, main_head],
+        capture_output=True,
+        text=True,
+    )
+    if probe.returncode == 0:
+        return (
+            f"git-ancestor-of-{ref}@{main_head} (the candidate content is merged, "
+            "but the evaluated identity is the candidate revision itself)"
+        )
+    if probe.returncode == 1:
+        return f"not-an-ancestor-of-{ref}@{main_head}"
+    return "unknown"
+
+
 def run(
     *,
     repo: Path,
@@ -85,43 +149,59 @@ def run(
     from de4sdv.semantic import method_pilot as mp
 
     binding = json.loads(candidate_binding.read_text())
-    revision = candidate_revision or str(binding["git_commit"])
+    export = json.loads(candidate_export.read_text())
+    elements = export.get("elements") or []
+
+    # MC-11: establish one exact candidate identity BEFORE assembling any
+    # evaluation context. The evaluated revision, the validated candidate
+    # binding's Git commit, and the candidate export's Git commit must be the
+    # same exact SHA; anything else refuses fail-closed instead of borrowing a
+    # binding's SysML project/commit identity for another Git revision.
+    identity, identity_diagnostics = mp.establish_candidate_identity(
+        binding=binding,
+        export=export,
+        requested_revision=candidate_revision,
+        relation_probe=lambda left, right: _subtree_relation(repo, left, right),
+    )
+    report: dict[str, object] = {
+        "schema": "de4sdv-method-conformance-run/v1",
+        "candidate_binding_revision": str(binding.get("git_commit") or ""),
+        "candidate_export_revision": str(export.get("git_commit") or ""),
+        "element_count": len(elements),
+    }
+    if identity is None:
+        report["status"] = "refused-identity-mismatch"
+        report["reason_codes"] = [BINDING_MISMATCH]
+        report["diagnostics"] = list(identity_diagnostics)
+        report["claim_boundary"] = (
+            "binding/integrity refusal: no evaluation was performed, so no "
+            "conformance verdict, evaluation state, or readiness result exists; "
+            "this is not an engineering-evidence outcome"
+        )
+        _emit(report, output)
+        print(json.dumps(report, indent=2))
+        return 2
+
+    revision = identity.git_commit
+    main_ref, main_head = _main_head(repo)
+    report["candidate_revision"] = revision
+    report["evaluated_revision"] = {
+        "git_commit": identity.git_commit,
+        "sysml_project_id": identity.sysml_project_id,
+        "sysml_commit_id": identity.sysml_commit_id,
+        "scope": identity.scope,
+    }
+    report["candidate_relation_to_main"] = _relation_to_main(
+        repo, revision, main_ref, main_head
+    )
+    boundary = f"exact validated candidate revision {revision}"
+    if main_head:
+        boundary += f"; this is not an evaluation of {main_ref}@{main_head}"
+    report["claim_boundary"] = boundary
 
     approved = mp.load_approved_contract_from_yaml(
         spec or repo / "docs/method-conformance/pilot-obligations.yaml"
     )
-
-    export = json.loads(candidate_export.read_text())
-    elements = export.get("elements") or []
-    export_revision = str(export.get("git_commit") or "")
-    report: dict[str, object] = {
-        "schema": "de4sdv-method-conformance-run/v1",
-        "candidate_revision": revision,
-        "candidate_export_revision": export_revision,
-        "candidate_binding_revision": str(binding.get("git_commit") or ""),
-        "element_count": len(elements),
-    }
-    # The artifact revision must be the same committed content as the
-    # evaluated revision. When they differ (squash-merge heads), prove the
-    # relevant subtrees are identical.
-    if export_revision and export_revision != revision:
-        probe = subprocess.run(
-            [
-                "git", "-C", str(repo), "diff", "--stat", export_revision, revision,
-                "--", "textual-notation-of-model", BENCH_ROOT,
-            ],
-            capture_output=True,
-            text=True,
-        )
-        if probe.returncode != 0:
-            report["artifact_revision_relation"] = (
-                f"cannot compare {export_revision}..{revision}: {probe.stderr.strip()}"
-            )
-        else:
-            diff_lines = [l for l in probe.stdout.splitlines() if l.strip()]
-            report["artifact_revision_relation"] = (
-                "subtree-identical" if not diff_lines else f"SUBTREE-DIFFERS: {diff_lines}"
-            )
 
     candidate_source = mp.GitRevisionFileSource(repo, revision)
     declared_head_probe = mp.decode_declared_tested_scope(elements)
@@ -175,12 +255,7 @@ def run(
     assembly = mp.assemble_pilot_context(
         approved_contract=approved,
         elements=elements,
-        revision=RevisionIdentity(
-            git_commit=revision,
-            sysml_project_id=str(binding.get("sysml_project_id") or ""),
-            sysml_commit_id=str(binding.get("sysml_commit_id") or ""),
-            scope=str(binding.get("scope") or ""),
-        ),
+        revision=identity,
         candidate_source=candidate_source,
         tested_source=tested_source,
     )
