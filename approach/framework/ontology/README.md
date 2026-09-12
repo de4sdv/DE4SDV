@@ -65,6 +65,8 @@ are not returned by semantic queries:
 | `hasEvidence` | `external` (evidence registers) | external data required |
 | `hasSubject` | `subject-membership` | yes |
 | `hasRelevantEvidenceContract` | `dependency` (incoming, requirement-usage sources) | yes |
+| `derivesRequirementFromNeed` | `derivation-connection` (inverse over the `DerivesFromNeed` witness) | yes |
+| `derivedRequirementsOfNeed` | `derivation-connection` (forward over the same witness) | yes |
 | all other relationships | none declared | no — model/review artifacts |
 
 The two relevance-direction predicates are deliberately disjoint:
@@ -99,18 +101,38 @@ separates the two architecture conditions: `architecture` means neither
 allocation nor reverse relevance exists; `architecture-allocation` means
 relevance dependencies exist while no AllocationUsage allocates the
 requirement — relevance is not allocation. Requirement
-derivation (`derivesRequirementFromNeed`) is model-native and enforced for
-presence by sync point 6 in `scripts/check_model_sync.py` (rule R003): each
-design-input requirement usage must carry at least one outgoing dependency
-whose target resolves — through the model-wide declaration index and
-specialization closure — to a semantic type grounding Need
-(`StakeholderNeedCandidate`), RegulatoryConstraint
-(`RegulatoryConstraintCandidate`), or ArchitectureDecisionRecord
-(`ArchitectureDecisionRecord`). Identifier prefixes are never consulted; the
-origin groundings are declared in the R003 `origin_groundings` block of this
-ontology. Derivation has no API traversal strategy yet; adding one is a
-deliberate schema-mapping change requiring upstream API-shape review, not a
-silent default.
+derivation is one modeled semantic fact: the DE4SDV application connection
+definition `DerivesFromNeed` with typed ends `need : StakeholderNeedCandidate`
+and `derivedRequirement : RequirementCandidate`, whose owned model
+documentation carries the meaning and claim boundary (design-input provenance
+only: no satisfaction, allocation, verification, evidence, or acceptance
+claim). The two query predicates in the coverage table above traverse that
+same connection witness — they are not two independent relationships.
+`derivesRequirementFromNeed` is the canonical query (`Requirement -> Need`,
+inverse over the witness); `derivedRequirementsOfNeed` is the companion
+navigation (`Need -> Requirement`, forward over the same witness). The
+model-native definition is semantic authority for the pair: the typed ends
+carry role/domain/range grounding and the model documentation carries meaning;
+this YAML records the declared mappings and acts as the parity oracle, not as
+the pair's semantic authority. The `derivation-connection` strategy is
+implemented in the runtime and fails closed.
+
+Presence coverage is enforced by sync point 6 in
+`scripts/check_model_sync.py` (rule R003): each design-input requirement usage
+must carry at least one outgoing derivation trace — a `dependency` edge or a
+`DerivesFromNeed` connection witness read as its inverse — whose target
+resolves, through the model-wide declaration index and specialization closure,
+to a semantic type grounding Need (`StakeholderNeedCandidate`),
+RegulatoryConstraint (`RegulatoryConstraintCandidate`), or
+ArchitectureDecisionRecord (`ArchitectureDecisionRecord`). Identifier
+prefixes are never consulted; the origin groundings are declared in the R003
+`origin_groundings` block of this ontology. The standard Requirement
+Derivation Domain Library remains pinned but not adopted for this pair (its
+`originalImpliesDerived` constraint would overclaim the intended
+provenance-only semantics), and no SemanticMetadata workaround is in use.
+Projection support promotion for the pair requires a structured,
+exact-revision closure attestation (see `docs/method-conformance/k-slice/`);
+there is no boolean shortcut.
 
 ### Kernel sync
 
@@ -179,6 +201,12 @@ bound to the native SysML v2 API representation of the reviewed model:
   the verification case is resolved from the membership owner; semantic
   strength `native-verification`.
 - `external` — the authoritative object lives outside the SysML API baseline.
+- `derivation-connection` — the DE4SDV application connection definition
+  `DerivesFromNeed` (typed ends `need : StakeholderNeedCandidate`,
+  `derivedRequirement : RequirementCandidate`) over native connection usages;
+  the canonical query traverses it inversely (`Requirement -> Need`) and the
+  companion query forward (`Need -> Requirement`) over the same witness;
+  semantic strength `derivation`.
 
 These mappings are the explicit contract between DE4SDV concepts and SysML
 semantics. Traversal uses only these declared strategies; there is no

@@ -373,7 +373,9 @@ workflow/run or retained-evidence identity; artifact name and content digest (di
 be explicitly `not recorded` — never fabricated); proof result; closure scope; subject
 and predicate identities. K's R6 #3 is recorded as historical accepted evidence
 (`r6-3`); the K runtime's bare `witness_closure_verified` boolean is **not** treated as
-sufficient evidence in the schema. No new entry is promoted to `supported` in this pass.
+sufficient evidence in the schema — and was removed in O1 Wave 0b in favor of a
+structured, exact-revision closure attestation. No new entry is promoted to `supported`
+in this pass.
 
 ### 9.4 Text-parity rule (review item 5)
 
@@ -484,11 +486,13 @@ internals; **no new generated semantic rows**.
 
 ## 13. Findings (retained; F6/F8 annotated with their corrections)
 
-- **F1 — stale ontology README after K** (fix in Wave 0c).
+- **F1 — stale ontology README after K** (fix in Wave 0c). Status: **closed in Wave 0c**
+  (PR #249 — README repaired against the merged K pair; K-era drift swept).
 - **F2 — YAML mixes semantics and mechanics** in `sysml_mapping` (split per §9).
 - **F3 — R0 inventory supersession** (reconcile + supersede pointer once inventory v1 exists).
 - **F4 — unassociated runtime strategies** (`verification`, `property-reference`).
-- **F5 — K inverse-row parity gap** (fix scoped to Wave 0b, behavior-preserving).
+- **F5 — K inverse-row parity gap** (fix scoped to Wave 0b, behavior-preserving). Status:
+  **closed in Wave 0b** (PR #249 — complete predicate-pair parity, accepted).
 - **F6 — closure evidence not machine-bound** — accepted; corrected by the §9.3
   structured closure-evidence schema; K runtime unchanged in this pass.
 - **F7 — cross-slice `AcceptanceCriterion` mapping** (kernel promotion vs governed
