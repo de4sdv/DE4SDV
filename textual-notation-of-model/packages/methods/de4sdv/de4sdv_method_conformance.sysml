@@ -26,6 +26,9 @@ package DE4SDV_MethodConformance {
   /* Evaluation-source kinds from the frozen baseline Section 7 schema:
      pinned model record | pinned repository artifact | live delivery adapter. */
   enum def EvaluationSourceKind {
+    doc /* The kind of input an obligation reads: a pinned model record, a pinned
+           repository artifact, or a live delivery adapter (outside deterministic
+           V1 evaluation). */
     pinnedModelRecord {
       doc /* The obligation reads a pinned model record at the bound API revision. */
     }
@@ -41,6 +44,13 @@ package DE4SDV_MethodConformance {
      baseline Section 7 schema exactly; status conditions bind to explicit
      allowed-value vocabularies (no example literals such as 'approved'). */
   item def MethodContractObligation {
+    doc /* A typed model-resident method-contract obligation: stable explicit
+           identifier, phase reference, typed subject selector, restricted
+           applicability, population policy, pinned predicate with declared
+           input/output types, target filters, per-subject cardinality bounds,
+           requiredness, evaluation source, optional attestation-policy
+           reference, and exact claim boundary. Model materialization of the
+           frozen baseline Section 7 schema. */
     attribute obligationId : String;
     doc /* Stable explicit identifier; unique in the selected method. */
     attribute phase : MethodPhase;
@@ -73,6 +83,10 @@ package DE4SDV_MethodConformance {
      rationale (frozen baseline Section 6). Contribution set and evaluation
      scope are distinct sets. */
   part def MethodEvaluationScope {
+    doc /* An evaluation scope binding increment identity, eligible subject types,
+           and explicit exclusions. Contribution set and evaluation scope are
+           distinct sets; membership in evaluation scope is a reviewed scope
+           decision, not an inferred impact claim. */
     attribute incrementId : String;
     doc /* Owning increment identifier, e.g. an INC-<SUBJECT>-<SEQ> record identity. */
     attribute subjectType : String;
@@ -84,6 +98,9 @@ package DE4SDV_MethodConformance {
      evaluation scope is a reviewed scope decision, not an inferred impact
      claim. */
   item def EvaluationScopeMembership {
+    doc /* Explicit membership of one subject in an evaluation scope, carrying the
+           contributes flag that separates the contribution set from reused
+           evaluation-scope members. */
     attribute scopeId : String;
     doc /* Stable explicit identifier of the owning scope. */
     attribute subjectId : String;
@@ -95,6 +112,9 @@ package DE4SDV_MethodConformance {
   /* A candidate evaluation declares the tested scope it compares evidence
      against (provenance fingerprint fields from the retained records). */
   item def TestedScopeDeclaration {
+    doc /* A candidate evaluation's declaration of the tested scope it compares
+           retained evidence against: execution head and pinned profile
+           identities (conservative scope-equality inputs). */
     attribute executionHead : String;
     doc /* Full Git SHA the retained execution records were produced at. */
     attribute profileIdentities : String;
@@ -104,6 +124,9 @@ package DE4SDV_MethodConformance {
   /* Reference to one retained execution record: explicit external identity
      with digest and provenance; bytes stay external. */
   item def RetainedExecutionRecordReference {
+    doc /* A model-resident reference to one retained execution record with
+           explicit external identity, artifact path, digest, and run identity;
+           record bytes stay external. */
     attribute recordId : String;
     attribute artifactPath : String;
     attribute sha256 : String;
@@ -114,6 +137,10 @@ package DE4SDV_MethodConformance {
      attributable acceptance decision. Policy status (proposed vs approved)
      is carried by the policy document, not by this reference. */
   item def AcceptanceAttestationReference {
+    doc /* A model-resident reference to the authorization policy and the
+           machine-declared decision-registry location. Policy status (proposed
+           vs approved) is carried by the policy document, not by this reference;
+           a missing registry and a known-empty registry are different states. */
     attribute policyRef : String;
     doc /* Resolvable policy identity; an unresolvable identity is a contract error downstream. */
     attribute decisionRegistryPath : String;

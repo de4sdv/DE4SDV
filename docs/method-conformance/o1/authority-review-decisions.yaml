@@ -140,22 +140,29 @@ entries:
   MethodPhase:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Enum literals carry per-phase docs in the model; YAML summary; conformance consumers reference
-      phases. Declaration + doc model-resident; reviewed definition text still YAML-established; parity
-      not yet reviewed.
+    stage: c1 (conformance batch)
+    note: 'c1 parity-reviewed: enum carries exactly the 13 P0–P12 literals; per-literal
+      docs are member docs and stay member docs. Definition-level doc aligned to the
+      YAML wording (c1 model edit reproduces the YAML-established meaning; YAML remains
+      the O1 authority). Parity is normalized-exact and machine-checked; runtime
+      authority unchanged until O3.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: SysML enum def with exactly the 13 phase literals
+      P0–P12 (phase0_incrementFraming..phase12_baselineNextSlice) carries the enumeration
+      meaning; the conformance plan''s phase-neutral P0–P12 model is represented by the
+      literal set itself; definition-level doc reproduces the YAML definition without
+      added semantics; per-literal docs remain member-level.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   SignalMappingDisposition:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -969,122 +976,198 @@ entries:
   MethodContractObligation:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: Model carries attribute-level schema docs (richer than YAML); schema intent model-resident.
+    note: 'c1 parity-reviewed: item def carries all 15 frozen-baseline Section 7 schema
+      fields as typed attributes; per-attribute docs are member docs and stay member
+      docs; definition-level doc added reproducing the YAML-established meaning (YAML
+      remains the O1 authority). Parity is normalized-exact and machine-checked; runtime
+      authority unchanged until O3.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: item def MethodContractObligation declares the frozen
+      baseline Section 7 schema fields as typed attributes (obligationId, phase :
+      MethodPhase, subjectSelector, applicability, minimumPopulation, permittedEmpty,
+      predicate, targetFilter, cardinalityMinimum/Maximum, required, evaluationSource :
+      EvaluationSourceKind, attestationPolicyRef, claimBoundary); the obligations do not
+      gain executable semantics from the representation, so no stronger meaning is
+      introduced; definition-level doc reproduces the YAML definition without added
+      semantics; the declared pilot instantiates 11 obligations as model items.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   EvaluationSourceKind:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: Enum literal docs model-resident.
+    note: 'c1 parity-reviewed: enum carries exactly the three source-kind literals of the
+      accepted schema; per-literal docs are member docs and stay member docs;
+      definition-level doc added reproducing the YAML-established meaning (YAML remains
+      the O1 authority). Parity is normalized-exact and machine-checked; runtime authority
+      unchanged until O3.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: enum def EvaluationSourceKind declares exactly the
+      three literals pinnedModelRecord / pinnedRepositoryArtifact / liveDeliveryAdapter
+      matching the accepted evaluation-source vocabulary; obligations type their
+      evaluationSource attribute with this enum; definition-level doc reproduces the YAML
+      definition without added semantics; per-literal docs remain member-level.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   MethodEvaluationScope:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: Scope binding semantics model-resident; R0 baseline Section 6 lineage.
+    note: 'c1 parity-reviewed: scope-identity and subject-type vocabulary is model-resident;
+      explicit exclusions with rationale are carried as typed runtime/contract inputs
+      (de4sdv.semantic.method_contract MethodEvaluationScope.exclusions) per the delivered
+      A-D representation, not as model-resident fields - the reviewed boundary is recorded
+      in exact_fit_decision and no stronger model-residency is claimed. Definition-level
+      doc added reproducing the YAML-established meaning (YAML remains the O1 authority);
+      parity is normalized-exact and machine-checked; runtime authority unchanged until O3.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit with recorded boundary: part def MethodEvaluationScope
+      carries incrementId and subjectType (the scope-identity vocabulary) and the
+      contributes-flag membership class separates contribution set from evaluation scope;
+      the exclusions-with-rationale half of the YAML definition is carried by the runtime
+      typed input (MethodEvaluationScope.exclusions: dict[str, str], tests
+      test_method_contract_binding.py), matching the delivered A-D representation; the
+      definition-level doc reproduces the YAML definition verbatim and therefore claims
+      no model-resident exclusions field; no stronger semantics introduced.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   EvaluationScopeMembership:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: contributes-flag semantics model-resident.
+    note: 'c1 parity-reviewed: membership class carries scopeId, subjectId, and the
+      contributes flag; the six pilot memberships instantiate contributes=false (reused
+      scope members), proving the contribution-set vs evaluation-scope separation;
+      definition-level doc added reproducing the YAML-established meaning (YAML remains
+      the O1 authority). Parity is normalized-exact and machine-checked; runtime authority
+      unchanged until O3.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: item def EvaluationScopeMembership declares scopeId,
+      subjectId, contributes : Boolean exactly; the pilot model data instantiates six
+      memberships with contributes=false for reused usages (aebs_override_verification.sysml
+      scopeMember01..06), demonstrating contribution set distinct from evaluation scope;
+      definition-level doc reproduces the YAML definition without added semantics.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   TestedScopeDeclaration:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: Conservative scope-equality fields model-resident.
+    note: 'c1 parity-reviewed: conservative scope-equality declaration fields
+      (executionHead, profileIdentities) are model-resident and instantiated by the pilot
+      testedScope item; definition-level doc added reproducing the YAML-established
+      meaning (YAML remains the O1 authority). Parity is normalized-exact and
+      machine-checked; runtime authority unchanged until O3.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: item def TestedScopeDeclaration declares executionHead
+      and profileIdentities exactly (the conservative V1 scope-equality inputs per the
+      frozen baseline Section 10); the pilot instantiates it with the declared execution
+      head and pinned profile identities; the declaration carries no automatic
+      carry-forward or freshness semantics; definition-level doc reproduces the YAML
+      definition without added semantics.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   RetainedExecutionRecordReference:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: External bytes + digest reference contract model-resident; no def-level doc (attribute docs).
+    note: 'c1 parity-reviewed: reference fields (recordId, artifactPath, sha256, runId)
+      are model-resident and carry no byte-ownership; definition-level doc added
+      reproducing the YAML-established meaning including the external-bytes boundary
+      (YAML remains the O1 authority). Parity is normalized-exact and machine-checked;
+      runtime authority unchanged until O3.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: item def RetainedExecutionRecordReference declares
+      only reference identity fields (recordId, artifactPath, sha256, runId); the class
+      owns no record-byte content field, so the external-record boundary (bytes stay
+      external; model carries references/metadata only) is preserved by the
+      representation itself; definition-level doc reproduces the YAML definition without
+      added semantics.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   AcceptanceAttestationReference:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: Policy reference boundary model-resident; policy status external.
+    note: 'c1 parity-reviewed: policy/registry reference fields (policyRef,
+      decisionRegistryPath) are model-resident with per-attribute boundary docs (member
+      docs stay member docs); the reference implies no approval - acceptance authority
+      remains an attributable decision under the referenced policy, and the pilot''s
+      acceptance obligation currently measures its absence; definition-level doc added
+      reproducing the YAML-established meaning (YAML remains the O1 authority). Parity is
+      normalized-exact and machine-checked; runtime authority unchanged until O3.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: item def AcceptanceAttestationReference declares
+      policyRef and decisionRegistryPath only - reference fields, no decision-outcome or
+      approval field - so the representation cannot imply acceptance; policy status stays
+      external (carried by the policy document) and a missing registry remains a distinct
+      state; definition-level doc reproduces the YAML definition without added semantics.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   DerivesFromNeed:
     authority_current: model-authoritative
     authority_target: model-authoritative

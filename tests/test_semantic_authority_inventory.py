@@ -746,9 +746,18 @@ class TestTextParity:
                 entries[name]["observed"]["doc_text_observation"] == observation
             ), name
             counts[observation] = counts.get(observation, 0) + 1
-        # Exact-equality parity: no row is normalized-exact any more, and the
-        # seven containment-only rows honestly report material difference.
-        assert counts == {"differs": 37, "doc-absent": 2, "doc-absent (bodyless declaration)": 1}
+        # Exact-equality parity: the c1 conformance batch (8 method-conformance
+        # identities) is normalized-exact after definition-level doc alignment;
+        # all other file-mapped classes honestly report their state. The
+        # definition-level doc rule (member docs never contaminate the class
+        # text) moved 7 attribute/literal-doc classes from differs to doc-absent
+        # before their c1 docs were added.
+        assert counts == {
+            "differs": 27,
+            "normalized-exact": 8,
+            "doc-absent": 4,
+            "doc-absent (bodyless declaration)": 1,
+        }
 
     def test_containment_only_rows_reclassified(self, inventory):
         entries = _entries(inventory)

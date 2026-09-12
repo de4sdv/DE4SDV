@@ -291,10 +291,70 @@ def declaration_block(file_text: str, declaration: str) -> tuple[str, bool]:
     return rest[brace:], False
 
 
+def _leading_owned_doc_bodies(block: str) -> list[str]:
+    """Documentation bodies owned by the definition itself (spec-grounded).
+
+    Ownership rule (OMG SysML v2 Part 1, §7.4.2): "The documenting element of
+    documentation is always the owning element of the documentation" — a
+    ``doc`` comment is owned by the element whose body it lexically sits in,
+    not by the sibling member it happens to follow. The definition's own
+    documentation is therefore the ``doc /* ... */`` statements at the head of
+    its body; a doc that follows a member declaration (``attribute x;`` /
+    ``<literal> { ... }``) belongs to the member's OWN body by the same rule
+    and must not contaminate the definition-level text.
+
+    The scan walks the body from the opening ``{``:
+
+    * plain ``/* ... * /`` and ``// ...`` comments are presentation comments,
+      not model elements — skipped, scanning continues;
+    * ``doc /* ... */`` statements are collected as owned documentation;
+    * the first any other token (a member declaration) ENDS the scan — from
+      there on, any ``doc`` is inside or after member territory.
+
+    This is a bounded textual-notation rule (depth-0 prefix scan, no fuzzy
+    matching, no hardcoded definitions). It mirrors the spec's textual
+    grammar, where a Documentation is an owned member of the enclosing
+    namespace's body.
+    """
+    docs: list[str] = []
+    index = 1  # skip the opening '{' of the declaration block
+    length = len(block)
+    while index < length:
+        char = block[index]
+        if char.isspace():
+            index += 1
+            continue
+        if block.startswith("/*", index):
+            end = block.find("*/", index + 2)
+            if end == -1:
+                break
+            index = end + 2
+            continue
+        if block.startswith("//", index):
+            end = block.find("\n", index)
+            index = length if end == -1 else end + 1
+            continue
+        match = re.compile(r"doc\s*/\*").match(block, index)
+        if match:
+            end = block.find("*/", match.end())
+            if end == -1:
+                break
+            docs.append(block[match.end():end])
+            index = end + 2
+            continue
+        break  # first non-doc token: member territory begins
+    return docs
+
+
 def doc_text_observation(
     file_text: str, declaration: str, definition: str
 ) -> str:
     """Exact-parity observation of one declaration's model-resident doc text.
+
+    Definition-level documentation is distinguished from member
+    documentation per :func:`_leading_owned_doc_bodies` (spec §7.4.2: a doc
+    comment is owned by the element whose body it sits in). Literal and
+    attribute docs are member docs and never contaminate the definition text.
 
     ``normalized-exact`` requires **equality** after the allowed cosmetic
     normalization (case, punctuation, whitespace/line wrapping). Containment
@@ -308,7 +368,7 @@ def doc_text_observation(
         return "doc-absent (bodyless declaration)"
     if not block:
         return "block-not-located"
-    docs = re.findall(r"doc\s*/\*(.*?)\*/", block, flags=re.DOTALL)
+    docs = _leading_owned_doc_bodies(block)
     if not docs:
         return "doc-absent"
     blob = normalize_text(" ".join(docs))
@@ -1783,7 +1843,12 @@ def build_inventory(
             "differs (material wording drift -> "
             "semantic_text_equivalence=review-required; fuzzy similarity is "
             "NOT parity) | doc-absent | doc-absent (bodyless declaration) | "
-            "block-not-located."
+            "block-not-located. Definition-level rule: a doc comment is owned "
+            "by the element whose body it lexically sits in (SysML v2 "
+            "specification, Comments and Documentation); the observed text is "
+            "the declaration's leading owned documentation only — attribute, "
+            "enum-literal, and other member documentation never contaminate "
+            "the class-definition comparison."
         ),
         "supersession": {
             "supersedes": [
