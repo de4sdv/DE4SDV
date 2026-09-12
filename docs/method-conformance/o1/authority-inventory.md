@@ -4,12 +4,13 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Git revision: `976e1d3571b3706cd6b487535efb35f3df00e50d`
-- Base: `e99f46d0455376815859aa4afeb1812e3463690f`
+- Source revision: `6817f7ebe5679d5ae9859b3f7eddd72a61d2d83e`
+- Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:ebb4482800a548eedf17c69e04474ee1159aa2aed0254c40eaccb1258c9b7582)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:1b346a9b1d799465eba84f64e24c6b28b3cff4ed8ebb839feb790fdd9e9d285c)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:ed6b1cee3a422d181e9e4c8a7b8c6374e1bde67c4f1c1cfc0d6751378417d86a)
+- Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
 
 ## Coverage
 
@@ -135,6 +136,25 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | variesAt | Feature -> VariationPoint | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | selectsVariant | FeatureConfiguration -> Variant | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | capturedInBaseline | EvidenceArtifact -> Baseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | O2+ |  |
+
+## Reviewed consumer associations (Layer B) with witnessed evidence (Layer A)
+
+| class | support | consumer | role | evidence (witnessed) |
+|---|---|---|---|---|
+| MethodPhase | consumed by method-conformance data | method-conformance model data (phase attribute typing) | phase enumeration class consumed as a typed attribute in method-contract items | sysml-type-usage 'MethodPhase' in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml |
+| MemberProduct | consumed (identity/lineage) | de4sdv/semantic/impact.py | kernel-bound identity/lineage class consumed as a product-line traversal root | python-string-constant 'MemberProduct' in de4sdv/semantic/impact.py |
+| Need | consumed (identity/lineage) | de4sdv/semantic/projection.py (K projection) | kernel-bound identity/lineage class consumed as a projection binding root | python-string-constant 'Need' in de4sdv/semantic/projection.py |
+| Requirement | consumed (identity/lineage) | de4sdv/semantic/impact.py | kernel-bound identity/lineage class consumed as an impact binding root | python-string-constant 'Requirement' in de4sdv/semantic/impact.py |
+| VerificationCase | consumed (verifiedBy) | de4sdv/semantic/impact.py (verifiedBy category) | native verification-case class consumed by the verifiedBy traversal | python-string-constant 'VerificationCase' in de4sdv/semantic/impact.py |
+| VerificationMethod | consumed (model attributes) | DE4SDV model metadata usages + method-conformance evaluator | model-attribute class consumed via @VerificationMethod metadata annotations | sysml-code-token '@VerificationMethod' in textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml, exact-token 'VerificationMethod' in de4sdv/semantic/method_evaluator.py |
+| EvidenceStatus | consumed (model attributes) | DE4SDV method-context adapter (ODE4HERA VVStatus) | external status-attribute vocabulary imported through the method-context adapter | sysml-code-token 'VVStatus' in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml |
+| MethodContractObligation | consumed by method-conformance (Lane C/D) | Lane C/D method-conformance pilot data (obligation items) | method-contract obligation class consumed by the declared pilot obligation items | sysml-type-usage 'MethodContractObligation' in textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml |
+| EvaluationSourceKind | consumed by method-conformance (Lane C/D) | method-conformance model data (evaluationSource attribute typing) | evaluation-source enumeration class consumed as a typed attribute in obligations | sysml-type-usage 'EvaluationSourceKind' in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml |
+| MethodEvaluationScope | consumed by method-conformance (Lane C/D) | de4sdv/semantic/method_contract.py | evaluation-scope dataclass mirroring the model-resident scope vocabulary | python-identifier 'MethodEvaluationScope' in de4sdv/semantic/method_contract.py |
+| EvaluationScopeMembership | consumed by method-conformance (Lane C/D) | Lane C/D method-conformance pilot data (scope memberships) | scope-membership class consumed by the pilot scope-member items | sysml-type-usage 'EvaluationScopeMembership' in textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml |
+| TestedScopeDeclaration | consumed by method-conformance (Lane C/D) | Lane C/D method-conformance pilot data (tested-scope declaration) | tested-scope declaration class consumed by the pilot testedScope item | sysml-type-usage 'TestedScopeDeclaration' in textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml |
+| RetainedExecutionRecordReference | consumed by method-conformance (Lane C/D) | Lane C/D method-conformance obligation data (execution records) | retained execution-record reference class reserved for C/D execution-record obligations; declaration + obligation data witness | exact-token 'execution-outcome' in docs/method-conformance/pilot-obligations.yaml, exact-token 'item def RetainedExecutionRecordReference' in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml |
+| AcceptanceAttestationReference | consumed by method-conformance (Lane C/D) | Lane C/D method-conformance pilot data (acceptance attestation) | acceptance-attestation reference class consumed by the pilot acceptanceAttestation item | sysml-type-usage 'AcceptanceAttestationReference' in textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml |
 
 ## Runtime strategy registry
 
