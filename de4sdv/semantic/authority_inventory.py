@@ -12,14 +12,16 @@ Two layers, per the accepted Phase-1 review (PR #249):
 - **Layer A — observed facts**: mechanically derived from repository evidence
   (ontology contract structure, kernel mappings, kernel declarations and
   exclusions, the runtime traversal strategy dispatch, model-resident
-  documentation, consumer associations, retained closure records). Nothing in
-  Layer A restates meaning from Python.
+  documentation, and machinery-witnessed evidence for reviewed consumer
+  associations). Nothing in Layer A restates meaning from Python, and Layer A
+  never asserts a semantic consumer association — only witnessed evidence at
+  reviewed-declared locations.
 - **Layer B — reviewed decisions**: committed governance/migration metadata
   (authority classification, targets, evidence state, adoption status,
-  transition gates, dispositions, stages, unknowns, required evidence). Layer
-  B lives in the committed decisions dataset
-  (``docs/method-conformance/o1/authority-review-decisions.yaml``), never in
-  Python constants, and is never runtime semantic authority.
+  transition gates, dispositions, stages, unknowns, required evidence, and
+  reviewed consumer associations). Layer B lives in the committed decisions
+  dataset (``docs/method-conformance/o1/authority-review-decisions.yaml``),
+  never in Python constants, and is never runtime semantic authority.
 
 The generator joins A + B, validates coverage and consistency, and emits the
 canonical inventory plus the human-readable review table. Validation fails
@@ -27,9 +29,18 @@ closed: an unaccounted ontology entry, kernel declaration, kernel exclusion,
 runtime strategy, closure record, or missing decision row is a generation
 error.
 
+Revision binding: the artifact binds a ``source_revision`` — a Git commit
+that contains every bound source input byte-for-byte — plus per-input content
+digests (``binding.bound_inputs``). The gate validates commit existence,
+ancestry, per-input content equality, and the digests; a stale revision
+cannot pass by string reuse. Generation refuses to bind to a revision that
+does not contain the current inputs (commit input changes first).
+
 Determinism: identical inputs (ontology contract, decisions dataset, closure
-records, traversal source, recorded Git revision/base) produce byte-identical
-output. No timestamps, no environment-dependent values.
+records, traversal source, model sources, source revision) produce
+byte-identical output. No timestamps, no environment-dependent values. Text
+parity is exact equality after cosmetic normalization — containment or
+similarity is never parity.
 
 Boundaries (Wave 0a):
 
@@ -49,6 +60,7 @@ import ast
 import hashlib
 import json
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -158,110 +170,40 @@ REVIEWED_FIELDS: tuple[str, ...] = (
 
 CONFIDENCE_VALUES: tuple[str, ...] = ("high", "medium", "low")
 
-#: Observed runtime-consumer associations for classes. Each association is a
-#: Phase-1-established observation and is VERIFIED against repository evidence
-#: on every generation (fail closed): every basis token must be present in its
-#: file, or generation fails — a stale association can never pass silently.
-#: Classes without an association are ``vocabulary-only``.
-CLASS_RUNTIME_CONSUMPTION: dict[str, dict[str, Any]] = {
-    "Need": {
-        "support": "consumed (identity/lineage)",
-        "basis": (("de4sdv/semantic/projection.py", '"Need"'),),
-    },
-    "Requirement": {
-        "support": "consumed (identity/lineage)",
-        "basis": (("de4sdv/semantic/impact.py", 'bind_class("Requirement")'),),
-    },
-    "MemberProduct": {
-        "support": "consumed (identity/lineage)",
-        "basis": (("de4sdv/semantic/impact.py", '"MemberProduct"'),),
-    },
-    "VerificationMethod": {
-        "support": "consumed (model attributes)",
-        "basis": (("de4sdv/semantic/method_evaluator.py", "VerificationMethod"),),
-    },
-    "EvidenceStatus": {
-        "support": "consumed (model attributes)",
-        "basis": (
-            (
-                "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
-                "VVStatus",
-            ),
-        ),
-    },
-    "VerificationCase": {
-        "support": "consumed (verifiedBy)",
-        "basis": (("de4sdv/semantic/impact.py", "VerificationCase"),),
-    },
-    "MethodPhase": {
-        "support": "consumed by method-conformance data",
-        "basis": (
-            (
-                "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
-                "MethodPhase",
-            ),
-        ),
-    },
-    "MethodContractObligation": {
-        "support": "consumed by method-conformance (Lane C/D)",
-        "basis": (
-            (
-                "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
-                "MethodContractObligation",
-            ),
-        ),
-    },
-    "MethodEvaluationScope": {
-        "support": "consumed by method-conformance (Lane C/D)",
-        "basis": (("de4sdv/semantic/method_contract.py", "MethodEvaluationScope"),),
-    },
-    "EvaluationScopeMembership": {
-        "support": "consumed by method-conformance (Lane C/D)",
-        "basis": (
-            (
-                "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
-                "EvaluationScopeMembership",
-            ),
-        ),
-    },
-    "EvaluationSourceKind": {
-        "support": "consumed by method-conformance (Lane C/D)",
-        "basis": (
-            (
-                "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
-                "EvaluationSourceKind",
-            ),
-        ),
-    },
-    "TestedScopeDeclaration": {
-        "support": "consumed by method-conformance (Lane C/D)",
-        "basis": (
-            (
-                "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
-                "TestedScopeDeclaration",
-            ),
-        ),
-    },
-    "RetainedExecutionRecordReference": {
-        "support": "consumed by method-conformance (Lane C/D)",
-        "basis": (
-            ("docs/method-conformance/pilot-obligations.yaml", "execution-outcome"),
-            (
-                "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
-                "RetainedExecutionRecordReference",
-            ),
-        ),
-    },
-    "AcceptanceAttestationReference": {
-        "support": "consumed by method-conformance (Lane C/D)",
-        "basis": (
-            (
-                "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
-                "AcceptanceAttestationReference",
-            ),
-        ),
-    },
-}
+#: Bounded evidence kinds that Layer A can mechanically evaluate for a
+#: reviewed consumer association. Layer A never invents associations; it only
+#: reports witnessed/unwitnessed evidence at reviewed-declared locations.
+CONSUMER_EVIDENCE_KINDS: tuple[str, ...] = (
+    "exact-token",
+    "sysml-code-token",
+    "sysml-type-usage",
+    "python-string-constant",
+    "python-identifier",
+)
+
+#: Reviewed consumer-association block shape (Layer B, per class identity).
+CONSUMER_ASSOCIATION_FIELDS: tuple[str, ...] = (
+    "support",
+    "consumer",
+    "consumer_role",
+    "evidence",
+)
+
+#: Join-added reviewed fields (populated from the decisions dataset; not part
+#: of the per-entry decision rows themselves).
+REVIEWED_JOIN_FIELDS: tuple[str, ...] = ("runtime_consumption",)
+
+#: Program sources whose behavior produces this artifact. Every one is a
+#: bound input: changing any of them requires rebinding the artifact to a
+#: commit containing the change. Data inputs are computed separately (see
+#: :func:`collect_bound_inputs`).
+BOUND_INPUT_PROGRAM_PATHS: tuple[str, ...] = (
+    "de4sdv/semantic/authority_inventory.py",
+    "de4sdv/semantic/kernel_contract.py",
+    "de4sdv/sysml_api/revisions.py",
+    "scripts/generate_semantic_authority_inventory.py",
+    "scripts/check_model_sync.py",
+)
 
 
 class InventoryError(Exception):
@@ -352,14 +294,14 @@ def declaration_block(file_text: str, declaration: str) -> tuple[str, bool]:
 def doc_text_observation(
     file_text: str, declaration: str, definition: str
 ) -> str:
-    """Normalized observation of one declaration's model-resident doc text.
+    """Exact-parity observation of one declaration's model-resident doc text.
 
-    The comparison is normalized containment of the full definition text
-    (either direction) after purely cosmetic normalization — the definition
-    must appear verbatim as a normalized token run inside the model doc, or
-    the model doc inside the definition, or the texts differ. There is no
-    similarity threshold anywhere: any material wording difference yields
-    ``differs`` and requires a human-reviewed equivalence decision.
+    ``normalized-exact`` requires **equality** after the allowed cosmetic
+    normalization (case, punctuation, whitespace/line wrapping). Containment
+    or substring overlap in either direction is NOT parity: text that adds or
+    omits semantic content yields ``differs`` and requires a human-reviewed
+    equivalence decision. There is no similarity threshold, token overlap, or
+    fuzzy comparison anywhere.
     """
     block, bodyless = declaration_block(file_text, declaration)
     if bodyless:
@@ -373,7 +315,7 @@ def doc_text_observation(
     target = normalize_text(" ".join(str(definition).split()))
     if not target:
         return "doc-present"
-    if target in blob or blob in target:
+    if blob == target:
         return "normalized-exact"
     return "differs"
 
@@ -438,6 +380,233 @@ def strategy_dispatch_sources(root: Path) -> list[str]:
         if re.search(r"\.strategy\s*(==|in\b)", text):
             sources.append(str(path.relative_to(root).as_posix()))
     return sources
+
+
+# ---------------------------------------------------------------------------
+# Source-revision binding (R1)
+# ---------------------------------------------------------------------------
+#
+# A generated artifact cannot bind to the commit that first introduces it.
+# The binding therefore names a ``source_revision``: a Git commit that
+# actually contains every bound source input byte-for-byte. The gate proves
+# that containment against the repository — it does not trust the recorded
+# string: it re-checks commit existence, ancestry, per-input content equality
+# against the source revision, and the recorded content digests. A stale
+# revision can never pass by string reuse.
+
+
+def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(root), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def resolve_source_revision(root: Path) -> str:
+    """The full commit id of the checkout being generated from."""
+    result = _git(root, "rev-parse", "HEAD")
+    if result.returncode != 0 or not result.stdout.strip():
+        raise InventoryError(
+            "cannot resolve the source revision (git rev-parse HEAD failed); "
+            "the inventory must be generated from a Git checkout"
+        )
+    return result.stdout.strip()
+
+
+def collect_bound_inputs(
+    root: Path, contract: KernelContract, decisions: dict[str, Any]
+) -> dict[str, str]:
+    """Every source consumed to produce the artifact: path -> sha256 digest.
+
+    Program sources are declared in :data:`BOUND_INPUT_PROGRAM_PATHS`; data
+    inputs (ontology contract, decisions dataset, closure evidence, strategy
+    source, governed kernel/method model files, out-of-governed mapped files,
+    and consumer-evidence files) are collected mechanically and sorted.
+    """
+    paths: set[str] = set(BOUND_INPUT_PROGRAM_PATHS)
+    paths.update({ONTOLOGY_PATH, DECISIONS_PATH, CLOSURE_PATH, TRAVERSAL_SOURCE_PATH})
+    governed = root / contract.governed_directory
+    if not governed.is_dir():
+        raise InventoryError(
+            f"governed kernel directory not found: {contract.governed_directory}"
+        )
+    for sysml_path in governed.rglob("*.sysml"):
+        paths.add(str(sysml_path.relative_to(root).as_posix()))
+    for _, file, _ in _declaration_pairs(contract):
+        paths.add(file)
+    for association in (decisions.get("runtime_consumption") or {}).values():
+        if not isinstance(association, dict):
+            continue
+        for item in association.get("evidence", []) or []:
+            if isinstance(item, dict) and item.get("path"):
+                paths.add(str(item["path"]))
+    inputs: dict[str, str] = {}
+    for path in sorted(paths):
+        file = root / path
+        if not file.is_file():
+            raise InventoryError(f"bound input missing: {path}")
+        inputs[path] = file_digest(root, path)
+    return inputs
+
+
+def _git_tree_blobs(
+    root: Path, revision: str, paths: list[str]
+) -> tuple[dict[str, str], str | None]:
+    """Blob ids of ``paths`` at ``revision`` (missing paths are absent)."""
+    result = _git(root, "ls-tree", "-r", "-z", revision, "--", *paths)
+    if result.returncode != 0:
+        return {}, result.stderr.strip() or f"git ls-tree failed for {revision}"
+    blobs: dict[str, str] = {}
+    for entry in result.stdout.split("\0"):
+        if not entry:
+            continue
+        meta, _, path = entry.partition("\t")
+        parts = meta.split()
+        if len(parts) == 3 and parts[1] == "blob":
+            blobs[path] = parts[2]
+    return blobs, None
+
+
+def _binding_errors(
+    root: Path, source_revision: str, bound_inputs: dict[str, str]
+) -> list[str]:
+    """Validate that ``source_revision`` genuinely contains the bound inputs.
+
+    Checks, all fail-closed:
+
+    1. format: ``source_revision`` is a full 40-hex commit id;
+    2. existence: it resolves to a commit in this repository;
+    3. ancestry: it is an ancestor of (or equal to) the checked-out revision;
+    4. containment: every bound input exists at that revision and its blob is
+       byte-identical to the working-tree file;
+    5. content contract: the working-tree file digest matches the recorded
+       ``sha256`` for that path.
+    """
+    errors: list[str] = []
+    if not _FULL_SHA.match(source_revision):
+        return [
+            f"binding.source_revision must be a full 40-hex commit id "
+            f"(got {source_revision!r})"
+        ]
+    if not isinstance(bound_inputs, dict) or not bound_inputs:
+        return ["binding.bound_inputs must be a non-empty path -> sha256 mapping"]
+    if _git(root, "cat-file", "-e", f"{source_revision}^{{commit}}").returncode != 0:
+        return [
+            f"binding.source_revision {source_revision} is not a commit in this "
+            "repository"
+        ]
+    head_result = _git(root, "rev-parse", "HEAD")
+    if head_result.returncode != 0 or not head_result.stdout.strip():
+        return [
+            "cannot resolve the checked-out revision (git rev-parse HEAD "
+            "failed): the source-revision binding cannot be validated"
+        ]
+    head = head_result.stdout.strip()
+    if _git(root, "merge-base", "--is-ancestor", source_revision, head).returncode != 0:
+        errors.append(
+            f"binding.source_revision {source_revision} is not an ancestor of "
+            f"the checked-out revision {head}"
+        )
+
+    paths = sorted(bound_inputs)
+    revision_blobs, tree_error = _git_tree_blobs(root, source_revision, paths)
+    if tree_error:
+        errors.append(f"cannot read the source-revision tree: {tree_error}")
+        return errors
+    missing_at_revision = [path for path in paths if path not in revision_blobs]
+    for path in missing_at_revision:
+        errors.append(
+            f"bound input {path} does not exist at source_revision "
+            f"{source_revision}"
+        )
+    present = [
+        path for path in paths if path not in missing_at_revision and (root / path).is_file()
+    ]
+    missing_here = sorted(set(paths) - set(present) - set(missing_at_revision))
+    for path in missing_here:
+        errors.append(f"bound input {path} is missing from the checkout")
+
+    current_blobs: dict[str, str] = {}
+    if present:
+        result = _git(root, "hash-object", "--", *present)
+        if result.returncode != 0:
+            errors.append(
+                f"cannot hash working-tree bound inputs: "
+                f"{result.stderr.strip() or 'git hash-object failed'}"
+            )
+        else:
+            current_blobs = dict(zip(present, result.stdout.splitlines()))
+    for path in present:
+        if revision_blobs[path] != current_blobs.get(path):
+            errors.append(
+                f"bound input {path} differs from its content at source_revision "
+                f"{source_revision}; the recorded revision is stale — regenerate "
+                "and commit the artifact bound to a commit that contains the "
+                "current inputs"
+            )
+        recorded = bound_inputs[path]
+        digest = file_digest(root, path)
+        if recorded != digest:
+            errors.append(
+                f"bound input {path} content digest {digest} does not match the "
+                f"recorded digest {recorded!r}"
+            )
+    return errors
+
+
+def validate_source_binding(root: Path, binding: dict[str, Any]) -> list[str]:
+    """Validate one artifact's source-revision binding against the repository."""
+    source_revision = binding.get("source_revision")
+    if not isinstance(source_revision, str):
+        return [
+            "binding.source_revision is required (full commit id of a revision "
+            "containing every bound input)"
+        ]
+    bound_inputs = binding.get("bound_inputs")
+    if not isinstance(bound_inputs, dict) or not bound_inputs:
+        return ["binding.bound_inputs must be a non-empty path -> sha256 mapping"]
+    errors = _binding_errors(root, source_revision, bound_inputs)
+    # Named input views, when present, must agree with the bound-input
+    # content contract.
+    for key in (
+        "ontology_contract",
+        "reviewed_decisions",
+        "closure_evidence",
+        "runtime_strategy_source",
+    ):
+        if key not in binding:
+            continue
+        record = binding.get(key)
+        if not isinstance(record, dict):
+            errors.append(f"binding.{key} must be a mapping")
+            continue
+        path = record.get("path")
+        if not isinstance(path, str) or path not in bound_inputs:
+            errors.append(f"binding.{key} path {path!r} is not a bound input")
+            continue
+        if record.get("digest") != bound_inputs[path]:
+            errors.append(
+                f"binding.{key} digest {record.get('digest')!r} does not match "
+                f"the bound input digest {bound_inputs[path]!r}"
+            )
+    return errors
+
+
+def verify_source_revision_contains_inputs(
+    root: Path, source_revision: str, bound_inputs: dict[str, str]
+) -> None:
+    """Generation-time guard: refuse to bind to a revision that lacks the inputs."""
+    errors = _binding_errors(root, source_revision, bound_inputs)
+    if errors:
+        raise InventoryError(
+            "the source revision does not contain the bound inputs "
+            "byte-for-byte:\n  - "
+            + "\n  - ".join(errors)
+            + "\nCommit the input changes first, then regenerate so the "
+            "artifact can bind to that commit."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -568,38 +737,163 @@ def kernel_accounting(
     )
 
 
-def _verify_class_consumption(root: Path, identity: str) -> str:
-    """Verified runtime-consumer association for one class, or ``vocabulary-only``.
+def _non_docstring_string_constants(source: str) -> set[str]:
+    """String literal values in code positions (docstrings excluded).
 
-    Each association in :data:`CLASS_RUNTIME_CONSUMPTION` carries concrete
-    repository bases; every basis file must exist and contain its required
-    token. A stale or unverifiable association is a generation error.
+    Docstring bodies are string constants too; module/class/function docstrings
+    are excluded so a prose mention cannot masquerade as a code reference.
     """
-    association = CLASS_RUNTIME_CONSUMPTION.get(identity)
-    if association is None:
-        return "vocabulary-only"
-    for basis_file, required in association["basis"]:
-        path = root / basis_file
+    tree = ast.parse(source)
+    docstring_ids: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(
+            node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+        ):
+            body = getattr(node, "body", [])
+            if (
+                body
+                and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)
+            ):
+                docstring_ids.add(id(body[0].value))
+    values: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and id(node) not in docstring_ids
+        ):
+            values.add(node.value)
+    return values
+
+
+def _python_identifiers(source: str) -> set[str]:
+    """Identifier names in a Python source: Names, Attributes, defs, classes."""
+    tree = ast.parse(source)
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            names.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            names.add(node.attr)
+        elif isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            names.add(node.name)
+    return names
+
+
+def _sysml_type_usage(text: str, expected: str) -> bool:
+    """``<feature> : <Type>`` usage in comment-stripped SysML text.
+
+    The negative lookbehind keeps ``::``-qualified references (imports) from
+    masquerading as typed usages.
+    """
+    code = _load_kernel_sync_module()._strip_comments(text)
+    return (
+        re.search(r"(?<!:):\s*" + re.escape(expected) + r"\b", code) is not None
+    )
+
+
+def _validate_consumer_association(identity: str, association: Any) -> list[str]:
+    """Shape-check one reviewed consumer-association block (Layer B)."""
+    problems: list[str] = []
+    if not isinstance(association, dict):
+        return [f"runtime_consumption[{identity}] must be a mapping"]
+    for field in CONSUMER_ASSOCIATION_FIELDS:
+        if field not in association:
+            problems.append(
+                f"runtime_consumption[{identity}] is missing {field!r}"
+            )
+    for field in ("support", "consumer", "consumer_role"):
+        if not str(association.get(field) or "").strip():
+            problems.append(
+                f"runtime_consumption[{identity}].{field} must be a non-empty string"
+            )
+    evidence = association.get("evidence")
+    if not isinstance(evidence, list) or not evidence:
+        problems.append(
+            f"runtime_consumption[{identity}].evidence must be a non-empty list"
+        )
+        return problems
+    for item in evidence:
+        if not isinstance(item, dict):
+            problems.append(
+                f"runtime_consumption[{identity}] evidence entries must be mappings"
+            )
+            continue
+        for field in ("path", "kind", "expect"):
+            if not str(item.get(field) or "").strip():
+                problems.append(
+                    f"runtime_consumption[{identity}] evidence item missing {field!r}"
+                )
+        if item.get("kind") not in CONSUMER_EVIDENCE_KINDS:
+            problems.append(
+                f"runtime_consumption[{identity}] evidence kind "
+                f"{item.get('kind')!r} outside {CONSUMER_EVIDENCE_KINDS}"
+            )
+    return problems
+
+
+def evaluate_consumer_evidence(
+    root: Path, identity: str, association: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Mechanically evaluate the evidence declared by a reviewed association.
+
+    Returns the witnessed evidence results (Layer A observations). A missing
+    file or an unwitnessed expectation raises — a reviewed association whose
+    evidence has vanished is a stale association, never a silent pass.
+    """
+    results: list[dict[str, Any]] = []
+    for item in association["evidence"]:
+        path = root / str(item["path"])
+        kind = str(item["kind"])
+        expect = str(item["expect"])
         if not path.is_file():
             raise InventoryError(
-                f"runtime-consumer basis file missing for {identity}: {basis_file}"
+                f"consumer evidence file missing for {identity}: {item['path']}"
             )
-        if required not in path.read_text(encoding="utf-8"):
+        text = path.read_text(encoding="utf-8")
+        if kind == "exact-token":
+            witnessed = expect in text
+        elif kind == "sysml-code-token":
+            witnessed = expect in _load_kernel_sync_module()._strip_comments(text)
+        elif kind == "sysml-type-usage":
+            witnessed = _sysml_type_usage(text, expect)
+        elif kind == "python-string-constant":
+            witnessed = expect in _non_docstring_string_constants(text)
+        elif kind == "python-identifier":
+            witnessed = expect in _python_identifiers(text)
+        else:  # pragma: no cover - shape-checked earlier
             raise InventoryError(
-                f"runtime-consumer basis token missing for {identity}: "
-                f"{required!r} not in {basis_file} (stale association?)"
+                f"unsupported consumer evidence kind {kind!r} for {identity}"
             )
-    return str(association["support"])
+        if not witnessed:
+            raise InventoryError(
+                f"consumer evidence not witnessed for {identity}: {kind} "
+                f"{expect!r} absent from {item['path']} (stale association?)"
+            )
+        results.append(
+            {
+                "path": str(item["path"]),
+                "kind": kind,
+                "expect": expect,
+                "result": "witnessed",
+            }
+        )
+    return results
 
 
 def observed_entries(
-    root: Path, contract: KernelContract
+    root: Path, contract: KernelContract, decisions: dict[str, Any]
 ) -> dict[str, dict[str, Any]]:
     """Layer A facts for every ontology class and relationship.
 
-    Returns ``{identity: {"kind": ..., "observed": {...}}}`` in ontology
-    declaration order (classes, then relationships).
+    Consumer support is reviewed (Layer B); Layer A only reports the
+    mechanically witnessed evidence for reviewed associations. Returns
+    ``{identity: {"kind": ..., "observed": {...}}}`` in ontology declaration
+    order (classes, then relationships).
     """
+    consumption = decisions.get("runtime_consumption") or {}
     entries: dict[str, dict[str, Any]] = {}
     for name, spec in contract.classes.items():
         kernel = spec.get("kernel") or {}
@@ -640,7 +934,12 @@ def observed_entries(
             )
         else:
             raise InventoryError(f"class without kernel mapping: {name}")
-        observed["runtime_support"] = _verify_class_consumption(root, name)
+        association = consumption.get(name)
+        observed["consumer_evidence"] = (
+            evaluate_consumer_evidence(root, name, association)
+            if association is not None
+            else []
+        )
         entries[name] = {"kind": "class", "observed": observed}
 
     for name, spec in contract.relationships.items():
@@ -824,6 +1123,24 @@ def load_reviewed_decisions(path: Path) -> dict[str, Any]:
     entries = value.get("entries")
     if not isinstance(entries, dict):
         raise InventoryError("reviewed decisions document has no entries mapping")
+    consumption = value.get("runtime_consumption")
+    if consumption is not None:
+        if not isinstance(consumption, dict):
+            raise InventoryError(
+                "runtime_consumption must be a mapping of class identity -> "
+                "association block"
+            )
+        problems: list[str] = []
+        for identity, association in consumption.items():
+            if not isinstance(identity, str) or not identity:
+                problems.append("runtime_consumption identities must be non-empty strings")
+                continue
+            problems.extend(_validate_consumer_association(identity, association))
+        if problems:
+            raise InventoryError(
+                "reviewed consumer associations failed shape validation:\n  - "
+                + "\n  - ".join(problems)
+            )
     return value
 
 
@@ -862,6 +1179,53 @@ def _entry_problems(
     missing = [field for field in REVIEWED_FIELDS if field not in reviewed]
     if missing:
         problems.append(f"{identity}: reviewed decision missing fields {missing}")
+    if "runtime_consumption" not in reviewed:
+        problems.append(
+            f"{identity}: joined reviewed view must carry runtime_consumption "
+            "(null when no reviewed association exists)"
+        )
+    consumption = reviewed.get("runtime_consumption")
+    evidence_results = observed.get("consumer_evidence")
+    if kind == "class":
+        if "runtime_support" in observed:
+            problems.append(
+                f"{identity}: class observed facts must not assert runtime "
+                "support; consumer support is reviewed provenance"
+            )
+        if consumption is not None:
+            problems.extend(_validate_consumer_association(identity, consumption))
+            if not evidence_results:
+                problems.append(
+                    f"{identity}: reviewed consumer association without "
+                    "mechanically witnessed evidence"
+                )
+            else:
+                for result in evidence_results:
+                    if (
+                        not isinstance(result, dict)
+                        or result.get("result") != "witnessed"
+                    ):
+                        problems.append(
+                            f"{identity}: consumer evidence results must be "
+                            "mechanically witnessed"
+                        )
+                        break
+        elif evidence_results:
+            problems.append(
+                f"{identity}: consumer evidence present without a reviewed "
+                "consumer association"
+            )
+    else:
+        if consumption is not None:
+            problems.append(
+                f"{identity}: runtime_consumption is class-only; relationship "
+                "entries must not carry it"
+            )
+        if evidence_results:
+            problems.append(
+                f"{identity}: relationship observed facts must not carry "
+                "consumer_evidence"
+            )
 
     authority_current = reviewed.get("authority_current")
     authority_target = reviewed.get("authority_target")
@@ -961,9 +1325,14 @@ def _entry_problems(
                 f"{identity}: closure_evidence_ref present but evidence_state "
                 f"is {evidence_state!r}"
             )
-        if evidence_state in {"blocked", "unknown"} and observed.get(
-            "runtime_support"
-        ) == "supported (closure-verified)":
+        support = (
+            observed.get("runtime_support")
+            if kind == "relationship"
+            else (consumption or {}).get("support")
+        )
+        if evidence_state in {"blocked", "unknown"} and support == (
+            "supported (closure-verified)"
+        ):
             problems.append(
                 f"{identity}: blocked/unknown entry cannot carry a "
                 "closure-verified support state"
@@ -1028,6 +1397,7 @@ def validate_inventory(
 
     # Coverage: exactly one reviewed row per ontology entry, no extras.
     reviewed_entries = decisions["entries"]
+    consumption_rows = decisions.get("runtime_consumption") or {}
     if len(reviewed_entries) != len(observed):
         problems.append(
             f"coverage: {len(observed)} ontology entries but "
@@ -1041,15 +1411,33 @@ def validate_inventory(
         if not isinstance(row, dict):
             problems.append(f"{identity}: reviewed decision row must be a mapping")
             continue
+        joined = dict(row)
+        joined["runtime_consumption"] = consumption_rows.get(identity)
         problems.extend(
             _entry_problems(
-                identity, entry["kind"], entry["observed"], row, by_id
+                identity, entry["kind"], entry["observed"], joined, by_id
             )
         )
     for identity in sorted(set(reviewed_entries) - set(observed)):
         problems.append(
             f"coverage: reviewed decision row {identity!r} has no ontology entry"
         )
+
+    # Reviewed consumer associations: class-only, existing identities, shape
+    # valid. Layer A evidence for them is evaluated during extraction.
+    for identity, association in sorted(consumption_rows.items()):
+        entry = observed.get(identity)
+        if entry is None:
+            problems.append(
+                f"runtime_consumption[{identity}]: no ontology entry"
+            )
+        elif entry["kind"] != "class":
+            problems.append(
+                f"runtime_consumption[{identity}]: consumer associations are "
+                "class-only"
+            )
+        else:
+            problems.extend(_validate_consumer_association(identity, association))
 
     # Closure record completeness: every record must be structurally
     # revision-bound with a real artifact identity and proof result.
@@ -1205,20 +1593,25 @@ def _governance_rules(root: Path, contract: KernelContract) -> list[dict[str, An
 def build_inventory(
     root: Path,
     *,
-    revision: str,
-    base_sha: str,
+    source_revision: str,
     contract: KernelContract | None = None,
 ) -> dict[str, Any]:
     """Build the canonical inventory (Layer A + Layer B), fully validated.
 
-    Raises :class:`InventoryError` on any coverage or consistency failure.
+    ``source_revision`` must be a Git commit that contains every bound source
+    input byte-for-byte; a revision that does not is refused before anything
+    is generated. Raises :class:`InventoryError` on any coverage or
+    consistency failure.
     """
     if contract is None:
         contract = KernelContract.load(root / ONTOLOGY_PATH)
     decisions = load_reviewed_decisions(root / DECISIONS_PATH)
     closure_records = load_closure_records(root / CLOSURE_PATH)
 
-    observed = observed_entries(root, contract)
+    bound_inputs = collect_bound_inputs(root, contract, decisions)
+    verify_source_revision_contains_inputs(root, source_revision, bound_inputs)
+
+    observed = observed_entries(root, contract, decisions)
     kernel = kernel_accounting(root, contract)
     strategy_rows = strategy_accounting(root, contract, decisions)
 
@@ -1233,13 +1626,16 @@ def build_inventory(
             "inventory validation failed:\n  - " + "\n  - ".join(problems)
         )
 
-    # Join A + B with per-field provenance preserved.
+    # Join A + B with per-field provenance preserved. The reviewed consumer
+    # association is Layer B; its witnessed evidence stays Layer A.
+    consumption_rows = decisions.get("runtime_consumption") or {}
     entries: list[dict[str, Any]] = []
     for identity, entry in observed.items():
         reviewed = {
             field: decisions["entries"][identity][field]
             for field in REVIEWED_FIELDS
         }
+        reviewed["runtime_consumption"] = consumption_rows.get(identity)
         # Closure-bound runtime support: the only promotion path from
         # "implemented" to a closure-verified support state is a complete
         # closure record binding this identity (never a bare boolean).
@@ -1291,28 +1687,36 @@ def build_inventory(
             "scripts/generate_semantic_authority_inventory.py."
         ),
         "binding": {
-            "git_revision": revision,
-            "base_sha": base_sha,
-            "git_revision_source": (
-                "explicit generator input; defaults to HEAD at generation and "
-                "is re-supplied verbatim by the committed-artifact check"
+            "source_revision": source_revision,
+            "source_revision_note": (
+                "Git commit that contains every bound source input "
+                "byte-for-byte. The gate validates commit existence, ancestry "
+                "of the checked-out revision, per-input content equality, and "
+                "the recorded content digests — a stale revision cannot pass "
+                "by string reuse."
+            ),
+            "artifact_commit": None,
+            "artifact_commit_note": (
+                "The commit that introduces this artifact cannot be known when "
+                "the artifact is generated; left explicitly unclaimed."
             ),
             "ontology_contract": {
                 "path": ONTOLOGY_PATH,
-                "digest": file_digest(root, ONTOLOGY_PATH),
+                "digest": bound_inputs[ONTOLOGY_PATH],
             },
             "reviewed_decisions": {
                 "path": DECISIONS_PATH,
-                "digest": file_digest(root, DECISIONS_PATH),
+                "digest": bound_inputs[DECISIONS_PATH],
             },
             "closure_evidence": {
                 "path": CLOSURE_PATH,
-                "digest": file_digest(root, CLOSURE_PATH),
+                "digest": bound_inputs[CLOSURE_PATH],
             },
             "runtime_strategy_source": {
                 "path": TRAVERSAL_SOURCE_PATH,
-                "digest": file_digest(root, TRAVERSAL_SOURCE_PATH),
+                "digest": bound_inputs[TRAVERSAL_SOURCE_PATH],
             },
+            "bound_inputs": bound_inputs,
             "governed_kernel_directory": contract.governed_directory,
         },
         "dimensions": {
@@ -1331,14 +1735,15 @@ def build_inventory(
                 "facts mechanically derived from repository evidence (ontology "
                 "structure, kernel mappings and declarations, the runtime "
                 "traversal strategy dispatch, model-resident documentation, "
-                "verified consumer associations)"
+                "and machinery-witnessed evidence for reviewed consumer "
+                "associations — evidence only, never the association itself)"
             ),
             "reviewed": (
                 "committed governance/migration decisions from "
                 f"{DECISIONS_PATH} (authority classification, targets, "
                 "evidence state, adoption, gates, dispositions, stages, "
-                "unknowns, required evidence) — reviewable metadata, never "
-                "runtime semantic authority"
+                "unknowns, required evidence, reviewed consumer associations) "
+                "— reviewable metadata, never runtime semantic authority"
             ),
             "field_rule": (
                 "every entry field is attributable to exactly one layer; this "
@@ -1372,9 +1777,10 @@ def build_inventory(
         "entries": entries,
         "closure_evidence": sorted(closure_records, key=lambda item: item["id"]),
         "doc_observation_note": (
-            "Observation values: normalized-exact (exact comparison after "
-            "purely cosmetic normalization: case/punctuation/whitespace/line "
-            "wrapping) | differs (material wording drift -> "
+            "Observation values: normalized-exact (equality after purely "
+            "cosmetic normalization: case/punctuation/whitespace/line "
+            "wrapping; containment or substring overlap is NOT parity) | "
+            "differs (material wording drift -> "
             "semantic_text_equivalence=review-required; fuzzy similarity is "
             "NOT parity) | doc-absent | doc-absent (bodyless declaration) | "
             "block-not-located."
@@ -1393,8 +1799,8 @@ def build_inventory(
             ),
         },
         "evidence_sufficiency": (
-            "All facts are established from repository evidence at the "
-            "recorded revision (ontology contract, kernel, runtime dispatch, "
+            "All facts are established from repository evidence at the bound "
+            "source revision (ontology contract, kernel, runtime dispatch, "
             "retained closure records). No privileged ingestion is required "
             "or claimed."
         ),
@@ -1431,8 +1837,11 @@ def render_markdown(inventory: dict[str, Any]) -> str:
     binding = inventory["binding"]
     lines.append("## Binding")
     lines.append("")
-    lines.append(f"- Git revision: `{binding['git_revision']}`")
-    lines.append(f"- Base: `{binding['base_sha']}`")
+    lines.append(f"- Source revision: `{binding['source_revision']}`")
+    lines.append(
+        "- Artifact commit: unclaimed (cannot be known when the artifact is "
+        "generated)"
+    )
     for key in (
         "ontology_contract",
         "reviewed_decisions",
@@ -1441,6 +1850,10 @@ def render_markdown(inventory: dict[str, Any]) -> str:
     ):
         record = binding[key]
         lines.append(f"- {key}: `{record['path']}` ({record['digest']})")
+    lines.append(
+        f"- Bound inputs: {len(binding['bound_inputs'])} files "
+        "(content-addressed; see the canonical JSON `binding.bound_inputs`)"
+    )
     lines.append("")
     counts = inventory["counts"]
     lines.append("## Coverage")
@@ -1490,6 +1903,7 @@ def render_markdown(inventory: dict[str, Any]) -> str:
                     else ""
                 )
             )
+            support = observed.get("runtime_support")
         else:
             kind = observed.get("grounding_kind")
             if kind == "file-declaration":
@@ -1500,6 +1914,10 @@ def render_markdown(inventory: dict[str, Any]) -> str:
                 grounding = f"external: {observed.get('ref')}"
             else:  # pragma: no cover - defensive
                 grounding = str(kind)
+            consumption = reviewed.get("runtime_consumption")
+            support = (
+                consumption["support"] if consumption else "vocabulary-only"
+            )
         return (
             "| "
             + " | ".join(
@@ -1507,7 +1925,7 @@ def render_markdown(inventory: dict[str, Any]) -> str:
                 for item in (
                     entry["identity"],
                     grounding,
-                    observed.get("runtime_support"),
+                    support,
                     authority,
                     reviewed["evidence_state"],
                     reviewed["adoption_status"],
@@ -1539,6 +1957,34 @@ def render_markdown(inventory: dict[str, Any]) -> str:
     lines.append(divider)
     for entry in relationships:
         lines.append(_entry_row(entry, relationship=True))
+    lines.append("")
+    lines.append("## Reviewed consumer associations (Layer B) with witnessed evidence (Layer A)")
+    lines.append("")
+    lines.append("| class | support | consumer | role | evidence (witnessed) |")
+    lines.append("|---|---|---|---|---|")
+    for entry in classes:
+        consumption = entry["reviewed"].get("runtime_consumption")
+        if not consumption:
+            continue
+        evidence = entry["observed"].get("consumer_evidence") or []
+        rendered = ", ".join(
+            f"{item['kind']} {item['expect']!r} in {item['path']}"
+            for item in evidence
+        )
+        lines.append(
+            "| "
+            + " | ".join(
+                _cell(item)
+                for item in (
+                    entry["identity"],
+                    consumption["support"],
+                    consumption["consumer"],
+                    consumption["consumer_role"],
+                    rendered,
+                )
+            )
+            + " |"
+        )
     lines.append("")
     lines.append("## Runtime strategy registry")
     lines.append("")

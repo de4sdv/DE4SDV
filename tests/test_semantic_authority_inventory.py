@@ -1,16 +1,27 @@
-"""Tests for the O1 Semantic Authority Inventory (Wave 0a).
+"""Tests for the O1 Semantic Authority Inventory (Wave 0a + corrections R1–R3).
 
-Covers the accepted Phase-1 review test matrix: coverage, layer provenance,
-classification closure, runtime-strategy completeness, the K precedent and
-closure evidence, PLEML gating, text-parity rules, determinism, and
-duplicate/incompatibility refusal. All repository-level assertions run
-against the committed generated artifacts; synthetic fixtures are used for
+Covers the accepted Phase-1 review test matrix and the three bounded review
+corrections:
+
+- coverage, layer provenance, classification closure, runtime-strategy
+  completeness, the K precedent and closure evidence, PLEML gating;
+- R1: source-revision binding (stale revisions fail, changed inputs fail,
+  correct bindings pass, artifacts cannot self-authorize);
+- R2: text parity is exact equality after cosmetic normalization (containment
+  is not parity; material differences stay review-required);
+- R3: reviewed consumer associations live in Layer B; Layer A reports only
+  mechanically witnessed evidence.
+
+All repository-level assertions run against the committed generated
+artifacts; synthetic fixtures and temporary Git repositories are used for
 fail-closed behavior.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
 import textwrap
 from pathlib import Path
 from unittest import mock
@@ -53,6 +64,39 @@ PLEML_IDENTITIES = {
 }
 PLEML_GATE = "PLE-R -> PLE-Q -> PLE-S -> PLE-A"
 
+#: The seven rows that passed only via normalized containment in the accepted
+#: Phase-1 draft. Under exact-equality parity they are honestly `differs`.
+CONTAINMENT_ONLY_ROWS = {
+    "EngineeringIncrement",
+    "NeedsRequirementsIncrement",
+    "IncrementEngineeringQuestion",
+    "IncrementLifecycleDecision",
+    "IncrementTraceabilityShell",
+    "DeferredProductLineScope",
+    "ProblemStatement",
+}
+
+CLASS_OBSERVED_KEYS = {
+    "yaml_path",
+    "grounding_kind",
+    "file",
+    "declaration",
+    "doc_text_observation",
+    "ref",
+    "consumer_evidence",
+}
+RELATIONSHIP_OBSERVED_KEYS = {
+    "yaml_path",
+    "domain",
+    "range",
+    "grounding_kind",
+    "strategy",
+    "semantic_strength",
+    "query_direction",
+    "runtime_support",
+}
+ENTRY_REVIEWED_KEYS = set(ai.REVIEWED_FIELDS) | set(ai.REVIEWED_JOIN_FIELDS)
+
 
 @pytest.fixture(scope="module")
 def inventory() -> dict:
@@ -71,6 +115,13 @@ def decisions() -> dict:
 
 def _entries(inventory: dict) -> dict[str, dict]:
     return {entry["identity"]: entry for entry in inventory["entries"]}
+
+
+def _entry_support(entry: dict) -> str | None:
+    if entry["kind"] == "relationship":
+        return entry["observed"].get("runtime_support")
+    consumption = entry["reviewed"].get("runtime_consumption")
+    return consumption["support"] if consumption else "vocabulary-only"
 
 
 # ---------------------------------------------------------------------------
@@ -139,9 +190,9 @@ class TestCoverage:
         ]
 
     def test_cross_slice_accounted_separately_from_governed_equation(self, inventory):
-        kernel = inventory["kernel_accounting"]
         # The cross-slice mapping is NOT part of the governed-directory
         # equation: 39 + 71 = 110 holds without it.
+        kernel = inventory["kernel_accounting"]
         assert kernel["mapped_in_directory"] != 40
         counts = inventory["counts"]
         assert counts["kernel_mapped_in_dir"] == kernel["mapped_in_directory"]
@@ -151,7 +202,7 @@ class TestCoverage:
         entries = _entries(inventory)
         assert set(decisions["entries"]) == set(entries)
         for identity, entry in entries.items():
-            assert set(entry["reviewed"]) == set(ai.REVIEWED_FIELDS)
+            assert set(entry["reviewed"]) == ENTRY_REVIEWED_KEYS
 
     def test_governance_rules_accounted(self, inventory):
         rules = inventory["governance_rules"]
@@ -165,28 +216,21 @@ class TestCoverage:
 # Layers
 # ---------------------------------------------------------------------------
 
-OBSERVED_KEYS = {
-    "yaml_path",
-    "grounding_kind",
-    "file",
-    "declaration",
-    "doc_text_observation",
-    "runtime_support",
-    "ref",
-    "domain",
-    "range",
-    "strategy",
-    "semantic_strength",
-    "query_direction",
-}
-
 
 class TestLayers:
     def test_every_field_attributable_to_one_layer(self, inventory):
         for entry in inventory["entries"]:
             assert set(entry) == {"identity", "kind", "observed", "reviewed"}
-            assert set(entry["observed"]) <= OBSERVED_KEYS
-            assert set(entry["reviewed"]) == set(ai.REVIEWED_FIELDS)
+            if entry["kind"] == "class":
+                assert set(entry["observed"]) <= CLASS_OBSERVED_KEYS
+                # Consumer support is reviewed provenance; a class entry must
+                # never assert it under observed facts.
+                assert "runtime_support" not in entry["observed"]
+            else:
+                assert set(entry["observed"]) <= RELATIONSHIP_OBSERVED_KEYS
+                assert "consumer_evidence" not in entry["observed"]
+                assert entry["reviewed"]["runtime_consumption"] is None
+            assert set(entry["reviewed"]) == ENTRY_REVIEWED_KEYS
             overlap = set(entry["observed"]) & set(entry["reviewed"])
             assert not overlap, (entry["identity"], overlap)
 
@@ -214,8 +258,8 @@ class TestLayers:
         for identity, row in entries.items():
             assert set(row) == set(ai.REVIEWED_FIELDS), identity
 
-    def test_observed_facts_reproducible_from_contract(self, contract):
-        observed = ai.observed_entries(REPO_ROOT, contract)
+    def test_observed_facts_reproducible_from_contract(self, contract, decisions):
+        observed = ai.observed_entries(REPO_ROOT, contract, decisions)
         assert len(observed) == 93
         for identity, entry in observed.items():
             assert entry["kind"] in {"class", "relationship"}
@@ -276,9 +320,7 @@ class TestClassification:
             reviewed = entry["reviewed"]
             if reviewed["evidence_state"] in {"blocked", "unknown"}:
                 assert reviewed["closure_evidence_ref"] is None
-                assert entry["observed"]["runtime_support"] != (
-                    "supported (closure-verified)"
-                )
+                assert _entry_support(entry) != "supported (closure-verified)"
 
     def test_unknown_requires_bounded_question(self, inventory):
         unknown = [
@@ -480,9 +522,12 @@ class TestKPrecedent:
         assert entries["derivedRequirementsOfNeed"]["observed"]["runtime_support"] == (
             "supported (closure-verified)"
         )
-        assert entries["DerivesFromNeed"]["observed"]["runtime_support"] == (
-            "vocabulary-only"
-        )
+        # DerivesFromNeed is a connection definition: no class-level consumer
+        # association and no observed support claim (reviewed absence only).
+        k_class = entries["DerivesFromNeed"]
+        assert "runtime_support" not in k_class["observed"]
+        assert k_class["reviewed"]["runtime_consumption"] is None
+        assert k_class["observed"]["consumer_evidence"] == []
 
     def test_only_the_k_triple_carries_closure_evidence(self, inventory):
         for entry in inventory["entries"]:
@@ -493,30 +538,19 @@ class TestKPrecedent:
 
     def test_bare_boolean_is_insufficient_closure_evidence(self):
         """A closure record whose only evidence is a bare boolean fails."""
-        observed = {
-            "Thing": {
-                "kind": "class",
-                "observed": {
-                    "yaml_path": "classes:Thing",
-                    "grounding_kind": "native",
-                    "ref": "x",
-                    "runtime_support": "vocabulary-only",
-                },
-            }
-        }
+        observed = {"Thing": _observed_class()}
         reviewed = {
-            "Thing": _valid_reviewed(evidence_state="privileged-closure-proven",
-                                     closure_evidence_ref="bare")
+            "Thing": _valid_reviewed(
+                evidence_state="privileged-closure-proven",
+                closure_evidence_ref="bare",
+            )
         }
         bare_record = {
             "id": "bare",
             "subject_identities": ["Thing"],
             "proof": {"result": "pass", "closure_verified": True},
         }
-        problems = ai.validate_inventory(
-            observed, {"runtime_strategies": {}, "entries": reviewed},
-            [bare_record], [],
-        )
+        problems = _validate(observed, reviewed, closure_records=[bare_record])
         joined = "\n".join(problems)
         assert "git_sha" in joined
         assert "workflow_run" in joined
@@ -577,7 +611,7 @@ class TestPLE:
 
 
 # ---------------------------------------------------------------------------
-# Text parity
+# Text parity (R2)
 # ---------------------------------------------------------------------------
 
 
@@ -585,7 +619,7 @@ class TestTextParity:
     def _file(self, body: str) -> str:
         return f"package T {{\n  {body}\n}}\n"
 
-    def test_normalized_exact_after_cosmetic_normalization(self):
+    def test_equal_after_cosmetic_normalization_is_exact(self):
         file_text = self._file(
             "part def Widget {\n    doc /* A WIDGET does one thing, cleanly. */\n  }"
         )
@@ -596,22 +630,56 @@ class TestTextParity:
             == "normalized-exact"
         )
 
-    def test_normalized_containment_is_exact(self):
+    def test_model_text_with_extra_semantic_sentence_is_not_parity(self):
         file_text = self._file(
             "part def Widget {\n"
-            "    doc /* A widget does one thing cleanly, in the approved style. */\n"
+            "    doc /* A widget does one thing cleanly. It also implies acceptance. */\n"
             "  }"
         )
         assert (
             ai.doc_text_observation(
                 file_text, "part def Widget", "a widget does one thing cleanly"
             )
-            == "normalized-exact"
+            == "differs"
+        )
+
+    def test_yaml_text_with_extra_semantic_sentence_is_not_parity(self):
+        file_text = self._file(
+            "part def Widget {\n    doc /* A widget does one thing cleanly. */\n  }"
+        )
+        assert (
+            ai.doc_text_observation(
+                file_text,
+                "part def Widget",
+                "a widget does one thing cleanly and implies acceptance",
+            )
+            == "differs"
+        )
+
+    def test_containment_in_either_direction_is_not_parity(self):
+        file_text = self._file(
+            "part def Widget {\n"
+            "    doc /* A widget does one thing cleanly, in the approved style. */\n"
+            "  }"
+        )
+        # Definition contained in the doc (doc adds text) — not parity.
+        assert (
+            ai.doc_text_observation(
+                file_text, "part def Widget", "a widget does one thing cleanly"
+            )
+            == "differs"
+        )
+        # Doc contained in the definition (definition adds text) — not parity.
+        assert (
+            ai.doc_text_observation(
+                file_text,
+                "part def Widget",
+                "a widget does one thing cleanly in the approved style, always",
+            )
+            == "differs"
         )
 
     def test_material_wording_difference_remains_review_required(self):
-        # High word overlap but no containment: must not be treated as parity
-        # and must not be silently upgraded.
         file_text = self._file(
             "part def Widget {\n"
             "    doc /* A widget does one thing carefully and intentionally. */\n"
@@ -662,9 +730,388 @@ class TestTextParity:
             assert forbidden not in source
         assert ai.normalize_text("A-b  c!") == "a b c"
 
+    def test_doc_observations_recomputed_from_source(self, contract, inventory):
+        """Every file-declaration observation recomputes to the artifact value."""
+        entries = _entries(inventory)
+        counts: dict[str, int] = {}
+        for name, spec in contract.classes.items():
+            kernel = spec.get("kernel") or {}
+            if "file" not in kernel:
+                continue
+            text = (REPO_ROOT / kernel["file"]).read_text(encoding="utf-8")
+            observation = ai.doc_text_observation(
+                text, kernel["declaration"], str(spec.get("definition", ""))
+            )
+            assert (
+                entries[name]["observed"]["doc_text_observation"] == observation
+            ), name
+            counts[observation] = counts.get(observation, 0) + 1
+        # Exact-equality parity: no row is normalized-exact any more, and the
+        # seven containment-only rows honestly report material difference.
+        assert counts == {"differs": 37, "doc-absent": 2, "doc-absent (bodyless declaration)": 1}
+
+    def test_containment_only_rows_reclassified(self, inventory):
+        entries = _entries(inventory)
+        for identity in CONTAINMENT_ONLY_ROWS:
+            entry = entries[identity]
+            assert entry["observed"]["doc_text_observation"] == "differs", identity
+            assert entry["reviewed"]["semantic_text_equivalence"] == (
+                "review-required"
+            ), identity
+            assert entry["reviewed"]["required_evidence"], identity
+
 
 # ---------------------------------------------------------------------------
-# Determinism
+# Revision binding (R1)
+# ---------------------------------------------------------------------------
+
+_GIT_ENV = {
+    "GIT_AUTHOR_NAME": "Test",
+    "GIT_AUTHOR_EMAIL": "test@example.com",
+    "GIT_COMMITTER_NAME": "Test",
+    "GIT_COMMITTER_EMAIL": "test@example.com",
+}
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    import os
+
+    env = dict(os.environ)
+    env.update(_GIT_ENV)
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+
+def _init_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    result = subprocess.run(
+        ["git", "init", "-q"], cwd=repo, capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    return repo
+
+
+def _write(repo: Path, relative: str, content: str) -> None:
+    path = repo / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
+def _commit_all(repo: Path, message: str = "commit") -> str:
+    _git(repo, "add", "-A")
+    result = _git(repo, "commit", "-q", "-m", message)
+    assert result.returncode == 0, result.stderr
+    return _git(repo, "rev-parse", "HEAD").stdout.strip()
+
+
+def _digest(repo: Path, relative: str) -> str:
+    return (
+        "sha256:"
+        + hashlib.sha256((repo / relative).read_bytes()).hexdigest()
+    )
+
+
+def _binding(repo: Path, revision: str, paths: list[str]) -> dict:
+    return {
+        "source_revision": revision,
+        "bound_inputs": {path: _digest(repo, path) for path in sorted(paths)},
+    }
+
+
+class TestRevisionBinding:
+    FILES = {"src/module.py": "x = 1\n", "data/input.yaml": "a: 1\n"}
+
+    def _repo_with_commit(self, tmp_path: Path) -> tuple[Path, str]:
+        repo = _init_repo(tmp_path)
+        for relative, content in self.FILES.items():
+            _write(repo, relative, content)
+        revision = _commit_all(repo)
+        return repo, revision
+
+    def test_correct_source_revision_with_matching_digests_passes(self, tmp_path):
+        repo, revision = self._repo_with_commit(tmp_path)
+        binding = _binding(repo, revision, list(self.FILES))
+        assert ai.validate_source_binding(repo, binding) == []
+
+    def test_changed_bound_input_with_unchanged_recorded_revision_fails(self, tmp_path):
+        repo, revision = self._repo_with_commit(tmp_path)
+        binding = _binding(repo, revision, list(self.FILES))
+        # Uncommitted change to a bound input.
+        _write(repo, "src/module.py", "x = 2\n")
+        errors = ai.validate_source_binding(repo, binding)
+        assert any("differs from its content at source_revision" in e for e in errors)
+        # Committed change without rebinding is equally stale.
+        _commit_all(repo, "change")
+        errors = ai.validate_source_binding(repo, binding)
+        assert any("differs from its content at source_revision" in e for e in errors)
+
+    def test_generation_refuses_uncommitted_input_changes(self, tmp_path):
+        repo, revision = self._repo_with_commit(tmp_path)
+        bound_inputs = {
+            path: _digest(repo, path) for path in sorted(self.FILES)
+        }
+        _write(repo, "data/input.yaml", "a: 2\n")
+        with pytest.raises(ai.InventoryError, match="Commit the input changes first"):
+            ai.verify_source_revision_contains_inputs(repo, revision, bound_inputs)
+
+    def test_arbitrary_revision_string_cannot_self_authorize(self, tmp_path):
+        repo, revision = self._repo_with_commit(tmp_path)
+        binding = _binding(repo, revision, list(self.FILES))
+        binding["source_revision"] = "a" * 40
+        errors = ai.validate_source_binding(repo, binding)
+        assert any("not a commit in this repository" in e for e in errors)
+        binding["source_revision"] = "not-a-sha"
+        errors = ai.validate_source_binding(repo, binding)
+        assert any("40-hex" in e for e in errors)
+
+    def test_missing_bound_input_at_revision_fails(self, tmp_path):
+        repo, revision = self._repo_with_commit(tmp_path)
+        _write(repo, "src/extra.py", "y = 1\n")
+        _commit_all(repo, "add extra")
+        paths = sorted(list(self.FILES) + ["src/extra.py"])
+        binding = _binding(repo, revision, paths)
+        errors = ai.validate_source_binding(repo, binding)
+        assert any(
+            "src/extra.py does not exist at source_revision" in e for e in errors
+        )
+
+    def test_digest_mismatch_fails(self, tmp_path):
+        repo, revision = self._repo_with_commit(tmp_path)
+        binding = _binding(repo, revision, list(self.FILES))
+        binding["bound_inputs"]["src/module.py"] = "sha256:" + "0" * 64
+        errors = ai.validate_source_binding(repo, binding)
+        assert any("does not match the recorded digest" in e for e in errors)
+
+    def test_non_ancestor_revision_fails(self, tmp_path):
+        repo, revision = self._repo_with_commit(tmp_path)
+        branch = _git(repo, "symbolic-ref", "--short", "HEAD").stdout.strip()
+        # Create an orphan history whose commit is not an ancestor of HEAD.
+        _git(repo, "checkout", "-q", "--orphan", "other")
+        _git(repo, "rm", "-rf", "-q", ".")
+        _write(repo, "src/module.py", "z = 9\n")
+        side_revision = _commit_all(repo, "side")
+        _git(repo, "checkout", "-q", branch)
+        binding = _binding(repo, revision, list(self.FILES))
+        # HEAD moved back to the original branch; its binding still validates.
+        assert ai.validate_source_binding(repo, binding) == []
+        side_binding = {
+            "source_revision": side_revision,
+            "bound_inputs": {"src/module.py": _digest(repo, "src/module.py")},
+        }
+        errors = ai.validate_source_binding(repo, side_binding)
+        assert any(
+            "not an ancestor of the checked-out revision" in e for e in errors
+        ), errors
+
+    def test_real_repo_binding_is_valid(self, inventory):
+        assert ai.validate_source_binding(REPO_ROOT, inventory["binding"]) == []
+
+    def test_bound_inputs_cover_program_and_data_sources(self, inventory):
+        bound = inventory["binding"]["bound_inputs"]
+        for path in (
+            "de4sdv/semantic/authority_inventory.py",
+            "scripts/generate_semantic_authority_inventory.py",
+            "scripts/check_model_sync.py",
+            ai.ONTOLOGY_PATH,
+            ai.DECISIONS_PATH,
+            ai.CLOSURE_PATH,
+            ai.TRAVERSAL_SOURCE_PATH,
+        ):
+            assert path in bound, path
+        # Governed kernel model files and consumer-evidence files are bound too.
+        assert (
+            "textual-notation-of-model/packages/methods/de4sdv/"
+            "de4sdv_method_context.sysml" in bound
+        )
+        assert "de4sdv/semantic/projection.py" in bound
+
+    def test_named_input_digests_match_bound_inputs(self, inventory):
+        binding = inventory["binding"]
+        for key in (
+            "ontology_contract",
+            "reviewed_decisions",
+            "closure_evidence",
+            "runtime_strategy_source",
+        ):
+            record = binding[key]
+            assert binding["bound_inputs"][record["path"]] == record["digest"]
+
+    def test_artifact_commit_is_explicitly_unclaimed(self, inventory):
+        assert inventory["binding"]["artifact_commit"] is None
+        assert "cannot be known" in inventory["binding"]["artifact_commit_note"]
+
+
+# ---------------------------------------------------------------------------
+# Consumer-association provenance (R3)
+# ---------------------------------------------------------------------------
+
+
+class TestConsumerProvenance:
+    def test_reviewed_associations_stored_as_layer_b(self, inventory, decisions):
+        consumption = decisions["runtime_consumption"]
+        assert len(consumption) == 14
+        for identity, block in consumption.items():
+            assert set(block) == set(ai.CONSUMER_ASSOCIATION_FIELDS), identity
+            assert block["support"]
+            assert block["consumer"]
+            assert block["consumer_role"]
+            assert block["evidence"]
+            entry = _entries(inventory)[identity]
+            assert entry["kind"] == "class"
+            assert entry["reviewed"]["runtime_consumption"] == block
+
+    def test_layer_a_records_only_witnessed_evidence(self, inventory):
+        associated = 0
+        for entry in inventory["entries"]:
+            if entry["kind"] != "class":
+                continue
+            evidence = entry["observed"]["consumer_evidence"]
+            block = entry["reviewed"]["runtime_consumption"]
+            if block is None:
+                assert evidence == []
+                continue
+            associated += 1
+            assert evidence, entry["identity"]
+            recorded = {
+                (item["path"], item["kind"], item["expect"])
+                for item in block["evidence"]
+            }
+            witnessed = {
+                (item["path"], item["kind"], item["expect"])
+                for item in evidence
+            }
+            assert witnessed == recorded, entry["identity"]
+            for item in evidence:
+                assert set(item) == {"path", "kind", "expect", "result"}
+                assert item["result"] == "witnessed"
+        assert associated == 14
+
+    def test_support_strings_have_no_python_authority(self, decisions):
+        source = (REPO_ROOT / "de4sdv/semantic/authority_inventory.py").read_text(
+            encoding="utf-8"
+        )
+        for block in decisions["runtime_consumption"].values():
+            assert block["support"] not in source
+            assert block["consumer"] not in source
+        assert not hasattr(ai, "CLASS_RUNTIME_CONSUMPTION")
+
+    def test_missing_evidence_fails(self, tmp_path):
+        association = {
+            "support": "consumed",
+            "consumer": "x",
+            "consumer_role": "y",
+            "evidence": [
+                {"path": "missing.py", "kind": "exact-token", "expect": "Need"}
+            ],
+        }
+        with pytest.raises(ai.InventoryError, match="evidence file missing"):
+            ai.evaluate_consumer_evidence(tmp_path, "Thing", association)
+        _write(tmp_path, "present.py", "nothing here\n")
+        association["evidence"] = [
+            {"path": "present.py", "kind": "exact-token", "expect": "Need"}
+        ]
+        with pytest.raises(ai.InventoryError, match="not witnessed"):
+            ai.evaluate_consumer_evidence(tmp_path, "Thing", association)
+
+    def test_token_occurrence_alone_cannot_create_association(self, inventory):
+        """A class with no reviewed association gets no evidence, ever."""
+        entries = _entries(inventory)
+        # Scenario occurs across repository sources but carries no association.
+        assert "Scenario" in (REPO_ROOT / "scripts/check_model_sync.py").read_text(
+            encoding="utf-8"
+        ) or "Scenario" in (REPO_ROOT / "de4sdv/semantic/projection.py").read_text(
+            encoding="utf-8"
+        )
+        assert entries["Scenario"]["observed"]["consumer_evidence"] == []
+        assert entries["Scenario"]["reviewed"]["runtime_consumption"] is None
+
+    def test_evidence_kind_python_string_constant_excludes_docstrings(self, tmp_path):
+        _write(tmp_path, "docstring_only.py", '"""Mentions Need in prose."""\nx = 1\n')
+        _write(tmp_path, "code_string.py", 'value = "Need"\n')
+        good = {"evidence": [
+            {"path": "code_string.py", "kind": "python-string-constant", "expect": "Need"}
+        ]}
+        bad = {"evidence": [
+            {"path": "docstring_only.py", "kind": "python-string-constant", "expect": "Need"}
+        ]}
+        assert ai.evaluate_consumer_evidence(tmp_path, "T", good)[0]["result"] == (
+            "witnessed"
+        )
+        with pytest.raises(ai.InventoryError):
+            ai.evaluate_consumer_evidence(tmp_path, "T", bad)
+
+    def test_evidence_kind_sysml_type_usage_requires_typed_usage(self, tmp_path):
+        _write(
+            tmp_path,
+            "usage.sysml",
+            "package P {\n  attribute phase : MethodPhase;\n}\n",
+        )
+        _write(
+            tmp_path,
+            "import_only.sysml",
+            "package P {\n  public import MethodPhase::*;\n}\n",
+        )
+        good = {"evidence": [
+            {"path": "usage.sysml", "kind": "sysml-type-usage", "expect": "MethodPhase"}
+        ]}
+        bad = {"evidence": [
+            {"path": "import_only.sysml", "kind": "sysml-type-usage", "expect": "MethodPhase"}
+        ]}
+        assert ai.evaluate_consumer_evidence(tmp_path, "T", good)[0]["result"] == (
+            "witnessed"
+        )
+        with pytest.raises(ai.InventoryError):
+            ai.evaluate_consumer_evidence(tmp_path, "T", bad)
+
+    def test_evidence_kind_sysml_code_token_ignores_comments(self, tmp_path):
+        _write(
+            tmp_path,
+            "commented.sysml",
+            "package P {\n  /* import VVStatus mentions */\n}\n",
+        )
+        _write(
+            tmp_path,
+            "code.sysml",
+            "package P {\n  public import VVStatus;\n}\n",
+        )
+        good = {"evidence": [
+            {"path": "code.sysml", "kind": "sysml-code-token", "expect": "VVStatus"}
+        ]}
+        bad = {"evidence": [
+            {"path": "commented.sysml", "kind": "sysml-code-token", "expect": "VVStatus"}
+        ]}
+        assert ai.evaluate_consumer_evidence(tmp_path, "T", good)[0]["result"] == (
+            "witnessed"
+        )
+        with pytest.raises(ai.InventoryError):
+            ai.evaluate_consumer_evidence(tmp_path, "T", bad)
+
+    def test_evidence_kind_python_identifier(self, tmp_path):
+        _write(tmp_path, "defs.py", "class MethodEvaluationScope:\n    pass\n")
+        good = {"evidence": [
+            {"path": "defs.py", "kind": "python-identifier", "expect": "MethodEvaluationScope"}
+        ]}
+        assert ai.evaluate_consumer_evidence(tmp_path, "T", good)[0]["result"] == (
+            "witnessed"
+        )
+
+    def test_association_shape_is_validated(self, decisions):
+        problems = ai._validate_consumer_association(
+            "X", {"support": "s", "consumer": "c"}
+        )
+        joined = "\n".join(problems)
+        assert "consumer_role" in joined
+        assert "evidence" in joined
+
+
+# ---------------------------------------------------------------------------
+# Determinism and the committed-artifact check (R1 gate)
 # ---------------------------------------------------------------------------
 
 
@@ -700,20 +1147,49 @@ class TestDeterminism:
             errors = generator.run_check_errors(REPO_ROOT)
         assert len(errors) == 2
 
-    def test_check_fails_when_inputs_changed_without_regeneration(self, tmp_path):
-        # Simulate a changed decisions dataset: regeneration from the current
-        # inputs no longer matches the committed artifact.
-        committed = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
-        committed["binding"]["reviewed_decisions"]["digest"] = "sha256:" + "0" * 64
-        json_copy = tmp_path / "drifted.json"
-        json_copy.write_text(json.dumps(committed), encoding="utf-8")
-        md_copy = tmp_path / "drifted.md"
+    def test_check_fails_on_stale_source_revision_claim(self, tmp_path):
+        """Reusing a stored revision string cannot pass: the revision must
+        actually contain the bound inputs."""
+        tampered = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+        tampered["binding"]["source_revision"] = (
+            "976e1d3571b3706cd6b487535efb35f3df00e50d"  # real ancestor, wrong inputs
+        )
+        json_copy = tmp_path / "stale.json"
+        json_copy.write_text(json.dumps(tampered), encoding="utf-8")
+        md_copy = tmp_path / "stale.md"
         md_copy.write_text(MD_PATH.read_text(encoding="utf-8"), encoding="utf-8")
         with mock.patch.object(
             generator, "INVENTORY_JSON_PATH", str(json_copy)
         ), mock.patch.object(generator, "INVENTORY_MD_PATH", str(md_copy)):
             errors = generator.run_check_errors(REPO_ROOT)
-        assert any("differs from" in error for error in errors)
+        assert errors
+        assert any("does not exist at source_revision" in e for e in errors)
+
+    def test_check_fails_on_arbitrary_source_revision(self, tmp_path):
+        tampered = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+        tampered["binding"]["source_revision"] = "a" * 40
+        json_copy = tmp_path / "arbitrary.json"
+        json_copy.write_text(json.dumps(tampered), encoding="utf-8")
+        md_copy = tmp_path / "arbitrary.md"
+        md_copy.write_text(MD_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+        with mock.patch.object(
+            generator, "INVENTORY_JSON_PATH", str(json_copy)
+        ), mock.patch.object(generator, "INVENTORY_MD_PATH", str(md_copy)):
+            errors = generator.run_check_errors(REPO_ROOT)
+        assert any("not a commit in this repository" in e for e in errors)
+
+    def test_check_fails_on_tampered_input_digest(self, tmp_path):
+        tampered = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+        tampered["binding"]["reviewed_decisions"]["digest"] = "sha256:" + "0" * 64
+        json_copy = tmp_path / "digest.json"
+        json_copy.write_text(json.dumps(tampered), encoding="utf-8")
+        md_copy = tmp_path / "digest.md"
+        md_copy.write_text(MD_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+        with mock.patch.object(
+            generator, "INVENTORY_JSON_PATH", str(json_copy)
+        ), mock.patch.object(generator, "INVENTORY_MD_PATH", str(md_copy)):
+            errors = generator.run_check_errors(REPO_ROOT)
+        assert any("does not match" in e for e in errors)
 
 
 # ---------------------------------------------------------------------------
@@ -758,58 +1234,66 @@ def _valid_closure_record() -> dict:
     }
 
 
-def _problems_for(reviewed: dict, observation=None, closure_records=None) -> list[str]:
-    observed = {
-        "Thing": {
-            "kind": "class",
-            "observed": {
-                "yaml_path": "classes:Thing",
-                "grounding_kind": "native",
-                "ref": "x",
-                "runtime_support": "vocabulary-only",
-            },
-        }
+def _observed_class() -> dict:
+    return {
+        "kind": "class",
+        "observed": {
+            "yaml_path": "classes:Thing",
+            "grounding_kind": "native",
+            "ref": "x",
+            "consumer_evidence": [],
+        },
     }
-    if observation is not None:
-        observed["Thing"]["observed"].pop("ref", None)
-        observed["Thing"]["observed"]["grounding_kind"] = "file-declaration"
-        observed["Thing"]["observed"]["file"] = "f.sysml"
-        observed["Thing"]["observed"]["declaration"] = "part def Thing"
-        observed["Thing"]["observed"]["doc_text_observation"] = observation
+
+
+def _validate(
+    observed: dict,
+    reviewed_rows: dict,
+    closure_records: list | None = None,
+    consumption: dict | None = None,
+    strategy_rows: list | None = None,
+) -> list[str]:
     return ai.validate_inventory(
         observed,
-        {"runtime_strategies": {}, "entries": {"Thing": reviewed}},
+        {
+            "runtime_strategies": {},
+            "entries": reviewed_rows,
+            "runtime_consumption": consumption or {},
+        },
         closure_records if closure_records is not None else [],
-        [],
+        strategy_rows if strategy_rows is not None else [],
+    )
+
+
+def _problems_for(reviewed: dict, observation=None, closure_records=None) -> list[str]:
+    observed = {"Thing": _observed_class()}
+    if observation is not None:
+        observed["Thing"]["observed"].pop("ref", None)
+        observed["Thing"]["observed"].update(
+            {
+                "grounding_kind": "file-declaration",
+                "file": "f.sysml",
+                "declaration": "part def Thing",
+                "doc_text_observation": observation,
+            }
+        )
+    return _validate(
+        observed, {"Thing": reviewed}, closure_records=closure_records
     )
 
 
 class TestDuplicatesAndIncompatibility:
     def test_duplicate_closure_id_fails(self):
         record = _valid_closure_record()
-        problems = ai.validate_inventory(
+        problems = _validate(
+            {"Thing": _observed_class()},
             {
-                "Thing": {
-                    "kind": "class",
-                    "observed": {
-                        "yaml_path": "classes:Thing",
-                        "grounding_kind": "native",
-                        "ref": "x",
-                        "runtime_support": "vocabulary-only",
-                    },
-                }
+                "Thing": _valid_reviewed(
+                    evidence_state="privileged-closure-proven",
+                    closure_evidence_ref="r6-3",
+                )
             },
-            {
-                "runtime_strategies": {},
-                "entries": {
-                    "Thing": _valid_reviewed(
-                        evidence_state="privileged-closure-proven",
-                        closure_evidence_ref="r6-3",
-                    )
-                },
-            },
-            [record, dict(record)],
-            [],
+            closure_records=[record, dict(record)],
         )
         assert any("duplicate closure record id" in p for p in problems)
 
@@ -836,46 +1320,13 @@ class TestDuplicatesAndIncompatibility:
             ai.load_reviewed_decisions(path)
 
     def test_missing_decision_row_fails(self):
-        problems = ai.validate_inventory(
-            {
-                "Thing": {
-                    "kind": "class",
-                    "observed": {
-                        "yaml_path": "classes:Thing",
-                        "grounding_kind": "native",
-                        "ref": "x",
-                        "runtime_support": "vocabulary-only",
-                    },
-                }
-            },
-            {"runtime_strategies": {}, "entries": {}},
-            [],
-            [],
-        )
+        problems = _validate({"Thing": _observed_class()}, {})
         assert any("missing reviewed decision row" in p for p in problems)
 
     def test_unknown_decision_row_fails(self):
-        problems = ai.validate_inventory(
-            {
-                "Thing": {
-                    "kind": "class",
-                    "observed": {
-                        "yaml_path": "classes:Thing",
-                        "grounding_kind": "native",
-                        "ref": "x",
-                        "runtime_support": "vocabulary-only",
-                    },
-                }
-            },
-            {
-                "runtime_strategies": {},
-                "entries": {
-                    "Thing": _valid_reviewed(),
-                    "Ghost": _valid_reviewed(),
-                },
-            },
-            [],
-            [],
+        problems = _validate(
+            {"Thing": _observed_class()},
+            {"Thing": _valid_reviewed(), "Ghost": _valid_reviewed()},
         )
         assert any("has no ontology entry" in p for p in problems)
 
@@ -901,6 +1352,50 @@ class TestDuplicatesAndIncompatibility:
         for reviewed, message in cases:
             problems = _problems_for(reviewed)
             assert any(message in p for p in problems), (reviewed, problems)
+
+    def test_consumer_association_requires_layer_a_evidence(self):
+        consumption = {
+            "Thing": {
+                "support": "consumed",
+                "consumer": "c",
+                "consumer_role": "r",
+                "evidence": [
+                    {"path": "f.py", "kind": "exact-token", "expect": "Thing"}
+                ],
+            }
+        }
+        problems = _validate(
+            {"Thing": _observed_class()},
+            {"Thing": _valid_reviewed()},
+            consumption=consumption,
+        )
+        assert any("without mechanically witnessed evidence" in p for p in problems)
+
+    def test_consumer_association_is_class_only(self):
+        observed = {
+            "Rel": {
+                "kind": "relationship",
+                "observed": {
+                    "yaml_path": "relationships:Rel",
+                    "domain": "A",
+                    "range": "B",
+                    "grounding_kind": "yaml-vocabulary",
+                    "runtime_support": "vocabulary-only",
+                },
+            }
+        }
+        consumption = {
+            "Rel": {
+                "support": "consumed",
+                "consumer": "c",
+                "consumer_role": "r",
+                "evidence": [{"path": "f.py", "kind": "exact-token", "expect": "Rel"}],
+            }
+        }
+        problems = _validate(
+            observed, {"Rel": _valid_reviewed()}, consumption=consumption
+        )
+        assert any("class-only" in p for p in problems)
 
     def test_vocabulary_dimensions_pinned_in_code(self, decisions):
         assert decisions["dimensions"]["authority_source"] == list(
@@ -982,4 +1477,3 @@ class TestSupersessionAndGate:
             return_value=[],
         ):
             assert check_repo.main() == 0
-

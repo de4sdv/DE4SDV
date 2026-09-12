@@ -46,7 +46,7 @@ entries:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   FeatureIncrement:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -82,7 +82,7 @@ entries:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   IncrementEngineeringQuestion:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -100,7 +100,7 @@ entries:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   IncrementLifecycleDecision:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -118,7 +118,7 @@ entries:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   IncrementTraceabilityShell:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -136,7 +136,7 @@ entries:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   MethodPhase:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -354,7 +354,7 @@ entries:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   VariationPoint:
     authority_current: native-sysml
     authority_target: native-sysml
@@ -503,7 +503,7 @@ entries:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   ArchitectureDecisionRecord:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1726,3 +1726,124 @@ runtime_strategies:
       yields typed target hops. No ontology relationship declares this strategy (Phase-1 unassociated
       runtime capability); pending review — either associate a reviewed ontology mapping or retire the
       dispatch branch.'
+runtime_consumption:
+  Need:
+    support: consumed (identity/lineage)
+    consumer: de4sdv/semantic/projection.py (K projection)
+    consumer_role: kernel-bound identity/lineage class consumed as a projection binding root
+    evidence:
+    - path: de4sdv/semantic/projection.py
+      kind: python-string-constant
+      expect: Need
+  Requirement:
+    support: consumed (identity/lineage)
+    consumer: de4sdv/semantic/impact.py
+    consumer_role: kernel-bound identity/lineage class consumed as an impact binding root
+    evidence:
+    - path: de4sdv/semantic/impact.py
+      kind: python-string-constant
+      expect: Requirement
+  MemberProduct:
+    support: consumed (identity/lineage)
+    consumer: de4sdv/semantic/impact.py
+    consumer_role: kernel-bound identity/lineage class consumed as a product-line traversal root
+    evidence:
+    - path: de4sdv/semantic/impact.py
+      kind: python-string-constant
+      expect: MemberProduct
+  VerificationMethod:
+    support: consumed (model attributes)
+    consumer: DE4SDV model metadata usages + method-conformance evaluator
+    consumer_role: model-attribute class consumed via @VerificationMethod metadata annotations
+    evidence:
+    - path: textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml
+      kind: sysml-code-token
+      expect: '@VerificationMethod'
+    - path: de4sdv/semantic/method_evaluator.py
+      kind: exact-token
+      expect: VerificationMethod
+  EvidenceStatus:
+    support: consumed (model attributes)
+    consumer: DE4SDV method-context adapter (ODE4HERA VVStatus)
+    consumer_role: external status-attribute vocabulary imported through the method-context adapter
+    evidence:
+    - path: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      kind: sysml-code-token
+      expect: VVStatus
+  VerificationCase:
+    support: consumed (verifiedBy)
+    consumer: de4sdv/semantic/impact.py (verifiedBy category)
+    consumer_role: native verification-case class consumed by the verifiedBy traversal
+    evidence:
+    - path: de4sdv/semantic/impact.py
+      kind: python-string-constant
+      expect: VerificationCase
+  MethodPhase:
+    support: consumed by method-conformance data
+    consumer: method-conformance model data (phase attribute typing)
+    consumer_role: phase enumeration class consumed as a typed attribute in method-contract items
+    evidence:
+    - path: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
+      kind: sysml-type-usage
+      expect: MethodPhase
+  MethodContractObligation:
+    support: consumed by method-conformance (Lane C/D)
+    consumer: Lane C/D method-conformance pilot data (obligation items)
+    consumer_role: method-contract obligation class consumed by the declared pilot obligation items
+    evidence:
+    - path: textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml
+      kind: sysml-type-usage
+      expect: MethodContractObligation
+  MethodEvaluationScope:
+    support: consumed by method-conformance (Lane C/D)
+    consumer: de4sdv/semantic/method_contract.py
+    consumer_role: evaluation-scope dataclass mirroring the model-resident scope vocabulary
+    evidence:
+    - path: de4sdv/semantic/method_contract.py
+      kind: python-identifier
+      expect: MethodEvaluationScope
+  EvaluationScopeMembership:
+    support: consumed by method-conformance (Lane C/D)
+    consumer: Lane C/D method-conformance pilot data (scope memberships)
+    consumer_role: scope-membership class consumed by the pilot scope-member items
+    evidence:
+    - path: textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml
+      kind: sysml-type-usage
+      expect: EvaluationScopeMembership
+  EvaluationSourceKind:
+    support: consumed by method-conformance (Lane C/D)
+    consumer: method-conformance model data (evaluationSource attribute typing)
+    consumer_role: evaluation-source enumeration class consumed as a typed attribute in obligations
+    evidence:
+    - path: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
+      kind: sysml-type-usage
+      expect: EvaluationSourceKind
+  TestedScopeDeclaration:
+    support: consumed by method-conformance (Lane C/D)
+    consumer: Lane C/D method-conformance pilot data (tested-scope declaration)
+    consumer_role: tested-scope declaration class consumed by the pilot testedScope item
+    evidence:
+    - path: textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml
+      kind: sysml-type-usage
+      expect: TestedScopeDeclaration
+  RetainedExecutionRecordReference:
+    support: consumed by method-conformance (Lane C/D)
+    consumer: Lane C/D method-conformance obligation data (execution records)
+    consumer_role: retained execution-record reference class reserved for C/D execution-record obligations;
+      declaration + obligation data witness
+    evidence:
+    - path: docs/method-conformance/pilot-obligations.yaml
+      kind: exact-token
+      expect: execution-outcome
+    - path: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
+      kind: exact-token
+      expect: item def RetainedExecutionRecordReference
+  AcceptanceAttestationReference:
+    support: consumed by method-conformance (Lane C/D)
+    consumer: Lane C/D method-conformance pilot data (acceptance attestation)
+    consumer_role: acceptance-attestation reference class consumed by the pilot acceptanceAttestation
+      item
+    evidence:
+    - path: textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml
+      kind: sysml-type-usage
+      expect: AcceptanceAttestationReference
