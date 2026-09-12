@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `c20b507815066aa2224e0e58fe51eaf3835a4a46`
+- Source revision: `81def3a15007a97847df20973c320e5324875925`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:1b346a9b1d799465eba84f64e24c6b28b3cff4ed8ebb839feb790fdd9e9d285c)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:854c42d550c796fcb936b0d8c939ed9357c0f8cef3ff8e7fbaff14f8fb1d9f40)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:ed6b1cee3a422d181e9e4c8a7b8c6374e1bde67c4f1c1cfc0d6751378417d86a)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -31,7 +31,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | authority_current_counts | accepted-library-grounded: 2, external-reference: 3, legacy-yaml: 78, model-authoritative: 3, native-sysml: 6, unknown: 1 |
 | authority_target_counts | accepted-library-grounded: 12, de4sdv-application-semantic: 4, external-reference: 2, model-authoritative: 61, native-sysml: 8, unknown: 6 |
 | authority_target_conditional_counts | accepted-library-grounded: 8, de4sdv-application-semantic: 1 |
-| evidence_state_counts | blocked: 14, privileged-closure-proven: 3, repository-evidenced: 75, unknown: 1 |
+| evidence_state_counts | blocked: 14, parity-reviewed: 8, privileged-closure-proven: 3, repository-evidenced: 67, unknown: 1 |
 | adoption_status_counts | accepted: 4, candidate: 1, not-applicable: 77, pinned-not-adopted: 8, rejected: 3 |
 
 ## Classes (59)
@@ -44,7 +44,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | IncrementEngineeringQuestion | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementEngineeringQuestion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | IncrementLifecycleDecision | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementLifecycleDecision | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | IncrementTraceabilityShell | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementTraceabilityShell | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| MethodPhase | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def MethodPhase | consumed by method-conformance data | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| MethodPhase | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def MethodPhase | consumed by method-conformance data | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
 | SignalMappingDisposition | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def SignalMappingDisposition | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | LogicalToSoftwareSignalMappingRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: item def LogicalToSoftwareSignalMappingRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | SystemToSoftwareSignalMappingCandidate | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: allocation def SystemToSoftwareSignalMappingCandidate | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
@@ -89,13 +89,13 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | TraceLink | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: item def TraceLink | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | RequiredTraceChain | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: part def RequiredTraceChain | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | Baseline | textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml: part def DE4SDVEvidenceBaseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| MethodContractObligation | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def MethodContractObligation | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
-| EvaluationSourceKind | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: enum def EvaluationSourceKind | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
-| MethodEvaluationScope | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: part def MethodEvaluationScope | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
-| EvaluationScopeMembership | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def EvaluationScopeMembership | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
-| TestedScopeDeclaration | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def TestedScopeDeclaration | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
-| RetainedExecutionRecordReference | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def RetainedExecutionRecordReference | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
-| AcceptanceAttestationReference | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def AcceptanceAttestationReference | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
+| MethodContractObligation | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def MethodContractObligation | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
+| EvaluationSourceKind | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: enum def EvaluationSourceKind | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
+| MethodEvaluationScope | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: part def MethodEvaluationScope | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
+| EvaluationScopeMembership | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def EvaluationScopeMembership | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
+| TestedScopeDeclaration | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def TestedScopeDeclaration | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
+| RetainedExecutionRecordReference | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def RetainedExecutionRecordReference | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
+| AcceptanceAttestationReference | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def AcceptanceAttestationReference | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
 | DerivesFromNeed | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: connection def DerivesFromNeed | vocabulary-only | model-authoritative -> model-authoritative | privileged-closure-proven | rejected | keep-as-is | K | r6-3 |
 
 ## Relationships (34)
