@@ -491,6 +491,25 @@ def test_projection_and_profile_fail_identically_on_stale_attestation() -> None:
         _build_profile(closure_attestation=stale)
 
 
+# ---------------------------------------------------------------------------
+# 5. No O1 inventory dependency in the runtime/projection path
+# ---------------------------------------------------------------------------
+
+
+def test_projection_path_does_not_depend_on_the_o1_inventory() -> None:
+    """The O1 migration artifacts are governance, not runtime authority: the
+    projection module must never read them (and must not import the
+    inventory module)."""
+    text = (ROOT / "de4sdv/semantic/projection.py").read_text(encoding="utf-8")
+    for forbidden in (
+        "semantic-authority-inventory",
+        "authority-review-decisions",
+        "authority_inventory",
+        "method-conformance",
+    ):
+        assert forbidden not in text, forbidden
+
+
 def test_profile_support_echo_cannot_leave_the_honest_vocabulary() -> None:
     profile = _build_profile()
     mutated = json.loads(json.dumps(profile))
