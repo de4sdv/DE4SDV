@@ -983,21 +983,27 @@ entries:
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: 'c1 parity-reviewed: item def carries all 15 frozen-baseline Section 7 schema
-      fields as typed attributes; per-attribute docs are member docs and stay member
-      docs; definition-level doc added reproducing the YAML-established meaning (YAML
-      remains the O1 authority). Parity is normalized-exact and machine-checked; runtime
-      authority unchanged until O3.'
+    note: 'c1 parity-reviewed: item def carries every frozen-baseline Section 7
+      schema field as typed attributes — the frozen table lists 12 fields
+      (docs/method-conformance/conformance-baseline.md Section 7), materialized
+      as 14 typed attribute declarations because population policy and
+      cardinality each require two attributes; the earlier "15 fields" figure
+      was wrong and is corrected per review R2. Per-attribute docs are member
+      docs and stay member docs; definition-level doc added reproducing the
+      YAML-established meaning (YAML remains the O1 authority). Text parity is
+      normalized-exact and machine-checked; runtime authority unchanged until O3.'
     unknowns: []
     required_evidence:
     - O2 generated projection from the reviewed model representation
     - O3 approved authority transition
     exact_fit_decision: 'exact fit: item def MethodContractObligation declares the frozen
-      baseline Section 7 schema fields as typed attributes (obligationId, phase :
-      MethodPhase, subjectSelector, applicability, minimumPopulation, permittedEmpty,
-      predicate, targetFilter, cardinalityMinimum/Maximum, required, evaluationSource :
-      EvaluationSourceKind, attestationPolicyRef, claimBoundary); the obligations do not
-      gain executable semantics from the representation, so no stronger meaning is
+      baseline Section 7 schema fields as typed attributes — all 12 schema fields are
+      covered by 14 attribute declarations (obligationId, phase : MethodPhase,
+      subjectSelector, applicability, minimumPopulation + permittedEmpty for the
+      population policy, predicate, targetFilter, cardinalityMinimum + cardinalityMaximum
+      for the cardinality bounds, required, evaluationSource : EvaluationSourceKind,
+      attestationPolicyRef, claimBoundary); no schema field is absent; the obligations do
+      not gain executable semantics from the representation, so no stronger meaning is
       introduced; definition-level doc reproduces the YAML definition without added
       semantics; the declared pilot instantiates 11 obligations as model items.'
     closure_evidence_ref: null
@@ -1031,32 +1037,35 @@ entries:
   MethodEvaluationScope:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: parity-reviewed
+    evidence_state: repository-evidenced
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: 'c1 parity-reviewed: scope-identity and subject-type vocabulary is model-resident;
-      explicit exclusions with rationale are carried as typed runtime/contract inputs
-      (de4sdv.semantic.method_contract MethodEvaluationScope.exclusions) per the delivered
-      A-D representation, not as model-resident fields - the reviewed boundary is recorded
-      in exact_fit_decision and no stronger model-residency is claimed. Definition-level
-      doc added reproducing the YAML-established meaning (YAML remains the O1 authority);
-      parity is normalized-exact and machine-checked; runtime authority unchanged until O3.'
-    unknowns: []
+    note: 'c1 review correction (R1): definition-level doc text parity is
+      normalized-exact and machine-checked, but text parity is NOT structural
+      semantic parity — the model does not yet structurally carry explicit
+      exclusions with rationale, so evidence_state stays repository-evidenced.
+      The definition-level doc is retained as an accurate statement of the
+      intended concept and claims no model-resident exclusions field. The
+      runtime MethodEvaluationScope exclusions input is implementation evidence
+      for the delivered A–D execution, not model-authority parity. O2 cannot
+      close this gap by itself: it may only generate from semantics already
+      proven model-resident.'
+    unknowns:
+    - Model-resident representation of explicit exclusions with rationale is required
+      before model-authority parity can be completed.
     required_evidence:
-    - O2 generated projection from the reviewed model representation
+    - Reviewed semantic/model representation decision for exclusions
+    - Implementation and parity review of that model-resident representation
+    - O2 generation from the reviewed model representation
     - O3 approved authority transition
-    exact_fit_decision: 'exact fit with recorded boundary: part def MethodEvaluationScope
-      carries incrementId and subjectType (the scope-identity vocabulary) and the
-      contributes-flag membership class separates contribution set from evaluation scope;
-      the exclusions-with-rationale half of the YAML definition is carried by the runtime
-      typed input (MethodEvaluationScope.exclusions: dict[str, str], tests
-      test_method_contract_binding.py), matching the delivered A-D representation; the
-      definition-level doc reproduces the YAML definition verbatim and therefore claims
-      no model-resident exclusions field; no stronger semantics introduced.'
+    exact_fit_decision: 'not exact structural fit — the SysML definition carries increment
+      identity and eligible subject type, but explicit exclusions with rationale remain
+      outside the model in the delivered runtime MethodEvaluationScope input. Runtime
+      representation is implementation evidence, not model-authority parity.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   EvaluationScopeMembership:

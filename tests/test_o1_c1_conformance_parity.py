@@ -1,19 +1,31 @@
 """O1 c1 — bounded method-conformance class parity batch (PR #249).
 
-Tests the c1 parity claim for exactly eight identities:
+Covers the c1 claim after the independent review: **seven of the eight
+identities are accepted as parity-reviewed; `MethodEvaluationScope` remains
+incomplete** (R1 correction) because the model does not yet structurally
+carry explicit exclusions with rationale — text parity (normalized-exact
+definition-level doc) is NOT structural semantic parity.
+
+The batch tests:
 
 1.  exactly the eight named identities comprise c1 (no ninth entry);
-2.  successful rows: evidence_state = parity-reviewed, authority_current =
-    legacy-yaml preserved, authority_target = model-authoritative, no closure
-    evidence, no supported-promotion, no conditional target;
-3.  definition-level documentation is extracted independently from member
+2.  the seven accepted rows: evidence_state = parity-reviewed,
+    authority_current = legacy-yaml preserved, authority_target =
+    model-authoritative, no closure evidence, no supported-promotion, no
+    conditional target;
+3.  `MethodEvaluationScope`: authority stays legacy-yaml / model-authoritative,
+    evidence stays repository-evidenced, the structural gap names exclusions
+    with rationale, and normalized-exact text never promotes evidence;
+4.  definition-level documentation is extracted independently from member
     (attribute / enum-literal) documentation per the SysML v2 spec ownership
     rule (a doc comment is owned by the element whose body it sits in);
-4.  strict normalized-exact parity is machine-checked for all eight;
-5.  structural exact-fit facts: declaration kinds, required typed members,
-    required enum literals, and the external-reference / no-approval /
-    exclusions-carried-elsewhere boundaries that justified each decision;
-6.  no runtime/query/K/projection semantics changed: the inventory generator
+5.  text parity is machine-checked (normalized-exact) for all eight, while
+    evidence maturity is a separate reviewed dimension;
+6.  structural exact-fit facts: declaration kinds, required typed members,
+    required enum literals, the frozen Section 7 field coverage (12 schema
+    fields -> 14 attribute declarations), and the external-reference /
+    no-approval boundaries that justified each decision;
+7.  no runtime/query/K/projection semantics changed: the inventory generator
     is runtime-inert and the c1 rows carry no Semantic Projection rows.
 
 Adversarial cases prove the parity machinery rejects member-doc confusion,
@@ -23,6 +35,7 @@ missing docs, extra semantic text, and substring containment.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -54,6 +67,16 @@ C1_IDENTITIES: tuple[str, ...] = (
     "TestedScopeDeclaration",
     "RetainedExecutionRecordReference",
     "AcceptanceAttestationReference",
+)
+
+#: The one c1 identity that is NOT yet parity-reviewed (R1 review correction):
+#: the model carries increment identity and eligible subject types, but not the
+#: explicit exclusions with rationale that the YAML definition requires.
+C1_INCOMPLETE: tuple[str, ...] = ("MethodEvaluationScope",)
+
+#: The seven c1 identities accepted as parity-reviewed after the review.
+C1_ACCEPTED: tuple[str, ...] = tuple(
+    name for name in C1_IDENTITIES if name not in C1_INCOMPLETE
 )
 
 #: YAML definition location + text of the eight (the O1 semantic authority for c1).
@@ -149,13 +172,16 @@ class TestC1Scope:
             assert name in contract.classes, name
             assert name not in contract.relationships, name
 
-    def test_no_ninth_entry_promoted(self, inventory):
+    def test_exactly_seven_parity_reviewed_rows(self, inventory):
+        """Exactly the seven accepted identities are parity-reviewed: no ninth
+        entry promoted, and not the incomplete MethodEvaluationScope."""
         parity_rows = [
             entry["identity"]
             for entry in inventory["entries"]
             if entry["reviewed"]["evidence_state"] == "parity-reviewed"
         ]
-        assert sorted(parity_rows) == sorted(C1_IDENTITIES)
+        assert sorted(parity_rows) == sorted(C1_ACCEPTED)
+        assert len(parity_rows) == 7
 
     def test_authority_current_remains_legacy_yaml(self, inventory):
         for entry in _entries(inventory, C1_IDENTITIES).values():
@@ -165,9 +191,10 @@ class TestC1Scope:
         for entry in _entries(inventory, C1_IDENTITIES).values():
             assert entry["reviewed"]["authority_target"] == "model-authoritative"
 
-    def test_successful_rows_are_parity_reviewed(self, inventory):
-        for entry in _entries(inventory, C1_IDENTITIES).values():
-            assert entry["reviewed"]["evidence_state"] == "parity-reviewed"
+    def test_accepted_rows_are_parity_reviewed(self, inventory):
+        for name in C1_ACCEPTED:
+            entry = _entries(inventory, (name,))[name]
+            assert entry["reviewed"]["evidence_state"] == "parity-reviewed", name
 
     def test_no_c1_row_receives_closure_evidence(self, inventory):
         for entry in _entries(inventory, C1_IDENTITIES).values():
@@ -198,15 +225,24 @@ class TestC1Scope:
             assert f'"{name}"' not in source, name
 
     def test_c2_to_c5_entries_unchanged(self, inventory):
-        """Spot-check the other batch stages stay on their own stages."""
-        stages = {
-            entry["identity"]: entry["reviewed"]["stage"]
-            for entry in inventory["entries"]
+        """No c2–c5 row changes: stage, current authority, and evidence state
+        for every later-batch entry stay pinned."""
+        entries = _entries(inventory)
+        expected = {
+            "VerificationCase": ("c2", "native-sysml", "repository-evidenced"),
+            "verifiedBy": ("c2", "legacy-yaml", "repository-evidenced"),
+            "hasSubject": ("c3", "legacy-yaml", "repository-evidenced"),
+            "derivesNeedFromConcern": ("c4", "legacy-yaml", "blocked"),
+            "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),
+            "specifiesFunction": ("c5", "legacy-yaml", "repository-evidenced"),
+            "hasRelevantArchitecture": ("c5", "legacy-yaml", "repository-evidenced"),
+            "hasRelevantEvidenceContract": ("c5", "legacy-yaml", "repository-evidenced"),
         }
-        assert stages["VerificationCase"] == "c2"
-        assert stages["hasSubject"] == "c3"
-        assert stages["derivesNeedFromConcern"] == "c4"
-        assert stages["realizedBy"] == "c5"
+        for identity, (stage, authority, evidence) in expected.items():
+            row = entries[identity]["reviewed"]
+            assert row["stage"] == stage, identity
+            assert row["authority_current"] == authority, identity
+            assert row["evidence_state"] == evidence, identity
 
     def test_ple_classifications_unchanged(self, inventory):
         entries = _entries(inventory)
@@ -245,6 +281,150 @@ def _entries(
     if names is None:
         return by_identity
     return {name: by_identity[name] for name in names}
+
+
+def _probe_observed(observation: str) -> dict:
+    return {
+        "yaml_path": "classes:Thing",
+        "grounding_kind": "file-declaration",
+        "file": "f.sysml",
+        "declaration": "part def Thing",
+        "doc_text_observation": observation,
+        "consumer_evidence": [],
+    }
+
+
+def _probe_reviewed(**overrides) -> dict:
+    row = {
+        "authority_current": "legacy-yaml",
+        "authority_target": "model-authoritative",
+        "evidence_state": "repository-evidenced",
+        "adoption_status": "not-applicable",
+        "transition_gate": None,
+        "conditional_target": False,
+        "disposition": "move-meaning-into-model",
+        "confidence": "high",
+        "stage": "test-stage",
+        "note": "",
+        "unknowns": [],
+        "required_evidence": ["model-side representation decision"],
+        "exact_fit_decision": None,
+        "closure_evidence_ref": None,
+        "semantic_text_equivalence": None,
+        "runtime_consumption": None,
+    }
+    row.update(overrides)
+    return row
+
+
+# ---------------------------------------------------------------------------
+# R1 review correction: MethodEvaluationScope stays incomplete
+# ---------------------------------------------------------------------------
+
+
+class TestMethodEvaluationScopeIncomplete:
+    """Text parity and structural semantic parity are separate dimensions.
+
+    The independent review corrected the first c1 pass: the definition-level
+    doc is normalized-exact text, but the model does not yet structurally
+    carry explicit exclusions with rationale, so MethodEvaluationScope must
+    NOT be claimed parity-reviewed. The runtime exclusions input is
+    implementation evidence for the delivered A–D execution, not
+    model-authority parity.
+    """
+
+    def _row(self, inventory: dict) -> dict:
+        return _entries(inventory, ("MethodEvaluationScope",))["MethodEvaluationScope"]
+
+    def test_authority_current_is_legacy_yaml(self, inventory):
+        assert self._row(inventory)["reviewed"]["authority_current"] == "legacy-yaml"
+
+    def test_authority_target_is_model_authoritative(self, inventory):
+        assert (
+            self._row(inventory)["reviewed"]["authority_target"]
+            == "model-authoritative"
+        )
+
+    def test_evidence_state_is_repository_evidenced(self, inventory):
+        reviewed = self._row(inventory)["reviewed"]
+        assert reviewed["evidence_state"] == "repository-evidenced"
+        assert reviewed["evidence_state"] != "parity-reviewed"
+
+    def test_text_observation_and_evidence_are_separate(self, inventory):
+        """Text parity may be normalized-exact; evidence maturity stays
+        repository-evidenced because structural parity is incomplete."""
+        entry = self._row(inventory)
+        assert entry["observed"]["doc_text_observation"] == "normalized-exact"
+        assert entry["reviewed"]["evidence_state"] == "repository-evidenced"
+
+    def test_normalized_exact_text_does_not_promote_evidence(self):
+        """Test-lock: exact text parity never auto-promotes evidence maturity —
+        the exact-text + repository-evidenced combination is an admissible
+        honest state in the validator."""
+        problems = ai._entry_problems(
+            "Thing",
+            "class",
+            _probe_observed("normalized-exact"),
+            _probe_reviewed(),
+            {},
+        )
+        assert problems == []
+
+    def test_validator_still_rejects_manual_equivalence_on_exact_text(self):
+        problems = ai._entry_problems(
+            "Thing",
+            "class",
+            _probe_observed("normalized-exact"),
+            _probe_reviewed(semantic_text_equivalence="review-required"),
+            {},
+        )
+        assert any("no automatic upgrade" in problem for problem in problems)
+
+    def test_structural_gap_names_exclusions_and_rationale(self):
+        """The reviewed decision explicitly records the structural gap: the
+        model does not yet carry explicit exclusions with rationale."""
+        decisions = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
+        row = decisions["entries"]["MethodEvaluationScope"]
+        decision = row["exact_fit_decision"]
+        assert "not exact structural fit" in decision
+        assert "exclusions" in decision
+        unknowns = " ".join(row["unknowns"])
+        assert "exclusions" in unknowns
+        assert "rationale" in unknowns
+        assert "model-authority parity" in unknowns
+        # No approval-style promotion: evidence state lives in the dataset too.
+        assert row["evidence_state"] == "repository-evidenced"
+
+    def test_required_evidence_sequence_starts_with_representation_decision(self):
+        """O2 cannot close this gap alone: the sequence starts with a reviewed
+        semantic/model representation decision, then implementation + parity
+        review, then O2 generation, then the O3 transition."""
+        decisions = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
+        row = decisions["entries"]["MethodEvaluationScope"]
+        required = row["required_evidence"]
+        assert required
+        assert "representation decision" in required[0]
+        joined = " ".join(required)
+        assert "parity review" in joined
+        assert "O2" in joined and "O3" in joined
+
+    def test_runtime_exclusions_are_not_model_authority(self, inventory):
+        """The runtime exclusions input is implementation evidence for the
+        delivered A–D execution; it is neither removed nor treated as
+        model-resident authority, and the model must NOT carry an exclusions
+        field (no redesign in this correction pass)."""
+        decision = self._row(inventory)["reviewed"]["exact_fit_decision"]
+        assert "implementation evidence" in decision
+        assert "not model-authority parity" in decision
+        # The runtime input still exists (unchanged by this correction) ...
+        runtime = (REPO_ROOT / "de4sdv/semantic/method_contract.py").read_text(
+            encoding="utf-8"
+        )
+        assert "exclusions" in runtime
+        # ... and the model does not gain an exclusions field.
+        text = _file_text("MethodEvaluationScope")
+        block, _ = ai.declaration_block(text, "part def MethodEvaluationScope")
+        assert "attribute exclusions" not in block
 
 
 # ---------------------------------------------------------------------------
@@ -521,8 +701,22 @@ class TestC1StructuralFit:
         assert len(literals) == 13, literals
 
     def test_method_contract_obligation_schema_fields(self):
+        """Every frozen Section 7 schema field is carried by typed attributes.
+
+        The frozen schema (docs/method-conformance/conformance-baseline.md
+        Section 7) lists 12 semantic fields; the model materializes them as 14
+        attribute declarations because population policy and cardinality each
+        require two attributes. The earlier "15 fields" figure was wrong and is
+        corrected here and in the reviewed decision (review R2).
+        """
         text = _file_text("MethodContractObligation")
         block, _ = ai.declaration_block(text, "item def MethodContractObligation")
+        declared = [
+            line.strip()
+            for line in block.splitlines()
+            if line.strip().startswith("attribute ")
+        ]
+        assert len(declared) == 14, declared
         for field in (
             "obligationId",
             "phase : MethodPhase",
@@ -541,6 +735,39 @@ class TestC1StructuralFit:
         ):
             assert f"attribute {field}" in block, field
 
+    def test_method_contract_obligation_covers_frozen_schema(self):
+        """Cross-check the frozen Section 7 field list against the model: all
+        12 schema fields are represented and no field is absent."""
+        baseline = (
+            REPO_ROOT / "docs/method-conformance/conformance-baseline.md"
+        ).read_text(encoding="utf-8")
+        start = baseline.index("## 7. Minimal typed method-contract schema")
+        end = baseline.index("## 8.", start)
+        section = baseline[start:end]
+        schema_fields = re.findall(r"^\|\s*`([^`]+)`\s*\|", section, re.MULTILINE)
+        assert len(schema_fields) == 12, schema_fields
+        text = _file_text("MethodContractObligation")
+        block, _ = ai.declaration_block(text, "item def MethodContractObligation")
+        coverage = {
+            "obligation_id": ["obligationId"],
+            "phase": ["phase"],
+            "subject_selector": ["subjectSelector"],
+            "applicability": ["applicability"],
+            "population_policy": ["minimumPopulation", "permittedEmpty"],
+            "predicate": ["predicate"],
+            "target_filters": ["targetFilter"],
+            "cardinality": ["cardinalityMinimum", "cardinalityMaximum"],
+            "required": ["required"],
+            "evaluation_source": ["evaluationSource"],
+            "attestation_policy_ref": ["attestationPolicyRef"],
+            "claim_boundary": ["claimBoundary"],
+        }
+        assert set(coverage) == set(schema_fields)
+        for field, attributes in coverage.items():
+            for attribute in attributes:
+                assert f"attribute {attribute}" in block, (field, attribute)
+        assert sum(len(attrs) for attrs in coverage.values()) == 14
+
     def test_evaluation_source_kind_three_literals(self):
         text = _file_text("EvaluationSourceKind")
         block, _ = ai.declaration_block(text, "enum def EvaluationSourceKind")
@@ -556,18 +783,6 @@ class TestC1StructuralFit:
         block, _ = ai.declaration_block(text, "part def MethodEvaluationScope")
         assert "attribute incrementId : String" in block
         assert "attribute subjectType : String" in block
-
-    def test_scope_exclusions_boundary_recorded_not_model_resident(self):
-        """The exclusions half of the MethodEvaluationScope meaning is carried
-        by the runtime typed input, not by a model field — the reviewed
-        boundary must be recorded in the decision and the model must NOT
-        carry an exclusions attribute (no overclaim)."""
-        decisions = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
-        row = decisions["entries"]["MethodEvaluationScope"]
-        assert "exclusions" in row["exact_fit_decision"]
-        text = _file_text("MethodEvaluationScope")
-        block, _ = ai.declaration_block(text, "part def MethodEvaluationScope")
-        assert "attribute exclusions" not in block
 
     def test_evaluation_scope_membership_fields(self):
         text = _file_text("EvaluationScopeMembership")
