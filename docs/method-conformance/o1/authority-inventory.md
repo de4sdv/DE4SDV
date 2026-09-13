@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `7975ae1f7fbc24833a3bb7868e80ec4cdfd2b229`
+- Source revision: `02619093e5daf64ef54cdc94fee41caf0f533a6a`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:6ff9f0e48b1352cc4ce44fe568d2fbe161cbe224bd8d2e4af4b2a5704064c44d)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:35bd4419874aabe296f2a5f39921e135084b001c182d31b1b6fcb45264cbf440)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:7fde194c8dbf2b0a82b76ecc82df49b73e46478b0996eac419c3b1ccd3ad2acd)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -29,9 +29,9 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | runtime_strategies_implemented | 8 |
 | runtime_strategies_unassociated | 2 |
 | authority_current_counts | accepted-library-grounded: 2, external-reference: 3, legacy-yaml: 78, model-authoritative: 3, native-sysml: 6, unknown: 1 |
-| authority_target_counts | accepted-library-grounded: 12, de4sdv-application-semantic: 5, external-reference: 2, model-authoritative: 61, native-sysml: 7, unknown: 6 |
-| authority_target_conditional_counts | accepted-library-grounded: 8, de4sdv-application-semantic: 1 |
-| evidence_state_counts | blocked: 14, parity-reviewed: 10, privileged-closure-proven: 3, repository-evidenced: 65, unknown: 1 |
+| authority_target_counts | accepted-library-grounded: 12, de4sdv-application-semantic: 4, external-reference: 2, model-authoritative: 61, native-sysml: 7, retired: 1, unknown: 6 |
+| authority_target_conditional_counts | accepted-library-grounded: 8 |
+| evidence_state_counts | blocked: 13, parity-reviewed: 11, privileged-closure-proven: 3, repository-evidenced: 65, unknown: 1 |
 | adoption_status_counts | accepted: 4, candidate: 1, not-applicable: 77, pinned-not-adopted: 8, rejected: 3 |
 
 ## Classes (59)
@@ -106,7 +106,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | hasStakeholder | EngineeringIncrement -> Stakeholder | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | selectedViewpoint | EngineeringIncrement -> Viewpoint | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | producesView | EngineeringIncrement -> View | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| derivesNeedFromConcern | Need -> Concern | vocabulary-only | legacy-yaml -> de4sdv-application-semantic [cond] | blocked | not-applicable | introduce-minimal-de4sdv-relation | c4 |  |
+| derivesNeedFromConcern | Need -> Concern | vocabulary-only | legacy-yaml -> retired | parity-reviewed | not-applicable | retire-without-replacement | c4 (concern-need disposition review) |  |
 | derivesRequirementFromNeed | Requirement -> Need (derivation-connection) | supported (closure-verified) | model-authoritative -> model-authoritative | privileged-closure-proven | rejected | keep-as-is | K | r6-3 |
 | derivedRequirementsOfNeed | Need -> Requirement (derivation-connection) | supported (closure-verified) | model-authoritative -> model-authoritative | privileged-closure-proven | rejected | keep-as-is | K | r6-3 |
 | constrainedBy | Requirement -> RegulatoryConstraint | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
