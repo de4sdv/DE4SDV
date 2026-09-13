@@ -237,7 +237,11 @@ class TestC1Scope:
         hasSubject advanced exactly as recorded in its own batch file —
         current authority unchanged (legacy-yaml), target corrected to the
         Case B decision, evidence maturity advanced to parity-reviewed, stage
-        renamed to the executed batch. The c4-c5 rows remain untouched."""
+        renamed to the executed batch. The c4 batch has also since executed
+        (PR #249 c4): derivesNeedFromConcern was retired without replacement
+        (target 'retired', disposition retire-without-replacement, evidence
+        parity-reviewed, stage renamed) as recorded in its own batch file.
+        The c5 rows remain untouched."""
         entries = _entries(inventory)
         expected = {
             "VerificationCase": (
@@ -255,7 +259,11 @@ class TestC1Scope:
                 "legacy-yaml",
                 "parity-reviewed",
             ),
-            "derivesNeedFromConcern": ("c4", "legacy-yaml", "blocked"),
+            "derivesNeedFromConcern": (
+                "c4 (concern-need disposition review)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
             "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),
             "specifiesFunction": ("c5", "legacy-yaml", "repository-evidenced"),
             "hasRelevantArchitecture": ("c5", "legacy-yaml", "repository-evidenced"),

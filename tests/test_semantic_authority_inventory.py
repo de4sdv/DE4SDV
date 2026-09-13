@@ -278,7 +278,10 @@ class TestClassification:
     def test_authority_vocabulary_closed(self, inventory, decisions):
         for entry in inventory["entries"]:
             assert entry["reviewed"]["authority_current"] in ai.AUTHORITY_SOURCES
-            assert entry["reviewed"]["authority_target"] in ai.AUTHORITY_SOURCES
+            # c4 (intentional-retirement representation): the target vocabulary
+            # extends the authority-source locations with the explicit
+            # "retired" state; authority_current stays location-only.
+            assert entry["reviewed"]["authority_target"] in ai.AUTHORITY_TARGETS
         assert list(ai.AUTHORITY_SOURCES) == decisions["dimensions"]["authority_source"]
 
     def test_evidence_vocabulary_closed(self, inventory, decisions):
@@ -305,7 +308,10 @@ class TestClassification:
             for entry in inventory["entries"]
             if entry["reviewed"]["conditional_target"]
         ]
-        assert len(conditional) == 9
+        # c4 resolved the former derivesNeedFromConcern conditional target by
+        # retiring the identity (no target, no gate): only the eight
+        # PLE-family conditional rows remain.
+        assert len(conditional) == 8
         for entry in conditional:
             reviewed = entry["reviewed"]
             assert reviewed["transition_gate"], entry["identity"]
@@ -313,7 +319,7 @@ class TestClassification:
         tally = inventory["authority_target_conditional_counts"]
         assert sum(tally.values()) == len(conditional)
         assert tally.get("accepted-library-grounded") == 8
-        assert tally.get("de4sdv-application-semantic") == 1
+        assert "de4sdv-application-semantic" not in tally
 
     def test_blocked_and_unknown_cannot_become_supported(self, inventory):
         for entry in inventory["entries"]:

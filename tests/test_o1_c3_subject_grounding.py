@@ -96,6 +96,11 @@ C1_INCOMPLETE: tuple[str, ...] = ("MethodEvaluationScope",)
 #: The two c2 identities (unchanged by c3).
 C2_IDENTITIES: tuple[str, ...] = ("VerificationCase", "verifiedBy")
 
+#: The c4 batch identity (executed after c3 on the same PR; the c4 file owns
+#: the global parity set from its batch onward — referenced here so this
+#: file's global-set pin stays consistent with the executed chain).
+C4_IDENTITIES: tuple[str, ...] = ("derivesNeedFromConcern",)
+
 #: PLE-family rows under the adoption gate (unchanged by c3).
 PLE_GATED: tuple[str, ...] = (
     "FeatureConfiguration",
@@ -354,13 +359,22 @@ class TestC3ScopeAndCounts:
         assert staged == ["hasSubject"]
 
     def test_global_parity_set_is_c1_plus_c2_plus_c3(self, inventory):
+        """The parity-reviewed set advanced exactly by the executing batches
+        through c3. The c4 batch has since executed too: its own file
+        (tests/test_o1_c4_concern_need_disposition.py) owns the global set
+        from c4 onward and pins c1+c2+c3+c4 = 11."""
         parity = {
             entry["identity"]
             for entry in inventory["entries"]
             if entry["reviewed"]["evidence_state"] == "parity-reviewed"
         }
-        assert parity == set(C1_ACCEPTED) | set(C2_IDENTITIES) | set(C3_IDENTITIES)
-        assert len(parity) == 10
+        assert parity == (
+            set(C1_ACCEPTED)
+            | set(C2_IDENTITIES)
+            | set(C3_IDENTITIES)
+            | set(C4_IDENTITIES)
+        )
+        assert len(parity) == 11
 
     def test_authority_current_remains_legacy_yaml(self, inventory):
         entries = _entries(inventory, C3_IDENTITIES)
@@ -420,10 +434,12 @@ class TestC3ScopeAndCounts:
 
     def test_expected_evidence_state_counts(self, inventory):
         """c3 changes evidence maturity only: parity 9 -> 10, repository 66 -> 65;
-        every other evidence class is unchanged."""
+        every other evidence class is unchanged. The c4 batch later retired
+        derivesNeedFromConcern (blocked 14 -> 13, parity 10 -> 11 as recorded
+        in its own batch file)."""
         assert inventory["evidence_state_counts"] == {
-            "blocked": 14,
-            "parity-reviewed": 10,
+            "blocked": 13,
+            "parity-reviewed": 11,
             "privileged-closure-proven": 3,
             "repository-evidenced": 65,
             "unknown": 1,
@@ -431,13 +447,16 @@ class TestC3ScopeAndCounts:
 
     def test_expected_authority_target_counts(self, inventory):
         """Target correction native-sysml -> de4sdv-application-semantic moves
-        exactly one row; authority_current counts are unchanged."""
+        exactly one row; the c4 batch later retired derivesNeedFromConcern
+        (de4sdv-application-semantic 5 -> 4; retired 1). authority_current
+        counts are unchanged."""
         assert inventory["authority_target_counts"] == {
             "accepted-library-grounded": 12,
-            "de4sdv-application-semantic": 5,
+            "de4sdv-application-semantic": 4,
             "external-reference": 2,
             "model-authoritative": 61,
             "native-sysml": 7,
+            "retired": 1,
             "unknown": 6,
         }
         assert inventory["authority_current_counts"] == {
@@ -489,9 +508,18 @@ class TestC3ScopeAndCounts:
             assert row["closure_evidence_ref"] == "r6-3", identity
 
     def test_c4_c5_rows_unchanged(self, inventory):
+        """The c4 batch has since executed (PR #249 c4): derivesNeedFromConcern
+        was retired without replacement as recorded in its own batch file
+        (tests/test_o1_c4_concern_need_disposition.py) — current authority
+        unchanged, target 'retired', evidence maturity parity-reviewed. The
+        c5 rows remain untouched."""
         entries = _entries(inventory)
         expected = {
-            "derivesNeedFromConcern": ("c4", "legacy-yaml", "blocked"),
+            "derivesNeedFromConcern": (
+                "c4 (concern-need disposition review)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
             "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),
             "specifiesFunction": ("c5", "legacy-yaml", "repository-evidenced"),
             "hasRelevantArchitecture": (
@@ -571,9 +599,10 @@ class TestC3GovernanceConsistency:
     the Case B / non-exact-native semantics, completed c3 review/replay work is
     NOT listed as outstanding evidence, remaining required evidence points
     only to future stages, and the authority/evidence states are pinned.
-    Item 8 (c1/c2/K/PLE/c4/c5 unchanged) is proved by
-    TestC3ScopeAndCounts: test_c1_rows_unchanged, test_c2_rows_unchanged,
-    test_k_rows_unchanged, test_ple_rows_unchanged, test_c4_c5_rows_unchanged.
+    Item 8 (c1/c2/K/PLE/c5 unchanged; the c4 row advanced in its own batch —
+    see test_c4_c5_rows_unchanged) is proved by TestC3ScopeAndCounts:
+    test_c1_rows_unchanged, test_c2_rows_unchanged, test_k_rows_unchanged,
+    test_ple_rows_unchanged, test_c4_c5_rows_unchanged.
     """
 
     def _row(self, decisions) -> dict:
