@@ -233,9 +233,11 @@ class TestC1Scope:
     def test_later_batch_entries_stay_pinned(self, inventory):
         """Later-batch entries stay pinned to their reviewed states. The c2
         batch has since executed (PR #249 c2): its two rows advanced exactly
-        as recorded there — current authority unchanged, evidence maturity
-        advanced to parity-reviewed, stage renamed to the executed batch. The
-        c3-c5 rows remain untouched by c2."""
+        as recorded there. The c3 batch has also since executed (PR #249 c3):
+        hasSubject advanced exactly as recorded in its own batch file —
+        current authority unchanged (legacy-yaml), target corrected to the
+        Case B decision, evidence maturity advanced to parity-reviewed, stage
+        renamed to the executed batch. The c4-c5 rows remain untouched."""
         entries = _entries(inventory)
         expected = {
             "VerificationCase": (
@@ -248,7 +250,11 @@ class TestC1Scope:
                 "legacy-yaml",
                 "parity-reviewed",
             ),
-            "hasSubject": ("c3", "legacy-yaml", "repository-evidenced"),
+            "hasSubject": (
+                "c3 (hasSubject review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
             "derivesNeedFromConcern": ("c4", "legacy-yaml", "blocked"),
             "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),
             "specifiesFunction": ("c5", "legacy-yaml", "repository-evidenced"),

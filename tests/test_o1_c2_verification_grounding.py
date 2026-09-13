@@ -94,6 +94,11 @@ C1_ACCEPTED: tuple[str, ...] = (
 #: The one c1 identity that stays incomplete (no c2 silent closure).
 C1_INCOMPLETE: tuple[str, ...] = ("MethodEvaluationScope",)
 
+#: The c3 batch identity (executed after c2 on the same PR; the c3 file owns
+#: the global parity set from its batch onward — referenced here so this
+#: file's global-set pin stays consistent with the executed chain).
+C3_IDENTITIES: tuple[str, ...] = ("hasSubject",)
+
 #: PLE-family rows under the adoption gate (unchanged by c2).
 PLE_GATED: tuple[str, ...] = (
     "FeatureConfiguration",
@@ -231,15 +236,18 @@ class TestC2ScopeAndCounts:
         assert sorted(staged) == sorted(C2_IDENTITIES)
 
     def test_global_parity_set_is_c1_plus_c2(self, inventory):
-        """No third identity is promoted: the parity-reviewed set is exactly
-        the seven c1 rows plus the two c2 rows."""
+        """The parity-reviewed set advanced exactly by the executing batches:
+        the seven c1 rows plus the two c2 rows, plus the c3 row when the c3
+        batch executes (its own file owns the global set from then on —
+        tests/test_o1_c3_subject_grounding.py pins it at c1+c2+c3)."""
         parity = {
             entry["identity"]
             for entry in inventory["entries"]
             if entry["reviewed"]["evidence_state"] == "parity-reviewed"
         }
-        assert parity == set(C1_ACCEPTED) | set(C2_IDENTITIES)
-        assert len(parity) == 9
+        expected = set(C1_ACCEPTED) | set(C2_IDENTITIES) | set(C3_IDENTITIES)
+        assert parity == expected
+        assert len(parity) == 10
 
     def test_authority_current_unchanged(self, inventory):
         entries = _entries(inventory)
@@ -301,12 +309,13 @@ class TestC2ScopeAndCounts:
 
     def test_expected_evidence_state_counts(self, inventory):
         """c2 changes evidence maturity only: parity 7 -> 9, evidence 68 -> 66;
-        every other evidence class is unchanged."""
+        the c3 batch later moved hasSubject to parity-reviewed (its file owns
+        the executed counts: parity 10 / repository 65)."""
         assert inventory["evidence_state_counts"] == {
             "blocked": 14,
-            "parity-reviewed": 9,
+            "parity-reviewed": 10,
             "privileged-closure-proven": 3,
-            "repository-evidenced": 66,
+            "repository-evidenced": 65,
             "unknown": 1,
         }
 
@@ -334,9 +343,18 @@ class TestC2ScopeAndCounts:
             assert row["evidence_state"] == "repository-evidenced", name
 
     def test_c3_to_c5_rows_unchanged(self, inventory):
+        """The c3 batch has since executed (PR #249 c3): hasSubject advanced
+        exactly as recorded in its own batch file
+        (tests/test_o1_c3_subject_grounding.py) — current authority unchanged,
+        target corrected to the reviewed Case B decision, evidence maturity
+        advanced to parity-reviewed. The c4/c5 rows remain untouched."""
         entries = _entries(inventory)
         expected = {
-            "hasSubject": ("c3", "legacy-yaml", "repository-evidenced"),
+            "hasSubject": (
+                "c3 (hasSubject review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
             "derivesNeedFromConcern": ("c4", "legacy-yaml", "blocked"),
             "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),
             "specifiesFunction": ("c5", "legacy-yaml", "repository-evidenced"),
