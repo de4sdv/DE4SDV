@@ -4,12 +4,12 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `02619093e5daf64ef54cdc94fee41caf0f533a6a`
+- Source revision: `16f603bef705f10bd0c27f0e58c9994a09b8ea52`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:35bd4419874aabe296f2a5f39921e135084b001c182d31b1b6fcb45264cbf440)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:066ec7e732cfe0ae07e17936191d9b5bb844a8f5a6d498ba377a39ea1d75ea8c)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
-- runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:7fde194c8dbf2b0a82b76ecc82df49b73e46478b0996eac419c3b1ccd3ad2acd)
+- runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:f2fefa97cd68b29f4cdad8b9600bc32346aebc75f98b0157d03af0e4f4490652)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
 
 ## Coverage
@@ -31,7 +31,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | authority_current_counts | accepted-library-grounded: 2, external-reference: 3, legacy-yaml: 78, model-authoritative: 3, native-sysml: 6, unknown: 1 |
 | authority_target_counts | accepted-library-grounded: 12, de4sdv-application-semantic: 4, external-reference: 2, model-authoritative: 61, native-sysml: 7, retired: 1, unknown: 6 |
 | authority_target_conditional_counts | accepted-library-grounded: 8 |
-| evidence_state_counts | blocked: 13, parity-reviewed: 11, privileged-closure-proven: 3, repository-evidenced: 65, unknown: 1 |
+| evidence_state_counts | blocked: 13, parity-reviewed: 15, privileged-closure-proven: 3, repository-evidenced: 61, unknown: 1 |
 | adoption_status_counts | accepted: 4, candidate: 1, not-applicable: 77, pinned-not-adopted: 8, rejected: 3 |
 
 ## Classes (59)
@@ -112,9 +112,9 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | constrainedBy | Requirement -> RegulatoryConstraint | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | specifiesFeature | Requirement -> Feature | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | specifiesCommonCapability | Requirement -> CommonCapability | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
-| realizedBy | Requirement -> ArchitectureElement (allocation) | implemented (allocation) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | prove-existing-model-authority | c5 |  |
-| specifiesFunction | Requirement -> Function (dependency) | implemented (dependency) | legacy-yaml -> de4sdv-application-semantic | repository-evidenced | not-applicable | prove-existing-model-authority | c5 |  |
-| hasRelevantArchitecture | Requirement -> ArchitectureElement (dependency) | implemented (dependency) | legacy-yaml -> de4sdv-application-semantic | repository-evidenced | not-applicable | prove-existing-model-authority | c5 |  |
+| realizedBy | Requirement -> ArchitectureElement (allocation) | implemented (allocation) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | rename-required | c5 (relevance and realization review batch) |  |
+| specifiesFunction | Requirement -> Function (dependency) | implemented (dependency) | legacy-yaml -> de4sdv-application-semantic | parity-reviewed | not-applicable | rename-required | c5 (relevance and realization review batch) |  |
+| hasRelevantArchitecture | Requirement -> ArchitectureElement (dependency) | implemented (dependency) | legacy-yaml -> de4sdv-application-semantic | parity-reviewed | not-applicable | prove-existing-model-authority | c5 (relevance and realization review batch) |  |
 | allocatedTo | Function -> LogicalElement | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | T/E |  |
 | deployedTo | LogicalElement -> PhysicalElement | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | T/E |  |
 | verifiedBy | Requirement -> VerificationCase (verification-membership) | implemented (verification-membership) | legacy-yaml -> native-sysml | parity-reviewed | not-applicable | prove-existing-model-authority | c2 (verification batch) |  |
@@ -129,7 +129,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | supportedByEvidence | AssuranceClaim -> EvidenceArtifact | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | O2+ |  |
 | appliesToMemberProduct | FeatureConfiguration -> MemberProduct | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | hasSubject | Requirement -> MemberProduct (subject-membership) | implemented (subject-membership) | legacy-yaml -> de4sdv-application-semantic | parity-reviewed | not-applicable | prove-existing-model-authority | c3 (hasSubject review batch) |  |
-| hasRelevantEvidenceContract | Requirement -> EvidenceContract (dependency) | implemented (dependency) | legacy-yaml -> de4sdv-application-semantic | repository-evidenced | not-applicable | prove-existing-model-authority | c5 |  |
+| hasRelevantEvidenceContract | Requirement -> EvidenceContract (dependency) | implemented (dependency) | legacy-yaml -> de4sdv-application-semantic | parity-reviewed | not-applicable | prove-existing-model-authority | c5 (relevance and realization review batch) |  |
 | selectsFeature | FeatureConfiguration -> Feature | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | instantiatesCanonicalArchitecture | MemberProduct -> ArchitectureElement | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | T/E |  |
 | includesCommonCapability | FeatureConfiguration -> CommonCapability | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
