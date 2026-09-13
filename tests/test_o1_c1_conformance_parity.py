@@ -172,16 +172,22 @@ class TestC1Scope:
             assert name in contract.classes, name
             assert name not in contract.relationships, name
 
-    def test_exactly_seven_parity_reviewed_rows(self, inventory):
-        """Exactly the seven accepted identities are parity-reviewed: no ninth
-        entry promoted, and not the incomplete MethodEvaluationScope."""
-        parity_rows = [
-            entry["identity"]
-            for entry in inventory["entries"]
-            if entry["reviewed"]["evidence_state"] == "parity-reviewed"
-        ]
-        assert sorted(parity_rows) == sorted(C1_ACCEPTED)
-        assert len(parity_rows) == 7
+    def test_the_seven_accepted_rows_are_parity_reviewed(self, inventory):
+        """The seven accepted c1 identities are parity-reviewed and the
+        incomplete MethodEvaluationScope is not. The GLOBAL parity set is
+        owned by the executing batch's test file: after c2 it is these seven
+        plus VerificationCase and verifiedBy — asserted exactly in
+        tests/test_o1_c2_verification_grounding.py."""
+        entries = _entries(inventory)
+        for name in C1_ACCEPTED:
+            assert (
+                entries[name]["reviewed"]["evidence_state"] == "parity-reviewed"
+            ), name
+        for name in C1_INCOMPLETE:
+            assert (
+                entries[name]["reviewed"]["evidence_state"]
+                == "repository-evidenced"
+            ), name
 
     def test_authority_current_remains_legacy_yaml(self, inventory):
         for entry in _entries(inventory, C1_IDENTITIES).values():
@@ -224,13 +230,24 @@ class TestC1Scope:
         for name in C1_IDENTITIES:
             assert f'"{name}"' not in source, name
 
-    def test_c2_to_c5_entries_unchanged(self, inventory):
-        """No c2–c5 row changes: stage, current authority, and evidence state
-        for every later-batch entry stay pinned."""
+    def test_later_batch_entries_stay_pinned(self, inventory):
+        """Later-batch entries stay pinned to their reviewed states. The c2
+        batch has since executed (PR #249 c2): its two rows advanced exactly
+        as recorded there — current authority unchanged, evidence maturity
+        advanced to parity-reviewed, stage renamed to the executed batch. The
+        c3-c5 rows remain untouched by c2."""
         entries = _entries(inventory)
         expected = {
-            "VerificationCase": ("c2", "native-sysml", "repository-evidenced"),
-            "verifiedBy": ("c2", "legacy-yaml", "repository-evidenced"),
+            "VerificationCase": (
+                "c2 (verification batch)",
+                "native-sysml",
+                "parity-reviewed",
+            ),
+            "verifiedBy": (
+                "c2 (verification batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
             "hasSubject": ("c3", "legacy-yaml", "repository-evidenced"),
             "derivesNeedFromConcern": ("c4", "legacy-yaml", "blocked"),
             "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),

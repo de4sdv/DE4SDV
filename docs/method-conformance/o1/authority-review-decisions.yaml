@@ -665,20 +665,51 @@ entries:
   VerificationCase:
     authority_current: native-sysml
     authority_target: native-sysml
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: prove-existing-model-authority
     confidence: medium
-    stage: c2
-    note: Native verification case; plan Section 10 requires standard Systems Model Library grounding
-      (VerificationCases::VerificationCase / verificationCases) before stronger claims.
+    stage: c2 (verification batch)
+    note: 'c2 exact-fit review passed: the concept is the native SysML verification-case
+      construct itself. The pinned standard library defines VerificationCases::VerificationCase
+      as the most general class of performances of VerificationCaseDefinitions and
+      VerificationCases::verificationCases as the base feature of all VerificationCaseUsages.
+      The ontology description (a planned or executed check that evaluates whether
+      a requirement or model claim is satisfied) states that specification/performance
+      scope and the check-for-satisfaction purpose without asserting any outcome,
+      so it is a bounded description of the native construct for DE4SDV usage; the
+      DE4SDV verify targets are requirement usages (evidence contracts and acceptance
+      criteria). Standard-library grounding proven for the real DE4SDV constructs
+      (Lane B): the definition VC-AEBS-009D-DE (ConsciousOverrideVerification) carries
+      a toolchain-materialized implied Subclassification to VerificationCases::VerificationCase
+      and each usage VC-AEBS-009D-01..06 an implied Subsetting to VerificationCases::verificationCases;
+      the anchors were resolved by the licensed exporter from the pinned Systems
+      Library/VerificationCases.sysml and cross-checked in the imported closure.
+      The API metaclass (VerificationCaseDefinition / VerificationCaseUsage) is a
+      separate evidence field from the library grounding (UG-28): the metaclass
+      alone is not the semantic proof. Grounding provenance: the library edges are
+      toolchain-implied and stay visibly implied; the DE4SDV usage-to-definition
+      typing is explicitly authored; no redundant authorship was added for the implied
+      grounding. Claim boundary: verification-objective carrier only; no execution,
+      outcome, evidence-maturity, or release implication. The retained Lane B exact-toolchain
+      evidence stays supporting evidence only (not revision-bound to this inventory
+      revision, so the evidence state stops at parity-reviewed): privileged run 34576049742
+      (success) at candidate 0a23902370de9fc74d6118afe480382e0b0d8aa0; artifact
+      full-model-api-ingestion-0a23902370de9fc74d6118afe480382e0b0d8aa0.'
     unknowns: []
     required_evidence:
-    - standard-library grounding witness for a real verification case (UG-28)
-    exact_fit_decision: 'retained: SysML verification case is a native construct; DE4SDV use adds no competing
-      semantics.'
+    - O2 generated projection row from the reviewed native representation
+    - revision-bound exact-toolchain evidence before any stronger evidence state is claimed
+    exact_fit_decision: 'exact fit: SysML v2 verification case is a native construct (the
+      standard library base class VerificationCases::VerificationCase and base feature
+      VerificationCases::verificationCases); DE4SDV adds no competing semantics and
+      introduces no parallel application class where the native construct is exact.
+      The definition/usage distinction is carried by the native constructs themselves,
+      and the reviewed description neither strengthens nor weakens the standard semantics.
+      Claim boundary: declared verification coverage only — the class itself does
+      not assert that any check ran, produced a result, or reached an outcome.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   ValidationScenario:
@@ -1470,19 +1501,50 @@ entries:
   verifiedBy:
     authority_current: legacy-yaml
     authority_target: native-sysml
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: prove-existing-model-authority
     confidence: medium
-    stage: c2
-    note: Native RequirementVerificationMembership reverse traversal; verification-objective semantics;
-      coverage is not execution success; plan Section 10 library grounding required.
+    stage: c2 (verification batch)
+    note: 'c2 exact-fit review passed: native verification-objective semantics. The pinned
+      standard library declares RequirementVerificationMembership with derived ref
+      item verifiedRequirement (redefines RequirementConstraintMembership::referencedConstraint),
+      together with the case-side verifiedRequirement features of VerificationCaseDefinition
+      and VerificationCaseUsage. The canonical query Requirement -> VerificationCase
+      is reverse navigation over that native witness: the RequirementVerificationMembership
+      anchors on the verified requirement (verifiedRequirement / memberElement, with
+      the ReferenceSubsetting bridge where the serializer references a shadow usage)
+      and the case is resolved from the ownership chain (objective objective-membership
+      -> case), stopping only at a VerificationCaseUsage or VerificationCaseDefinition.
+      Representation mechanics (membership types, reference property, owner-chain
+      traversal, reverse direction, usage/definition resolution) remain in the sysml_mapping
+      and the traversal implementation; they implement the reviewed meaning and are
+      not themselves the engineering meaning. Claim boundary: the requirement is
+      declared as a verification objective of the returned verification case (declared
+      verification-objective / coverage relation only) — no execution, outcome, satisfaction,
+      approval, or certification implication. The authored YAML mapping remains current
+      authority during O1; any authority transition is an O3 decision. The retained
+      Lane B exact-toolchain evidence stays supporting evidence only (not revision-bound
+      to this inventory revision, so the evidence state stops at parity-reviewed):
+      privileged run 34576049742 (success) at candidate 0a23902370de9fc74d6118afe480382e0b0d8aa0
+      — the definition objective carries three RequirementVerificationMembership witnesses
+      inherited by all six usages, and the six usages carry the implied library grounding.'
     unknowns: []
     required_evidence:
-    - standard-library grounding + preserved subject/objective witnesses (plan Section 10)
-    exact_fit_decision: null
+    - O2 generated projection row from the reviewed representation
+    - O3 approved authority transition (the authored mapping remains current authority during O1)
+    exact_fit_decision: 'exact fit: native SysML verification-objective semantics support
+      the bounded query Requirement -> VerificationCase exactly, and the relationship
+      exists independently of execution or evaluation records. RequirementVerificationMembership
+      is the native membership identity; the predicate name is an English label for
+      the native fact (a declared verification objective), never an outcome or approval
+      claim. Named semantic laws: only the configured RequirementVerificationMembership
+      objects qualify; a generic Dependency, a SubjectMembership, VerificationMethod
+      metadata, retained execution or evaluation records, and name-only correspondence
+      are NOT substitutes; the owner chain must resolve to a verification case usage/definition;
+      there is no name-based fallback.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   usesVerificationMethod:
