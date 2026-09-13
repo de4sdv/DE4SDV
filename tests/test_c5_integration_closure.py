@@ -14,8 +14,15 @@ empty explanation" coverage while the range is blocked.
 Proof B — native verification: ``verifiedBy`` must remain discoverable from
 the root requirement's own ``RequirementVerificationMembership`` (independent
 of the blocked EvidenceContract route), with ``native-verification`` strength
-and a real VerificationCase, and the validator's native-subject selection
-must accept exactly that membership fact.
+and a real VerificationCase; the validator's native-subject selection must
+accept exactly that membership fact, must return only subjects with
+machine-proven governed DE4SDV Requirement identity (direct
+Requirement-lineage grounding or the reviewed ReferenceSubsetting shadow
+bridge — c5 R2 verifiedBy-domain consistency review), and must refuse every
+ungrounded / wrong-lineage subject. The hasSubject / native-reference
+subject surface is asserted on the Proof-A requirement (the retained model
+carries member-product subject hops on requirements without native
+verification; verified subjects carry none), never on the Proof-B subject.
 
 The same shapes flow through the validator entry point
 ``validate_semantic_results`` unchanged.
@@ -145,6 +152,28 @@ def _service_elements() -> list[dict[str, Any]]:
             "owningRelatedElement": ref("req-a"),
             "type": ref("kernel-requirement"),
             "typedFeature": ref("req-a"),
+        },
+        # Requirement A carries its member-product subject surface (the
+        # retained braking requirement does: reqCommandEmergencyBraking ->
+        # its member-product subject). The Proof-A surface assertion
+        # (hasSubject + native-reference) lives here, never on Proof B.
+        {
+            "@id": "product-a",
+            "@type": "PartUsage",
+            "declaredName": "memberProductForReqA",
+        },
+        {
+            "@id": "product-a-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("product-a"),
+            "type": ref("kernel-member-product"),
+            "typedFeature": ref("product-a"),
+        },
+        {
+            "@id": "subject-membership-a",
+            "@type": "SubjectMembership",
+            "owningRelatedElement": ref("req-a"),
+            "memberElement": ref("product-a"),
         },
         {
             "@id": "evidence-a",
@@ -411,13 +440,23 @@ def test_native_subject_selection_accepts_membership_fact_and_fails_closed(
     integration_service,
 ) -> None:
     """The validator's Proof-B subject selection works on the runtime's own
-    elements and fails closed without a native membership anchor."""
+    elements: it returns the subject only with its machine-proven governed
+    Requirement identity recorded, and fails closed without a native
+    membership anchor."""
     service, repository, contract, traversal = integration_service
     subject = _select_native_verification_subject(repository.elements, traversal)
     assert subject["sysml_type"] == "RequirementUsage"
     # The selected subject must be the root requirement that the runtime's
     # own impact surface proves verifiedBy from.
     assert subject["element_id"] == "req-1"
+    # The declared verifiedBy source domain is asserted explicitly: the
+    # selected subject carries machine-proven governed Requirement identity
+    # and the identity record names the validated lineage root.
+    identity = subject["requirement_identity"]
+    assert identity["basis"] == "direct-requirement-lineage"
+    assert identity["grounding_provenance"] == "explicit"
+    assert identity["requirement_lineage_root_id"] == "kernel-requirement"
+    assert identity["rvm_anchor_id"] == "req-1"
 
     # Remove the RVM: selection must fail closed (no name-based fallback).
     stripped = [
@@ -507,6 +546,7 @@ def _run_two_subject_validation(service, repository, traversal):
         "proof_a_root": proof_a_root,
         "proof_a_neighbors": proof_a_neighbors,
         "proof_a_coverage": proof_a_coverage,
+        "subject": subject,
         "subject_id": subject_id,
         "proof_b_impact": proof_b_impact,
         "proof_b_coverage": proof_b_coverage,
@@ -545,6 +585,14 @@ def test_two_subject_validation_separates_proof_a_and_proof_b(
     assert r["proof_b_impact"]["root"]["element_id"] == r["subject_id"]
     assert r["proof_b_coverage"]["requirement"]["element_id"] == r["subject_id"]
     assert r["proof_b_trace"]["source"]["element_id"] == r["subject_id"]
+    # The selected subject carries its machine-proven governed Requirement
+    # identity (the declared verifiedBy source domain).
+    assert r["subject"]["requirement_identity"]["basis"] == (
+        "direct-requirement-lineage"
+    )
+    assert r["subject"]["requirement_identity"]["requirement_lineage_root_id"] == (
+        "kernel-requirement"
+    )
     # The coverage/trace/impact chain proves the SAME case.
     assert r["proof_b_coverage"]["verification_cases"][0]["element_id"] in (
         r["case_ids"]
@@ -560,6 +608,7 @@ def test_two_subject_validation_separates_proof_a_and_proof_b(
         proof_b_impact=r["proof_b_impact"],
         proof_b_coverage=r["proof_b_coverage"],
         proof_b_trace=r["proof_b_trace"],
+        proof_b_subject=r["subject"],
     )
 
 
@@ -584,6 +633,7 @@ def test_validator_rejects_cross_subject_coverage_combination(
             proof_b_impact=r["proof_b_impact"],
             proof_b_coverage=mixed["verification_coverage"],
             proof_b_trace=r["proof_b_trace"],
+            proof_b_subject=r["subject"],
         )
 
 
@@ -603,6 +653,7 @@ def test_validator_rejects_unaligned_proof_b_results(
             proof_b_impact=r["proof_b_impact"],
             proof_b_coverage=r["proof_a_coverage"],
             proof_b_trace=r["proof_b_trace"],
+            proof_b_subject=r["subject"],
         )
 
     # A Proof-B trace sourced from a different requirement also fails.
@@ -615,4 +666,398 @@ def test_validator_rejects_unaligned_proof_b_results(
             proof_b_impact=r["proof_b_impact"],
             proof_b_coverage=r["proof_b_coverage"],
             proof_b_trace=forged_trace,
+            proof_b_subject=r["subject"],
+        )
+
+
+# ---------------------------------------------------------------------------
+# verifiedBy source-domain enforcement (c5 R2 verifiedBy-domain consistency
+# review). Non-vacuous laws: RequirementUsage != Requirement automatically;
+# RequirementVerificationMembership != Requirement identity; Need !=
+# Requirement; AcceptanceCriterion-role qualifies only when independently a
+# Requirement under the reviewed ontology model; unresolved identity fails
+# closed; names never steer.
+# ---------------------------------------------------------------------------
+
+
+def _selection_traversal():
+    """A traversal with the same kernel bindings the integration fixture uses."""
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+    from de4sdv.semantic.kernel_contract import KernelContract
+    from de4sdv.semantic.traversal import SemanticTraversal
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    contract = KernelContract.load(
+        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+    )
+    binding = RevisionBinding.from_dict(
+        {
+            "git_repository": "de4sdv/DE4SDV",
+            "git_commit": "a" * 40,
+            "sysml_project_id": "project-1",
+            "sysml_commit_id": "commit-1",
+            "import_timestamp": "2026-09-01T00:00:00Z",
+            "import_tool_version": "fixture/1",
+            "semantic_validation": "passed",
+            "scope": "full-model",
+            "ontology": ontology_identity(),
+            "kernel_bindings": _kernel_bindings(),
+        }
+    )
+    return SemanticTraversal(
+        contract, kernel_bindings=KernelBindingIndex.from_binding(binding)
+    )
+
+
+def _kernel_requirement_element() -> dict[str, Any]:
+    return {
+        "@id": "kernel-requirement",
+        "@type": "RequirementDefinition",
+        "declaredName": "RequirementCandidate",
+        "qualifiedName": "DE4SDV_MethodContext::RequirementCandidate",
+    }
+
+
+def _rvm_anchored(rvm_id: str, anchor_id: str, case_id: str) -> dict[str, Any]:
+    return {
+        "@id": rvm_id,
+        "@type": "RequirementVerificationMembership",
+        "owningRelatedElement": ref(case_id),
+        "memberElement": ref(anchor_id),
+    }
+
+
+def _case(case_id: str) -> dict[str, Any]:
+    return {
+        "@id": case_id,
+        "@type": "VerificationCaseUsage",
+        "declaredName": case_id,
+    }
+
+
+def test_selection_skips_ungrounded_usage_and_keeps_proven_subject() -> None:
+    """RequirementUsage != Requirement automatically, and names never steer:
+    an ungrounded usage with a requirement-looking name (earlier in export
+    order) is skipped; the Requirement-grounded subject is selected."""
+    traversal = _selection_traversal()
+    elements = [
+        _kernel_requirement_element(),
+        # Ungrounded, misleadingly named, earlier in export order.
+        {
+            "@id": "req-looks-grounded",
+            "@type": "RequirementUsage",
+            "declaredName": "reqCommandEmergencyBraking",
+        },
+        _case("verification-u"),
+        _rvm_anchored("rvm-u", "req-looks-grounded", "verification-u"),
+        # Grounded, plainly named, later in export order.
+        {
+            "@id": "designInputTwo",
+            "@type": "RequirementUsage",
+            "declaredName": "designInputTwo",
+        },
+        {
+            "@id": "designInputTwo-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("designInputTwo"),
+            "type": ref("kernel-requirement"),
+            "typedFeature": ref("designInputTwo"),
+        },
+        _case("verification-p"),
+        _rvm_anchored("rvm-p", "designInputTwo", "verification-p"),
+    ]
+    subject = _select_native_verification_subject(elements, traversal)
+    assert subject["element_id"] == "designInputTwo"
+    assert subject["verification_case_id"] == "verification-p"
+    assert subject["requirement_identity"]["basis"] == (
+        "direct-requirement-lineage"
+    )
+    assert subject["requirement_identity"]["rvm_anchor_id"] == "designInputTwo"
+
+    # Renaming the proven subject does not change the selection (no names).
+    renamed = json.loads(json.dumps(elements))
+    for element in renamed:
+        if element.get("@id") == "designInputTwo":
+            element["declaredName"] = "completelyUnrelatedName"
+    again = _select_native_verification_subject(renamed, traversal)
+    assert again["element_id"] == "designInputTwo"
+
+
+def test_selection_rejects_ungrounded_requirement_usage() -> None:
+    """A bare API RequirementUsage with an RVM anchor is not a Requirement:
+    unresolved identity fails closed, even with a requirement-looking name."""
+    traversal = _selection_traversal()
+    elements = [
+        _kernel_requirement_element(),
+        {
+            "@id": "req-unresolved",
+            "@type": "RequirementUsage",
+            "declaredName": "reqCommandEmergencyBraking",
+        },
+        _case("verification-x"),
+        _rvm_anchored("rvm-x", "req-unresolved", "verification-x"),
+    ]
+    with pytest.raises(RuntimeError, match="governed DE4SDV Requirement"):
+        _select_native_verification_subject(elements, traversal)
+
+
+def test_selection_rejects_need_role_usage() -> None:
+    """Need != Requirement: a stakeholder-need candidate usage (sibling
+    lineage, also serialized as RequirementUsage) never qualifies, even
+    though it is natively verified."""
+    traversal = _selection_traversal()
+    elements = [
+        _kernel_requirement_element(),
+        {
+            "@id": "kernel-need",
+            "@type": "RequirementDefinition",
+            "declaredName": "StakeholderNeedCandidate",
+            "qualifiedName": "DE4SDV_MethodContext::StakeholderNeedCandidate",
+        },
+        {
+            "@id": "need-one",
+            "@type": "RequirementUsage",
+            "declaredName": "needCommandEmergencyBraking",
+        },
+        {
+            "@id": "need-one-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("need-one"),
+            "type": ref("kernel-need"),
+            "typedFeature": ref("need-one"),
+        },
+        _case("verification-n"),
+        _rvm_anchored("rvm-n", "need-one", "verification-n"),
+    ]
+    with pytest.raises(RuntimeError, match="governed DE4SDV Requirement"):
+        _select_native_verification_subject(elements, traversal)
+
+
+def test_selection_acceptance_criterion_role_requires_requirement_lineage() -> None:
+    """AcceptanceCriterion != Requirement automatically: an
+    acceptance-criterion-role usage qualifies only when it independently
+    grounds in the reviewed Requirement lineage (through the validated
+    classification chain); a same-shaped usage outside that lineage fails
+    closed."""
+    traversal = _selection_traversal()
+
+    def elements_for(definition_id: str, *, chained: bool) -> list[dict[str, Any]]:
+        elements = [
+            _kernel_requirement_element(),
+            {
+                "@id": definition_id,
+                "@type": "RequirementDefinition",
+                "declaredName": definition_id,
+            },
+            {
+                "@id": "ac-one",
+                "@type": "RequirementUsage",
+                "declaredName": "acceptanceCriterionOne",
+            },
+            {
+                "@id": "ac-one-typing",
+                "@type": "FeatureTyping",
+                "owningRelatedElement": ref("ac-one"),
+                "type": ref(definition_id),
+                "typedFeature": ref("ac-one"),
+            },
+            _case("verification-ac"),
+            _rvm_anchored("rvm-ac", "ac-one", "verification-ac"),
+        ]
+        if chained:
+            elements.append(
+                {
+                    "@id": "ac-def-subclassification",
+                    "@type": "Subclassification",
+                    "subclassifier": ref(definition_id),
+                    "superclassifier": ref("kernel-requirement"),
+                }
+            )
+        return elements
+
+    # In the Requirement lineage through the classification chain: allowed.
+    subject = _select_native_verification_subject(
+        elements_for("acceptanceCriterionRoot", chained=True), traversal
+    )
+    assert subject["element_id"] == "ac-one"
+    assert subject["requirement_identity"]["basis"] == (
+        "direct-requirement-lineage"
+    )
+
+    # Same role shape, no Requirement grounding: fail closed.
+    with pytest.raises(RuntimeError, match="governed DE4SDV Requirement"):
+        _select_native_verification_subject(
+            elements_for("outsideLineageCriterionRoot", chained=False), traversal
+        )
+
+
+def test_selection_resolves_reviewed_shadow_bridge() -> None:
+    """The reviewed ReferenceSubsetting bridge (c2 Section 2.2) is the second
+    reviewed discriminator: an RVM anchored on a serialized shadow returns
+    the DECLARED usage as the proven subject; a shadow whose declared usage
+    is ungrounded fails closed."""
+    traversal = _selection_traversal()
+    elements = [
+        _kernel_requirement_element(),
+        {
+            "@id": "declared-one",
+            "@type": "RequirementUsage",
+            "declaredName": "acceptanceCriterionEvidenceIntegrity",
+        },
+        {
+            "@id": "declared-one-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("declared-one"),
+            "type": ref("kernel-requirement"),
+            "typedFeature": ref("declared-one"),
+        },
+        # Serialized shadow reference usage anchored by the RVM.
+        {
+            "@id": "shadow-one",
+            "@type": "RequirementUsage",
+            "declaredName": None,
+        },
+        {
+            "@id": "refsub-one",
+            "@type": "ReferenceSubsetting",
+            "owningRelatedElement": ref("shadow-one"),
+            "referencedFeature": ref("declared-one"),
+        },
+        _case("verification-s"),
+        _rvm_anchored("rvm-s", "shadow-one", "verification-s"),
+    ]
+    subject = _select_native_verification_subject(elements, traversal)
+    # The PROVEN subject is the declared usage; the shadow only anchors.
+    assert subject["element_id"] == "declared-one"
+    assert subject["verification_case_id"] == "verification-s"
+    identity = subject["requirement_identity"]
+    assert identity["basis"] == "reference-subsetting-shadow"
+    assert identity["grounding_provenance"] == "explicit"
+    assert identity["rvm_anchor_id"] == "shadow-one"
+
+    # Same shadow shape, declared usage ungrounded: fail closed.
+    ungrounded = json.loads(json.dumps(elements))
+    ungrounded = [
+        element
+        for element in ungrounded
+        if element.get("@id") != "declared-one-typing"
+    ]
+    with pytest.raises(RuntimeError, match="governed DE4SDV Requirement"):
+        _select_native_verification_subject(ungrounded, traversal)
+
+
+def test_validator_requires_proof_b_subject_identity(integration_service) -> None:
+    """Proof-B subject selection cannot bypass domain enforcement: the
+    validated proof asserts the machine-proven Requirement identity of the
+    selected subject whenever the production record is supplied."""
+    service, repository, _, traversal = integration_service
+    r = _run_two_subject_validation(service, repository, traversal)
+
+    # Valid production shape passes with the identity record.
+    validate_semantic_results(
+        r["surface_results"],
+        expected_revision=_expected_revision(),
+        proof_b_impact=r["proof_b_impact"],
+        proof_b_coverage=r["proof_b_coverage"],
+        proof_b_trace=r["proof_b_trace"],
+        proof_b_subject=r["subject"],
+    )
+
+    # A record without identity evidence fails closed.
+    forged = json.loads(json.dumps(r["subject"]))
+    forged.pop("requirement_identity")
+    with pytest.raises(RuntimeError, match="source domain"):
+        validate_semantic_results(
+            r["surface_results"],
+            expected_revision=_expected_revision(),
+            proof_b_impact=r["proof_b_impact"],
+            proof_b_coverage=r["proof_b_coverage"],
+            proof_b_trace=r["proof_b_trace"],
+            proof_b_subject=forged,
+        )
+
+    # An unreviewed identity basis fails closed.
+    forged = json.loads(json.dumps(r["subject"]))
+    forged["requirement_identity"]["basis"] = "name-match"
+    with pytest.raises(RuntimeError, match="reviewed discriminators"):
+        validate_semantic_results(
+            r["surface_results"],
+            expected_revision=_expected_revision(),
+            proof_b_impact=r["proof_b_impact"],
+            proof_b_coverage=r["proof_b_coverage"],
+            proof_b_trace=r["proof_b_trace"],
+            proof_b_subject=forged,
+        )
+
+    # A subject that is not the proof-triple root fails closed.
+    forged = json.loads(json.dumps(r["subject"]))
+    forged["element_id"] = "req-a"
+    with pytest.raises(RuntimeError, match="does not match the proof triple"):
+        validate_semantic_results(
+            r["surface_results"],
+            expected_revision=_expected_revision(),
+            proof_b_impact=r["proof_b_impact"],
+            proof_b_coverage=r["proof_b_coverage"],
+            proof_b_trace=r["proof_b_trace"],
+            proof_b_subject=forged,
+        )
+
+
+def test_proof_a_surface_assertion_is_located_on_proof_a(
+    integration_service,
+) -> None:
+    """The hasSubject / native-reference subject surface is asserted on the
+    Proof-A requirement: it must hold there, and it is no longer demanded
+    from the Proof-B subject (the retained model carries it only on
+    requirements without native verification)."""
+    service, repository, _, traversal = integration_service
+    r = _run_two_subject_validation(service, repository, traversal)
+
+    # Proof-B impact reduced to its native-verification edges still passes:
+    # the subject surface belongs to Proof A.
+    stripped_b = json.loads(json.dumps(r["proof_b_impact"]))
+    stripped_b["edges"] = [
+        edge for edge in stripped_b["edges"] if edge["predicate"] == "verifiedBy"
+    ]
+    validate_semantic_results(
+        r["surface_results"],
+        expected_revision=_expected_revision(),
+        proof_b_impact=stripped_b,
+        proof_b_coverage=r["proof_b_coverage"],
+        proof_b_trace=r["proof_b_trace"],
+        proof_b_subject=r["subject"],
+    )
+
+    # The Proof-A surface must expose hasSubject; removing it fails closed.
+    degraded = json.loads(json.dumps(r["surface_results"]))
+    degraded["semantic_neighbors"]["edges"] = [
+        edge
+        for edge in degraded["semantic_neighbors"]["edges"]
+        if edge["predicate"] != "hasSubject"
+    ]
+    with pytest.raises(
+        RuntimeError, match="Proof-A surface did not expose hasSubject"
+    ):
+        validate_semantic_results(
+            degraded,
+            expected_revision=_expected_revision(),
+            proof_b_impact=r["proof_b_impact"],
+            proof_b_coverage=r["proof_b_coverage"],
+            proof_b_trace=r["proof_b_trace"],
+            proof_b_subject=r["subject"],
+        )
+
+    # native-reference strength on the Proof-A surface is load-bearing.
+    degraded = json.loads(json.dumps(r["surface_results"]))
+    for edge in degraded["semantic_neighbors"]["edges"]:
+        if edge["predicate"] == "hasSubject":
+            edge["semantic_strength"] = "relevance"
+    with pytest.raises(RuntimeError, match="lost native-reference strength"):
+        validate_semantic_results(
+            degraded,
+            expected_revision=_expected_revision(),
+            proof_b_impact=r["proof_b_impact"],
+            proof_b_coverage=r["proof_b_coverage"],
+            proof_b_trace=r["proof_b_trace"],
+            proof_b_subject=r["subject"],
         )

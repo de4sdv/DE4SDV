@@ -552,6 +552,19 @@ states unchanged; and the artifact-vs-source consistency gate (red between
 Commit A and Commit B by design — the two-commit binding gate working). No
 privileged ingestion was dispatched for c5.
 
+`tests/test_c5_integration_closure.py` (integration closure and the c5 R2
+verifiedBy-domain consistency review) locks: the service-to-validator
+contract shapes (blocked ≠ ordinary absence; coverage never plain
+`uncovered` while blocked; native `verifiedBy` independently queryable);
+the two-subject separation, subject-coherence, and its mandatory negative
+regressions; the source-domain enforcement (selection returns only subjects
+with machine-proven governed Requirement identity — direct lineage
+grounding or the reviewed ReferenceSubsetting shadow bridge — and fails
+closed for ungrounded, Need-role, and out-of-lineage acceptance-criterion
+subjects; names never steer; the Proof-B identity assertion rejects
+missing, unreviewed-basis, and wrong-root identity records); and the
+Proof-A-located hasSubject / native-reference surface assertion.
+
 ## 17. Integration closure (post-semantic-review; PR #249)
 
 Independent integration review of the c5 correction accepted the semantic
@@ -623,7 +636,8 @@ The proof now establishes two independent facts:
   only (`_select_native_verification_subject`: an RVM anchoring a
   Requirement-grounded `RequirementUsage` with an API-resident case — no
   names, packages, or source text), exercised through impact, coverage, and
-  a real `verifiedBy` trace.
+  a real `verifiedBy` trace. The governed-Requirement qualification of the
+  anchored usage is enforced and measured in Section 17.2.
 
 **ImpactService boundary decision.** Impact claims to answer "what does this
 requirement touch, and what is its verification state?" — native verification
@@ -673,16 +687,19 @@ and all other c5 decisions are unchanged):
   `requirement.element_id`, `source.element_id`) — never display names. Proof
   A carries the same coherence check between neighbors root and coverage
   subject.
-- **Selection semantics (corrected during this closure):** the Proof-B
-  subject is an RVM-anchored `RequirementUsage` with an API-resident case —
-  API-type facts only, no names. It deliberately carries NO governed-lineage
-  qualification: on the reviewed model every direct RVM anchor lies outside
-  the Requirement/Need/AcceptanceCriterion lineages, so a lineage-qualified
-  selection could never be satisfied — and if it ever were, it would steer
-  the proof toward acceptance-criterion-role usages, the identity Proof A
-  must keep separate. Proof B proves the native `verifiedBy` machinery on a
-  natively verified requirement usage; it claims no DE4SDV class identity
-  for the subject.
+- **Selection semantics (corrected twice):** the Proof-B subject is an
+  RVM-anchored `RequirementUsage` with an API-resident case — API-type facts
+  only, no names. The integration-closure revision initially skipped the
+  governed-lineage qualification based on the finding that all 64 direct RVM
+  anchors lie outside the Requirement/Need/AcceptanceCriterion lineages.
+  That finding holds for the direct anchor alone; re-measurement through the
+  reviewed ReferenceSubsetting bridge (the anchored usage, per the reviewed
+  c2 semantics) shows 30 of the 64 anchored usages ground in the Requirement
+  lineage, and the declared domain — `Requirement -> VerificationCase` — is
+  enforceable. The final correction enforces it: selection returns only
+  subjects with machine-proven governed DE4SDV Requirement identity, and
+  Section 17.2 records the measurement, the exact discriminator, and the
+  on-model consequences.
 - `validate_semantic_results` accepts explicit
   `proof_b_impact` / `proof_b_coverage` / `proof_b_trace` results; supplying
   them routes Proof B to those objects, and any member that disagrees about
@@ -707,3 +724,84 @@ and all other c5 decisions are unchanged):
   claiming a fully-evaluated search would overstate the result. The
   blocked-state disclosure is unchanged (`unsupported_predicates` always
   carries the record).
+
+### 17.2 verifiedBy source-domain grounding correction (final)
+
+Narrow semantic-consistency review of the declared `verifiedBy` source
+domain — `Requirement -> VerificationCase` — exposed by the Section 17.1
+selection correction. The exact question: for a real
+`RequirementVerificationMembership` anchor in the retained current-shape
+model, can the anchored `RequirementUsage` be machine-resolved,
+deterministically and without heuristics, to the governed DE4SDV
+`Requirement` domain required by the declared predicate?
+
+**Measured answer: yes for 30 of the 64 anchors; no for 34, which fail
+closed.** The measured population (retained export, offline replay through
+the repository machinery; all 64 RVMs anchor serialized shadow reference
+usages, so the reference-subsetted declared usage is the anchored usage per
+the reviewed c2 semantics):
+
+- **30 anchors / 15 declared usages with explicit Requirement-lineage
+  grounding.** All 15 are acceptance-criterion-role usages: 7 typed by the
+  kernel-bound `MiddlewareAcceptanceCriterion` (also grounding in the
+  `AcceptanceCriterion` lineage) and 8 typed by
+  `VisualizationAcceptanceCriterion` (not specialized to it). Both
+  definitions subclass `EvidenceContractTraceabilityRequirementCandidate`,
+  which subclasses `RequirementCandidate` — the validated Requirement
+  lineage root; provenance `explicit` per the reviewed model-edge
+  classifier. Identity basis: the reviewed ReferenceSubsetting shadow
+  bridge followed by the lineage-grounding proof.
+- **34 anchors / 30 declared usages with no governed lineage.** Typed by
+  the eight per-slice evidence-contract definitions that carry no
+  specialization chain (the `hasRelevantEvidenceContract` blocked
+  population). Per Section 10's rule these are **unresolved**: no DE4SDV
+  class identity is claimed for them, and they are never emitted as
+  `verifiedBy` subjects.
+- Need-role anchors: 0. Direct (non-shadow) anchors: 0 in this population.
+  Hop pairs over the RVM anchors: **64 before domain enforcement** (the
+  resolver emits per anchor, no identity gate), **30 after correct domain
+  enforcement** (the Requirement-proven anchors). One model witness per
+  anchor; no anchor carries more than one distinct case pair.
+
+**The corrected enforcement.** `_select_native_verification_subject()`
+returns only subjects with machine-proven identity. The exact
+discriminators: (a) **direct Requirement-lineage grounding** of the
+anchored usage, or (b) the **reviewed ReferenceSubsetting shadow bridge**
+followed by that grounding proof on the declared usage. The returned record
+carries `basis`, `grounding_provenance`, the validated lineage root id, and
+the RVM anchor id; case resolution stays delegated to the reviewed
+owner-chain resolver. `validate_semantic_results` asserts the recorded
+identity whenever the production subject record is supplied — missing
+identity, an unreviewed basis, or a record that is not the proof-triple
+root all fail closed. On the retained model the corrected selection selects
+`acceptanceCriterion010EvidenceIndependence` (declared usage of anchor
+`9dc2bd4d`, case `UpdateCoordinationValidation`); the previously selected
+subject is rejected because its anchored usage's declared target carries no
+governed lineage. The `verifiedBy` traversal resolver
+(`_verification_membership_hops`) and the c2-reviewed witness semantics are
+**unchanged** — enforcement lives at the Proof-B selection/assertion
+boundary, and the declared semantic predicate stays exactly
+`Requirement -> VerificationCase`.
+
+**Integrated subject-surface correction.** Measured on the retained model:
+none of the 109 natively verified usages carries a member-product subject
+hop, and every one of the 21 hasSubject hop carriers is a non-verified
+requirement usage (the braking requirement carries one). Pre-correction
+replay of the production validator on the retained export therefore fails
+with `full-model impact did not expose hasSubject` — the "fixture passes,
+real output impossible" defect class reappearing through the relocated
+subject. The hasSubject / native-reference surface assertion now runs on
+the Proof-A requirement (where the model carries it), completing the
+Section 17.1 intent that the Proof-B subject's product-line surface is not
+part of the Proof-B claim. Offline mirror of `run_mcp_validation()` over the
+retained export **passes end-to-end** with the corrected selection and the
+relocated assertion (offline replay evidence; not a current-head privileged
+closure — no new privileged ingestion was dispatched).
+
+**Boundaries.** No c5 semantic decision is reopened: the four c5 rows are
+unchanged, the `hasRelevantEvidenceContract` blocked/defer state stands, and
+all c2 decisions — including the claim boundary — stand (the c2 review
+gains the previously implicit source-domain grounding record in its new
+Section 6). No ontology YAML semantic change; no `.sysml`/`.kerml` change;
+no traversal or service semantics change; no new privileged ingestion. The
+review's machine locks live in `tests/test_c5_integration_closure.py`.

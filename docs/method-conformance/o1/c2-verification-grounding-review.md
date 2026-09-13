@@ -225,3 +225,46 @@ exact-head run plus a reviewed binding record); neither is fabricated here.
   `privileged-closure-proven` closure.
 - No YAML ontology edit was made; the reviewed decisions dataset is
   governance metadata.
+
+---
+
+## 6. Source-domain grounding of the `verifiedBy` witness (c5-R2 consistency review addition)
+
+The declared predicate is `Requirement -> VerificationCase`. Section 2
+established the native witness and its claim boundary; the **source-domain
+side** of the declaration had remained implicit. The c5 R2 verifiedBy-domain
+consistency review — recorded in the c5 integration review, Section 17.2 —
+asked the exact question: for a real `RequirementVerificationMembership`
+anchor in the retained full-model export, can the anchored
+`RequirementUsage` be machine-resolved, deterministically and without
+heuristics, to the governed DE4SDV `Requirement` domain?
+
+Measured on the retained Lane B export (offline replay through the
+repository machinery):
+
+- every RVM anchors a serialized **shadow reference usage**; through the
+  ReferenceSubsetting bridge of Section 2.2, **30 of the 64 anchors resolve
+  to 15 declared acceptance-criterion-role usages** whose authored
+  typing/classification chain
+  (`MiddlewareAcceptanceCriterion` / `VisualizationAcceptanceCriterion`
+  -> `EvidenceContractTraceabilityRequirementCandidate` ->
+  `RequirementCandidate`) grounds them in the validated Requirement lineage
+  with `explicit` provenance per the reviewed model-edge classifier. Under
+  the c5 review's identity rule (the Requirement lineage includes the
+  acceptance criterion) these are DE4SDV Requirements;
+- the remaining **34 anchors resolve to evidence-contract-role usages whose
+  definitions carry no specialization lineage**: identity unresolved, no
+  DE4SDV class claim, fail closed — they are never emitted as `verifiedBy`
+  subjects.
+
+Enforced discriminator (machine-resolvable, deterministic, revision-bound,
+fail-closed, independent of names and layout): **direct Requirement-lineage
+grounding of the anchored usage, or the reviewed ReferenceSubsetting shadow
+bridge followed by that grounding proof on the declared usage**. The
+enforcement lives at the Proof-B subject-selection/assertion boundary
+(`scripts/validate_semantic_mcp.py`); the traversal resolver
+(`_verification_membership_hops`) and every claim boundary in Sections 2
+and 5 are unchanged — no execution, outcome, satisfaction, approval, or
+certification meaning is added by this record. Both c2 rows remain
+`parity-reviewed`; `verifiedBy` current authority remains `legacy-yaml`
+during O1, and no O2/O3 action follows from this addition.
