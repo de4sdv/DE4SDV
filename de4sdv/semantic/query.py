@@ -479,16 +479,18 @@ class SemanticQueryService:
         verification_gaps = [
             gap for gap in report["gaps"] if gap["category"] == "verification"
         ]
-        # c5 integration closure (PR #249, R1): the blocked EvidenceContract
-        # range is a distinct state from evaluated absence. When the impact
-        # report attributes its evidence gap to the blocked range, coverage
-        # is INCOMPLETE — it must never be reported as ordinary "uncovered"
-        # solely because no EvidenceContract edges were emitted, and the
-        # missing-identity reason must survive into this result.
-        blocked = any(
-            "EvidenceContract range is blocked" in str(gap.get("reason", ""))
-            for gap in report["gaps"]
-        )
+        # c5 integration closure (PR #249, R1; corrected): the blocked
+        # EvidenceContract range is a distinct state from evaluated absence.
+        # Detection reads the STRUCTURED governed authority state from the
+        # traversal's blocked-predicate source — never human-readable gap
+        # prose: structured authority state -> coverage unsupported state.
+        # While the range is blocked the impact evidence gap is always
+        # present (the fail-closed gate emits nothing), and when the range is
+        # ever unblocked this check self-corrects to False. Coverage must
+        # never be reported as ordinary "uncovered" solely because no
+        # EvidenceContract edges were emitted, and the missing-identity
+        # reason must survive into this result.
+        blocked = "hasRelevantEvidenceContract" in self.traversal.blocked_predicates()
         unsupported: list[dict[str, str]] = []
         if blocked:
             unsupported.append(self._blocked_unsupported("hasRelevantEvidenceContract"))

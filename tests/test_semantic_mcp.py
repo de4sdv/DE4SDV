@@ -874,6 +874,7 @@ def test_privileged_result_validator_requires_exact_revision_and_native_edges() 
         "inspect_element": {"revision": revision, "element": {"element_id": "req-1"}},
         "semantic_neighbors": {
             "revision": revision,
+            "root": {"element_id": "req-1"},
             "semantic_status": "incomplete",
             "unsupported_predicates": [dict(blocked_record)],
             "edges": [
@@ -882,6 +883,7 @@ def test_privileged_result_validator_requires_exact_revision_and_native_edges() 
         },
         "impact": {
             "revision": revision,
+            "root": {"element_id": "req-1"},
             "edges": [
                 {"predicate": "hasSubject", "semantic_strength": "native-reference"},
                 dict(verified_by_edge),
@@ -894,11 +896,13 @@ def test_privileged_result_validator_requires_exact_revision_and_native_edges() 
         },
         "trace": {
             "revision": revision,
+            "source": {"element_id": "req-1"},
             "path": [{"predicate": "verifiedBy"}],
             "gaps": [],
         },
         "verification_coverage": {
             "revision": revision,
+            "requirement": {"element_id": "req-1"},
             "status": "partial",
             "semantic_status": "incomplete",
             "unsupported_predicates": [dict(blocked_record)],

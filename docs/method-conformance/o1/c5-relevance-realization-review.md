@@ -646,3 +646,54 @@ reviewed semantics; no new ingestion was dispatched for this closure.
 
 No ontology YAML semantic field, `.sysml`/`.kerml` file, c1–c4/K/PLE/T/E
 decision, or O2/O3/O4 scope changed in this closure.
+
+### 17.1 Integration-closure correction — Proof-A/Proof-B subject separation
+
+Post-closure review found one remaining integration defect: the MCP validator
+mixed proof subjects — Proof A ran on `reqCommandEmergencyBraking`
+(neighbors + coverage), Proof B re-evaluated impact and trace on the selected
+native-verification subject, but the validation call still consumed the
+Proof-A coverage. On the retained model that is factually wrong: the braking
+requirement has **zero** native `verifiedBy` hops (the pinned exporter does
+not serialize its `verify` objective membership), while other Requirement
+usages carry real native verification — so one requirement's coverage was
+being read as evidence for a different requirement's impact.
+
+Correction (no semantic decision reopened; the blocked EvidenceContract row
+and all other c5 decisions are unchanged):
+
+- **Proof A and Proof B may use different requirements, by design.** Proof A
+  stays anchored on the EvidenceContract-review requirement
+  (`reqCommandEmergencyBraking`); Proof B stays anchored on the independently
+  selected native-verification subject.
+- **Proof B is subject-coherent:** impact_B, coverage_B, and trace_B are all
+  evaluated on the exact selected subject, and the validator asserts
+  `impact root == coverage requirement == trace source == selected subject`
+  through the results' structured identity fields (`root.element_id`,
+  `requirement.element_id`, `source.element_id`) — never display names. Proof
+  A carries the same coherence check between neighbors root and coverage
+  subject.
+- `validate_semantic_results` accepts explicit
+  `proof_b_impact` / `proof_b_coverage` / `proof_b_trace` results; supplying
+  them routes Proof B to those objects, and any member that disagrees about
+  the subject fails closed (`Proof B is not subject-coherent`). The
+  mandatory negative regression combines `impact_B + coverage_A + trace_B`
+  and asserts failure.
+- `tests/test_c5_integration_closure.py` adds the two-subject
+  production-shape fixture: Requirement A = blocked-EvidenceContract review
+  subject with **no** native verifiedBy; Requirement B = independent
+  native-verification subject with its own `RequirementVerificationMembership`
+  and case. The mirror of `run_mcp_validation()` executes the same selection
+  and validation logic offline and passes only with correct subject alignment.
+- **Robustness cleanup (§9A):** `verification_coverage` no longer detects the
+  blocked state by searching gap prose; it reads the structured governed
+  authority state (`SemanticTraversal.blocked_predicates()`). Gap prose is
+  explanation, not control flow.
+- **Trace semantic-status decision (§9B):** the current behavior is
+  intentionally conservative and is kept: `semantic_status: incomplete`
+  reflects the *search space*, not only the found path — a found path is
+  proven regardless (it is emitted with its evidence), while the blocked
+  predicate means the search could not consider every mapped relation, so
+  claiming a fully-evaluated search would overstate the result. The
+  blocked-state disclosure is unchanged (`unsupported_predicates` always
+  carries the record).

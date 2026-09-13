@@ -119,10 +119,24 @@ def _require_blocked_evidence_state(
 ) -> None:
     """Proof A: the governed blocked EvidenceContract state must be exposed.
 
-    Fails closed if the blocked state disappears unexpectedly or if any false
-    EvidenceContract edge is emitted. Blocked semantic authority is distinct
-    from zero supported matches: the results must say so explicitly.
+    Both results must belong to the SAME Proof-A requirement: the coverage
+    subject must be the neighbor root. Fails closed if the blocked state
+    disappears unexpectedly, if any false EvidenceContract edge is emitted,
+    or if Proof-A results drift onto different subjects. Blocked semantic
+    authority is distinct from zero supported matches: the results must say
+    so explicitly.
     """
+    root_id = (neighbors.get("root") or {}).get("element_id")
+    coverage_subject = (coverage.get("requirement") or {}).get("element_id")
+    if not root_id or not coverage_subject:
+        raise RuntimeError(
+            "Proof A results do not expose their requirement identities"
+        )
+    if root_id != coverage_subject:
+        raise RuntimeError(
+            "Proof A is not subject-coherent: semantic_neighbors root "
+            f"{root_id} != verification_coverage requirement {coverage_subject}"
+        )
     unsupported = neighbors.get("unsupported_predicates")
     if not isinstance(unsupported, list) or not any(
         isinstance(item, dict)
@@ -191,11 +205,29 @@ def _require_native_verification_proof(
 ) -> None:
     """Proof B: native ``verifiedBy`` is proven independently of EvidenceContract.
 
-    The proof requires a real native verification relationship
+    All three results must belong to the SAME selected native-verification
+    subject: the impact root, the coverage requirement, and the trace source
+    must be one coherent Requirement (c5 integration-closure correction,
+    PR #249). Proof B never consumes another requirement's coverage. The
+    proof requires a real native verification relationship
     (``native-verification`` strength), a real VerificationCase node, and a
     meaningful trace over the supported native relation - never a result that
     depended on the blocked EvidenceContract route.
     """
+    impact_root = (impact.get("root") or {}).get("element_id")
+    coverage_subject = (coverage.get("requirement") or {}).get("element_id")
+    trace_source = (trace.get("source") or {}).get("element_id")
+    if not impact_root or not coverage_subject or not trace_source:
+        raise RuntimeError(
+            "Proof B results do not expose their requirement identities"
+        )
+    if not (impact_root == coverage_subject == trace_source):
+        raise RuntimeError(
+            "Proof B is not subject-coherent: impact root "
+            f"{impact_root}, coverage requirement {coverage_subject}, trace "
+            f"source {trace_source} must all be the selected native "
+            "verification subject"
+        )
     impact_edges = impact.get("edges", [])
     verification_edges = [
         edge for edge in impact_edges if edge.get("predicate") == "verifiedBy"
@@ -245,9 +277,25 @@ def _require_native_verification_proof(
 
 
 def validate_semantic_results(
-    results: dict[str, dict[str, Any]], *, expected_revision: dict[str, Any]
+    results: dict[str, dict[str, Any]],
+    *,
+    expected_revision: dict[str, Any],
+    proof_b_impact: dict[str, Any] | None = None,
+    proof_b_coverage: dict[str, Any] | None = None,
+    proof_b_trace: dict[str, Any] | None = None,
 ) -> None:
-    """Fail closed unless the MCP proof retains exact native semantics."""
+    """Fail closed unless the MCP proof retains exact native semantics.
+
+    The two-proof architecture (c5 integration closure, PR #249): Proof A is
+    anchored on the EvidenceContract-review requirement (neighbors +
+    coverage); Proof B is anchored on the independently selected native
+    verification subject. When explicit Proof-B results are provided they
+    are validated as the native-verification proof and must NOT be the
+    Proof-A objects (the Proof-B subject is allowed — and on the retained
+    model expected — to differ from the Proof-A root). Without explicit
+    Proof-B results the single-subject shapes are accepted, in which case
+    Proof A and Proof B happen to share one requirement.
+    """
     missing = REQUIRED_SEMANTIC_PROOF_TOOLS - results.keys()
     if missing:
         raise RuntimeError(f"MCP proof did not exercise tools: {sorted(missing)}")
@@ -260,14 +308,33 @@ def validate_semantic_results(
     if not status.get("current_baseline") or not status.get("read_only"):
         raise RuntimeError("model_status did not prove a read-only current baseline")
     # Proof A: blocked EvidenceContract state is explicit, zero false edges.
-    _require_blocked_evidence_state(
-        results["semantic_neighbors"], results["verification_coverage"]
+    proof_a_neighbors = results["semantic_neighbors"]
+    proof_a_coverage = results["verification_coverage"]
+    _require_blocked_evidence_state(proof_a_neighbors, proof_a_coverage)
+    # Proof B: native verification on the selected subject — either the
+    # explicit two-subject results or the same-subject fallback.
+    proof_b_impact = (
+        proof_b_impact if proof_b_impact is not None else results["impact"]
     )
-    # Proof B: native verification is proven independently of EvidenceContract.
+    proof_b_coverage = (
+        proof_b_coverage
+        if proof_b_coverage is not None
+        else results["verification_coverage"]
+    )
+    proof_b_trace = proof_b_trace if proof_b_trace is not None else results["trace"]
+    for name, result in (
+        ("proof_b_impact", proof_b_impact),
+        ("proof_b_coverage", proof_b_coverage),
+        ("proof_b_trace", proof_b_trace),
+    ):
+        if result.get("revision") != expected_revision:
+            raise RuntimeError(
+                f"{name} revision mismatch: {result.get('revision')} != {expected_revision}"
+            )
     _require_native_verification_proof(
-        results["impact"], results["verification_coverage"], results["trace"]
+        proof_b_impact, proof_b_coverage, proof_b_trace
     )
-    impact_edges = results["impact"].get("edges", [])
+    impact_edges = proof_b_impact.get("edges", [])
     if not any(edge.get("predicate") == "hasSubject" for edge in impact_edges):
         raise RuntimeError("full-model impact did not expose hasSubject")
     strengths = {edge.get("semantic_strength") for edge in impact_edges}
@@ -379,6 +446,7 @@ async def run_mcp_validation(
         cwd=ROOT,
     )
     results: dict[str, dict[str, Any]] = {}
+    proof_b_results: dict[str, dict[str, Any]] = {}
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
@@ -388,6 +456,9 @@ async def run_mcp_validation(
             results["model_status"] = _structured(
                 await session.call_tool("model_status", {}), "model_status"
             )
+            # ---------------- Proof A: blocked EvidenceContract state -------
+            # Root: the intended EvidenceContract-review requirement. Proof A
+            # does NOT need to prove native verification on this requirement.
             results["resolve_element"] = _structured(
                 await session.call_tool(
                     "resolve_element",
@@ -395,34 +466,36 @@ async def run_mcp_validation(
                 ),
                 "resolve_element",
             )
-            root_id = results["resolve_element"]["element"]["element_id"]
+            proof_a_root_id = results["resolve_element"]["element"]["element_id"]
             results["inspect_element"] = _structured(
-                await session.call_tool("inspect_element", {"identifier": root_id}),
+                await session.call_tool(
+                    "inspect_element", {"identifier": proof_a_root_id}
+                ),
                 "inspect_element",
             )
-            results["semantic_neighbors"] = _structured(
+            proof_a_neighbors = _structured(
                 await session.call_tool(
-                    "semantic_neighbors", {"identifier": root_id}
+                    "semantic_neighbors", {"identifier": proof_a_root_id}
                 ),
                 "semantic_neighbors",
             )
-            results["impact"] = _structured(
-                await session.call_tool(
-                    "impact", {"identifier": "reqCommandEmergencyBraking"}
-                ),
-                "impact",
-            )
-            results["verification_coverage"] = _structured(
+            proof_a_coverage = _structured(
                 await session.call_tool(
                     "verification_coverage",
-                    {"requirement_identifier": root_id},
+                    {"requirement_identifier": proof_a_root_id},
                 ),
                 "verification_coverage",
             )
-            # Proof B subject: selected from NATIVE API membership facts — a
+            results["semantic_neighbors"] = proof_a_neighbors
+            results["verification_coverage"] = proof_a_coverage
+
+            # ---------------- Proof B: independent native verification ------
+            # Subject: selected from NATIVE API membership facts — a
             # RequirementUsage verified by a RequirementVerificationMembership
             # whose case element is API-resident. No name, package, or file
-            # heuristic participates; the same selection runs in tests.
+            # heuristic participates; the same selection runs in tests. The
+            # subject may differ from the Proof-A root; impact, coverage, and
+            # trace are all evaluated on THIS subject.
             contract = KernelContract.load(ontology_path)
             repository = SysMLRepository(ApiClient(api_url, timeout=600.0))
             elements = repository.list_elements(
@@ -433,23 +506,24 @@ async def run_mcp_validation(
                 kernel_bindings=KernelBindingIndex.from_binding(binding),
             )
             subject = _select_native_verification_subject(elements, traversal)
+            subject_id = subject["element_id"]
             results["native_verification_subject"] = {
-                "element_id": subject["element_id"],
+                "element_id": subject_id,
                 "sysml_type": subject["sysml_type"],
                 "selection": (
                     "RequirementVerificationMembership anchored on a "
                     "RequirementUsage whose verification case is API-resident"
                 ),
             }
-            results["impact"] = _structured(
+            proof_b_impact = _structured(
                 await session.call_tool(
-                    "impact", {"identifier": subject["element_id"]}
+                    "impact", {"identifier": subject_id}
                 ),
                 "impact",
             )
             verification_case_ids = sorted(
                 edge["target"]
-                for edge in results["impact"]["edges"]
+                for edge in proof_b_impact["edges"]
                 if edge["predicate"] == "verifiedBy"
             )
             if not verification_case_ids:
@@ -457,19 +531,41 @@ async def run_mcp_validation(
                     "native verification subject produced no verifiedBy edge "
                     "through the impact surface"
                 )
-            results["trace"] = _structured(
+            proof_b_coverage = _structured(
+                await session.call_tool(
+                    "verification_coverage",
+                    {"requirement_identifier": subject_id},
+                ),
+                "verification_coverage",
+            )
+            proof_b_trace = _structured(
                 await session.call_tool(
                     "trace",
                     {
-                        "source_identifier": subject["element_id"],
+                        "source_identifier": subject_id,
                         "target_identifier": verification_case_ids[0],
                         "max_depth": 4,
                     },
                 ),
                 "trace",
             )
+            # The seven-tool surface record keeps the Proof-A results; the
+            # Proof-B results are validated explicitly as the second proof.
+            results["impact"] = proof_b_impact
+            results["trace"] = proof_b_trace
+            proof_b_results = {
+                "impact": proof_b_impact,
+                "coverage": proof_b_coverage,
+                "trace": proof_b_trace,
+            }
 
-    validate_semantic_results(results, expected_revision=expected_revision)
+    validate_semantic_results(
+        results,
+        expected_revision=expected_revision,
+        proof_b_impact=proof_b_results["impact"],
+        proof_b_coverage=proof_b_results["coverage"],
+        proof_b_trace=proof_b_results["trace"],
+    )
     # Only the seven required proof tools count as exercised; the native
     # verification subject record is proof metadata, not a tool result.
     exercised_tools = {
@@ -481,6 +577,8 @@ async def run_mcp_validation(
         "revision": expected_revision,
         "proof_a_blocked_evidence_contract": True,
         "proof_b_native_verification": True,
+        "proof_a_root": proof_a_root_id,
+        "proof_b_subject": results.get("native_verification_subject"),
         "native_verification_subject": results.get(
             "native_verification_subject"
         ),
