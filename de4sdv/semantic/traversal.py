@@ -21,6 +21,16 @@ from .model_edges import (
 from .relationships import build_relationship_graph, is_family
 
 
+#: Reviewed c5 range class whose identity basis the dependency traversal
+#: enforces: the governed ``EvidenceContract`` ontology class. The class is a
+#: governed contract identity (validated through the ontology contract this
+#: module is constructed with), never an element name; a revision whose
+#: ontology drops or renames the class stops matching this reviewed rule.
+#: Enforcement mechanics live here (representation mechanics); the authored
+#: ontology contract remains the declared semantic authority during O1.
+_EVIDENCE_CONTRACT_RANGE_CLASS = "EvidenceContract"
+
+
 @dataclass(frozen=True)
 class TraversalHop:
     predicate: str
@@ -92,6 +102,35 @@ class SemanticTraversal:
         elements: list[dict[str, Any]],
         by_id: dict[str, dict[str, Any]],
     ) -> list[TraversalHop]:
+        """Traverse dependency- and allocation-shaped relationships.
+
+        Reviewed c5 contract (O1, PR #249 c5 batch) — fail-closed:
+
+        - candidate-first: a queried source touching no configured
+          relationship on the traversal side is quiet absence and performs no
+          lineage resolution (no binding requirement);
+        - the queried source must ground in the relationship's declared
+          (governed) domain lineage through the ingestion-validated kernel
+          binding plus the representation-tolerant relationship graph; a
+          source outside the domain — for example a stakeholder-need usage
+          serialized as ``RequirementUsage``, or an architecture element —
+          is a non-qualifying native relationship: quiet absence, never a hop
+          (API metaclass equality is representation evidence, not ontology
+          identity);
+        - when qualifying candidates exist to decide, a missing validated
+          kernel binding (or no binding index) raises
+          :class:`IdentityNotFoundError`; a mapping without a declared domain
+          refuses to run (``ValueError``) — a missing semantic discriminator
+          never broadens the predicate and never falls back to API metaclass,
+          ``declaredName``, ``qualifiedName``, package paths, or source text;
+        - the ``EvidenceContract`` range additionally enforces its reviewed
+          identity basis: only a natively verified requirement usage (a
+          ``RequirementVerificationMembership`` anchor, directly or through
+          the serialized ReferenceSubsetting shadow bridge — the ontology's
+          kernel rule for the class) qualifies as a source, so an
+          API-``RequirementUsage`` source alone never proves an evidence
+          contract.
+        """
         config = mapping.configuration
         allowed_types = {str(item) for item in config.get("relationship_types", [])}
         source_property = str(config.get("source_property", "source"))
@@ -104,6 +143,49 @@ class SemanticTraversal:
             str(item) for item in config.get("target_types", [])
         }
         exclude_root = config.get("exclude_source_specializations_of")
+
+        # Candidate-first: collect the configured relationships touching the
+        # queried source on the traversal side. No candidates = quiet absence.
+        candidates: list[tuple[dict[str, Any], list[str]]] = []
+        for relationship in elements:
+            if allowed_types and str(relationship.get("@type")) not in allowed_types:
+                continue
+            relationship_sources = reference_ids(relationship.get(source_property))
+            relationship_targets = reference_ids(relationship.get(target_property))
+            if direction == "incoming" and source_id in relationship_targets:
+                neighbor_ids = relationship_sources
+            elif direction == "outgoing" and source_id in relationship_sources:
+                neighbor_ids = relationship_targets
+            else:
+                continue
+            candidates.append((relationship, neighbor_ids))
+        if not candidates:
+            return []
+
+        # Governed domain enforcement: the queried source must ground in the
+        # declared domain lineage. The enforcement inputs ARE the declared
+        # semantic contract (domain class) — the mechanics never author a
+        # second type contract (c3/c5 review rule).
+        domain_class = mapping.domain
+        if not domain_class:
+            raise ValueError(
+                f"dependency/allocation mapping for {mapping.name!r} declares "
+                f"no governed domain lineage; the declared semantic contract "
+                f"cannot be enforced"
+            )
+        graph = build_relationship_graph(list(by_id.values()))
+        domain_resolver = self._lineage_resolver(str(domain_class), by_id, graph)
+        if self._endpoint_grounding(source, domain_resolver) is None:
+            # Non-qualifying native relationship: the queried source is not
+            # part of this predicate's governed domain. Quiet absence.
+            return []
+
+        # Range-side identity enforcement for the reviewed EvidenceContract
+        # class (c5): sources must be natively verified requirement usages.
+        verified_source_ids: set[str] | None = None
+        if str(mapping.range or "") == _EVIDENCE_CONTRACT_RANGE_CLASS:
+            verified_source_ids = self._natively_verified_ids(elements)
+
         if exclude_root:
             # Exclusion by specialization lineage is only meaningful for
             # incoming traversal (filtering neighbor sources). For outgoing
@@ -119,17 +201,7 @@ class SemanticTraversal:
         else:
             excluded_ids = set()
         hops: list[TraversalHop] = []
-        for relationship in elements:
-            if allowed_types and str(relationship.get("@type")) not in allowed_types:
-                continue
-            relationship_sources = reference_ids(relationship.get(source_property))
-            relationship_targets = reference_ids(relationship.get(target_property))
-            if direction == "incoming" and source_id in relationship_targets:
-                neighbor_ids = relationship_sources
-            elif direction == "outgoing" and source_id in relationship_sources:
-                neighbor_ids = relationship_targets
-            else:
-                continue
+        for relationship, neighbor_ids in candidates:
             if direction == "incoming":
                 if source_types:
                     neighbor_ids = [
@@ -140,6 +212,12 @@ class SemanticTraversal:
                 if excluded_ids:
                     neighbor_ids = [
                         neighbor_id for neighbor_id in neighbor_ids if neighbor_id not in excluded_ids
+                    ]
+                if verified_source_ids is not None:
+                    neighbor_ids = [
+                        neighbor_id
+                        for neighbor_id in neighbor_ids
+                        if neighbor_id in verified_source_ids
                     ]
             else:
                 if source_types and str(source.get("@type")) not in source_types:
@@ -157,6 +235,69 @@ class SemanticTraversal:
                 if target is not None:
                     hops.append(self._hop(mapping, source, target, relationship))
         return self._deduplicate(hops)
+
+    def _natively_verified_ids(
+        self, elements: list[dict[str, Any]]
+    ) -> set[str]:
+        """Declared elements natively verified by a verification membership.
+
+        The reviewed c5 identity basis for the ``EvidenceContract`` range
+        class: "requirement usages verified by SysML v2 verification cases"
+        (the ontology's kernel rule for the class), resolved through the same
+        serialized shapes the verification-membership strategy handles — the
+        direct anchor (``verifiedRequirement`` / ``memberElement``) plus the
+        ReferenceSubsetting bridge where the serializer anchors a shadow
+        reference usage instead of the declaration. Names are never
+        consulted. The membership types and reference property come from the
+        governed ``verifiedBy`` mapping configuration; without it the
+        discriminator cannot be evaluated and this fails closed.
+        """
+        try:
+            verification_mapping = self.contract.relationship_mapping("verifiedBy")
+        except KeyError as exc:
+            raise IdentityNotFoundError(
+                f"the native-verification identity basis for the "
+                f"{_EVIDENCE_CONTRACT_RANGE_CLASS!r} range cannot be evaluated: "
+                f"the governed verifiedBy mapping is not configured"
+            ) from exc
+        membership_types = {
+            str(item)
+            for item in verification_mapping.configuration.get(
+                "membership_types", ["RequirementVerificationMembership"]
+            )
+        }
+        reference_property = str(
+            verification_mapping.configuration.get(
+                "reference_property", "verifiedRequirement"
+            )
+        )
+        # Shadow bridge: a ReferenceSubsetting whose referenced feature is the
+        # declaration and whose owner is the serialized shadow usage.
+        shadow_to_declared: dict[str, set[str]] = {}
+        for element in elements:
+            if str(element.get("@type")) != "ReferenceSubsetting":
+                continue
+            declared_ids = reference_ids(element.get("referencedFeature"))
+            if not declared_ids:
+                continue
+            shadow_ids = reference_ids(
+                element.get("owningRelatedElement")
+            ) + reference_ids(element.get("owner"))
+            for declared in declared_ids:
+                for shadow in shadow_ids:
+                    shadow_to_declared.setdefault(shadow, set()).add(declared)
+        verified: set[str] = set()
+        for membership in elements:
+            if str(membership.get("@type")) not in membership_types:
+                continue
+            anchors = set(
+                reference_ids(membership.get(reference_property))
+                + reference_ids(membership.get("memberElement"))
+            )
+            for anchor in anchors:
+                verified.add(anchor)
+                verified |= shadow_to_declared.get(anchor, set())
+        return verified
 
     def _derivation_connection_hops(
         self,

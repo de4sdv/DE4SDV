@@ -449,9 +449,14 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     )
 
 
-def test_verification_coverage_is_partial_when_one_evidence_contract_has_no_case(
+def test_verification_coverage_excludes_unverified_evidence_sources(
     semantic_service,
 ) -> None:
+    """c5 evidence-contract identity basis: a requirement-usage source with no
+    native verification membership is not an evidence-contract hop (quiet
+    absence), so it never enters coverage; the reviewed consequence is that
+    the unverified-evidence branch is structurally unreachable for returned
+    hops (an evidence contract is natively verified by construction)."""
     semantic_service.repository.elements.extend(
         [
             {
@@ -470,20 +475,12 @@ def test_verification_coverage_is_partial_when_one_evidence_contract_has_no_case
 
     coverage = semantic_service.verification_coverage("req-1")
 
-    assert coverage["status"] == "partial"
-    assert coverage["unverified_evidence_contracts"] == [
-        {
-            "element_id": "evidence-2",
-            "semantic_type": "EvidenceContract",
-            "sysml_type": "RequirementUsage",
-            "declared_name": "evidenceContractWithoutVerification",
-            "qualified_name": None,
-            "category": "evidence",
-            "categories": ["evidence"],
-            "source_uri": "sysml://project-1/commit-1/evidence-2",
-        }
+    assert coverage["status"] == "covered"
+    assert coverage["unverified_evidence_contracts"] == []
+    assert [entry["element_id"] for entry in coverage["evidence_contracts"]] == [
+        "evidence-1"
     ]
-    assert coverage["gaps"][0]["category"] == "verification"
+    assert coverage["gaps"] == []
 
 
 def test_semantic_queries_refuse_stale_but_allow_explicit_fixture_scope(semantic_service) -> None:

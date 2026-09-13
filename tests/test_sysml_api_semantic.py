@@ -303,9 +303,14 @@ def test_first_milestone_relationships_define_machine_traversal_strategies() -> 
 
 
 def test_allocation_strategy_traverses_native_api_relationship_object() -> None:
+    from dataclasses import replace as _dc_replace
+
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
     from de4sdv.semantic.kernel_contract import KernelContract
     from de4sdv.semantic.traversal import SemanticTraversal
+    from de4sdv.sysml_api.revisions import RevisionBinding
 
+    ref = lambda value: {"@id": value}
     requirement = {"@id": "req-1", "@type": "RequirementUsage"}
     architecture = {"@id": "logical-1", "@type": "PartUsage"}
     allocation = {
@@ -314,19 +319,43 @@ def test_allocation_strategy_traverses_native_api_relationship_object() -> None:
         "source": [{"@id": "req-1"}],
         "target": [{"@id": "logical-1"}],
     }
+    # c5 Requirement-domain enforcement: the queried source must ground in the
+    # validated Requirement lineage (binding + authored typing), never by name.
+    kernel_requirement = {
+        "@id": "kernel-requirement",
+        "@type": "RequirementDefinition",
+        "declaredName": "RequirementCandidate",
+    }
+    grounding = {
+        "@id": "ft-req",
+        "@type": "FeatureTyping",
+        "owningRelatedElement": ref("req-1"),
+        "type": ref("kernel-requirement"),
+    }
+    index = KernelBindingIndex.from_binding(
+        _dc_replace(
+            RevisionBinding.from_dict(_semantic_binding_dict()),
+            kernel_bindings=tuple(_requirement_kernel_bindings()),
+        )
+    )
     traversal = SemanticTraversal(
         KernelContract.load(
             ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-        )
+        ),
+        kernel_bindings=index,
     )
 
     hops = traversal.traverse(
-        "realizedBy", requirement, [requirement, architecture, allocation]
+        "realizedBy",
+        requirement,
+        [requirement, architecture, allocation, kernel_requirement, grounding],
     )
 
     assert len(hops) == 1
     assert hops[0].target == architecture
     assert hops[0].api_object == allocation
+    # The reviewed bounded claim: allocation strength only — the hop is not
+    # and must not be labeled as realization.
     assert hops[0].semantic_strength == "allocation"
 
 

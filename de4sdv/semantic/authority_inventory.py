@@ -150,6 +150,17 @@ DISPOSITIONS: tuple[str, ...] = (
     #: architecture and must not be migrated. Always paired with
     #: authority_target ``retired`` (validated both directions).
     "retire-without-replacement",
+    #: Reviewed rename/replacement required (O1 c5 Outcomes D): the modeled
+    #: witness/fact is retained, but the identity (name and/or claim) misnames
+    #: or overclaims it, so its migration requires a reviewed rename or
+    #: replacement first. The replacement identity is deliberately NOT
+    #: specified by the review that records this disposition (no invented
+    #: relation): the rename/replacement decision is a forward obligation.
+    #: Distinct from ``defer`` (target undetermined pending a gate) and from
+    #: ``retire-without-replacement`` (no target meaning at all): a
+    #: rename-required entry keeps a location target and a decided evidence
+    #: state, and its underlying facts stay model-resident.
+    "rename-required",
 )
 
 #: Text-parity observation vocabulary (Layer A, doc-text observation).

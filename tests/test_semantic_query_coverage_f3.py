@@ -108,6 +108,26 @@ def _f3_kernel_bindings() -> list[dict[str, str]]:
     ]
 
 
+def _f3_req_grounding():
+    """The c5 Requirement-domain grounding pair: the kernel declaration plus
+    the queried requirement's typed lineage edge (the domain is enforced from
+    the validated binding, never from names)."""
+    ref = lambda value: {"@id": value}
+    return [
+        {
+            "@id": "kernel-requirement",
+            "@type": "RequirementDefinition",
+            "declaredName": "RequirementCandidate",
+        },
+        {
+            "@id": "ft-req-1",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("req-1"),
+            "type": ref("kernel-requirement"),
+        },
+    ]
+
+
 def _f3_elements():
     """Minimal API-shaped fixture covering both new predicates.
 
@@ -219,7 +239,7 @@ def _f3_elements():
             "source": [ref("acceptance-criterion")],
             "target": [ref("req-1")],
         },
-    ]
+    ] + _f3_req_grounding()
 
 
 def test_ontology_declares_function_and_reverse_architecture_mappings() -> None:
@@ -357,7 +377,7 @@ def test_member_product_exclusion_follows_transitive_lineage() -> None:
             "source": [ref("plain-usage")],
             "target": [ref("req-1")],
         },
-    ]
+    ] + _f3_req_grounding()
     hops = _traversal(_f3_kernel_bindings()).traverse(
         "hasRelevantArchitecture", {"@id": "req-1"}, elements
     )
@@ -702,6 +722,12 @@ def test_impact_reports_function_category_and_split_architecture_gaps(
             "declaredName": "reqCommandEmergencyBraking",
         },
         {
+            "@id": "ft-req-braking",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("req-braking"),
+            "type": ref("kernel-requirement"),
+        },
+        {
             "@id": "action-request-braking",
             "@type": "ActionUsage",
             "declaredName": "requestBraking",
@@ -791,6 +817,12 @@ def test_impact_preserves_function_role_on_shared_architecture_node(
             "@id": "req-braking",
             "@type": "RequirementUsage",
             "declaredName": "reqCommandEmergencyBraking",
+        },
+        {
+            "@id": "ft-req-braking",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("req-braking"),
+            "type": ref("kernel-requirement"),
         },
         {
             "@id": "action-request-braking",

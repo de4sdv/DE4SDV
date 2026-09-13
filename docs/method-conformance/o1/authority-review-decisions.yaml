@@ -1455,56 +1455,172 @@ entries:
   realizedBy:
     authority_current: legacy-yaml
     authority_target: model-authoritative
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
-    disposition: prove-existing-model-authority
-    confidence: medium
-    stage: c5
-    note: Allocation facts model-resident; signature frozen (plan Section 10); reviewed semantic-fit (allocation
-      vs realization) required before strength migration.
-    unknowns:
-    - Exact reviewed claim boundary vs native Allocations library semantics
+    disposition: rename-required
+    confidence: high
+    stage: c5 (relevance and realization review batch)
+    note: 'c5a reviewed disposition: rename/replacement required (Outcome D). The executable
+      witness is a native AllocationUsage (strategy allocation). Layer classification of
+      every real allocation witness at the reviewed retained revision (71 AllocationUsage
+      objects across ten named allocation definitions plus two untyped usages): exactly ten
+      allocations are requirement-sourced, all Requirement -> Function (System2RequirementToFunction;
+      sources reqSourceFidelity, reqNativeParticipation, reqDe4sdvParticipation, reqNonInterference,
+      reqFailClosedFreshness, reqAvailabilityDisposition, reqInvalidRejection, reqRestorationBehavior,
+      reqRealAAOSRendering, reqEvidenceCorrelation; targets the AebsVisualizationFunctionalFlow
+      actions assemble, observe, supervise, validate, present, record) - layer counts 10
+      Function / 0 LogicalElement / 0 PhysicalElement / 0 other ArchitectureElement / 0
+      rejected. The remaining 61 allocations are function, logical, physical/software, and
+      item-level allocations whose sources resolve to functions, logical roles, parts, or
+      items - none is requirement-sourced. The modeled fact is therefore a bounded cross-layer
+      requirement-allocation trace (strength allocation), NOT realization: an allocation
+      witness does not prove realization, does not prove physical realization, does not
+      satisfy, and does not replace the canonical RFLP decomposition Requirement -> Function
+      -> LogicalElement -> PhysicalElement. The identity name realizedBy overclaims that
+      fact, so the reviewed identity is rename/replacement-required; the replacement identity
+      is deliberately not invented here and no composite realization query is implemented
+      (realization remains a future reviewed query over the RFLP witness graph, blocked on
+      the independently deferred allocatedTo/deployedTo proofs and on reviewed requirement-to-function
+      relevance witnesses). Representation finding (measured, retained full-model export):
+      none of the 71 real allocation objects serializes a source end through the configured
+      source property - the source end is serialized only through the EndFeatureMembership
+      (memberName source) -> end feature -> authored ReferenceSubsetting chain - so the current
+      property-based mapping returns zero hops against the real serialized model; this representation
+      gap is part of the recorded rename/replacement migration requirement (the replacement
+      identity must define its end-resolution mechanics). No runtime promotion was performed
+      in c5: the bounded allocation trace stays inert on real shapes and the queried side
+      is domain-enforced fail-closed. No .sysml change; the authored YAML remains current
+      authority during O1.'
+    unknowns: []
     required_evidence:
-    - reviewed allocation-vs-realization boundary decision (UG-04)
-    exact_fit_decision: null
+    - 'reviewed identity rename/replacement decision (name, signature, and serialized end-resolution
+      mechanics) before any O2 projection row for this entry'
+    - O2 generated Semantic Projection from the reviewed replacement representation
+    - O3 approved authority transition (the authored mapping remains current authority during O1)
+    exact_fit_decision: 'not exact native fit as named - Outcome D (rename/replacement required).
+      Native core: AllocationUsage is a native SysML v2 relationship witness and the requirement-rooted
+      allocation facts are model-resident, which can ground a bounded cross-layer allocation
+      trace. The identity fails exact fit on two counts. (1) Claim: allocation is not realization
+      - Requirement allocated to ArchitectureElement does not mean ArchitectureElement realizes
+      the requirement, contributes to its realization, or satisfies it; at the reviewed revision
+      every real requirement-sourced allocation is Requirement -> Function (10 Function /
+      0 Logical / 0 Physical / 0 other), so no witness supports a realization reading at
+      any layer. (2) Name: realizedBy misnames the modeled fact. The reviewed target proposition
+      is a bounded requirement-allocation trace pending the reviewed rename/replacement;
+      no replacement identity, signature, or composite realization query is defined by this
+      review. Named semantic laws: AllocationUsage != realization automatically; Requirement
+      -> Architecture allocation != physical realization automatically; a generic Dependency
+      != realization; allocation does not collapse or redefine the canonical RFLP decomposition;
+      no satisfaction, verification, deployment, or product-line meaning is added. Representation
+      mechanics of any replacement must define how the serialized allocation source end is
+      resolved (measured zero-hop behavior against the real export).'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   specifiesFunction:
     authority_current: legacy-yaml
     authority_target: de4sdv-application-semantic
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
-    disposition: prove-existing-model-authority
-    confidence: medium
-    stage: c5
-    note: Relevance only over generic Dependency with typed endpoint filters; endpoint types alone never
-      establish stronger meaning (UG-05).
+    disposition: rename-required
+    confidence: high
+    stage: c5 (relevance and realization review batch)
+    note: 'c5b reviewed disposition: rename/replacement required (Outcome D). The modeled
+      fact over a generic Dependency with typed endpoints (source RequirementUsage, target
+      ActionUsage/ActionDefinition) is an authored requirement-to-function relevance trace;
+      the model files document the same boundary (relevance dependencies from draft requirement
+      candidates to nested functional-action responsibilities - neither satisfy nor verify).
+      Replay of the retained full-model export: 16 hops over 15 distinct requirement-usage
+      sources and 15 distinct action targets (8 AEBS slice hops, 8 middleware slice hops);
+      every queried source grounds in the validated Requirement lineage (RequirementCandidate
+      closure), zero Need or other non-Requirement sources return hops, and the target filter
+      admits only action-typed constituents. The claim is relevance only: the witness proves no
+      specification, satisfaction, allocation, or verification. Because the predicate name
+      reads as specification while the provable claim is relevance, the reviewed identity
+      is rename/replacement-required; the bounded relevance semantics are retained unchanged
+      (no strengthening) until the reviewed rename. Runtime (c5): the traversal enforces
+      the declared Requirement domain fail-closed (candidate-first; quiet absence outside
+      the domain; missing validated binding with candidates to decide raises IdentityNotFoundError).
+      No .sysml change; the authored YAML remains current authority during O1.'
     unknowns: []
     required_evidence:
-    - reviewed relevance claim boundary + UG-05 negative tests
-    exact_fit_decision: null
+    - reviewed identity rename to the exact bounded relevance proposition (no strengthening)
+      before any O2 projection row for this entry
+    - O2 generated Semantic Projection from the renamed reviewed representation
+    - O3 approved authority transition (the authored mapping remains current authority during O1)
+    exact_fit_decision: 'not exact native fit as named - Outcome D (rename/replacement required).
+      Native usage: the generic Dependency supplies the witness; the bounded DE4SDV application
+      semantic is the direction and endpoint-type discipline (Requirement-lineage source
+      -> action-typed target) at relevance strength. The identity name overclaims: a generic
+      Dependency with matching endpoint types does not prove specification or any stronger
+      relation; the exact provable proposition is that function F is relevant to and addresses
+      requirement R through an authored design-input trace (relevance only). Rename/replacement
+      required (recorded); the replacement must carry a relevance-exact name; no replacement
+      semantic is invented here and no strengthening is authorized (the plan preserves relevance
+      only). Named semantic laws: Generic Dependency != specification automatically and !=
+      realization, allocation, satisfaction, or verification; ActionUsage/ActionDefinition
+      targets are bounded native constituents - no Function ontology-class identity is claimed
+      beyond the declared representation; RequirementUsage alone does not prove DE4SDV Requirement
+      (Need-sourced and other non-Requirement sources are quiet absence).'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   hasRelevantArchitecture:
     authority_current: legacy-yaml
     authority_target: de4sdv-application-semantic
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: prove-existing-model-authority
-    confidence: medium
-    stage: c5
-    note: Incoming dependency relevance with MemberProduct-lineage source exclusion (application semantics
-      currently in YAML config + code).
+    confidence: high
+    stage: c5 (relevance and realization review batch)
+    note: 'c5b reviewed disposition: retain with the exact bounded claim (Outcome B - DE4SDV
+      application semantic over the native Dependency witness). Reviewed facts at the retained
+      revision: 143 pre-c5 hops; after declaring and enforcing the governed Requirement domain,
+      42 remain - the 101 rejected hops are non-Requirement queried sources (97 part, item,
+      behavior, and decision contexts that merely have part/action-sourced incoming dependencies,
+      2 need-typed usages, 2 member-product-typed usages), i.e. the pre-c5 traversal returned
+      hops for queried sources outside the declared domain. The retained 42 hops are incoming
+      authored relevance dependencies from part/action-typed sources to Requirement-lineage
+      usages, including middleware functional and boundary traces and middleware/visualization
+      assurance claim and argument usages (all grounding in the Requirement lineage). The
+      MemberProduct-lineage source exclusion (configured-product traces are product-line
+      relationships, not architecture relevance) is load-bearing and stays. Reviewed section-6
+      answers: DE4SDV Requirement = the validated RequirementCandidate lineage (Need is
+      a sibling lineage; both serialize as RequirementUsage); ArchitectureElement = the
+      declared native umbrella whose executable constituent filter admits part and action
+      usages/definitions only (interface and behavior-definition constituents remain within
+      the umbrella by definition but are not yet admitted by the executable filter - a widening
+      would be a separate reviewed mapping decision); the relation overlaps neither specifiesFunction
+      (opposite direction; disjoint by construction - no dependency edge is reported under
+      two predicates) nor realizedBy (different relationship objects and strength). No .sysml
+      change; the enforcement derives from the declared domain/range only; the authored
+      YAML remains current authority during O1.'
     unknowns: []
     required_evidence:
-    - reviewed exclusion semantics + negative tests
-    exact_fit_decision: null
+    - O2 generated Semantic Projection from the reviewed application-semantic contract and
+      native witness grounding
+    - O3 approved authority transition (the authored mapping remains current authority during O1)
+    exact_fit_decision: 'not exact native fit - Outcome B (DE4SDV application semantic over
+      the native Dependency witness). Native core: the incoming Dependency supplies the witness.
+      Load-bearing DE4SDV restrictions: (1) the queried source must ground in the validated
+      Requirement lineage (Need and every other requirement-like usage outside RequirementCandidate
+      is excluded); (2) sources flow only from the declared part/action constituent types
+      - the representation-level carrier of the ArchitectureElement umbrella - and (3) sources
+      in the MemberProduct specialization lineage (definitions and usages typed by them)
+      are excluded: configured-product traces are product-line relationships, not architecture
+      relevance. Bounded claim: a native architecture-side part/action element is relevant
+      to Requirement R through an authored dependency; no satisfaction, realization, allocation,
+      verification, or product-line meaning. Named semantic laws: PartUsage/ActionUsage
+      != ArchitectureElement solely by API metaclass (the MemberProduct-lineage exclusion
+      is the governed counterexample class: a type match alone never qualifies); MemberProduct
+      lineage does not qualify as canonical architecture relevance; no name, qualifiedName,
+      package-path, or source-text heuristic participates. The constituent question and
+      the widenable representation filter are recorded as reviewed boundaries of the executable
+      representation, not new semantics.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   allocatedTo:
@@ -1837,19 +1953,63 @@ entries:
   hasRelevantEvidenceContract:
     authority_current: legacy-yaml
     authority_target: de4sdv-application-semantic
-    evidence_state: repository-evidenced
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: prove-existing-model-authority
-    confidence: medium
-    stage: c5
-    note: Incoming dependency relevance restricted to requirement-usage sources; disjointness with specifiesFunction
-      must stay enforced.
+    confidence: high
+    stage: c5 (relevance and realization review batch)
+    note: 'c5b reviewed disposition: retain with the reviewed EvidenceContract identity basis
+      enforced (identity-hardening case). Pre-c5 replay of the retained full-model export:
+      140 qualifying hops over 90 distinct sources. Source classification (every distinct
+      source): 16 AEBS evidence-contract usages (typed by per-slice evidence-contract requirement
+      definitions that carry no DE4SDV specialization lineage; natively verified by verification
+      memberships), 14 acceptance-criterion usages (7 middleware typed MiddlewareAcceptanceCriterion,
+      7 visualization typed VisualizationAcceptanceCriterion; all natively verified), and
+      60 further sources that evidence no verification association (assurance claims, assurance
+      arguments, counterclaims, plain requirement usages) or ground outside the Requirement
+      domain (four need usages). 89 of the 140 hops were query-side domain violations (needs,
+      actions, use cases, concerns, parts, items). Enforced now (fail-closed): (1) the queried
+      source must ground in the validated Requirement lineage; (2) the returned source must
+      be a natively verified requirement usage - a RequirementVerificationMembership anchor,
+      directly or through the serialized ReferenceSubsetting shadow bridge (the ontology
+      kernel rule for EvidenceContract: requirement usages verified by SysML v2 verification
+      cases). Post-enforcement: 34 hops over 30 sources (18 evidence-contract-role hops
+      over 16 sources; 16 acceptance-criterion-role hops over 14 sources); the three modeled
+      evidence-contract links of reqCommandEmergencyBraking are preserved as are the middleware
+      acceptance-criterion traces. Class-separation finding: the acceptance-criterion role
+      co-satisfies the operative kernel rule, and no validated identity separates it from
+      the evidence-contract role at this revision (the middleware acceptance-criterion definition
+      is itself in the Requirement lineage; the visualization one is not specialized to
+      it) - the narrower EvidenceContract-specific identity/lineage contract is a recorded
+      forward obligation, not a silent conflation. No names, text, or package heuristics;
+      the mechanics reuse the c2 native verification resolution. No .sysml change; the authored
+      YAML remains current authority during O1.'
     unknowns: []
     required_evidence:
-    - reviewed relevance contract + disjointness tests
-    exact_fit_decision: null
+    - reviewed EvidenceContract-specific identity/lineage contract separating the evidence-contract
+      role from the acceptance-criterion role before any narrowing of the claimed class
+    - O2 generated Semantic Projection from the reviewed application-semantic contract and
+      native verification identity basis
+    - O3 approved authority transition (the authored mapping remains current authority during O1)
+    exact_fit_decision: 'not exact native fit - Outcome B (DE4SDV application semantic over
+      the native Dependency witness) with the reviewed identity basis enforced. The generic
+      incoming Dependency supplies relevance only; API RequirementUsage alone does NOT prove
+      EvidenceContract - the canonical relation returns a source only when it is a natively
+      verified requirement usage (RequirementVerificationMembership anchor, directly or
+      through the serialized shadow bridge, per the ontology kernel rule for the class)
+      AND the queried side grounds in the Requirement lineage. Classification of the pre-c5
+      qualifying set is recorded in the row note; sources evidencing no verification association
+      (claims, assurance arguments, counterclaims, plain traces) and non-Requirement queried
+      domains are rejected fail-closed (measured: 140 to 34 hops). Recorded boundary: the
+      acceptance-criterion role co-satisfies the operative rule; the EvidenceContract-specific
+      class separation requires a reviewed identity/lineage contract (forward obligation)
+      - until then the enforced claim is the kernel-rule identity basis, not a name-based
+      class claim. Named semantic laws: RequirementUsage != EvidenceContract automatically;
+      RequirementUsage != DE4SDV Requirement automatically; Need != Requirement; Generic
+      Dependency != verification, realization, allocation, or satisfaction; no name, qualifiedName,
+      package-path, or source-text heuristic participates.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   selectsFeature:
