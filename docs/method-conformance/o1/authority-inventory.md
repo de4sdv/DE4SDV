@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `2a880860060fd5527078ef38054a0032c370df23`
+- Source revision: `efd2d2505ce24a886cf48272c65856aa5e83cb5f`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:b87e266e07ea922bce3dc4c712392907e9a83512f7dd1189e61399422428fcae)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:149b77f6120e0869cb628d90c8cd4deb5a2681aa58072ff64a17bf1a1e86805a)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:ed6b1cee3a422d181e9e4c8a7b8c6374e1bde67c4f1c1cfc0d6751378417d86a)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -31,7 +31,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | authority_current_counts | accepted-library-grounded: 2, external-reference: 3, legacy-yaml: 78, model-authoritative: 3, native-sysml: 6, unknown: 1 |
 | authority_target_counts | accepted-library-grounded: 12, de4sdv-application-semantic: 4, external-reference: 2, model-authoritative: 61, native-sysml: 8, unknown: 6 |
 | authority_target_conditional_counts | accepted-library-grounded: 8, de4sdv-application-semantic: 1 |
-| evidence_state_counts | blocked: 14, parity-reviewed: 7, privileged-closure-proven: 3, repository-evidenced: 68, unknown: 1 |
+| evidence_state_counts | blocked: 14, parity-reviewed: 9, privileged-closure-proven: 3, repository-evidenced: 66, unknown: 1 |
 | adoption_status_counts | accepted: 4, candidate: 1, not-applicable: 77, pinned-not-adopted: 8, rejected: 3 |
 
 ## Classes (59)
@@ -72,7 +72,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | PhysicalElement | native: part def elements in physical/software realization slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | Interface | native: SysML v2 port def and connection elements | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | Scenario | native: Operational-context parts plus scenario-identity enums (for example MiddlewareScenarioIdentity) in verification slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| VerificationCase | native: SysML v2 verification def; see aebs and middleware verification slices | consumed (verifiedBy) | native-sysml -> native-sysml | repository-evidenced | not-applicable | prove-existing-model-authority | c2 |  |
+| VerificationCase | native: SysML v2 verification def; see aebs and middleware verification slices | consumed (verifiedBy) | native-sysml -> native-sysml | parity-reviewed | not-applicable | prove-existing-model-authority | c2 (verification batch) |  |
 | ValidationScenario | native: Scenario parts with bounded validation outcomes (for example passBoundedValidation) | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | O2+ |  |
 | VerificationMethod | external: ODE4HERA requirements-management library verificationMethod (NRM A8) populated with the SysML standard-library VerificationMethodKind values | consumed (model attributes) | accepted-library-grounded -> accepted-library-grounded | repository-evidenced | accepted | keep-as-is | O2+ (parity) |  |
 | AcceptanceCriterion | textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml: requirement def MiddlewareAcceptanceCriterion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
@@ -117,7 +117,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | hasRelevantArchitecture | Requirement -> ArchitectureElement (dependency) | implemented (dependency) | legacy-yaml -> de4sdv-application-semantic | repository-evidenced | not-applicable | prove-existing-model-authority | c5 |  |
 | allocatedTo | Function -> LogicalElement | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | T/E |  |
 | deployedTo | LogicalElement -> PhysicalElement | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | T/E |  |
-| verifiedBy | Requirement -> VerificationCase (verification-membership) | implemented (verification-membership) | legacy-yaml -> native-sysml | repository-evidenced | not-applicable | prove-existing-model-authority | c2 |  |
+| verifiedBy | Requirement -> VerificationCase (verification-membership) | implemented (verification-membership) | legacy-yaml -> native-sysml | parity-reviewed | not-applicable | prove-existing-model-authority | c2 (verification batch) |  |
 | usesVerificationMethod | VerificationCase -> VerificationMethod | vocabulary-only | legacy-yaml -> accepted-library-grounded | repository-evidenced | accepted | adopt-accepted-library-relation | batched-parity (post-0a/0b) |  |
 | hasAcceptanceCriterion | VerificationCase -> AcceptanceCriterion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | validatedBy | Need -> ValidationScenario | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | O2+ |  |
