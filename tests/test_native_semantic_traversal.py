@@ -530,6 +530,15 @@ def test_impact_service_reports_native_edges_against_real_shapes(
             "owningRelatedElement": {"@id": "verify-009b"},
             "verifiedRequirement": {"@id": "ev-override"},
         },
+        # Integration closure R2: native verification anchored on the ROOT
+        # requirement itself — independent of the blocked EvidenceContract
+        # route (which would have carried it through ev-override).
+        {
+            "@id": "rvm-root",
+            "@type": "RequirementVerificationMembership",
+            "owningRelatedElement": {"@id": "verify-009b"},
+            "memberElement": {"@id": "req-braking"},
+        },
     ]
     response_map = {
         "/projects/project-1/commits/commit-1/elements?page[size]=1000": (
@@ -593,13 +602,21 @@ def test_impact_service_reports_native_edges_against_real_shapes(
     predicates = {edge["predicate"] for edge in result["edges"]}
     assert "hasSubject" in predicates
     # c5 correction: the EvidenceContract range is blocked — the verified
-    # evidence source is not emitted, so no evidence edge and no verifiedBy
-    # edge follow from it.
+    # evidence source is not emitted, so no hasRelevantEvidenceContract edge
+    # follows from it. Integration closure R2: native verifiedBy is
+    # discovered from the ROOT requirement's own RequirementVerificationMembership,
+    # independent of the blocked EvidenceContract route; the evidence-sourced
+    # usage (ev-override) never becomes a verifiedBy edge either.
     assert "hasRelevantEvidenceContract" not in predicates
-    assert "verifiedBy" not in predicates
+    assert "verifiedBy" in predicates
+    assert all(
+        edge["target"] == "verify-009b" and edge["semantic_strength"] == "native-verification"
+        for edge in result["edges"]
+        if edge["predicate"] == "verifiedBy"
+    )
     categories = {node["category"] for node in result["nodes"]}
     assert "product-line" in categories
-    assert "verification" not in categories
+    assert "verification" in categories
     assert "evidence" not in categories
     gap_categories = {gap["category"] for gap in result["gaps"]}
     assert "product-line" not in gap_categories

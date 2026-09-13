@@ -551,3 +551,98 @@ exclusion, disjointness); the `rename-required` schema laws; c1–c4/K/PLE
 states unchanged; and the artifact-vs-source consistency gate (red between
 Commit A and Commit B by design — the two-commit binding gate working). No
 privileged ingestion was dispatched for c5.
+
+## 17. Integration closure (post-semantic-review; PR #249)
+
+Independent integration review of the c5 correction accepted the semantic
+decisions unchanged and found two integration blockers (R1, R2). Both were
+fixed together; no semantic decision was reopened, and the
+`hasRelevantEvidenceContract` row remains exactly as reviewed:
+`blocked` / `defer` with the same `unknowns` and `required_evidence`.
+
+**The governing distinction.** The Method Conformance Plan separates an
+evaluated absence from an evaluation that cannot be completed ("unsupported
+phases remain explicitly unassessed rather than implicitly complete"; "an API
+error, unreadable page, unsupported representation … is not an empty graph
+and not evidence that a required relation is absent"). The correction's
+query surfaces had collapsed the blocked `hasRelevantEvidenceContract` state
+into ordinary absence:
+
+- `semantic_neighbors` reported the blocked predicate through the same
+  "No ontology-mapped native relationship was found…" gap as an ordinary
+  supported predicate with no qualifying fact;
+- `verification_coverage` returned `status: uncovered, gaps: []` even though
+  coverage could not actually be assessed through the blocked range.
+
+Blocked semantic authority is a distinct state from zero supported matches:
+
+```text
+ABSENT:    the supported semantic query was evaluated and no qualifying fact exists
+BLOCKED:   the semantic query cannot establish the requested relation because
+           required semantic identity/authority is unresolved
+```
+
+**R1 fix — structured blocked state.** `SemanticTraversal.blocked_predicates()`
+exposes the governed blocked names (the range gate already fails closed for
+them). `SemanticQueryService` attaches one reusable machine-readable record
+per blocked predicate — `{predicate, authority_state: "blocked", reason: <the
+reviewed missing-identity blocker>}` — and a `semantic_status`
+(`complete` / `incomplete`) to each affected result:
+
+- `semantic_neighbors`: blocked predicates emit zero edges (unchanged) and
+  appear in `unsupported_predicates` — never as ordinary gaps. Mixed outcomes
+  are supported: other predicates in the same query are evaluated normally.
+- `trace`: blocked predicates are skipped during traversal and recorded in
+  `unsupported_predicates` / `semantic_status`. No causal claim is made — an
+  empty path is "no supported path found", never "all relevant paths were
+  fully evaluated and proven absent" while a mapped predicate was blocked.
+- `verification_coverage`: while the range is blocked, the status is never
+  plain `uncovered` with an empty explanation. With native verification
+  proven the status is `partial` (native part assessed, evidence part not
+  assessable); with nothing assessable it is `incomplete`. The blocked-range
+  reason survives as a `verification-unsupported` gap and an
+  `unsupported_predicates` record.
+
+**R2 fix — native verification decoupled from EvidenceContract.** The MCP
+validator (`scripts/validate_semantic_mcp.py`) previously required
+`verifiedBy` in impact, a case from `verification_coverage`, and a trace
+target from those cases — unreachable under the blocked range, since impact
+discovered verification only through
+`Requirement -> hasRelevantEvidenceContract -> EvidenceContract -> verifiedBy`.
+The proof now establishes two independent facts:
+
+- **Proof A — blocked EvidenceContract state (explicit).** The validator
+  asserts the blocked record (predicate, `authority_state: blocked`, the
+  reviewed reason) is exposed, zero EvidenceContract edges are emitted, and
+  coverage is not plain `uncovered`. It fails closed if the blocked state
+  disappears or a false EvidenceContract edge returns.
+- **Proof B — native verification works independently.** `verifiedBy` is the
+  c2-reviewed native `Requirement -> VerificationCase` relation
+  (`RequirementVerificationMembership`; `native-verification` strength). Its
+  proof is anchored on a subject selected from native API membership facts
+  only (`_select_native_verification_subject`: an RVM anchoring a
+  Requirement-grounded `RequirementUsage` with an API-resident case — no
+  names, packages, or source text), exercised through impact, coverage, and
+  a real `verifiedBy` trace.
+
+**ImpactService boundary decision.** Impact claims to answer "what does this
+requirement touch, and what is its verification state?" — native verification
+cases belong in that answer, so `ImpactService.impact` now traverses
+`verifiedBy` from the root requirement directly (unchanged mapping, unchanged
+semantics; the blocked EvidenceContract route no longer gates it). The
+validator follows this architecture; it does not define it.
+
+**Service-to-validator contract lock.**
+`tests/test_c5_integration_closure.py` builds every validator-consumed shape
+from the real `SemanticQueryService` (never handcrafted) and locks: blocked
+≠ ordinary absence; mixed neighbor outcomes; ordinary absence for supported
+predicates; coverage never plain `uncovered` while blocked; native
+`verifiedBy` independently queryable; subject selection accepting exactly
+the runtime's membership fact and failing closed without it; and the
+validator rejecting degraded service output. The full-model workflow
+(`.github/workflows/privileged-full-model-api-ingestion.yml`) continues to
+invoke the corrected validator and is now structurally satisfiable under the
+reviewed semantics; no new ingestion was dispatched for this closure.
+
+No ontology YAML semantic field, `.sysml`/`.kerml` file, c1–c4/K/PLE/T/E
+decision, or O2/O3/O4 scope changed in this closure.

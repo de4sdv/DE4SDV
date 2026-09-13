@@ -1445,11 +1445,3 @@ class TestDocumentAndBoundaryLaws:
             entries["hasRelevantEvidenceContract"]["reviewed"]["evidence_state"]
             == "blocked"
         )
-
-
-
-
-
-
-
-

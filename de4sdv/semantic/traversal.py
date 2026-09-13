@@ -35,6 +35,18 @@ from .relationships import build_relationship_graph, is_family
 #: declared semantic authority during O1.
 _EVIDENCE_CONTRACT_RANGE_CLASS = "EvidenceContract"
 
+#: Reviewed blocked-state reason for the ``EvidenceContract`` range (c5
+#: correction, PR #249, Outcome B). Query surfaces attach this exact reason
+#: when a result must distinguish BLOCKED semantic authority from ordinary
+#: absence — the same text the traversal gate attributes its fail-closed
+#: silence to. Exported so consumers never restate the blocker by hand.
+EVIDENCE_CONTRACT_BLOCKED_REASON = (
+    "EvidenceContract-specific identity is not machine-resolvable at the "
+    "reviewed revision; native verification membership also admits "
+    "AcceptanceCriterion and therefore cannot establish the declared "
+    "EvidenceContract range."
+)
+
 
 @dataclass(frozen=True)
 class TraversalHop:
@@ -247,6 +259,26 @@ class SemanticTraversal:
                 if target is not None:
                     hops.append(self._hop(mapping, source, target, relationship))
         return self._deduplicate(hops)
+
+    def blocked_predicates(self) -> frozenset[str]:
+        """Names whose declared range is governed blocked at this revision.
+
+        Query surfaces use this to distinguish BLOCKED semantic authority
+        from ordinary supported absence (c5 integration closure, PR #249).
+        The traversal itself already fails closed for these predicates; this
+        accessor exposes the same governed state so downstream results can
+        carry it explicitly instead of collapsing it into "no edges found".
+        """
+        blocked: list[str] = []
+        for name, spec in self.contract.relationships.items():
+            if not isinstance(spec, dict):
+                continue
+            mapping_spec = spec.get("sysml_mapping")
+            if not isinstance(mapping_spec, dict):
+                continue
+            if str(spec.get("range") or "") == _EVIDENCE_CONTRACT_RANGE_CLASS:
+                blocked.append(name)
+        return frozenset(blocked)
 
     def _natively_verified_ids(
         self, elements: list[dict[str, Any]]

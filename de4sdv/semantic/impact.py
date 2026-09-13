@@ -157,6 +157,20 @@ class ImpactService:
                 }
             )
 
+        # Native verification is independent of the EvidenceContract route
+        # (c5 integration closure, PR #249, R2): ``verifiedBy`` is the
+        # reviewed native Requirement -> VerificationCase relation (c2,
+        # native-verification strength) and is discovered from the root
+        # requirement directly. Impact claims to answer what a requirement
+        # touches and its verification state, so native verification cases
+        # belong here; the blocked hasRelevantEvidenceContract range must
+        # not gate them. No semantic strengthening: the mapping is unchanged.
+        root_verification_hops = self.traversal.traverse(
+            "verifiedBy", root, elements
+        )
+        for verification_hop in root_verification_hops:
+            add_hop(verification_hop, "VerificationCase", "verification")
+
         evidence_hops = self.traversal.traverse(
             "hasRelevantEvidenceContract", root, elements
         )
@@ -190,6 +204,17 @@ class ImpactService:
                     "reason": (
                         "No native RequirementVerificationMembership links a "
                         "verification case to the affected evidence contracts."
+                    ),
+                }
+            )
+        if not root_verification_hops and not evidence_hops:
+            gaps.append(
+                {
+                    "category": "verification",
+                    "reason": (
+                        "No native RequirementVerificationMembership anchors a "
+                        "verification case on this requirement in the bound "
+                        "API revision."
                     ),
                 }
             )
