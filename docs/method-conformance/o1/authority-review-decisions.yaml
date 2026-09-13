@@ -1775,9 +1775,17 @@ entries:
       decision. No privileged ingestion was dispatched for c3.
     unknowns: []
     required_evidence:
-    - separated native SubjectMembership semantics vs DE4SDV member-product restriction record
-    - c3 review record docs/method-conformance/o1/c3-subject-grounding-review.md with retained-run over-return replay and fail-closed source/target lineage tests
-    exact_fit_decision: null
+    - O2 generated Semantic Projection from the reviewed application-semantic contract and native witness grounding
+    - O3 approved authority transition from the authored YAML to the reviewed semantic authority
+    exact_fit_decision: 'not exact native fit: native SysML SubjectMembership supplies the subject witness
+      of the requirement-like usage, but the canonical DE4SDV predicate Requirement -> MemberProduct
+      adds load-bearing DE4SDV domain/range restrictions that exclude valid native subject facts
+      — Need-sourced memberships (StakeholderNeedCandidate usages are sibling to RequirementCandidate
+      and serialize as RequirementUsage) and non-MemberProduct subjects (benches, increments,
+      claim subjects). The target is therefore de4sdv-application-semantic, grounded in native
+      SubjectMembership as the witness mechanism, with no second modeled relationship. The
+      relation asserted per hop remains the bounded native subject reference — no selection,
+      satisfaction, realization, allocation, applicability, or PLE configuration meaning.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   hasRelevantEvidenceContract:

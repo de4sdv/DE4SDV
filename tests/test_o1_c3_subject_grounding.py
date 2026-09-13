@@ -565,6 +565,94 @@ class TestC3ReviewedDecision:
         assert mapping.semantic_strength == "native-reference"
 
 
+class TestC3GovernanceConsistency:
+    """Independent-review governance locks (R1-R3): the reviewed-decision row
+    is internally consistent — the exact-fit decision is populated and records
+    the Case B / non-exact-native semantics, completed c3 review/replay work is
+    NOT listed as outstanding evidence, remaining required evidence points
+    only to future stages, and the authority/evidence states are pinned.
+    Item 8 (c1/c2/K/PLE/c4/c5 unchanged) is proved by
+    TestC3ScopeAndCounts: test_c1_rows_unchanged, test_c2_rows_unchanged,
+    test_k_rows_unchanged, test_ple_rows_unchanged, test_c4_c5_rows_unchanged.
+    """
+
+    def _row(self, decisions) -> dict:
+        return decisions["entries"]["hasSubject"]
+
+    def test_evidence_state_and_authority_states_unchanged(self, inventory):
+        reviewed = _entries(inventory, C3_IDENTITIES)["hasSubject"]["reviewed"]
+        assert reviewed["evidence_state"] == "parity-reviewed"
+        assert reviewed["authority_current"] == "legacy-yaml"
+        assert reviewed["authority_target"] == "de4sdv-application-semantic"
+
+    def test_exact_fit_decision_is_populated(self, decisions):
+        decision = self._row(decisions)["exact_fit_decision"]
+        assert isinstance(decision, str)
+        assert decision.strip()
+        assert decision.startswith("not exact native fit")
+
+    def test_exact_fit_decision_records_case_b_semantics(self, decisions):
+        decision = self._row(decisions)["exact_fit_decision"]
+        for fragment in (
+            # non-exact-native verdict + native witness retained
+            "not exact native fit",
+            "SubjectMembership",
+            "witness",
+            # application-semantic restriction + Requirement-vs-Need distinction
+            "de4sdv-application-semantic",
+            "Requirement -> MemberProduct",
+            "StakeholderNeedCandidate",
+            "RequirementUsage",
+            # MemberProduct target restriction
+            "non-MemberProduct subjects",
+            # no second modeled relationship
+            "no second modeled relationship",
+            # no stronger PLE/satisfaction/allocation meaning
+            "no selection",
+            "satisfaction",
+            "realization",
+            "allocation",
+            "PLE configuration meaning",
+        ):
+            assert fragment in decision, fragment
+
+    def test_completed_c3_work_is_not_outstanding_evidence(self, decisions):
+        items = self._row(decisions)["required_evidence"]
+        joined = " ".join(items)
+        for completed in (
+            "separated native SubjectMembership",
+            "restriction record",
+            "c3 review record",
+            "replay",
+            "fail-closed",
+            "c3-subject-grounding-review",
+        ):
+            assert completed not in joined, completed
+        for item in items:
+            assert "docs/method-conformance/o1" not in item, item
+
+    def test_required_evidence_points_only_to_future_stages(self, decisions):
+        items = self._row(decisions)["required_evidence"]
+        assert items
+        for item in items:
+            assert item.startswith("O2 ") or item.startswith("O3 "), item
+        joined = " ".join(items)
+        assert "O2" in joined
+        assert "O3" in joined
+
+    def test_unknowns_remain_empty(self, decisions):
+        assert self._row(decisions)["unknowns"] == []
+
+    def test_inventory_row_matches_the_decisions_row(self, inventory, decisions):
+        """The generated artifact must reproduce the corrected decision row
+        byte-for-byte (governance consistency between source and artifact)."""
+        reviewed = _entries(inventory, C3_IDENTITIES)["hasSubject"]["reviewed"]
+        source = self._row(decisions)
+        assert reviewed["exact_fit_decision"] == source["exact_fit_decision"]
+        assert reviewed["required_evidence"] == source["required_evidence"]
+        assert reviewed["unknowns"] == source["unknowns"]
+
+
 # ---------------------------------------------------------------------------
 # Positive native witnesses
 # ---------------------------------------------------------------------------
