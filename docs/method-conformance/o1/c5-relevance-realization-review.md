@@ -673,6 +673,16 @@ and all other c5 decisions are unchanged):
   `requirement.element_id`, `source.element_id`) — never display names. Proof
   A carries the same coherence check between neighbors root and coverage
   subject.
+- **Selection semantics (corrected during this closure):** the Proof-B
+  subject is an RVM-anchored `RequirementUsage` with an API-resident case —
+  API-type facts only, no names. It deliberately carries NO governed-lineage
+  qualification: on the reviewed model every direct RVM anchor lies outside
+  the Requirement/Need/AcceptanceCriterion lineages, so a lineage-qualified
+  selection could never be satisfied — and if it ever were, it would steer
+  the proof toward acceptance-criterion-role usages, the identity Proof A
+  must keep separate. Proof B proves the native `verifiedBy` machinery on a
+  natively verified requirement usage; it claims no DE4SDV class identity
+  for the subject.
 - `validate_semantic_results` accepts explicit
   `proof_b_impact` / `proof_b_coverage` / `proof_b_trace` results; supplying
   them routes Proof B to those objects, and any member that disagrees about

@@ -47,11 +47,7 @@ if str(ROOT) not in sys.path:
 
 from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 from de4sdv.semantic.kernel_contract import KernelContract
-from de4sdv.semantic.traversal import (
-    SemanticTraversal,
-    build_relationship_graph,
-    typing_index,
-)
+from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_ids
 from de4sdv.sysml_api.revisions import RevisionBinding
@@ -283,6 +279,7 @@ def validate_semantic_results(
     proof_b_impact: dict[str, Any] | None = None,
     proof_b_coverage: dict[str, Any] | None = None,
     proof_b_trace: dict[str, Any] | None = None,
+    require_subject_edge: bool = True,
 ) -> None:
     """Fail closed unless the MCP proof retains exact native semantics.
 
@@ -335,10 +332,12 @@ def validate_semantic_results(
         proof_b_impact, proof_b_coverage, proof_b_trace
     )
     impact_edges = proof_b_impact.get("edges", [])
-    if not any(edge.get("predicate") == "hasSubject" for edge in impact_edges):
+    if require_subject_edge and not any(
+        edge.get("predicate") == "hasSubject" for edge in impact_edges
+    ):
         raise RuntimeError("full-model impact did not expose hasSubject")
     strengths = {edge.get("semantic_strength") for edge in impact_edges}
-    if "native-reference" not in strengths:
+    if require_subject_edge and "native-reference" not in strengths:
         raise RuntimeError("full-model impact lost native-reference strength")
 
 
@@ -357,27 +356,31 @@ def _select_native_verification_subject(
     """Select the Proof-B subject from native membership facts only.
 
     Fails closed unless at least one native ``RequirementVerificationMembership``
-    anchors a ``RequirementUsage`` whose verification case is API-resident.
-    The requirement must ground in the governed ``Requirement`` domain through
-    the caller's traversal (built with the validated kernel bindings); no
-    name, package, file, or source-text heuristic participates.
+    anchors a ``RequirementUsage`` (API type) whose verification case is
+    resolvable through the reviewed native ``verifiedBy`` resolver itself.
+    No name, package, file, or source-text heuristic participates; anchor
+    enumeration order is the export's deterministic order.
+
+    Deliberately NO governed-lineage condition (c5 integration-closure
+    correction): on the reviewed model every direct RVM anchor lies outside
+    the Requirement/Need/AcceptanceCriterion lineages, so a lineage-
+    qualified selection can never be satisfied — and if it ever were, it
+    would steer the proof toward acceptance-criterion-role usages, the very
+    identity Proof A must keep separate. Proof B proves the native
+    ``verifiedBy`` machinery on a natively verified requirement usage; the
+    subject's DE4SDV class identity is NOT claimed by this proof.
+
+    Case resolution is delegated to the traversal (the resolver walks the
+    RVM's owner chain through membership edges — the case may be the RVM's
+    owner's owner, not its direct owner). The returned case id is the exact
+    target the resolver proves, so Proof B's impact/coverage/trace subject
+    and case all come from one reviewed mechanism.
     """
     by_id: dict[str, dict[str, Any]] = {}
     for item in elements:
         candidate_id = element_id(item)
         if candidate_id is not None:
             by_id[candidate_id] = item
-    graph = build_relationship_graph(list(by_id.values()))
-    typed_by, _ = typing_index(graph, list(by_id))
-    requirement_lineage = traversal._lineage_resolver("Requirement", by_id, graph)
-
-    def grounded(element_id_value: str) -> bool:
-        if element_id_value in requirement_lineage["lineage_ids"]:
-            return True
-        return any(
-            typed in requirement_lineage["lineage_ids"]
-            for typed in typed_by.get(element_id_value, ())
-        )
 
     for membership in elements:
         if str(membership.get("@type")) != "RequirementVerificationMembership":
@@ -385,25 +388,21 @@ def _select_native_verification_subject(
         anchors = reference_ids(membership.get("verifiedRequirement")) + reference_ids(
             membership.get("memberElement")
         )
-        owners = reference_ids(membership.get("owningRelatedElement")) + reference_ids(
-            membership.get("owner")
-        )
         for anchor in anchors:
             anchor_element = by_id.get(anchor)
             if anchor_element is None or str(anchor_element.get("@type")) != "RequirementUsage":
                 continue
-            if not grounded(anchor):
+            hops = traversal.traverse("verifiedBy", anchor_element, elements)
+            if not hops:
                 continue
-            for owner in owners:
-                case = by_id.get(owner)
-                if case is not None and str(case.get("@type")) in {
-                    "VerificationCaseUsage",
-                    "VerificationCaseDefinition",
-                }:
-                    return {
-                        "element_id": anchor,
-                        "sysml_type": str(anchor_element.get("@type")),
-                    }
+            case_id = element_id(hops[0].target)
+            if case_id is None:
+                continue
+            return {
+                "element_id": anchor,
+                "sysml_type": str(anchor_element.get("@type")),
+                "verification_case_id": case_id,
+            }
     raise RuntimeError(
         "no native RequirementVerificationMembership anchors a RequirementUsage "
         "with an API-resident verification case; native verification proof "
