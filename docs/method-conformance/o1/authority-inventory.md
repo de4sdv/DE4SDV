@@ -4,12 +4,12 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `53280a4f168c087f6b909ce39f5693a91c9e4539`
+- Source revision: `baa65c80c85748da89d037745ac801ef65a9981c`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
 - reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:93951b8855b5d0e83917313f3f2578bc953e4e0cc019cf1a86e1cda3228c164a)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
-- runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:8e236af36eb113fbbb9203a3bf01c8e846230d0c83dcf034cb8bdadadea93baf)
+- runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:969f392a01fbc3f7c9653d900eb13a3d554104872ee289c698beb355ba570245)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
 
 ## Coverage
