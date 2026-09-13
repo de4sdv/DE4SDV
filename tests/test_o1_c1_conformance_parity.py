@@ -241,7 +241,10 @@ class TestC1Scope:
         (PR #249 c4): derivesNeedFromConcern was retired without replacement
         (target 'retired', disposition retire-without-replacement, evidence
         parity-reviewed, stage renamed) as recorded in its own batch file.
-        The c5 rows remain untouched."""
+        The c5 batch has also since executed (PR #249 c5): its four rows
+        advanced exactly as recorded in their own batch file — current
+        authority unchanged (legacy-yaml), evidence maturity parity-reviewed,
+        stage renamed to the executed batch."""
         entries = _entries(inventory)
         expected = {
             "VerificationCase": (
@@ -264,10 +267,26 @@ class TestC1Scope:
                 "legacy-yaml",
                 "parity-reviewed",
             ),
-            "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),
-            "specifiesFunction": ("c5", "legacy-yaml", "repository-evidenced"),
-            "hasRelevantArchitecture": ("c5", "legacy-yaml", "repository-evidenced"),
-            "hasRelevantEvidenceContract": ("c5", "legacy-yaml", "repository-evidenced"),
+            "realizedBy": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
+            "specifiesFunction": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
+            "hasRelevantArchitecture": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
+            "hasRelevantEvidenceContract": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
         }
         for identity, (stage, authority, evidence) in expected.items():
             row = entries[identity]["reviewed"]

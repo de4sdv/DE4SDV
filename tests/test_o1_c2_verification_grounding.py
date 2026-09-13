@@ -103,6 +103,12 @@ C3_IDENTITIES: tuple[str, ...] = ("hasSubject",)
 #: the global parity set from its batch onward — referenced here so this
 #: file's global-set pin stays consistent with the executed chain).
 C4_IDENTITIES: tuple[str, ...] = ("derivesNeedFromConcern",)
+C5_IDENTITIES: tuple[str, ...] = (
+    "realizedBy",
+    "specifiesFunction",
+    "hasRelevantArchitecture",
+    "hasRelevantEvidenceContract",
+)
 
 #: PLE-family rows under the adoption gate (unchanged by c2).
 PLE_GATED: tuple[str, ...] = (
@@ -242,10 +248,10 @@ class TestC2ScopeAndCounts:
 
     def test_global_parity_set_is_c1_plus_c2(self, inventory):
         """The parity-reviewed set advanced exactly by the executing batches:
-        the seven c1 rows plus the two c2 rows, plus the c3 and c4 rows when
-        those batches execute (the c4 batch's file,
-        tests/test_o1_c4_concern_need_disposition.py, owns the global set
-        from c4 onward and pins c1+c2+c3+c4 = 11)."""
+        the seven c1 rows plus the two c2 rows, plus the c3, c4, and c5 rows
+        when those batches execute (the c5 batch's file,
+        tests/test_o1_c5_relevance_realization.py, owns the global set
+        from c5 onward and pins c1+c2+c3+c4+c5 = 15)."""
         parity = {
             entry["identity"]
             for entry in inventory["entries"]
@@ -256,9 +262,10 @@ class TestC2ScopeAndCounts:
             | set(C2_IDENTITIES)
             | set(C3_IDENTITIES)
             | set(C4_IDENTITIES)
+            | set(C5_IDENTITIES)
         )
         assert parity == expected
-        assert len(parity) == 11
+        assert len(parity) == 15
 
     def test_authority_current_unchanged(self, inventory):
         entries = _entries(inventory)
@@ -320,15 +327,15 @@ class TestC2ScopeAndCounts:
 
     def test_expected_evidence_state_counts(self, inventory):
         """c2 changes evidence maturity only: parity 7 -> 9, evidence 68 -> 66;
-        the c3 batch later moved hasSubject to parity-reviewed and the c4
-        batch retired derivesNeedFromConcern to parity-reviewed (the executed
-        counts live in their own batch files: parity 11 / repository 65 /
-        blocked 13)."""
+        the c3 batch later moved hasSubject to parity-reviewed, the c4 batch
+        retired derivesNeedFromConcern to parity-reviewed, and the c5 batch
+        moved its four rows to parity-reviewed (the executed counts live in
+        their own batch files: parity 15 / repository 61 / blocked 13)."""
         assert inventory["evidence_state_counts"] == {
             "blocked": 13,
-            "parity-reviewed": 11,
+            "parity-reviewed": 15,
             "privileged-closure-proven": 3,
-            "repository-evidenced": 65,
+            "repository-evidenced": 61,
             "unknown": 1,
         }
 
@@ -362,7 +369,10 @@ class TestC2ScopeAndCounts:
         executed (PR #249 c4): derivesNeedFromConcern was retired without
         replacement as recorded in its own batch file — current authority
         unchanged, target 'retired', evidence maturity parity-reviewed. The
-        c5 rows remain untouched."""
+        c5 batch has also since executed (PR #249 c5): the four c5 rows
+        advanced exactly as recorded in their own batch file — current
+        authority unchanged (legacy-yaml), evidence maturity parity-reviewed,
+        stage renamed to the executed batch."""
         entries = _entries(inventory)
         expected = {
             "hasSubject": (
@@ -375,10 +385,26 @@ class TestC2ScopeAndCounts:
                 "legacy-yaml",
                 "parity-reviewed",
             ),
-            "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),
-            "specifiesFunction": ("c5", "legacy-yaml", "repository-evidenced"),
-            "hasRelevantArchitecture": ("c5", "legacy-yaml", "repository-evidenced"),
-            "hasRelevantEvidenceContract": ("c5", "legacy-yaml", "repository-evidenced"),
+            "realizedBy": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
+            "specifiesFunction": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
+            "hasRelevantArchitecture": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
+            "hasRelevantEvidenceContract": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
         }
         for identity, (stage, authority, evidence) in expected.items():
             row = entries[identity]["reviewed"]

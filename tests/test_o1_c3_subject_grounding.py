@@ -100,6 +100,12 @@ C2_IDENTITIES: tuple[str, ...] = ("VerificationCase", "verifiedBy")
 #: the global parity set from its batch onward — referenced here so this
 #: file's global-set pin stays consistent with the executed chain).
 C4_IDENTITIES: tuple[str, ...] = ("derivesNeedFromConcern",)
+C5_IDENTITIES: tuple[str, ...] = (
+    "realizedBy",
+    "specifiesFunction",
+    "hasRelevantArchitecture",
+    "hasRelevantEvidenceContract",
+)
 
 #: PLE-family rows under the adoption gate (unchanged by c3).
 PLE_GATED: tuple[str, ...] = (
@@ -360,9 +366,9 @@ class TestC3ScopeAndCounts:
 
     def test_global_parity_set_is_c1_plus_c2_plus_c3(self, inventory):
         """The parity-reviewed set advanced exactly by the executing batches
-        through c3. The c4 batch has since executed too: its own file
-        (tests/test_o1_c4_concern_need_disposition.py) owns the global set
-        from c4 onward and pins c1+c2+c3+c4 = 11."""
+        through c3. The c4 and c5 batches have since executed too: the c5
+        file (tests/test_o1_c5_relevance_realization.py) owns the global set
+        from c5 onward and pins c1+c2+c3+c4+c5 = 15."""
         parity = {
             entry["identity"]
             for entry in inventory["entries"]
@@ -373,8 +379,9 @@ class TestC3ScopeAndCounts:
             | set(C2_IDENTITIES)
             | set(C3_IDENTITIES)
             | set(C4_IDENTITIES)
+            | set(C5_IDENTITIES)
         )
-        assert len(parity) == 11
+        assert len(parity) == 15
 
     def test_authority_current_remains_legacy_yaml(self, inventory):
         entries = _entries(inventory, C3_IDENTITIES)
@@ -435,13 +442,14 @@ class TestC3ScopeAndCounts:
     def test_expected_evidence_state_counts(self, inventory):
         """c3 changes evidence maturity only: parity 9 -> 10, repository 66 -> 65;
         every other evidence class is unchanged. The c4 batch later retired
-        derivesNeedFromConcern (blocked 14 -> 13, parity 10 -> 11 as recorded
-        in its own batch file)."""
+        derivesNeedFromConcern and the c5 batch moved its four rows to
+        parity-reviewed (blocked 14 -> 13, parity 11 -> 15, repository
+        65 -> 61 as recorded in their own batch files)."""
         assert inventory["evidence_state_counts"] == {
             "blocked": 13,
-            "parity-reviewed": 11,
+            "parity-reviewed": 15,
             "privileged-closure-proven": 3,
-            "repository-evidenced": 65,
+            "repository-evidenced": 61,
             "unknown": 1,
         }
 
@@ -512,7 +520,10 @@ class TestC3ScopeAndCounts:
         was retired without replacement as recorded in its own batch file
         (tests/test_o1_c4_concern_need_disposition.py) — current authority
         unchanged, target 'retired', evidence maturity parity-reviewed. The
-        c5 rows remain untouched."""
+        c5 batch has also since executed (PR #249 c5): the four c5 rows
+        advanced exactly as recorded in their own batch file — current
+        authority unchanged (legacy-yaml), evidence maturity parity-reviewed,
+        stage renamed to the executed batch."""
         entries = _entries(inventory)
         expected = {
             "derivesNeedFromConcern": (
@@ -520,17 +531,25 @@ class TestC3ScopeAndCounts:
                 "legacy-yaml",
                 "parity-reviewed",
             ),
-            "realizedBy": ("c5", "legacy-yaml", "repository-evidenced"),
-            "specifiesFunction": ("c5", "legacy-yaml", "repository-evidenced"),
-            "hasRelevantArchitecture": (
-                "c5",
+            "realizedBy": (
+                "c5 (relevance and realization review batch)",
                 "legacy-yaml",
-                "repository-evidenced",
+                "parity-reviewed",
+            ),
+            "specifiesFunction": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
+            ),
+            "hasRelevantArchitecture": (
+                "c5 (relevance and realization review batch)",
+                "legacy-yaml",
+                "parity-reviewed",
             ),
             "hasRelevantEvidenceContract": (
-                "c5",
+                "c5 (relevance and realization review batch)",
                 "legacy-yaml",
-                "repository-evidenced",
+                "parity-reviewed",
             ),
         }
         for identity, (stage, authority, evidence) in expected.items():

@@ -311,8 +311,10 @@ class TestC4ScopeAndCounts:
         assert staged == ["derivesNeedFromConcern"]
 
     def test_global_parity_set_advances_by_exactly_the_c4_row(self, inventory):
-        """This file owns the global parity-reviewed set from c4 onward:
-        c1(7) + c2(2) + c3(1) + c4(1) = 11."""
+        """The global parity-reviewed set after c4: c1(7) + c2(2) + c3(1) +
+        c4(1) = 11. The c5 batch has since executed too: the c5 file
+        (tests/test_o1_c5_relevance_realization.py) owns the global set from
+        c5 onward and pins c1+c2+c3+c4+c5 = 15."""
         parity = {
             entry["identity"]
             for entry in inventory["entries"]
@@ -323,8 +325,9 @@ class TestC4ScopeAndCounts:
             | set(C2_IDENTITIES)
             | set(C3_IDENTITIES)
             | set(C4_IDENTITIES)
+            | set(C5_ROWS)
         )
-        assert len(parity) == 11
+        assert len(parity) == 15
 
     def test_authority_current_remains_legacy_yaml(self, inventory):
         entry = _entries(inventory, C4_IDENTITIES)["derivesNeedFromConcern"]
@@ -374,12 +377,14 @@ class TestC4ScopeAndCounts:
 
     def test_expected_evidence_state_counts(self, inventory):
         """c4 advances evidence maturity only: the retired row leaves the
-        blocked set (14 -> 13) and joins parity-reviewed (10 -> 11)."""
+        blocked set (14 -> 13) and joins parity-reviewed (10 -> 11). The c5
+        batch then moved its four rows to parity-reviewed (parity 11 -> 15,
+        repository 65 -> 61)."""
         assert inventory["evidence_state_counts"] == {
             "blocked": 13,
-            "parity-reviewed": 11,
+            "parity-reviewed": 15,
             "privileged-closure-proven": 3,
-            "repository-evidenced": 65,
+            "repository-evidenced": 61,
             "unknown": 1,
         }
 
@@ -459,12 +464,16 @@ class TestC4ScopeAndCounts:
             assert row["closure_evidence_ref"] == "r6-3", identity
 
     def test_c5_rows_unchanged(self, inventory):
+        """The c5 batch has since executed (PR #249 c5): its four rows
+        advanced exactly as recorded in their own batch file — current
+        authority unchanged (legacy-yaml), evidence maturity parity-reviewed,
+        stage renamed to the executed batch."""
         entries = _entries(inventory)
         for identity in C5_ROWS:
             row = entries[identity]["reviewed"]
-            assert row["stage"] == "c5", identity
+            assert row["stage"] == "c5 (relevance and realization review batch)", identity
             assert row["authority_current"] == "legacy-yaml", identity
-            assert row["evidence_state"] == "repository-evidenced", identity
+            assert row["evidence_state"] == "parity-reviewed", identity
 
 
 # ---------------------------------------------------------------------------
