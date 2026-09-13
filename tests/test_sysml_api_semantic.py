@@ -373,6 +373,20 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "declaredName": "memberProduct",
             "qualifiedName": "DE4SDV_AEBSNeedsRequirements::memberProduct",
         },
+        {
+            "@id": "req-braking-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("req-braking"),
+            "type": ref("kernel-requirement"),
+            "typedFeature": ref("req-braking"),
+        },
+        {
+            "@id": "member-product-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("member-product"),
+            "type": ref("kernel-member-product"),
+            "typedFeature": ref("member-product"),
+        },
         *[
             {
                 "@id": evidence_id,

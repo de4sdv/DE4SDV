@@ -1726,19 +1726,57 @@ entries:
     semantic_text_equivalence: null
   hasSubject:
     authority_current: legacy-yaml
-    authority_target: native-sysml
-    evidence_state: repository-evidenced
+    authority_target: de4sdv-application-semantic
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: prove-existing-model-authority
     confidence: medium
-    stage: c3
-    note: Native SubjectMembership; separate the native subject semantics from the DE4SDV member-product
-      restriction explicitly; do NOT widen beyond declared member-product subjects.
+    stage: c3 (hasSubject review batch)
+    note: c3 Case B decision — authority_target de4sdv-application-semantic (the
+      canonical predicate is genuinely narrower than
+      native SysML subject semantics, so the target is the DE4SDV application
+      semantic relation; native SubjectMembership is retained as the grounding
+      witness and no second modeled relationship is created. Decomposition
+      (docs/method-conformance/o1/c3-subject-grounding-review.md). Native core —
+      SubjectMembership is a ParameterMembership specialization whose member is
+      the subject parameter of the owning requirement-like usage; the native
+      fact is subject-of-requirement and says nothing about member products.
+      Source restriction — domain=Requirement is a DE4SDV query restriction over
+      that native fact because Need (StakeholderNeedCandidate) and Requirement
+      (RequirementCandidate) are sibling lineages both serialized as
+      RequirementUsage — API metaclass equality is not ontology-class identity,
+      and StakeholderNeedCandidate usages carry real memberProduct subjects in
+      the model (N-AEBS-008/014, N-MW-004). Target restriction — range=
+      MemberProduct excludes real non-product native subjects (verification
+      benches, System 2 increments, claim subjects, acceptance criteria — all
+      RequirementUsage-sourced SubjectMemberships in the governed model).
+      Enforcing the restrictions is representation mechanics derived from the
+      declared domain/range (kernel_contract exposes them on the mapping;
+      traversal resolves both lineages through the ingestion-validated kernel
+      bindings plus the representation-tolerant relationship graph and never
+      consults names) — the mechanics carry no second type contract and cannot
+      redefine domain/range. Bounded fail-closed hardening shipped with the
+      review — subject-membership traversal now returns only Requirement-
+      lineage-sourced, MemberProduct-lineage-targeted hops (non-qualifying
+      native subjects are quiet absence; missing lineage bindings fail closed
+      when qualifying candidates exist). Retained-run replay (full-model
+      candidate export, 289 SubjectMemberships) measured the pre-c3 traversal
+      over-returning 110 subject hops that the enforced contract rejects (57
+      non-Requirement sources, 53 non-MemberProduct targets) while preserving
+      all 21 legitimate Requirement->MemberProduct hops. Claim boundary —
+      bounded native subject relation only; the subject being a member product
+      does not mean selection, satisfaction, realization, allocation,
+      applicability, or any PLE configuration fact (PLE rows stay independently
+      gated). Lane B verification SubjectMembership evidence informed the
+      serialized shape only and does not establish this predicate.
+      authority_current stays legacy-yaml during O1; any transition is an O3
+      decision. No privileged ingestion was dispatched for c3.
     unknowns: []
     required_evidence:
     - separated native SubjectMembership semantics vs DE4SDV member-product restriction record
+    - c3 review record docs/method-conformance/o1/c3-subject-grounding-review.md with retained-run over-return replay and fail-closed source/target lineage tests
     exact_fit_decision: null
     closure_evidence_ref: null
     semantic_text_equivalence: null

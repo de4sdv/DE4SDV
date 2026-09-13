@@ -137,6 +137,13 @@ def semantic_service():
             "declaredName": "memberProduct",
         },
         {
+            "@id": "product-1-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("product-1"),
+            "type": ref("kernel-member-product"),
+            "typedFeature": ref("product-1"),
+        },
+        {
             "@id": "evidence-1",
             "@type": "RequirementUsage",
             "declaredName": "evidenceContractNominalBrakingPath",
@@ -322,7 +329,10 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     result = semantic_service.model_status()
 
     assert result["current_baseline"] is True
-    assert result["element_count"] == 19
+    # 20 fixture elements: the c3 subject-membership fixture carries the
+    # authored FeatureTyping for the member product in addition to the
+    # membership shape.
+    assert result["element_count"] == 20
     assert result["gaps"] == []
 
 

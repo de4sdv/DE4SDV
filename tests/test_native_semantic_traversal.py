@@ -64,6 +64,119 @@ def _contract():
     )
 
 
+def _kernel_requirement() -> dict:
+    return {
+        "@id": "kernel-requirement",
+        "@type": "RequirementDefinition",
+        "declaredName": "RequirementCandidate",
+        "qualifiedName": "DE4SDV_MethodContext::RequirementCandidate",
+    }
+
+
+def _kernel_member_product() -> dict:
+    return {
+        "@id": "kernel-member-product",
+        "@type": "PartDefinition",
+        "declaredName": "ProductLineMemberProduct",
+        "qualifiedName": "DE4SDV_ProductLine::ProductLineMemberProduct",
+    }
+
+
+def _typing(element_id_value: str, type_id: str, witness_id: str) -> dict:
+    return {
+        "@id": witness_id,
+        "@type": "FeatureTyping",
+        "owningRelatedElement": {"@id": element_id_value},
+        "type": {"@id": type_id},
+        "typedFeature": {"@id": element_id_value},
+    }
+
+
+def _kernel_index():
+    """Validated kernel bindings for the Requirement + MemberProduct lineages.
+
+    The c3 subject-membership traversal enforces the mapping's governed
+    domain/range through these ingestion-validated bindings; fixtures must
+    carry them (and the elements' authored typings) to model the declared
+    semantic contract, not merely the serialized membership shape.
+    """
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    return KernelBindingIndex.from_binding(
+        RevisionBinding.from_dict(
+            {
+                "git_repository": "de4sdv/DE4SDV",
+                "git_commit": "a" * 40,
+                "sysml_project_id": "project-1",
+                "sysml_commit_id": "commit-1",
+                "import_timestamp": "2026-08-31T00:00:00Z",
+                "import_tool_version": "test",
+                "semantic_validation": "passed",
+                "scope": "fixture",
+                "ontology": _contract().identity.to_dict(),
+                "kernel_bindings": [
+                    {
+                        "ontology_class": "Requirement",
+                        "element_id": "kernel-requirement",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_method_context.sysml"
+                        ),
+                        "declaration": "requirement def RequirementCandidate",
+                    },
+                    {
+                        "ontology_class": "MemberProduct",
+                        "element_id": "kernel-member-product",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_product_line.sysml"
+                        ),
+                        "declaration": "part def ProductLineMemberProduct",
+                    },
+                ],
+            }
+        )
+    )
+
+
+def _subject_membership_fixture() -> tuple[list[dict], dict, dict]:
+    """Real serialized subject shape: bodyless requirement contracts.
+
+    The governed requirement usage is typed by the validated Requirement
+    kernel definition and the subject member by the validated
+    ProductLineMemberProduct definition (authored FeatureTyping edges), and
+    the SubjectMembership references its subject through ``memberElement`` /
+    its owner through ``owningRelatedElement``.
+    """
+    requirement = {
+        "@id": "req-1",
+        "@type": "RequirementUsage",
+        "declaredName": "reqCommandEmergencyBraking",
+    }
+    subject_member = {
+        "@id": "member-1",
+        "@type": "PartUsage",
+        "declaredName": "memberProduct",
+    }
+    subject_membership = {
+        "@id": "sm-1",
+        "@type": "SubjectMembership",
+        "owningRelatedElement": {"@id": "req-1"},
+        "memberElement": {"@id": "member-1"},
+    }
+    elements = [
+        _kernel_requirement(),
+        _kernel_member_product(),
+        requirement,
+        subject_member,
+        _typing("req-1", "kernel-requirement", "ft-req"),
+        _typing("member-1", "kernel-member-product", "ft-member"),
+        subject_membership,
+    ]
+    return elements, requirement, subject_membership
+
+
 def test_ontology_declares_native_subject_membership_strategy() -> None:
     mapping = _contract().relationship_mapping("hasSubject")
     assert mapping.strategy == "subject-membership"
@@ -91,24 +204,9 @@ def test_ontology_declares_native_verification_membership_strategy() -> None:
 def test_subject_membership_traversal_resolves_native_api_shape() -> None:
     from de4sdv.semantic.traversal import SemanticTraversal
 
-    requirement = {
-        "@id": "req-1",
-        "@type": "RequirementUsage",
-        "declaredName": "reqCommandEmergencyBraking",
-    }
-    subject_part = {
-        "@id": "member-1",
-        "@type": "PartUsage",
-        "declaredName": "memberProduct",
-    }
-    subject_membership = {
-        "@id": "sm-1",
-        "@type": "SubjectMembership",
-        "owningRelatedElement": {"@id": "req-1"},
-        "memberElement": {"@id": "member-1"},
-    }
-    hops = SemanticTraversal(_contract()).traverse(
-        "hasSubject", requirement, [requirement, subject_part, subject_membership]
+    elements, requirement, _subject_membership = _subject_membership_fixture()
+    hops = SemanticTraversal(_contract(), kernel_bindings=_kernel_index()).traverse(
+        "hasSubject", requirement, elements
     )
     assert len(hops) == 1
     hop = hops[0]
@@ -117,6 +215,18 @@ def test_subject_membership_traversal_resolves_native_api_shape() -> None:
     assert hop.semantic_strength == "native-reference"
     assert hop.target["@id"] == "member-1"
     assert hop.api_object["@id"] == "sm-1"
+    # The enforced domain/range contract is carried in the witness with
+    # authored grounding provenance on both sides (c3).
+    assert hop.witness["source_lineage"] == {
+        "ontology_class": "Requirement",
+        "lineage_root_id": "kernel-requirement",
+        "provenance": "explicit",
+    }
+    assert hop.witness["target_lineage"] == {
+        "ontology_class": "MemberProduct",
+        "lineage_root_id": "kernel-member-product",
+        "provenance": "explicit",
+    }
 
 
 def test_verification_membership_traversal_resolves_native_api_shape() -> None:
@@ -302,18 +412,20 @@ def test_verification_membership_traversal_honors_member_element_form() -> None:
 def test_subject_membership_ignores_memberships_of_other_owners() -> None:
     from de4sdv.semantic.traversal import SemanticTraversal
 
-    requirement = {"@id": "req-1", "@type": "RequirementUsage"}
-    other_part = {"@id": "member-2", "@type": "PartUsage"}
+    elements, requirement, _subject_membership = _subject_membership_fixture()
+    other_member = {"@id": "member-2", "@type": "PartUsage"}
     foreign_membership = {
         "@id": "sm-2",
         "@type": "SubjectMembership",
         "owningRelatedElement": {"@id": "req-other"},
         "memberElement": {"@id": "member-2"},
     }
-    hops = SemanticTraversal(_contract()).traverse(
-        "hasSubject", requirement, [requirement, other_part, foreign_membership]
+    hops = SemanticTraversal(_contract(), kernel_bindings=_kernel_index()).traverse(
+        "hasSubject", requirement, elements + [other_member, foreign_membership]
     )
-    assert hops == []
+    # Exactly the queried requirement's own qualifying membership resolves;
+    # the foreign membership of another owner is untouched.
+    assert [hop.api_object["@id"] for hop in hops] == ["sm-1"]
 
 
 def test_traversal_still_fails_closed_for_unsupported_strategy() -> None:
@@ -376,6 +488,20 @@ def test_impact_service_reports_native_edges_against_real_shapes(
             "declaredName": "reqCommandEmergencyBraking",
         },
         {"@id": "member-product", "@type": "PartUsage", "declaredName": "memberProduct"},
+        {
+            "@id": "req-braking-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": {"@id": "req-braking"},
+            "type": {"@id": "kernel-requirement"},
+            "typedFeature": {"@id": "req-braking"},
+        },
+        {
+            "@id": "member-product-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": {"@id": "member-product"},
+            "type": {"@id": "kernel-member-product"},
+            "typedFeature": {"@id": "member-product"},
+        },
         {
             "@id": "subject-membership",
             "@type": "SubjectMembership",

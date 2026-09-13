@@ -688,14 +688,14 @@ class SemanticTraversal:
         lineage_class: str,
         by_id: dict[str, dict[str, Any]],
         graph: Any = None,
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         """Ground one ontology lineage class and precompute its member ids.
 
         The root UUID comes from the ingestion-validated kernel binding
         index; lineage membership follows the representation-tolerant
         relationship graph (authored and tool-implied subsumption kept
         separate) and usage typing. A class without a validated binding
-        fails closed.
+        fails closed — this function never returns None.
         """
         if self.kernel_bindings is None:
             raise IdentityNotFoundError(
@@ -886,11 +886,39 @@ class SemanticTraversal:
         source_id: str,
         elements: list[dict[str, Any]],
     ) -> list[TraversalHop]:
-        """Traverse native SubjectMembership objects owned by the requirement.
+        """Traverse native SubjectMembership objects owned by the source.
 
         Shape derived from the SysML v2 2025-02-01 API schema: a
         SubjectMembership references its subject through ``memberElement`` and
         its owner through ``owningRelatedElement``.
+
+        The mapping's governed domain/range — the predicate's declared
+        semantic contract (c3 review) — is enforced fail-closed with the same
+        machinery the derivation strategy uses: the query source must ground
+        in the validated kernel lineage of the declared domain (for
+        ``hasSubject`` the DE4SDV Requirement lineage; a stakeholder-need
+        candidate usage serialized as a ``RequirementUsage`` does not
+        qualify), and every returned subject must ground in the validated
+        lineage of the declared range (the member-product lineage; a bench,
+        increment, claim, or other arbitrary subject does not qualify).
+        Grounding follows the ingestion-validated kernel binding plus the
+        representation-tolerant relationship graph, keeping authored vs
+        tool-implied lineage separable in the witness; names are never
+        consulted (API metaclass equality is representation evidence, not
+        ontology-class identity).
+
+        Fail-closed behavior:
+
+        - a source outside the governed domain lineage, or a subject outside
+          the governed range lineage, is a non-qualifying native subject
+          membership: quiet absence, never a ``hasSubject`` hop;
+        - when qualifying candidates exist to decide, a missing validated
+          kernel binding for a declared lineage (or no binding index at all)
+          raises :class:`IdentityNotFoundError` — a missing semantic
+          discriminator never broadens the predicate and never falls back to
+          metaclass, declaredName, qualifiedName, or source text;
+        - a mapping that declares no governed domain/range lineage is a
+          corrupted representation configuration and refuses to run.
         """
         config = mapping.configuration
         membership_types = {
@@ -906,17 +934,72 @@ class SemanticTraversal:
             for item in elements
             if (candidate_id := element_id(item)) is not None
         }
-        hops: list[TraversalHop] = []
+        # Candidate memberships first: a source owning no subject membership
+        # at all is quiet absence — no lineage resolution (and no binding
+        # requirement) is performed for it.
+        candidates: list[dict[str, Any]] = []
         for membership in elements:
             if str(membership.get("@type")) not in membership_types:
                 continue
             owners = reference_ids(membership.get("owningRelatedElement"))
             if source_id not in owners:
                 continue
+            candidates.append(membership)
+        if not candidates:
+            return []
+
+        # The governed semantic contract is the relationship's declared
+        # domain/range; the mechanics derive from it and never carry a second
+        # authored type contract.
+        source_lineage = mapping.domain
+        target_lineage = mapping.range
+        if not source_lineage or not target_lineage:
+            raise ValueError(
+                f"subject-membership mapping for {mapping.name!r} declares no "
+                f"governed domain/range lineage; the declared semantic "
+                f"contract cannot be enforced"
+            )
+        graph = build_relationship_graph(list(by_id.values()))
+        source_resolver = self._lineage_resolver(str(source_lineage), by_id, graph)
+        # Source restriction: the query source must ground in the governed
+        # domain lineage. A RequirementUsage outside it (for example a
+        # stakeholder-need candidate) is not part of this predicate.
+        source_grounding = self._endpoint_grounding(source, source_resolver)
+        if source_grounding is None:
+            return []
+        target_resolver = self._lineage_resolver(str(target_lineage), by_id, graph)
+
+        hops: list[TraversalHop] = []
+        for membership in candidates:
             for member_id in reference_ids(membership.get(member_property)):
                 target = by_id.get(member_id)
-                if target is not None:
-                    hops.append(self._hop(mapping, source, target, membership))
+                if target is None:
+                    continue
+                target_grounding = self._endpoint_grounding(target, target_resolver)
+                if target_grounding is None:
+                    # Non-qualifying native subject: the member is outside the
+                    # governed range lineage and is not a hasSubject fact.
+                    continue
+                hop = self._hop(mapping, source, target, membership)
+                hops.append(
+                    replace(
+                        hop,
+                        witness={
+                            "membership_id": element_id(membership),
+                            "membership_type": str(membership.get("@type") or ""),
+                            "source_lineage": {
+                                "ontology_class": str(source_lineage),
+                                "lineage_root_id": source_resolver["root_id"],
+                                "provenance": source_grounding,
+                            },
+                            "target_lineage": {
+                                "ontology_class": str(target_lineage),
+                                "lineage_root_id": target_resolver["root_id"],
+                                "provenance": target_grounding,
+                            },
+                        },
+                    )
+                )
         return self._deduplicate(hops)
 
     def _verification_membership_hops(

@@ -148,8 +148,11 @@ class ImpactService:
                 {
                     "category": "product-line",
                     "reason": (
-                        "The requirement has no native SubjectMembership "
-                        "member-product reference in the bound API revision."
+                        "The requirement has no qualifying native "
+                        "SubjectMembership subject in the bound API revision "
+                        "(the subject must ground in the governed member-product "
+                        "lineage; non-qualifying native subjects are not "
+                        "hasSubject facts)."
                     ),
                 }
             )
