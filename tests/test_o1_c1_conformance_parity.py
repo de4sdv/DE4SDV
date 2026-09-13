@@ -241,10 +241,14 @@ class TestC1Scope:
         (PR #249 c4): derivesNeedFromConcern was retired without replacement
         (target 'retired', disposition retire-without-replacement, evidence
         parity-reviewed, stage renamed) as recorded in its own batch file.
-        The c5 batch has also since executed (PR #249 c5): its four rows
-        advanced exactly as recorded in their own batch file — current
-        authority unchanged (legacy-yaml), evidence maturity parity-reviewed,
-        stage renamed to the executed batch."""
+        The c5 batch has also since executed (PR #249 c5), and its
+        hasRelevantEvidenceContract row was then corrected by the
+        independent review (c5 correction): three rows advanced exactly as
+        recorded in their own batch file — current authority unchanged
+        (legacy-yaml), evidence maturity parity-reviewed, stage renamed to
+        the executed batch — while the corrected row is governed
+        blocked/defer (the declared EvidenceContract range is not
+        machine-resolvable at the reviewed revision)."""
         entries = _entries(inventory)
         expected = {
             "VerificationCase": (
@@ -285,7 +289,7 @@ class TestC1Scope:
             "hasRelevantEvidenceContract": (
                 "c5 (relevance and realization review batch)",
                 "legacy-yaml",
-                "parity-reviewed",
+                "blocked",
             ),
         }
         for identity, (stage, authority, evidence) in expected.items():

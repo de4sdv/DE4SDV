@@ -251,7 +251,9 @@ class TestC2ScopeAndCounts:
         the seven c1 rows plus the two c2 rows, plus the c3, c4, and c5 rows
         when those batches execute (the c5 batch's file,
         tests/test_o1_c5_relevance_realization.py, owns the global set
-        from c5 onward and pins c1+c2+c3+c4+c5 = 15)."""
+        from c5 onward and, after the c5 correction, pins
+        c1+c2+c3+c4+c5(3) = 14: the corrected hasRelevantEvidenceContract
+        row is governed blocked/defer, not parity)."""
         parity = {
             entry["identity"]
             for entry in inventory["entries"]
@@ -262,10 +264,10 @@ class TestC2ScopeAndCounts:
             | set(C2_IDENTITIES)
             | set(C3_IDENTITIES)
             | set(C4_IDENTITIES)
-            | set(C5_IDENTITIES)
+            | (set(C5_IDENTITIES) - {"hasRelevantEvidenceContract"})
         )
         assert parity == expected
-        assert len(parity) == 15
+        assert len(parity) == 14
 
     def test_authority_current_unchanged(self, inventory):
         entries = _entries(inventory)
@@ -329,11 +331,13 @@ class TestC2ScopeAndCounts:
         """c2 changes evidence maturity only: parity 7 -> 9, evidence 68 -> 66;
         the c3 batch later moved hasSubject to parity-reviewed, the c4 batch
         retired derivesNeedFromConcern to parity-reviewed, and the c5 batch
-        moved its four rows to parity-reviewed (the executed counts live in
-        their own batch files: parity 15 / repository 61 / blocked 13)."""
+        moved three rows to parity-reviewed while its correction moved the
+        hasRelevantEvidenceContract row to the governed blocked state (the
+        executed counts live in their own batch files: parity 14 /
+        repository 61 / blocked 14)."""
         assert inventory["evidence_state_counts"] == {
-            "blocked": 13,
-            "parity-reviewed": 15,
+            "blocked": 14,
+            "parity-reviewed": 14,
             "privileged-closure-proven": 3,
             "repository-evidenced": 61,
             "unknown": 1,
@@ -369,10 +373,13 @@ class TestC2ScopeAndCounts:
         executed (PR #249 c4): derivesNeedFromConcern was retired without
         replacement as recorded in its own batch file — current authority
         unchanged, target 'retired', evidence maturity parity-reviewed. The
-        c5 batch has also since executed (PR #249 c5): the four c5 rows
-        advanced exactly as recorded in their own batch file — current
-        authority unchanged (legacy-yaml), evidence maturity parity-reviewed,
-        stage renamed to the executed batch."""
+        c5 batch has also since executed (PR #249 c5), and its
+        hasRelevantEvidenceContract row was then corrected by the
+        independent review (c5 correction): three rows advanced exactly as
+        recorded in their own batch file — current authority unchanged
+        (legacy-yaml), evidence maturity parity-reviewed, stage renamed to
+        the executed batch — while the corrected row is governed
+        blocked/defer."""
         entries = _entries(inventory)
         expected = {
             "hasSubject": (
@@ -403,7 +410,7 @@ class TestC2ScopeAndCounts:
             "hasRelevantEvidenceContract": (
                 "c5 (relevance and realization review batch)",
                 "legacy-yaml",
-                "parity-reviewed",
+                "blocked",
             ),
         }
         for identity, (stage, authority, evidence) in expected.items():

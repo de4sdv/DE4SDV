@@ -368,7 +368,9 @@ class TestC3ScopeAndCounts:
         """The parity-reviewed set advanced exactly by the executing batches
         through c3. The c4 and c5 batches have since executed too: the c5
         file (tests/test_o1_c5_relevance_realization.py) owns the global set
-        from c5 onward and pins c1+c2+c3+c4+c5 = 15."""
+        from c5 onward and, after the c5 correction, pins
+        c1+c2+c3+c4+c5(3) = 14 (the corrected hasRelevantEvidenceContract
+        row is governed blocked/defer, not parity)."""
         parity = {
             entry["identity"]
             for entry in inventory["entries"]
@@ -379,9 +381,9 @@ class TestC3ScopeAndCounts:
             | set(C2_IDENTITIES)
             | set(C3_IDENTITIES)
             | set(C4_IDENTITIES)
-            | set(C5_IDENTITIES)
+            | (set(C5_IDENTITIES) - {"hasRelevantEvidenceContract"})
         )
-        assert len(parity) == 15
+        assert len(parity) == 14
 
     def test_authority_current_remains_legacy_yaml(self, inventory):
         entries = _entries(inventory, C3_IDENTITIES)
@@ -442,12 +444,14 @@ class TestC3ScopeAndCounts:
     def test_expected_evidence_state_counts(self, inventory):
         """c3 changes evidence maturity only: parity 9 -> 10, repository 66 -> 65;
         every other evidence class is unchanged. The c4 batch later retired
-        derivesNeedFromConcern and the c5 batch moved its four rows to
-        parity-reviewed (blocked 14 -> 13, parity 11 -> 15, repository
-        65 -> 61 as recorded in their own batch files)."""
+        derivesNeedFromConcern and the c5 batch moved three rows to
+        parity-reviewed; the c5 correction then moved the
+        hasRelevantEvidenceContract row to the governed blocked state
+        (blocked 13 -> 14, parity 11 -> 14, repository 65 -> 61 as recorded
+        in their own batch files)."""
         assert inventory["evidence_state_counts"] == {
-            "blocked": 13,
-            "parity-reviewed": 15,
+            "blocked": 14,
+            "parity-reviewed": 14,
             "privileged-closure-proven": 3,
             "repository-evidenced": 61,
             "unknown": 1,
@@ -520,10 +524,13 @@ class TestC3ScopeAndCounts:
         was retired without replacement as recorded in its own batch file
         (tests/test_o1_c4_concern_need_disposition.py) — current authority
         unchanged, target 'retired', evidence maturity parity-reviewed. The
-        c5 batch has also since executed (PR #249 c5): the four c5 rows
-        advanced exactly as recorded in their own batch file — current
-        authority unchanged (legacy-yaml), evidence maturity parity-reviewed,
-        stage renamed to the executed batch."""
+        c5 batch has also since executed (PR #249 c5), and its
+        hasRelevantEvidenceContract row was then corrected by the
+        independent review (c5 correction): three rows advanced exactly as
+        recorded in their own batch file — current authority unchanged
+        (legacy-yaml), evidence maturity parity-reviewed, stage renamed to
+        the executed batch — while the corrected row is governed
+        blocked/defer."""
         entries = _entries(inventory)
         expected = {
             "derivesNeedFromConcern": (
@@ -549,7 +556,7 @@ class TestC3ScopeAndCounts:
             "hasRelevantEvidenceContract": (
                 "c5 (relevance and realization review batch)",
                 "legacy-yaml",
-                "parity-reviewed",
+                "blocked",
             ),
         }
         for identity, (stage, authority, evidence) in expected.items():
