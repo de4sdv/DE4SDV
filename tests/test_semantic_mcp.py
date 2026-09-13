@@ -411,14 +411,14 @@ def test_resolve_and_inspect_preserve_uuid_revision_and_documentation(semantic_s
 def test_semantic_neighbors_only_use_ontology_declared_predicates(semantic_service) -> None:
     result = semantic_service.semantic_neighbors("req-1")
 
+    # c5 correction: the EvidenceContract range is blocked and emits nothing,
+    # so no hasRelevantEvidenceContract edge is produced for this fixture.
     assert {edge["predicate"] for edge in result["edges"]} == {
         "derivesRequirementFromNeed",
-        "hasRelevantEvidenceContract",
         "hasSubject",
     }
     assert {edge["semantic_strength"] for edge in result["edges"]} == {
         "derivation",
-        "relevance",
         "native-reference",
     }
     assert all(edge["api_object_id"] for edge in result["edges"])
@@ -429,17 +429,15 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     trace = semantic_service.trace("req-1", "verification-1", max_depth=3)
     coverage = semantic_service.verification_coverage("req-1")
 
-    assert {edge["predicate"] for edge in impact["edges"]} == {
-        "hasRelevantEvidenceContract",
-        "hasSubject",
-        "verifiedBy",
-    }
-    assert [edge["predicate"] for edge in trace["path"]] == [
-        "hasRelevantEvidenceContract",
-        "verifiedBy",
-    ]
-    assert coverage["status"] == "covered"
-    assert coverage["verification_cases"][0]["element_id"] == "verification-1"
+    # c5 correction: without an evidence-contract hop there is no evidence
+    # chain, so the previously available req-1 -> verification-1 path (via
+    # evidence-1) no longer exists and coverage makes no claim.
+    assert {edge["predicate"] for edge in impact["edges"]} == {"hasSubject"}
+    assert trace["path"] == []
+    assert trace["gaps"] and trace["gaps"][0]["category"] == "semantic-trace"
+    assert coverage["status"] == "uncovered"
+    assert coverage["evidence_contracts"] == []
+    assert coverage["verification_cases"] == []
     assert coverage["gaps"] == []
     assert coverage["revision"]["sysml_commit_id"] == "commit-1"
     assert coverage["revision"]["ontology"] == ontology_identity()
@@ -449,14 +447,13 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     )
 
 
-def test_verification_coverage_excludes_unverified_evidence_sources(
+def test_verification_coverage_claims_no_evidence_contracts_while_blocked(
     semantic_service,
 ) -> None:
-    """c5 evidence-contract identity basis: a requirement-usage source with no
-    native verification membership is not an evidence-contract hop (quiet
-    absence), so it never enters coverage; the reviewed consequence is that
-    the unverified-evidence branch is structurally unreachable for returned
-    hops (an evidence contract is natively verified by construction)."""
+    """c5 correction: the EvidenceContract range gate emits nothing — both a
+    verified requirement-usage source (evidence-1) and an unverified one
+    (evidence-2) are quiet absence, so no evidence contract enters coverage
+    and no coverage claim is derived from either."""
     semantic_service.repository.elements.extend(
         [
             {
@@ -475,11 +472,10 @@ def test_verification_coverage_excludes_unverified_evidence_sources(
 
     coverage = semantic_service.verification_coverage("req-1")
 
-    assert coverage["status"] == "covered"
+    assert coverage["status"] == "uncovered"
+    assert coverage["evidence_contracts"] == []
+    assert coverage["verification_cases"] == []
     assert coverage["unverified_evidence_contracts"] == []
-    assert [entry["element_id"] for entry in coverage["evidence_contracts"]] == [
-        "evidence-1"
-    ]
     assert coverage["gaps"] == []
 
 
@@ -544,11 +540,8 @@ def test_mcp_surface_exposes_only_the_declared_read_only_semantic_tools(
         )
     )
     assert result["revision"]["git_commit"] == "a" * 40
-    assert {edge["predicate"] for edge in result["edges"]} == {
-        "hasRelevantEvidenceContract",
-        "hasSubject",
-        "verifiedBy",
-    }
+    # c5 correction: the blocked EvidenceContract range emits no edge.
+    assert {edge["predicate"] for edge in result["edges"]} == {"hasSubject"}
 
 
 def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
@@ -742,7 +735,10 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
                     {"requirement_identifier": "reqCommandEmergencyBraking"},
                 )
                 assert not result.isError
-                assert result.structuredContent["status"] == "covered"
+                # c5 correction: the blocked EvidenceContract range emits
+                # nothing, so no coverage claim is derived from it.
+                assert result.structuredContent["status"] == "uncovered"
+                assert result.structuredContent["evidence_contracts"] == []
                 assert (
                     result.structuredContent["revision"]["sysml_commit_id"]
                     == "commit-1"

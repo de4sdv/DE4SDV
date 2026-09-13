@@ -171,7 +171,14 @@ class ImpactService:
             gaps.append(
                 {
                     "category": "evidence",
-                    "reason": "No incoming relevance Dependency links an evidence contract to this requirement.",
+                    "reason": (
+                        "No incoming relevance Dependency links an evidence "
+                        "contract to this requirement; the declared "
+                        "EvidenceContract range is blocked at the reviewed "
+                        "revision (no machine-resolvable identity "
+                        "discriminator separates an evidence-contract usage "
+                        "from every other verified requirement usage)."
+                    ),
                 }
             )
         if evidence_hops and not any(

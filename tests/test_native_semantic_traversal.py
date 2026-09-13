@@ -592,11 +592,19 @@ def test_impact_service_reports_native_edges_against_real_shapes(
 
     predicates = {edge["predicate"] for edge in result["edges"]}
     assert "hasSubject" in predicates
-    assert "verifiedBy" in predicates
+    # c5 correction: the EvidenceContract range is blocked — the verified
+    # evidence source is not emitted, so no evidence edge and no verifiedBy
+    # edge follow from it.
+    assert "hasRelevantEvidenceContract" not in predicates
+    assert "verifiedBy" not in predicates
     categories = {node["category"] for node in result["nodes"]}
     assert "product-line" in categories
-    assert "verification" in categories
+    assert "verification" not in categories
+    assert "evidence" not in categories
     gap_categories = {gap["category"] for gap in result["gaps"]}
     assert "product-line" not in gap_categories
     assert "verification" not in gap_categories
     assert "architecture" in gap_categories  # still honest: no allocation exists
+    evidence_gaps = [gap for gap in result["gaps"] if gap["category"] == "evidence"]
+    assert len(evidence_gaps) == 1
+    assert "EvidenceContract range is blocked" in evidence_gaps[0]["reason"]

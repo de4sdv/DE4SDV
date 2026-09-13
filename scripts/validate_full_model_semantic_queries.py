@@ -142,15 +142,23 @@ def run_queries(
         for result in results
         if result["identifier"] == "reqCommandEmergencyBraking"
     )
+    # c5 correction: the declared EvidenceContract range is blocked at the
+    # reviewed revision (no machine-resolvable identity discriminator
+    # separates an evidence-contract usage from every other verified
+    # requirement usage), so the governed traversal must not claim any
+    # evidence-contract edge. The raw Dependency witnesses remain model facts
+    # but are not evidence-contract hops; this supersedes the earlier
+    # three-link retention assertion.
     evidence_edges = [
         edge
         for edge in braking["edges"]
         if edge["predicate"] == "hasRelevantEvidenceContract"
     ]
-    if len(evidence_edges) < 3:
+    if evidence_edges:
         raise RuntimeError(
-            "imported reqCommandEmergencyBraking did not retain its three modeled "
-            "evidence-contract relevance links"
+            "imported reqCommandEmergencyBraking reported "
+            "hasRelevantEvidenceContract edges while the declared range is "
+            "blocked"
         )
     subject_edges = [
         edge
@@ -163,11 +171,6 @@ def run_queries(
             "imported reqCommandEmergencyBraking did not expose its native "
             "SubjectMembership product-line subject"
         )
-    evidence_ids = {
-        edge["target"]
-        for edge in braking["edges"]
-        if edge["predicate"] == "hasRelevantEvidenceContract"
-    }
     verification_edges = [
         edge
         for edge in braking["edges"]
@@ -178,6 +181,11 @@ def run_queries(
     if "product-line" in gap_categories:
         raise RuntimeError(
             "native subject membership resolved but was still reported as a gap"
+        )
+    if "evidence" not in gap_categories:
+        raise RuntimeError(
+            "blocked EvidenceContract range was not reported as an explicit "
+            "evidence gap"
         )
     if not verification_edges:
         # The pinned exporter (Syside 0.10.3) does not serialize `verify`

@@ -1953,63 +1953,68 @@ entries:
   hasRelevantEvidenceContract:
     authority_current: legacy-yaml
     authority_target: de4sdv-application-semantic
-    evidence_state: parity-reviewed
+    evidence_state: blocked
     adoption_status: not-applicable
-    transition_gate: null
+    transition_gate: EvidenceContract identity/lineage contract review
     conditional_target: false
-    disposition: prove-existing-model-authority
-    confidence: high
+    disposition: defer
+    confidence: low
     stage: c5 (relevance and realization review batch)
-    note: 'c5b reviewed disposition: retain with the reviewed EvidenceContract identity basis
-      enforced (identity-hardening case). Pre-c5 replay of the retained full-model export:
-      140 qualifying hops over 90 distinct sources. Source classification (every distinct
-      source): 16 AEBS evidence-contract usages (typed by per-slice evidence-contract requirement
-      definitions that carry no DE4SDV specialization lineage; natively verified by verification
-      memberships), 14 acceptance-criterion usages (7 middleware typed MiddlewareAcceptanceCriterion,
-      7 visualization typed VisualizationAcceptanceCriterion; all natively verified), and
-      60 further sources that evidence no verification association (assurance claims, assurance
-      arguments, counterclaims, plain requirement usages) or ground outside the Requirement
-      domain (four need usages). 89 of the 140 hops were query-side domain violations (needs,
-      actions, use cases, concerns, parts, items). Enforced now (fail-closed): (1) the queried
-      source must ground in the validated Requirement lineage; (2) the returned source must
-      be a natively verified requirement usage - a RequirementVerificationMembership anchor,
-      directly or through the serialized ReferenceSubsetting shadow bridge (the ontology
-      kernel rule for EvidenceContract: requirement usages verified by SysML v2 verification
-      cases). Post-enforcement: 34 hops over 30 sources (18 evidence-contract-role hops
-      over 16 sources; 16 acceptance-criterion-role hops over 14 sources); the three modeled
-      evidence-contract links of reqCommandEmergencyBraking are preserved as are the middleware
-      acceptance-criterion traces. Class-separation finding: the acceptance-criterion role
-      co-satisfies the operative kernel rule, and no validated identity separates it from
-      the evidence-contract role at this revision (the middleware acceptance-criterion definition
-      is itself in the Requirement lineage; the visualization one is not specialized to
-      it) - the narrower EvidenceContract-specific identity/lineage contract is a recorded
-      forward obligation, not a silent conflation. No names, text, or package heuristics;
-      the mechanics reuse the c2 native verification resolution. No .sysml change; the authored
-      YAML remains current authority during O1.'
-    unknowns: []
+    note: 'c5 correction (independent review): Outcome B - blocked/deferred. Re-review of
+      the declared Requirement -> EvidenceContract range found NO machine-resolvable,
+      non-heuristic discriminator that distinguishes an evidence-contract usage from every
+      other verified Requirement usage at the reviewed revision. Measured on the retained
+      full-model export: the eight per-slice evidence-contract requirement definitions carry
+      no specialization lineage (no authored or implied Subclassification chain joins them;
+      none is in the Requirement lineage); no validated kernel binding grounds an EvidenceContract
+      root (the authored class has no file/declaration kernel mapping, and the revision kernel
+      bindings carry no EvidenceContract entry); and native verification membership - the
+      basis the rejected c5 enforcement used - also admits the acceptance-criterion role
+      (7 middleware acceptance criteria typed by the very definition the ontology AcceptanceCriterion
+      binding names, and 7 visualization acceptance criteria co-specializing the same
+      requirement-candidate parent; all natively verified). The rejected enforcement measured
+      34 hops over 29 distinct sources (18 hops over 15 sources lacking machine identity; 16 hops
+      over 14 acceptance-criterion-role sources): a wrong/broader population, not semantic
+      parity - none of its returned sources is a proven evidence contract, and the three
+      modeled links of reqCommandEmergencyBraking are not emitted as evidence-contract hops.
+      Pre-c5 replay: 140 hops over 90 distinct sources; post-correction: 0 hops over 0 sources;
+      acceptance-criterion-role hops after correction: 0. Blocker: EvidenceContract-specific
+      identity is not machine-resolvable at the reviewed revision; native verification
+      membership also admits AcceptanceCriterion and therefore cannot establish the declared
+      EvidenceContract range. Runtime: the c5 Requirement-domain hardening is preserved; the
+      range gate fails closed - no candidate is emitted, ambiguous verified requirement
+      usages are quiet absence, and nothing is relabelled. No name, qualifiedName, package-path,
+      comment, or source-text heuristic participates; no .sysml or ontology YAML change and
+      no new privileged ingestion in this correction.'
+    unknowns:
+    - 'EvidenceContract-specific identity discriminator: no machine-resolvable, revision-bound,
+      non-heuristic discriminator separates an evidence-contract usage from every other verified
+      requirement usage at the reviewed revision - per-slice evidence-contract definitions
+      carry no shared specialization lineage, no validated kernel binding grounds an EvidenceContract
+      root, and native verification membership also admits the acceptance-criterion role.'
     required_evidence:
-    - reviewed EvidenceContract-specific identity/lineage contract separating the evidence-contract
-      role from the acceptance-criterion role before any narrowing of the claimed class
+    - 'reviewed EvidenceContract-specific identity/lineage contract: a machine-resolvable,
+      revision-bound, fail-closed discriminator (explicit specialization lineage, exact
+      application-definition/type binding, governed kernel binding, or a reviewed exact
+      conjunction of governed relationships) separating the evidence-contract role from the
+      acceptance-criterion role and every other verified requirement usage'
     - O2 generated Semantic Projection from the reviewed application-semantic contract and
-      native verification identity basis
+      reviewed identity discriminator
     - O3 approved authority transition (the authored mapping remains current authority during O1)
-    exact_fit_decision: 'not exact native fit - Outcome B (DE4SDV application semantic over
-      the native Dependency witness) with the reviewed identity basis enforced. The generic
-      incoming Dependency supplies relevance only; API RequirementUsage alone does NOT prove
-      EvidenceContract - the canonical relation returns a source only when it is a natively
-      verified requirement usage (RequirementVerificationMembership anchor, directly or
-      through the serialized shadow bridge, per the ontology kernel rule for the class)
-      AND the queried side grounds in the Requirement lineage. Classification of the pre-c5
-      qualifying set is recorded in the row note; sources evidencing no verification association
-      (claims, assurance arguments, counterclaims, plain traces) and non-Requirement queried
-      domains are rejected fail-closed (measured: 140 to 34 hops). Recorded boundary: the
-      acceptance-criterion role co-satisfies the operative rule; the EvidenceContract-specific
-      class separation requires a reviewed identity/lineage contract (forward obligation)
-      - until then the enforced claim is the kernel-rule identity basis, not a name-based
-      class claim. Named semantic laws: RequirementUsage != EvidenceContract automatically;
-      RequirementUsage != DE4SDV Requirement automatically; Need != Requirement; Generic
-      Dependency != verification, realization, allocation, or satisfaction; no name, qualifiedName,
-      package-path, or source-text heuristic participates.'
+    exact_fit_decision: 'not exact native fit - Outcome B: the declared range cannot be enforced
+      at the reviewed revision. The generic incoming Dependency supplies relevance only, and
+      no governed semantic evidence establishes EvidenceContract identity: the eight per-slice
+      evidence-contract requirement definitions carry no specialization lineage, no validated
+      kernel binding grounds an EvidenceContract root, and native verification membership
+      (supporting evidence only) also admits the acceptance-criterion role. The predicate
+      therefore emits nothing; ambiguous verified requirement usages fail closed as quiet
+      absence, never relabelled as evidence contracts, until a reviewed EvidenceContract-specific
+      identity/lineage contract exists. Named semantic laws: RequirementUsage != EvidenceContract
+      automatically; RequirementVerificationMembership != EvidenceContract automatically;
+      verified AcceptanceCriterion != EvidenceContract; ordinary verified Requirement !=
+      EvidenceContract; unverified Requirement != EvidenceContract; Need != Requirement;
+      generic Dependency != EvidenceContract identity; no name, qualifiedName, package-path,
+      or source-text heuristic participates.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   selectsFeature:

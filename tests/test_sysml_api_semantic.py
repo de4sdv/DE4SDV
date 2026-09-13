@@ -538,41 +538,43 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
     assert result["revision"]["sysml_project_id"] == "project-1"
     assert result["revision"]["sysml_commit_id"] == "commit-1"
     assert result["ontology_bindings"]["Requirement"]["element_id"] == "kernel-requirement"
-    assert {node["element_id"] for node in result["nodes"] if node["category"] == "evidence"} == {
-        "ev-override",
-        "ev-braking",
-        "ev-mrm",
-    }
-    assert {node["element_id"] for node in result["nodes"] if node["category"] == "verification"} == {
-        "verify-009b",
-        "verify-009c",
-    }
+    # c5 correction: the EvidenceContract range is blocked — the three
+    # verified evidence sources are NOT emitted, and neither are the
+    # verification nodes that previously followed from them.
+    assert not [
+        node for node in result["nodes"] if node["category"] == "evidence"
+    ]
+    assert not [
+        node for node in result["nodes"] if node["category"] == "verification"
+    ]
     assert {node["element_id"] for node in result["nodes"] if node["category"] == "product-line"} == {
         "member-product"
     }
     assert not [node for node in result["nodes"] if node["category"] == "architecture"]
     assert any(gap["category"] == "architecture" for gap in result["gaps"])
-    assert {edge["strategy"] for edge in result["edges"]} >= {
-        "dependency",
-        "verification-membership",
-        "subject-membership",
-    }
+    assert {edge["predicate"] for edge in result["edges"]} == {"hasSubject"}
+    assert {edge["strategy"] for edge in result["edges"]} == {"subject-membership"}
     assert all(edge["api_object_id"] for edge in result["edges"])
     assert result["provenance"]
+    evidence_gaps = [gap for gap in result["gaps"] if gap["category"] == "evidence"]
+    assert len(evidence_gaps) == 1
+    assert "EvidenceContract range is blocked" in evidence_gaps[0]["reason"]
 
     from scripts import query_model_impact as text_backend
 
+    # The text backend reads raw source-level slices (browsing level, not the
+    # governed traversal): its raw dependency rows still exist, while the API
+    # traversal must make NO evidence-contract claim while the range is
+    # blocked. The divergence is expected and documented in the c5 review.
     text_report = text_backend.query_impact("reqCommandEmergencyBraking")
-    assert {
-        node["declared_name"]
-        for node in result["nodes"]
-        if node["category"] == "evidence"
-    } == {edge.source for edge in text_report.edges}
-    assert {
-        node["declared_name"]
-        for node in result["nodes"]
-        if node["category"] == "verification"
-    } == {edge.verification_usage for edge in text_report.edges}
+    assert {edge.source for edge in text_report.edges} == {
+        "evidenceContractFreshOverrideClear",
+        "evidenceContractNominalBrakingPath",
+        "evidenceContractMRMGateChain",
+    }
+    assert not [
+        node for node in result["nodes"] if node["category"] == "evidence"
+    ]
 
 
 def test_aebs_api_fixture_reuses_pr36_payload_pattern_for_known_model_slice() -> None:

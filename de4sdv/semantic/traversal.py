@@ -21,13 +21,18 @@ from .model_edges import (
 from .relationships import build_relationship_graph, is_family
 
 
-#: Reviewed c5 range class whose identity basis the dependency traversal
-#: enforces: the governed ``EvidenceContract`` ontology class. The class is a
-#: governed contract identity (validated through the ontology contract this
-#: module is constructed with), never an element name; a revision whose
-#: ontology drops or renames the class stops matching this reviewed rule.
-#: Enforcement mechanics live here (representation mechanics); the authored
-#: ontology contract remains the declared semantic authority during O1.
+#: Reviewed c5-correction range class whose identity gate the dependency
+#: traversal enforces: the governed ``EvidenceContract`` ontology class. The
+#: class is a governed contract identity (validated through the ontology
+#: contract this module is constructed with), never an element name; a
+#: revision whose ontology drops or renames the class stops matching this
+#: reviewed rule. Reviewed outcome (c5 correction, PR #249): the declared
+#: range cannot be established at the reviewed revision — no
+#: machine-resolvable, non-heuristic discriminator separates an
+#: evidence-contract usage from every other verified requirement usage — so
+#: the gate fails closed and emits nothing. Enforcement mechanics live here
+#: (representation mechanics); the authored ontology contract remains the
+#: declared semantic authority during O1.
 _EVIDENCE_CONTRACT_RANGE_CLASS = "EvidenceContract"
 
 
@@ -123,13 +128,16 @@ class SemanticTraversal:
           refuses to run (``ValueError``) — a missing semantic discriminator
           never broadens the predicate and never falls back to API metaclass,
           ``declaredName``, ``qualifiedName``, package paths, or source text;
-        - the ``EvidenceContract`` range additionally enforces its reviewed
-          identity basis: only a natively verified requirement usage (a
-          ``RequirementVerificationMembership`` anchor, directly or through
-          the serialized ReferenceSubsetting shadow bridge — the ontology's
-          kernel rule for the class) qualifies as a source, so an
-          API-``RequirementUsage`` source alone never proves an evidence
-          contract.
+        - the ``EvidenceContract`` range enforces its reviewed identity gate
+          fail-closed (c5 correction, PR #249): native verification
+          membership (a ``RequirementVerificationMembership`` anchor,
+          directly or through the serialized ReferenceSubsetting shadow
+          bridge) is supporting evidence only — it also admits the
+          acceptance-criterion role — and the governed representation
+          carries no machine-resolvable discriminator that establishes
+          ``EvidenceContract`` identity. No candidate is emitted; ambiguous
+          verified requirement usages are quiet absence, never relabelled as
+          evidence contracts.
         """
         config = mapping.configuration
         allowed_types = {str(item) for item in config.get("relationship_types", [])}
@@ -180,11 +188,15 @@ class SemanticTraversal:
             # part of this predicate's governed domain. Quiet absence.
             return []
 
-        # Range-side identity enforcement for the reviewed EvidenceContract
-        # class (c5): sources must be natively verified requirement usages.
-        verified_source_ids: set[str] | None = None
+        # Range-side identity gate for the reviewed EvidenceContract class
+        # (c5 correction, PR #249): the declared range cannot be established
+        # at the reviewed revision, so no candidate is emitted — ambiguous
+        # verified requirement usages fail closed as quiet absence rather
+        # than being relabelled as evidence contracts. The gate's reviewed
+        # analysis lives in `_evidence_contract_identity_ids`.
+        identity_source_ids: set[str] | None = None
         if str(mapping.range or "") == _EVIDENCE_CONTRACT_RANGE_CLASS:
-            verified_source_ids = self._natively_verified_ids(elements)
+            identity_source_ids = self._evidence_contract_identity_ids(elements)
 
         if exclude_root:
             # Exclusion by specialization lineage is only meaningful for
@@ -213,11 +225,11 @@ class SemanticTraversal:
                     neighbor_ids = [
                         neighbor_id for neighbor_id in neighbor_ids if neighbor_id not in excluded_ids
                     ]
-                if verified_source_ids is not None:
+                if identity_source_ids is not None:
                     neighbor_ids = [
                         neighbor_id
                         for neighbor_id in neighbor_ids
-                        if neighbor_id in verified_source_ids
+                        if neighbor_id in identity_source_ids
                     ]
             else:
                 if source_types and str(source.get("@type")) not in source_types:
@@ -241,16 +253,20 @@ class SemanticTraversal:
     ) -> set[str]:
         """Declared elements natively verified by a verification membership.
 
-        The reviewed c5 identity basis for the ``EvidenceContract`` range
-        class: "requirement usages verified by SysML v2 verification cases"
-        (the ontology's kernel rule for the class), resolved through the same
-        serialized shapes the verification-membership strategy handles — the
-        direct anchor (``verifiedRequirement`` / ``memberElement``) plus the
-        ReferenceSubsetting bridge where the serializer anchors a shadow
+        Supporting evidence only (reviewed c5 correction, PR #249): a
+        natively verified requirement usage — a ``RequirementVerificationMembership``
+        anchor, directly or through the serialized ReferenceSubsetting shadow
+        bridge — is NOT by itself sufficient proof of ``EvidenceContract``
+        identity; the membership also admits the acceptance-criterion role.
+        The exact-identity gate lives in
+        :meth:`_evidence_contract_identity_ids`. Resolution follows the same
+        serialized shapes the verification-membership strategy handles —
+        the direct anchor (``verifiedRequirement`` / ``memberElement``) plus
+        the ReferenceSubsetting bridge where the serializer anchors a shadow
         reference usage instead of the declaration. Names are never
         consulted. The membership types and reference property come from the
         governed ``verifiedBy`` mapping configuration; without it the
-        discriminator cannot be evaluated and this fails closed.
+        supporting relation cannot be evaluated and this fails closed.
         """
         try:
             verification_mapping = self.contract.relationship_mapping("verifiedBy")
@@ -298,6 +314,49 @@ class SemanticTraversal:
                 verified.add(anchor)
                 verified |= shadow_to_declared.get(anchor, set())
         return verified
+
+    def _evidence_contract_identity_ids(
+        self, elements: list[dict[str, Any]]
+    ) -> set[str]:
+        """Reviewed exact-identity resolution for the ``EvidenceContract`` range.
+
+        c5 correction (PR #249, Outcome B). The exact review question: does
+        the current governed SysML/API representation contain a
+        machine-resolvable, non-heuristic discriminator that distinguishes an
+        ``EvidenceContract`` usage from every other verified ``Requirement``
+        usage, especially ``AcceptanceCriterion``?
+
+        Reviewed finding, measured on the retained full-model export: it does
+        NOT. The eight per-slice evidence-contract requirement definitions
+        carry no specialization lineage (no authored or implied
+        ``Subclassification`` chain joins them); no validated kernel binding
+        grounds an ``EvidenceContract`` root (the authored class has no
+        file/declaration kernel mapping to validate against); and native
+        verification membership — retained below as supporting evidence —
+        also admits the acceptance-criterion role (the middleware acceptance
+        criteria are typed by the very definition the ontology's
+        ``AcceptanceCriterion`` binding names, and the visualization
+        acceptance criteria co-specialize the same requirement-candidate
+        parent). No names, qualified names, package paths, comments,
+        documentation prose, or source text participate.
+
+        Consequence, enforced fail-closed: a range whose identity cannot be
+        established emits nothing. Ambiguous verified requirement usages are
+        quiet absence, never relabelled as evidence contracts. This predicate
+        is governed ``blocked``/``defer`` until a reviewed
+        EvidenceContract-specific identity/lineage contract exists; O2 then
+        generates the projection row and O3 owns any authority transition.
+        The returned set is empty by reviewed decision, not by convention.
+        """
+        # Supporting evidence (necessary, never sufficient): native
+        # verification membership, resolved so the fail-closed outcome is
+        # attributable to IDENTITY rather than to missing verification.
+        self._natively_verified_ids(elements)
+        # Exact identity discriminator (sufficient): reviewed as not present
+        # in the governed representation at the reviewed revision (docstring
+        # above). No candidate can be upgraded from supporting evidence to
+        # proven EvidenceContract identity; the resolution fails closed.
+        return set()
 
     def _derivation_connection_hops(
         self,
