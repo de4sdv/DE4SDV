@@ -86,7 +86,8 @@ TRAVERSAL_SOURCE_PATH = "de4sdv/semantic/traversal.py"
 
 #: Accepted authority vocabulary (where meaning is established). Closed set:
 #: extending it requires an explicit reviewed schema decision, not a silent
-#: addition (task boundary, Wave 0a).
+#: addition (task boundary, Wave 0a). This vocabulary declares authority
+#: LOCATIONS; it is never used to express retirement (see AUTHORITY_TARGETS).
 AUTHORITY_SOURCES: tuple[str, ...] = (
     "model-authoritative",
     "native-sysml",
@@ -97,6 +98,23 @@ AUTHORITY_SOURCES: tuple[str, ...] = (
     "legacy-yaml",
     "unknown",
 )
+
+#: Accepted authority-TARGET vocabulary (where meaning should be established
+#: after migration). Extends the authority-source locations with the explicit
+#: intentional-retirement target state:
+#:
+#: - ``retired`` — a reviewed decision (O1 c4 Outcome A, schema extension)
+#:   that the identity has NO target semantic authority: it is deliberately
+#:   not migrated, must not be emitted as an active Semantic Projection
+#:   relation, and its authored row is removed at its reviewed downstream
+#:   gate. ``retired`` is never a current-authority location (authority
+#:   _current_ stays validated against AUTHORITY_SOURCES), and the state is
+#:   kept deliberately distinct from ``unknown`` (target not yet determined,
+#:   deferred with blockers) and from a blocked target (a location target
+#:   whose transition gate is pending): a retired identity carries the
+#:   dedicated disposition, no conditional target, no transition gate, and a
+#:   decided evidence state.
+AUTHORITY_TARGETS: tuple[str, ...] = AUTHORITY_SOURCES + ("retired",)
 
 #: Accepted evidence-maturity vocabulary. A target is never current proof.
 EVIDENCE_STATES: tuple[str, ...] = (
@@ -127,6 +145,11 @@ DISPOSITIONS: tuple[str, ...] = (
     "prove-existing-model-authority",
     "introduce-minimal-de4sdv-relation",
     "adopt-accepted-library-relation",
+    #: Intentional retirement without replacement (O1 c4 Outcome A): the
+    #: identity has no required engineering meaning in the target
+    #: architecture and must not be migrated. Always paired with
+    #: authority_target ``retired`` (validated both directions).
+    "retire-without-replacement",
 )
 
 #: Text-parity observation vocabulary (Layer A, doc-text observation).
@@ -1297,10 +1320,10 @@ def _entry_problems(
             f"{identity}: authority_current {authority_current!r} outside the "
             "accepted authority vocabulary"
         )
-    if authority_target not in AUTHORITY_SOURCES:
+    if authority_target not in AUTHORITY_TARGETS:
         problems.append(
             f"{identity}: authority_target {authority_target!r} outside the "
-            "accepted authority vocabulary"
+            "accepted authority-target vocabulary"
         )
     if evidence_state not in EVIDENCE_STATES:
         problems.append(
@@ -1343,6 +1366,41 @@ def _entry_problems(
             )
     if gate is not None and not str(gate).strip():
         problems.append(f"{identity}: transition_gate must be null or non-empty")
+
+    # Intentional retirement (c4 Outcome A representation): a retired identity
+    # has no target semantic authority. The state is deliberately distinct
+    # from `unknown` (target not yet determined, deferred with blockers) and
+    # from a blocked target (a location target whose gate is pending): it
+    # carries the dedicated disposition, no conditional target, no transition
+    # gate, and a decided evidence state. Both directions are validated so the
+    # two representations can never drift apart.
+    retired = authority_target == "retired"
+    if retired and disposition != "retire-without-replacement":
+        problems.append(
+            f"{identity}: authority_target 'retired' requires disposition "
+            "'retire-without-replacement'"
+        )
+    if disposition == "retire-without-replacement" and not retired:
+        problems.append(
+            f"{identity}: disposition 'retire-without-replacement' requires "
+            "authority_target 'retired'"
+        )
+    if retired:
+        if conditional:
+            problems.append(
+                f"{identity}: intentionally retired identity cannot carry a "
+                "conditional target"
+            )
+        if gate is not None:
+            problems.append(
+                f"{identity}: intentionally retired identity has no "
+                "transition gate"
+            )
+        if evidence_state in {"blocked", "unknown"}:
+            problems.append(
+                f"{identity}: intentionally retired identity must carry a "
+                "decided evidence state (not blocked/unknown)"
+            )
 
     # Adoption gates.
     if adoption == "pinned-not-adopted":
@@ -1781,13 +1839,18 @@ def build_inventory(
         },
         "dimensions": {
             "authority_source": list(AUTHORITY_SOURCES),
+            "authority_target": list(AUTHORITY_TARGETS),
             "evidence_state": list(EVIDENCE_STATES),
             "adoption_status": list(ADOPTION_STATUSES),
             "note": (
                 "Authority and evidence are SEPARATE dimensions. No entry is "
                 "'proven' by its target; privileged-closure-proven requires a "
                 "structured closure-evidence record. Conditional targets are "
-                "not counted as current authority."
+                "not counted as current authority. The authority_target "
+                "vocabulary is the authority-source location set plus "
+                "'retired' (intentional retirement: no target semantic "
+                "authority; never a current-authority location and never a "
+                "location target)."
             ),
         },
         "layers": {

@@ -1298,24 +1298,70 @@ entries:
     semantic_text_equivalence: null
   derivesNeedFromConcern:
     authority_current: legacy-yaml
-    authority_target: de4sdv-application-semantic
-    evidence_state: blocked
+    authority_target: retired
+    evidence_state: parity-reviewed
     adoption_status: not-applicable
-    transition_gate: concern-usage inventory resolves endpoint semantics
-    conditional_target: true
-    disposition: introduce-minimal-de4sdv-relation
-    confidence: medium
-    stage: c4
-    note: 'Same family as K; Need -> Concern provenance: "the stakeholder need N originates from stakeholder
-      concern C" - provenance only. No exact native requirement-to-concern derivation identified; minimal
-      application connection applies only if concern usages exist to ground the ends.'
-    unknowns:
-    - Does the model contain concern usages that needs can connect to?
-    - Is the origin a concern or a problem statement?
+    transition_gate: null
+    conditional_target: false
+    disposition: retire-without-replacement
+    confidence: high
+    stage: c4 (concern-need disposition review)
+    note: >-
+      c4 Outcome A decision — retire without replacement: the pre-assumed
+      Need -> Concern vocabulary row has no required engineering meaning in
+      the target architecture and must not be migrated. The three candidate
+      claims are kept separate and none is established (full decomposition in
+      docs/method-conformance/o1/c4-concern-need-disposition-review.md).
+      Claim 1 origin provenance "need N originated from concern C": not
+      required and not witnessed — real needs record origins through the
+      adopted source/rationale attributes naming increments, operational
+      context, feature classification, regulations, and governance policy;
+      no concern link appears in any of the 23 governed need usages.
+      Claim 2 native framing "need N frames concern C as a required
+      constraint": the pinned Systems Library carries the mechanism
+      (FramedConcernMembership; RequirementUsage::framedConcern subsets
+      requiredConstraint), but it asserts concern-as-required-constraint
+      semantics — not provenance and not weak addressing — and no need
+      frames a concern: all 68 governed frame sites are viewpoint-owned,
+      zero are requirement-owned. Claim 3 weak concern addressing "need N
+      addresses concern C": no DE4SDV meaning, witness, or consumer.
+      Concern-usage inventory (the former c4 gate condition): 89 governed
+      concern usages exist (81 feature slices, 5 architecture packages, 1
+      method process, 2 product models) and none is connectable from a need.
+      Native Concern/Viewpoint semantics plus the existing source/rationale
+      provenance already answer every current question; no concrete query
+      or consumer requires a Need to Concern predicate (repository-wide
+      scan: zero runtime, MCP, viewer, conformance-evaluator, or
+      model-transformation consumers). The identity must not be emitted as
+      an active O2 Semantic Projection relation; the authored YAML row
+      removal belongs to its reviewed downstream gate. addressesConcern
+      stays the increment-level EngineeringIncrement -> Concern predicate —
+      untouched, not repurposed, not generalized; no Need-specific
+      addresses-style relation, no motivatesNeed inverse, and no generic
+      source predicate are introduced; Need source/rationale provenance
+      remains required and is not satisfied by any concern link.
+      authority_current stays legacy-yaml during O1; no privileged
+      ingestion was dispatched for c4.
+    unknowns: []
     required_evidence:
-    - concern-usage model inventory
-    - reviewed claim boundary before any representation
-    exact_fit_decision: null
+    - 'O2 generated Semantic Projection: the intentionally retired identity must not be emitted as an active projection relation and must not be converted into generated vocabulary support'
+    - 'O4 retirement/closure (or an explicitly reviewed earlier removal): remove the authored derivesNeedFromConcern row from the ontology contract and re-verify the retired-identity accounting'
+    exact_fit_decision: >-
+      not exact native fit and not a required DE4SDV application relation: the three candidate
+      claims decompose and fail distinctly, so the identity is retired without replacement.
+      Origin provenance: native SysML defines no requirement-to-concern derivation; the adopted
+      source/rationale attribute practice (NRM Ch. 15 A1/A3 via ADR 0009) records origins as
+      controlled strings that are broader than concerns (increments, operational context,
+      feature classification, regulations, governance policy), and repository evidence does not
+      establish that a "need N originated from concern C" claim is necessary. Native framing:
+      available in the pinned library (FramedConcernMembership; RequirementUsage::framedConcern
+      subsets requiredConstraint) but it makes the framed concern a required constraint of the
+      framing element — a satisfaction-condition claim that is neither provenance nor weak
+      addressing; no need frames a concern in the governed model and DE4SDV does not want that
+      claim. Weak concern addressing: no meaning, witness, or consumer; it would require a
+      distinct reviewed identity (never the existing addressesConcern) and is not justified.
+      No second modeled relationship is created; no new UseCase ontology class; no
+      use-case/risk/scenario need-derivation relations; no generic source predicate in this batch.
     closure_evidence_ref: null
     semantic_text_equivalence: null
   derivesRequirementFromNeed:
