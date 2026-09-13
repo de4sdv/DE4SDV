@@ -28,3 +28,13 @@ R1–R4 were fixed on the A branch (this repository, commits `70f3498`,
 `725388c`); R5–R6 are fixed in the corrected copies here. R0 acceptance
 authority (method + product-line lead + independent V&V) rests with the
 maintainer's review of this record.
+
+**Supersession pointer (O1 Wave 0a):** `semantic-authority-inventory.csv` is a
+historical R0 record at its own baseline (51 classes, 33 relationships, 84
+rows). The **current migration inventory** is the generated O1 Semantic
+Authority Inventory: `docs/method-conformance/o1/semantic-authority-inventory.json`
+(59 classes + 34 relationships = 93 entries; generated deterministically by
+`scripts/generate_semantic_authority_inventory.py` from the ontology contract,
+the reviewed-decisions dataset, and the retained closure records). The R0 CSV
+remains retained historical evidence and is not an input to the generator; do
+not treat the two inventories as concurrently authoritative.

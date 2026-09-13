@@ -16,10 +16,10 @@
   <path d="M 18,52 H 1103 A 6,6 0 0 1 1109,58 V 968 A 6,6 0 0 1 1103,974 H 18 A 6,6 0 0 1 12,968 V 58 A 6,6 0 0 1 18,52 Z" fill="none" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 28,88 H 130 L 142,100 V 128 H 28 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 130,88 L 130,100 L 142,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
-  <path d="M 28,363 H 270 V 611 H 28 V 363 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 28,363 H 299 V 611 H 28 V 363 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 317,88 H 446 L 458,100 V 128 H 317 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 446,88 L 446,100 L 458,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
-  <path d="M 643,363 H 941 V 611 H 643 V 363 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 672,363 H 970 V 611 H 672 V 363 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 161,88 H 286 L 298,100 V 128 H 161 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 286,88 L 286,100 L 298,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
   <path d="M 482,213 H 734 V 341 H 482 V 213 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -34,28 +34,28 @@
   <path d="M 651,88 H 733 V 194 H 651 V 88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 752,88 H 986 L 998,100 V 128 H 752 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 986,88 L 986,100 L 998,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
-  <path d="M 295,363 H 618 A 6,6 0 0 1 624,369 V 576 A 6,6 0 0 1 618,582 H 295 A 6,6 0 0 1 289,576 V 369 A 6,6 0 0 1 295,363 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 28,363 H 270 V 399 H 28 V 363 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 643,363 H 941 V 399 H 643 V 363 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 324,363 H 647 A 6,6 0 0 1 653,369 V 576 A 6,6 0 0 1 647,582 H 324 A 6,6 0 0 1 318,576 V 369 A 6,6 0 0 1 324,363 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 28,363 H 299 V 399 H 28 V 363 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 672,363 H 970 V 399 H 672 V 363 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 482,213 H 734 V 249 H 482 V 213 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 28,630 H 363 V 666 H 28 V 630 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 328,213 H 463 V 249 H 328 V 213 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 382,630 H 719 V 666 H 382 V 630 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 754,213 H 1092 V 249 H 754 V 213 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 651,88 H 733 V 124 H 651 V 88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 295,363 H 618 A 6,6 0 0 1 624,369 V 399 H 289 V 369 A 6,6 0 0 1 295,363 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 324,363 H 647 A 6,6 0 0 1 653,369 V 399 H 318 V 369 A 6,6 0 0 1 324,363 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 28,88 H 130 L 142,100 V 128 H 28 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 130,88 L 130,100 L 142,100 Z" fill="none" stroke="none"/>
   <path d="M 130,88 L 130,100 L 142,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,399 270,399" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,433 270,433" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 28,363 H 270 V 611 H 28 V 363 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,399 299,399" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,433 299,433" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 28,363 H 299 V 611 H 28 V 363 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 317,88 H 446 L 458,100 V 128 H 317 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 446,88 L 446,100 L 458,100 Z" fill="none" stroke="none"/>
   <path d="M 446,88 L 446,100 L 458,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="643,399 941,399" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="643,433 941,433" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 643,363 H 941 V 611 H 643 V 363 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="672,399 970,399" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="672,433 970,433" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 672,363 H 970 V 611 H 672 V 363 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 161,88 H 286 L 298,100 V 128 H 161 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 286,88 L 286,100 L 298,100 Z" fill="none" stroke="none"/>
   <path d="M 286,88 L 286,100 L 298,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -83,20 +83,20 @@
   <path d="M 752,88 H 986 L 998,100 V 128 H 752 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 986,88 L 986,100 L 998,100 Z" fill="none" stroke="none"/>
   <path d="M 986,88 L 986,100 L 998,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="289,399 624,399" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="289,457 624,457" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="289,491 624,491" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="289,537 624,537" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 295,363 H 618 A 6,6 0 0 1 624,369 V 576 A 6,6 0 0 1 618,582 H 295 A 6,6 0 0 1 289,576 V 369 A 6,6 0 0 1 295,363 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="318,399 653,399" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="318,457 653,457" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="318,491 653,491" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="318,537 653,537" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 324,363 H 647 A 6,6 0 0 1 653,369 V 576 A 6,6 0 0 1 647,582 H 324 A 6,6 0 0 1 318,576 V 369 A 6,6 0 0 1 324,363 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <text x="20" y="64" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700"> methodProcessView</tspan></text>
   <text x="945" y="966" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expose DE4SDV_MethodProcess::*</tspan></text>
   <text x="85" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="36" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">─── Method phases ───</tspan></text>
-  <text x="149" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«enum def»</tspan></text>
-  <text x="149" y="391" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">MethodPhase</tspan></text>
-  <text x="149" y="409.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="36" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The 13 phases of the DE4SDV increment workflow.</tspan></text>
-  <text x="149" y="443.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">enums</tspan></text>
+  <text x="163.5" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«enum def»</tspan></text>
+  <text x="163.5" y="391" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">MethodPhase</tspan></text>
+  <text x="163.5" y="409.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="36" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">One of the 13 phases of the DE4SDV increment workflow.</tspan></text>
+  <text x="163.5" y="443.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">enums</tspan></text>
   <text x="36" y="459" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase0_incrementFraming</tspan></text>
   <text x="36" y="471" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase1_concernFraming</tspan></text>
   <text x="36" y="483" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase2_operationalContext</tspan></text>
@@ -112,24 +112,24 @@
   <text x="36" y="603" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase12_baselineNextSlice</tspan></text>
   <text x="387.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="325" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">─── SAF domain mapping ───</tspan></text>
-  <text x="792" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
-  <text x="792" y="391" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">SAFDomainMapping</tspan></text>
-  <text x="792" y="409.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="651" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Maps each method phase to its SAF domain.</tspan></text>
-  <text x="792" y="443.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="651" y="459" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase0Domain : ScalarValues::String = "Common"</tspan></text>
-  <text x="651" y="471" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase1Domain : ScalarValues::String = "Common/Operational"</tspan></text>
-  <text x="651" y="483" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase2Domain : ScalarValues::String = "Operational"</tspan></text>
-  <text x="651" y="495" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase3Domain : ScalarValues::String = "DE4SDV ontology"</tspan></text>
-  <text x="651" y="507" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase4Domain : ScalarValues::String = "Operational"</tspan></text>
-  <text x="651" y="519" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase5Domain : ScalarValues::String = "Conceptual"</tspan></text>
-  <text x="651" y="531" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase6Domain : ScalarValues::String = "Conceptual"</tspan></text>
-  <text x="651" y="543" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase7Domain : ScalarValues::String = "Conceptual"</tspan></text>
-  <text x="651" y="555" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase8Domain : ScalarValues::String = "Physical"</tspan></text>
-  <text x="651" y="567" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase9Domain : ScalarValues::String = "DE4SDV product-line"</tspan></text>
-  <text x="651" y="579" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase10Domain : ScalarValues::String = "Common/Conceptual"</tspan></text>
-  <text x="651" y="591" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase11Domain : ScalarValues::String = "DE4SDV workflow"</tspan></text>
-  <text x="651" y="603" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase12Domain : ScalarValues::String = "Common"</tspan></text>
+  <text x="821" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
+  <text x="821" y="391" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">SAFDomainMapping</tspan></text>
+  <text x="821" y="409.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="680" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Maps each method phase to its SAF domain.</tspan></text>
+  <text x="821" y="443.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
+  <text x="680" y="459" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase0Domain : ScalarValues::String = "Common"</tspan></text>
+  <text x="680" y="471" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase1Domain : ScalarValues::String = "Common/Operational"</tspan></text>
+  <text x="680" y="483" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase2Domain : ScalarValues::String = "Operational"</tspan></text>
+  <text x="680" y="495" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase3Domain : ScalarValues::String = "DE4SDV ontology"</tspan></text>
+  <text x="680" y="507" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase4Domain : ScalarValues::String = "Operational"</tspan></text>
+  <text x="680" y="519" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase5Domain : ScalarValues::String = "Conceptual"</tspan></text>
+  <text x="680" y="531" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase6Domain : ScalarValues::String = "Conceptual"</tspan></text>
+  <text x="680" y="543" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase7Domain : ScalarValues::String = "Conceptual"</tspan></text>
+  <text x="680" y="555" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase8Domain : ScalarValues::String = "Physical"</tspan></text>
+  <text x="680" y="567" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase9Domain : ScalarValues::String = "DE4SDV product-line"</tspan></text>
+  <text x="680" y="579" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase10Domain : ScalarValues::String = "Common/Conceptual"</tspan></text>
+  <text x="680" y="591" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase11Domain : ScalarValues::String = "DE4SDV workflow"</tspan></text>
+  <text x="680" y="603" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">phase12Domain : ScalarValues::String = "Common"</tspan></text>
   <text x="229.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="169" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">─── Required trace chain ───</tspan></text>
   <text x="608" y="225" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«item def»</tspan></text>
@@ -214,18 +214,18 @@
   <text x="659" y="186" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">L</tspan></text>
   <text x="875" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="760" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">─── Assurance view for the method process itself ───</tspan></text>
-  <text x="456.5" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
-  <text x="456.5" y="391" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">methodProcessAssuranceConcern : ArgumentationAssuranceConcern</tspan></text>
-  <text x="456.5" y="409.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="297" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the DE4SDV method process to be visible: phases,</tspan></text>
-  <text x="297" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">SAF domain mapping, required trace chain, recurring logical-to-software</tspan></text>
-  <text x="297" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">signal-mapping control, and increment size guidance.</tspan></text>
-  <text x="456.5" y="467.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="297" y="483" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
-  <text x="456.5" y="501.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
-  <text x="297" y="517" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemsEngineer : SystemsEngineer</tspan></text>
-  <text x="297" y="529" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
-  <text x="456.5" y="547.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="297" y="563" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need claims, arguments, evidence, and gaps linked</tspan></text>
-  <text x="297" y="575" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">in an assurance argument for the increment.</tspan></text>
+  <text x="485.5" y="375" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
+  <text x="485.5" y="391" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">methodProcessAssuranceConcern : ArgumentationAssuranceConcern</tspan></text>
+  <text x="485.5" y="409.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="326" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the DE4SDV method process to be visible: phases,</tspan></text>
+  <text x="326" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">SAF domain mapping, required trace chain, recurring logical-to-software</tspan></text>
+  <text x="326" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">signal-mapping control, and increment size guidance.</tspan></text>
+  <text x="485.5" y="467.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="326" y="483" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
+  <text x="485.5" y="501.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
+  <text x="326" y="517" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemsEngineer : SystemsEngineer</tspan></text>
+  <text x="326" y="529" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
+  <text x="485.5" y="547.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="326" y="563" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need claims, arguments, evidence, and gaps linked</tspan></text>
+  <text x="326" y="575" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">in an assurance argument for the increment.</tspan></text>
 </svg>
