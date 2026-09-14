@@ -1038,7 +1038,7 @@ entries:
       introduced; definition-level doc reproduces the YAML definition without added
       semantics; the declared pilot instantiates 11 obligations as model items.'
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   EvaluationSourceKind:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1098,7 +1098,7 @@ entries:
       outside the model in the delivered runtime MethodEvaluationScope input. Runtime
       representation is implementation evidence, not model-authority parity.'
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   EvaluationScopeMembership:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1125,7 +1125,7 @@ entries:
       scopeMember01..06), demonstrating contribution set distinct from evaluation scope;
       definition-level doc reproduces the YAML definition without added semantics.'
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   TestedScopeDeclaration:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1152,7 +1152,7 @@ entries:
       carry-forward or freshness semantics; definition-level doc reproduces the YAML
       definition without added semantics.'
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   RetainedExecutionRecordReference:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1207,7 +1207,7 @@ entries:
       external (carried by the policy document) and a missing registry remains a distinct
       state; definition-level doc reproduces the YAML definition without added semantics.'
     closure_evidence_ref: null
-    semantic_text_equivalence: null
+    semantic_text_equivalence: review-required
   DerivesFromNeed:
     authority_current: model-authoritative
     authority_target: model-authoritative

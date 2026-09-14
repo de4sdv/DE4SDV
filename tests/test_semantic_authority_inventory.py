@@ -752,20 +752,20 @@ class TestTextParity:
                 entries[name]["observed"]["doc_text_observation"] == observation
             ), name
             counts[observation] = counts.get(observation, 0) + 1
-        # Exact-equality parity: the c1 conformance batch (8 method-conformance
-        # identities) is normalized-exact after definition-level doc alignment;
-        # all other file-mapped classes honestly report their state. The
-        # definition-level doc rule (member docs never contaminate the class
-        # text) moved 7 attribute/literal-doc classes from differs to doc-absent
-        # before their c1 docs were added. Final-O1 R1 correction: a body with
-        # no leading doc block gets its directly-contained body docs recognized
-        # (the K-authored DerivesFromNeed shape) — DerivesFromNeed moves
-        # doc-absent -> differs (its doc wording differs from the reviewed
-        # definition; the reviewed remedy prose already targets ``differs``);
-        # no other observation moves.
+        # Exact-equality parity: after the uniform-containment correction
+        # (final-O1 R1 follow-up) every doc at a declaration body's direct
+        # lexical depth joins the observation — the five method-conformance
+        # classes that serialize attribute documentation after their
+        # attributes observe `differs` (their reviewed equivalence moves to
+        # `review-required`, the schema state; no evidence maturity changes);
+        # MethodPhase / EvaluationSourceKind / RetainedExecutionRecordReference
+        # keep `normalized-exact` (their direct docs are the aligned leading
+        # block); DerivesFromNeed stays `differs` (its wording differs from the
+        # reviewed definition, as its own remedy prose records); no identity
+        # outside this set moves.
         assert counts == {
-            "differs": 28,
-            "normalized-exact": 8,
+            "differs": 33,
+            "normalized-exact": 3,
             "doc-absent": 3,
             "doc-absent (bodyless declaration)": 1,
         }

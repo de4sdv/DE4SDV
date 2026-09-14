@@ -3,8 +3,8 @@
 Covers the c1 claim after the independent review: **seven of the eight
 identities are accepted as parity-reviewed; `MethodEvaluationScope` remains
 incomplete** (R1 correction) because the model does not yet structurally
-carry explicit exclusions with rationale — text parity (normalized-exact
-definition-level doc) is NOT structural semantic parity.
+carry explicit exclusions with rationale — text parity is NOT structural
+semantic parity.
 
 The batch tests:
 
@@ -15,12 +15,24 @@ The batch tests:
     conditional target;
 3.  `MethodEvaluationScope`: authority stays legacy-yaml / model-authoritative,
     evidence stays repository-evidenced, the structural gap names exclusions
-    with rationale, and normalized-exact text never promotes evidence;
-4.  definition-level documentation is extracted independently from member
-    (attribute / enum-literal) documentation per the SysML v2 spec ownership
-    rule (a doc comment is owned by the element whose body it sits in);
-5.  text parity is machine-checked (normalized-exact) for all eight, while
-    evidence maturity is a separate reviewed dimension;
+    with rationale, and text observations never promote evidence;
+4.  definition-level documentation follows the SysML v2 spec ownership rule
+    (a doc comment is owned by the element whose body it sits in) as one
+    uniform lexical-containment rule: every doc statement at the declaration
+    body's direct lexical depth belongs to the declaration — position,
+    adjacent semicolon-terminated members, and the presence of an earlier
+    direct-body doc do not change ownership; docs inside nested member bodies
+    never enter the declaration's text;
+5.  text parity is machine-checked per class. After the uniform-containment
+    correction (final-O1 R1 follow-up) `MethodPhase`, `EvaluationSourceKind`,
+    and `RetainedExecutionRecordReference` observe `normalized-exact`, while
+    `MethodContractObligation`, `MethodEvaluationScope`,
+    `EvaluationScopeMembership`, `TestedScopeDeclaration`, and
+    `AcceptanceAttestationReference` observe `differs` — their direct-body
+    docs (attribute documentation serialized after the attributes) join the
+    definition text; the reviewed equivalence state for those rows is
+    `review-required` (the schema state for a review-required observation; no
+    equivalence is invented and no evidence maturity changes);
 6.  structural exact-fit facts: declaration kinds, required typed members,
     required enum literals, the frozen Section 7 field coverage (12 schema
     fields -> 14 attribute declarations), and the external-reference /
@@ -28,8 +40,9 @@ The batch tests:
 7.  no runtime/query/K/projection semantics changed: the inventory generator
     is runtime-inert and the c1 rows carry no Semantic Projection rows.
 
-Adversarial cases prove the parity machinery rejects member-doc confusion,
-missing docs, extra semantic text, and substring containment.
+Adversarial cases prove the parity machinery rejects nested-vs-direct doc
+confusion, member-body contamination, missing docs, extra semantic text, and
+substring containment.
 """
 
 from __future__ import annotations
@@ -78,6 +91,23 @@ C1_INCOMPLETE: tuple[str, ...] = ("MethodEvaluationScope",)
 C1_ACCEPTED: tuple[str, ...] = tuple(
     name for name in C1_IDENTITIES if name not in C1_INCOMPLETE
 )
+
+#: Machine-checked doc observations after the uniform-containment correction
+#: (final-O1 R1 follow-up). Direct-body docs join the definition text in
+#: source order; nested member-body docs never do. The five `differs` rows
+#: carry their attribute documentation (serialized after the attributes at the
+#: body's direct depth); their reviewed `semantic_text_equivalence` is the
+#: schema-required `review-required`, not an invented equivalence.
+C1_DOC_OBSERVATIONS: dict[str, str] = {
+    "MethodPhase": "normalized-exact",
+    "MethodContractObligation": "differs",
+    "MethodEvaluationScope": "differs",
+    "EvaluationSourceKind": "normalized-exact",
+    "EvaluationScopeMembership": "differs",
+    "TestedScopeDeclaration": "differs",
+    "RetainedExecutionRecordReference": "normalized-exact",
+    "AcceptanceAttestationReference": "differs",
+}
 
 #: YAML definition location + text of the eight (the O1 semantic authority for c1).
 _C1_YAML: dict[str, tuple[Path, str]] = {
@@ -379,10 +409,12 @@ def _probe_reviewed(**overrides) -> dict:
 class TestMethodEvaluationScopeIncomplete:
     """Text parity and structural semantic parity are separate dimensions.
 
-    The independent review corrected the first c1 pass: the definition-level
-    doc is normalized-exact text, but the model does not yet structurally
-    carry explicit exclusions with rationale, so MethodEvaluationScope must
-    NOT be claimed parity-reviewed. The runtime exclusions input is
+    The independent review corrected the first c1 pass: the definition text is
+    NOT structural parity — the model does not yet structurally carry explicit
+    exclusions with rationale, so MethodEvaluationScope must NOT be claimed
+    parity-reviewed. After the uniform-containment correction (final-O1 R1
+    follow-up) its doc observation is `differs` (the direct-body attribute
+    docs join the definition text). The runtime exclusions input is
     implementation evidence for the delivered A–D execution, not
     model-authority parity.
     """
@@ -405,10 +437,10 @@ class TestMethodEvaluationScopeIncomplete:
         assert reviewed["evidence_state"] != "parity-reviewed"
 
     def test_text_observation_and_evidence_are_separate(self, inventory):
-        """Text parity may be normalized-exact; evidence maturity stays
+        """Text observation may be `differs` while evidence maturity stays
         repository-evidenced because structural parity is incomplete."""
         entry = self._row(inventory)
-        assert entry["observed"]["doc_text_observation"] == "normalized-exact"
+        assert entry["observed"]["doc_text_observation"] == "differs"
         assert entry["reviewed"]["evidence_state"] == "repository-evidenced"
 
     def test_normalized_exact_text_does_not_promote_evidence(self):
@@ -490,9 +522,13 @@ class TestDefinitionDocExtraction:
     def _wrap(self, body: str) -> str:
         return f"package T {{\n{body}\n}}\n"
 
-    def test_attribute_docs_are_not_definition_docs(self):
-        """The MethodContractObligation shape: docs that follow attribute
-        declarations must not contaminate the class definition text."""
+    def test_direct_body_docs_join_definition_text_regardless_of_adjacency(self):
+        """The MethodContractObligation shape, corrected (final-O1 R1
+        follow-up): docs serialized after semicolon-terminated attributes sit
+        at the definition body's direct depth and ARE the definition's
+        documentation — a bodyless member owns no doc; ownership is
+        containment, not adjacency. (Before the uniform-containment
+        correction only the leading doc was counted.)"""
         file_text = self._wrap(
             "item def Widget {\n"
             "    doc /* CLASS DEFINITION TEXT. */\n"
@@ -504,11 +540,17 @@ class TestDefinitionDocExtraction:
         )
         block, _ = ai.declaration_block(file_text, "item def Widget")
         docs = ai._owned_doc_bodies(block)
-        assert [d.strip() for d in docs] == ["CLASS DEFINITION TEXT."]
+        assert [d.strip() for d in docs] == [
+            "CLASS DEFINITION TEXT.",
+            "attribute a doc.",
+            "attribute b doc.",
+        ]
 
-    def test_enum_literal_docs_are_not_definition_docs(self):
-        """The MethodPhase shape: per-literal docs (inside literal bodies) and
-        docs following literals must not contaminate the enum definition."""
+    def test_nested_literal_docs_are_excluded_direct_docs_are_collected(self):
+        """The MethodPhase shape, corrected: per-literal docs inside literal
+        bodies stay literal-owned (nested containment); a doc at the enum
+        body's direct depth after a literal is the enum definition's
+        documentation."""
         file_text = self._wrap(
             "enum def Widget {\n"
             "    doc /* ENUM DEFINITION TEXT. */\n"
@@ -521,31 +563,54 @@ class TestDefinitionDocExtraction:
         )
         block, _ = ai.declaration_block(file_text, "enum def Widget")
         docs = ai._owned_doc_bodies(block)
-        assert [d.strip() for d in docs] == ["ENUM DEFINITION TEXT."]
+        assert [d.strip() for d in docs] == [
+            "ENUM DEFINITION TEXT.",
+            "lit2-position doc.",
+        ]
 
-    def test_adding_member_doc_does_not_alter_class_parity(self):
+    def test_adding_direct_body_doc_alters_observation_nested_doc_does_not(self):
+        """Uniform containment: adding a doc at the body's direct depth joins
+        the definition text and moves the observation; adding a doc inside a
+        nested member body never does."""
         base = self._wrap(
             "part def Widget {\n"
             "    doc /* The widget meaning. */\n"
             "    attribute a : String;\n"
             "  }"
         )
-        changed = self._wrap(
+        direct_added = self._wrap(
             "part def Widget {\n"
             "    doc /* The widget meaning. */\n"
             "    attribute a : String;\n"
-            "    doc /* A BRAND NEW MEMBER DOC. */\n"
-            "    attribute b : Natural;\n"
+            "    doc /* A BRAND NEW DIRECT DOC. */\n"
+            "  }"
+        )
+        nested_added = self._wrap(
+            "part def Widget {\n"
+            "    doc /* The widget meaning. */\n"
+            "    attribute a : String;\n"
+            "    item nested {\n"
+            "      doc /* A BRAND NEW NESTED DOC. */\n"
+            "    }\n"
             "  }"
         )
         definition = "The widget meaning."
         assert (
             ai.doc_text_observation(base, "part def Widget", definition)
-            == ai.doc_text_observation(changed, "part def Widget", definition)
+            == "normalized-exact"
+        )
+        assert (
+            ai.doc_text_observation(direct_added, "part def Widget", definition)
+            == "differs"
+        )
+        assert (
+            ai.doc_text_observation(nested_added, "part def Widget", definition)
             == "normalized-exact"
         )
 
-    def test_changing_member_doc_does_not_alter_class_parity(self):
+    def test_changing_direct_body_doc_changes_collected_text_nested_does_not(self):
+        """Changing a direct-body doc changes the definition blob; changing a
+        nested member-body doc never changes anything collected."""
         base = self._wrap(
             "item def Widget {\n"
             "    doc /* The widget meaning. */\n"
@@ -562,12 +627,32 @@ class TestDefinitionDocExtraction:
             "    attribute b : Natural;\n"
             "  }"
         )
-        definition = "The widget meaning."
-        assert (
-            ai.doc_text_observation(base, "item def Widget", definition)
-            == ai.doc_text_observation(changed, "item def Widget", definition)
-            == "normalized-exact"
+        nested_base = self._wrap(
+            "item def Widget {\n"
+            "    doc /* The widget meaning. */\n"
+            "    attribute a : String;\n"
+            "    item nested {\n"
+            "      doc /* old nested doc. */\n"
+            "    }\n"
+            "  }"
         )
+        nested_changed = nested_base.replace(
+            "old nested doc.", "nested doc completely rewritten."
+        )
+
+        def collected(file_text: str) -> list[str]:
+            block, _ = ai.declaration_block(file_text, "item def Widget")
+            return [d.strip() for d in ai._owned_doc_bodies(block)]
+
+        assert collected(base) == ["The widget meaning.", "old member doc."]
+        assert collected(changed) == [
+            "The widget meaning.",
+            "member doc completely rewritten.",
+        ]
+        # Nested member-body docs are isolated: rewriting one changes nothing.
+        assert collected(nested_base) == collected(nested_changed) == [
+            "The widget meaning."
+        ]
 
     def test_missing_definition_doc_does_not_pass(self):
         file_text = self._wrap(
@@ -584,14 +669,12 @@ class TestDefinitionDocExtraction:
         ) in ai.REVIEW_REQUIRED_OBSERVATIONS
 
     def test_member_following_doc_without_leading_block_is_found(self):
-        """A body with no leading doc block whose only direct doc follows a
-        bodyless member (the final-O1 R1 corrected direct-containment shape):
-        the doc sits in no member body, so it is owned by the definition and
-        is found — but member-prefixed wording does not stand in for the
-        definition: it yields ``differs``, never ``normalized-exact``.
-        (Before the final-O1 R1 correction the leading-prefix-only scan
-        reported ``doc-absent`` here; the reviewer's blocker shape is the
-        same body shape with the doc after ``end`` members.)"""
+        """A body whose only doc follows a bodyless member: the doc sits in no
+        member body, so uniform lexical containment makes it the definition's
+        documentation — found, and it does not stand in for the definition:
+        wording differs, yielding ``differs``, never ``normalized-exact`` and
+        never ``doc-absent`` (the reviewer's original blocker shape, on
+        ``attribute`` members)."""
         file_text = self._wrap(
             "item def Widget {\n"
             "    attribute a : String;\n"
@@ -675,13 +758,14 @@ class TestDefinitionDocExtraction:
 
 
 class TestDirectBodyDocOwnership:
-    """Adversarial ownership regressions (final-O1 R1 correction).
+    """Adversarial ownership regressions (final-O1 R1 follow-up).
 
-    The direct-containment scan used when a declaration body carries no
-    leading doc block: definition-owned = a ``doc`` at the body's lexical
-    depth, anywhere in the body; docs inside nested member bodies are
-    excluded; ordering is irrelevant. Test G reproduces the independent
-    reviewer's blocker shape (the mandatory ordering-invariance regression).
+    Uniform lexical containment: every ``doc`` at the declaration body's
+    direct lexical depth is owned by the declaration — regardless of
+    position, adjacency, or a preceding direct-body doc; docs inside nested
+    member bodies are excluded. Test G reproduces the independent reviewer's
+    original blocker shape (the mandatory ordering-invariance regression);
+    the mixed cases I–L lock leading + later-direct combinations.
     """
 
     def _wrap(self, body: str) -> str:
@@ -830,14 +914,87 @@ class TestDirectBodyDocOwnership:
             "definition documentation { with brace"
         ]
 
+    def test_leading_and_later_direct_docs_are_both_owned(self):
+        """Mandatory mixed case I: a leading direct doc does NOT make later
+        direct-body docs member docs — both are returned, in source order."""
+        file_text = self._wrap(
+            "item def Example {\n"
+            "    doc /* first definition documentation */\n"
+            "\n"
+            "    attribute a : String;\n"
+            "\n"
+            "    doc /* second definition documentation */\n"
+            "  }"
+        )
+        assert self._docs(file_text, "item def Example") == [
+            "first definition documentation",
+            "second definition documentation",
+        ]
+
+    def test_leading_nested_and_later_direct_docs(self):
+        """Mandatory mixed case J: both direct docs are returned; the nested
+        documentation never appears."""
+        file_text = self._wrap(
+            "item def Example {\n"
+            "    doc /* first definition documentation */\n"
+            "\n"
+            "    item nested {\n"
+            "        doc /* nested documentation */\n"
+            "    }\n"
+            "\n"
+            "    doc /* second definition documentation */\n"
+            "  }"
+        )
+        assert self._docs(file_text, "item def Example") == [
+            "first definition documentation",
+            "second definition documentation",
+        ]
+
+    def test_multiple_direct_docs_separated_by_bodyless_members(self):
+        """Mandatory mixed case K: all direct docs are returned in source
+        order across several semicolon-terminated members."""
+        file_text = self._wrap(
+            "connection def Example {\n"
+            "    end a : A;\n"
+            "    doc /* alpha documentation */\n"
+            "    end b : B;\n"
+            "    end c : C;\n"
+            "    doc /* beta documentation */\n"
+            "    attribute flagged : Boolean;\n"
+            "    doc /* gamma documentation */\n"
+            "  }"
+        )
+        assert self._docs(file_text, "connection def Example") == [
+            "alpha documentation",
+            "beta documentation",
+            "gamma documentation",
+        ]
+
+    def test_direct_docs_before_and_after_nested_member_body(self):
+        """Mandatory mixed case L: direct docs on both sides of a nested
+        member body are returned; the nested doc is not."""
+        file_text = self._wrap(
+            "item def Example {\n"
+            "    doc /* pre documentation */\n"
+            "    item nested {\n"
+            "        doc /* nested documentation */\n"
+            "    }\n"
+            "    doc /* post documentation */\n"
+            "  }"
+        )
+        assert self._docs(file_text, "item def Example") == [
+            "pre documentation",
+            "post documentation",
+        ]
+
 
 # ---------------------------------------------------------------------------
-# Machine-checked normalized-exact parity for the eight committed rows
+# Machine-checked per-class doc observations for the eight committed rows
 # ---------------------------------------------------------------------------
 
 
 class TestC1TextParity:
-    def test_all_eight_normalized_exact_from_source(self):
+    def test_c1_observations_recomputed_from_source(self):
         contract = ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
         for name in C1_IDENTITIES:
             spec = contract.classes[name]
@@ -847,13 +1004,22 @@ class TestC1TextParity:
                 str(spec["kernel"]["declaration"]),
                 str(spec["definition"]),
             )
-            assert observation == "normalized-exact", name
+            assert observation == C1_DOC_OBSERVATIONS[name], name
 
-    def test_inventory_rows_carry_the_exact_observation(self, inventory):
-        for entry in _entries(inventory, C1_IDENTITIES).values():
-            assert entry["observed"]["doc_text_observation"] == "normalized-exact"
-            # No manual equivalence value when exact parity is machine-checked.
-            assert entry["reviewed"]["semantic_text_equivalence"] is None
+    def test_inventory_rows_carry_the_recomputed_observation(self, inventory):
+        for name, entry in _entries(inventory, C1_IDENTITIES).items():
+            observation = entry["observed"]["doc_text_observation"]
+            assert observation == C1_DOC_OBSERVATIONS[name], name
+            equivalence = entry["reviewed"]["semantic_text_equivalence"]
+            if observation == "normalized-exact":
+                # No manual equivalence value when exact parity is
+                # machine-checked.
+                assert equivalence is None, name
+            else:
+                # Schema state for a review-required observation (the
+                # validator couples this field to the observation); nothing is
+                # invented and no evidence maturity changes.
+                assert equivalence == "review-required", name
 
     def test_equivalence_consistent_with_observation(self, inventory):
         for entry in inventory["entries"]:
@@ -865,24 +1031,39 @@ class TestC1TextParity:
                 # No manual equivalence when exact parity is machine-checked.
                 assert equivalence is None, entry["identity"]
 
-    def test_member_docs_of_c1_classes_unchanged_and_isolated(self):
-        """Adding/changing a member doc in the real files cannot move the
-        eight class observations: they are computed from the leading owned
-        doc only. Re-derive each observation with member docs stripped."""
+    def test_ownership_is_containment_not_adjacency_for_c1_classes(self):
+        """Uniform containment on the real files: a synthetic NESTED member
+        doc never enters a class observation; a synthetic DIRECT-body doc
+        always does — regardless of adjacency, ordering, or a preceding
+        leading doc block."""
+        contract = ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
         for name in C1_IDENTITIES:
-            spec = ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH).classes[name]
+            spec = contract.classes[name]
             declaration = str(spec["kernel"]["declaration"])
             file_text = _file_text(name)
-            base = ai.doc_text_observation(file_text, declaration, str(spec["definition"]))
-            # Perturb: append a synthetic member doc after the last attribute.
-            block, _ = ai.declaration_block(file_text, declaration)
-            perturbed = file_text.replace(
-                block, block[:-1] + 'doc /* SYNTHETIC MEMBER DOC. */\n  }', 1
-            ) if block.endswith("}") else file_text
-            after = ai.doc_text_observation(
-                perturbed, declaration, str(spec["definition"])
+            block, bodyless = ai.declaration_block(file_text, declaration)
+            assert block and not bodyless, name
+            base_docs = [d.strip() for d in ai._owned_doc_bodies(block)]
+            direct = file_text.replace(
+                block,
+                block[:-1] + "doc /* SYNTHETIC DIRECT DOC. */\n  }",
+                1,
             )
-            assert base == after == "normalized-exact", name
+            direct_block, _ = ai.declaration_block(direct, declaration)
+            assert [
+                d.strip() for d in ai._owned_doc_bodies(direct_block)
+            ] == base_docs + ["SYNTHETIC DIRECT DOC."], name
+            nested = file_text.replace(
+                block,
+                block[:-1] + "item syntheticNested {\n"
+                "    doc /* SYNTHETIC NESTED DOC. */\n"
+                "  }\n  }",
+                1,
+            )
+            nested_block, _ = ai.declaration_block(nested, declaration)
+            assert [
+                d.strip() for d in ai._owned_doc_bodies(nested_block)
+            ] == base_docs, name
 
 
 # ---------------------------------------------------------------------------

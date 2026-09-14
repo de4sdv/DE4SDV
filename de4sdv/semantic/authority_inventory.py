@@ -370,45 +370,6 @@ def declaration_block(file_text: str, declaration: str) -> tuple[str, bool]:
     return rest[brace:], False
 
 
-def _leading_doc_bodies(block: str) -> list[str]:
-    """Leading owned documentation: the doc block at the head of the body.
-
-    The c1-reviewed authored convention: ``doc /* ... */`` statements before
-    the first member token are the definition's own documentation; scanning
-    stops at the first other token (member territory begins). Plain
-    ``/* ... */`` and ``// ...`` comments are presentation comments — skipped,
-    scanning continues.
-    """
-    docs: list[str] = []
-    index = 1  # skip the opening '{' of the declaration block
-    length = len(block)
-    while index < length:
-        char = block[index]
-        if char.isspace():
-            index += 1
-            continue
-        if block.startswith("/*", index):
-            end = block.find("*/", index + 2)
-            if end == -1:
-                break
-            index = end + 2
-            continue
-        if block.startswith("//", index):
-            end = block.find("\n", index)
-            index = length if end == -1 else end + 1
-            continue
-        match = re.compile(r"doc\s*/\*").match(block, index)
-        if match:
-            end = block.find("*/", match.end())
-            if end == -1:
-                break
-            docs.append(block[match.end():end])
-            index = end + 2
-            continue
-        break  # first non-doc token: member territory begins
-    return docs
-
-
 def _skip_string_literal(block: str, index: int) -> int:
     """Index after a double-quoted string literal starting at ``index``.
 
@@ -429,16 +390,29 @@ def _skip_string_literal(block: str, index: int) -> int:
     return length
 
 
-def _direct_body_doc_bodies(block: str) -> list[str]:
-    """Direct-containment scan: docs at the body's lexical depth, anywhere.
+def _owned_doc_bodies(block: str) -> list[str]:
+    """Documentation bodies owned by the definition itself (spec-grounded).
 
-    Used when the declaration body carries **no leading doc block** (the
-    K-authored shape): a doc following a semicolon-terminated member sits in
-    no member body, so per the lexical-containment ownership rule it belongs
-    to the enclosing definition. The scan tracks brace nesting so docs inside
-    nested member bodies are never collected; comment interiors and string
-    literals cannot corrupt depth; scanning continues past semicolon-
-    terminated members. Deterministic, bounded — no fuzzy matching.
+    Ownership rule (OMG SysML v2 Part 1, §7.4.2): "The documenting element of
+    documentation is always the owning element of the documentation" — a
+    ``doc`` comment is owned by the element whose body it lexically sits in.
+    The rule is **uniform lexical containment**:
+
+    * a ``doc`` statement at the declaration body's direct lexical depth is
+      owned by the declaration — regardless of position, of preceding member
+      declarations, and of whether another direct-body doc appeared earlier
+      (ownership = containment, not adjacency, ordering, or the presence of a
+      leading doc block; a doc following a semicolon-terminated member sits in
+      no member body);
+    * a ``doc`` inside a nested member body (literals, nested items, ...) is
+      owned by that nested element and never enters the declaration's
+      documentation.
+
+    One bounded scan over the complete body: brace nesting is tracked,
+    comment interiors and string-literal content are structurally inert,
+    scanning continues past semicolon-terminated members, and docs are
+    collected in source order. Deterministic; no fuzzy matching, no names,
+    paths, or declaration-specific special cases.
     """
     docs: list[str] = []
     depth = 0
@@ -473,49 +447,18 @@ def _direct_body_doc_bodies(block: str) -> list[str]:
     return docs
 
 
-def _owned_doc_bodies(block: str) -> list[str]:
-    """Documentation bodies owned by the definition itself (spec-grounded).
-
-    Ownership rule (OMG SysML v2 Part 1, §7.4.2): "The documenting element of
-    documentation is always the owning element of the documentation" — a
-    ``doc`` comment is owned by the element whose body it lexically sits in,
-    never by a sibling member. Two bounded textual-notation modes:
-
-    * **leading block present** — the c1-reviewed authored convention of the
-      governed class-definition files: the leading ``doc`` block is the
-      definition's documentation, and docs that follow members are member
-      documentation (authored member-doc pairs) that must not contaminate the
-      definition text;
-    * **no leading block** — the K-authored shape (``connection def
-      DerivesFromNeed``): the definition's documentation is any ``doc``
-      directly contained at the body's lexical depth, tracked past
-      semicolon-terminated members; docs inside nested member bodies are
-      excluded. A doc following a bodyless member sits in no member body and
-      is owned by the enclosing definition.
-
-    Deterministic, bounded depth tracking; no fuzzy matching, no hardcoded
-    definitions. Depth tracking is immune to braces/comment markers inside
-    comments and to string-literal content.
-    """
-    leading = _leading_doc_bodies(block)
-    if leading:
-        return leading
-    return _direct_body_doc_bodies(block)
-
-
 def doc_text_observation(
     file_text: str, declaration: str, definition: str
 ) -> str:
     """Exact-parity observation of one declaration's model-resident doc text.
 
-    Definition-level documentation is distinguished from member
-    documentation per :func:`_owned_doc_bodies` (spec §7.4.2: a doc comment is
-    owned by the element whose body it lexically sits in). With a leading doc
-    block present (the c1-reviewed authored convention), the leading block is
-    the definition text and member docs never contaminate it; without one, the
-    K-authored shape, any doc directly contained at the body's lexical depth
-    is the definition's documentation — a doc following a bodyless member
-    belongs to no member body and is therefore the definition's.
+    Definition-level documentation is determined by :func:`_owned_doc_bodies`
+    (spec §7.4.2: a doc comment is owned by the element whose body it lexically
+    sits in) — uniform lexical containment: every ``doc`` statement at the
+    declaration body's direct lexical depth is the definition's documentation,
+    regardless of position, of preceding semicolon-terminated members, or of
+    whether another direct-body doc appeared earlier; docs inside nested
+    member bodies are never definition documentation.
 
     ``normalized-exact`` requires **equality** after the allowed cosmetic
     normalization (case, punctuation, whitespace/line wrapping). Containment
@@ -2047,14 +1990,11 @@ def build_inventory(
             "block-not-located. Definition-level rule: a doc comment is owned "
             "by the element whose body it lexically sits in (SysML v2 "
             "specification, Comments and Documentation). The observed text is "
-            "the declaration's leading owned documentation when a leading doc "
-            "block exists (the authored class-definition convention; member "
-            "documentation never contaminates the comparison); when the body "
-            "carries no leading doc block, it is the documentation directly "
-            "contained at the body's lexical depth anywhere in the body — a "
-            "doc following a bodyless member belongs to no member body and is "
-            "the definition's own; docs inside nested member bodies are never "
-            "collected."
+            "every documentation statement at the declaration body's direct "
+            "lexical depth — uniform lexical containment, in source order: "
+            "position, preceding semicolon-terminated members, and the "
+            "presence of an earlier direct-body doc do not change ownership; "
+            "docs inside nested member bodies are never collected."
         ),
         "supersession": {
             "supersedes": [
