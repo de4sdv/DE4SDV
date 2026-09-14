@@ -94,17 +94,27 @@ second one.
 
 Why it does not turn O1 governance artifacts into semantic authority: the
 admission manifest encodes **which** identities O2.1 may emit — a reviewed
-migration boundary — and supplies **no** engineering semantics. Every
-semantic field (identity grounding contract, semantic kind, documentation,
-typed member structure, library base) is derived from the governed model
-declarations via the ontology/kernel contract's declaration locators
-(locators only — the contract's `definition` prose is never read). O1 review
+migration boundary — and supplies **no** engineering semantics. Every field
+that asserts engineering meaning for a projected concept (identity grounding
+contract, semantic kind, documentation, typed member structure, library base)
+is derived from the governed model declarations via the ontology/kernel
+contract's declaration locators (locators only — the contract's `definition`
+prose is never read). Governance, projection-contract, representation-profile,
+and provenance metadata are NOT model-derived and are explicitly separated
+(see "Projection contract vs model-derived semantics" below). O1 review
 metadata (authority classification, evidence state, text-equivalence review)
 appears nowhere in the generated rows; tests machine-lock this.
 
+The precise invariant: **every field that asserts engineering meaning for a
+projected concept is derived from the governed model representation;
+governance, projection-contract, representation-profile, and provenance
+metadata are explicitly separated and identified as such.** No claim is made
+that literally every field of the artifact is model-derived.
+
 ## Semantic derivation (per identity)
 
-Derived exclusively from the governed model representation:
+Model-derived concept fields — derived exclusively from the governed model
+representation:
 
 - **semantic identity** — the admitted governed vocabulary identity; its API
   resolution contract is the ingestion validation rule (declaredName +
@@ -118,41 +128,66 @@ Derived exclusively from the governed model representation:
   body's direct lexical depth (SysML v2 documentation ownership: a doc
   comment is owned by the element whose body it lexically sits in; uniform
   lexical containment). Member-body docs (e.g. per-literal docs) are member
-  documentation and never join the definition text.
+  documentation and never join the definition text. Concept-specific
+  boundary statements carried by that model documentation stay verbatim in it.
 - **typed member structure** — attributes with their declared types
   (governed classes resolve by identity against the contract's class set;
   the closed Kernel/SysML scalar set `String`/`Natural`/`Boolean` resolves to
   the pinned Kernel Data Type Library) or enumeration literals with their
   member documentation. Unmodeled member forms fail closed.
-- **claim boundary** — one uniform, machine-checked statement: the rows are
-  schema/vocabulary definitions and carry no instance-level fact (no
-  obligation satisfaction, no phase completion, no acceptance decision, no
-  evidence validity/freshness, no tested-scope equality, no evaluation
-  success). Concept-specific boundary statements stay verbatim in the model
-  documentation.
+- **authored default expressions** — an ABSENT default stays absent
+  (`"default_expression": null`); an AUTHORED expression is recorded verbatim
+  from the model source and never evaluated: `attribute x : String` ≠
+  `attribute x : String = ""` ≠ `= false` ≠ `= 0` — absence, empty string,
+  boolean, and numeric values are all distinguishable in the generated
+  representation. A malformed bare `=` with an empty expression fails closed.
 - **standard-library base grounding** — recorded with `provenance: implied`
   (toolchain-materialized implied Subclassification). The resolution
   mechanics live in the representation profile.
+
+## Projection contract vs model-derived semantics
+
+The generic claim policy is projection/schema metadata, NOT per-concept SysML
+semantic content, and is serialized exactly once at the projection level
+(`projection_contract`):
+
+- `semantic_scope` — vocabulary/schema definitions only;
+- `does_not_assert` — obligation satisfaction, method-phase completion,
+  acceptance or approval, evidence validity/freshness, tested-scope equality,
+  evaluation success;
+- `derivation_rule` — the precise model-derivation invariant above;
+- `external_artifact_treatment` — referenced external identities remain
+  external; generation neither absorbs nor evaluates them;
+- `runtime_boundary` — generation is not authority activation; the runtime
+  does not read the artifact; support promotion is a separate reviewed
+  evidence-bearing step.
+
+These statements are generator/schema-defined; they are deliberately NOT
+attached to individual concept rows (and tests prove they never appear as
+per-concept fields). The admission scope (`scope` block) is a governance
+decision; the representation mechanics live in the representation profile.
 
 ## API identity and representation profile
 
 The profile records representation mechanics only and cannot redefine
 meaning (a compatibility gate compares every echoed binding contract against
 the model-derived projection). Concrete API element UUIDs are **not
-invented**: this stage produces no validated SysML API project/commit closure
-(`api_binding` is explicitly `unclaimed`), because licensed validation and
-full-model ingestion are privileged/CI-owned and aarch64-local Syside is
-unavailable. The profile instead records the exact machine-checkable identity
-resolution contract, the witnessed membership/typing/external-reference
-mechanics, the closed library-type target table, serializer/importer
-compatibility, and the fail-closed completeness check.
+invented** and no current API element UUID is claimed: this stage produces no
+validated SysML API project/commit closure (`api_binding` is explicitly
+`unclaimed`), because licensed validation and full-model ingestion are
+privileged/CI-owned and aarch64-local Syside is unavailable. The profile
+instead records the exact machine-checkable identity resolution contract, the
+witnessed membership/typing/external-reference mechanics, the closed
+library-type target table, serializer/importer compatibility, and the
+fail-closed completeness check.
 
 Evidence basis for the mechanics: retained privileged full-model API
 ingestion run `10195168006` (candidate `0a23902…`). That retained run is a
-**shape oracle only** — its model text predates the c1 documentation
+**shape oracle only** — representation-shape evidence, never proof of
+current exact-revision closure; its model text predates the c1 documentation
 reconciliation and is not a semantic source for generation. The mechanics
 were cross-verified against it during this stage; the artifacts state this
-scope explicitly.
+scope explicitly, and all seven identities remain `vocabulary-only`.
 
 ## Revision binding
 

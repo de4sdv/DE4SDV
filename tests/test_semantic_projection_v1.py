@@ -333,8 +333,12 @@ class TestPositiveScope:
         assert [(m["name"], _type_label(m["type"])) for m in members] == [
             (name, type_name) for name, type_name in EXPECTED_MEMBERS[identity]
         ]
+        # Case 5 (production declarations): every current O2.1 attribute
+        # authors NO default, so the absence representation appears — an
+        # absent default is never rendered as an authored empty-string value.
         for member in members:
-            assert member["default"] == ""
+            assert "default_expression" in member
+            assert member["default_expression"] is None
 
     @pytest.mark.parametrize("identity", list(EXPECTED_LITERALS))
     def test_enumeration_literal_structure(self, pair, identity) -> None:
@@ -358,11 +362,39 @@ class TestPositiveScope:
             "library": "Kernel Data Type Library (ScalarValues.kerml)",
         }
 
-    def test_uniform_claim_boundary_and_support_state(self, pair) -> None:
+    def test_projection_contract_is_projection_level_not_per_concept(self, pair) -> None:
+        """The claim contract is schema/projection metadata: it lives once at
+        the projection level and is NOT serialized as per-concept semantics."""
+        projection = pair["projection"]
+        assert projection["projection_contract"] == pv.PROJECTION_CONTRACT
+        for row in projection["concepts"]:
+            assert "claim_boundary" not in row
+            assert "model_external_boundary" not in row
+            # the generic policy text never masquerades inside a concept row
+            row_text = json.dumps(row)
+            assert "does_not_assert" not in row_text
+            assert "obligation satisfaction" not in row_text
+
+    def test_support_state_remains_vocabulary_only(self, pair) -> None:
         for row in pair["projection"]["concepts"]:
-            assert row["claim_boundary"] == pv.CLAIM_BOUNDARY
-            assert row["model_external_boundary"] == pv.MODEL_EXTERNAL_BOUNDARY
             assert row["support_state"] == "vocabulary-only"
+
+    def test_projection_contract_contents(self, pair) -> None:
+        contract = pair["projection"]["projection_contract"]
+        assert contract["does_not_assert"] == [
+            "obligation satisfaction",
+            "method-phase completion",
+            "acceptance or approval decision",
+            "evidence validity or freshness",
+            "tested-scope equality",
+            "evaluation success",
+        ]
+        assert "vocabulary/schema definitions only" in contract["semantic_scope"]
+        assert "derived from the governed model representation" in contract[
+            "derivation_rule"
+        ]
+        assert "remain external" in contract["external_artifact_treatment"]
+        assert "not authority activation" in contract["runtime_boundary"]
 
     def test_no_support_promotion_path_exists(self) -> None:
         """No promotion input: v1 builders take no attestation/verification
@@ -488,6 +520,80 @@ class TestPositiveScope:
                 )
             )
             assert occurrences == 1
+
+
+class TestDefaultExpressionSemantics:
+    """Case matrix for authored default expressions (O2.1 correction B):
+
+    ``no default != authored empty-string default != false != 0``. Absence is
+    ``null``; an authored expression is preserved verbatim and never
+    evaluated.
+    """
+
+    def _fixture_members(
+        self, tmp_path, stubbed_gate, extra_attribute_lines: str
+    ) -> dict:
+        def file_mutator(text: str) -> str:
+            marker = "    attribute contributes : Boolean;"
+            assert marker in text
+            return text.replace(marker, marker + "\n" + extra_attribute_lines)
+
+        root = _fixture_root(
+            tmp_path, file_mutators={CONFORMANCE_FILE: file_mutator}
+        )
+        artifacts = pv.build_pair(root, source_revision="0" * 40)
+        row = next(
+            r
+            for r in artifacts["projection"]["concepts"]
+            if r["identity"] == "EvaluationScopeMembership"
+        )
+        return {m["name"]: m for m in row["structure"]["members"]}
+
+    def test_case1_no_default_stays_absent(self, tmp_path, stubbed_gate) -> None:
+        members = self._fixture_members(
+            tmp_path, stubbed_gate, "    attribute testNoDefault : String;"
+        )
+        assert members["testNoDefault"]["default_expression"] is None
+
+    def test_case2_explicit_empty_string_is_distinguishable(
+        self, tmp_path, stubbed_gate
+    ) -> None:
+        members = self._fixture_members(
+            tmp_path, stubbed_gate, '    attribute testEmpty : String = "";'
+        )
+        # the AUTHORED empty-string literal, distinct from absence
+        assert members["testEmpty"]["default_expression"] == '""'
+        assert members["testEmpty"]["default_expression"] is not None
+        # absence remains absence right next to it
+        assert members["contributes"]["default_expression"] is None
+
+    def test_case3_explicit_boolean_preserved(self, tmp_path, stubbed_gate) -> None:
+        members = self._fixture_members(
+            tmp_path, stubbed_gate, "    attribute testBool : Boolean = false;"
+        )
+        assert members["testBool"]["default_expression"] == "false"
+
+    def test_case4_explicit_numeric_preserved(self, tmp_path, stubbed_gate) -> None:
+        members = self._fixture_members(
+            tmp_path, stubbed_gate, "    attribute testNum : Natural = 0;"
+        )
+        assert members["testNum"]["default_expression"] == "0"
+
+    def test_interior_whitespace_of_expression_preserved(
+        self, tmp_path, stubbed_gate
+    ) -> None:
+        members = self._fixture_members(
+            tmp_path, stubbed_gate, '    attribute testSpacing : String = "a  b";'
+        )
+        assert members["testSpacing"]["default_expression"] == '"a  b"'
+
+    def test_malformed_empty_expression_fails_closed(
+        self, tmp_path, stubbed_gate
+    ) -> None:
+        with pytest.raises(pv.ProjectionV1Error, match="empty expression"):
+            self._fixture_members(
+                tmp_path, stubbed_gate, "    attribute testBad : String = ;"
+            )
 
 
 # ---------------------------------------------------------------------------

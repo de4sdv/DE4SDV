@@ -16,29 +16,42 @@ review completed in O1 (merged baseline
 
 Architecture (Unified Semantic Engineering Plan v1.2, section 8.1):
 
-- the **Semantic Projection v1** records engineering semantics derived from
-  the governed model representation: concept identity, semantic kind, the
-  model's owned documentation (definition text), typed member structure, the
-  claim boundary, and the kernel-binding contract that locates the identity
-  in a validated API revision;
+- the **Semantic Projection v1** carries, per concept, the MODEL-DERIVED
+  semantic representation — concept identity grounding, semantic kind, the
+  model's owned documentation (definition text), typed member structure, and
+  the kernel-binding contract that locates the identity in a validated API
+  revision — plus projection-level and provenance metadata that is
+  explicitly separated and identified as such (see below);
 - the **SysML API Representation Profile v1** records representation
   mechanics only: membership shapes, property paths, typing/external
   reference mechanics, direction-free traversal facts, serializer/importer
   compatibility, and the fail-closed completeness check. Representation
   mechanics never redefine engineering meaning.
 
-Source-of-truth rule (O2.1): every generated semantic field is derived from
-the governed model declarations at the bound source revision — located via
-the ontology/kernel contract's file+declaration mapping (locators only) and
-read with the reviewed documentation-ownership machinery (SysML v2
-documentation ownership: a ``doc`` comment is owned by the element whose body
-it lexically sits in). This module does NOT read the O1 migration artifacts
+Source-of-truth rule (O2.1): every field that asserts engineering meaning for
+a projected concept is derived from the governed model declarations at the
+bound source revision — located via the ontology/kernel contract's
+file+declaration mapping (locators only) and read with the reviewed
+documentation-ownership machinery (SysML v2 documentation ownership: a
+``doc`` comment is owned by the element whose body it lexically sits in).
+Governance (admission scope), projection-contract (what rows may claim),
+representation-profile, and provenance metadata are NOT model-derived and are
+explicitly separated: the projection-level :data:`PROJECTION_CONTRACT` and
+``scope`` blocks are schema/governance statements, never per-concept
+semantics. This module does NOT read the O1 migration artifacts
 (``semantic-authority-inventory.json``, ``authority-review-decisions.yaml``,
 ``phase1-inventory-review.md``): the O1 inventory is migration governance,
 never runtime semantic authority, and it supplies no semantic field here. The
 O2.1 admission boundary is an explicit machine-locked manifest
 (``docs/method-conformance/o2/o21-admission.yaml``) plus the frozen
 :data:`O21_ADMITTED_IDENTITIES` lock; both must agree exactly.
+
+Authored default expressions: an attribute's authored representation is
+preserved faithfully — an ABSENT default stays absent
+(``"default_expression": null``) and an AUTHORED expression is recorded
+verbatim from the model source (never evaluated, never collapsed into an
+empty string; ``attribute x : String = ""`` is a different model statement
+from ``attribute x : String``).
 
 Identity discipline (ADR 0011): generation never derives identity from
 element names, qualified names, package paths, source filenames, or doc text.
@@ -218,26 +231,45 @@ STANDARD_LIBRARY_BASE: dict[str, dict[str, str]] = {
     },
 }
 
-#: Uniform claim boundary recorded on every O2.1 concept row. These are
-#: vocabulary/schema definitions; the generated row carries no instance-level
-#: fact of any kind. Enforced as a single constant so no row can drift.
-CLAIM_BOUNDARY = (
-    "Schema/vocabulary semantics only: this row projects the model-resident "
-    "definition of a method-conformance vocabulary concept at the bound "
-    "source revision. It carries no instance-level fact - no obligation "
-    "satisfaction, no method-phase completion, no acceptance or approval "
-    "decision, no evidence validity or freshness, no tested-scope equality, "
-    "no evaluation success - and instantiation elsewhere in the model does "
-    "not create one. Boundary statements carried by the model documentation "
-    "remain recorded verbatim in the definition documentation."
-)
-
-#: Uniform model/external boundary statement for O2.1 concept rows.
-MODEL_EXTERNAL_BOUNDARY = (
-    "Model-resident definition. External identities referenced by the "
-    "concept (retained records, policies, registries) remain external; "
-    "generation neither absorbs nor evaluates them."
-)
+#: Projection-schema contract (Unified Plan section 8.1: "support state
+#: needed to avoid advertising unsupported semantics"): what projection rows
+#: may claim and what they do not. This is SCHEMA/PROJECTION metadata, not
+#: per-concept SysML semantic content — model-derived concept meaning lives
+#: only in each row's model-derived fields (identity grounding, semantic
+#: kind, owned documentation, typed structure, library base). Enforced as a
+#: single structured constant so the contract cannot drift per row.
+PROJECTION_CONTRACT: dict[str, Any] = {
+    "semantic_scope": (
+        "vocabulary/schema definitions only: each concept row projects the "
+        "model-resident definition of a method-conformance vocabulary "
+        "concept at the bound source revision"
+    ),
+    "does_not_assert": [
+        "obligation satisfaction",
+        "method-phase completion",
+        "acceptance or approval decision",
+        "evidence validity or freshness",
+        "tested-scope equality",
+        "evaluation success",
+    ],
+    "derivation_rule": (
+        "every field that asserts engineering meaning for a projected "
+        "concept is derived from the governed model representation at the "
+        "bound source revision; governance, projection-contract, "
+        "representation-profile, and provenance metadata are explicitly "
+        "separated and identified as such"
+    ),
+    "external_artifact_treatment": (
+        "external identities referenced by projected concepts (retained "
+        "records, policies, registries) remain external; generation neither "
+        "absorbs nor evaluates them"
+    ),
+    "runtime_boundary": (
+        "generation is not authority activation; the runtime does not read "
+        "this artifact; support promotion is a separate reviewed "
+        "evidence-bearing step"
+    ),
+}
 
 #: Identity-resolution contract recorded per row: exactly the ingestion
 #: validation rule that yields a ``KernelElementBinding`` (ADR 0011). This
@@ -253,9 +285,15 @@ _IDENTITY_RESOLUTION = (
 )
 
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+#: An attribute member: ``attribute <name> : <Type> [= <expression>]``.
+#: Matched against the VERBATIM statement text (not a whitespace-collapsed
+#: copy) so an AUTHORED default expression is preserved exactly — interior
+#: whitespace included — and an ABSENT default stays absent (``None``). The
+#: declared type is whitespace-normalized; the expression never is.
 _ATTRIBUTE = re.compile(
-    r"attribute\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*(?P<type>[^=]+?)"
-    r"\s*(?:=\s*(?P<default>.+))?\Z"
+    r"\A\s*attribute\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*"
+    r"(?P<type>[^=]+?)\s*(?:=\s*(?P<default>.*?))?\s*\Z",
+    re.DOTALL,
 )
 
 
@@ -409,8 +447,11 @@ def direct_member_records(block: str) -> list[dict[str, Any]]:
       block's direct lexical depth (owned by the declaration, per SysML v2
       documentation ownership: a doc comment is owned by the element whose
       body it lexically sits in);
-    - ``{"kind": "attribute", "name", "type_text", "default_text"}`` — an
-      ``attribute <name> : <Type> [= <default>]`` member;
+    - ``{"kind": "attribute", "name", "type_text", "default_expression"}`` —
+      an ``attribute <name> : <Type> [= <expression>]`` member;
+      ``default_expression`` is ``None`` when NO default is authored and the
+      AUTHORED expression text verbatim otherwise (never evaluated, never
+      collapsed into an empty string);
     - ``{"kind": "literal", "name", "member_docs"}`` — an enumeration
       literal (braced or bodyless); ``member_docs`` are the ``doc`` comments
       inside the literal's own body (member-owned, never definition text);
@@ -473,22 +514,32 @@ def direct_member_records(block: str) -> list[dict[str, Any]]:
         if char == "}":
             break
         if char == ";":
-            raw = " ".join(block[start:index].split())
-            if raw:
-                match = _ATTRIBUTE.fullmatch(raw)
+            verbatim = block[start:index]
+            collapsed = " ".join(verbatim.split())
+            if collapsed:
+                match = _ATTRIBUTE.match(verbatim)
                 if match:
+                    default_expression = match.group("default")
+                    if default_expression is not None and not default_expression.strip():
+                        raise ProjectionV1Error(
+                            "attribute default '=' with an empty expression is "
+                            f"not a valid authored form: {collapsed!r}"
+                        )
                     records.append(
                         {
                             "kind": "attribute",
                             "name": match.group("name"),
-                            "type_text": match.group("type").strip(),
-                            "default_text": (match.group("default") or "").strip(),
+                            "type_text": " ".join(match.group("type").split()),
+                            # None == NO authored default; a string is the
+                            # authored expression VERBATIM (never evaluated,
+                            # never collapsed into '').
+                            "default_expression": default_expression,
                         }
                     )
-                elif _IDENTIFIER.fullmatch(raw):
-                    records.append({"kind": "literal", "name": raw, "member_docs": []})
+                elif _IDENTIFIER.fullmatch(collapsed):
+                    records.append({"kind": "literal", "name": collapsed, "member_docs": []})
                 else:
-                    records.append({"kind": "other", "text": raw})
+                    records.append({"kind": "other", "text": collapsed})
             index += 1
             start = index
             continue
@@ -652,7 +703,9 @@ def derive_concept_row(
                 {
                     "name": record["name"],
                     "type": _resolve_member_type(record["type_text"], contract),
-                    "default": _normalized_text(record["default_text"]),
+                    # None == no authored default; the authored expression is
+                    # preserved verbatim otherwise (never evaluated).
+                    "default_expression": record["default_expression"],
                 }
             )
         else:  # literal
@@ -684,8 +737,6 @@ def derive_concept_row(
             ),
             "members": members,
         },
-        "claim_boundary": CLAIM_BOUNDARY,
-        "model_external_boundary": MODEL_EXTERNAL_BOUNDARY,
         "grounding": {
             "kernel_binding_contract": {
                 "source_file": mapping.file,
@@ -793,11 +844,14 @@ def _binding_block(
         "api_binding": {
             "status": "unclaimed",
             "note": (
-                "O2.1 produces no validated SysML API project/commit closure. "
-                "Element identity is resolved at a bound API revision through "
-                "ingestion-validated kernel bindings (KernelBindingIndex, "
-                "fail closed); the exact-revision API closure belongs to the "
-                "privileged ingestion path and a later reviewed step."
+                "O2.1 produces no validated SysML API project/commit closure "
+                "and claims no current API element UUID. Element identity is "
+                "resolved at a bound API revision through ingestion-validated "
+                "kernel bindings (KernelBindingIndex, fail closed); the "
+                "exact-revision API closure belongs to the privileged "
+                "ingestion path and a later reviewed step. Retained "
+                "privileged-run evidence is representation-shape evidence "
+                "only."
             ),
         },
         "admission_manifest": {
@@ -882,10 +936,15 @@ def _build_pair(
             "authored YAML authority, and promotes no support state. The O1 "
             "migration inventory is governance, never semantic authority, and "
             "is not read by this generator. The runtime does not read this "
-            "artifact. Generated by scripts/generate_semantic_projection_v1.py."
+            "artifact. Every field that asserts engineering meaning for a "
+            "projected concept is derived from the governed model "
+            "representation; governance, projection-contract, representation-"
+            "profile, and provenance metadata are separated and identified as "
+            "such. Generated by scripts/generate_semantic_projection_v1.py."
         ),
         "binding": binding,
         "scope": _scope_block(manifest),
+        "projection_contract": dict(PROJECTION_CONTRACT),
         "concepts": concepts,
     }
     profile = {
@@ -899,7 +958,12 @@ def _build_pair(
             "Generated artifact. Representation mechanics only: this profile "
             "cannot redefine domain, range, direction, semantic strength, "
             "exclusions, or claim boundaries - those live in the Semantic "
-            "Projection. The runtime does not read this artifact."
+            "Projection. No current SysML API project/commit closure was "
+            "produced and no current API element UUID is claimed; the "
+            "retained privileged run is representation-shape evidence only "
+            "(its stale model text is not a semantic source), and all seven "
+            "identities remain vocabulary-only. The runtime does not read "
+            "this artifact."
         ),
         "binding": binding,
         "evidence_basis": {
