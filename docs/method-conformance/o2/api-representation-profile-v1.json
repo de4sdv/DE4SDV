@@ -2,9 +2,9 @@
   "schema": "de4sdv.api-representation-profile.v1",
   "profile_version": "v1",
   "status": "generated O2.1 SysML API Representation Profile v1 (representation mechanics for the seven settled c1 identities)",
-  "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries - those live in the Semantic Projection. The runtime does not read this artifact.",
+  "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries - those live in the Semantic Projection. No current SysML API project/commit closure was produced and no current API element UUID is claimed; the retained privileged run is representation-shape evidence only (its stale model text is not a semantic source), and all seven identities remain vocabulary-only. The runtime does not read this artifact.",
   "binding": {
-    "source_revision": "45f0a04d013dc01e4dd590dd1c0c569fed4b890f",
+    "source_revision": "1a917fc5ed5321d7083b212579747669436ebc94",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -26,7 +26,7 @@
     },
     "api_binding": {
       "status": "unclaimed",
-      "note": "O2.1 produces no validated SysML API project/commit closure. Element identity is resolved at a bound API revision through ingestion-validated kernel bindings (KernelBindingIndex, fail closed); the exact-revision API closure belongs to the privileged ingestion path and a later reviewed step."
+      "note": "O2.1 produces no validated SysML API project/commit closure and claims no current API element UUID. Element identity is resolved at a bound API revision through ingestion-validated kernel bindings (KernelBindingIndex, fail closed); the exact-revision API closure belongs to the privileged ingestion path and a later reviewed step. Retained privileged-run evidence is representation-shape evidence only."
     },
     "admission_manifest": {
       "path": "docs/method-conformance/o2/o21-admission.yaml",
@@ -40,7 +40,7 @@
       "approach/framework/ontology/de4sdv-basic-ontology.yaml": "sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4",
       "de4sdv/semantic/authority_inventory.py": "sha256:6ecd3ee167ebb89f72f4fd21e039d6ee54930889da0714281ece5e882a7e6f6d",
       "de4sdv/semantic/kernel_contract.py": "sha256:aedbdc7452bfd6ff4d8c126e91e6e287349ffa79f895f49fd4099d554916cd01",
-      "de4sdv/semantic/projection_v1.py": "sha256:19c9eec26e2f97d64fffb082278acf851930dc3785bbe7d6fc0564cb1abe13cd",
+      "de4sdv/semantic/projection_v1.py": "sha256:45290ae2b7d6de687d397b58b0584263f02963f889b94c2922dd19f32d002228",
       "docs/method-conformance/o2/o21-admission.yaml": "sha256:a223ee7fedb2574f7d160b782e7da211a66530b2864beff86c395756335ae773",
       "scripts/generate_semantic_projection_v1.py": "sha256:4a04d74a5555d34bf69befb4ee5999de8e9bad077de1d178b8a3a827ef6fc19b",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml": "sha256:55eda7fab8ff0601a80a22b42776c0c95c88073ac2e4703ae1c3cc2f18575580",
