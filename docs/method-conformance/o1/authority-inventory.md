@@ -4,7 +4,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `93b6dae13169371d34b0fc67111c9f50f2319afc`
+- Source revision: `bdaab030939f137f4de04cb7b739742d4372d300`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
 - reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:93951b8855b5d0e83917313f3f2578bc953e4e0cc019cf1a86e1cda3228c164a)
