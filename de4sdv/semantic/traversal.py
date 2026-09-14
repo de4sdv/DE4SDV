@@ -59,6 +59,45 @@ class TraversalHop:
     witness: dict[str, Any] = field(default_factory=dict)
 
 
+def build_reference_subsetting_bridge(
+    elements: list[dict[str, Any]],
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """The reviewed ReferenceSubsetting shadow bridge (c2 mechanism).
+
+    A ``verify`` statement can serialize as a RequirementVerificationMembership
+    whose member is a reference-usage shadow rather than the declared
+    requirement usage; the bridge is the owned ``ReferenceSubsetting`` whose
+    ``referencedFeature`` is the declared original. Returns both directions —
+    ``(declared_to_shadows, shadow_to_declared)`` — built from the same
+    serializer keys the verifiedBy resolver consumes, element-ordered and
+    deduplicated (deterministic).
+
+    Representation mechanics only: nothing here establishes identity or
+    promotes a shadow into a Requirement. The verifiedBy runtime grounds the
+    queried source itself; the reviewed identity rule
+    (:meth:`SemanticTraversal.requirement_identity`) grounds the declared
+    usage and fails closed otherwise.
+    """
+    declared_to_shadows: dict[str, list[str]] = {}
+    shadow_to_declared: dict[str, list[str]] = {}
+    for element in elements:
+        if str(element.get("@type")) != "ReferenceSubsetting":
+            continue
+        declared_ids = reference_ids(element.get("referencedFeature"))
+        shadow_ids = reference_ids(element.get("owningRelatedElement")) + (
+            reference_ids(element.get("owner"))
+        )
+        for declared in declared_ids:
+            for shadow in shadow_ids:
+                shadows = declared_to_shadows.setdefault(declared, [])
+                if shadow not in shadows:
+                    shadows.append(shadow)
+                declareds = shadow_to_declared.setdefault(shadow, [])
+                if declared not in declareds:
+                    declareds.append(declared)
+    return declared_to_shadows, shadow_to_declared
+
+
 class SemanticTraversal:
     """Execute only explicitly configured ontology relationship strategies."""
 
@@ -279,6 +318,94 @@ class SemanticTraversal:
             if str(spec.get("range") or "") == _EVIDENCE_CONTRACT_RANGE_CLASS:
                 blocked.append(name)
         return frozenset(blocked)
+
+    def requirement_identity_context(
+        self, elements: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Shared inputs for the reviewed Requirement-identity rule.
+
+        The `verifiedBy` source-domain closure (c5 R2 verifiedBy-domain
+        consistency review) needs the same three inputs for every element it
+        decides: the element index, the validated Requirement-lineage
+        resolver, and both directions of the reviewed ReferenceSubsetting
+        shadow bridge. Batch consumers (for example the MCP Proof-B subject
+        selection) build the context once and decide many elements; single
+        callers may pass ``context=None`` to
+        :meth:`requirement_identity` instead.
+
+        Fails closed: without a validated kernel binding index the lineage
+        resolver raises :class:`IdentityNotFoundError` — names, packages,
+        and source text never participate.
+        """
+        by_id: dict[str, dict[str, Any]] = {}
+        for item in elements:
+            candidate_id = element_id(item)
+            if candidate_id is not None:
+                by_id[candidate_id] = item
+        graph = build_relationship_graph(list(by_id.values()))
+        resolver = self._lineage_resolver("Requirement", by_id, graph)
+        _declared_to_shadows, shadow_to_declared = (
+            build_reference_subsetting_bridge(elements)
+        )
+        return {
+            "by_id": by_id,
+            "resolver": resolver,
+            "shadow_to_declared": shadow_to_declared,
+        }
+
+    def requirement_identity(
+        self,
+        element: dict[str, Any],
+        elements: list[dict[str, Any]],
+        *,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Machine-prove the governed DE4SDV Requirement identity of one element.
+
+        The reviewed ``verifiedBy`` source-domain discriminator (c5 R2
+        verifiedBy-domain closure): direct Requirement-lineage grounding of
+        the element, or — when the element is a serialized
+        ReferenceSubsetting shadow — the same grounding proof on its declared
+        usage (the reviewed c2 bridge). Returns the identity record of the
+        PROVEN subject (``element_id``, ``basis``, ``grounding_provenance``,
+        ``requirement_lineage_root_id``) or ``None`` when the identity cannot
+        be established. A shadow is representation mechanics only: it is
+        never promoted into a governed Requirement by participation, and the
+        proof always runs on a usage's own validated lineage grounding —
+        never on API metaclass, names, packages, or source text.
+        """
+        active = (
+            context
+            if context is not None
+            else self.requirement_identity_context(elements)
+        )
+        by_id = active["by_id"]
+        resolver = active["resolver"]
+        shadow_to_declared = active["shadow_to_declared"]
+        element_id_value = element_id(element)
+        if element_id_value is None:
+            return None
+        grounding = self._endpoint_grounding(element, resolver)
+        if grounding is not None:
+            return {
+                "element_id": element_id_value,
+                "basis": "direct-requirement-lineage",
+                "grounding_provenance": grounding,
+                "requirement_lineage_root_id": resolver["root_id"],
+            }
+        for declared_id in shadow_to_declared.get(element_id_value, ()):
+            declared = by_id.get(declared_id)
+            if declared is None or str(declared.get("@type")) != "RequirementUsage":
+                continue
+            declared_grounding = self._endpoint_grounding(declared, resolver)
+            if declared_grounding is not None:
+                return {
+                    "element_id": declared_id,
+                    "basis": "reference-subsetting-shadow",
+                    "grounding_provenance": declared_grounding,
+                    "requirement_lineage_root_id": resolver["root_id"],
+                }
+        return None
 
     def _natively_verified_ids(
         self, elements: list[dict[str, Any]]
@@ -1257,6 +1384,17 @@ class SemanticTraversal:
         bridges a serialized reference usage (the "shadow") to the declared
         requirement when the shadow, not the declaration, is the RVM member.
         Containment ancestry without an RVM never qualifies (fail closed).
+
+        Governed source domain (c5 R2 verifiedBy-domain closure): the
+        declared predicate is ``Requirement -> VerificationCase``; the
+        QUERIED semantic source must ground in the validated Requirement
+        lineage — the relationship's declared ontology domain, enforced
+        through the reviewed lineage resolver. A serialized shadow
+        participates only as the serializer-side RVM anchor of its declared
+        requirement; a shadow queried directly is never promoted into a
+        governed Requirement. Candidate-first: a source with no candidate
+        verification participation (its own or its reviewed shadow's) is
+        quiet absence — no lineage resolution, no binding requirement.
         """
         config = mapping.configuration
         membership_types = {
@@ -1289,17 +1427,12 @@ class SemanticTraversal:
                 + reference_ids(membership.get("owningType"))
             )
 
-        # ReferenceSubsetting reverse index: declared requirement -> shadow
-        # reference usage.
-        refsub_reverse: dict[str, set[str]] = {}
-        for element in elements:
-            if str(element.get("@type")) != "ReferenceSubsetting":
-                continue
-            for target_ref in reference_ids(element.get("referencedFeature")):
-                for shadow_ref in reference_ids(
-                    element.get("owningRelatedElement")
-                ) + reference_ids(element.get("owner")):
-                    refsub_reverse.setdefault(target_ref, set()).add(shadow_ref)
+        # Reviewed ReferenceSubsetting shadow bridge: declared requirement ->
+        # serialized shadow reference usage (the same keys the resolver below
+        # consumes, via the shared c2-mechanism builder).
+        declared_to_shadows, _shadow_to_declared = (
+            build_reference_subsetting_bridge(elements)
+        )
 
         # Membership edges for upward owner walking (containment chain).
         owner_chain_types = {
@@ -1324,18 +1457,50 @@ class SemanticTraversal:
                 ):
                     _owners_index.setdefault(member_ref, set()).add(owner_ref)
 
-        # Start points: the declared requirement and, when a shadow reference
-        # usage subsettings it, the shadow (so upward walking can proceed).
-        starts: set[str] = {source_id} | refsub_reverse.get(source_id, set())
+        # Start points: the queried semantic source and, when a shadow
+        # reference usage subsettings it, the shadow (so upward walking can
+        # proceed). The shadow participates as the serializer-side anchor
+        # only — it is never promoted into a governed Requirement.
+        starts: set[str] = {source_id} | set(
+            declared_to_shadows.get(source_id, ())
+        )
+
+        # Candidate-first (c3/c5 discipline): a source (or its reviewed
+        # shadow) participating in no candidate verification membership is
+        # quiet absence — no lineage resolution, no binding requirement.
+        candidates = [
+            membership
+            for membership in elements
+            if str(membership.get("@type")) in membership_types
+            and (anchors_of(membership) & starts)
+        ]
+        if not candidates:
+            return []
+
+        # Governed source-domain enforcement (c5 R2 verifiedBy-domain
+        # closure): the declared predicate is Requirement -> VerificationCase;
+        # the domain is enforced from the relationship's declared ontology
+        # contract. The QUERIED semantic source must ground in the validated
+        # Requirement lineage — a bare RequirementUsage, a Need-role usage,
+        # an ungrounded evidence-contract usage, or a serialized shadow
+        # queried directly is a non-qualifying source: quiet absence, never a
+        # hop. A missing declared domain refuses to run; a missing validated
+        # binding raises IdentityNotFoundError (fail closed) — never a name
+        # fallback.
+        domain_class = mapping.domain
+        if not domain_class:
+            raise ValueError(
+                f"verification-membership mapping for {mapping.name!r} "
+                f"declares no governed domain lineage; the declared semantic "
+                f"contract cannot be enforced"
+            )
+        graph = build_relationship_graph(list(by_id.values()))
+        resolver = self._lineage_resolver(str(domain_class), by_id, graph)
+        if self._endpoint_grounding(source, resolver) is None:
+            return []
 
         hops: list[TraversalHop] = []
-        for membership in elements:
-            if str(membership.get("@type")) not in membership_types:
-                continue
-            # Fail-closed: the RVM must anchor on the requirement itself or on
-            # a shadow that ReferenceSubsetting ties to it.
-            if not (anchors_of(membership) & starts):
-                continue
+        for membership in candidates:
             # Walk owners upward from the RVM; stop at the first case.
             frontier = list(_owners_of(membership))
             seen = set(frontier)

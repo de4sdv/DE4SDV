@@ -92,6 +92,23 @@ def _typing(element_id_value: str, type_id: str, witness_id: str) -> dict:
     }
 
 
+def _grounded_requirement_elements(
+    requirement: dict, witness: str = "ft-grounding"
+) -> list[dict]:
+    """The Requirement-lineage grounding pair for a fixture usage.
+
+    c5 R2 runtime-domain closure: the verifiedBy runtime enforces the
+    declared ``Requirement -> VerificationCase`` source domain, so fixtures
+    carry the kernel element plus the authored grounding typing (with
+    ``_kernel_index()``) exactly like the grounded production model carries
+    them; the domain is resolved from the validated binding, never by name.
+    """
+    return [
+        _kernel_requirement(),
+        _typing(requirement["@id"], "kernel-requirement", witness),
+    ]
+
+
 def _kernel_index():
     """Validated kernel bindings for the Requirement + MemberProduct lineages.
 
@@ -248,9 +265,15 @@ def test_verification_membership_traversal_resolves_native_api_shape() -> None:
         "owningRelatedElement": {"@id": "vc-1"},
         "memberElement": {"@id": "ev-1"},
     }
-    hops = SemanticTraversal(_contract()).traverse(
-        "verifiedBy", evidence, [evidence, verification, verify_membership]
-    )
+    elements = [
+        evidence,
+        verification,
+        verify_membership,
+        *_grounded_requirement_elements(evidence),
+    ]
+    hops = SemanticTraversal(
+        _contract(), kernel_bindings=_kernel_index()
+    ).traverse("verifiedBy", evidence, elements)
     assert len(hops) >= 1
     hop = next(h for h in hops if h.api_object["@id"] == "rvm-1")
     assert hop.predicate == "verifiedBy"
@@ -303,10 +326,11 @@ def test_verification_traversal_resolves_objective_ownership_chain() -> None:
             "owningRelatedElement": {"@id": "objective-1"},
             "memberElement": {"@id": "ev-1"},
         },
+        *_grounded_requirement_elements(evidence),
     ]
-    hops = SemanticTraversal(_contract()).traverse(
-        "verifiedBy", evidence, elements
-    )
+    hops = SemanticTraversal(
+        _contract(), kernel_bindings=_kernel_index()
+    ).traverse("verifiedBy", evidence, elements)
     assert len(hops) >= 1
     hop = next(h for h in hops if h.target["@id"] == "vc-1")
     assert hop.semantic_strength == "native-verification"
@@ -374,11 +398,18 @@ def test_verification_traversal_resolves_shadow_only_reference_subsetting() -> N
             "owningRelatedElement": {"@id": "shadow-1"},
             "referencedFeature": {"@id": "ev-1"},
         },
+        *_grounded_requirement_elements(declared),
     ]
-    hops = SemanticTraversal(_contract()).traverse("verifiedBy", declared, elements)
+    traversal = SemanticTraversal(_contract(), kernel_bindings=_kernel_index())
+    hops = traversal.traverse("verifiedBy", declared, elements)
     assert len(hops) >= 1
     hop = next(h for h in hops if h.target["@id"] == "vc-1")
     assert hop.semantic_strength == "native-verification"
+    # Source-vs-shadow law (c5 R2 runtime-domain closure): the shadow
+    # participates as the serializer-side RVM anchor only. Queried directly
+    # it is not a governed Requirement and yields no hop — participation is
+    # never promoted into identity.
+    assert traversal.traverse("verifiedBy", shadow, elements) == []
 
 
 def test_verification_membership_traversal_honors_member_element_form() -> None:
@@ -400,9 +431,15 @@ def test_verification_membership_traversal_honors_member_element_form() -> None:
         "owningRelatedElement": {"@id": "vc-1"},
         "memberElement": {"@id": "ev-1"},
     }
-    hops = SemanticTraversal(_contract()).traverse(
-        "verifiedBy", evidence, [evidence, verification, membership]
-    )
+    elements = [
+        evidence,
+        verification,
+        membership,
+        *_grounded_requirement_elements(evidence),
+    ]
+    hops = SemanticTraversal(
+        _contract(), kernel_bindings=_kernel_index()
+    ).traverse("verifiedBy", evidence, elements)
     assert len(hops) >= 1
     hop = next(h for h in hops if h.api_object["@id"] == "rvm-1")
     assert hop.target["@id"] == "vc-1"

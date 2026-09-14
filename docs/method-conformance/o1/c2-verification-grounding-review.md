@@ -259,11 +259,23 @@ repository machinery):
 
 Enforced discriminator (machine-resolvable, deterministic, revision-bound,
 fail-closed, independent of names and layout): **direct Requirement-lineage
-grounding of the anchored usage, or the reviewed ReferenceSubsetting shadow
+grounding of the queried usage, or the reviewed ReferenceSubsetting shadow
 bridge followed by that grounding proof on the declared usage**. The
-enforcement lives at the Proof-B subject-selection/assertion boundary
-(`scripts/validate_semantic_mcp.py`); the traversal resolver
-(`_verification_membership_hops`) and every claim boundary in Sections 2
+enforcement lives in the **semantic runtime itself**: the `verifiedBy`
+traversal strategy (`_verification_membership_hops`, `de4sdv/semantic/
+traversal.py`) resolves the relationship's declared ontology `domain`
+through the validated lineage resolver and emits a hop only for a source
+proven in the governed `Requirement` domain — candidate-first (a source
+with no native verification participation is quiet absence without lineage
+resolution), never name-based, failing closed when a candidate must be
+decided but no validated binding is available. The Proof-B
+subject-selection/assertion boundary in `scripts/validate_semantic_mcp.py`
+consumes the same runtime-owned identity rule (`requirement_identity`)
+as defense-in-depth; it does not define a stronger rule than the runtime.
+Every public predicate consumer — `semantic_neighbors`, `impact`, `trace`,
+`verification_coverage` — is therefore domain-enforcing by construction:
+the 34 unresolved anchors receive zero public `verifiedBy` claims, not
+merely zero MCP Proof-B selection. The c2 claim boundaries in Sections 2
 and 5 are unchanged — no execution, outcome, satisfaction, approval, or
 certification meaning is added by this record. Both c2 rows remain
 `parity-reviewed`; `verifiedBy` current authority remains `legacy-yaml`

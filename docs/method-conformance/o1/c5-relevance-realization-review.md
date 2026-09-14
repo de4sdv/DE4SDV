@@ -562,7 +562,16 @@ with machine-proven governed Requirement identity — direct lineage
 grounding or the reviewed ReferenceSubsetting shadow bridge — and fails
 closed for ungrounded, Need-role, and out-of-lineage acceptance-criterion
 subjects; names never steer; the Proof-B identity assertion rejects
-missing, unreviewed-basis, and wrong-root identity records); and the
+missing, unreviewed-basis, and wrong-root identity records); the runtime
+source-domain laws at the public traversal boundary (bare `RequirementUsage`,
+ungrounded evidence-contract-role, Need-role, and out-of-lineage
+acceptance-criterion sources receive no hop; a serialized shadow queried
+directly is never promoted; candidate-first quiet absence without bindings;
+fail-closed missing-binding and domain-less-mapping errors; names never
+steer), exercised through the public surfaces (`semantic_neighbors`,
+`impact`, `trace`, `verification_coverage`: no `verifiedBy` claim for the
+unresolved fixture, the expected hop for the grounded and shadow-bridge
+controls) and the selector/public-eligibility agreement lock; and the
 Proof-A-located hasSubject / native-reference surface assertion.
 
 ## 17. Integration closure (post-semantic-review; PR #249)
@@ -758,30 +767,48 @@ the reviewed c2 semantics):
   class identity is claimed for them, and they are never emitted as
   `verifiedBy` subjects.
 - Need-role anchors: 0. Direct (non-shadow) anchors: 0 in this population.
-  Hop pairs over the RVM anchors: **64 before domain enforcement** (the
-  resolver emits per anchor, no identity gate), **30 after correct domain
-  enforcement** (the Requirement-proven anchors). One model witness per
-  anchor; no anchor carries more than one distinct case pair.
+  One model witness per anchor; no anchor carries more than one distinct
+  case pair.
+- **Public predicate measurement through the actual corrected traversal**
+  (offline replay over the full source population — the 64 serialized
+  anchors plus their 45 declared targets): **128 verifiedBy hop pairs before
+  the runtime domain gate** (64 emitted for queried anchors + 64 for queried
+  declared targets: 30 governed + 34 evidence-contract-role), **30 after
+  correct domain enforcement**, carried by **15 distinct public sources**
+  (the Requirement-grounded declared usages; all 30 resolve through the
+  reviewed shadow bridge). The 64 serialized shadows receive **zero** public
+  `verifiedBy` claims when queried directly — participation in the native
+  membership is never promoted into source identity — and the 34 unresolved
+  anchors' declared targets receive zero as well.
 
-**The corrected enforcement.** `_select_native_verification_subject()`
-returns only subjects with machine-proven identity. The exact
-discriminators: (a) **direct Requirement-lineage grounding** of the
-anchored usage, or (b) the **reviewed ReferenceSubsetting shadow bridge**
-followed by that grounding proof on the declared usage. The returned record
-carries `basis`, `grounding_provenance`, the validated lineage root id, and
-the RVM anchor id; case resolution stays delegated to the reviewed
-owner-chain resolver. `validate_semantic_results` asserts the recorded
-identity whenever the production subject record is supplied — missing
+**The corrected enforcement (runtime closure).** The declared source domain
+is enforced in the **actual semantic traversal**: `_verification_membership_hops`
+resolves the relationship's declared ontology `domain` through the
+validated lineage resolver and emits a hop only for a source proven in the
+governed `Requirement` domain — candidate-first (a source with no candidate
+verification participation is quiet absence without lineage resolution),
+failing closed when a candidate must be decided but no validated binding is
+available, never name-based. The Proof-B selector consumes that same
+runtime-owned identity rule (`requirement_identity`): it returns only
+subjects with machine-proven identity — the exact discriminators: (a)
+**direct Requirement-lineage grounding** of the queried usage, or (b) the
+**reviewed ReferenceSubsetting shadow bridge** followed by that grounding
+proof on the declared usage — with the returned record carrying `basis`,
+`grounding_provenance`, the validated lineage root id, and the RVM anchor
+id; case resolution stays delegated to the reviewed owner-chain resolver.
+`validate_semantic_results` asserts the recorded identity whenever the
+production subject record is supplied, as defense-in-depth — missing
 identity, an unreviewed basis, or a record that is not the proof-triple
-root all fail closed. On the retained model the corrected selection selects
-`acceptanceCriterion010EvidenceIndependence` (declared usage of anchor
-`9dc2bd4d`, case `UpdateCoordinationValidation`); the previously selected
-subject is rejected because its anchored usage's declared target carries no
-governed lineage. The `verifiedBy` traversal resolver
-(`_verification_membership_hops`) and the c2-reviewed witness semantics are
-**unchanged** — enforcement lives at the Proof-B selection/assertion
-boundary, and the declared semantic predicate stays exactly
-`Requirement -> VerificationCase`.
+root all fail closed. Public consumers (`semantic_neighbors`, `impact`,
+`trace`, `verification_coverage`) are domain-enforcing by construction, so
+Proof B and ordinary semantic queries make the same domain-valid claim:
+the 34 unresolved anchors receive zero public `verifiedBy` claims, not
+merely zero Proof-B selection. On the retained model the selection still
+selects `acceptanceCriterion010EvidenceIndependence` (declared usage of
+anchor `9dc2bd4d`, case `UpdateCoordinationValidation`); the previously
+selected subject remains rejected because its anchored usage's declared
+target carries no governed lineage. The declared semantic predicate stays
+exactly `Requirement -> VerificationCase`.
 
 **Integrated subject-surface correction.** Measured on the retained model:
 none of the 109 natively verified usages carries a member-product subject
@@ -803,5 +830,8 @@ unchanged, the `hasRelevantEvidenceContract` blocked/defer state stands, and
 all c2 decisions — including the claim boundary — stand (the c2 review
 gains the previously implicit source-domain grounding record in its new
 Section 6). No ontology YAML semantic change; no `.sysml`/`.kerml` change;
-no traversal or service semantics change; no new privileged ingestion. The
-review's machine locks live in `tests/test_c5_integration_closure.py`.
+no new privileged ingestion. The landing change is the runtime source-domain
+gate inside the `verifiedBy` strategy itself, plus the shared
+Requirement-identity helper the Proof-B selector now consumes; no other
+traversal strategy and no service-façade semantics changed. The review's
+machine locks live in `tests/test_c5_integration_closure.py`.

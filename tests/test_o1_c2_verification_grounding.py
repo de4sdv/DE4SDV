@@ -168,8 +168,85 @@ def _contract() -> ai.KernelContract:
     return ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
 
 
+def _requirement_kernel_index():
+    """Validated kernel binding for the governed Requirement lineage.
+
+    c5 R2 runtime-domain closure: the verifiedBy runtime resolves the
+    relationship's declared ontology domain through ingestion-validated
+    kernel bindings, so fixtures carry them exactly like the production
+    binding does (never a name-based resolution).
+    """
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    return KernelBindingIndex.from_binding(
+        RevisionBinding.from_dict(
+            {
+                "git_repository": "de4sdv/DE4SDV",
+                "git_commit": "a" * 40,
+                "sysml_project_id": "project-1",
+                "sysml_commit_id": "commit-1",
+                "import_timestamp": "2026-09-01T00:00:00Z",
+                "import_tool_version": "fixture/1",
+                "semantic_validation": "passed",
+                "scope": "fixture",
+                "ontology": _contract().identity.to_dict(),
+                "kernel_bindings": [
+                    {
+                        "ontology_class": "Requirement",
+                        "element_id": "kernel-requirement",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_method_context.sysml"
+                        ),
+                        "declaration": "requirement def RequirementCandidate",
+                    },
+                ],
+            }
+        )
+    )
+
+
+def _requirement_grounding(requirement: dict) -> list[dict]:
+    """Kernel element + authored grounding typing for a fixture usage.
+
+    c5 R2 runtime-domain closure: the queried requirement must ground in the
+    validated Requirement lineage before any verifiedBy hop is emitted; the
+    fixtures carry that grounding the way the real model carries it (kernel
+    declaration + authored typing, resolved from the validated binding).
+    """
+    return [
+        {
+            "@id": "kernel-requirement",
+            "@type": "RequirementDefinition",
+            "declaredName": "RequirementCandidate",
+            "qualifiedName": "DE4SDV_MethodContext::RequirementCandidate",
+        },
+        {
+            "@id": f"{requirement['@id']}-grounding",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": {"@id": requirement["@id"]},
+            "type": {"@id": "kernel-requirement"},
+            "typedFeature": {"@id": requirement["@id"]},
+        },
+    ]
+
+
 def _traverse(requirement: dict, elements: list[dict]):
-    return SemanticTraversal(_contract()).traverse("verifiedBy", requirement, elements)
+    """Traverse ``verifiedBy`` with the governed source-domain machinery.
+
+    The traversal carries the validated Requirement binding and the fixture
+    population carries the queried requirement's authored grounding typing
+    (c5 R2 runtime-domain closure): the declared domain is enforced from the
+    validated binding, never from names.
+    """
+    return SemanticTraversal(
+        _contract(), kernel_bindings=_requirement_kernel_index()
+    ).traverse(
+        "verifiedBy",
+        requirement,
+        list(elements) + _requirement_grounding(requirement),
+    )
 
 
 def _requirement(req_id: str, name: str = "evidenceContractSample") -> dict:

@@ -18,11 +18,20 @@ and a real VerificationCase; the validator's native-subject selection must
 accept exactly that membership fact, must return only subjects with
 machine-proven governed DE4SDV Requirement identity (direct
 Requirement-lineage grounding or the reviewed ReferenceSubsetting shadow
-bridge — c5 R2 verifiedBy-domain consistency review), and must refuse every
+bridge — c5 R2 verifiedBy-domain closure), and must refuse every
 ungrounded / wrong-lineage subject. The hasSubject / native-reference
 subject surface is asserted on the Proof-A requirement (the retained model
 carries member-product subject hops on requirements without native
 verification; verified subjects carry none), never on the Proof-B subject.
+
+c5 R2 verifiedBy-domain closure: the DECLARED source domain
+(``Requirement -> VerificationCase``) is enforced in the actual semantic
+traversal (``_verification_membership_hops``), not only in this validator —
+the public predicate satisfies ``verifiedBy(source, case) => source has
+proven DE4SDV Requirement identity``, so Proof B and ordinary semantic
+queries (neighbors, impact, trace, coverage) make the same domain-valid
+claim. The unresolved / wrong-lineage fixtures below lock that at the
+public surfaces.
 
 The same shapes flow through the validator entry point
 ``validate_semantic_results`` unchanged.
@@ -208,6 +217,64 @@ def _service_elements() -> list[dict[str, Any]]:
             "@type": "RequirementVerificationMembership",
             "owningRelatedElement": ref("verification-b"),
             "memberElement": ref("req-b"),
+        },
+        # ----- verifiedBy runtime-domain closure fixtures --------------------
+        # An unresolved RVM-anchored requirement usage (no governed lineage):
+        # the public semantic predicate must emit NO verifiedBy hop for it
+        # even though the raw native membership exists.
+        {
+            "@id": "req-unresolved",
+            "@type": "RequirementUsage",
+            "declaredName": "reqUnresolvedVerifiedUsage",
+        },
+        {
+            "@id": "case-unresolved",
+            "@type": "VerificationCaseUsage",
+            "declaredName": "unresolvedVerification",
+        },
+        {
+            "@id": "rvm-unresolved",
+            "@type": "RequirementVerificationMembership",
+            "owningRelatedElement": ref("case-unresolved"),
+            "memberElement": ref("req-unresolved"),
+        },
+        # The reviewed shadow-bridge shape: the RVM anchors the serialized
+        # shadow; the declared usage carries the governed grounding. The
+        # declared source gets the hop; the shadow queried directly does not
+        # (participation is never promoted into identity).
+        {
+            "@id": "req-declared",
+            "@type": "RequirementUsage",
+            "declaredName": "reqDeclaredVerifiedUsage",
+        },
+        {
+            "@id": "req-declared-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("req-declared"),
+            "type": ref("kernel-requirement"),
+            "typedFeature": ref("req-declared"),
+        },
+        {
+            "@id": "shadow-declared",
+            "@type": "RequirementUsage",
+            "declaredName": "serializedShadowReference",
+        },
+        {
+            "@id": "refsub-declared",
+            "@type": "ReferenceSubsetting",
+            "owningRelatedElement": ref("shadow-declared"),
+            "referencedFeature": ref("req-declared"),
+        },
+        {
+            "@id": "case-declared",
+            "@type": "VerificationCaseUsage",
+            "declaredName": "declaredShadowVerification",
+        },
+        {
+            "@id": "rvm-declared",
+            "@type": "RequirementVerificationMembership",
+            "owningRelatedElement": ref("case-declared"),
+            "memberElement": ref("shadow-declared"),
         },
     ]
 
@@ -1061,3 +1128,369 @@ def test_proof_a_surface_assertion_is_located_on_proof_a(
             proof_b_trace=r["proof_b_trace"],
             proof_b_subject=r["subject"],
         )
+
+
+# ---------------------------------------------------------------------------
+# verifiedBy runtime-domain enforcement (c5 R2 verifiedBy-domain closure).
+# The PUBLIC semantic predicate itself must satisfy:
+#     verifiedBy(source, case) => source has proven DE4SDV Requirement identity
+# Laws: bare RequirementUsage != Requirement automatically;
+# RequirementVerificationMembership != Requirement identity; Need !=
+# Requirement; AcceptanceCriterion-role qualifies only with independent
+# Requirement lineage; a serialized shadow is never promoted by
+# participation; unresolved identity fails closed; names never steer.
+# ---------------------------------------------------------------------------
+
+
+def _grounding_typing(
+    element_id_value: str,
+    def_id: str = "kernel-requirement",
+    witness: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "@id": witness or f"{element_id_value}-grounding",
+        "@type": "FeatureTyping",
+        "owningRelatedElement": ref(element_id_value),
+        "type": ref(def_id),
+        "typedFeature": ref(element_id_value),
+    }
+
+
+def _bare_traversal():
+    """A traversal WITHOUT validated bindings (candidate-first discipline)."""
+    from de4sdv.semantic.kernel_contract import KernelContract
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    contract = KernelContract.load(
+        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+    )
+    return SemanticTraversal(contract, kernel_bindings=None)
+
+
+def test_verifiedby_runtime_domain_laws() -> None:
+    """The traversal boundary enforces the declared source domain."""
+    traversal = _selection_traversal()
+
+    # Positive: a governed Requirement (oddly named — names never steer)
+    # with a direct RVM anchor resolves to its verification case.
+    direct = {
+        "@id": "req-grounded",
+        "@type": "RequirementUsage",
+        "declaredName": "oddlyNamedGroundedUsage",
+    }
+    elements = [
+        _kernel_requirement_element(),
+        direct,
+        _grounding_typing("req-grounded"),
+        _case("case-grounded"),
+        _rvm_anchored("rvm-grounded", "req-grounded", "case-grounded"),
+    ]
+    hops = traversal.traverse("verifiedBy", direct, elements)
+    assert [hop.target["@id"] for hop in hops] == ["case-grounded"]
+    assert hops[0].semantic_strength == "native-verification"
+
+    # Positive: acceptance-criterion-role usage with INDEPENDENT Requirement
+    # lineage through the classification chain — verifiedBy requires the
+    # Requirement domain only, not EvidenceContract identity.
+    acceptance = {
+        "@id": "ac-grounded",
+        "@type": "RequirementUsage",
+        "declaredName": "acceptanceCriterionSample",
+    }
+    acceptance_elements = [
+        _kernel_requirement_element(),
+        {
+            "@id": "acceptanceCriterionRoot",
+            "@type": "RequirementDefinition",
+            "declaredName": "acceptanceCriterionRoot",
+        },
+        {
+            "@id": "ac-sub",
+            "@type": "Subclassification",
+            "subclassifier": ref("acceptanceCriterionRoot"),
+            "superclassifier": ref("kernel-requirement"),
+        },
+        acceptance,
+        _grounding_typing("ac-grounded", def_id="acceptanceCriterionRoot"),
+        _case("case-ac"),
+        _rvm_anchored("rvm-ac", "ac-grounded", "case-ac"),
+    ]
+    hops = traversal.traverse("verifiedBy", acceptance, acceptance_elements)
+    assert [hop.target["@id"] for hop in hops] == ["case-ac"]
+
+    # Positive: the reviewed shadow bridge — the declared usage resolves;
+    # the serialized shadow participates as anchor only and is NOT promoted.
+    declared = {
+        "@id": "req-bridge-declared",
+        "@type": "RequirementUsage",
+        "declaredName": "bridgeDeclaredUsage",
+    }
+    shadow = {
+        "@id": "req-shadow-serialized",
+        "@type": "RequirementUsage",
+        "declaredName": None,
+    }
+    bridge_elements = [
+        _kernel_requirement_element(),
+        declared,
+        _grounding_typing("req-bridge-declared"),
+        shadow,
+        {
+            "@id": "refsub-bridge",
+            "@type": "ReferenceSubsetting",
+            "owningRelatedElement": ref("req-shadow-serialized"),
+            "referencedFeature": ref("req-bridge-declared"),
+        },
+        _case("case-bridge"),
+        _rvm_anchored("rvm-bridge", "req-shadow-serialized", "case-bridge"),
+    ]
+    hops = traversal.traverse("verifiedBy", declared, bridge_elements)
+    assert [hop.target["@id"] for hop in hops] == ["case-bridge"]
+    assert traversal.traverse("verifiedBy", shadow, bridge_elements) == []
+
+    # Negative: bare RequirementUsage + RVM — a bare API @type never
+    # establishes Requirement identity.
+    bare = {
+        "@id": "req-bare",
+        "@type": "RequirementUsage",
+        "declaredName": "reqCommandEmergencyBraking",
+    }
+    bare_elements = [
+        _kernel_requirement_element(),
+        bare,
+        _case("case-bare"),
+        _rvm_anchored("rvm-bare", "req-bare", "case-bare"),
+    ]
+    assert traversal.traverse("verifiedBy", bare, bare_elements) == []
+
+    # Negative: ungrounded evidence-contract-role usage + RVM.
+    evidence = {
+        "@id": "ec-ungrounded",
+        "@type": "RequirementUsage",
+        "declaredName": "evidenceContractSample",
+    }
+    evidence_elements = [
+        _kernel_requirement_element(),
+        {
+            "@id": "evidenceContractDef",
+            "@type": "RequirementDefinition",
+            "declaredName": "evidenceContractDef",
+        },
+        evidence,
+        _grounding_typing("ec-ungrounded", def_id="evidenceContractDef"),
+        _case("case-ec"),
+        _rvm_anchored("rvm-ec", "ec-ungrounded", "case-ec"),
+    ]
+    assert traversal.traverse("verifiedBy", evidence, evidence_elements) == []
+
+    # Negative: Need-role usage (sibling lineage, also a RequirementUsage
+    # and also natively verified) is not a Requirement source.
+    need = {
+        "@id": "need-rvm",
+        "@type": "RequirementUsage",
+        "declaredName": "needSample",
+    }
+    need_elements = [
+        _kernel_requirement_element(),
+        {
+            "@id": "kernel-need",
+            "@type": "RequirementDefinition",
+            "declaredName": "StakeholderNeedCandidate",
+        },
+        need,
+        _grounding_typing("need-rvm", def_id="kernel-need"),
+        _case("case-need"),
+        _rvm_anchored("rvm-need", "need-rvm", "case-need"),
+    ]
+    assert traversal.traverse("verifiedBy", need, need_elements) == []
+
+    # Negative: acceptance-criterion-role usage WITHOUT Requirement lineage.
+    outside = {
+        "@id": "ac-outside",
+        "@type": "RequirementUsage",
+        "declaredName": "acceptanceCriterionOutside",
+    }
+    outside_elements = [
+        _kernel_requirement_element(),
+        {
+            "@id": "outsideCriterionRoot",
+            "@type": "RequirementDefinition",
+            "declaredName": "outsideCriterionRoot",
+        },
+        outside,
+        _grounding_typing("ac-outside", def_id="outsideCriterionRoot"),
+        _case("case-outside"),
+        _rvm_anchored("rvm-outside", "ac-outside", "case-outside"),
+    ]
+    assert traversal.traverse("verifiedBy", outside, outside_elements) == []
+
+    # Names never steer: renaming every element leaves both outcomes intact.
+    renamed = json.loads(json.dumps(elements))
+    for element in renamed:
+        if isinstance(element.get("declaredName"), str):
+            element["declaredName"] = "z-reversed-" + element["declaredName"]
+    renamed_source = next(
+        element for element in renamed if element["@id"] == "req-grounded"
+    )
+    assert len(traversal.traverse("verifiedBy", renamed_source, renamed)) == 1
+    renamed_bare = json.loads(json.dumps(bare_elements))
+    for element in renamed_bare:
+        if isinstance(element.get("declaredName"), str):
+            element["declaredName"] = "z-reversed-" + element["declaredName"]
+    renamed_bare_source = next(
+        element for element in renamed_bare if element["@id"] == "req-bare"
+    )
+    assert (
+        traversal.traverse("verifiedBy", renamed_bare_source, renamed_bare) == []
+    )
+
+
+def test_verifiedby_runtime_candidate_first_discipline() -> None:
+    """No candidate participation = quiet absence without lineage machinery;
+    candidates to decide + no validated binding = fail closed."""
+    bare = {
+        "@id": "req-no-candidates",
+        "@type": "RequirementUsage",
+        "declaredName": "reqNoCandidates",
+    }
+    # No candidate membership at all: quiet absence, no binding required.
+    assert _bare_traversal().traverse("verifiedBy", bare, [bare]) == []
+    # A candidate exists to decide but no validated binding is available:
+    # the traversal fails closed instead of guessing by name or type.
+    with pytest.raises(Exception, match="no validated kernel binding index"):
+        _bare_traversal().traverse(
+            "verifiedBy",
+            bare,
+            [
+                bare,
+                _case("case-x"),
+                _rvm_anchored("rvm-x", "req-no-candidates", "case-x"),
+            ],
+        )
+
+
+def test_verifiedby_runtime_lineage_less_mapping_refuses_to_run() -> None:
+    """A verifiedBy mapping that declares no governed domain refuses to run
+    rather than emitting unenforced hops."""
+    import tempfile
+
+    import yaml as yaml_module
+
+    from de4sdv.semantic.kernel_contract import KernelContract
+    from de4sdv.semantic.traversal import SemanticTraversal
+
+    raw = yaml_module.safe_load(
+        (ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    raw["relationships"]["verifiedBy"].pop("domain")
+    with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as handle:
+        yaml_module.safe_dump(raw, handle)
+        broken_path = __import__("pathlib").Path(handle.name)
+    try:
+        contract = KernelContract.load(broken_path)
+        source = {"@id": "req-x", "@type": "RequirementUsage", "declaredName": "reqX"}
+        elements = [
+            source,
+            _case("case-x"),
+            _rvm_anchored("rvm-x", "req-x", "case-x"),
+        ]
+        with pytest.raises(ValueError, match="governed domain lineage"):
+            SemanticTraversal(contract, kernel_bindings=None).traverse(
+                "verifiedBy", source, elements
+            )
+    finally:
+        broken_path.unlink(missing_ok=True)
+
+
+def test_semantic_neighbors_enforce_verifiedby_domain(integration_service) -> None:
+    service, _, _, _ = integration_service
+    unresolved = service.semantic_neighbors("req-unresolved")
+    assert not any(
+        edge["predicate"] == "verifiedBy" for edge in unresolved["edges"]
+    )
+
+    # The serialized shadow queried directly is never promoted either.
+    shadow = service.semantic_neighbors("shadow-declared")
+    assert not any(edge["predicate"] == "verifiedBy" for edge in shadow["edges"])
+
+    # Positive control: the grounded declared usage resolves its case.
+    declared = service.semantic_neighbors("req-declared")
+    verified_targets = {
+        edge["target"]
+        for edge in declared["edges"]
+        if edge["predicate"] == "verifiedBy"
+    }
+    assert verified_targets == {"case-declared"}
+
+
+def test_impact_enforces_verifiedby_domain(integration_service) -> None:
+    service, _, _, _ = integration_service
+    unresolved = service.impact("req-unresolved")
+    assert not any(
+        edge["predicate"] == "verifiedBy" for edge in unresolved["edges"]
+    )
+    assert not [
+        node for node in unresolved["nodes"] if node["category"] == "verification"
+    ]
+    assert any(gap["category"] == "verification" for gap in unresolved["gaps"])
+
+    declared = service.impact("req-declared")
+    verified_targets = [
+        edge["target"]
+        for edge in declared["edges"]
+        if edge["predicate"] == "verifiedBy"
+    ]
+    assert verified_targets == ["case-declared"]
+    assert any(
+        node["category"] == "verification" for node in declared["nodes"]
+    )
+
+
+def test_trace_enforces_verifiedby_domain(integration_service) -> None:
+    service, _, _, _ = integration_service
+    unresolved = service.trace("req-unresolved", "case-unresolved", max_depth=4)
+    assert unresolved["path"] == []
+
+    declared = service.trace("req-declared", "case-declared", max_depth=4)
+    assert [step["predicate"] for step in declared["path"]] == ["verifiedBy"]
+
+
+def test_verification_coverage_enforces_verifiedby_domain(
+    integration_service,
+) -> None:
+    service, _, _, _ = integration_service
+    unresolved = service.verification_coverage("req-unresolved")
+    assert unresolved["verification_cases"] == []
+    assert unresolved["verification_edges"] == []
+    assert unresolved["status"] != "covered"
+
+    declared = service.verification_coverage("req-declared")
+    assert [
+        case["element_id"] for case in declared["verification_cases"]
+    ] == ["case-declared"]
+    assert declared["status"] == "partial"
+
+
+def test_selector_and_public_traversal_agree_on_eligibility(
+    integration_service,
+) -> None:
+    """Proof B and ordinary semantic users share one domain-valid semantics:
+    the selected subject is eligible through the public traversal, and the
+    unresolved subject is ineligible through both the selector and the
+    public predicate."""
+    service, repository, _, traversal = integration_service
+    by_id = {element["@id"]: element for element in repository.elements}
+    subject = _select_native_verification_subject(repository.elements, traversal)
+    assert subject["element_id"] == "req-1"
+    assert traversal.traverse(
+        "verifiedBy", by_id[subject["element_id"]], repository.elements
+    )
+    assert traversal.traverse(
+        "verifiedBy", by_id["req-unresolved"], repository.elements
+    ) == []
+    assert not any(
+        edge["predicate"] == "verifiedBy"
+        for edge in service.impact("req-unresolved")["edges"]
+    )

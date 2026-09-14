@@ -22,19 +22,23 @@ and that verification coverage is reported as incomplete - never as ordinary
 Proof B - native verification still works: ``verifiedBy`` is an independently
 reviewed native ``Requirement -> VerificationCase`` relation grounded in
 ``RequirementVerificationMembership``; its proof never depends on the blocked
-EvidenceContract route. The subject is selected from native API membership
-facts (never from names or layout) and must satisfy the relation's declared
-source domain: the anchored usage resolves to a governed DE4SDV Requirement
-identity, either by direct Requirement-lineage grounding or through the
-reviewed ReferenceSubsetting shadow bridge (c5 R2 verifiedBy-domain
-consistency review). The proof exercises a real verification case through
-the supported query surfaces with ``native-verification`` semantic strength
-and exact revision provenance. The hasSubject / native-reference subject
-surface stays asserted on the PROOF-A requirement: on the retained model no
-natively verified requirement usage carries a member-product subject hop,
-while requirements without native verification do (measured; see the c5
-review Section 17.2), so demanding that surface from the Proof-B subject
-would demand a fact the declared semantics never placed there.
+EvidenceContract route. The declared source domain is enforced by the
+SEMANTIC RUNTIME itself (the ``verification-membership`` traversal strategy
+grounds every queried source in the validated Requirement lineage; c5 R2
+verifiedBy-domain closure), so this proof and ordinary semantic queries make
+the same domain-valid claim. The subject is selected from native API
+membership facts (never from names or layout) with its governed Requirement
+identity proven through the runtime-owned identity rule (direct
+Requirement-lineage grounding, or the reviewed ReferenceSubsetting shadow
+bridge) and recorded for a defense-in-depth assertion. The proof exercises a
+real verification case through the supported query surfaces with
+``native-verification`` semantic strength and exact revision provenance. The
+hasSubject / native-reference subject surface stays asserted on the PROOF-A
+requirement: on the retained model no natively verified requirement usage
+carries a member-product subject hop, while requirements without native
+verification do (measured; see the c5 review Section 17.2), so demanding
+that surface from the Proof-B subject would demand a fact the declared
+semantics never placed there.
 
 """
 
@@ -56,7 +60,6 @@ if str(ROOT) not in sys.path:
 
 from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 from de4sdv.semantic.kernel_contract import KernelContract
-from de4sdv.semantic.relationships import build_relationship_graph
 from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_ids
@@ -433,94 +436,24 @@ def _structured(result: Any, tool_name: str) -> dict[str, Any]:
     return value
 
 
-def _reference_subsetting_bridge(
-    elements: list[dict[str, Any]],
-) -> dict[str, list[str]]:
-    """Serialized shadow -> declared usage bridge (the reviewed c2 mechanism).
-
-    A ``verify`` statement can serialize as an RVM whose member is a
-    reference-usage shadow rather than the declared requirement usage; the
-    bridge is the owned ``ReferenceSubsetting`` whose ``referencedFeature``
-    is the declared original. Same serializer keys the reviewed verifiedBy
-    resolver consumes; declared targets keep element order (deterministic)
-    and are deduplicated. Nothing here establishes identity: the caller
-    still grounds the declared usage in the validated Requirement lineage
-    and fails closed otherwise.
-    """
-    bridge: dict[str, list[str]] = {}
-    for element in elements:
-        if str(element.get("@type")) != "ReferenceSubsetting":
-            continue
-        declared_ids = reference_ids(element.get("referencedFeature"))
-        shadow_ids = reference_ids(element.get("owningRelatedElement")) + (
-            reference_ids(element.get("owner"))
-        )
-        for declared in declared_ids:
-            for shadow in shadow_ids:
-                targets = bridge.setdefault(shadow, [])
-                if declared not in targets:
-                    targets.append(declared)
-    return bridge
-
-
-def _requirement_identity(
-    anchor: dict[str, Any],
-    resolver: dict[str, Any],
-    bridge: dict[str, list[str]],
-    by_id: dict[str, dict[str, Any]],
-    traversal: Any,
-) -> tuple[str, str, str] | None:
-    """Machine-prove the governed DE4SDV Requirement identity of one anchor.
-
-    Returns ``(subject_id, basis, grounding_provenance)`` when the identity
-    is established, ``None`` otherwise (fail closed; the caller never falls
-    back to API metaclass, name, package, or source text):
-
-    - ``direct-requirement-lineage``: the anchored usage itself grounds in
-      the validated Requirement-lineage closure (authored or tool-implied
-      specialization/typing provenance, per the reviewed grounding
-      machinery);
-    - ``reference-subsetting-shadow``: the anchor is a serialized shadow
-      reference usage and its declared usage (the reviewed
-      ReferenceSubsetting bridge, c2 Section 2.2) grounds in that lineage.
-
-    Both discriminators are machine-resolvable, deterministic,
-    revision-bound, and testable; ``grounding_provenance`` is the reviewed
-    endpoint-grounding provenance (``explicit`` / ``implied``).
-    """
-    anchor_id = element_id(anchor)
-    if anchor_id is None:
-        return None
-    grounding = traversal._endpoint_grounding(anchor, resolver)
-    if grounding is not None:
-        return anchor_id, "direct-requirement-lineage", grounding
-    for declared_id in bridge.get(anchor_id, ()):  # element order
-        declared = by_id.get(declared_id)
-        if declared is None or str(declared.get("@type")) != "RequirementUsage":
-            continue
-        declared_grounding = traversal._endpoint_grounding(declared, resolver)
-        if declared_grounding is not None:
-            return declared_id, "reference-subsetting-shadow", declared_grounding
-    return None
-
-
 def _select_native_verification_subject(
     elements: list[dict[str, Any]], traversal: Any
 ) -> dict[str, Any]:
     """Select the Proof-B subject from native membership facts only.
 
     The subject must satisfy BOTH conditions (c5 R2 verifiedBy-domain
-    consistency review):
+    closure):
 
     1. governed DE4SDV Requirement identity (the declared ``verifiedBy``
-       source domain): the anchored usage grounds in the validated
-       Requirement lineage directly, or is a serialized ReferenceSubsetting
-       shadow whose declared usage grounds in that lineage (the reviewed c2
-       bridge — the same serializer keys the verifiedBy resolver consumes);
-       and
+       source domain) — proven by the RUNTIME-owned identity rule
+       (:meth:`SemanticTraversal.requirement_identity`): direct
+       Requirement-lineage grounding of the anchored usage, or the reviewed
+       ReferenceSubsetting shadow bridge followed by that grounding proof on
+       the declared usage; and
     2. a native verification case resolvable through the reviewed owner-chain
        ``verifiedBy`` resolver itself (``traversal.traverse("verifiedBy", …)``
-       on the PROVEN subject).
+       on the PROVEN subject — the same domain-enforcing public traversal
+       every ordinary semantic query uses).
 
     Fails closed on anything else: an ungrounded ``RequirementUsage`` (a bare
     API ``@type`` never establishes identity), a Need-role usage (sibling
@@ -529,17 +462,15 @@ def _select_native_verification_subject(
     package, file, or source-text heuristic participates; anchor enumeration
     order is the export's deterministic order.
 
-    The previous revision deliberately carried NO lineage condition based on
-    the finding that all 64 direct RVM anchors lie outside the
-    Requirement/Need/AcceptanceCriterion lineages. Re-measurement showed
-    that finding holds for the direct anchor alone: resolved through the
-    reviewed shadow bridge — the anchored usage, per the reviewed c2
-    semantics — 30 of the 64 anchored usages ground explicitly in the
-    Requirement lineage (all acceptance-criterion-role usages), while 34
-    remain unresolved (evidence-contract-role usages whose definitions
-    carry no lineage) and must fail closed. The declared domain is therefore
-    enforceable and is enforced here; the claim for the subject's DE4SDV
-    class identity is now backed by proof instead of being skipped.
+    Measured on the retained model (c5 R2 review): all 64 direct RVM anchors
+    are serialized shadows; resolved through the reviewed shadow bridge, 30
+    anchored usages ground explicitly in the Requirement lineage
+    (acceptance-criterion-role usages) while 34 remain unresolved
+    (evidence-contract-role usages whose definitions carry no lineage) and
+    fail closed. The semantic runtime enforces the declared domain on the
+    public predicate; this selector consumes the runtime-supported identity
+    evidence for subject choice and records it for the defense-in-depth
+    assertion — it never compensates for a broader public traversal.
     """
     by_id: dict[str, dict[str, Any]] = {}
     for item in elements:
@@ -566,41 +497,39 @@ def _select_native_verification_subject(
             "cannot be established"
         )
 
-    # Identity grounding resolves only now that anchor candidates exist to
-    # decide (c3/c5 fail-closed discipline). A missing validated kernel
-    # binding raises IdentityNotFoundError; there is no name/type fallback.
-    graph = build_relationship_graph(list(by_id.values()))
-    resolver = traversal._lineage_resolver("Requirement", by_id, graph)
-    bridge = _reference_subsetting_bridge(elements)
+    # Runtime-owned identity rule (one reviewed mechanism; the validator
+    # does not define a stronger semantic rule than the semantic runtime).
+    # The context is built only now that anchor candidates exist to decide
+    # (c3/c5 fail-closed discipline): a missing validated kernel binding
+    # raises IdentityNotFoundError; there is no name/type fallback.
+    context = traversal.requirement_identity_context(elements)
 
     for anchor, anchor_element in anchors:
-        proof = _requirement_identity(
-            anchor_element, resolver, bridge, by_id, traversal
+        identity = traversal.requirement_identity(
+            anchor_element, elements, context=context
         )
-        if proof is None:
+        if identity is None:
             continue
-        subject_id, basis, provenance = proof
-        subject = by_id[subject_id]
+        subject = by_id[identity["element_id"]]
         # Case resolution stays delegated to the reviewed owner-chain
-        # resolver, evaluated on the PROVEN subject.
-        hops = (
-            traversal.traverse("verifiedBy", anchor_element, elements)
-            if subject_id == anchor
-            else traversal.traverse("verifiedBy", subject, elements)
-        )
+        # resolver — evaluated on the PROVEN subject through the public
+        # domain-enforcing traversal.
+        hops = traversal.traverse("verifiedBy", subject, elements)
         if not hops:
             continue
         case_id = element_id(hops[0].target)
         if case_id is None:
             continue
         return {
-            "element_id": subject_id,
+            "element_id": identity["element_id"],
             "sysml_type": str(subject.get("@type")),
             "verification_case_id": case_id,
             "requirement_identity": {
-                "basis": basis,
-                "grounding_provenance": provenance,
-                "requirement_lineage_root_id": resolver["root_id"],
+                "basis": identity["basis"],
+                "grounding_provenance": identity["grounding_provenance"],
+                "requirement_lineage_root_id": identity[
+                    "requirement_lineage_root_id"
+                ],
                 "rvm_anchor_id": anchor,
             },
         }
