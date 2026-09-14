@@ -137,6 +137,13 @@ def semantic_service():
             "declaredName": "memberProduct",
         },
         {
+            "@id": "product-1-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("product-1"),
+            "type": ref("kernel-member-product"),
+            "typedFeature": ref("product-1"),
+        },
+        {
             "@id": "evidence-1",
             "@type": "RequirementUsage",
             "declaredName": "evidenceContractNominalBrakingPath",
@@ -205,7 +212,7 @@ def semantic_service():
             "@id": "rvm-1",
             "@type": "RequirementVerificationMembership",
             "owningRelatedElement": ref("verification-1"),
-            "memberElement": ref("evidence-1"),
+            "memberElement": ref("req-1"),
         },
     ]
     repository = FixtureRepository(elements)
@@ -322,7 +329,10 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     result = semantic_service.model_status()
 
     assert result["current_baseline"] is True
-    assert result["element_count"] == 19
+    # 20 fixture elements: the c3 subject-membership fixture carries the
+    # authored FeatureTyping for the member product in addition to the
+    # membership shape.
+    assert result["element_count"] == 20
     assert result["gaps"] == []
 
 
@@ -401,17 +411,34 @@ def test_resolve_and_inspect_preserve_uuid_revision_and_documentation(semantic_s
 def test_semantic_neighbors_only_use_ontology_declared_predicates(semantic_service) -> None:
     result = semantic_service.semantic_neighbors("req-1")
 
+    # c5 correction: the EvidenceContract range is blocked and emits nothing,
+    # so no hasRelevantEvidenceContract edge is produced for this fixture.
+    # Integration closure R2: native verifiedBy is discovered from the root
+    # requirement's own RequirementVerificationMembership, independent of the
+    # blocked EvidenceContract route.
     assert {edge["predicate"] for edge in result["edges"]} == {
         "derivesRequirementFromNeed",
-        "hasRelevantEvidenceContract",
         "hasSubject",
+        "verifiedBy",
     }
     assert {edge["semantic_strength"] for edge in result["edges"]} == {
         "derivation",
-        "relevance",
         "native-reference",
+        "native-verification",
     }
     assert all(edge["api_object_id"] for edge in result["edges"])
+    # Integration closure R1: the blocked predicate is reported as
+    # unsupported - mixed outcome alongside the evaluated predicates - and
+    # never as an ordinary "no relationship found" gap.
+    assert result["semantic_status"] == "incomplete"
+    assert [
+        record["predicate"] for record in result["unsupported_predicates"]
+    ] == ["hasRelevantEvidenceContract"]
+    assert result["unsupported_predicates"][0]["authority_state"] == "blocked"
+    assert "EvidenceContract-specific identity is not machine-resolvable" in (
+        result["unsupported_predicates"][0]["reason"]
+    )
+    assert all(gap["category"] != "hasRelevantEvidenceContract" for gap in result["gaps"])
 
 
 def test_impact_trace_and_verification_coverage_return_compact_provenance(semantic_service) -> None:
@@ -419,18 +446,47 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     trace = semantic_service.trace("req-1", "verification-1", max_depth=3)
     coverage = semantic_service.verification_coverage("req-1")
 
+    # c5 correction: the evidence-chain route (req-1 -> evidence-1 ->
+    # verification-1) no longer exists because the EvidenceContract range is
+    # blocked. Integration closure R2: a supported native path DOES exist —
+    # the root requirement's own RequirementVerificationMembership anchors
+    # verification-1 directly — so the trace proves native verifiedBy while
+    # the blocked predicate is recorded as unavailable (R1: no claim of a
+    # fully-evaluated absence).
     assert {edge["predicate"] for edge in impact["edges"]} == {
-        "hasRelevantEvidenceContract",
         "hasSubject",
         "verifiedBy",
     }
-    assert [edge["predicate"] for edge in trace["path"]] == [
-        "hasRelevantEvidenceContract",
-        "verifiedBy",
+    assert [step["predicate"] for step in trace["path"]] == ["verifiedBy"]
+    assert trace["semantic_status"] == "incomplete"
+    assert any(
+        record["predicate"] == "hasRelevantEvidenceContract"
+        for record in trace["unsupported_predicates"]
+    )
+    # A found path is proven; the blocked predicate is exposed through
+    # unsupported_predicates without attributing anything to it.
+    assert trace["gaps"] == []
+    # R1: the blocked EvidenceContract range must not be silently folded into
+    # the status. The native case is proven (partial coverage), and the
+    # missing-identity reason survives as an explicit unsupported record.
+    assert coverage["status"] == "partial"
+    assert coverage["semantic_status"] == "incomplete"
+    assert any(
+        record["predicate"] == "hasRelevantEvidenceContract"
+        and record["authority_state"] == "blocked"
+        for record in coverage["unsupported_predicates"]
+    )
+    assert any(
+        gap["category"] == "verification-unsupported"
+        and "EvidenceContract" in gap["reason"]
+        for gap in coverage["gaps"]
+    )
+    # Native verifiedBy is independent of the blocked route (R2): the case is
+    # still discovered through the root requirement's own membership.
+    assert [case["element_id"] for case in coverage["verification_cases"]] == [
+        "verification-1"
     ]
-    assert coverage["status"] == "covered"
-    assert coverage["verification_cases"][0]["element_id"] == "verification-1"
-    assert coverage["gaps"] == []
+    assert coverage["evidence_contracts"] == []
     assert coverage["revision"]["sysml_commit_id"] == "commit-1"
     assert coverage["revision"]["ontology"] == ontology_identity()
     assert any(
@@ -439,9 +495,16 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     )
 
 
-def test_verification_coverage_is_partial_when_one_evidence_contract_has_no_case(
+def test_verification_coverage_claims_no_evidence_contracts_while_blocked(
     semantic_service,
 ) -> None:
+    """c5 correction: the EvidenceContract range gate emits nothing — both a
+    verified requirement-usage source (evidence-1) and an unverified one
+    (evidence-2) are quiet absence, so no evidence contract enters coverage
+    and no coverage claim is derived from either. Integration closure R1:
+    the blocked range still makes the assessment INCOMPLETE (not ordinary
+    "uncovered") and its reason survives; the native root-requirement
+    verifiedBy case remains discoverable and is reported (R2)."""
     semantic_service.repository.elements.extend(
         [
             {
@@ -460,20 +523,28 @@ def test_verification_coverage_is_partial_when_one_evidence_contract_has_no_case
 
     coverage = semantic_service.verification_coverage("req-1")
 
+    # R1: blocked range -> semantic_status incomplete with the reason; the
+    # native root-requirement case is still proven, so the status is partial
+    # (native part proven, evidence part not assessable), never plain
+    # "uncovered" with an empty explanation.
     assert coverage["status"] == "partial"
-    assert coverage["unverified_evidence_contracts"] == [
-        {
-            "element_id": "evidence-2",
-            "semantic_type": "EvidenceContract",
-            "sysml_type": "RequirementUsage",
-            "declared_name": "evidenceContractWithoutVerification",
-            "qualified_name": None,
-            "category": "evidence",
-            "categories": ["evidence"],
-            "source_uri": "sysml://project-1/commit-1/evidence-2",
-        }
+    assert coverage["semantic_status"] == "incomplete"
+    assert [
+        record["predicate"] for record in coverage["unsupported_predicates"]
+    ] == ["hasRelevantEvidenceContract"]
+    assert coverage["unsupported_predicates"][0]["authority_state"] == "blocked"
+    assert "EvidenceContract-specific identity is not machine-resolvable" in (
+        coverage["unsupported_predicates"][0]["reason"]
+    )
+    assert any(
+        gap["category"] == "verification-unsupported" for gap in coverage["gaps"]
+    )
+    assert coverage["evidence_contracts"] == []
+    assert coverage["unverified_evidence_contracts"] == []
+    # Native verification through the root requirement is unaffected.
+    assert [case["element_id"] for case in coverage["verification_cases"]] == [
+        "verification-1"
     ]
-    assert coverage["gaps"][0]["category"] == "verification"
 
 
 def test_semantic_queries_refuse_stale_but_allow_explicit_fixture_scope(semantic_service) -> None:
@@ -537,8 +608,10 @@ def test_mcp_surface_exposes_only_the_declared_read_only_semantic_tools(
         )
     )
     assert result["revision"]["git_commit"] == "a" * 40
+    # c5 correction: the blocked EvidenceContract range emits no edge.
+    # Integration closure R2: native verifiedBy is discovered from the root
+    # requirement's own RequirementVerificationMembership.
     assert {edge["predicate"] for edge in result["edges"]} == {
-        "hasRelevantEvidenceContract",
         "hasSubject",
         "verifiedBy",
     }
@@ -735,7 +808,26 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
                     {"requirement_identifier": "reqCommandEmergencyBraking"},
                 )
                 assert not result.isError
-                assert result.structuredContent["status"] == "covered"
+                # c5 correction + integration closure R1: the blocked
+                # EvidenceContract range emits nothing, and its blocked state
+                # is exposed - the assessment is never plain "uncovered" with
+                # an empty explanation. The native root-requirement case is
+                # still proven, so the status is partial (R2).
+                assert result.structuredContent["status"] == "partial"
+                assert result.structuredContent["semantic_status"] == "incomplete"
+                assert [
+                    record["predicate"]
+                    for record in result.structuredContent["unsupported_predicates"]
+                ] == ["hasRelevantEvidenceContract"]
+                assert (
+                    result.structuredContent["evidence_contracts"] == []
+                )
+                # R2: native verification through the root requirement's own
+                # RequirementVerificationMembership remains discoverable.
+                assert [
+                    case["element_id"]
+                    for case in result.structuredContent["verification_cases"]
+                ] == ["verification-1"]
                 assert (
                     result.structuredContent["revision"]["sysml_commit_id"]
                     == "commit-1"
@@ -748,6 +840,9 @@ def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
 
 
 def test_privileged_result_validator_requires_exact_revision_and_native_edges() -> None:
+    """c5 integration closure (R1+R2): the validator proves BOTH the blocked
+    EvidenceContract state and the independent native verification path, and
+    fails closed when either degrades."""
     from scripts.validate_semantic_mcp import validate_semantic_results
 
     revision = {
@@ -758,37 +853,110 @@ def test_privileged_result_validator_requires_exact_revision_and_native_edges() 
         "scope": "full-model",
         "ontology": ontology_identity(),
     }
+    blocked_record = {
+        "predicate": "hasRelevantEvidenceContract",
+        "authority_state": "blocked",
+        "reason": (
+            "EvidenceContract-specific identity is not machine-resolvable at "
+            "the reviewed revision; native verification membership also "
+            "admits AcceptanceCriterion and therefore cannot establish the "
+            "declared EvidenceContract range."
+        ),
+    }
+    verified_by_edge = {
+        "predicate": "verifiedBy",
+        "semantic_strength": "native-verification",
+        "target": "verification-1",
+    }
     results = {
         "model_status": {"current_baseline": True, "read_only": True, "revision": revision},
         "resolve_element": {"revision": revision, "element": {"element_id": "req-1"}},
         "inspect_element": {"revision": revision, "element": {"element_id": "req-1"}},
         "semantic_neighbors": {
             "revision": revision,
+            "root": {"element_id": "req-1"},
+            "semantic_status": "incomplete",
+            "unsupported_predicates": [dict(blocked_record)],
             "edges": [
                 {"predicate": "hasSubject", "semantic_strength": "native-reference"},
-                {"predicate": "hasRelevantEvidenceContract", "semantic_strength": "relevance"},
             ],
         },
         "impact": {
             "revision": revision,
+            "root": {"element_id": "req-1"},
             "edges": [
                 {"predicate": "hasSubject", "semantic_strength": "native-reference"},
-                {"predicate": "verifiedBy", "semantic_strength": "native-verification"},
+                dict(verified_by_edge),
+            ],
+            "nodes": [
+                {"element_id": "req-1"},
+                {"element_id": "verification-1"},
             ],
             "gaps": [],
         },
-        "trace": {"revision": revision, "path": [{"predicate": "verifiedBy"}], "gaps": []},
+        "trace": {
+            "revision": revision,
+            "source": {"element_id": "req-1"},
+            "path": [{"predicate": "verifiedBy"}],
+            "gaps": [],
+        },
         "verification_coverage": {
             "revision": revision,
-            "status": "covered",
+            "requirement": {"element_id": "req-1"},
+            "status": "partial",
+            "semantic_status": "incomplete",
+            "unsupported_predicates": [dict(blocked_record)],
             "verification_cases": [{"element_id": "verification-1"}],
-            "gaps": [],
+            "gaps": [
+                {
+                    "category": "verification-unsupported",
+                    "reason": "blocked hasRelevantEvidenceContract range: "
+                    "EvidenceContract identity unresolved",
+                }
+            ],
         },
     }
 
     validate_semantic_results(results, expected_revision=revision)
-    results["impact"]["edges"] = [
-        edge for edge in results["impact"]["edges"] if edge["predicate"] != "verifiedBy"
-    ]
+
+    def without_verified_by() -> None:
+        stripped = json.loads(json.dumps(results))
+        stripped["impact"]["edges"] = [
+            edge
+            for edge in stripped["impact"]["edges"]
+            if edge["predicate"] != "verifiedBy"
+        ]
+        validate_semantic_results(stripped, expected_revision=revision)
+
     with pytest.raises(RuntimeError, match="verifiedBy"):
-        validate_semantic_results(results, expected_revision=revision)
+        without_verified_by()
+
+    def without_blocked_state() -> None:
+        stripped = json.loads(json.dumps(results))
+        stripped["semantic_neighbors"]["unsupported_predicates"] = []
+        validate_semantic_results(stripped, expected_revision=revision)
+
+    with pytest.raises(RuntimeError, match="blocked"):
+        without_blocked_state()
+
+    def with_false_evidence_edge() -> None:
+        corrupted = json.loads(json.dumps(results))
+        corrupted["semantic_neighbors"]["edges"].append(
+            {"predicate": "hasRelevantEvidenceContract"}
+        )
+        validate_semantic_results(corrupted, expected_revision=revision)
+
+    with pytest.raises(RuntimeError, match="false EvidenceContract edges"):
+        with_false_evidence_edge()
+
+    def with_plain_uncovered() -> None:
+        corrupted = json.loads(json.dumps(results))
+        coverage = corrupted["verification_coverage"]
+        coverage["status"] = "uncovered"
+        coverage["semantic_status"] = "complete"
+        coverage["unsupported_predicates"] = []
+        coverage["gaps"] = []
+        validate_semantic_results(corrupted, expected_revision=revision)
+
+    with pytest.raises(RuntimeError, match="incomplete"):
+        with_plain_uncovered()

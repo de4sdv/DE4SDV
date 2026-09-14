@@ -169,7 +169,10 @@ All finding probes were re-executed locally, then repaired:
   SHA + project/commit ids and is constructed from a validated revision
   binding; the ontology contract identity (path + SHA-256) is recomputed from
   the actual file at generation time; `support_state` is `vocabulary-only`
-  until exact-candidate closure evidence is supplied (`witness_closure_verified`);
+  until exact-candidate closure evidence is supplied — the original bare
+  boolean (`witness_closure_verified`) was replaced in Wave 0b by a
+  structured, exact-revision `ClosureAttestation` (a caller-controlled
+  boolean is not evidence; mismatched or stale attestations fail closed);
   profile mechanics are derived from the executable mapping and the generated
   profile passes a semantic compatibility gate (`assert_profile_compatible`)
   that rejects contradictions with the mapping (UG-25). The YAML is honestly

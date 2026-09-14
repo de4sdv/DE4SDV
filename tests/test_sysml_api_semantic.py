@@ -303,9 +303,14 @@ def test_first_milestone_relationships_define_machine_traversal_strategies() -> 
 
 
 def test_allocation_strategy_traverses_native_api_relationship_object() -> None:
+    from dataclasses import replace as _dc_replace
+
+    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
     from de4sdv.semantic.kernel_contract import KernelContract
     from de4sdv.semantic.traversal import SemanticTraversal
+    from de4sdv.sysml_api.revisions import RevisionBinding
 
+    ref = lambda value: {"@id": value}
     requirement = {"@id": "req-1", "@type": "RequirementUsage"}
     architecture = {"@id": "logical-1", "@type": "PartUsage"}
     allocation = {
@@ -314,19 +319,43 @@ def test_allocation_strategy_traverses_native_api_relationship_object() -> None:
         "source": [{"@id": "req-1"}],
         "target": [{"@id": "logical-1"}],
     }
+    # c5 Requirement-domain enforcement: the queried source must ground in the
+    # validated Requirement lineage (binding + authored typing), never by name.
+    kernel_requirement = {
+        "@id": "kernel-requirement",
+        "@type": "RequirementDefinition",
+        "declaredName": "RequirementCandidate",
+    }
+    grounding = {
+        "@id": "ft-req",
+        "@type": "FeatureTyping",
+        "owningRelatedElement": ref("req-1"),
+        "type": ref("kernel-requirement"),
+    }
+    index = KernelBindingIndex.from_binding(
+        _dc_replace(
+            RevisionBinding.from_dict(_semantic_binding_dict()),
+            kernel_bindings=tuple(_requirement_kernel_bindings()),
+        )
+    )
     traversal = SemanticTraversal(
         KernelContract.load(
             ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-        )
+        ),
+        kernel_bindings=index,
     )
 
     hops = traversal.traverse(
-        "realizedBy", requirement, [requirement, architecture, allocation]
+        "realizedBy",
+        requirement,
+        [requirement, architecture, allocation, kernel_requirement, grounding],
     )
 
     assert len(hops) == 1
     assert hops[0].target == architecture
     assert hops[0].api_object == allocation
+    # The reviewed bounded claim: allocation strength only — the hop is not
+    # and must not be labeled as realization.
     assert hops[0].semantic_strength == "allocation"
 
 
@@ -372,6 +401,20 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "@type": "PartUsage",
             "declaredName": "memberProduct",
             "qualifiedName": "DE4SDV_AEBSNeedsRequirements::memberProduct",
+        },
+        {
+            "@id": "req-braking-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("req-braking"),
+            "type": ref("kernel-requirement"),
+            "typedFeature": ref("req-braking"),
+        },
+        {
+            "@id": "member-product-typing",
+            "@type": "FeatureTyping",
+            "owningRelatedElement": ref("member-product"),
+            "type": ref("kernel-member-product"),
+            "typedFeature": ref("member-product"),
         },
         *[
             {
@@ -495,41 +538,43 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
     assert result["revision"]["sysml_project_id"] == "project-1"
     assert result["revision"]["sysml_commit_id"] == "commit-1"
     assert result["ontology_bindings"]["Requirement"]["element_id"] == "kernel-requirement"
-    assert {node["element_id"] for node in result["nodes"] if node["category"] == "evidence"} == {
-        "ev-override",
-        "ev-braking",
-        "ev-mrm",
-    }
-    assert {node["element_id"] for node in result["nodes"] if node["category"] == "verification"} == {
-        "verify-009b",
-        "verify-009c",
-    }
+    # c5 correction: the EvidenceContract range is blocked — the three
+    # verified evidence sources are NOT emitted, and neither are the
+    # verification nodes that previously followed from them.
+    assert not [
+        node for node in result["nodes"] if node["category"] == "evidence"
+    ]
+    assert not [
+        node for node in result["nodes"] if node["category"] == "verification"
+    ]
     assert {node["element_id"] for node in result["nodes"] if node["category"] == "product-line"} == {
         "member-product"
     }
     assert not [node for node in result["nodes"] if node["category"] == "architecture"]
     assert any(gap["category"] == "architecture" for gap in result["gaps"])
-    assert {edge["strategy"] for edge in result["edges"]} >= {
-        "dependency",
-        "verification-membership",
-        "subject-membership",
-    }
+    assert {edge["predicate"] for edge in result["edges"]} == {"hasSubject"}
+    assert {edge["strategy"] for edge in result["edges"]} == {"subject-membership"}
     assert all(edge["api_object_id"] for edge in result["edges"])
     assert result["provenance"]
+    evidence_gaps = [gap for gap in result["gaps"] if gap["category"] == "evidence"]
+    assert len(evidence_gaps) == 1
+    assert "EvidenceContract range is blocked" in evidence_gaps[0]["reason"]
 
     from scripts import query_model_impact as text_backend
 
+    # The text backend reads raw source-level slices (browsing level, not the
+    # governed traversal): its raw dependency rows still exist, while the API
+    # traversal must make NO evidence-contract claim while the range is
+    # blocked. The divergence is expected and documented in the c5 review.
     text_report = text_backend.query_impact("reqCommandEmergencyBraking")
-    assert {
-        node["declared_name"]
-        for node in result["nodes"]
-        if node["category"] == "evidence"
-    } == {edge.source for edge in text_report.edges}
-    assert {
-        node["declared_name"]
-        for node in result["nodes"]
-        if node["category"] == "verification"
-    } == {edge.verification_usage for edge in text_report.edges}
+    assert {edge.source for edge in text_report.edges} == {
+        "evidenceContractFreshOverrideClear",
+        "evidenceContractNominalBrakingPath",
+        "evidenceContractMRMGateChain",
+    }
+    assert not [
+        node for node in result["nodes"] if node["category"] == "evidence"
+    ]
 
 
 def test_aebs_api_fixture_reuses_pr36_payload_pattern_for_known_model_slice() -> None:

@@ -89,14 +89,18 @@ NEW_DOC = (
 
 
 def test_tampered_model_claim_strength_changes_the_projection() -> None:
-    """With the oracle brought along, a model-only change propagates: the
-    strength token and claim boundary are copied from the model text."""
+    """With the oracle pair brought along, a model-only change propagates:
+    the strength token and claim boundary are copied from the model text."""
     baseline = _build(_base_elements())
     assert baseline["predicate"]["semantic_strength"] == "derivation"
 
     elements = _retitle_doc(_base_elements(), NEW_DOC)
     contract = _contract()
     contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"][
+        "semantic_strength"
+    ] = "provenance-only"
+    # The pair invariant requires both rows to carry the same strength.
+    contract.relationships["derivedRequirementsOfNeed"]["sysml_mapping"][
         "semantic_strength"
     ] = "provenance-only"
     projection = _build(elements, contract)
@@ -130,12 +134,17 @@ def test_model_only_end_order_change_cannot_pass_parity_silently() -> None:
 
 
 def test_tampered_end_order_flips_the_model_native_direction() -> None:
-    """With the oracle brought along, the direction follows the MODEL."""
+    """With the oracle PAIR brought along, the direction follows the MODEL."""
     contract = _contract()
     mapping = contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"]
     mapping["query_direction"] = "forward"
     mapping["source_lineage_of"] = "Need"
     mapping["target_lineage_of"] = "Requirement"
+    # Pair consistency: the companion traverses the same witness the other way.
+    companion = contract.relationships["derivedRequirementsOfNeed"]["sysml_mapping"]
+    companion["query_direction"] = "inverse"
+    companion["source_lineage_of"] = "Requirement"
+    companion["target_lineage_of"] = "Need"
     projection = _build(_reversed_end_order(), contract)
     authority = projection["revision_binding"]["generated_from"][
         "model_semantic_authority"
@@ -265,12 +274,17 @@ def test_profile_cannot_restate_domain_range_or_strength() -> None:
 
 
 def test_profile_direction_echo_follows_model_order() -> None:
-    """A model whose authored order flips makes the profile echo forward."""
+    """A model whose authored order flips makes the profile echo forward
+    (with the oracle pair brought along consistently)."""
     contract = _contract()
     mapping = contract.relationships["derivesRequirementFromNeed"]["sysml_mapping"]
     mapping["query_direction"] = "forward"
     mapping["source_lineage_of"] = "Need"
     mapping["target_lineage_of"] = "Requirement"
+    companion = contract.relationships["derivedRequirementsOfNeed"]["sysml_mapping"]
+    companion["query_direction"] = "inverse"
+    companion["source_lineage_of"] = "Requirement"
+    companion["target_lineage_of"] = "Need"
     profile = build_representation_profile(
         contract, _binding_index(), REVISION, _by_id(_reversed_end_order()),
         repository_root=ROOT,

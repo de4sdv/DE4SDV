@@ -18,6 +18,7 @@ from de4sdv.sysml_api.revisions import KernelElementBinding
 from de4sdv.semantic.projection import (
     PROFILE_SCHEMA,
     PROJECTION_SCHEMA,
+    ClosureAttestation,
     RevisionIdentity,
     assert_profile_compatible,
     build_projection,
@@ -132,13 +133,56 @@ def test_projection_binds_recomputed_contract_identity() -> None:
 
 
 def test_projection_support_state_is_honest_without_closure_evidence() -> None:
-    """O0/O1 honesty: without exact-candidate closure evidence the generated
-    projection reports vocabulary-only, never supported (UG-06/UG-24)."""
+    """O0/O1 honesty: without a structured exact-revision closure attestation
+    the generated projection reports vocabulary-only, never supported
+    (UG-06/UG-24). A caller boolean is not a promotion mechanism."""
     assert _build()["predicate"]["support_state"] == "vocabulary-only"
-    assert (
-        _build(witness_closure_verified=True)["predicate"]["support_state"]
-        == "supported"
+    with pytest.raises(TypeError):
+        # The bare-boolean promotion API is removed (Wave 0b).
+        _build(witness_closure_verified=True)
+
+
+def _attestation(**overrides) -> ClosureAttestation:
+    values = {
+        "evidence_id": "r6-3-equivalent-test-attestation",
+        "git_commit": REVISION.git_commit,
+        "sysml_project_id": REVISION.sysml_project_id,
+        "sysml_commit_id": REVISION.sysml_commit_id,
+        "proof_result": "pass",
+        "subject_identities": (
+            "DerivesFromNeed",
+            "derivesRequirementFromNeed",
+            "derivedRequirementsOfNeed",
+        ),
+        "artifact_identity": "full-model-api-ingestion-test",
+        "artifact_digest": "sha256:" + "a" * 64,
+    }
+    values.update(overrides)
+    return ClosureAttestation(**values)
+
+
+def test_projection_support_promotion_requires_exact_revision_attestation() -> None:
+    """A valid exact-revision structured attestation promotes support."""
+    projection = _build(closure_attestation=_attestation())
+    assert projection["predicate"]["support_state"] == "supported"
+    # The same attestation as an equivalent mapping is accepted.
+    projection_from_mapping = _build(
+        closure_attestation={
+            "evidence_id": "r6-3-equivalent-test-attestation",
+            "git_commit": REVISION.git_commit,
+            "sysml_project_id": REVISION.sysml_project_id,
+            "sysml_commit_id": REVISION.sysml_commit_id,
+            "proof_result": "pass",
+            "subject_identities": [
+                "DerivesFromNeed",
+                "derivesRequirementFromNeed",
+                "derivedRequirementsOfNeed",
+            ],
+            "artifact_identity": "full-model-api-ingestion-test",
+            "artifact_digest": "sha256:" + "a" * 64,
+        }
     )
+    assert projection_from_mapping["predicate"]["support_state"] == "supported"
 
 
 def test_projection_definition_comes_from_model_doc_not_yaml() -> None:
@@ -238,10 +282,15 @@ def test_profile_carries_mechanics_and_echoes_projection_meaning() -> None:
         profile["model_revision_binding"]["generated_from"]
         is not None
     )
-    # Support state stays on the projection predicate (the profile echoes
-    # mechanics; support is a projection-level honesty field).
-    projection_predicate_support = _build()["predicate"]["support_state"]
-    assert projection_predicate_support == "vocabulary-only"
+    # Support state is decided once (in the projection) and echoed here; the
+    # profile has no independent closure decision.
+    assert (
+        profile["predicate_echo"]["support_state_from_projection"]
+        == "vocabulary-only"
+    )
+    assert profile["predicate_echo"]["support_state_from_projection"] == (
+        _build()["predicate"]["support_state"]
+    )
 
 
 def test_profile_compatibility_gate_rejects_mapping_contradiction() -> None:

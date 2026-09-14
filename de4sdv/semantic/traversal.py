@@ -21,6 +21,33 @@ from .model_edges import (
 from .relationships import build_relationship_graph, is_family
 
 
+#: Reviewed c5-correction range class whose identity gate the dependency
+#: traversal enforces: the governed ``EvidenceContract`` ontology class. The
+#: class is a governed contract identity (validated through the ontology
+#: contract this module is constructed with), never an element name; a
+#: revision whose ontology drops or renames the class stops matching this
+#: reviewed rule. Reviewed outcome (c5 correction, PR #249): the declared
+#: range cannot be established at the reviewed revision — no
+#: machine-resolvable, non-heuristic discriminator separates an
+#: evidence-contract usage from every other verified requirement usage — so
+#: the gate fails closed and emits nothing. Enforcement mechanics live here
+#: (representation mechanics); the authored ontology contract remains the
+#: declared semantic authority during O1.
+_EVIDENCE_CONTRACT_RANGE_CLASS = "EvidenceContract"
+
+#: Reviewed blocked-state reason for the ``EvidenceContract`` range (c5
+#: correction, PR #249, Outcome B). Query surfaces attach this exact reason
+#: when a result must distinguish BLOCKED semantic authority from ordinary
+#: absence — the same text the traversal gate attributes its fail-closed
+#: silence to. Exported so consumers never restate the blocker by hand.
+EVIDENCE_CONTRACT_BLOCKED_REASON = (
+    "EvidenceContract-specific identity is not machine-resolvable at the "
+    "reviewed revision; native verification membership also admits "
+    "AcceptanceCriterion and therefore cannot establish the declared "
+    "EvidenceContract range."
+)
+
+
 @dataclass(frozen=True)
 class TraversalHop:
     predicate: str
@@ -30,6 +57,45 @@ class TraversalHop:
     target: dict[str, Any]
     api_object: dict[str, Any]
     witness: dict[str, Any] = field(default_factory=dict)
+
+
+def build_reference_subsetting_bridge(
+    elements: list[dict[str, Any]],
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """The reviewed ReferenceSubsetting shadow bridge (c2 mechanism).
+
+    A ``verify`` statement can serialize as a RequirementVerificationMembership
+    whose member is a reference-usage shadow rather than the declared
+    requirement usage; the bridge is the owned ``ReferenceSubsetting`` whose
+    ``referencedFeature`` is the declared original. Returns both directions —
+    ``(declared_to_shadows, shadow_to_declared)`` — built from the same
+    serializer keys the verifiedBy resolver consumes, element-ordered and
+    deduplicated (deterministic).
+
+    Representation mechanics only: nothing here establishes identity or
+    promotes a shadow into a Requirement. The verifiedBy runtime grounds the
+    queried source itself; the reviewed identity rule
+    (:meth:`SemanticTraversal.requirement_identity`) grounds the declared
+    usage and fails closed otherwise.
+    """
+    declared_to_shadows: dict[str, list[str]] = {}
+    shadow_to_declared: dict[str, list[str]] = {}
+    for element in elements:
+        if str(element.get("@type")) != "ReferenceSubsetting":
+            continue
+        declared_ids = reference_ids(element.get("referencedFeature"))
+        shadow_ids = reference_ids(element.get("owningRelatedElement")) + (
+            reference_ids(element.get("owner"))
+        )
+        for declared in declared_ids:
+            for shadow in shadow_ids:
+                shadows = declared_to_shadows.setdefault(declared, [])
+                if shadow not in shadows:
+                    shadows.append(shadow)
+                declareds = shadow_to_declared.setdefault(shadow, [])
+                if declared not in declareds:
+                    declareds.append(declared)
+    return declared_to_shadows, shadow_to_declared
 
 
 class SemanticTraversal:
@@ -92,6 +158,38 @@ class SemanticTraversal:
         elements: list[dict[str, Any]],
         by_id: dict[str, dict[str, Any]],
     ) -> list[TraversalHop]:
+        """Traverse dependency- and allocation-shaped relationships.
+
+        Reviewed c5 contract (O1, PR #249 c5 batch) — fail-closed:
+
+        - candidate-first: a queried source touching no configured
+          relationship on the traversal side is quiet absence and performs no
+          lineage resolution (no binding requirement);
+        - the queried source must ground in the relationship's declared
+          (governed) domain lineage through the ingestion-validated kernel
+          binding plus the representation-tolerant relationship graph; a
+          source outside the domain — for example a stakeholder-need usage
+          serialized as ``RequirementUsage``, or an architecture element —
+          is a non-qualifying native relationship: quiet absence, never a hop
+          (API metaclass equality is representation evidence, not ontology
+          identity);
+        - when qualifying candidates exist to decide, a missing validated
+          kernel binding (or no binding index) raises
+          :class:`IdentityNotFoundError`; a mapping without a declared domain
+          refuses to run (``ValueError``) — a missing semantic discriminator
+          never broadens the predicate and never falls back to API metaclass,
+          ``declaredName``, ``qualifiedName``, package paths, or source text;
+        - the ``EvidenceContract`` range enforces its reviewed identity gate
+          fail-closed (c5 correction, PR #249): native verification
+          membership (a ``RequirementVerificationMembership`` anchor,
+          directly or through the serialized ReferenceSubsetting shadow
+          bridge) is supporting evidence only — it also admits the
+          acceptance-criterion role — and the governed representation
+          carries no machine-resolvable discriminator that establishes
+          ``EvidenceContract`` identity. No candidate is emitted; ambiguous
+          verified requirement usages are quiet absence, never relabelled as
+          evidence contracts.
+        """
         config = mapping.configuration
         allowed_types = {str(item) for item in config.get("relationship_types", [])}
         source_property = str(config.get("source_property", "source"))
@@ -104,6 +202,53 @@ class SemanticTraversal:
             str(item) for item in config.get("target_types", [])
         }
         exclude_root = config.get("exclude_source_specializations_of")
+
+        # Candidate-first: collect the configured relationships touching the
+        # queried source on the traversal side. No candidates = quiet absence.
+        candidates: list[tuple[dict[str, Any], list[str]]] = []
+        for relationship in elements:
+            if allowed_types and str(relationship.get("@type")) not in allowed_types:
+                continue
+            relationship_sources = reference_ids(relationship.get(source_property))
+            relationship_targets = reference_ids(relationship.get(target_property))
+            if direction == "incoming" and source_id in relationship_targets:
+                neighbor_ids = relationship_sources
+            elif direction == "outgoing" and source_id in relationship_sources:
+                neighbor_ids = relationship_targets
+            else:
+                continue
+            candidates.append((relationship, neighbor_ids))
+        if not candidates:
+            return []
+
+        # Governed domain enforcement: the queried source must ground in the
+        # declared domain lineage. The enforcement inputs ARE the declared
+        # semantic contract (domain class) — the mechanics never author a
+        # second type contract (c3/c5 review rule).
+        domain_class = mapping.domain
+        if not domain_class:
+            raise ValueError(
+                f"dependency/allocation mapping for {mapping.name!r} declares "
+                f"no governed domain lineage; the declared semantic contract "
+                f"cannot be enforced"
+            )
+        graph = build_relationship_graph(list(by_id.values()))
+        domain_resolver = self._lineage_resolver(str(domain_class), by_id, graph)
+        if self._endpoint_grounding(source, domain_resolver) is None:
+            # Non-qualifying native relationship: the queried source is not
+            # part of this predicate's governed domain. Quiet absence.
+            return []
+
+        # Range-side identity gate for the reviewed EvidenceContract class
+        # (c5 correction, PR #249): the declared range cannot be established
+        # at the reviewed revision, so no candidate is emitted — ambiguous
+        # verified requirement usages fail closed as quiet absence rather
+        # than being relabelled as evidence contracts. The gate's reviewed
+        # analysis lives in `_evidence_contract_identity_ids`.
+        identity_source_ids: set[str] | None = None
+        if str(mapping.range or "") == _EVIDENCE_CONTRACT_RANGE_CLASS:
+            identity_source_ids = self._evidence_contract_identity_ids(elements)
+
         if exclude_root:
             # Exclusion by specialization lineage is only meaningful for
             # incoming traversal (filtering neighbor sources). For outgoing
@@ -119,17 +264,7 @@ class SemanticTraversal:
         else:
             excluded_ids = set()
         hops: list[TraversalHop] = []
-        for relationship in elements:
-            if allowed_types and str(relationship.get("@type")) not in allowed_types:
-                continue
-            relationship_sources = reference_ids(relationship.get(source_property))
-            relationship_targets = reference_ids(relationship.get(target_property))
-            if direction == "incoming" and source_id in relationship_targets:
-                neighbor_ids = relationship_sources
-            elif direction == "outgoing" and source_id in relationship_sources:
-                neighbor_ids = relationship_targets
-            else:
-                continue
+        for relationship, neighbor_ids in candidates:
             if direction == "incoming":
                 if source_types:
                     neighbor_ids = [
@@ -140,6 +275,12 @@ class SemanticTraversal:
                 if excluded_ids:
                     neighbor_ids = [
                         neighbor_id for neighbor_id in neighbor_ids if neighbor_id not in excluded_ids
+                    ]
+                if identity_source_ids is not None:
+                    neighbor_ids = [
+                        neighbor_id
+                        for neighbor_id in neighbor_ids
+                        if neighbor_id in identity_source_ids
                     ]
             else:
                 if source_types and str(source.get("@type")) not in source_types:
@@ -157,6 +298,224 @@ class SemanticTraversal:
                 if target is not None:
                     hops.append(self._hop(mapping, source, target, relationship))
         return self._deduplicate(hops)
+
+    def blocked_predicates(self) -> frozenset[str]:
+        """Names whose declared range is governed blocked at this revision.
+
+        Query surfaces use this to distinguish BLOCKED semantic authority
+        from ordinary supported absence (c5 integration closure, PR #249).
+        The traversal itself already fails closed for these predicates; this
+        accessor exposes the same governed state so downstream results can
+        carry it explicitly instead of collapsing it into "no edges found".
+        """
+        blocked: list[str] = []
+        for name, spec in self.contract.relationships.items():
+            if not isinstance(spec, dict):
+                continue
+            mapping_spec = spec.get("sysml_mapping")
+            if not isinstance(mapping_spec, dict):
+                continue
+            if str(spec.get("range") or "") == _EVIDENCE_CONTRACT_RANGE_CLASS:
+                blocked.append(name)
+        return frozenset(blocked)
+
+    def requirement_identity_context(
+        self, elements: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Shared inputs for the reviewed Requirement-identity rule.
+
+        The `verifiedBy` source-domain closure (c5 R2 verifiedBy-domain
+        consistency review) needs the same three inputs for every element it
+        decides: the element index, the validated Requirement-lineage
+        resolver, and both directions of the reviewed ReferenceSubsetting
+        shadow bridge. Batch consumers (for example the MCP Proof-B subject
+        selection) build the context once and decide many elements; single
+        callers may pass ``context=None`` to
+        :meth:`requirement_identity` instead.
+
+        Fails closed: without a validated kernel binding index the lineage
+        resolver raises :class:`IdentityNotFoundError` — names, packages,
+        and source text never participate.
+        """
+        by_id: dict[str, dict[str, Any]] = {}
+        for item in elements:
+            candidate_id = element_id(item)
+            if candidate_id is not None:
+                by_id[candidate_id] = item
+        graph = build_relationship_graph(list(by_id.values()))
+        resolver = self._lineage_resolver("Requirement", by_id, graph)
+        _declared_to_shadows, shadow_to_declared = (
+            build_reference_subsetting_bridge(elements)
+        )
+        return {
+            "by_id": by_id,
+            "resolver": resolver,
+            "shadow_to_declared": shadow_to_declared,
+        }
+
+    def requirement_identity(
+        self,
+        element: dict[str, Any],
+        elements: list[dict[str, Any]],
+        *,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Machine-prove the governed DE4SDV Requirement identity of one element.
+
+        The reviewed ``verifiedBy`` source-domain discriminator (c5 R2
+        verifiedBy-domain closure): direct Requirement-lineage grounding of
+        the element, or — when the element is a serialized
+        ReferenceSubsetting shadow — the same grounding proof on its declared
+        usage (the reviewed c2 bridge). Returns the identity record of the
+        PROVEN subject (``element_id``, ``basis``, ``grounding_provenance``,
+        ``requirement_lineage_root_id``) or ``None`` when the identity cannot
+        be established. A shadow is representation mechanics only: it is
+        never promoted into a governed Requirement by participation, and the
+        proof always runs on a usage's own validated lineage grounding —
+        never on API metaclass, names, packages, or source text.
+        """
+        active = (
+            context
+            if context is not None
+            else self.requirement_identity_context(elements)
+        )
+        by_id = active["by_id"]
+        resolver = active["resolver"]
+        shadow_to_declared = active["shadow_to_declared"]
+        element_id_value = element_id(element)
+        if element_id_value is None:
+            return None
+        grounding = self._endpoint_grounding(element, resolver)
+        if grounding is not None:
+            return {
+                "element_id": element_id_value,
+                "basis": "direct-requirement-lineage",
+                "grounding_provenance": grounding,
+                "requirement_lineage_root_id": resolver["root_id"],
+            }
+        for declared_id in shadow_to_declared.get(element_id_value, ()):
+            declared = by_id.get(declared_id)
+            if declared is None or str(declared.get("@type")) != "RequirementUsage":
+                continue
+            declared_grounding = self._endpoint_grounding(declared, resolver)
+            if declared_grounding is not None:
+                return {
+                    "element_id": declared_id,
+                    "basis": "reference-subsetting-shadow",
+                    "grounding_provenance": declared_grounding,
+                    "requirement_lineage_root_id": resolver["root_id"],
+                }
+        return None
+
+    def _natively_verified_ids(
+        self, elements: list[dict[str, Any]]
+    ) -> set[str]:
+        """Declared elements natively verified by a verification membership.
+
+        Supporting evidence only (reviewed c5 correction, PR #249): a
+        natively verified requirement usage — a ``RequirementVerificationMembership``
+        anchor, directly or through the serialized ReferenceSubsetting shadow
+        bridge — is NOT by itself sufficient proof of ``EvidenceContract``
+        identity; the membership also admits the acceptance-criterion role.
+        The exact-identity gate lives in
+        :meth:`_evidence_contract_identity_ids`. Resolution follows the same
+        serialized shapes the verification-membership strategy handles —
+        the direct anchor (``verifiedRequirement`` / ``memberElement``) plus
+        the ReferenceSubsetting bridge where the serializer anchors a shadow
+        reference usage instead of the declaration. Names are never
+        consulted. The membership types and reference property come from the
+        governed ``verifiedBy`` mapping configuration; without it the
+        supporting relation cannot be evaluated and this fails closed.
+        """
+        try:
+            verification_mapping = self.contract.relationship_mapping("verifiedBy")
+        except KeyError as exc:
+            raise IdentityNotFoundError(
+                f"the native-verification identity basis for the "
+                f"{_EVIDENCE_CONTRACT_RANGE_CLASS!r} range cannot be evaluated: "
+                f"the governed verifiedBy mapping is not configured"
+            ) from exc
+        membership_types = {
+            str(item)
+            for item in verification_mapping.configuration.get(
+                "membership_types", ["RequirementVerificationMembership"]
+            )
+        }
+        reference_property = str(
+            verification_mapping.configuration.get(
+                "reference_property", "verifiedRequirement"
+            )
+        )
+        # Shadow bridge: a ReferenceSubsetting whose referenced feature is the
+        # declaration and whose owner is the serialized shadow usage.
+        shadow_to_declared: dict[str, set[str]] = {}
+        for element in elements:
+            if str(element.get("@type")) != "ReferenceSubsetting":
+                continue
+            declared_ids = reference_ids(element.get("referencedFeature"))
+            if not declared_ids:
+                continue
+            shadow_ids = reference_ids(
+                element.get("owningRelatedElement")
+            ) + reference_ids(element.get("owner"))
+            for declared in declared_ids:
+                for shadow in shadow_ids:
+                    shadow_to_declared.setdefault(shadow, set()).add(declared)
+        verified: set[str] = set()
+        for membership in elements:
+            if str(membership.get("@type")) not in membership_types:
+                continue
+            anchors = set(
+                reference_ids(membership.get(reference_property))
+                + reference_ids(membership.get("memberElement"))
+            )
+            for anchor in anchors:
+                verified.add(anchor)
+                verified |= shadow_to_declared.get(anchor, set())
+        return verified
+
+    def _evidence_contract_identity_ids(
+        self, elements: list[dict[str, Any]]
+    ) -> set[str]:
+        """Reviewed exact-identity resolution for the ``EvidenceContract`` range.
+
+        c5 correction (PR #249, Outcome B). The exact review question: does
+        the current governed SysML/API representation contain a
+        machine-resolvable, non-heuristic discriminator that distinguishes an
+        ``EvidenceContract`` usage from every other verified ``Requirement``
+        usage, especially ``AcceptanceCriterion``?
+
+        Reviewed finding, measured on the retained full-model export: it does
+        NOT. The eight per-slice evidence-contract requirement definitions
+        carry no specialization lineage (no authored or implied
+        ``Subclassification`` chain joins them); no validated kernel binding
+        grounds an ``EvidenceContract`` root (the authored class has no
+        file/declaration kernel mapping to validate against); and native
+        verification membership — retained below as supporting evidence —
+        also admits the acceptance-criterion role (the middleware acceptance
+        criteria are typed by the very definition the ontology's
+        ``AcceptanceCriterion`` binding names, and the visualization
+        acceptance criteria co-specialize the same requirement-candidate
+        parent). No names, qualified names, package paths, comments,
+        documentation prose, or source text participate.
+
+        Consequence, enforced fail-closed: a range whose identity cannot be
+        established emits nothing. Ambiguous verified requirement usages are
+        quiet absence, never relabelled as evidence contracts. This predicate
+        is governed ``blocked``/``defer`` until a reviewed
+        EvidenceContract-specific identity/lineage contract exists; O2 then
+        generates the projection row and O3 owns any authority transition.
+        The returned set is empty by reviewed decision, not by convention.
+        """
+        # Supporting evidence (necessary, never sufficient): native
+        # verification membership, resolved so the fail-closed outcome is
+        # attributable to IDENTITY rather than to missing verification.
+        self._natively_verified_ids(elements)
+        # Exact identity discriminator (sufficient): reviewed as not present
+        # in the governed representation at the reviewed revision (docstring
+        # above). No candidate can be upgraded from supporting evidence to
+        # proven EvidenceContract identity; the resolution fails closed.
+        return set()
 
     def _derivation_connection_hops(
         self,
@@ -688,14 +1047,14 @@ class SemanticTraversal:
         lineage_class: str,
         by_id: dict[str, dict[str, Any]],
         graph: Any = None,
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         """Ground one ontology lineage class and precompute its member ids.
 
         The root UUID comes from the ingestion-validated kernel binding
         index; lineage membership follows the representation-tolerant
         relationship graph (authored and tool-implied subsumption kept
         separate) and usage typing. A class without a validated binding
-        fails closed.
+        fails closed — this function never returns None.
         """
         if self.kernel_bindings is None:
             raise IdentityNotFoundError(
@@ -886,11 +1245,39 @@ class SemanticTraversal:
         source_id: str,
         elements: list[dict[str, Any]],
     ) -> list[TraversalHop]:
-        """Traverse native SubjectMembership objects owned by the requirement.
+        """Traverse native SubjectMembership objects owned by the source.
 
         Shape derived from the SysML v2 2025-02-01 API schema: a
         SubjectMembership references its subject through ``memberElement`` and
         its owner through ``owningRelatedElement``.
+
+        The mapping's governed domain/range — the predicate's declared
+        semantic contract (c3 review) — is enforced fail-closed with the same
+        machinery the derivation strategy uses: the query source must ground
+        in the validated kernel lineage of the declared domain (for
+        ``hasSubject`` the DE4SDV Requirement lineage; a stakeholder-need
+        candidate usage serialized as a ``RequirementUsage`` does not
+        qualify), and every returned subject must ground in the validated
+        lineage of the declared range (the member-product lineage; a bench,
+        increment, claim, or other arbitrary subject does not qualify).
+        Grounding follows the ingestion-validated kernel binding plus the
+        representation-tolerant relationship graph, keeping authored vs
+        tool-implied lineage separable in the witness; names are never
+        consulted (API metaclass equality is representation evidence, not
+        ontology-class identity).
+
+        Fail-closed behavior:
+
+        - a source outside the governed domain lineage, or a subject outside
+          the governed range lineage, is a non-qualifying native subject
+          membership: quiet absence, never a ``hasSubject`` hop;
+        - when qualifying candidates exist to decide, a missing validated
+          kernel binding for a declared lineage (or no binding index at all)
+          raises :class:`IdentityNotFoundError` — a missing semantic
+          discriminator never broadens the predicate and never falls back to
+          metaclass, declaredName, qualifiedName, or source text;
+        - a mapping that declares no governed domain/range lineage is a
+          corrupted representation configuration and refuses to run.
         """
         config = mapping.configuration
         membership_types = {
@@ -906,17 +1293,72 @@ class SemanticTraversal:
             for item in elements
             if (candidate_id := element_id(item)) is not None
         }
-        hops: list[TraversalHop] = []
+        # Candidate memberships first: a source owning no subject membership
+        # at all is quiet absence — no lineage resolution (and no binding
+        # requirement) is performed for it.
+        candidates: list[dict[str, Any]] = []
         for membership in elements:
             if str(membership.get("@type")) not in membership_types:
                 continue
             owners = reference_ids(membership.get("owningRelatedElement"))
             if source_id not in owners:
                 continue
+            candidates.append(membership)
+        if not candidates:
+            return []
+
+        # The governed semantic contract is the relationship's declared
+        # domain/range; the mechanics derive from it and never carry a second
+        # authored type contract.
+        source_lineage = mapping.domain
+        target_lineage = mapping.range
+        if not source_lineage or not target_lineage:
+            raise ValueError(
+                f"subject-membership mapping for {mapping.name!r} declares no "
+                f"governed domain/range lineage; the declared semantic "
+                f"contract cannot be enforced"
+            )
+        graph = build_relationship_graph(list(by_id.values()))
+        source_resolver = self._lineage_resolver(str(source_lineage), by_id, graph)
+        # Source restriction: the query source must ground in the governed
+        # domain lineage. A RequirementUsage outside it (for example a
+        # stakeholder-need candidate) is not part of this predicate.
+        source_grounding = self._endpoint_grounding(source, source_resolver)
+        if source_grounding is None:
+            return []
+        target_resolver = self._lineage_resolver(str(target_lineage), by_id, graph)
+
+        hops: list[TraversalHop] = []
+        for membership in candidates:
             for member_id in reference_ids(membership.get(member_property)):
                 target = by_id.get(member_id)
-                if target is not None:
-                    hops.append(self._hop(mapping, source, target, membership))
+                if target is None:
+                    continue
+                target_grounding = self._endpoint_grounding(target, target_resolver)
+                if target_grounding is None:
+                    # Non-qualifying native subject: the member is outside the
+                    # governed range lineage and is not a hasSubject fact.
+                    continue
+                hop = self._hop(mapping, source, target, membership)
+                hops.append(
+                    replace(
+                        hop,
+                        witness={
+                            "membership_id": element_id(membership),
+                            "membership_type": str(membership.get("@type") or ""),
+                            "source_lineage": {
+                                "ontology_class": str(source_lineage),
+                                "lineage_root_id": source_resolver["root_id"],
+                                "provenance": source_grounding,
+                            },
+                            "target_lineage": {
+                                "ontology_class": str(target_lineage),
+                                "lineage_root_id": target_resolver["root_id"],
+                                "provenance": target_grounding,
+                            },
+                        },
+                    )
+                )
         return self._deduplicate(hops)
 
     def _verification_membership_hops(
@@ -942,6 +1384,17 @@ class SemanticTraversal:
         bridges a serialized reference usage (the "shadow") to the declared
         requirement when the shadow, not the declaration, is the RVM member.
         Containment ancestry without an RVM never qualifies (fail closed).
+
+        Governed source domain (c5 R2 verifiedBy-domain closure): the
+        declared predicate is ``Requirement -> VerificationCase``; the
+        QUERIED semantic source must ground in the validated Requirement
+        lineage — the relationship's declared ontology domain, enforced
+        through the reviewed lineage resolver. A serialized shadow
+        participates only as the serializer-side RVM anchor of its declared
+        requirement; a shadow queried directly is never promoted into a
+        governed Requirement. Candidate-first: a source with no candidate
+        verification participation (its own or its reviewed shadow's) is
+        quiet absence — no lineage resolution, no binding requirement.
         """
         config = mapping.configuration
         membership_types = {
@@ -974,17 +1427,12 @@ class SemanticTraversal:
                 + reference_ids(membership.get("owningType"))
             )
 
-        # ReferenceSubsetting reverse index: declared requirement -> shadow
-        # reference usage.
-        refsub_reverse: dict[str, set[str]] = {}
-        for element in elements:
-            if str(element.get("@type")) != "ReferenceSubsetting":
-                continue
-            for target_ref in reference_ids(element.get("referencedFeature")):
-                for shadow_ref in reference_ids(
-                    element.get("owningRelatedElement")
-                ) + reference_ids(element.get("owner")):
-                    refsub_reverse.setdefault(target_ref, set()).add(shadow_ref)
+        # Reviewed ReferenceSubsetting shadow bridge: declared requirement ->
+        # serialized shadow reference usage (the same keys the resolver below
+        # consumes, via the shared c2-mechanism builder).
+        declared_to_shadows, _shadow_to_declared = (
+            build_reference_subsetting_bridge(elements)
+        )
 
         # Membership edges for upward owner walking (containment chain).
         owner_chain_types = {
@@ -1009,18 +1457,50 @@ class SemanticTraversal:
                 ):
                     _owners_index.setdefault(member_ref, set()).add(owner_ref)
 
-        # Start points: the declared requirement and, when a shadow reference
-        # usage subsettings it, the shadow (so upward walking can proceed).
-        starts: set[str] = {source_id} | refsub_reverse.get(source_id, set())
+        # Start points: the queried semantic source and, when a shadow
+        # reference usage subsettings it, the shadow (so upward walking can
+        # proceed). The shadow participates as the serializer-side anchor
+        # only — it is never promoted into a governed Requirement.
+        starts: set[str] = {source_id} | set(
+            declared_to_shadows.get(source_id, ())
+        )
+
+        # Candidate-first (c3/c5 discipline): a source (or its reviewed
+        # shadow) participating in no candidate verification membership is
+        # quiet absence — no lineage resolution, no binding requirement.
+        candidates = [
+            membership
+            for membership in elements
+            if str(membership.get("@type")) in membership_types
+            and (anchors_of(membership) & starts)
+        ]
+        if not candidates:
+            return []
+
+        # Governed source-domain enforcement (c5 R2 verifiedBy-domain
+        # closure): the declared predicate is Requirement -> VerificationCase;
+        # the domain is enforced from the relationship's declared ontology
+        # contract. The QUERIED semantic source must ground in the validated
+        # Requirement lineage — a bare RequirementUsage, a Need-role usage,
+        # an ungrounded evidence-contract usage, or a serialized shadow
+        # queried directly is a non-qualifying source: quiet absence, never a
+        # hop. A missing declared domain refuses to run; a missing validated
+        # binding raises IdentityNotFoundError (fail closed) — never a name
+        # fallback.
+        domain_class = mapping.domain
+        if not domain_class:
+            raise ValueError(
+                f"verification-membership mapping for {mapping.name!r} "
+                f"declares no governed domain lineage; the declared semantic "
+                f"contract cannot be enforced"
+            )
+        graph = build_relationship_graph(list(by_id.values()))
+        resolver = self._lineage_resolver(str(domain_class), by_id, graph)
+        if self._endpoint_grounding(source, resolver) is None:
+            return []
 
         hops: list[TraversalHop] = []
-        for membership in elements:
-            if str(membership.get("@type")) not in membership_types:
-                continue
-            # Fail-closed: the RVM must anchor on the requirement itself or on
-            # a shadow that ReferenceSubsetting ties to it.
-            if not (anchors_of(membership) & starts):
-                continue
+        for membership in candidates:
             # Walk owners upward from the RVM; stop at the first case.
             frontier = list(_owners_of(membership))
             seen = set(frontier)

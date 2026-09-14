@@ -28,6 +28,11 @@ try:
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import generate_scenario_manifest
 
+try:
+    from scripts import generate_semantic_authority_inventory
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import generate_semantic_authority_inventory
+
 REQUIRED_FILES = [
     "README.md",
     "CONTRIBUTING.md",
@@ -156,6 +161,7 @@ def main() -> int:
     model_sync_errors = check_model_sync.run_all_checks()
     manifest_errors = generate_scenario_manifest.run_check_errors()
     naming_errors = check_naming.run_all_checks()
+    inventory_errors = generate_semantic_authority_inventory.run_check_errors(root)
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -189,6 +195,11 @@ def main() -> int:
         for error in naming_errors:
             print(f"- {error}")
 
+    if inventory_errors:
+        print("Repository check failed. Semantic authority inventory errors:")
+        for error in inventory_errors:
+            print(f"- {error}")
+
     if (
         missing
         or duplicate_packages
@@ -196,6 +207,7 @@ def main() -> int:
         or model_sync_errors
         or manifest_errors
         or naming_errors
+        or inventory_errors
     ):
         return 1
 

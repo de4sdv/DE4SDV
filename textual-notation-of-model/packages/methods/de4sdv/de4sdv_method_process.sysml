@@ -21,7 +21,7 @@ package DE4SDV_MethodProcess {
   /* ─── Method phases ─── */
 
   enum def MethodPhase {
-    doc /* The 13 phases of the DE4SDV increment workflow. */
+    doc /* One of the 13 phases of the DE4SDV increment workflow. */
 
     phase0_incrementFraming {
       doc /* What are we changing or learning? Common domain. */

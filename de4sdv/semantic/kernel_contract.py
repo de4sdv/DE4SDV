@@ -60,6 +60,13 @@ class RelationshipMapping:
     strategy: str
     semantic_strength: str
     configuration: dict[str, Any]
+    #: Governed semantic domain/range ontology class names — the predicate's
+    #: declared semantic contract. Representation mechanics are held to this
+    #: contract (c3: the subject-membership strategy enforces both lineages
+    #: through the validated kernel bindings); mechanics never author a
+    #: second, competing type contract.
+    domain: str | None = None
+    range: str | None = None
 
 
 @dataclass(frozen=True)
@@ -123,7 +130,8 @@ class KernelContract:
 
     def relationship_mapping(self, relationship: str) -> RelationshipMapping:
         try:
-            value = self.relationships[relationship]["sysml_mapping"]
+            spec = self.relationships[relationship]
+            value = spec["sysml_mapping"]
         except (KeyError, TypeError) as exc:
             raise KeyError(
                 f"ontology relationship has no SysML mapping: {relationship}"
@@ -135,6 +143,8 @@ class KernelContract:
             raise ValueError(
                 f"invalid semantic_strength for relationship {relationship}"
             )
+        domain = spec.get("domain")
+        range_ = spec.get("range")
         return RelationshipMapping(
             name=relationship,
             strategy=value["strategy"],
@@ -142,6 +152,8 @@ class KernelContract:
             configuration={
                 key: item
                 for key, item in value.items()
-                if key not in {"strategy", "semantic_strength"}
+                if key not in {"strategy", "semantic_strength", "domain", "range"}
             },
+            domain=domain if isinstance(domain, str) else None,
+            range=range_ if isinstance(range_, str) else None,
         )

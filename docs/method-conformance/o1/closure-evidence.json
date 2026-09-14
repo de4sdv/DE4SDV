@@ -1,0 +1,52 @@
+{
+  "schema": "de4sdv.closure-evidence/v1",
+  "note": "Structured, revision-bound closure-evidence records for inventory entries whose evidence_state is privileged-closure-proven. A record binds the exact semantic subjects, the exact Git revision, the SysML project/commit identity, the retained privileged evidence source, the uploaded artifact identity, and the proof result/scope. Archive digests are named for what they are: the sha256 of the uploaded GitHub Actions artifact archive — NOT the internal export/semantic binding digest. A bare witness-closure boolean is never sufficient evidence. Records are added only by reviewed change; none may be promoted to supported by this artifact.",
+  "records": [
+    {
+      "id": "r6-3",
+      "schema": "de4sdv.closure-evidence/v1",
+      "subject_identities": [
+        "DerivesFromNeed",
+        "derivesRequirementFromNeed",
+        "derivedRequirementsOfNeed"
+      ],
+      "git_sha": "72926c958d2bd3b1001088fa657ec906dffd53e7",
+      "sysml_project_id": "ea96301d-343a-4592-bad4-5dd997ca906a",
+      "sysml_commit_id": "82ef02df-94fe-4100-94c9-2f961f314a28",
+      "evidence_source": {
+        "kind": "privileged-full-model-api-ingestion",
+        "workflow_run": "34630102233",
+        "run_result": "success",
+        "steps": "all",
+        "workflow_base_sha": "292c711e1f8381c8e981d58a613c9572312f92a5"
+      },
+      "artifact": {
+        "name": "full-model-api-ingestion-72926c958d2bd3b1001088fa657ec906dffd53e7",
+        "github_artifact_id": "10281038294",
+        "archive_content_digest": "sha256:70d37f39798114ceb9fbdb7e975e9ba9959bcae7a298164e204b12fa59d65a93",
+        "archive_size_bytes": 41862182,
+        "archive_digest_scope": "sha256 of the uploaded GitHub Actions artifact archive (the full-model-api-ingestion bundle). This is the archive digest reported by the Actions artifacts API; it is NOT the internal export, semantic, or revision-binding digest.",
+        "internal_export_digest": null,
+        "internal_digest_note": "The export artifact's internal identity digests travel inside the downloaded bundle (candidate export + revision binding + export identity); no internal digest was recorded in the retained PR record. Retrieve from the archive when a machine binding is implemented; never fabricate and never equate with the archive digest."
+      },
+      "proof": {
+        "result": "pass",
+        "scope": "five AEBS derivation cases + inverse navigation over the same witness + adversarial fail-closed cases + witness closure + YAML parity as O0/O1 oracle",
+        "closure_verified": true,
+        "run_observations": {
+          "elements": 82088,
+          "source_documents": 62,
+          "ontology_validation": {
+            "mapped": 40,
+            "native": 15,
+            "external": 4,
+            "unresolved": 0,
+            "ambiguous": 0
+          },
+          "support_transition": "supported (closure-verified) after full witness closure on the fresh artifact"
+        }
+      },
+      "status": "historical accepted evidence for the K slice only"
+    }
+  ]
+}

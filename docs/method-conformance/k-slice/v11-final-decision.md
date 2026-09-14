@@ -6,6 +6,15 @@ This record closes the two bounded semantic questions that remained after the
 v1.1 reconciliation (`v11-reconciliation.md`) and supersedes that record's
 representation choice. PR #243 stays draft; R6 remains gated.
 
+> **Status update (O1 Wave 0c, 2026-09-12):** the decision below was implemented and
+> merged. PR #243 is merged; R6 #3 was executed at `72926c95` (workflow `34630102233`)
+> with a passing read-back proof and is retained as the `r6-3` closure record in
+> [`../o1/closure-evidence.json`](../o1/closure-evidence.json). Support promotion now
+> requires a structured, exact-revision closure attestation (O1 Wave 0b). The status
+> sentences in this record ("PR #243 stays draft", "R6 remains gated") describe the
+> state at decision time; the decision content (Q1/Q2) is unchanged and remains
+> current.
+
 ## Q1 — Standard `Derivation` vs a minimal DE4SDV application connection
 
 **Decision: minimal DE4SDV application connection definition
@@ -102,4 +111,5 @@ pointers to this record.
 
 Design-input provenance only. No satisfaction, allocation, verification,
 evidence, or acceptance claim. No library constraint adoption. R6
-(privileged exact-head ingestion) is not executed.
+(privileged exact-head ingestion) was not executed as part of this record
+(see the status update above).

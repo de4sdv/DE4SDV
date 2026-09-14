@@ -31,7 +31,11 @@ from .method_evaluator import (
     ReadinessTarget,
     ReadinessBlock,
 )
-from .traversal import SemanticTraversal, TraversalHop
+from .traversal import (
+    EVIDENCE_CONTRACT_BLOCKED_REASON,
+    SemanticTraversal,
+    TraversalHop,
+)
 
 
 @dataclass
@@ -266,26 +270,48 @@ class SemanticQueryService:
             "provenance": self._provenance(),
         }
 
+    def _blocked_unsupported(self, predicate: str) -> dict[str, str]:
+        """Structured unsupported record for one governed-blocked predicate.
+
+        c5 integration closure (PR #249, R1): a predicate whose declared
+        range is governed blocked cannot be evaluated, so its zero edges are
+        NOT ordinary supported absence. The record shape is the reusable
+        blocked/unsupported representation shared by the query surfaces.
+        """
+        return {
+            "predicate": predicate,
+            "authority_state": "blocked",
+            "reason": EVIDENCE_CONTRACT_BLOCKED_REASON,
+        }
+
     def semantic_neighbors(
         self, identifier: str, *, predicates: list[str] | None = None
     ) -> dict[str, Any]:
         resolution, elements = self._resolve(identifier)
         source = resolution.element
         selected = predicates or self._mapped_predicates()
+        blocked_predicates = self.traversal.blocked_predicates()
         nodes: dict[str, dict[str, Any]] = {}
         edges: list[dict[str, Any]] = []
         gaps: list[dict[str, str]] = []
+        unsupported: list[dict[str, str]] = []
         for predicate in selected:
             # Enforces ontology declaration and rejects unsupported names.
             self.contract.relationship_mapping(predicate)
+            if predicate in blocked_predicates:
+                # Blocked governed authority: zero edges by fail-closed
+                # decision, reported as unsupported rather than ordinary
+                # absence (c5 correction + integration closure, PR #249).
+                unsupported.append(self._blocked_unsupported(predicate))
+                continue
             hops = self.traversal.traverse(predicate, source, elements)
             if not hops:
                 gaps.append(
                     {
                         "category": predicate,
                         "reason": (
-                            "No ontology-mapped native relationship was found from "
-                            "the resolved element in the bound API revision."
+                            "No ontology-mapped native relationship was found "
+                            "from the resolved element in the bound API revision."
                         ),
                     }
                 )
@@ -309,6 +335,14 @@ class SemanticQueryService:
                 ),
             ),
             "revision": self._revision(),
+            # Mixed outcomes are allowed and expected: evaluated predicates
+            # report ordinary gaps; blocked predicates appear here with the
+            # reviewed missing-identity reason. ``semantic_status`` is
+            # ``complete`` only when every requested predicate was evaluated.
+            "semantic_status": (
+                "incomplete" if unsupported else "complete"
+            ),
+            "unsupported_predicates": unsupported,
             "gaps": gaps,
             "provenance": self._provenance(),
         }
@@ -341,6 +375,8 @@ class SemanticQueryService:
             if (candidate_id := element_id(item)) is not None
         }
         predicates = self._mapped_predicates()
+        blocked_predicates = self.traversal.blocked_predicates()
+        unavailable = [self._blocked_unsupported(p) for p in sorted(blocked_predicates)]
         frontier: list[tuple[str, list[dict[str, Any]]]] = [(source_id, [])]
         visited = {source_id}
         path: list[dict[str, Any]] | None = None
@@ -350,6 +386,11 @@ class SemanticQueryService:
                 continue
             current = by_id[current_id]
             for predicate in predicates:
+                if predicate in blocked_predicates:
+                    # Blocked governed authority: this predicate was not
+                    # available during traversal (c5 correction, PR #249).
+                    # Record it; never attribute a failed trace to it.
+                    continue
                 for hop in self.traversal.traverse(predicate, current, elements):
                     edge = self._edge(hop)
                     next_id = edge["target"]
@@ -365,6 +406,21 @@ class SemanticQueryService:
                     break
             if path is not None:
                 break
+        # ``unavailable_predicates`` distinguishes "no supported path was
+        # found" from "all relevant semantic paths were fully evaluated and
+        # proven absent": when blocked predicates could not participate, the
+        # latter claim cannot be made (c5 integration closure, PR #249).
+        unavailable_block = [
+            {
+                "category": "semantic-trace-unavailable",
+                "reason": (
+                    "Ontology-mapped predicate "
+                    f"{record['predicate']} was unavailable during this "
+                    "trace: " + record["reason"]
+                ),
+            }
+            for record in unavailable
+        ]
         if path is None:
             return {
                 "query": "trace",
@@ -372,6 +428,10 @@ class SemanticQueryService:
                 "target": self._compact_element(target_resolution.element),
                 "path": [],
                 "revision": self._revision(),
+                "semantic_status": (
+                    "incomplete" if unavailable else "complete"
+                ),
+                "unsupported_predicates": unavailable,
                 "gaps": [
                     {
                         "category": "semantic-trace",
@@ -380,7 +440,8 @@ class SemanticQueryService:
                             f"found within depth {max_depth}."
                         ),
                     }
-                ],
+                ]
+                + unavailable_block,
                 "provenance": self._provenance(),
             }
         return {
@@ -389,6 +450,10 @@ class SemanticQueryService:
             "target": self._compact_element(target_resolution.element),
             "path": path,
             "revision": self._revision(),
+            "semantic_status": (
+                "incomplete" if unavailable else "complete"
+            ),
+            "unsupported_predicates": unavailable,
             "gaps": [],
             "provenance": self._provenance(),
         }
@@ -414,6 +479,31 @@ class SemanticQueryService:
         verification_gaps = [
             gap for gap in report["gaps"] if gap["category"] == "verification"
         ]
+        # c5 integration closure (PR #249, R1; corrected): the blocked
+        # EvidenceContract range is a distinct state from evaluated absence.
+        # Detection reads the STRUCTURED governed authority state from the
+        # traversal's blocked-predicate source — never human-readable gap
+        # prose: structured authority state -> coverage unsupported state.
+        # While the range is blocked the impact evidence gap is always
+        # present (the fail-closed gate emits nothing), and when the range is
+        # ever unblocked this check self-corrects to False. Coverage must
+        # never be reported as ordinary "uncovered" solely because no
+        # EvidenceContract edges were emitted, and the missing-identity
+        # reason must survive into this result.
+        blocked = "hasRelevantEvidenceContract" in self.traversal.blocked_predicates()
+        unsupported: list[dict[str, str]] = []
+        if blocked:
+            unsupported.append(self._blocked_unsupported("hasRelevantEvidenceContract"))
+            verification_gaps.append(
+                {
+                    "category": "verification-unsupported",
+                    "reason": (
+                        "Verification coverage through the declared "
+                        "hasRelevantEvidenceContract range cannot be assessed: "
+                        + EVIDENCE_CONTRACT_BLOCKED_REASON
+                    ),
+                }
+            )
         unverified_evidence_ids = evidence_ids - verified_evidence_ids
         if unverified_evidence_ids and verification_ids:
             status = "partial"
@@ -430,12 +520,21 @@ class SemanticQueryService:
             status = "covered"
         elif verification_ids:
             status = "partial"
+        elif blocked:
+            # The EvidenceContract range is blocked: coverage through it is
+            # not assessable, which is a different state from an evaluated
+            # absence of verification cases.
+            status = "incomplete"
         else:
             status = "uncovered"
         return {
             "query": "verification_coverage",
             "requirement": report["root"],
             "status": status,
+            "semantic_status": (
+                "incomplete" if unsupported else "complete"
+            ),
+            "unsupported_predicates": unsupported,
             "evidence_contracts": [
                 nodes_by_id[candidate]
                 for candidate in sorted(evidence_ids)
