@@ -58,7 +58,7 @@ package DE4SDV_MethodConformance {
     attribute subjectSelector : String;
     doc /* Typed selection from the declared evaluation scope; no free-text inference. */
     attribute applicability : String;
-    doc /* Restricted typed condition over pinned model/configuration data; empty means unconditional. */
+    doc /* Restricted typed condition over pinned model/configuration data. */
     attribute minimumPopulation : Natural;
     attribute permittedEmpty : Boolean;
     doc /* Explicit permitted-empty disposition; an empty population without it is not a pass. */

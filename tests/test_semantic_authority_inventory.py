@@ -8,7 +8,9 @@ corrections:
 - R1: source-revision binding (stale revisions fail, changed inputs fail,
   correct bindings pass, artifacts cannot self-authorize);
 - R2: text parity is exact equality after cosmetic normalization (containment
-  is not parity; material differences stay review-required);
+  is not parity; material differences stay `review-required` until a bounded
+  review completes — then `reviewed-equivalent`, Layer-B metadata only, never
+  derived or auto-promoted);
 - R3: reviewed consumer associations live in Layer B; Layer A reports only
   mechanically witnessed evidence.
 
@@ -685,18 +687,65 @@ class TestTextParity:
             == "differs"
         )
 
-    def test_material_wording_difference_remains_review_required(self):
-        file_text = self._file(
-            "part def Widget {\n"
-            "    doc /* A widget does one thing carefully and intentionally. */\n"
-            "  }"
+    def test_equivalence_state_matrix_abg(self):
+        """§17 A–G: the reviewed-equivalence lifecycle states.
+
+        A: exact text + null equivalence -> valid (no manual record needed).
+        B: exact text + any manual record -> invalid (no automatic upgrade).
+        C: differs + review-required -> valid unresolved review state.
+        D: differs + reviewed-equivalent -> valid completed review state.
+        E: differs + null -> invalid (no silent acceptance).
+        F: doc-absent family + reviewed-equivalent -> invalid by default
+           (no reviewed basis without model documentation; the completed
+           state is limited to `differs`).
+        G: the states never auto-promote between each other.
+        """
+        # A — exact text, no manual record.
+        assert _problems_for(_valid_reviewed(), observation="normalized-exact") == []
+        # B — exact text never accepts a manual record.
+        for equivalence in ("review-required", "reviewed-equivalent"):
+            problems = _problems_for(
+                _valid_reviewed(semantic_text_equivalence=equivalence),
+                observation="normalized-exact",
+            )
+            assert any("no automatic upgrade" in p for p in problems), equivalence
+        # C — unresolved review state is valid for material drift.
+        assert (
+            _problems_for(
+                _valid_reviewed(semantic_text_equivalence="review-required"),
+                observation="differs",
+            )
+            == []
         )
-        observation = ai.doc_text_observation(
-            file_text, "part def Widget", "a widget does one thing cleanly"
+        # D — completed bounded review is valid for material drift.
+        assert (
+            _problems_for(
+                _valid_reviewed(semantic_text_equivalence="reviewed-equivalent"),
+                observation="differs",
+            )
+            == []
         )
-        assert observation == "differs"
-        problems = _problems_for(_valid_reviewed(), observation=observation)
-        assert any("review-required" in p for p in problems)
+        # E — material drift without any record stays invalid.
+        problems = _problems_for(_valid_reviewed(), observation="differs")
+        assert any("semantic_text_equivalence" in p for p in problems)
+        # F — reviewed-equivalent without model documentation is refused.
+        for observation in (
+            "doc-absent",
+            "doc-absent (bodyless declaration)",
+            "block-not-located",
+        ):
+            problems = _problems_for(
+                _valid_reviewed(semantic_text_equivalence="reviewed-equivalent"),
+                observation=observation,
+            )
+            assert any("semantic_text_equivalence" in p for p in problems), (
+                observation
+            )
+        # G — no auto-promotion: the completed state is limited to `differs`
+        # and the validator never rewrites one review state into the other.
+        assert ai.REVIEWED_EQUIVALENT_OBSERVATIONS == frozenset({"differs"})
+        assert ai.REVIEWED_EQUIVALENT == "reviewed-equivalent"
+        assert "reviewed-equivalent" not in ai.REVIEW_REQUIRED_OBSERVATIONS
 
     def test_doc_absent_and_bodyless_observations(self):
         bodyless = self._file("part def Empty;")
@@ -756,13 +805,15 @@ class TestTextParity:
         # (final-O1 R1 follow-up) every doc at a declaration body's direct
         # lexical depth joins the observation — the five method-conformance
         # classes that serialize attribute documentation after their
-        # attributes observe `differs` (their reviewed equivalence moves to
-        # `review-required`, the schema state; no evidence maturity changes);
-        # MethodPhase / EvaluationSourceKind / RetainedExecutionRecordReference
-        # keep `normalized-exact` (their direct docs are the aligned leading
-        # block); DerivesFromNeed stays `differs` (its wording differs from the
-        # reviewed definition, as its own remedy prose records); no identity
-        # outside this set moves.
+        # attributes observe `differs` (their reviewed equivalence is the
+        # completed bounded-review state `reviewed-equivalent`, recorded per
+        # the final c1 documentation-equivalence reconciliation; no evidence
+        # maturity changes); MethodPhase / EvaluationSourceKind /
+        # RetainedExecutionRecordReference keep `normalized-exact` (their
+        # direct docs are the aligned leading block); DerivesFromNeed stays
+        # `differs` with `review-required` (its equivalence review is not
+        # completed — the negative control against auto-promotion); no
+        # identity outside this set moves.
         assert counts == {
             "differs": 33,
             "normalized-exact": 3,

@@ -545,6 +545,24 @@ before any privileged dispatch (Unified Plan stop conditions).
 
 ---
 
+## 17. Final c1 documentation-equivalence reconciliation (bounded review record; uniform-ownership follow-up)
+
+The corrected uniform documentation-ownership observer (ownership = lexical containment; every direct-body doc is owned by the enclosing declaration) exposed full direct-body documentation for five c1 identities that differs textually from their authoritative YAML definitions. The completed bounded semantic review compared each identity's complete direct-body documentation against the authoritative ontology/YAML definition, the frozen method-conformance baseline, the structural representation, and the relevant runtime implementation. Reviewed outcomes:
+
+| identity | doc_text_observation | semantic_text_equivalence | review note |
+|---|---|---|---|
+| MethodContractObligation | differs | reviewed-equivalent | after the one corrected applicability-documentation sentence — the unsupported "empty means unconditional" clause was removed from the model, leaving the bounded statement "Restricted typed condition over pinned model/configuration data." The remaining direct-body documentation elaborates fields already governed by the frozen Section-7 schema and establishes no stronger semantics. |
+| MethodEvaluationScope | differs | reviewed-equivalent | the extra direct-body documentation is consistent with the governed meaning (increment identity, eligible subject types, scope identity); **documentation equivalence does not close the separate structural exclusions gap** — explicit exclusions with rationale remain outside the model. |
+| EvaluationScopeMembership | differs | reviewed-equivalent | the docs merely clarify the already governed `scopeId` / `subjectId` / `contributes` semantics; the contribution-set vs evaluation-scope distinction is unchanged and no stronger meaning is introduced. |
+| TestedScopeDeclaration | differs | reviewed-equivalent | the docs clarify the representation of the already governed conservative scope-equality inputs (`executionHead`, `profileIdentities`); no new freshness, reuse, acceptance, or carry-forward claim. |
+| AcceptanceAttestationReference | differs | reviewed-equivalent | the complete documentation remains within the already governed reference-only meaning (policy reference, decision-registry location, policy status external, missing vs known-empty registry distinct, unresolved policy references are invalid contract inputs rather than approval evidence); no acceptance decision is inferred. |
+
+`reviewed-equivalent` is a **Layer-B governance decision, not a machine-derived Layer-A observation**. `doc_text_observation` remains `differs` for all five; the reviewed state records only that a bounded human semantic review established that the additional/different wording does not strengthen, weaken, contradict, or redefine the governed engineering meaning. It is independent from `evidence_state` / authority / disposition / transition_gate: `MethodEvaluationScope` keeps `repository-evidenced` because its independent structural gate remains open. For the four parity-reviewed rows the reconciliation removes their documentation-side inconsistency; whether that restores the previously established O2 admission analysis is for the final independent review to confirm — this record makes no admission claim, changes no runtime authority, and is not runtime authority.
+
+`DerivesFromNeed` is deliberately **not** included in this reconciliation: its explicit equivalence review has not been completed, so it remains `doc_text_observation = differs` with `semantic_text_equivalence = review-required` — the negative control proving the new state never auto-promotes `differs` rows.
+
+---
+
 ## Appendix A — classes (59), full classification
 
 Columns: authority (current → target; `[cond]` = conditional target) · evidence state ·

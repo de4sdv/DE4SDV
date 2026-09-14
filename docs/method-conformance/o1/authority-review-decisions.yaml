@@ -1019,10 +1019,14 @@ entries:
       (docs/method-conformance/conformance-baseline.md Section 7), materialized
       as 14 typed attribute declarations because population policy and
       cardinality each require two attributes; the earlier "15 fields" figure
-      was wrong and is corrected per review R2. Per-attribute docs are member
-      docs and stay member docs; definition-level doc added reproducing the
-      YAML-established meaning (YAML remains the O1 authority). Text parity is
-      normalized-exact and machine-checked; runtime authority unchanged until O3.'
+      was wrong and is corrected per review R2. Full direct-body documentation
+      differs textually from the YAML definition; bounded semantic review found
+      the additional wording semantically equivalent to the authoritative
+      definition and the frozen Section-7 schema — the field elaborations do not
+      strengthen, weaken, contradict, or redefine the governed meaning. The
+      applicability doc''s unsupported "empty means unconditional" clause was
+      removed from the model, leaving the bounded statement. Runtime authority
+      unchanged until O3.'
     unknowns: []
     required_evidence:
     - O2 generated projection from the reviewed model representation
@@ -1035,10 +1039,12 @@ entries:
       for the cardinality bounds, required, evaluationSource : EvaluationSourceKind,
       attestationPolicyRef, claimBoundary); no schema field is absent; the obligations do
       not gain executable semantics from the representation, so no stronger meaning is
-      introduced; definition-level doc reproduces the YAML definition without added
-      semantics; the declared pilot instantiates 11 obligations as model items.'
+      introduced; full direct-body documentation differs textually from the YAML
+      definition and bounded semantic review found the additional wording semantically
+      equivalent to the authoritative definition and the frozen Section-7 schema; the
+      declared pilot instantiates 11 obligations as model items.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   EvaluationSourceKind:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1075,16 +1081,15 @@ entries:
     disposition: move-meaning-into-model
     confidence: high
     stage: c1 (conformance batch)
-    note: 'c1 review correction (R1): definition-level doc text parity is
-      normalized-exact and machine-checked, but text parity is NOT structural
-      semantic parity — the model does not yet structurally carry explicit
-      exclusions with rationale, so evidence_state stays repository-evidenced.
-      The definition-level doc is retained as an accurate statement of the
-      intended concept and claims no model-resident exclusions field. The
-      runtime MethodEvaluationScope exclusions input is implementation evidence
-      for the delivered A–D execution, not model-authority parity. O2 cannot
-      close this gap by itself: it may only generate from semantics already
-      proven model-resident.'
+    note: 'c1 review correction (R1): full direct-body documentation differs textually
+      from the YAML definition; bounded semantic review found the additional wording
+      semantically equivalent to the authoritative definition — but documentation
+      equivalence does NOT close the separate structural exclusions gap: the model does
+      not yet structurally carry explicit exclusions with rationale, so evidence_state
+      stays repository-evidenced. The runtime MethodEvaluationScope exclusions input is
+      implementation evidence for the delivered A–D execution, not model-authority
+      parity. O2 cannot close this gap by itself: it may only generate from semantics
+      already proven model-resident.'
     unknowns:
     - Model-resident representation of explicit exclusions with rationale is required
       before model-authority parity can be completed.
@@ -1098,7 +1103,7 @@ entries:
       outside the model in the delivered runtime MethodEvaluationScope input. Runtime
       representation is implementation evidence, not model-authority parity.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   EvaluationScopeMembership:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1111,10 +1116,12 @@ entries:
     stage: c1 (conformance batch)
     note: 'c1 parity-reviewed: membership class carries scopeId, subjectId, and the
       contributes flag; the six pilot memberships instantiate contributes=false (reused
-      scope members), proving the contribution-set vs evaluation-scope separation;
-      definition-level doc added reproducing the YAML-established meaning (YAML remains
-      the O1 authority). Parity is normalized-exact and machine-checked; runtime authority
-      unchanged until O3.'
+      scope members), proving the contribution-set vs evaluation-scope separation; full
+      direct-body documentation differs textually from the YAML definition, and bounded
+      semantic review found the additional wording semantically equivalent to the
+      authoritative definition and its referenced governing schema — the docs merely
+      clarify the already governed scopeId/subjectId/contributes semantics. Runtime
+      authority unchanged until O3.'
     unknowns: []
     required_evidence:
     - O2 generated projection from the reviewed model representation
@@ -1123,9 +1130,11 @@ entries:
       subjectId, contributes : Boolean exactly; the pilot model data instantiates six
       memberships with contributes=false for reused usages (aebs_override_verification.sysml
       scopeMember01..06), demonstrating contribution set distinct from evaluation scope;
-      definition-level doc reproduces the YAML definition without added semantics.'
+      full direct-body documentation differs textually from the YAML definition and
+      bounded semantic review found the additional wording semantically equivalent to
+      the authoritative definition and its referenced governing schema.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   TestedScopeDeclaration:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1138,9 +1147,12 @@ entries:
     stage: c1 (conformance batch)
     note: 'c1 parity-reviewed: conservative scope-equality declaration fields
       (executionHead, profileIdentities) are model-resident and instantiated by the pilot
-      testedScope item; definition-level doc added reproducing the YAML-established
-      meaning (YAML remains the O1 authority). Parity is normalized-exact and
-      machine-checked; runtime authority unchanged until O3.'
+      testedScope item; full direct-body documentation differs textually from the YAML
+      definition, and bounded semantic review found the additional wording semantically
+      equivalent to the authoritative definition and its referenced governing schema —
+      the docs clarify the representation of the already governed conservative
+      scope-equality inputs and introduce no freshness, reuse, acceptance, or
+      carry-forward claim. Runtime authority unchanged until O3.'
     unknowns: []
     required_evidence:
     - O2 generated projection from the reviewed model representation
@@ -1149,10 +1161,12 @@ entries:
       and profileIdentities exactly (the conservative V1 scope-equality inputs per the
       frozen baseline Section 10); the pilot instantiates it with the declared execution
       head and pinned profile identities; the declaration carries no automatic
-      carry-forward or freshness semantics; definition-level doc reproduces the YAML
-      definition without added semantics.'
+      carry-forward or freshness semantics; full direct-body documentation differs
+      textually from the YAML definition and bounded semantic review found the additional
+      wording semantically equivalent to the authoritative definition and its referenced
+      governing schema.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   RetainedExecutionRecordReference:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1191,12 +1205,15 @@ entries:
     confidence: high
     stage: c1 (conformance batch)
     note: 'c1 parity-reviewed: policy/registry reference fields (policyRef,
-      decisionRegistryPath) are model-resident with per-attribute boundary docs (member
-      docs stay member docs); the reference implies no approval - acceptance authority
-      remains an attributable decision under the referenced policy, and the pilot''s
-      acceptance obligation currently measures its absence; definition-level doc added
-      reproducing the YAML-established meaning (YAML remains the O1 authority). Parity is
-      normalized-exact and machine-checked; runtime authority unchanged until O3.'
+      decisionRegistryPath) are model-resident with boundary docs at the class body''s
+      direct depth; full direct-body documentation differs textually from the YAML
+      definition, and bounded semantic review found the additional wording semantically
+      equivalent to the authoritative definition and its referenced governing schema —
+      reference only: the reference implies no approval, acceptance authority remains an
+      attributable decision under the referenced policy, missing registry differs from
+      known-empty registry, and unresolved policy references are invalid contract inputs
+      rather than approval evidence; the pilot''s acceptance obligation currently
+      measures its absence. Runtime authority unchanged until O3.'
     unknowns: []
     required_evidence:
     - O2 generated projection from the reviewed model representation
@@ -1205,9 +1222,11 @@ entries:
       policyRef and decisionRegistryPath only - reference fields, no decision-outcome or
       approval field - so the representation cannot imply acceptance; policy status stays
       external (carried by the policy document) and a missing registry remains a distinct
-      state; definition-level doc reproduces the YAML definition without added semantics.'
+      state; full direct-body documentation differs textually from the YAML definition and
+      bounded semantic review found the additional wording semantically equivalent to the
+      authoritative definition and its referenced governing schema.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   DerivesFromNeed:
     authority_current: model-authoritative
     authority_target: model-authoritative

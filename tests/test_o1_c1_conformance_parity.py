@@ -30,9 +30,13 @@ The batch tests:
     `EvaluationScopeMembership`, `TestedScopeDeclaration`, and
     `AcceptanceAttestationReference` observe `differs` — their direct-body
     docs (attribute documentation serialized after the attributes) join the
-    definition text; the reviewed equivalence state for those rows is
-    `review-required` (the schema state for a review-required observation; no
-    equivalence is invented and no evidence maturity changes);
+    definition text. The five affected rows carry the completed bounded-review
+    state `semantic_text_equivalence = reviewed-equivalent` (Layer-B
+    governance metadata, never machine-derived; it changes no observation and
+    no evidence state — `MethodEvaluationScope` keeps repository-evidenced
+    because its structural exclusions gap remains). `DerivesFromNeed` stays
+    `review-required`: the new state does not auto-promote every `differs`
+    row;
 6.  structural exact-fit facts: declaration kinds, required typed members,
     required enum literals, the frozen Section 7 field coverage (12 schema
     fields -> 14 attribute declarations), and the external-reference /
@@ -96,8 +100,7 @@ C1_ACCEPTED: tuple[str, ...] = tuple(
 #: (final-O1 R1 follow-up). Direct-body docs join the definition text in
 #: source order; nested member-body docs never do. The five `differs` rows
 #: carry their attribute documentation (serialized after the attributes at the
-#: body's direct depth); their reviewed `semantic_text_equivalence` is the
-#: schema-required `review-required`, not an invented equivalence.
+#: body's direct depth).
 C1_DOC_OBSERVATIONS: dict[str, str] = {
     "MethodPhase": "normalized-exact",
     "MethodContractObligation": "differs",
@@ -107,6 +110,25 @@ C1_DOC_OBSERVATIONS: dict[str, str] = {
     "TestedScopeDeclaration": "differs",
     "RetainedExecutionRecordReference": "normalized-exact",
     "AcceptanceAttestationReference": "differs",
+}
+
+#: Per-class reviewed text-equivalence state after the final bounded c1
+#: documentation-equivalence reconciliation. Five rows received the completed
+#: bounded-review state `reviewed-equivalent` (Layer-B governance metadata:
+#: the differing direct-body documentation was reviewed as semantically
+#: equivalent to the authoritative definition; for `MethodContractObligation`
+#: after the one corrected applicability-doc sentence). Exact-text rows carry
+#: no manual record; `DerivesFromNeed` (outside c1; locked here as the
+#: negative control) remains `review-required` — no auto-promotion.
+C1_EQUIVALENCE: dict[str, str | None] = {
+    "MethodPhase": None,
+    "MethodContractObligation": "reviewed-equivalent",
+    "MethodEvaluationScope": "reviewed-equivalent",
+    "EvaluationSourceKind": None,
+    "EvaluationScopeMembership": "reviewed-equivalent",
+    "TestedScopeDeclaration": "reviewed-equivalent",
+    "RetainedExecutionRecordReference": None,
+    "AcceptanceAttestationReference": "reviewed-equivalent",
 }
 
 #: YAML definition location + text of the eight (the O1 semantic authority for c1).
@@ -437,10 +459,13 @@ class TestMethodEvaluationScopeIncomplete:
         assert reviewed["evidence_state"] != "parity-reviewed"
 
     def test_text_observation_and_evidence_are_separate(self, inventory):
-        """Text observation may be `differs` while evidence maturity stays
-        repository-evidenced because structural parity is incomplete."""
+        """Text observation may be `differs` with a completed bounded review
+        (`reviewed-equivalent`) while evidence maturity stays
+        repository-evidenced because the separate structural gap remains:
+        documentation equivalence does NOT close the exclusions gap."""
         entry = self._row(inventory)
         assert entry["observed"]["doc_text_observation"] == "differs"
+        assert entry["reviewed"]["semantic_text_equivalence"] == "reviewed-equivalent"
         assert entry["reviewed"]["evidence_state"] == "repository-evidenced"
 
     def test_normalized_exact_text_does_not_promote_evidence(self):
@@ -457,14 +482,17 @@ class TestMethodEvaluationScopeIncomplete:
         assert problems == []
 
     def test_validator_still_rejects_manual_equivalence_on_exact_text(self):
-        problems = ai._entry_problems(
-            "Thing",
-            "class",
-            _probe_observed("normalized-exact"),
-            _probe_reviewed(semantic_text_equivalence="review-required"),
-            {},
-        )
-        assert any("no automatic upgrade" in problem for problem in problems)
+        for equivalence in ("review-required", "reviewed-equivalent"):
+            problems = ai._entry_problems(
+                "Thing",
+                "class",
+                _probe_observed("normalized-exact"),
+                _probe_reviewed(semantic_text_equivalence=equivalence),
+                {},
+            )
+            assert any("no automatic upgrade" in problem for problem in problems), (
+                equivalence
+            )
 
     def test_structural_gap_names_exclusions_and_rationale(self):
         """The reviewed decision explicitly records the structural gap: the
@@ -1011,25 +1039,75 @@ class TestC1TextParity:
             observation = entry["observed"]["doc_text_observation"]
             assert observation == C1_DOC_OBSERVATIONS[name], name
             equivalence = entry["reviewed"]["semantic_text_equivalence"]
-            if observation == "normalized-exact":
-                # No manual equivalence value when exact parity is
-                # machine-checked.
-                assert equivalence is None, name
-            else:
-                # Schema state for a review-required observation (the
-                # validator couples this field to the observation); nothing is
-                # invented and no evidence maturity changes.
-                assert equivalence == "review-required", name
+            # Layer-B reviewed state per class: None for exact text, the
+            # completed bounded-review state for the five differing rows.
+            assert equivalence == C1_EQUIVALENCE[name], name
 
     def test_equivalence_consistent_with_observation(self, inventory):
         for entry in inventory["entries"]:
             observation = entry["observed"].get("doc_text_observation")
             equivalence = entry["reviewed"]["semantic_text_equivalence"]
             if observation in ai.REVIEW_REQUIRED_OBSERVATIONS:
-                assert equivalence == "review-required", entry["identity"]
+                assert equivalence in (
+                    "review-required",
+                    ai.REVIEWED_EQUIVALENT,
+                ), entry["identity"]
+                if equivalence == ai.REVIEWED_EQUIVALENT:
+                    # The completed-review state is limited to material
+                    # wording drift (the concrete reviewed case).
+                    assert (
+                        observation in ai.REVIEWED_EQUIVALENT_OBSERVATIONS
+                    ), entry["identity"]
             elif observation == "normalized-exact":
                 # No manual equivalence when exact parity is machine-checked.
                 assert equivalence is None, entry["identity"]
+
+    def test_reviewed_equivalence_states_locked_per_row(self, inventory):
+        """§18 lock: per-row observation + equivalence + evidence state for
+        the five reconciled rows; `DerivesFromNeed` remains the negative
+        control; no other identity carries the reviewed-equivalent state."""
+        expected = {
+            "MethodContractObligation": ("differs", "reviewed-equivalent", "parity-reviewed"),
+            "MethodEvaluationScope": ("differs", "reviewed-equivalent", "repository-evidenced"),
+            "EvaluationScopeMembership": ("differs", "reviewed-equivalent", "parity-reviewed"),
+            "TestedScopeDeclaration": ("differs", "reviewed-equivalent", "parity-reviewed"),
+            "AcceptanceAttestationReference": ("differs", "reviewed-equivalent", "parity-reviewed"),
+        }
+        entries = _entries(inventory, tuple(expected) + ("DerivesFromNeed",))
+        for name, (observation, equivalence, evidence) in expected.items():
+            entry = entries[name]
+            assert entry["observed"]["doc_text_observation"] == observation, name
+            assert entry["reviewed"]["semantic_text_equivalence"] == equivalence, name
+            assert entry["reviewed"]["evidence_state"] == evidence, name
+        control = entries["DerivesFromNeed"]
+        assert control["observed"]["doc_text_observation"] == "differs"
+        assert control["reviewed"]["semantic_text_equivalence"] == "review-required"
+        # No accidental propagation: reviewed-equivalent exists exactly on the
+        # five reconciled identities across the whole inventory.
+        with_equivalence = {
+            entry["identity"]
+            for entry in inventory["entries"]
+            if entry["reviewed"]["semantic_text_equivalence"] == "reviewed-equivalent"
+        }
+        assert with_equivalence == set(expected)
+
+    def test_stale_normalized_exact_prose_removed_from_five_rows(self):
+        """§18: the five rows no longer claim machine-checked normalized-exact
+        parity or member-doc ownership for their direct-body attribute docs."""
+        decisions = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
+        for name in (
+            "MethodContractObligation",
+            "MethodEvaluationScope",
+            "EvaluationScopeMembership",
+            "TestedScopeDeclaration",
+            "AcceptanceAttestationReference",
+        ):
+            row = decisions["entries"][name]
+            prose = " ".join(
+                str(row.get(field) or "") for field in ("note", "exact_fit_decision")
+            )
+            assert "normalized-exact" not in prose, name
+            assert "member docs" not in prose, name
 
     def test_ownership_is_containment_not_adjacency_for_c1_classes(self):
         """Uniform containment on the real files: a synthetic NESTED member

@@ -178,6 +178,25 @@ REVIEW_REQUIRED_OBSERVATIONS: frozenset[str] = frozenset(
     {"differs", "doc-absent", "doc-absent (bodyless declaration)", "block-not-located"}
 )
 
+#: Resolved text-equivalence state (Layer-B governance metadata): a bounded
+#: human semantic review established that the observed documentation, while
+#: not normalized-text-identical to the authoritative definition, does not
+#: strengthen, weaken, contradict, or redefine the governed engineering
+#: meaning. It is NOT a SysML value, an ontology relation, an API value, an
+#: evaluator result, or a runtime semantic status — it exists solely in the
+#: reviewed-decision/inventory layer, is independent from evidence_state /
+#: authority / disposition / transition_gate, and never changes the Layer-A
+#: doc_text_observation.
+REVIEWED_EQUIVALENT = "reviewed-equivalent"
+
+#: Observations for which ``reviewed-equivalent`` may be recorded: limited to
+#: material wording drift (``differs``) — the concrete reviewed case. Absent
+#: documentation has no reviewed basis by default, so doc-absent /
+#: doc-absent (bodyless declaration) / block-not-located accept only
+#: ``review-required``; do not broaden without an explicit reviewed semantic
+#: basis showing equivalence without model documentation.
+REVIEWED_EQUIVALENT_OBSERVATIONS: frozenset[str] = frozenset({"differs"})
+
 #: Classification for a runtime traversal strategy that is implemented but
 #: is not associated with any ontology relationship mapping. It must be
 #: explicitly flagged for review; it must never be silently dropped.
@@ -1546,14 +1565,28 @@ def _entry_problems(
 
     # Text parity: material wording difference or missing doc requires an
     # explicit reviewed equivalence record; exact observations never get an
-    # automatic equivalence upgrade.
+    # automatic equivalence upgrade. The reviewed-equivalence state does not
+    # transition on its own — a bounded human review is recorded, it is never
+    # derived (no fuzzy similarity, no automatic equivalence, no
+    # auto-promotion between review-required and reviewed-equivalent).
     observation = observed.get("doc_text_observation")
     equivalence = reviewed.get("semantic_text_equivalence")
-    if observation in REVIEW_REQUIRED_OBSERVATIONS:
-        if equivalence != "review-required":
+    if observation == "normalized-exact":
+        if equivalence is not None:
+            problems.append(
+                f"{identity}: semantic_text_equivalence must be null for doc "
+                f"observation {observation!r} (no automatic upgrade; exact "
+                "text needs no manual equivalence record)"
+            )
+    elif observation in REVIEW_REQUIRED_OBSERVATIONS:
+        allowed = {"review-required"}
+        if observation in REVIEWED_EQUIVALENT_OBSERVATIONS:
+            allowed.add(REVIEWED_EQUIVALENT)
+        if equivalence not in allowed:
             problems.append(
                 f"{identity}: doc observation {observation!r} requires "
-                "semantic_text_equivalence = 'review-required'"
+                f"semantic_text_equivalence in {sorted(allowed)} "
+                f"(got {equivalence!r})"
             )
         if not reviewed.get("required_evidence"):
             problems.append(
@@ -1985,9 +2018,17 @@ def build_inventory(
             "cosmetic normalization: case/punctuation/whitespace/line "
             "wrapping; containment or substring overlap is NOT parity) | "
             "differs (material wording drift -> "
-            "semantic_text_equivalence=review-required; fuzzy similarity is "
-            "NOT parity) | doc-absent | doc-absent (bodyless declaration) | "
-            "block-not-located. Definition-level rule: a doc comment is owned "
+            "semantic_text_equivalence=review-required until a bounded "
+            "semantic review completes, then reviewed-equivalent; fuzzy "
+            "similarity is NOT parity) | doc-absent | "
+            "doc-absent (bodyless declaration) | block-not-located. "
+            "reviewed-equivalent is Layer-B governance metadata (not a SysML, "
+            "ontology, API, or runtime value): a bounded human review found "
+            "the differing direct-body documentation semantically equivalent "
+            "to the authoritative definition; it is recorded only for "
+            "differs observations, changes no Layer-A observation and no "
+            "evidence state, and is never derived automatically. "
+            "Definition-level rule: a doc comment is owned "
             "by the element whose body it lexically sits in (SysML v2 "
             "specification, Comments and Documentation). The observed text is "
             "every documentation statement at the declaration body's direct "
