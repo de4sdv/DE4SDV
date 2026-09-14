@@ -1,20 +1,29 @@
 # O1 Phase 1 — parity-controlled semantic-authority extension: inventory review
 
-**Edition 2 — review-correction pass 1** (per the independent second review of PR #249).
-This edition replaces the initial Phase-1 classification scheme on this branch: semantic
-authority and evidence maturity are now separate dimensions, the native classifications
-were re-reviewed against exact semantic fit, library adoption status is explicit, the
-O1/O2 boundary is corrected, fuzzy similarity is removed as a parity mechanism, and the
-inventory separates observed facts from reviewed decisions. **No runtime or model change;
-no new support promotion; no privileged ingestion.**
+**Edition 2 — review-correction pass 1 (historical).** This edition replaced the initial
+Phase-1 classification scheme on this branch: semantic authority and evidence maturity
+are now separate dimensions, the native classifications were re-reviewed against exact
+semantic fit, library adoption status is explicit, the O1/O2 boundary is corrected, and
+the inventory separates observed facts from reviewed decisions.
 
-**Status: awaiting second review.** No migration, no runtime change, no O2/O3/O4.
+**Status: historical review record with O1 closure addenda.** Final current-state
+authority is carried by the canonical reviewed-decision and generated-inventory
+artifacts (see the "Current O1 state" section below). PR #249 remains Draft pending
+final O1 acceptance/lifecycle action. No O2/O3/O4.
+
+At this original correction-pass stage, no runtime or model change was made, no new
+support was promoted, and no privileged ingestion ran. **Later O1 closure increments
+recorded below include bounded reviewed changes (the c1–c5 closure and corrections,
+runtime-domain closure, and the final c1 documentation-equivalence reconciliation) and
+supersede this statement for the full PR history.**
 
 - **Branch:** `feat/o1-semantic-authority-inventory`
 - **Base SHA:** `e99f46d0455376815859aa4afeb1812e3463690f` (exact `origin/main` at task start)
 - **Head SHA:** the tip of the branch carrying this document (see the PR for the exact head)
-- **Governing document:** DE4SDV Unified Semantic Engineering Plan v1.1 (wins on conflict).
-  **Supporting:** DE4SDV Method Conformance Plan (A–D invariants).
+- **Governing documents:** `DE4SDV_Unified_Semantic_Engineering_Plan_v1.2.md` (wins on
+  conflict) + `DE4SDV_Method_Conformance_Plan.md`. **v1.2 supersedes v1.1** — earlier
+  editions of this document were written under v1.1; that historical reference is
+  retained below with the supersession stated.
 - **Precedent:** merged K slice, PR #243 — `DerivesFromNeed`. Reference, not template.
 
 Companion artifacts on this branch:
@@ -24,6 +33,41 @@ Companion artifacts on this branch:
   explicitly labeled *phase-1-review-draft*, not a runtime input, not a generated
   artifact of a reviewed generator).
 - This document.
+
+---
+
+## Historical snapshot warning
+
+This document preserves the chronological review trail for PR #249. It is an
+audit/review narrative — **not** the canonical current O1 classification.
+
+- Sections written during earlier passes (Edition 1, Edition 2 / correction-pass 1, and
+  the earlier closure notes) describe the state **at that time**.
+- Later O1 review decisions — the c1–c5 closure increments, the final-O1 corrections,
+  and the final c1 documentation-equivalence reconciliation recorded further below —
+  **supersede any conflicting historical classification** in those sections and in the
+  appendices.
+- Appendices A and B are preserved for traceability, not current authority.
+- For any current per-entry value (classification, evidence state, authority target,
+  adoption status, `semantic_text_equivalence`, disposition, gates), read the canonical
+  artifacts below — never an appendix row or a historical section of this file.
+- The later closure sections in this file document superseding decisions, but they too
+  remain review evidence/rationale and do not replace the canonical machine-readable
+  artifacts.
+
+## Current O1 state
+
+Canonical reviewed decisions:
+`docs/method-conformance/o1/authority-review-decisions.yaml`
+
+Canonical generated inventory:
+`docs/method-conformance/o1/semantic-authority-inventory.json`
+
+Human-readable generated inventory:
+`docs/method-conformance/o1/authority-inventory.md`
+
+This document is the chronological review/audit record and is **non-canonical** for
+current per-entry state.
 
 ---
 
@@ -346,6 +390,10 @@ runtime-inert). One record per semantic entry; two nested layers:
   declaration | native | external | sysml_mapping strategy), domain/range,
   query direction, runtime support state, and the **doc-text observation**
   (`normalized-exact` | `differs` | `doc-absent` | `block-not-located`).
+  *(Pass-scoped proposed shape; the implemented vocabulary — including
+  `doc-absent (bodyless declaration)` and the `semantic_text_equivalence` states
+  `review-required` / `reviewed-equivalent` — is documented in the generated
+  inventory's `doc_observation_note`.)*
 - `reviewed` (Layer B — governance/migration metadata, **never runtime semantic
   authority**): `authority_current`, `authority_target`, `conditional_target`,
   `evidence_state`, `adoption_status`, `transition_gate`, `exact_fit_decision`,
@@ -386,6 +434,12 @@ difference ⟹ `semantic_text_equivalence = review-required` with non-empty
 `required_evidence`. Fuzzy similarity, word-overlap scores, and normalized-similarity
 percentages are **not** parity and were removed from this edition.
 
+*(Pass-scoped rule description. The implemented validator rule — exact text requires a
+null record; `differs` accepts `review-required` or the completed `reviewed-equivalent`;
+the `doc-absent` family stays `review-required` until an explicit reviewed basis — is
+documented in the generated inventory's `doc_observation_note`; the final c1
+reconciliation is recorded in §17 of this document.)*
+
 ---
 
 ## 10. Proposed files to add/change (Phase 2, review-gated)
@@ -407,6 +461,8 @@ percentages are **not** parity and were removed from this edition.
 
 NOT proposed: no new graph, no second evaluator, no second ontology, no generator-driven
 YAML authority, no new generated semantic rows in O1 (that is O2), no runtime change.
+*(Scope of this original pass; later O1 closure increments recorded below include
+bounded reviewed changes.)*
 
 ---
 
@@ -545,7 +601,7 @@ before any privileged dispatch (Unified Plan stop conditions).
 
 ---
 
-## 17. Final c1 documentation-equivalence reconciliation (bounded review record; uniform-ownership follow-up)
+## 17. Final c1 documentation-equivalence reconciliation (review-evidence record; uniform-ownership follow-up)
 
 The corrected uniform documentation-ownership observer (ownership = lexical containment; every direct-body doc is owned by the enclosing declaration) exposed full direct-body documentation for five c1 identities that differs textually from their authoritative YAML definitions. The completed bounded semantic review compared each identity's complete direct-body documentation against the authoritative ontology/YAML definition, the frozen method-conformance baseline, the structural representation, and the relevant runtime implementation. Reviewed outcomes:
 
@@ -557,13 +613,30 @@ The corrected uniform documentation-ownership observer (ownership = lexical cont
 | TestedScopeDeclaration | differs | reviewed-equivalent | the docs clarify the representation of the already governed conservative scope-equality inputs (`executionHead`, `profileIdentities`); no new freshness, reuse, acceptance, or carry-forward claim. |
 | AcceptanceAttestationReference | differs | reviewed-equivalent | the complete documentation remains within the already governed reference-only meaning (policy reference, decision-registry location, policy status external, missing vs known-empty registry distinct, unresolved policy references are invalid contract inputs rather than approval evidence); no acceptance decision is inferred. |
 
-`reviewed-equivalent` is a **Layer-B governance decision, not a machine-derived Layer-A observation**. `doc_text_observation` remains `differs` for all five; the reviewed state records only that a bounded human semantic review established that the additional/different wording does not strengthen, weaken, contradict, or redefine the governed engineering meaning. It is independent from `evidence_state` / authority / disposition / transition_gate: `MethodEvaluationScope` keeps `repository-evidenced` because its independent structural gate remains open. For the four parity-reviewed rows the reconciliation removes their documentation-side inconsistency; whether that restores the previously established O2 admission analysis is for the final independent review to confirm — this record makes no admission claim, changes no runtime authority, and is not runtime authority.
+`reviewed-equivalent` is a **Layer-B governance decision, not a machine-derived Layer-A observation**. `doc_text_observation` remains `differs` for all five; the reviewed state records only that a bounded human semantic review established that the additional/different wording does not strengthen, weaken, contradict, or redefine the governed engineering meaning. It is independent from `evidence_state` / authority / disposition / transition_gate: `MethodEvaluationScope` keeps `repository-evidenced` because its independent structural gate remains open. For the four parity-reviewed rows the reconciliation removes their documentation-side inconsistency; whether that restores the previously established O2 admission analysis is for the final independent review to confirm — this record makes no admission claim, changes no runtime authority, and is not runtime authority. The canonical current state for these rows is encoded in `docs/method-conformance/o1/authority-review-decisions.yaml` and the generated inventory; this section is review evidence/rationale only.
 
 `DerivesFromNeed` is deliberately **not** included in this reconciliation: its explicit equivalence review has not been completed, so it remains `doc_text_observation = differs` with `semantic_text_equivalence = review-required` — the negative control proving the new state never auto-promotes `differs` rows.
 
 ---
 
-## Appendix A — classes (59), full classification
+## Historical appendix snapshot
+
+Appendices A and B preserve the classification snapshot from the earlier Phase-1 review
+pass. They are intentionally not maintained as the canonical current O1 state.
+
+Several entries were superseded by later c1–c5 and final-O1 review decisions (for
+example the c1 evidence classifications — including the final `reviewed-equivalent`
+reconciliation — `derivesNeedFromConcern`, and the c5 relationships appear here in
+their pre-closure state).
+
+For current per-entry values, use:
+- `docs/method-conformance/o1/authority-review-decisions.yaml`
+- `docs/method-conformance/o1/semantic-authority-inventory.json`
+- `docs/method-conformance/o1/authority-inventory.md`
+
+---
+
+## Appendix A — classes (59), full classification (historical snapshot — non-canonical)
 
 Columns: authority (current → target; `[cond]` = conditional target) · evidence state ·
 adoption status · disposition · confidence · stage · note.
@@ -630,7 +703,7 @@ adoption status · disposition · confidence · stage · note.
 | AcceptanceAttestationReference | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | high | c1 (conformance batch) | Policy reference boundary model-resident; policy status external. |
 | DerivesFromNeed | model-authoritative -> model-authoritative | privileged-closure-proven | rejected | keep-as-is | high | K | DE4SDV application connection definition; typed ends + owned Documentation carry domain/range/roles/strength/boundary. Standard Re… |
 
-## Appendix B — relationships (34), full classification
+## Appendix B — relationships (34), full classification (historical snapshot — non-canonical; see the appendix warning above)
 
 | id | auth | ev | adopt | disp | conf | stage | note |
 |---|---|---|---|---|---|---|---|
