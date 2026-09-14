@@ -757,11 +757,16 @@ class TestTextParity:
         # all other file-mapped classes honestly report their state. The
         # definition-level doc rule (member docs never contaminate the class
         # text) moved 7 attribute/literal-doc classes from differs to doc-absent
-        # before their c1 docs were added.
+        # before their c1 docs were added. Final-O1 R1 correction: a body with
+        # no leading doc block gets its directly-contained body docs recognized
+        # (the K-authored DerivesFromNeed shape) — DerivesFromNeed moves
+        # doc-absent -> differs (its doc wording differs from the reviewed
+        # definition; the reviewed remedy prose already targets ``differs``);
+        # no other observation moves.
         assert counts == {
-            "differs": 27,
+            "differs": 28,
             "normalized-exact": 8,
-            "doc-absent": 4,
+            "doc-absent": 3,
             "doc-absent (bodyless declaration)": 1,
         }
 

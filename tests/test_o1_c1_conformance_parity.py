@@ -503,7 +503,7 @@ class TestDefinitionDocExtraction:
             "  }"
         )
         block, _ = ai.declaration_block(file_text, "item def Widget")
-        docs = ai._leading_owned_doc_bodies(block)
+        docs = ai._owned_doc_bodies(block)
         assert [d.strip() for d in docs] == ["CLASS DEFINITION TEXT."]
 
     def test_enum_literal_docs_are_not_definition_docs(self):
@@ -520,7 +520,7 @@ class TestDefinitionDocExtraction:
             "  }"
         )
         block, _ = ai.declaration_block(file_text, "enum def Widget")
-        docs = ai._leading_owned_doc_bodies(block)
+        docs = ai._owned_doc_bodies(block)
         assert [d.strip() for d in docs] == ["ENUM DEFINITION TEXT."]
 
     def test_adding_member_doc_does_not_alter_class_parity(self):
@@ -583,10 +583,15 @@ class TestDefinitionDocExtraction:
             file_text, "item def Widget", "The widget meaning."
         ) in ai.REVIEW_REQUIRED_OBSERVATIONS
 
-    def test_only_member_docs_present_is_doc_absent(self):
-        """A class with attribute docs but no definition doc reports doc-absent
-        — member docs cannot stand in for the definition (the pre-c1 state of
-        the seven conformance classes)."""
+    def test_member_following_doc_without_leading_block_is_found(self):
+        """A body with no leading doc block whose only direct doc follows a
+        bodyless member (the final-O1 R1 corrected direct-containment shape):
+        the doc sits in no member body, so it is owned by the definition and
+        is found — but member-prefixed wording does not stand in for the
+        definition: it yields ``differs``, never ``normalized-exact``.
+        (Before the final-O1 R1 correction the leading-prefix-only scan
+        reported ``doc-absent`` here; the reviewer's blocker shape is the
+        same body shape with the doc after ``end`` members.)"""
         file_text = self._wrap(
             "item def Widget {\n"
             "    attribute a : String;\n"
@@ -597,7 +602,7 @@ class TestDefinitionDocExtraction:
             ai.doc_text_observation(
                 file_text, "item def Widget", "The widget meaning."
             )
-            == "doc-absent"
+            == "differs"
         )
 
     def test_extra_semantic_text_in_definition_doc_fails(self):
@@ -653,7 +658,7 @@ class TestDefinitionDocExtraction:
             "  }"
         )
         block, _ = ai.declaration_block(file_text, "part def Widget")
-        docs = ai._leading_owned_doc_bodies(block)
+        docs = ai._owned_doc_bodies(block)
         assert [d.strip() for d in docs] == ["The widget meaning."]
 
     def test_no_c1_definitions_hardcoded_in_python(self):
@@ -667,6 +672,163 @@ class TestDefinitionDocExtraction:
             definition = _definition(name)
             first_clause = " ".join(definition.split())[:40]
             assert first_clause not in source, name
+
+
+class TestDirectBodyDocOwnership:
+    """Adversarial ownership regressions (final-O1 R1 correction).
+
+    The direct-containment scan used when a declaration body carries no
+    leading doc block: definition-owned = a ``doc`` at the body's lexical
+    depth, anywhere in the body; docs inside nested member bodies are
+    excluded; ordering is irrelevant. Test G reproduces the independent
+    reviewer's blocker shape (the mandatory ordering-invariance regression).
+    """
+
+    def _wrap(self, body: str) -> str:
+        return f"package T {{\n{body}\n}}\n"
+
+    def _docs(self, file_text: str, declaration: str) -> list[str]:
+        block, _ = ai.declaration_block(file_text, declaration)
+        return [d.strip() for d in ai._owned_doc_bodies(block)]
+
+    def test_direct_doc_before_members(self):
+        file_text = self._wrap(
+            "connection def Example {\n"
+            "    doc /* definition documentation */\n"
+            "    end a : A;\n"
+            "  }"
+        )
+        assert self._docs(file_text, "connection def Example") == [
+            "definition documentation"
+        ]
+
+    def test_direct_doc_after_semicolon_member(self):
+        file_text = self._wrap(
+            "connection def Example {\n"
+            "    end a : A;\n"
+            "    doc /* definition documentation */\n"
+            "  }"
+        )
+        assert self._docs(file_text, "connection def Example") == [
+            "definition documentation"
+        ]
+
+    def test_direct_doc_between_members(self):
+        file_text = self._wrap(
+            "connection def Example {\n"
+            "    end a : A;\n"
+            "    doc /* definition documentation */\n"
+            "    end b : B;\n"
+            "  }"
+        )
+        assert self._docs(file_text, "connection def Example") == [
+            "definition documentation"
+        ]
+
+    def test_nested_member_doc_excluded_direct_outer_doc_retained(self):
+        file_text = self._wrap(
+            "item def Example {\n"
+            "    item nested {\n"
+            "        doc /* nested documentation */\n"
+            "    }\n"
+            "\n"
+            "    doc /* definition documentation */\n"
+            "  }"
+        )
+        assert self._docs(file_text, "item def Example") == [
+            "definition documentation"
+        ]
+
+    def test_nested_member_documentation_only_is_doc_absent(self):
+        file_text = self._wrap(
+            "item def Example {\n"
+            "    item nested {\n"
+            "        doc /* nested documentation */\n"
+            "    }\n"
+            "  }"
+        )
+        assert self._docs(file_text, "item def Example") == []
+        assert (
+            ai.doc_text_observation(
+                file_text, "item def Example", "definition documentation"
+            )
+            == "doc-absent"
+        )
+
+    def test_ordinary_comments_between_member_and_doc(self):
+        file_text = self._wrap(
+            "connection def Example {\n"
+            "    end a : A;\n"
+            "\n"
+            "    /* presentation comment */\n"
+            "    // another comment\n"
+            "\n"
+            "    doc /* definition documentation */\n"
+            "  }"
+        )
+        assert self._docs(file_text, "connection def Example") == [
+            "definition documentation"
+        ]
+
+    def test_ordering_invariance_of_direct_body_documentation(self):
+        """Mandatory regression (independent reviewer's blocker): identical
+        direct-body documentation yields an identical normalized observation
+        before members, between semicolon-terminated members, and after
+        members."""
+        before = self._wrap(
+            "connection def Example {\n"
+            "    doc /* definition documentation */\n"
+            "    end a : A;\n"
+            "    end b : B;\n"
+            "  }"
+        )
+        between = self._wrap(
+            "connection def Example {\n"
+            "    end a : A;\n"
+            "    doc /* definition documentation */\n"
+            "    end b : B;\n"
+            "  }"
+        )
+        after = self._wrap(
+            "connection def Example {\n"
+            "    end a : A;\n"
+            "    end b : B;\n"
+            "    doc /* definition documentation */\n"
+            "  }"
+        )
+        observations = [
+            ai.doc_text_observation(
+                file_text, "connection def Example", "definition documentation"
+            )
+            for file_text in (before, between, after)
+        ]
+        assert observations == [
+            "normalized-exact",
+            "normalized-exact",
+            "normalized-exact",
+        ]
+        doc_lists = [
+            self._docs(file_text, "connection def Example")
+            for file_text in (before, between, after)
+        ]
+        assert doc_lists == [["definition documentation"]] * 3
+
+    def test_nested_braces_and_comment_interiors_do_not_corrupt_depth(self):
+        """Nested member bodies restore outer depth; braces and comment-like
+        markers inside comments or string literals are not structural."""
+        file_text = self._wrap(
+            "connection def Example {\n"
+            "    /* } closing-looking brace inside a comment { */\n"
+            "    item nested {\n"
+            "        attribute x : String = \"} not structural\";\n"
+            "    }\n"
+            "    end a : A;\n"
+            "    doc /* definition documentation { with brace */\n"
+            "  }"
+        )
+        assert self._docs(file_text, "connection def Example") == [
+            "definition documentation { with brace"
+        ]
 
 
 # ---------------------------------------------------------------------------

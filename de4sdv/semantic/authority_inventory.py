@@ -297,6 +297,11 @@ def declaration_block(file_text: str, declaration: str) -> tuple[str, bool]:
     Returns ``(block, bodyless)``. ``bodyless`` is True when the declaration
     ends with ``;`` (or has no body at all) — a property of the declaration
     form, not a text difference.
+
+    Brace matching is comment- and string-aware (final-O1 R1 correction):
+    braces or comment markers inside ``/* ... */``, ``//`` comments, or
+    double-quoted string content never terminate the declaration early or
+    extend it past its own closing brace.
     """
     kind, _, name = declaration.partition(" def ")
     pattern = re.compile(
@@ -310,45 +315,69 @@ def declaration_block(file_text: str, declaration: str) -> tuple[str, bool]:
     if not match:
         return "", False
     rest = file_text[match.end():]
-    brace = rest.find("{")
-    semi = rest.find(";")
+    length = len(rest)
+    brace = -1
+    semi = -1
+    index = 0
+    while index < length:
+        if rest.startswith("/*", index):
+            end = rest.find("*/", index + 2)
+            if end == -1:
+                break
+            index = end + 2
+            continue
+        if rest.startswith("//", index):
+            end = rest.find("\n", index)
+            index = length if end == -1 else end + 1
+            continue
+        char = rest[index]
+        if char == '"':
+            index = _skip_string_literal(rest, index)
+            continue
+        if char == "{":
+            brace = index
+            break
+        if char == ";":
+            semi = index
+            break
+        index += 1
     if brace == -1 or (semi != -1 and semi < brace):
         return "", True
     depth = 0
-    for index, char in enumerate(rest[brace:], start=brace):
+    index = brace
+    while index < length:
+        if rest.startswith("/*", index):
+            end = rest.find("*/", index + 2)
+            if end == -1:
+                return rest[brace:], False
+            index = end + 2
+            continue
+        if rest.startswith("//", index):
+            end = rest.find("\n", index)
+            index = length if end == -1 else end + 1
+            continue
+        char = rest[index]
+        if char == '"':
+            index = _skip_string_literal(rest, index)
+            continue
         if char == "{":
             depth += 1
         elif char == "}":
             depth -= 1
             if depth == 0:
                 return rest[brace:index + 1], False
+        index += 1
     return rest[brace:], False
 
 
-def _leading_owned_doc_bodies(block: str) -> list[str]:
-    """Documentation bodies owned by the definition itself (spec-grounded).
+def _leading_doc_bodies(block: str) -> list[str]:
+    """Leading owned documentation: the doc block at the head of the body.
 
-    Ownership rule (OMG SysML v2 Part 1, §7.4.2): "The documenting element of
-    documentation is always the owning element of the documentation" — a
-    ``doc`` comment is owned by the element whose body it lexically sits in,
-    not by the sibling member it happens to follow. The definition's own
-    documentation is therefore the ``doc /* ... */`` statements at the head of
-    its body; a doc that follows a member declaration (``attribute x;`` /
-    ``<literal> { ... }``) belongs to the member's OWN body by the same rule
-    and must not contaminate the definition-level text.
-
-    The scan walks the body from the opening ``{``:
-
-    * plain ``/* ... * /`` and ``// ...`` comments are presentation comments,
-      not model elements — skipped, scanning continues;
-    * ``doc /* ... */`` statements are collected as owned documentation;
-    * the first any other token (a member declaration) ENDS the scan — from
-      there on, any ``doc`` is inside or after member territory.
-
-    This is a bounded textual-notation rule (depth-0 prefix scan, no fuzzy
-    matching, no hardcoded definitions). It mirrors the spec's textual
-    grammar, where a Documentation is an owned member of the enclosing
-    namespace's body.
+    The c1-reviewed authored convention: ``doc /* ... */`` statements before
+    the first member token are the definition's own documentation; scanning
+    stops at the first other token (member territory begins). Plain
+    ``/* ... */`` and ``// ...`` comments are presentation comments — skipped,
+    scanning continues.
     """
     docs: list[str] = []
     index = 1  # skip the opening '{' of the declaration block
@@ -380,15 +409,113 @@ def _leading_owned_doc_bodies(block: str) -> list[str]:
     return docs
 
 
+def _skip_string_literal(block: str, index: int) -> int:
+    """Index after a double-quoted string literal starting at ``index``.
+
+    Bounded robustness for the supported textual subset: escaped quotes do
+    not terminate the literal; braces or comment-like tokens inside string
+    content are not structural.
+    """
+    index += 1  # opening quote
+    length = len(block)
+    while index < length:
+        char = block[index]
+        if char == "\\":
+            index += 2
+            continue
+        if char == '"':
+            return index + 1
+        index += 1
+    return length
+
+
+def _direct_body_doc_bodies(block: str) -> list[str]:
+    """Direct-containment scan: docs at the body's lexical depth, anywhere.
+
+    Used when the declaration body carries **no leading doc block** (the
+    K-authored shape): a doc following a semicolon-terminated member sits in
+    no member body, so per the lexical-containment ownership rule it belongs
+    to the enclosing definition. The scan tracks brace nesting so docs inside
+    nested member bodies are never collected; comment interiors and string
+    literals cannot corrupt depth; scanning continues past semicolon-
+    terminated members. Deterministic, bounded — no fuzzy matching.
+    """
+    docs: list[str] = []
+    depth = 0
+    index = 1  # skip the opening '{' of the declaration block
+    length = len(block)
+    while index < length:
+        if block.startswith("/*", index):
+            end = block.find("*/", index + 2)
+            if end == -1:
+                break
+            if depth == 0:
+                behind = block[:index].rstrip()
+                if re.search(r"(?<![A-Za-z0-9_])doc$", behind):
+                    docs.append(block[index + 2:end])
+            index = end + 2
+            continue
+        if block.startswith("//", index):
+            end = block.find("\n", index)
+            index = length if end == -1 else end + 1
+            continue
+        char = block[index]
+        if char == '"':
+            index = _skip_string_literal(block, index)
+            continue
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            if depth == 0:
+                break  # the declaration body's closing brace
+            depth -= 1
+        index += 1
+    return docs
+
+
+def _owned_doc_bodies(block: str) -> list[str]:
+    """Documentation bodies owned by the definition itself (spec-grounded).
+
+    Ownership rule (OMG SysML v2 Part 1, §7.4.2): "The documenting element of
+    documentation is always the owning element of the documentation" — a
+    ``doc`` comment is owned by the element whose body it lexically sits in,
+    never by a sibling member. Two bounded textual-notation modes:
+
+    * **leading block present** — the c1-reviewed authored convention of the
+      governed class-definition files: the leading ``doc`` block is the
+      definition's documentation, and docs that follow members are member
+      documentation (authored member-doc pairs) that must not contaminate the
+      definition text;
+    * **no leading block** — the K-authored shape (``connection def
+      DerivesFromNeed``): the definition's documentation is any ``doc``
+      directly contained at the body's lexical depth, tracked past
+      semicolon-terminated members; docs inside nested member bodies are
+      excluded. A doc following a bodyless member sits in no member body and
+      is owned by the enclosing definition.
+
+    Deterministic, bounded depth tracking; no fuzzy matching, no hardcoded
+    definitions. Depth tracking is immune to braces/comment markers inside
+    comments and to string-literal content.
+    """
+    leading = _leading_doc_bodies(block)
+    if leading:
+        return leading
+    return _direct_body_doc_bodies(block)
+
+
 def doc_text_observation(
     file_text: str, declaration: str, definition: str
 ) -> str:
     """Exact-parity observation of one declaration's model-resident doc text.
 
     Definition-level documentation is distinguished from member
-    documentation per :func:`_leading_owned_doc_bodies` (spec §7.4.2: a doc
-    comment is owned by the element whose body it sits in). Literal and
-    attribute docs are member docs and never contaminate the definition text.
+    documentation per :func:`_owned_doc_bodies` (spec §7.4.2: a doc comment is
+    owned by the element whose body it lexically sits in). With a leading doc
+    block present (the c1-reviewed authored convention), the leading block is
+    the definition text and member docs never contaminate it; without one, the
+    K-authored shape, any doc directly contained at the body's lexical depth
+    is the definition's documentation — a doc following a bodyless member
+    belongs to no member body and is therefore the definition's.
 
     ``normalized-exact`` requires **equality** after the allowed cosmetic
     normalization (case, punctuation, whitespace/line wrapping). Containment
@@ -402,7 +529,7 @@ def doc_text_observation(
         return "doc-absent (bodyless declaration)"
     if not block:
         return "block-not-located"
-    docs = _leading_owned_doc_bodies(block)
+    docs = _owned_doc_bodies(block)
     if not docs:
         return "doc-absent"
     blob = normalize_text(" ".join(docs))
@@ -1919,10 +2046,15 @@ def build_inventory(
             "NOT parity) | doc-absent | doc-absent (bodyless declaration) | "
             "block-not-located. Definition-level rule: a doc comment is owned "
             "by the element whose body it lexically sits in (SysML v2 "
-            "specification, Comments and Documentation); the observed text is "
-            "the declaration's leading owned documentation only — attribute, "
-            "enum-literal, and other member documentation never contaminate "
-            "the class-definition comparison."
+            "specification, Comments and Documentation). The observed text is "
+            "the declaration's leading owned documentation when a leading doc "
+            "block exists (the authored class-definition convention; member "
+            "documentation never contaminates the comparison); when the body "
+            "carries no leading doc block, it is the documentation directly "
+            "contained at the body's lexical depth anywhere in the body — a "
+            "doc following a bodyless member belongs to no member body and is "
+            "the definition's own; docs inside nested member bodies are never "
+            "collected."
         ),
         "supersession": {
             "supersedes": [
