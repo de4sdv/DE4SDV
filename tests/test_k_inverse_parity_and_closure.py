@@ -356,6 +356,10 @@ def test_no_active_caller_relies_on_the_removed_boolean() -> None:
     removal_proofs = {
         "tests/test_k_inverse_parity_and_closure.py",
         "tests/test_semantic_projection_v0.py",
+        # Added by O2.1 (deliberate, documented): the v1 suite proves the v1
+        # builders accept no promotion input at all (no boolean shortcut) and
+        # therefore names the removed boolean as an absence-proof site.
+        "tests/test_semantic_projection_v1.py",
     }
     hits: list[str] = []
     for tree in ("de4sdv", "scripts", "tests", "tools"):

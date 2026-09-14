@@ -365,7 +365,10 @@ class TestPositiveScope:
             assert row["support_state"] == "vocabulary-only"
 
     def test_no_support_promotion_path_exists(self) -> None:
-        """No promotion input: v1 builders take no attestation/verification flag."""
+        """No promotion input: v1 builders take no attestation/verification
+        flag. The bare-boolean promotion attempt is a removal-proof site
+        (registered in the K guard's designated set): it fails with TypeError,
+        exactly like the removed v0 boolean."""
         import inspect
 
         for function in (
@@ -375,7 +378,8 @@ class TestPositiveScope:
         ):
             parameters = set(inspect.signature(function).parameters)
             assert "closure_attestation" not in parameters
-            assert "witness_closure_verified" not in parameters
+        with pytest.raises(TypeError):
+            pv.build_projection_v1(REPO_ROOT, witness_closure_verified=True)
 
     def test_revision_binding_separates_software_and_model_revisions(self, pair) -> None:
         binding = pair["projection"]["binding"]
