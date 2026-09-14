@@ -236,13 +236,24 @@ class TestLayers:
             overlap = set(entry["observed"]) & set(entry["reviewed"])
             assert not overlap, (entry["identity"], overlap)
 
+    #: Build-time/governance modules that legitimately reference the O1
+    #: governance module or its artifact names. `authority_inventory.py` owns
+    #: the O1 inventory machinery; `projection_v1.py` was added by O2.1
+    #: (deliberate, documented extension — never silent): it is a build-time
+    #: generator that reuses the reviewed revision-binding/documentation
+    #: machinery and names the O1 artifacts only to prohibit reading them.
+    #: The added assertion below keeps the guard's intent: no other module in
+    #: the package may import them either.
+    _BUILD_TIME_GOVERNANCE_MODULES = ("authority_inventory.py", "projection_v1.py")
+
     def test_reviewed_decisions_not_runtime_values(self):
         """The runtime never reads the inventory or the decisions dataset."""
+        governance_modules = self._BUILD_TIME_GOVERNANCE_MODULES
         offenders: list[str] = []
         for path in sorted((REPO_ROOT / "de4sdv").rglob("*.py")):
             if "__pycache__" in path.parts:
                 continue
-            if path.name == "authority_inventory.py":
+            if path.name in governance_modules:
                 continue
             text = path.read_text(encoding="utf-8")
             if "authority_inventory" in text:
@@ -252,6 +263,16 @@ class TestLayers:
             if "semantic-authority-inventory" in text:
                 offenders.append(str(path.relative_to(REPO_ROOT)))
         assert offenders == []
+        # No module outside the build-time governance set may import them.
+        for path in sorted((REPO_ROOT / "de4sdv").rglob("*.py")):
+            if "__pycache__" in path.parts or path.name in governance_modules:
+                continue
+            text = path.read_text(encoding="utf-8")
+            for governance in governance_modules:
+                stem = governance[: -len(".py")]
+                assert (
+                    f"import {stem}" not in text and f"from .{stem}" not in text
+                ), f"{path}: imports build-time governance module {stem}"
 
     def test_decisions_dataset_is_layer_b_only(self, decisions):
         assert decisions["schema"] == ai.DECISIONS_SCHEMA_ID
@@ -1525,6 +1546,10 @@ class TestSupersessionAndGate:
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
         ), mock.patch.object(
+            check_repo.generate_semantic_projection_v1,
+            "run_check_errors",
+            return_value=[],
+        ), mock.patch.object(
             check_repo.generate_semantic_authority_inventory,
             "run_check_errors",
             return_value=["sentinel inventory error"],
@@ -1532,6 +1557,10 @@ class TestSupersessionAndGate:
             assert check_repo.main() == 1
 
     def test_check_repo_passes_when_inventory_gate_passes(self):
+        # The projection-v1 gate is mocked to pass here (added by O2.1,
+        # deliberate and documented — the v1-side sentinel assertion lives in
+        # tests/test_semantic_projection_v1.py): this test owns the inventory
+        # gate's failure/pass attribution, not the v1 gate's.
         with mock.patch.object(
             check_repo, "find_duplicate_global_packages", return_value={}
         ), mock.patch.object(
@@ -1542,6 +1571,10 @@ class TestSupersessionAndGate:
             check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
+        ), mock.patch.object(
+            check_repo.generate_semantic_projection_v1,
+            "run_check_errors",
+            return_value=[],
         ), mock.patch.object(
             check_repo.generate_semantic_authority_inventory,
             "run_check_errors",

@@ -1,0 +1,131 @@
+# O2.1 Semantic Projection admission boundary (machine-locked reviewed migration boundary).
+#
+# This manifest is GOVERNANCE data: it records WHICH identities the O2.1
+# bounded generation stage may emit. It supplies NO engineering semantics —
+# every generated semantic field is derived exclusively from the governed
+# model representation (usage below), never from this file and never from any
+# O1 review artifact.
+#
+# Provenance of the admission decision: the merged O1 reviewed governance on
+# main (PR #249, baseline 9dc0779ba20745d3d0a7eca15e76891b64911ddc), whose
+# final review admitted the overall O2 set (13 identities) and recorded the
+# c1 evidence states, the retired/blocked/rename-required dispositions, and
+# the MethodEvaluationScope structural gap. This manifest encodes that
+# reviewed decision as a deterministic boundary; it does not reinterpret it.
+#
+# Machine locks (enforced by de4sdv/semantic/projection_v1.py and its tests):
+#   * `admitted` is EXACTLY the seven settled c1 identities — an eighth
+#     admission is a generation failure, a missing admitted identity is a
+#     generation failure;
+#   * `sequencing` (o2.1 + o2.2 + o2.3) is EXACTLY the 13-identity overall O2
+#     admission; o2.1 must equal `admitted`;
+#   * no identity may appear in both `admitted` and `excluded`;
+#   * the generator emits exactly the `admitted` set and asserts that no
+#     `excluded` identity appears in O2.1 output;
+#   * the emission path iterates ONLY `admitted` — new ontology/model entries
+#     cannot expand the output (there is no heuristic query, no "all c1 rows",
+#     no "all model-authoritative targets" filter).
+#
+# Generation is not authority activation: these rows do not switch runtime
+# dispatch, do not retire YAML authority, and do not promote support. O3 owns
+# authority transition; O4 owns authored-ontology retirement.
+
+schema: de4sdv.o2-1-admission/v1
+status: reviewed O2.1 migration boundary (bounded generation stage)
+base_revision: 9dc0779ba20745d3d0a7eca15e76891b64911ddc
+
+#: The exact seven settled c1 identities this PR generates.
+admitted:
+  - MethodPhase
+  - MethodContractObligation
+  - EvaluationScopeMembership
+  - EvaluationSourceKind
+  - TestedScopeDeclaration
+  - RetainedExecutionRecordReference
+  - AcceptanceAttestationReference
+
+#: The complete reviewed O2 admission (13 identities) and its intended
+#: sequencing. Later phases start only through explicit review.
+sequencing:
+  o2.1:
+    - MethodPhase
+    - MethodContractObligation
+    - EvaluationScopeMembership
+    - EvaluationSourceKind
+    - TestedScopeDeclaration
+    - RetainedExecutionRecordReference
+    - AcceptanceAttestationReference
+  o2.2:
+    - VerificationCase
+    - hasSubject
+    - verifiedBy
+  o2.3:
+    - derivesRequirementFromNeed
+    - derivedRequirementsOfNeed
+    - hasRelevantArchitecture
+
+#: Identities that must NOT appear in O2.1 output, with the reviewed reason.
+#: Blocked is not the same as absent; retired is not the same as unsupported;
+#: rename-required is not the same as application-semantic admitted; and a
+#: reviewed text equivalence is not a structural admission.
+excluded:
+  - identity: MethodEvaluationScope
+    kind: class
+    reason: "documentation equivalence reviewed, but the structural exclusions-with-rationale gap remains open; O2 generates only from settled structural representation"
+  - identity: DerivesFromNeed
+    kind: class
+    reason: "class-definition equivalence review remains separate; the accepted K relationship semantics are unaffected and no O2.1 class row may be generated"
+  - identity: VerificationCase
+    kind: class
+    reason: "admitted to the overall O2 set; deferred to O2.2 by reviewed sequencing"
+  - identity: hasSubject
+    kind: relationship
+    reason: "admitted to the overall O2 set; deferred to O2.2 by reviewed sequencing"
+  - identity: verifiedBy
+    kind: relationship
+    reason: "admitted to the overall O2 set; deferred to O2.2 by reviewed sequencing"
+  - identity: derivesRequirementFromNeed
+    kind: relationship
+    reason: "admitted to the overall O2 set; deferred to O2.3 by reviewed sequencing"
+  - identity: derivedRequirementsOfNeed
+    kind: relationship
+    reason: "admitted to the overall O2 set; deferred to O2.3 by reviewed sequencing"
+  - identity: hasRelevantArchitecture
+    kind: relationship
+    reason: "admitted to the overall O2 set; deferred to O2.3 by reviewed sequencing"
+  - identity: derivesNeedFromConcern
+    kind: relationship
+    reason: "retired without replacement (O1 c4); a retired identity is not absent and must not be emitted"
+  - identity: realizedBy
+    kind: relationship
+    reason: "rename/replacement resolution required (O1 c5); rename-required is not application-semantic admitted"
+  - identity: specifiesFunction
+    kind: relationship
+    reason: "rename/replacement resolution required (O1 c5); rename-required is not application-semantic admitted"
+  - identity: hasRelevantEvidenceContract
+    kind: relationship
+    reason: "blocked: EvidenceContract-specific identity is not machine-resolvable; a blocked identity is not absent and must not be emitted"
+  - identity: EvidenceContract
+    kind: class
+    reason: "blocked scope (O1 c5); EvidenceContract identity remains unresolved and is excluded from the bounded O2.1 scope"
+  - identity: ArchitectureElement
+    kind: class
+    reason: "excluded from O2.1: no settled representation admission in O1 for this bounded generation stage"
+  - identity: Function
+    kind: class
+    reason: "excluded from O2.1: no settled representation admission in O1 for this bounded generation stage"
+  - identity: LogicalElement
+    kind: class
+    reason: "excluded from O2.1: no settled representation admission in O1 for this bounded generation stage"
+  - identity: PhysicalElement
+    kind: class
+    reason: "excluded from O2.1: no settled representation admission in O1 for this bounded generation stage"
+  - identity: Interface
+    kind: class
+    reason: "excluded from O2.1: no settled representation admission in O1 for this bounded generation stage"
+  - identity: allocatedTo
+    kind: relationship
+    reason: "excluded from O2.1: PLE/allocation scope not admitted for bounded generation"
+  - identity: deployedTo
+    kind: relationship
+    reason: "excluded from O2.1: PLE/deployment scope not admitted for bounded generation; deployment and realization identities remain separately reviewed"
