@@ -1077,6 +1077,10 @@ class TestPreservationAndRuntimeIndependence:
             if rel == "de4sdv/semantic/projection_o23.py":
                 # build-time O2.3 generator (documented, same pattern)
                 continue
+            if rel == "de4sdv/semantic/o3_equivalence.py":
+                # O3 readiness tooling (documented, same pattern): read-only
+                # planning/evidence module for the future cutover.
+                continue
             text = path.read_text(encoding="utf-8")
             if "projection_o22" in text or "semantic-projection-v1.1" in text:
                 offenders.append(rel)

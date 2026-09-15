@@ -281,11 +281,16 @@ class TestLayers:
     #: `projection_o23.py` was added by O2.3 (same pattern again): build-time
     #: generator for the final O2 slice. The added assertion below keeps the
     #: guard's intent: no other module in the package may import them either.
+    #: `o3_equivalence.py` was added by the O3 readiness package (same
+    #: deliberate, documented pattern): a read-only planning/evidence module
+    #: that records the O1 inventory path/digest as scope-basis reference
+    #: only — it never parses the inventory or the decisions dataset.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "projection_o22.py",
         "projection_o23.py",
         "projection_v1.py",
+        "o3_equivalence.py",
     )
 
     def test_reviewed_decisions_not_runtime_values(self):
