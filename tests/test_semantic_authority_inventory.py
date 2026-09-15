@@ -54,6 +54,39 @@ K_ARCHIVE_DIGEST = (
     "sha256:70d37f39798114ceb9fbdb7e975e9ba9959bcae7a298164e204b12fa59d65a93"
 )
 
+
+def _pre_o1_ancestor() -> str:
+    """A real ancestor of the checked-out revision that predates the O1 inputs.
+
+    Derived from history (clone-independent): the parent of the commit that
+    first introduced the reviewed-decisions dataset. That revision is present
+    in every clone of the tested branch and does not contain the O1 bound
+    inputs — used by the stale-revision reuse test so it does not depend on
+    any specific feature-branch commit (which is exactly the class of
+    assumption that broke after the PR #249 squash merge).
+    """
+    first = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(REPO_ROOT),
+            "log",
+            "--reverse",
+            "--format=%H",
+            "--",
+            ai.DECISIONS_PATH,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()[0]
+    return subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "rev-parse", f"{first}^"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
 PLEML_IDENTITIES = {
     "FeatureConfiguration",
     "specifiesFeature",
@@ -1241,11 +1274,15 @@ class TestDeterminism:
 
     def test_check_fails_on_stale_source_revision_claim(self, tmp_path):
         """Reusing a stored revision string cannot pass: the revision must
-        actually contain the bound inputs."""
+        actually contain the bound inputs.
+
+        The stale revision is DERIVED from the tested branch's history (a real
+        ancestor that predates the O1 bound inputs) so the test is
+        clone-independent; the previous hard-coded feature-branch commit was
+        not an ancestor of main after the PR #249 squash merge.
+        """
         tampered = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
-        tampered["binding"]["source_revision"] = (
-            "976e1d3571b3706cd6b487535efb35f3df00e50d"  # real ancestor, wrong inputs
-        )
+        tampered["binding"]["source_revision"] = _pre_o1_ancestor()
         json_copy = tmp_path / "stale.json"
         json_copy.write_text(json.dumps(tampered), encoding="utf-8")
         md_copy = tmp_path / "stale.md"
