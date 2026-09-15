@@ -1089,6 +1089,10 @@ class TestRuntimeIndependence:
                 "projection_o23.py",  # build-time O2.3 generator (documented)
                 "authority_inventory.py",
                 "generate_semantic_projection_v1.py",
+                # O3 readiness tooling (documented, same pattern): a read-only
+                # planning/evidence module that references the chain paths for
+                # comparison; test-locked out of the runtime import graph.
+                "o3_equivalence.py",
             }
         )
         for path in runtime_modules:

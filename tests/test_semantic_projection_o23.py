@@ -1640,7 +1640,13 @@ class TestPreservationAndRuntimeIndependence:
         offenders: list[str] = []
         for path in sorted((REPO_ROOT / "de4sdv").rglob("*.py")):
             rel = path.relative_to(REPO_ROOT).as_posix()
-            if rel == "de4sdv/semantic/projection_o23.py":
+            if rel in {
+                "de4sdv/semantic/projection_o23.py",
+                # O3 readiness tooling (documented, same pattern): read-only
+                # planning/evidence module that loads the committed chain for
+                # comparison; never the runtime path.
+                "de4sdv/semantic/o3_equivalence.py",
+            }:
                 continue
             text = path.read_text(encoding="utf-8")
             if "projection_o23" in text or "semantic-projection-v1.2" in text:

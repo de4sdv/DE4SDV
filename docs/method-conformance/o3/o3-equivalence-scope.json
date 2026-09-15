@@ -1,0 +1,2566 @@
+{
+  "basis": {
+    "comparison_base_policy": "the permanent main revision this readiness package was prepared against; it identifies the Git revision for the old-bundle record and is validated to exist and to remain an ancestor of the checked-out revision. Byte identity of the old bundle is carried by the ontology, kernel-contract, and runtime-file digests below (squash-safe: no feature-branch commit is ever recorded).",
+    "comparison_base_revision": "1aabce06ee3a927f94e997e723331d3e2455e6a7",
+    "kernel_contract_identity": {
+      "path": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+      "sha256": "80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4"
+    },
+    "kernel_contract_module": {
+      "path": "de4sdv/semantic/kernel_contract.py",
+      "sha256": "sha256:aedbdc7452bfd6ff4d8c126e91e6e287349ffa79f895f49fd4099d554916cd01"
+    },
+    "o1_inventory": {
+      "path": "docs/method-conformance/o1/semantic-authority-inventory.json",
+      "sha256": "sha256:8a7138cfd50d94c8b3d7b45a6bb90189a5169196a660efb0f3e5343cf0159d40"
+    },
+    "o2_chain": [
+      {
+        "api_binding": "unclaimed",
+        "path": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "schema": "de4sdv.semantic-projection.v1",
+        "sha256": "sha256:2d142255106942958efdbcd9697439cdb48f6c5ef0e3918024a942bd19515d8f",
+        "source_revision": "f1095fc027cc20948d8fb7933964b96d443920e2"
+      },
+      {
+        "api_binding": "unclaimed",
+        "path": "docs/method-conformance/o2/api-representation-profile-v1.json",
+        "schema": "de4sdv.api-representation-profile.v1",
+        "sha256": "sha256:48a887e7f79bf0270fce8240b006c745541468bd1592434095f73e9ad105372d",
+        "source_revision": "f1095fc027cc20948d8fb7933964b96d443920e2"
+      },
+      {
+        "api_binding": "unclaimed",
+        "path": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+        "schema": "de4sdv.semantic-projection.v1.1",
+        "sha256": "sha256:654b0aab0140bf0a77b1da4af93b4c2129a045cd12784ada8fe5518b5ea60b95",
+        "source_revision": "7dbbf4b83ea2a14e2aa1b8998564b3167b99c9a1"
+      },
+      {
+        "api_binding": "unclaimed",
+        "path": "docs/method-conformance/o2/api-representation-profile-v1.1.json",
+        "schema": "de4sdv.api-representation-profile.v1.1",
+        "sha256": "sha256:ab0820363018437f0b905078457ff8bed5a01d41d6c8d2d7de356b315753b6a4",
+        "source_revision": "7dbbf4b83ea2a14e2aa1b8998564b3167b99c9a1"
+      },
+      {
+        "api_binding": "unclaimed",
+        "path": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+        "schema": "de4sdv.semantic-projection.v1.2",
+        "sha256": "sha256:fa225bfa37b13cb7ca7aa639e0506ff66aaeefef508ad076156b0ae90a3d2ade",
+        "source_revision": "b6db63643a7613f1582b72a1d6daf43d64fd206b"
+      },
+      {
+        "api_binding": "unclaimed",
+        "path": "docs/method-conformance/o2/api-representation-profile-v1.2.json",
+        "schema": "de4sdv.api-representation-profile.v1.2",
+        "sha256": "sha256:c6bbe3e1bf7ae802fdd51854b6fd371debcd7846801dc2f31422758b9e5f1091",
+        "source_revision": "b6db63643a7613f1582b72a1d6daf43d64fd206b"
+      }
+    ],
+    "ontology": {
+      "path": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+      "sha256": "sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4"
+    },
+    "runtime_files": {
+      "de4sdv/semantic/api_binding.py": "sha256:bd827c0d3201ff19890f8f736ead2930f1385850a0c13c1faccd50110df248a9",
+      "de4sdv/semantic/impact.py": "sha256:d34382e30749acca32d008289e688923c7f9ffc4d0144d8d1e1341b524b68bec",
+      "de4sdv/semantic/kernel_binding_index.py": "sha256:f2ef802c724e2463c6779feaf2693163901adf30a9673b30519ba3bc564eae41",
+      "de4sdv/semantic/kernel_contract.py": "sha256:aedbdc7452bfd6ff4d8c126e91e6e287349ffa79f895f49fd4099d554916cd01",
+      "de4sdv/semantic/query.py": "sha256:7162b01bbc3b25a2f1db79c80eae83fe111f004e85cf67fdeceea29f0f16c1ea",
+      "de4sdv/semantic/runtime.py": "sha256:3533c9308ed3a8c1d72182baa6f6f235f2ab1dde3b4f5f131403eac790bff102",
+      "de4sdv/semantic/traversal.py": "sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758",
+      "de4sdv/sysml_api/revisions.py": "sha256:4c8e03fb1cabdcd503ef0fd838218bd8690be72c26ea7b3b83feecf91745c7d7"
+    }
+  },
+  "contract_checks": [
+    {
+      "check": "k-pair-companion-linkage",
+      "detail": "companions: 'derivedRequirementsOfNeed' / 'derivesRequirementFromNeed'",
+      "identity": "derivesRequirementFromNeed|derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "k-pair-one-witness",
+      "detail": "identical witness + witness population statement",
+      "identity": "derivesRequirementFromNeed|derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "k-pair-native-direction",
+      "detail": "native_modeled_direction == 'Need -> Requirement' on both",
+      "identity": "derivesRequirementFromNeed|derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "k-pair-inverse-directions",
+      "detail": "canonical directions: ['Need -> Requirement', 'Requirement -> Need']",
+      "identity": "derivesRequirementFromNeed|derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "k-pair-claim-boundary",
+      "detail": "provenance-only boundary on both navigations",
+      "identity": "derivesRequirementFromNeed|derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "k-pair-strength",
+      "detail": "semantic_strength == derivation on both",
+      "identity": "derivesRequirementFromNeed|derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "hassubject-restrictions",
+      "detail": "axes=['source', 'target'] strength='native-reference'",
+      "identity": "hasSubject",
+      "result": "PASS"
+    },
+    {
+      "check": "verifiedby-coverage-only",
+      "detail": "strength='native-verification' axes=['source']",
+      "identity": "verifiedBy",
+      "result": "PASS"
+    },
+    {
+      "check": "hasrelevantarchitecture-bounded",
+      "detail": "relevance strength + MemberProduct exclusion + no fabricated binding",
+      "identity": "hasRelevantArchitecture",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "MethodPhase",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "MethodContractObligation",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "EvaluationScopeMembership",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "EvaluationSourceKind",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "TestedScopeDeclaration",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "RetainedExecutionRecordReference",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "AcceptanceAttestationReference",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "VerificationCase",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "hasSubject",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "verifiedBy",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "derivesRequirementFromNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "no-promotion-keys",
+      "detail": "clean",
+      "identity": "hasRelevantArchitecture",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "MethodPhase",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "MethodContractObligation",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "EvaluationScopeMembership",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "EvaluationSourceKind",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "TestedScopeDeclaration",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "RetainedExecutionRecordReference",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "AcceptanceAttestationReference",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "VerificationCase",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "hasSubject",
+      "result": "PASS"
+    },
+    {
+      "check": "profile-contract-echo",
+      "detail": "echo matches projection declaration",
+      "identity": "hasSubject",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "verifiedBy",
+      "result": "PASS"
+    },
+    {
+      "check": "profile-contract-echo",
+      "detail": "echo matches projection declaration",
+      "identity": "verifiedBy",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "derivesRequirementFromNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "profile-contract-echo",
+      "detail": "echo matches projection declaration",
+      "identity": "derivesRequirementFromNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "profile-contract-echo",
+      "detail": "echo matches projection declaration",
+      "identity": "derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "projection-mechanics-free",
+      "detail": "clean",
+      "identity": "hasRelevantArchitecture",
+      "result": "PASS"
+    },
+    {
+      "check": "profile-contract-echo",
+      "detail": "echo matches projection declaration",
+      "identity": "hasRelevantArchitecture",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "MethodPhase",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "MethodContractObligation",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "EvaluationScopeMembership",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "EvaluationSourceKind",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "TestedScopeDeclaration",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "RetainedExecutionRecordReference",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "AcceptanceAttestationReference",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "VerificationCase",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "hasSubject",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "verifiedBy",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "derivesRequirementFromNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "derivedRequirementsOfNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "support-state-vocabulary-only",
+      "detail": "support_state='vocabulary-only'",
+      "identity": "hasRelevantArchitecture",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "MethodEvaluationScope",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "DerivesFromNeed",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "derivesNeedFromConcern",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "realizedBy",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "specifiesFunction",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "hasRelevantEvidenceContract",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "EvidenceContract",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "allocatedTo",
+      "result": "PASS"
+    },
+    {
+      "check": "excluded-identity-absent",
+      "detail": "absent from the O2 chain",
+      "identity": "deployedTo",
+      "result": "PASS"
+    }
+  ],
+  "generated_by": "scripts/generate_o3_equivalence_scope.py",
+  "identities": [
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "detail": "no predicate claim on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "kernel_mapping_kind": {
+                "new": "file",
+                "ok": true,
+                "old": "file"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "api_metaclass": {
+                "new": "EnumerationDefinition",
+                "ok": true,
+                "old": "EnumerationDefinition"
+              },
+              "declaration": {
+                "new": "enum def MethodPhase",
+                "ok": true,
+                "old": "enum def MethodPhase"
+              },
+              "source_file": {
+                "new": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+                "ok": true,
+                "old": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "detail": "no representation mechanics on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "detail": "no scope/exclusion restrictions on either authority path",
+            "fields": {},
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "MethodPhase",
+      "kind": "class",
+      "new_authority": {
+        "declared": {
+          "api_metaclass": "EnumerationDefinition",
+          "declaration": "enum def MethodPhase",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml"
+        },
+        "kind": "class",
+        "library_grounding_mechanics": {},
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "profile_entry_present": true,
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "old_authority": {
+        "declared": {
+          "declaration": "enum def MethodPhase",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml"
+        },
+        "kind": "class",
+        "runtime_status": {
+          "consumption": "kernel-binding identity resolution",
+          "queryable_as_predicate": false
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "detail": "no predicate claim on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "kernel_mapping_kind": {
+                "new": "file",
+                "ok": true,
+                "old": "file"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "api_metaclass": {
+                "new": "ItemDefinition",
+                "ok": true,
+                "old": "ItemDefinition"
+              },
+              "declaration": {
+                "new": "item def MethodContractObligation",
+                "ok": true,
+                "old": "item def MethodContractObligation"
+              },
+              "source_file": {
+                "new": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+                "ok": true,
+                "old": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "detail": "no representation mechanics on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "detail": "no scope/exclusion restrictions on either authority path",
+            "fields": {},
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "MethodContractObligation",
+      "kind": "class",
+      "new_authority": {
+        "declared": {
+          "api_metaclass": "ItemDefinition",
+          "declaration": "item def MethodContractObligation",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "library_grounding_mechanics": {},
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "profile_entry_present": true,
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "old_authority": {
+        "declared": {
+          "declaration": "item def MethodContractObligation",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "runtime_status": {
+          "consumption": "kernel-binding identity resolution",
+          "queryable_as_predicate": false
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "detail": "no predicate claim on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "kernel_mapping_kind": {
+                "new": "file",
+                "ok": true,
+                "old": "file"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "api_metaclass": {
+                "new": "ItemDefinition",
+                "ok": true,
+                "old": "ItemDefinition"
+              },
+              "declaration": {
+                "new": "item def EvaluationScopeMembership",
+                "ok": true,
+                "old": "item def EvaluationScopeMembership"
+              },
+              "source_file": {
+                "new": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+                "ok": true,
+                "old": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "detail": "no representation mechanics on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "detail": "no scope/exclusion restrictions on either authority path",
+            "fields": {},
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "EvaluationScopeMembership",
+      "kind": "class",
+      "new_authority": {
+        "declared": {
+          "api_metaclass": "ItemDefinition",
+          "declaration": "item def EvaluationScopeMembership",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "library_grounding_mechanics": {},
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "profile_entry_present": true,
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "old_authority": {
+        "declared": {
+          "declaration": "item def EvaluationScopeMembership",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "runtime_status": {
+          "consumption": "kernel-binding identity resolution",
+          "queryable_as_predicate": false
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "detail": "no predicate claim on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "kernel_mapping_kind": {
+                "new": "file",
+                "ok": true,
+                "old": "file"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "api_metaclass": {
+                "new": "EnumerationDefinition",
+                "ok": true,
+                "old": "EnumerationDefinition"
+              },
+              "declaration": {
+                "new": "enum def EvaluationSourceKind",
+                "ok": true,
+                "old": "enum def EvaluationSourceKind"
+              },
+              "source_file": {
+                "new": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+                "ok": true,
+                "old": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "detail": "no representation mechanics on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "detail": "no scope/exclusion restrictions on either authority path",
+            "fields": {},
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "EvaluationSourceKind",
+      "kind": "class",
+      "new_authority": {
+        "declared": {
+          "api_metaclass": "EnumerationDefinition",
+          "declaration": "enum def EvaluationSourceKind",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "library_grounding_mechanics": {},
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "profile_entry_present": true,
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "old_authority": {
+        "declared": {
+          "declaration": "enum def EvaluationSourceKind",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "runtime_status": {
+          "consumption": "kernel-binding identity resolution",
+          "queryable_as_predicate": false
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "detail": "no predicate claim on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "kernel_mapping_kind": {
+                "new": "file",
+                "ok": true,
+                "old": "file"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "api_metaclass": {
+                "new": "ItemDefinition",
+                "ok": true,
+                "old": "ItemDefinition"
+              },
+              "declaration": {
+                "new": "item def TestedScopeDeclaration",
+                "ok": true,
+                "old": "item def TestedScopeDeclaration"
+              },
+              "source_file": {
+                "new": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+                "ok": true,
+                "old": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "detail": "no representation mechanics on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "detail": "no scope/exclusion restrictions on either authority path",
+            "fields": {},
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "TestedScopeDeclaration",
+      "kind": "class",
+      "new_authority": {
+        "declared": {
+          "api_metaclass": "ItemDefinition",
+          "declaration": "item def TestedScopeDeclaration",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "library_grounding_mechanics": {},
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "profile_entry_present": true,
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "old_authority": {
+        "declared": {
+          "declaration": "item def TestedScopeDeclaration",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "runtime_status": {
+          "consumption": "kernel-binding identity resolution",
+          "queryable_as_predicate": false
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "detail": "no predicate claim on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "kernel_mapping_kind": {
+                "new": "file",
+                "ok": true,
+                "old": "file"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "api_metaclass": {
+                "new": "ItemDefinition",
+                "ok": true,
+                "old": "ItemDefinition"
+              },
+              "declaration": {
+                "new": "item def RetainedExecutionRecordReference",
+                "ok": true,
+                "old": "item def RetainedExecutionRecordReference"
+              },
+              "source_file": {
+                "new": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+                "ok": true,
+                "old": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "detail": "no representation mechanics on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "detail": "no scope/exclusion restrictions on either authority path",
+            "fields": {},
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "RetainedExecutionRecordReference",
+      "kind": "class",
+      "new_authority": {
+        "declared": {
+          "api_metaclass": "ItemDefinition",
+          "declaration": "item def RetainedExecutionRecordReference",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "library_grounding_mechanics": {},
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "profile_entry_present": true,
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "old_authority": {
+        "declared": {
+          "declaration": "item def RetainedExecutionRecordReference",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "runtime_status": {
+          "consumption": "kernel-binding identity resolution",
+          "queryable_as_predicate": false
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "detail": "no predicate claim on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "kernel_mapping_kind": {
+                "new": "file",
+                "ok": true,
+                "old": "file"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "api_metaclass": {
+                "new": "ItemDefinition",
+                "ok": true,
+                "old": "ItemDefinition"
+              },
+              "declaration": {
+                "new": "item def AcceptanceAttestationReference",
+                "ok": true,
+                "old": "item def AcceptanceAttestationReference"
+              },
+              "source_file": {
+                "new": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+                "ok": true,
+                "old": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "detail": "no representation mechanics on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "detail": "no scope/exclusion restrictions on either authority path",
+            "fields": {},
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "AcceptanceAttestationReference",
+      "kind": "class",
+      "new_authority": {
+        "declared": {
+          "api_metaclass": "ItemDefinition",
+          "declaration": "item def AcceptanceAttestationReference",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "library_grounding_mechanics": {},
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "profile_entry_present": true,
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "old_authority": {
+        "declared": {
+          "declaration": "item def AcceptanceAttestationReference",
+          "kernel_mapping_kind": "file",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "kind": "class",
+        "runtime_status": {
+          "consumption": "kernel-binding identity resolution",
+          "queryable_as_predicate": false
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "NOT_YET_COMPARABLE",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "detail": "no predicate claim on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "kernel_mapping_kind": {
+                "new": "native",
+                "ok": true,
+                "old": "native"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "NOT_YET_COMPARABLE",
+            "fields": {
+              "construct_identity": {
+                "new": "native verification-case construct (VerificationCase), pinned standard library",
+                "ok": true,
+                "old": "native verification-case construct (authored ontology)"
+              },
+              "construct_kind": {
+                "new": "native",
+                "ok": true,
+                "old": "native"
+              },
+              "grounded_type_population": {
+                "new": [
+                  "VerificationCaseDefinition",
+                  "VerificationCaseUsage"
+                ],
+                "ok": true,
+                "old": [
+                  "VerificationCaseDefinition",
+                  "VerificationCaseUsage"
+                ]
+              },
+              "library_anchors": {
+                "new": {
+                  "definition_role": "VerificationCases::VerificationCase",
+                  "usage_role": "VerificationCases::verificationCases"
+                },
+                "ok": true,
+                "old": "reviewed parity evidence (authored ontology carries no structured anchors)"
+              }
+            },
+            "missing_evidence": "standard-library grounding proof is not bound to the cutover revision on either authority path: the reviewed parity evidence and the retained privileged run (34576049742 at candidate 0a23902370) are historical; the O3 cutover must execute the profile's controlled standard-library proof (licensed exporter anchor resolution + read-back) at the exact cutover revision before this dimension can classify beyond NOT_YET_COMPARABLE",
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "detail": "no representation mechanics on either authority path",
+            "fields": {},
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "detail": "no scope/exclusion restrictions on either authority path",
+            "fields": {},
+            "reasons": []
+          }
+        },
+        "overall_static": "NOT_YET_COMPARABLE"
+      },
+      "identity": "VerificationCase",
+      "kind": "class",
+      "new_authority": {
+        "declared": {
+          "kernel_mapping_kind": "native",
+          "native_grounding": "native verification-case construct (VerificationCase), pinned standard library"
+        },
+        "kind": "class",
+        "library_grounding_mechanics": {
+          "anchor_policy": "run-pinned anchor evidence, not universal constants: no library UUID is recorded as a stable identity across revisions",
+          "definition_role": {
+            "applies_to": "VerificationCaseDefinition",
+            "library_identity": "VerificationCases::VerificationCase",
+            "mechanism": "implied Subclassification",
+            "provenance": "implied"
+          },
+          "evidence": {
+            "artifact": "full-model-api-ingestion-0a23902370de9fc74d6118afe480382e0b0d8aa0",
+            "candidate_revision": "0a23902370de9fc74d6118afe480382e0b0d8aa0",
+            "kind": "retained privileged full-model API ingestion run",
+            "run": "34576049742",
+            "scope": "standard-library grounding shape evidence only (implied edge shapes and metaclass separation); not a current exact-revision API closure"
+          },
+          "library_proof_step": "controlled standard-library proof: the licensed exporter resolves the pinned library anchors by their qualified names from the pinned Systems Library/VerificationCases.sysml document and records the resolved anchor identities in the export artifact; the read-back proves each implied edge targets exactly the recorded anchor with a uri into that document. The qualified names are used only by this controlled proof step \u2014 never as a general identity fallback.",
+          "usage_role": {
+            "applies_to": "VerificationCaseUsage",
+            "library_identity": "VerificationCases::verificationCases",
+            "mechanism": "implied Subsetting",
+            "provenance": "implied"
+          }
+        },
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+        "profile_entry_present": true,
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+      "old_authority": {
+        "declared": {
+          "kernel_mapping_kind": "native",
+          "native": "SysML v2 verification def; see aebs and middleware verification slices"
+        },
+        "kind": "class",
+        "related_case_element_types": [
+          "VerificationCaseDefinition",
+          "VerificationCaseUsage"
+        ],
+        "runtime_status": {
+          "consumption": "native-construct vocabulary",
+          "queryable_as_predicate": false
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "claim_text": "native subject semantics are the grounding identity, narrowed by the declared scope restrictions; the representation mechanics for this witness are recorded in the API Representation Profile",
+              "claim_text_source": "native_grounding_note",
+              "missing_fragments": [],
+              "ok": true,
+              "required_fragments": [
+                "narrowed by the declared scope restrictions"
+              ]
+            },
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "canonical_direction": {
+                "new": "Requirement -> MemberProduct",
+                "ok": true,
+                "old": "Requirement -> MemberProduct"
+              },
+              "domain": {
+                "new": "Requirement",
+                "ok": true,
+                "old": "Requirement"
+              },
+              "range": {
+                "new": "MemberProduct",
+                "ok": true,
+                "old": "MemberProduct"
+              },
+              "semantic_strength": {
+                "new": "native-reference",
+                "ok": true,
+                "old": "native-reference"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "witness_construct": {
+                "new": "SubjectMembership",
+                "ok": true,
+                "old": "SubjectMembership"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "member_property": {
+                "new": "memberElement",
+                "ok": true,
+                "old": "memberElement"
+              },
+              "membership_types": {
+                "new": [
+                  "SubjectMembership"
+                ],
+                "ok": true,
+                "old": [
+                  "SubjectMembership"
+                ]
+              },
+              "owner_types": {
+                "new": [
+                  "RequirementUsage"
+                ],
+                "ok": true,
+                "old": [
+                  "RequirementUsage"
+                ]
+              },
+              "strategy": {
+                "new": "subject-membership",
+                "ok": true,
+                "old": "subject-membership"
+              }
+            },
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "scope_axes": {
+                "new": [
+                  "source",
+                  "target"
+                ],
+                "ok": true,
+                "old": [
+                  "source",
+                  "target"
+                ]
+              }
+            },
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "hasSubject",
+      "kind": "relationship",
+      "new_authority": {
+        "declared": {
+          "canonical_direction": "Requirement -> MemberProduct",
+          "claim_boundary": "",
+          "domain": "Requirement",
+          "native_construct": "SubjectMembership",
+          "native_grounding_note": "native subject semantics are the grounding identity, narrowed by the declared scope restrictions; the representation mechanics for this witness are recorded in the API Representation Profile",
+          "native_modeled_direction": "",
+          "range": "MemberProduct",
+          "scope_restriction_axes": [
+            "source",
+            "target"
+          ],
+          "semantic_strength": "native-reference"
+        },
+        "exclusion_lineage_class": "",
+        "kind": "relationship",
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+        "profile_entry_present": true,
+        "representation_mechanics": {
+          "member_property": "memberElement",
+          "membership_types": [
+            "SubjectMembership"
+          ],
+          "owner_types": [
+            "RequirementUsage"
+          ],
+          "strategy": "subject-membership"
+        },
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+      "old_authority": {
+        "declared": {
+          "configuration": {
+            "member_property": "memberElement",
+            "membership_types": [
+              "SubjectMembership"
+            ],
+            "owner_types": [
+              "RequirementUsage"
+            ]
+          },
+          "domain": "Requirement",
+          "range": "MemberProduct",
+          "semantic_strength": "native-reference",
+          "strategy": "subject-membership"
+        },
+        "kind": "relationship",
+        "runtime_status": {
+          "blocked": false,
+          "old_canonical_direction": "Requirement -> MemberProduct",
+          "old_native_direction": "Requirement -> MemberProduct",
+          "queryable_as_predicate": true,
+          "strategy_executed": true
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "claim_text": "declared verification-objective semantics are the grounding identity (coverage relation only); the representation mechanics for this witness are recorded in the API Representation Profile",
+              "claim_text_source": "native_grounding_note",
+              "missing_fragments": [],
+              "ok": true,
+              "required_fragments": [
+                "coverage relation only"
+              ]
+            },
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "canonical_direction": {
+                "new": "Requirement -> VerificationCase",
+                "ok": true,
+                "old": "Requirement -> VerificationCase"
+              },
+              "domain": {
+                "new": "Requirement",
+                "ok": true,
+                "old": "Requirement"
+              },
+              "range": {
+                "new": "VerificationCase",
+                "ok": true,
+                "old": "VerificationCase"
+              },
+              "semantic_strength": {
+                "new": "native-verification",
+                "ok": true,
+                "old": "native-verification"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "witness_construct": {
+                "new": "RequirementVerificationMembership",
+                "ok": true,
+                "old": "RequirementVerificationMembership"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "direction": {
+                "new": "reverse",
+                "ok": true,
+                "old": "reverse"
+              },
+              "element_types": {
+                "new": [
+                  "VerificationCaseDefinition",
+                  "VerificationCaseUsage"
+                ],
+                "ok": true,
+                "old": [
+                  "VerificationCaseDefinition",
+                  "VerificationCaseUsage"
+                ]
+              },
+              "membership_types": {
+                "new": [
+                  "RequirementVerificationMembership"
+                ],
+                "ok": true,
+                "old": [
+                  "RequirementVerificationMembership"
+                ]
+              },
+              "owner_membership_types": {
+                "new": [
+                  "FeatureMembership",
+                  "ObjectiveMembership",
+                  "OwningMembership",
+                  "RequirementVerificationMembership"
+                ],
+                "ok": true,
+                "old": [
+                  "FeatureMembership",
+                  "ObjectiveMembership",
+                  "OwningMembership",
+                  "RequirementVerificationMembership"
+                ]
+              },
+              "reference_property": {
+                "new": "verifiedRequirement",
+                "ok": true,
+                "old": "verifiedRequirement"
+              },
+              "strategy": {
+                "new": "verification-membership",
+                "ok": true,
+                "old": "verification-membership"
+              }
+            },
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "scope_axes": {
+                "new": [
+                  "source"
+                ],
+                "ok": true,
+                "old": [
+                  "source"
+                ]
+              }
+            },
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "verifiedBy",
+      "kind": "relationship",
+      "new_authority": {
+        "declared": {
+          "canonical_direction": "Requirement -> VerificationCase",
+          "claim_boundary": "",
+          "domain": "Requirement",
+          "native_construct": "RequirementVerificationMembership",
+          "native_grounding_note": "declared verification-objective semantics are the grounding identity (coverage relation only); the representation mechanics for this witness are recorded in the API Representation Profile",
+          "native_modeled_direction": "",
+          "range": "VerificationCase",
+          "scope_restriction_axes": [
+            "source"
+          ],
+          "semantic_strength": "native-verification"
+        },
+        "exclusion_lineage_class": "",
+        "kind": "relationship",
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+        "profile_entry_present": true,
+        "representation_mechanics": {
+          "direction": "reverse",
+          "element_types": [
+            "VerificationCaseUsage",
+            "VerificationCaseDefinition"
+          ],
+          "membership_types": [
+            "RequirementVerificationMembership"
+          ],
+          "owner_membership_types": [
+            "FeatureMembership",
+            "OwningMembership",
+            "ObjectiveMembership",
+            "RequirementVerificationMembership"
+          ],
+          "reference_property": "verifiedRequirement",
+          "strategy": "verification-membership"
+        },
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+      "old_authority": {
+        "declared": {
+          "configuration": {
+            "direction": "reverse",
+            "element_types": [
+              "VerificationCaseUsage",
+              "VerificationCaseDefinition"
+            ],
+            "membership_types": [
+              "RequirementVerificationMembership"
+            ],
+            "owner_membership_types": [
+              "FeatureMembership",
+              "OwningMembership",
+              "ObjectiveMembership",
+              "RequirementVerificationMembership"
+            ],
+            "reference_property": "verifiedRequirement"
+          },
+          "domain": "Requirement",
+          "range": "VerificationCase",
+          "semantic_strength": "native-verification",
+          "strategy": "verification-membership"
+        },
+        "kind": "relationship",
+        "runtime_status": {
+          "blocked": false,
+          "old_canonical_direction": "Requirement -> VerificationCase",
+          "old_native_direction": "Requirement -> VerificationCase",
+          "queryable_as_predicate": true,
+          "strategy_executed": true
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "claim_text": "provenance only: neither satisfaction nor logical implication between the connected usages; no allocation, verification, evidence, or acceptance claim",
+              "claim_text_source": "claim_boundary",
+              "missing_fragments": [],
+              "ok": true,
+              "required_fragments": [
+                "provenance only",
+                "neither satisfaction nor logical implication"
+              ]
+            },
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "canonical_direction": {
+                "new": "Requirement -> Need",
+                "ok": true,
+                "old": "Requirement -> Need"
+              },
+              "domain": {
+                "new": "Requirement",
+                "ok": true,
+                "old": "Requirement"
+              },
+              "range": {
+                "new": "Need",
+                "ok": true,
+                "old": "Need"
+              },
+              "semantic_strength": {
+                "new": "derivation",
+                "ok": true,
+                "old": "derivation"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "witness_construct": {
+                "new": "DerivesFromNeed connection definition",
+                "ok": true,
+                "old": "DerivesFromNeed"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "connection_definition": {
+                "new": "DerivesFromNeed",
+                "ok": true,
+                "old": "DerivesFromNeed"
+              },
+              "native_modeled_direction": {
+                "new": "Need -> Requirement",
+                "ok": true,
+                "old": "Need -> Requirement"
+              },
+              "need_role": {
+                "new": "need",
+                "ok": true,
+                "old": "need"
+              },
+              "query_direction": {
+                "new": "inverse",
+                "ok": true,
+                "old": "inverse"
+              },
+              "requirement_role": {
+                "new": "derivedRequirement",
+                "ok": true,
+                "old": "derivedRequirement"
+              },
+              "source_lineage_of": {
+                "new": "Requirement",
+                "ok": true,
+                "old": "Requirement"
+              },
+              "strategy": {
+                "new": "derivation-connection",
+                "ok": true,
+                "old": "derivation-connection"
+              },
+              "target_lineage_of": {
+                "new": "Need",
+                "ok": true,
+                "old": "Need"
+              }
+            },
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "scope_axes": {
+                "new": [
+                  "claim",
+                  "role-identity",
+                  "witness"
+                ],
+                "ok": true,
+                "old": [
+                  "claim",
+                  "role-identity",
+                  "witness"
+                ]
+              }
+            },
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "derivesRequirementFromNeed",
+      "kind": "relationship",
+      "new_authority": {
+        "declared": {
+          "canonical_direction": "Requirement -> Need",
+          "claim_boundary": "provenance only: neither satisfaction nor logical implication between the connected usages; no allocation, verification, evidence, or acceptance claim",
+          "domain": "Requirement",
+          "native_construct": "DerivesFromNeed connection definition",
+          "native_grounding_note": "the typed ends of the governed application definition are the grounding identity; role identity is keyed by typing against the governed Need/Requirement lineages \u2014 never by end order, argument order, query direction, or names; the representation mechanics for this witness are recorded in the API Representation Profile",
+          "native_modeled_direction": "Need -> Requirement",
+          "range": "Need",
+          "scope_restriction_axes": [
+            "role-identity",
+            "witness",
+            "claim"
+          ],
+          "semantic_strength": "derivation"
+        },
+        "exclusion_lineage_class": "",
+        "kind": "relationship",
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+        "profile_entry_present": true,
+        "representation_mechanics": {
+          "connection_definition": "DerivesFromNeed",
+          "need_role": "need",
+          "query_direction": "inverse",
+          "requirement_role": "derivedRequirement",
+          "semantic_strength": "derivation",
+          "source_lineage_of": "Requirement",
+          "strategy": "derivation-connection",
+          "target_lineage_of": "Need"
+        },
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+      "old_authority": {
+        "declared": {
+          "configuration": {
+            "connection_definition": "DerivesFromNeed",
+            "need_role": "need",
+            "query_direction": "inverse",
+            "requirement_role": "derivedRequirement",
+            "source_lineage_of": "Requirement",
+            "target_lineage_of": "Need"
+          },
+          "domain": "Requirement",
+          "range": "Need",
+          "semantic_strength": "derivation",
+          "strategy": "derivation-connection"
+        },
+        "kind": "relationship",
+        "runtime_status": {
+          "blocked": false,
+          "old_canonical_direction": "Requirement -> Need",
+          "old_native_direction": "Need -> Requirement",
+          "queryable_as_predicate": true,
+          "strategy_executed": true
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "claim_text": "provenance only: neither satisfaction nor logical implication between the connected usages; no allocation, verification, evidence, or acceptance claim",
+              "claim_text_source": "claim_boundary",
+              "missing_fragments": [],
+              "ok": true,
+              "required_fragments": [
+                "provenance only",
+                "neither satisfaction nor logical implication"
+              ]
+            },
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "canonical_direction": {
+                "new": "Need -> Requirement",
+                "ok": true,
+                "old": "Need -> Requirement"
+              },
+              "domain": {
+                "new": "Need",
+                "ok": true,
+                "old": "Need"
+              },
+              "range": {
+                "new": "Requirement",
+                "ok": true,
+                "old": "Requirement"
+              },
+              "semantic_strength": {
+                "new": "derivation",
+                "ok": true,
+                "old": "derivation"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "witness_construct": {
+                "new": "DerivesFromNeed connection definition",
+                "ok": true,
+                "old": "DerivesFromNeed"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "connection_definition": {
+                "new": "DerivesFromNeed",
+                "ok": true,
+                "old": "DerivesFromNeed"
+              },
+              "native_modeled_direction": {
+                "new": "Need -> Requirement",
+                "ok": true,
+                "old": "Need -> Requirement"
+              },
+              "need_role": {
+                "new": "need",
+                "ok": true,
+                "old": "need"
+              },
+              "query_direction": {
+                "new": "forward",
+                "ok": true,
+                "old": "forward"
+              },
+              "requirement_role": {
+                "new": "derivedRequirement",
+                "ok": true,
+                "old": "derivedRequirement"
+              },
+              "source_lineage_of": {
+                "new": "Need",
+                "ok": true,
+                "old": "Need"
+              },
+              "strategy": {
+                "new": "derivation-connection",
+                "ok": true,
+                "old": "derivation-connection"
+              },
+              "target_lineage_of": {
+                "new": "Requirement",
+                "ok": true,
+                "old": "Requirement"
+              }
+            },
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "scope_axes": {
+                "new": [
+                  "claim",
+                  "role-identity",
+                  "witness"
+                ],
+                "ok": true,
+                "old": [
+                  "claim",
+                  "role-identity",
+                  "witness"
+                ]
+              }
+            },
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "derivedRequirementsOfNeed",
+      "kind": "relationship",
+      "new_authority": {
+        "declared": {
+          "canonical_direction": "Need -> Requirement",
+          "claim_boundary": "provenance only: neither satisfaction nor logical implication between the connected usages; no allocation, verification, evidence, or acceptance claim",
+          "domain": "Need",
+          "native_construct": "DerivesFromNeed connection definition",
+          "native_grounding_note": "the typed ends of the governed application definition are the grounding identity; role identity is keyed by typing against the governed Need/Requirement lineages \u2014 never by end order, argument order, query direction, or names; the representation mechanics for this witness are recorded in the API Representation Profile",
+          "native_modeled_direction": "Need -> Requirement",
+          "range": "Requirement",
+          "scope_restriction_axes": [
+            "role-identity",
+            "witness",
+            "claim"
+          ],
+          "semantic_strength": "derivation"
+        },
+        "exclusion_lineage_class": "",
+        "kind": "relationship",
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+        "profile_entry_present": true,
+        "representation_mechanics": {
+          "connection_definition": "DerivesFromNeed",
+          "need_role": "need",
+          "query_direction": "forward",
+          "requirement_role": "derivedRequirement",
+          "semantic_strength": "derivation",
+          "source_lineage_of": "Need",
+          "strategy": "derivation-connection",
+          "target_lineage_of": "Requirement"
+        },
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+      "old_authority": {
+        "declared": {
+          "configuration": {
+            "connection_definition": "DerivesFromNeed",
+            "need_role": "need",
+            "query_direction": "forward",
+            "requirement_role": "derivedRequirement",
+            "source_lineage_of": "Need",
+            "target_lineage_of": "Requirement"
+          },
+          "domain": "Need",
+          "range": "Requirement",
+          "semantic_strength": "derivation",
+          "strategy": "derivation-connection"
+        },
+        "kind": "relationship",
+        "runtime_status": {
+          "blocked": false,
+          "old_canonical_direction": "Need -> Requirement",
+          "old_native_direction": "Need -> Requirement",
+          "queryable_as_predicate": true,
+          "strategy_executed": true
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    },
+    {
+      "comparison": {
+        "classifications": {
+          "claim_boundary": "EQUIVALENT",
+          "declared_semantic_core": "EQUIVALENT",
+          "grounding_identity": "EQUIVALENT",
+          "representation_contract": "EQUIVALENT",
+          "scope_exclusions": "EQUIVALENT"
+        },
+        "dimensions": {
+          "claim_boundary": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "claim_text": "the native generic Dependency supplies the witness; the load-bearing DE4SDV restrictions below are part of the predicate's meaning \u2014 generic Dependency by itself is NOT hasRelevantArchitecture. Representation mechanics a",
+              "claim_text_source": "native_grounding_note",
+              "missing_fragments": [],
+              "ok": true,
+              "required_fragments": [
+                "by itself is NOT hasRelevantArchitecture"
+              ]
+            },
+            "reasons": []
+          },
+          "declared_semantic_core": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "canonical_direction": {
+                "new": "Requirement -> ArchitectureElement",
+                "ok": true,
+                "old": "Requirement -> ArchitectureElement"
+              },
+              "domain": {
+                "new": "Requirement",
+                "ok": true,
+                "old": "Requirement"
+              },
+              "range": {
+                "new": "ArchitectureElement",
+                "ok": true,
+                "old": "ArchitectureElement"
+              },
+              "semantic_strength": {
+                "new": "relevance",
+                "ok": true,
+                "old": "relevance"
+              }
+            },
+            "reasons": []
+          },
+          "grounding_identity": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "witness_construct": {
+                "new": "authored generic Dependency",
+                "ok": true,
+                "old": "Dependency"
+              }
+            },
+            "reasons": []
+          },
+          "representation_contract": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "direction": {
+                "new": "incoming",
+                "ok": true,
+                "old": "incoming"
+              },
+              "exclude_source_specializations_of": {
+                "new": "MemberProduct",
+                "ok": true,
+                "old": "MemberProduct"
+              },
+              "relationship_types": {
+                "new": [
+                  "Dependency"
+                ],
+                "ok": true,
+                "old": [
+                  "Dependency"
+                ]
+              },
+              "source_property": {
+                "new": "source",
+                "ok": true,
+                "old": "source"
+              },
+              "source_types": {
+                "new": [
+                  "ActionDefinition",
+                  "ActionUsage",
+                  "PartDefinition",
+                  "PartUsage"
+                ],
+                "ok": true,
+                "old": [
+                  "ActionDefinition",
+                  "ActionUsage",
+                  "PartDefinition",
+                  "PartUsage"
+                ]
+              },
+              "strategy": {
+                "new": "dependency",
+                "ok": true,
+                "old": "dependency"
+              },
+              "target_property": {
+                "new": "target",
+                "ok": true,
+                "old": "target"
+              }
+            },
+            "reasons": []
+          },
+          "scope_exclusions": {
+            "classification": "EQUIVALENT",
+            "fields": {
+              "exclusion_lineage": {
+                "new": "MemberProduct",
+                "ok": true,
+                "old": "MemberProduct"
+              },
+              "scope_axes": {
+                "new": [
+                  "exclusion",
+                  "source-domain",
+                  "source-types",
+                  "witness"
+                ],
+                "ok": true,
+                "old": [
+                  "exclusion",
+                  "source-domain",
+                  "source-types",
+                  "witness"
+                ]
+              }
+            },
+            "reasons": []
+          }
+        },
+        "overall_static": "EQUIVALENT"
+      },
+      "identity": "hasRelevantArchitecture",
+      "kind": "relationship",
+      "new_authority": {
+        "declared": {
+          "canonical_direction": "Requirement -> ArchitectureElement",
+          "claim_boundary": "",
+          "domain": "Requirement",
+          "native_construct": "authored generic Dependency",
+          "native_grounding_note": "the native generic Dependency supplies the witness; the load-bearing DE4SDV restrictions below are part of the predicate's meaning \u2014 generic Dependency by itself is NOT hasRelevantArchitecture. Representation mechanics are recorded in the API Representation Profile",
+          "native_modeled_direction": "",
+          "range": "ArchitectureElement",
+          "scope_restriction_axes": [
+            "source-domain",
+            "source-types",
+            "exclusion",
+            "witness"
+          ],
+          "semantic_strength": "relevance"
+        },
+        "exclusion_lineage_class": "MemberProduct",
+        "kind": "relationship",
+        "o2_artifact": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+        "profile_entry_present": true,
+        "representation_mechanics": {
+          "direction": "incoming",
+          "exclude_source_specializations_of": "MemberProduct",
+          "relationship_types": [
+            "Dependency"
+          ],
+          "source_property": "source",
+          "source_types": [
+            "PartUsage",
+            "PartDefinition",
+            "ActionUsage",
+            "ActionDefinition"
+          ],
+          "strategy": "dependency",
+          "target_property": "target"
+        },
+        "support_state": "vocabulary-only"
+      },
+      "o2_source": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+      "old_authority": {
+        "declared": {
+          "configuration": {
+            "direction": "incoming",
+            "exclude_source_specializations_of": "MemberProduct",
+            "relationship_types": [
+              "Dependency"
+            ],
+            "source_property": "source",
+            "source_types": [
+              "PartUsage",
+              "PartDefinition",
+              "ActionUsage",
+              "ActionDefinition"
+            ],
+            "target_property": "target"
+          },
+          "domain": "Requirement",
+          "range": "ArchitectureElement",
+          "semantic_strength": "relevance",
+          "strategy": "dependency"
+        },
+        "kind": "relationship",
+        "runtime_status": {
+          "blocked": false,
+          "old_canonical_direction": "Requirement -> ArchitectureElement",
+          "old_native_direction": "Requirement -> ArchitectureElement",
+          "queryable_as_predicate": true,
+          "strategy_executed": true
+        }
+      },
+      "runtime_behavior": {
+        "classification": "NOT_YET_COMPARABLE",
+        "reason": "the new authority path has no runtime implementation at readiness; the O3 cutover must execute the same-revision comparison harness before any activation claim",
+        "required_harness": "de4sdv.o3-comparison-manifest/v1"
+      }
+    }
+  ],
+  "note": "Planning/evidence for the O3 authority transition. This document is NOT activation authority: no runtime authority is switched, no YAML is retired, and no support state is promoted by its existence. Static parity is compared per identity across separate dimensions (declared semantic core, representation contract, grounding identity, claim boundary, scope/exclusions); any static mismatch fails closed, and an identity is never EQUIVALENT merely because its semantic core matches. Runtime-behavior equivalence remains NOT_YET_COMPARABLE until the same-revision comparison harness runs at cutover over an exact-revision validated ingestion.",
+  "read_only": true,
+  "schema": "de4sdv.o3-equivalence-scope/v1",
+  "scope": {
+    "excluded_identities": [
+      "MethodEvaluationScope",
+      "DerivesFromNeed",
+      "derivesNeedFromConcern",
+      "realizedBy",
+      "specifiesFunction",
+      "hasRelevantEvidenceContract",
+      "EvidenceContract",
+      "allocatedTo",
+      "deployedTo"
+    ],
+    "o2_1": [
+      "MethodPhase",
+      "MethodContractObligation",
+      "EvaluationScopeMembership",
+      "EvaluationSourceKind",
+      "TestedScopeDeclaration",
+      "RetainedExecutionRecordReference",
+      "AcceptanceAttestationReference"
+    ],
+    "o2_2": [
+      "VerificationCase",
+      "hasSubject",
+      "verifiedBy"
+    ],
+    "o2_3": [
+      "derivesRequirementFromNeed",
+      "derivedRequirementsOfNeed",
+      "hasRelevantArchitecture"
+    ],
+    "reviewed_surface_count": 13
+  },
+  "summary": {
+    "contract_check_failures": [],
+    "runtime": {
+      "completed": [],
+      "equivalent": [],
+      "not_yet_comparable": [
+        "AcceptanceAttestationReference",
+        "EvaluationScopeMembership",
+        "EvaluationSourceKind",
+        "MethodContractObligation",
+        "MethodPhase",
+        "RetainedExecutionRecordReference",
+        "TestedScopeDeclaration",
+        "VerificationCase",
+        "derivedRequirementsOfNeed",
+        "derivesRequirementFromNeed",
+        "hasRelevantArchitecture",
+        "hasSubject",
+        "verifiedBy"
+      ]
+    },
+    "static_parity": {
+      "dimensions": {
+        "claim_boundary": {
+          "equivalent": [
+            "AcceptanceAttestationReference",
+            "EvaluationScopeMembership",
+            "EvaluationSourceKind",
+            "MethodContractObligation",
+            "MethodPhase",
+            "RetainedExecutionRecordReference",
+            "TestedScopeDeclaration",
+            "VerificationCase",
+            "derivedRequirementsOfNeed",
+            "derivesRequirementFromNeed",
+            "hasRelevantArchitecture",
+            "hasSubject",
+            "verifiedBy"
+          ],
+          "mismatch": [],
+          "not_yet_comparable": []
+        },
+        "declared_semantic_core": {
+          "equivalent": [
+            "AcceptanceAttestationReference",
+            "EvaluationScopeMembership",
+            "EvaluationSourceKind",
+            "MethodContractObligation",
+            "MethodPhase",
+            "RetainedExecutionRecordReference",
+            "TestedScopeDeclaration",
+            "VerificationCase",
+            "derivedRequirementsOfNeed",
+            "derivesRequirementFromNeed",
+            "hasRelevantArchitecture",
+            "hasSubject",
+            "verifiedBy"
+          ],
+          "mismatch": [],
+          "not_yet_comparable": []
+        },
+        "grounding_identity": {
+          "equivalent": [
+            "AcceptanceAttestationReference",
+            "EvaluationScopeMembership",
+            "EvaluationSourceKind",
+            "MethodContractObligation",
+            "MethodPhase",
+            "RetainedExecutionRecordReference",
+            "TestedScopeDeclaration",
+            "derivedRequirementsOfNeed",
+            "derivesRequirementFromNeed",
+            "hasRelevantArchitecture",
+            "hasSubject",
+            "verifiedBy"
+          ],
+          "mismatch": [],
+          "not_yet_comparable": [
+            "VerificationCase"
+          ]
+        },
+        "representation_contract": {
+          "equivalent": [
+            "AcceptanceAttestationReference",
+            "EvaluationScopeMembership",
+            "EvaluationSourceKind",
+            "MethodContractObligation",
+            "MethodPhase",
+            "RetainedExecutionRecordReference",
+            "TestedScopeDeclaration",
+            "VerificationCase",
+            "derivedRequirementsOfNeed",
+            "derivesRequirementFromNeed",
+            "hasRelevantArchitecture",
+            "hasSubject",
+            "verifiedBy"
+          ],
+          "mismatch": [],
+          "not_yet_comparable": []
+        },
+        "scope_exclusions": {
+          "equivalent": [
+            "AcceptanceAttestationReference",
+            "EvaluationScopeMembership",
+            "EvaluationSourceKind",
+            "MethodContractObligation",
+            "MethodPhase",
+            "RetainedExecutionRecordReference",
+            "TestedScopeDeclaration",
+            "VerificationCase",
+            "derivedRequirementsOfNeed",
+            "derivesRequirementFromNeed",
+            "hasRelevantArchitecture",
+            "hasSubject",
+            "verifiedBy"
+          ],
+          "mismatch": [],
+          "not_yet_comparable": []
+        }
+      },
+      "identities_fully_equivalent": [
+        "AcceptanceAttestationReference",
+        "EvaluationScopeMembership",
+        "EvaluationSourceKind",
+        "MethodContractObligation",
+        "MethodPhase",
+        "RetainedExecutionRecordReference",
+        "TestedScopeDeclaration",
+        "derivedRequirementsOfNeed",
+        "derivesRequirementFromNeed",
+        "hasRelevantArchitecture",
+        "hasSubject",
+        "verifiedBy"
+      ],
+      "identities_with_mismatch": [],
+      "identities_with_pending_dimension": [
+        "VerificationCase"
+      ]
+    }
+  },
+  "support_preservation": [
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "MethodPhase",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-binding-identity",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "MethodContractObligation",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-binding-identity",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "EvaluationScopeMembership",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-binding-identity",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "EvaluationSourceKind",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-binding-identity",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "TestedScopeDeclaration",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-binding-identity",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "RetainedExecutionRecordReference",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-binding-identity",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "AcceptanceAttestationReference",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-binding-identity",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "VerificationCase",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-native-vocabulary",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "hasSubject",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-queryable",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "verifiedBy",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-queryable",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "derivesRequirementFromNeed",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-queryable",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "derivedRequirementsOfNeed",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-queryable",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    },
+    {
+      "cutover_requirement": "the O3 runtime must preserve the old path's exact queryable/blocked behavior for this identity; runtime preservation remains part of the future same-revision execution comparison, and publication or vocabulary presence is never support promotion",
+      "identity": "hasRelevantArchitecture",
+      "new_support_state": "vocabulary-only",
+      "old_runtime_support": "runtime-queryable",
+      "promotion": "none",
+      "readiness_verdict": "NO_PROMOTION",
+      "runtime_preservation": "NOT_YET_COMPARABLE"
+    }
+  ]
+}
