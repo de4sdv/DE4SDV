@@ -212,6 +212,46 @@ def resolve_comparison_base_revision(root: Path) -> str:
     return revision
 
 
+def _frozen_bytes(root: Path, rel: str, basis_revision: str | None) -> bytes:
+    """Working-tree bytes, or the Git blob at the recorded basis revision.
+
+    The readiness record is evidence about its recorded comparison-base
+    revision: old-bundle file digests must verify against THAT revision's
+    Git objects, so later runtime implementation commits cannot silently
+    rewrite the accepted baseline.
+    """
+    if basis_revision is None:
+        return (root / rel).read_bytes()
+    return _git_bytes(root, "show", f"{basis_revision}:{rel}")
+
+
+def _git_bytes(root: Path, *args: str) -> bytes:
+    import subprocess
+
+    result = subprocess.run(
+        ["git", *args], cwd=root, capture_output=True, check=False
+    )
+    if result.returncode != 0:
+        raise ValueError(
+            f"git {' '.join(args)} failed in {root}: "
+            f"{result.stderr.decode('utf-8', 'replace').strip()}"
+        )
+    return result.stdout
+
+
+def recorded_basis_revision(root: Path) -> str | None:
+    """The comparison-base revision recorded in the committed scope document."""
+    path = root / O3_SCOPE_PATH
+    if not path.exists():
+        return None
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    revision = str((document.get("basis") or {}).get("comparison_base_revision") or "")
+    return revision or None
+
+
 def _json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
@@ -288,6 +328,15 @@ def chain_profile_entries(chain: dict[str, dict[str, Any]]) -> dict[str, dict[st
 # ---------------------------------------------------------------------------
 
 
+def _blob_digest(root: Path, rel: str, basis_revision: str | None) -> str:
+    """sha256 of a file's bytes — working tree or the recorded basis blob."""
+    try:
+        data = _frozen_bytes(root, rel, basis_revision)
+    except ValueError as exc:
+        raise ValueError(f"old bundle file unavailable: {rel}: {exc}") from exc
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
 def _class_old_record(contract: KernelContract, name: str) -> dict[str, Any]:
     spec = contract.classes.get(name)
     if not isinstance(spec, dict):
@@ -356,14 +405,19 @@ def _relationship_old_record(contract: KernelContract, name: str) -> dict[str, A
     }
 
 
-def extract_old_bundle(root: Path, contract: KernelContract) -> dict[str, Any]:
-    """Machine-readable description of the current OLD authority bundle."""
+def extract_old_bundle(
+    root: Path, contract: KernelContract, *, basis_revision: str | None = None
+) -> dict[str, Any]:
+    """Machine-readable description of the OLD authority bundle.
+
+    With ``basis_revision`` set, the recorded file digests verify against
+    that revision's Git blobs (the readiness record is evidence about its
+    recorded comparison-base revision); semantic records still come from the
+    governed working-tree contract, which the O1/O2 gates freeze.
+    """
     runtime_files = {}
     for rel in OLD_BUNDLE_RUNTIME_FILES:
-        path = root / rel
-        if not path.exists():
-            raise ValueError(f"old bundle runtime file missing: {rel}")
-        runtime_files[rel] = sha256_file(path)
+        runtime_files[rel] = _blob_digest(root, rel, basis_revision)
     identities: dict[str, Any] = {
         name: _class_old_record(contract, name) for name in O3_SCOPE_CLASSES
     }
@@ -391,11 +445,11 @@ def extract_old_bundle(root: Path, contract: KernelContract) -> dict[str, Any]:
     return {
         "ontology": {
             "path": ONTOLOGY_PATH,
-            "sha256": sha256_file(root / ONTOLOGY_PATH),
+            "sha256": _blob_digest(root, ONTOLOGY_PATH, basis_revision),
         },
         "kernel_contract_module": {
             "path": KERNEL_CONTRACT_PATH,
-            "sha256": sha256_file(root / KERNEL_CONTRACT_PATH),
+            "sha256": _blob_digest(root, KERNEL_CONTRACT_PATH, basis_revision),
         },
         "kernel_contract_identity": contract.identity.to_dict(),
         "runtime_files": runtime_files,
@@ -1487,11 +1541,19 @@ def assert_writable(path: Path, root: Path) -> None:
         )
 
 
-def build_scope_document(root: Path) -> dict[str, Any]:
-    """Assemble the full machine-readable O3 equivalence scope document."""
+def build_scope_document(
+    root: Path, *, basis_revision: str | None = None
+) -> dict[str, Any]:
+    """Assemble the full machine-readable O3 equivalence scope document.
+
+    ``basis_revision`` pins the old-bundle file digests to the recorded
+    comparison-base revision's Git blobs; when omitted, the current
+    comparison base is resolved (fresh record generation only).
+    """
     contract = KernelContract.load(root / ONTOLOGY_PATH)
     chain = load_o2_chain(root)
-    old_bundle = extract_old_bundle(root, contract)
+    resolved_basis = basis_revision or resolve_comparison_base_revision(root)
+    old_bundle = extract_old_bundle(root, contract, basis_revision=resolved_basis)
     new_bundle = extract_new_bundle(chain)
     identities: list[dict[str, Any]] = []
     for identity in O3_SCOPE_IDENTITIES:
@@ -1554,7 +1616,7 @@ def build_scope_document(root: Path) -> dict[str, Any]:
         ),
         "basis": {
             **basis,
-            "comparison_base_revision": resolve_comparison_base_revision(root),
+            "comparison_base_revision": resolved_basis,
             "comparison_base_policy": BASE_REVISION_POLICY,
         },
         "scope": {
@@ -1626,28 +1688,31 @@ def build_scope_document(root: Path) -> dict[str, Any]:
 
 
 def check_scope_document(root: Path, document: dict[str, Any]) -> list[str]:
-    """Fail-closed validation of the committed scope document."""
+    """Fail-closed validation of the committed scope document.
+
+    The document is evidence about its recorded comparison-base revision:
+    regeneration reads the old-bundle file digests from THAT revision's Git
+    objects, so later runtime implementation commits cannot silently rewrite
+    the accepted baseline (a rewrite requires an explicitly regenerated and
+    reviewed document).
+    """
     errors: list[str] = []
     if document.get("schema") != O3_SCOPE_SCHEMA:
         return [f"scope schema mismatch: {document.get('schema')!r}"]
-    expected = build_scope_document(root)
-
-    # The comparison-base revision is validated (existence + ancestry), not
-    # byte-compared: regeneration legitimately resolves the then-current
-    # permanent main revision, which can only ever move FORWARD on main.
     recorded_revision = str(
         (document.get("basis") or {}).get("comparison_base_revision") or ""
     )
-    recorded = dict(document)
-    regenerated = dict(expected)
-    for candidate in (recorded, regenerated):
-        basis = dict(candidate.get("basis") or {})
-        basis.pop("comparison_base_revision", None)
-        candidate["basis"] = basis
-    if canonical_json(recorded) != canonical_json(regenerated):
+    try:
+        expected = build_scope_document(
+            root, basis_revision=recorded_revision or None
+        )
+    except ValueError as exc:
+        return [f"scope regeneration failed: {exc}"]
+    if canonical_json(document) != canonical_json(expected):
         errors.append(
-            "scope document differs from regeneration: regenerate "
-            f"{O3_SCOPE_PATH} (digest drift or unrecorded change)"
+            "scope document differs from regeneration against its recorded "
+            f"comparison base: regenerate {O3_SCOPE_PATH} only as an "
+            "explicitly reviewed update"
         )
     if not recorded_revision:
         errors.append("scope document records no comparison base revision")

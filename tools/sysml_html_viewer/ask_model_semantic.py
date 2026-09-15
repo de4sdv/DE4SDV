@@ -46,7 +46,10 @@ _SEMANTIC_CTX_CACHE: dict[str, dict] = {}
 # /ask never blocks on it — see build_method_context_api)
 _COLD_LOCK = threading.Lock()
 _WARM_STATE: dict = {"status": "idle", "error": None}
-_SNAPSHOT_FORMAT = 1
+# v2: authority-bundle-aware snapshot identity — a snapshot produced under
+# one semantic authority must never load under another (identity mismatch is
+# a cache miss, never reinterpretation).
+_SNAPSHOT_FORMAT = 2
 
 
 def warm_status() -> dict:
@@ -114,9 +117,18 @@ def _snapshot_dir() -> Path:
     return d
 
 
+def _authority_component(service) -> str:
+    """Stable filename component for the explicit semantic authority id."""
+    authority = str(getattr(service, "semantic_authority_id", "") or "unknown")
+    return hashlib.sha256(authority.encode("utf-8")).hexdigest()[:12]
+
+
 def _snapshot_identity(service) -> dict:
     return {
         "format": _SNAPSHOT_FORMAT,
+        "semantic_authority_id": str(
+            getattr(service, "semantic_authority_id", "") or ""
+        ),
         "git_commit": str(service.binding.git_commit),
         "sysml_project_id": str(service.binding.sysml_project_id),
         "sysml_commit_id": str(service.binding.sysml_commit_id),
@@ -124,7 +136,9 @@ def _snapshot_identity(service) -> dict:
 
 
 def _snapshot_path(service) -> Path:
-    return _snapshot_dir() / f"{service.binding.sysml_commit_id}.json"
+    return _snapshot_dir() / (
+        f"{service.binding.sysml_commit_id}.{_authority_component(service)}.json"
+    )
 
 
 def _snapshot_write(service, elements: list[dict]) -> None:
@@ -268,7 +282,8 @@ def api_method_context(service, targets: list[dict],
     24/24 for hasSubject against the deployed API). Entries dedupe by
     element id; a family is listed only when the model declares it.
     """
-    cache_key = ",".join(sorted(
+    authority_key = str(getattr(service, "semantic_authority_id", "") or "")
+    cache_key = f"{authority_key}|" + ", ".join(sorted(
         str(t.get("@id") or "") for t in targets
     ))
     if cache_key and cache_key in _SEMANTIC_CTX_CACHE:

@@ -1093,6 +1093,10 @@ class TestRuntimeIndependence:
                 # planning/evidence module that references the chain paths for
                 # comparison; test-locked out of the runtime import graph.
                 "o3_equivalence.py",
+                # O3 candidate authority bundle (documented, same pattern):
+                # Stage-A machinery built on the chain; candidate path only,
+                # never production authority in Stage A.
+                "o3_bundle.py",
             }
         )
         for path in runtime_modules:

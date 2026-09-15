@@ -84,7 +84,9 @@ def main(argv: list[str] | None = None) -> int:
         print("O3 equivalence scope check passed.")
         return 0
 
-    document = o3_equivalence.build_scope_document(ROOT)
+    document = o3_equivalence.build_scope_document(
+        ROOT, basis_revision=o3_equivalence.recorded_basis_revision(ROOT)
+    )
     path = ROOT / o3_equivalence.O3_SCOPE_PATH
     o3_equivalence.assert_writable(path, ROOT)
     path.parent.mkdir(parents=True, exist_ok=True)
