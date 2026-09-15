@@ -2,6 +2,14 @@ name: Privileged Full-Model API Ingestion
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: >-
+          Exact full 40-character commit SHA to ingest (optional; when set it
+          must equal the checked-out revision — exact-revision evidence
+          refuses moving refs)
+        required: false
+        type: string
   schedule:
     # One nightly full-model ingestion of main. The artifact feeds the
     # gated public API deployment and keeps a daily semantic health signal.
@@ -46,6 +54,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.inputs.ref || github.sha }}
+
+      - name: Validate exact-revision checkout
+        run: |
+          SHA="$(git rev-parse HEAD)"
+          REQUESTED="${{ github.event.inputs.ref }}"
+          echo "checked-out revision: $SHA"
+          echo "event revision: ${{ github.sha }}"
+          case "$SHA" in
+            (*[!0-9a-f]*|"") echo "not a lowercase full SHA: $SHA" >&2; exit 1 ;;
+          esac
+          if [ "${#SHA}" != "40" ]; then
+            echo "checked-out revision is not a full 40-character SHA" >&2
+            exit 1
+          fi
+          if [ -n "$REQUESTED" ] && [ "$REQUESTED" != "$SHA" ]; then
+            echo "requested revision $REQUESTED does not match checked-out $SHA" >&2
+            exit 1
+          fi
 
       - uses: actions/setup-python@v5
         with:
@@ -209,6 +236,36 @@ jobs:
             tests/test_sysml_api_semantic.py \
             tests/test_semantic_mcp.py -q
 
+      - name: Build O3 candidate bundle and VerificationCase grounding proof
+        # O3 Stage A evidence: candidate machinery only — no activation, no
+        # authority switch, no YAML retirement. Exact-revision only: the
+        # runner refuses any revision other than the checked-out SHA.
+        # Validation evidence is sha256-bound to the exact produced outputs.
+        run: |
+          mkdir -p /tmp/o3
+          python scripts/run_o3_equivalence.py bundle \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --git-revision "$(git rev-parse HEAD)" \
+            --output-dir /tmp/o3 \
+            --export /tmp/de4sdv-full-model-export.json \
+            --validation full_model_semantic_queries=passed \
+            --validation product_line_scope=passed \
+            --validation semantic_mcp=passed \
+            --validation-artifact full_model_semantic_queries=/tmp/de4sdv-full-model-semantic-validation.json \
+            --validation-artifact product_line_scope=/tmp/de4sdv-product-line-scope-validation.json \
+            --validation-artifact semantic_mcp=/tmp/de4sdv-semantic-mcp-validation.json
+
+      - name: Run same-revision O3 runtime equivalence comparison
+        run: |
+          python scripts/run_o3_equivalence.py compare \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --ontology approach/framework/ontology/de4sdv-basic-ontology.yaml \
+            --git-revision "$(git rev-parse HEAD)" \
+            --bundle /tmp/o3/de4sdv-o3-candidate-bundle.json \
+            --output /tmp/o3/de4sdv-o3-runtime-equivalence-report.json
+
       - name: Trim API service log for upload
         # The raw API-service log reaches multi-GB per run; reviewers only ever
         # need the tail (where failures surface). Upload a bounded tail so
@@ -230,6 +287,10 @@ jobs:
             /tmp/de4sdv-full-model-binding.json
             /tmp/de4sdv-full-model-semantic-validation.json
             /tmp/de4sdv-full-model-semantic-query-coverage.json
+            /tmp/o3/de4sdv-o3-candidate-bundle.json
+            /tmp/o3/de4sdv-o3-api-closure-attestation.json
+            /tmp/o3/de4sdv-o3-verification-case-grounding.json
+            /tmp/o3/de4sdv-o3-runtime-equivalence-report.json
             /tmp/de4sdv-product-line-scope-validation.json
             /tmp/de4sdv-semantic-mcp-validation.json
             /tmp/de4sdv-full-model-export.json

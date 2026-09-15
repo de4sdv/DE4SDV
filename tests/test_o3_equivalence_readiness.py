@@ -20,6 +20,7 @@ import ast
 import copy
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -658,7 +659,44 @@ class TestScopeDocumentFailures:
         stale = copy.deepcopy(document)
         stale["basis"]["comparison_base_revision"] = "0" * 40
         errors = o3.check_scope_document(REPO_ROOT, stale)
-        assert any("not a valid ancestor" in error for error in errors)
+        assert errors, "an unresolvable comparison base must fail closed"
+        assert any(
+            "regeneration failed" in error or "not a valid ancestor" in error
+            for error in errors
+        )
+
+    def test_later_runtime_commits_cannot_rewrite_the_old_bundle_baseline(
+        self,
+    ) -> None:
+        """The merged readiness record stays evidence about its recorded
+        comparison base: old-bundle digests verify against THAT revision's
+        Git objects, never the working tree of a later feature branch."""
+        document = json.loads((REPO_ROOT / o3.O3_SCOPE_PATH).read_text(encoding="utf-8"))
+        base = document["basis"]["comparison_base_revision"]
+        recorded = document["basis"]["runtime_files"]["de4sdv/semantic/runtime.py"]
+        frozen = "sha256:" + hashlib.sha256(
+            subprocess.run(
+                ["git", "show", f"{base}:de4sdv/semantic/runtime.py"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                check=True,
+            ).stdout
+        ).hexdigest()
+        assert recorded == frozen
+        # The check stays green even when the working tree has moved on
+        # (Stage-A edits the runtime implementation); it must never rewrite
+        # the recorded baseline.
+        assert o3.check_scope_document(REPO_ROOT, document) == []
+        assert o3.recorded_basis_revision(REPO_ROOT) == base
+
+    def test_tampered_recorded_digest_fails(self) -> None:
+        document = json.loads((REPO_ROOT / o3.O3_SCOPE_PATH).read_text(encoding="utf-8"))
+        tampered = copy.deepcopy(document)
+        tampered["basis"]["runtime_files"]["de4sdv/semantic/runtime.py"] = (
+            "sha256:" + "0" * 64
+        )
+        errors = o3.check_scope_document(REPO_ROOT, tampered)
+        assert any("differs from regeneration" in error for error in errors)
 
     def test_missing_scope_document_is_a_hard_error(self, tmp_path: Path) -> None:
         from scripts import generate_o3_equivalence_scope

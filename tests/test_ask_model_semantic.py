@@ -456,6 +456,7 @@ class _SnapshotService:
     """Minimal surface for the snapshot functions (no network)."""
     binding = _Binding()
     _element_cache = None
+    semantic_authority_id = "de4sdv.o0-o1-authored-v1"
 
 
 @pytest.fixture()
@@ -470,7 +471,7 @@ def _fake_elements():
 
 def test_snapshot_roundtrip(snapshot_env):
     """Save then load returns the same elements; tamper and stale
-    identity are rejected."""
+    identity are rejected (authority-aware v2 snapshot identity)."""
     service = _SnapshotService()
     d = snapshot_env
     ams._snapshot_write(service, _fake_elements())
@@ -478,7 +479,7 @@ def test_snapshot_roundtrip(snapshot_env):
     assert loaded == _fake_elements()
 
     # tampered content -> checksum mismatch -> miss
-    path = d / "commit-1.json"
+    path = ams._snapshot_path(service)
     path.write_text(path.read_text().replace("PartUsage", "PartUsagX"),
                     encoding="utf-8")
     assert ams._snapshot_load(service) is None
@@ -489,6 +490,13 @@ def test_snapshot_roundtrip(snapshot_env):
     data["sysml_commit_id"] = "other-commit"
     path.write_text(json.dumps(data))
     assert ams._snapshot_load(service) is None
+
+    # different semantic authority -> miss (never reinterpretation)
+    class _OtherAuthority(_SnapshotService):
+        semantic_authority_id = "o3-candidate:o3b-deadbeef"
+
+    ams._snapshot_write(service, _fake_elements())
+    assert ams._snapshot_load(_OtherAuthority()) is None
 
 
 def test_warming_ask_never_blocks_and_labels(snapshot_env, fixture_repo,

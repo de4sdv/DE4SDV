@@ -23,6 +23,7 @@ from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_i
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 from .api_binding import OntologyApiBinder
+from .authority_ids import LEGACY_AUTHORITY_ID
 from .impact import ImpactService
 from .kernel_contract import KernelContract
 from .method_evaluator import (
@@ -53,6 +54,7 @@ class SemanticQueryService:
     method_context_provider: Callable[[], EvaluationContext] | None = field(
         default=None
     )
+    semantic_authority_id: str = LEGACY_AUTHORITY_ID
     _element_cache: list[dict[str, Any]] | None = field(
         default=None, init=False, repr=False
     )
@@ -71,6 +73,41 @@ class SemanticQueryService:
         }
 
     def _provenance(self) -> list[dict[str, str]]:
+        if self.semantic_authority_id != LEGACY_AUTHORITY_ID:
+            # Candidate authority path: the ontology is the ingestion
+            # compatibility identity, never the semantic authority for the
+            # migrated set; semantics come from the Projection, mechanics
+            # from the Profile.
+            return [
+                {
+                    "authority": "authoritative",
+                    "source": f"git://{self.binding.git_repository}/{self.binding.git_commit}",
+                },
+                {
+                    "authority": "authoritative",
+                    "source": (
+                        f"sysml://{self.binding.sysml_project_id}/"
+                        f"{self.binding.sysml_commit_id}"
+                    ),
+                },
+                {
+                    "authority": "semantic-authority",
+                    "source": f"projection://{self.semantic_authority_id}",
+                },
+                {
+                    "authority": "representation-authority",
+                    "source": f"profile://{self.semantic_authority_id}",
+                },
+                {
+                    "authority": "compatibility",
+                    "source": (
+                        f"git://{self.binding.git_repository}/{self.binding.git_commit}/"
+                        f"{self.binding.ontology.path}"
+                    ),
+                    "sha256": self.binding.ontology.sha256,
+                },
+                {"authority": "derived", "source": "de4sdv.semantic.query"},
+            ]
         return [
             {
                 "authority": "authoritative",
@@ -198,7 +235,7 @@ class SemanticQueryService:
                         "reason": f"Bound SysML API revision is unavailable: {exc}",
                     }
                 )
-        return {
+        payload: dict[str, Any] = {
             "query": "model_status",
             "current_baseline": current,
             "read_only": True,
@@ -207,6 +244,18 @@ class SemanticQueryService:
             "gaps": gaps,
             "provenance": self._provenance(),
         }
+        if self.semantic_authority_id != LEGACY_AUTHORITY_ID:
+            payload["semantic_authority"] = {
+                "id": self.semantic_authority_id,
+                "kind": "o3-candidate",
+                "migrated_scope": "reviewed-13-identity-subset",
+                "note": (
+                    "candidate authority path (Projection semantics + Profile "
+                    "representation mechanics); not production authority; "
+                    "activation requires privileged exact-revision evidence"
+                ),
+            }
+        return payload
 
     def resolve_element(
         self, identifier: str, *, expected_type: str | None = None

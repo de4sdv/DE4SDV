@@ -1646,6 +1646,11 @@ class TestPreservationAndRuntimeIndependence:
                 # planning/evidence module that loads the committed chain for
                 # comparison; never the runtime path.
                 "de4sdv/semantic/o3_equivalence.py",
+                # O3 candidate authority bundle (documented, same pattern):
+                # Stage-A machinery that references the chain as its
+                # revision-bound authority record; candidate path only, never
+                # production authority in Stage A.
+                "de4sdv/semantic/o3_bundle.py",
             }:
                 continue
             text = path.read_text(encoding="utf-8")
