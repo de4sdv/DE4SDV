@@ -1,7 +1,14 @@
 # O2.1 — Semantic Projection v1 and API Representation Profile v1 (design record)
 
 **Base:** merged O1 baseline on `main`, commit
-`9dc0779ba20745d3d0a7eca15e76891b64911ddc` (PR #249, merged).
+`9dc0779ba20745d3d0a7eca15e76891b64911ddc` (PR #249, merged), with the
+repaired `main` (`c27d70c132d74db5bb228e95830cfcd65983a64c`, PR #251 O1
+post-merge rebinding) merged into this branch.
+
+**Delivery:** squash-safe two-PR sequence — Stage A (this PR) delivers the
+implementation foundation; Stage B publishes the canonical generated
+artifacts bound to Stage A's permanent squash-merge commit and activates
+repository enforcement (see "Squash-safe delivery sequence" below).
 
 **Scope:** exactly the seven settled c1 method-conformance identities whose
 representation/equivalence review completed in O1:
@@ -77,11 +84,11 @@ support automatically promoted
 | Path | Role |
 |---|---|
 | `de4sdv/semantic/projection_v1.py` | v1 architecture: admission machine-locks, model-side derivation, artifact builders, profile compatibility gate, committed-artifact consistency check. Build-time/governance module; runtime-inert. |
-| `scripts/generate_semantic_projection_v1.py` | offline deterministic generator with `--check` (wired into `scripts/check_repo.py`). |
+| `scripts/generate_semantic_projection_v1.py` | offline deterministic generator with `--check`; its `scripts/check_repo.py` gate registration is activated in Stage B. |
 | `docs/method-conformance/o2/o21-admission.yaml` | the machine-locked reviewed O2.1 admission boundary as explicit governance data (not a runtime artifact; never read by the semantic runtime). |
-| `docs/method-conformance/o2/semantic-projection-v1.json` | generated DE4SDV Semantic Projection v1 (semantics). |
-| `docs/method-conformance/o2/api-representation-profile-v1.json` | generated SysML API Representation Profile v1 (representation mechanics). |
-| `tests/test_semantic_projection_v1.py` | positive/negative/adversarial/admission/compatibility/runtime-independence suite. |
+| `docs/method-conformance/o2/semantic-projection-v1.json` | generated DE4SDV Semantic Projection v1 (semantics) — published in Stage B, bound to the permanent Stage A squash-merge commit. |
+| `docs/method-conformance/o2/api-representation-profile-v1.json` | generated SysML API Representation Profile v1 (representation mechanics) — published in Stage B, same binding. |
+| `tests/test_semantic_projection_v1.py` | positive/negative/adversarial/admission/compatibility/runtime-independence suite; the committed-artifact consistency tests and the gate-registration test activate in Stage B. |
 
 Why this matches the plans: the Unified Plan names the Semantic Projection a
 "first-class, machine-readable, revision-bound artifact" (section 8.1) and
@@ -202,10 +209,50 @@ distinguishes:
 - **semantic-model inputs** (the admission manifest, the ontology/kernel
   contract locators, the governed model files).
 
-Two-commit pattern: Commit A carries the architecture, generator, tests,
-design record, and admission manifest; Commit B carries the generated
-artifacts bound to A (plus the repository gate wiring). Regeneration over
-identical inputs is byte-identical; `--check` fails on any drift.
+## Squash-safe delivery sequence (Stage A / Stage B)
+
+O2.1 semantic implementation and artifact publication are delivered in two
+PRs.
+
+- **Stage A** establishes the bounded generator/schema/admission machinery
+  (this PR): the v1 module, the generator, the admission manifest, the design
+  record, and the semantic/adversarial suites. Stage A does **not** contain
+  the canonical generated artifacts, and it does not register the
+  committed-artifact gate in `scripts/check_repo.py`. It leaves no canonical
+  artifact bound to an ephemeral feature-branch commit. Tests that require the
+  committed canonical JSON artifacts are deferred (their intent is preserved
+  and documented).
+- **Stage B** — after Stage A is squash-merged — generates and commits the
+  Semantic Projection v1 and API Representation Profile v1 bound to the
+  resulting **permanent `main` revision**, re-adds the deferred tests, and
+  activates repository enforcement of the committed artifacts
+  (`--check` registration in `scripts/check_repo.py` plus committed-artifact
+  consistency tests).
+
+Why:
+
+```text
+A feature-branch commit cannot be used as durable source_revision in a
+squash-only repository because that commit does not survive in main ancestry.
+```
+
+DE4SDV keeps linear history and squash-merges pull requests; merge commits
+are disabled. If Stage A and its artifacts were delivered together, the
+artifacts' `source_revision` would be a Stage A feature-branch commit that the
+squash-merge removes from `main` ancestry — intentionally breaking the
+revision-binding gate on `main` immediately after merge. Binding Stage B's
+artifacts to Stage A's permanent squash-merge commit keeps the invariant that
+a generated artifact binds to a real Git revision that contains all of its
+bound inputs byte-for-byte and remains an ancestor of the checked-out
+revision: after Stage B's squash-merge, the Stage A commit remains an ancestor
+of `main`.
+
+This is delivery/provenance mechanics only. It does not change the semantic
+migration phase meaning, the O2.1 scope, or any generated semantics; it does
+not weaken the binding gate (Stage A does not make the gate permissive — it
+simply does not register the artifact gate before the artifacts exist; the
+generator's `--check` still reports absent artifacts as errors and is never
+configured to silently pass).
 
 ## Known limitations / intentionally deferred
 
@@ -221,13 +268,26 @@ identical inputs is byte-identical; `--check` fails on any drift.
 
 ## Verification
 
-Gate wiring: `scripts/check_repo.py` runs the v1 `--check` alongside the O1
-inventory check. The suite covers: seven-identity positive scope against the
-real production declarations; admission machine-locks (manifest vs frozen
-locks, both directions); the full negative scope; the adversarial matrix
-(extra vocabulary, missing declaration, ambiguous grounding, wrong kind,
-missing documentation, unresolved typing, unsupported member form, O1-costume
-rows, representation-vs-admission); v0 compatibility; runtime independence;
-and committed-artifact consistency. Licensed Syside validation and privileged
-ingestion are not dispatched by this stage: no model files and no
-repository-workflow inputs change.
+Gate wiring: Stage A does not register the v1 `--check` in
+`scripts/check_repo.py`; Stage B registers it alongside the O1 inventory
+check together with the artifacts it validates. The Stage A suite covers:
+seven-identity positive scope against the real production declarations;
+admission machine-locks (manifest vs frozen locks, both directions); the full
+negative scope; the adversarial matrix (extra vocabulary, missing
+declaration, ambiguous grounding, wrong kind, missing documentation,
+unresolved typing, unsupported member form, O1-costume rows,
+representation-vs-admission); v0 compatibility; runtime independence.
+
+Deferred to Stage B (intent preserved; extracted copy
+`o2-stage-b-deferred-tests.py`; also in this branch's history at `866a6f5`):
+
+- `TestCommittedArtifacts::test_committed_artifacts_match_regeneration`
+- `TestCommittedArtifacts::test_committed_artifacts_exist_and_parse`
+- `TestRepositoryGateWiring::test_check_repo_fails_when_projection_v1_gate_fails`
+- the `check_repo.py` v1 gate registration itself, and the matching
+  projection-v1 gate mocks in `tests/test_semantic_authority_inventory.py`
+  (`test_check_repo_runs_inventory_gate`,
+  `test_check_repo_passes_when_inventory_gate_passes`).
+
+Licensed Syside validation and privileged ingestion are not dispatched by
+this stage: no model files and no repository-workflow inputs change.

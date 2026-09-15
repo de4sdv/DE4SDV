@@ -12,16 +12,23 @@ Canonical artifacts:
 Determinism and revision binding: identical inputs produce byte-identical
 output. The artifacts bind a ``source_revision`` — a Git commit that contains
 every bound source input byte-for-byte — plus per-input content digests. A
-generated artifact cannot bind to the commit that first introduces it, so the
-artifacts are produced in a two-commit pattern: commit the bound inputs
-(architecture, generator, tests, design record, admission manifest) first,
-then generate and commit the artifacts bound to that input commit.
+generated artifact cannot bind to the commit that first introduces it, and in
+a squash-only repository a feature-branch commit does not survive in ``main``
+ancestry, so the artifacts are published by the squash-safe delivery
+sequence: Stage A (this PR) delivers the architecture, generator, tests,
+design record, and admission manifest; its squash-merge produces a permanent
+``main`` commit; Stage B then generates and commits the artifacts bound to
+that permanent commit (itself following the two-commit pattern inside the
+Stage B PR). Stage A does not register the ``--check`` gate in
+``scripts/check_repo.py`` — the gate is registered in Stage B together with
+the artifacts it validates.
 
-``--check`` (used by ``scripts/check_repo.py``) validates the recorded binding
-against the repository — commit existence, ancestry, per-input content
-equality with the source revision, and the recorded digests — and then
-regenerates with the recorded source revision and compares bytes. A stale
-revision can never pass by string reuse.
+``--check`` (registered in ``scripts/check_repo.py`` in Stage B) validates the
+recorded binding against the repository — commit existence, ancestry,
+per-input content equality with the source revision, and the recorded digests
+— and then regenerates with the recorded source revision and compares bytes.
+A stale revision can never pass by string reuse; absent artifacts are
+reported, never silently passed.
 
 Boundaries (O2.1): offline and read-only; no network, no privileged
 ingestion, no runtime semantic change; generation is not authority

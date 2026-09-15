@@ -1230,9 +1230,11 @@ def run_check_errors(root: Path) -> list[str]:
     input change, stale binding, coverage failure, or hand edit of a
     generated file is an error.
 
-    If the O2 directory has no committed artifacts yet (O2.1 pre-generation
-    state), the check reports the missing artifacts — the artifacts are part
-    of the delivered O2.1 state.
+    If the O2 directory has no committed artifacts yet, the check reports the
+    missing artifacts as errors (nothing is silently passed). Under the
+    squash-safe delivery sequence the canonical artifacts are introduced in
+    Stage B; Stage A does not register this gate in ``check_repo`` at all —
+    it is not run, not weakened, and not made permissive.
     """
     import json
 
