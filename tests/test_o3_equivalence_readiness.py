@@ -96,12 +96,47 @@ def _result(**overrides: object) -> dict[str, object]:
 
 
 class TestDeclaredScope:
-    def test_scope_declares_thirteen_equivalent_identities(self) -> None:
+    def test_static_parity_dimensions(self) -> None:
         document = o3.build_scope_document(REPO_ROOT)
-        assert len(document["identities"]) == 13
-        assert document["summary"]["declared_mismatches"] == []
-        assert len(document["summary"]["declared_equivalent"]) == 13
+        static = document["summary"]["static_parity"]
+        assert static["identities_with_mismatch"] == []
+        assert static["identities_with_pending_dimension"] == ["VerificationCase"]
+        fully = static["identities_fully_equivalent"]
+        assert len(fully) == 12
+        assert "VerificationCase" not in fully
+        dimensions = static["dimensions"]
+        for dimension in ("declared_semantic_core", "representation_contract",
+                          "claim_boundary", "scope_exclusions"):
+            assert len(dimensions[dimension]["equivalent"]) == 13, dimension
+            assert dimensions[dimension]["mismatch"] == [], dimension
+        grounding = dimensions["grounding_identity"]
+        assert len(grounding["equivalent"]) == 12
+        assert grounding["not_yet_comparable"] == ["VerificationCase"]
         assert document["summary"]["contract_check_failures"] == []
+        runtime = document["summary"]["runtime"]
+        assert runtime["completed"] == []
+        assert runtime["equivalent"] == []
+        assert len(runtime["not_yet_comparable"]) == 13
+
+    def test_verificationcase_grounding_is_not_rubber_stamped(self) -> None:
+        """Grounding is not `native == native`: the construct leg is compared
+        and the standard-library proof stays honestly pending."""
+        document = o3.build_scope_document(REPO_ROOT)
+        item = [
+            entry
+            for entry in document["identities"]
+            if entry["identity"] == "VerificationCase"
+        ][0]
+        grounding = item["comparison"]["dimensions"]["grounding_identity"]
+        assert grounding["classification"] == "NOT_YET_COMPARABLE"
+        assert "standard-library grounding proof" in grounding["missing_evidence"]
+        fields = grounding["fields"]
+        assert fields["construct_kind"]["ok"] is True
+        assert fields["library_anchors"]["ok"] is True
+        assert fields["grounded_type_population"]["ok"] is True
+        assert fields["grounded_type_population"]["new"] == sorted(
+            ["VerificationCaseUsage", "VerificationCaseDefinition"]
+        )
 
     def test_committed_scope_matches_regeneration(self) -> None:
         assert o3.check_scope_document(
@@ -126,8 +161,9 @@ class TestDeclaredScope:
         assert len(rows) == 13
         for row in rows:
             assert row["promotion"] == "none"
+            assert row["readiness_verdict"] == "NO_PROMOTION"
+            assert row["runtime_preservation"] == "NOT_YET_COMPARABLE"
             assert row["new_support_state"] == "vocabulary-only"
-            assert row["verdict"] == "PRESERVED_AT_READINESS"
 
     def test_comparison_base_revision_is_ancestor(self) -> None:
         document = o3.build_scope_document(REPO_ROOT)
@@ -389,6 +425,224 @@ class TestComparatorBlocks:
             "derivedRequirementsOfNeed": {"witnesses": ["w-1", "w-2"]},
         }
         assert o3.check_k_pair_witness_consistency(old, new) == []
+
+
+class TestRepresentationContractDrift:
+    """Static readiness must block when ONLY old-side mechanics drift.
+
+    Each fixture keeps domain/range/canonical direction/semantic strength
+    untouched — the semantic core still compares EQUIVALENT — proving the
+    expanded comparison catches what the four-field check missed.
+    """
+
+    @staticmethod
+    def _bundles() -> tuple[dict, dict]:
+        contract = o3.KernelContract.load(REPO_ROOT / o3.ONTOLOGY_PATH)
+        chain = o3.load_o2_chain(REPO_ROOT)
+        return (
+            o3.extract_old_bundle(REPO_ROOT, contract),
+            o3.extract_new_bundle(chain),
+        )
+
+    def _assert_mechanics_drift_blocks(
+        self, identity: str, mutate
+    ) -> dict:
+        old, new = self._bundles()
+        old_identity = old["identities"][identity]
+        new_identity = new["identities"][identity]
+        mutate(old_identity["declared"])
+        # The semantic core is untouched on purpose: the old four-field
+        # comparison cannot see this drift.
+        core = o3.compare_declared(identity, old_identity, new_identity)
+        assert core["classification"] == "EQUIVALENT", identity
+        report = o3.compare_representation_contract(
+            identity, old_identity, new_identity
+        )
+        assert report["classification"] == "BLOCKING_MISMATCH", identity
+        return report
+
+    def test_hasrelevanarchitecture_direction_drift_blocks(self) -> None:
+        def mutate(declared):
+            assert declared["configuration"]["direction"] == "incoming"
+            declared["configuration"]["direction"] = "outgoing"
+
+        report = self._assert_mechanics_drift_blocks(
+            "hasRelevantArchitecture", mutate
+        )
+        assert "direction" in report["reasons"]
+
+    def test_hasrelevanarchitecture_exclusion_removed_blocks(self) -> None:
+        def mutate(declared):
+            del declared["configuration"]["exclude_source_specializations_of"]
+
+        report = self._assert_mechanics_drift_blocks(
+            "hasRelevantArchitecture", mutate
+        )
+        assert (
+            "missing-old-mechanics:exclude_source_specializations_of"
+            in report["reasons"]
+        )
+
+    def test_hasrelevanarchitecture_exclusion_class_change_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["exclude_source_specializations_of"] = (
+                "Function"
+            )
+
+        report = self._assert_mechanics_drift_blocks(
+            "hasRelevantArchitecture", mutate
+        )
+        assert "exclude_source_specializations_of" in report["reasons"]
+
+    def test_hasrelevanarchitecture_source_types_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["source_types"] = ["PartUsage"]
+
+        report = self._assert_mechanics_drift_blocks(
+            "hasRelevantArchitecture", mutate
+        )
+        assert "source_types" in report["reasons"]
+
+    def test_hassubject_membership_types_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["membership_types"] = ["Subsetting"]
+
+        report = self._assert_mechanics_drift_blocks("hasSubject", mutate)
+        assert "membership_types" in report["reasons"]
+
+    def test_hassubject_member_property_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["member_property"] = "ownedRelatedElement"
+
+        report = self._assert_mechanics_drift_blocks("hasSubject", mutate)
+        assert "member_property" in report["reasons"]
+
+    def test_verifiedby_direction_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["direction"] = "forward"
+
+        report = self._assert_mechanics_drift_blocks("verifiedBy", mutate)
+        assert "direction" in report["reasons"]
+
+    def test_verifiedby_reference_property_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["reference_property"] = (
+                "referencedConstraint"
+            )
+
+        report = self._assert_mechanics_drift_blocks("verifiedBy", mutate)
+        assert "reference_property" in report["reasons"]
+
+    def test_verifiedby_membership_types_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["membership_types"] = [
+                "RequirementConstraintMembership"
+            ]
+
+        report = self._assert_mechanics_drift_blocks("verifiedBy", mutate)
+        assert "membership_types" in report["reasons"]
+
+    def test_k_query_direction_swapped_blocks(self) -> None:
+        def mutate(declared):
+            assert declared["configuration"]["query_direction"] == "inverse"
+            declared["configuration"]["query_direction"] = "forward"
+
+        report = self._assert_mechanics_drift_blocks(
+            "derivesRequirementFromNeed", mutate
+        )
+        assert "query_direction" in report["reasons"]
+
+    def test_k_connection_definition_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["connection_definition"] = (
+                "SomeOtherConnection"
+            )
+
+        report = self._assert_mechanics_drift_blocks(
+            "derivedRequirementsOfNeed", mutate
+        )
+        assert "connection_definition" in report["reasons"]
+
+    def test_k_need_role_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["need_role"] = "sourceNeed"
+
+        report = self._assert_mechanics_drift_blocks(
+            "derivesRequirementFromNeed", mutate
+        )
+        assert "need_role" in report["reasons"]
+
+    def test_k_requirement_role_changed_blocks(self) -> None:
+        def mutate(declared):
+            declared["configuration"]["requirement_role"] = "targetRequirement"
+
+        report = self._assert_mechanics_drift_blocks(
+            "derivedRequirementsOfNeed", mutate
+        )
+        assert "requirement_role" in report["reasons"]
+
+    def test_dimension_assembly_never_equivalent_on_mechanics_drift(self) -> None:
+        old, new = self._bundles()
+        old["identities"]["hasSubject"]["declared"]["configuration"][
+            "member_property"
+        ] = "ownedRelatedElement"
+        result = o3.compare_identity_dimensions(
+            "hasSubject",
+            old["identities"]["hasSubject"],
+            new["identities"]["hasSubject"],
+        )
+        assert result["classifications"]["declared_semantic_core"] == "EQUIVALENT"
+        assert (
+            result["classifications"]["representation_contract"]
+            == "BLOCKING_MISMATCH"
+        )
+        assert result["overall_static"] == "BLOCKING_MISMATCH"
+
+    def test_verificationcase_grounding_identity_changed_blocks(self) -> None:
+        old, new = self._bundles()
+        mutated = copy.deepcopy(new)
+        record = mutated["identities"]["VerificationCase"]
+        assert record["declared"]["kernel_mapping_kind"] == "native"
+        record["declared"]["native_grounding"] = (
+            "native construct (SomeOtherThing)"
+        )
+        report = o3.compare_grounding_identity(
+            "VerificationCase",
+            old["identities"]["VerificationCase"],
+            record,
+        )
+        assert report["classification"] == "BLOCKING_MISMATCH"
+        assert "construct-identity" in report["reasons"]
+
+    def test_verificationcase_library_anchor_change_blocks(self) -> None:
+        old, new = self._bundles()
+        mutated = copy.deepcopy(new)
+        record = mutated["identities"]["VerificationCase"]
+        record["library_grounding_mechanics"]["definition_role"][
+            "library_identity"
+        ] = "VerificationCases::SomethingElse"
+        report = o3.compare_grounding_identity(
+            "VerificationCase",
+            old["identities"]["VerificationCase"],
+            record,
+        )
+        assert report["classification"] == "BLOCKING_MISMATCH"
+        assert "library-anchors" in report["reasons"]
+
+    def test_verificationcase_type_population_change_blocks(self) -> None:
+        old, new = self._bundles()
+        mutated = copy.deepcopy(new)
+        record = mutated["identities"]["VerificationCase"]
+        record["library_grounding_mechanics"]["usage_role"][
+            "applies_to"
+        ] = "SomeOtherUsage"
+        report = o3.compare_grounding_identity(
+            "VerificationCase",
+            old["identities"]["VerificationCase"],
+            record,
+        )
+        assert report["classification"] == "BLOCKING_MISMATCH"
+        assert "grounded-type-population" in report["reasons"]
 
 
 class TestScopeDocumentFailures:

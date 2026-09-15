@@ -19,8 +19,13 @@ The readiness question answered mechanically:
   Semantic Projection chain through v1.2 + the SysML API Representation
   Profile chain through v1.2);
 - whether the two bundles DECLARE the same semantics for every identity
-  (domain, range, canonical direction, semantic strength, claim boundary,
-  scope restrictions, support state);
+  across SEPARATE comparison dimensions — declared semantic core (domain,
+  range, canonical direction, semantic strength), representation contract
+  (old mapping mechanics vs new profile serializer mechanics), grounding
+  identity (kernel declaration / library grounding), claim boundary, and
+  scope/exclusions — with support-state preservation recorded separately and
+  runtime behavior honestly NOT_YET_COMPARABLE until the same-revision
+  comparison harness runs at cutover;
 - what exact same-revision comparison the future cutover must execute
   before any activation claim (the comparison manifest and result
   comparator below).
@@ -359,6 +364,30 @@ def extract_old_bundle(root: Path, contract: KernelContract) -> dict[str, Any]:
         if not path.exists():
             raise ValueError(f"old bundle runtime file missing: {rel}")
         runtime_files[rel] = sha256_file(path)
+    identities: dict[str, Any] = {
+        name: _class_old_record(contract, name) for name in O3_SCOPE_CLASSES
+    }
+    identities.update(
+        {
+            name: _relationship_old_record(contract, name)
+            for name in O3_SCOPE_RELATIONSHIPS
+        }
+    )
+    # Cross-reference: the old path's machine-readable case-type population
+    # (the API types through which the verifiedBy strategy resolves cases)
+    # feeds the VerificationCase grounding comparison — the standard-library
+    # roles must cover exactly the same type population on the new side.
+    verified_by = identities.get("verifiedBy")
+    verification_case = identities.get("VerificationCase")
+    if isinstance(verified_by, dict) and isinstance(verification_case, dict):
+        verification_case["related_case_element_types"] = sorted(
+            str(item)
+            for item in (
+                (verified_by["declared"].get("configuration") or {}).get(
+                    "element_types", []
+                )
+            )
+        )
     return {
         "ontology": {
             "path": ONTOLOGY_PATH,
@@ -370,13 +399,7 @@ def extract_old_bundle(root: Path, contract: KernelContract) -> dict[str, Any]:
         },
         "kernel_contract_identity": contract.identity.to_dict(),
         "runtime_files": runtime_files,
-        "identities": {
-            name: _class_old_record(contract, name) for name in O3_SCOPE_CLASSES
-        }
-        | {
-            name: _relationship_old_record(contract, name)
-            for name in O3_SCOPE_RELATIONSHIPS
-        },
+        "identities": identities,
     }
 
 
@@ -395,6 +418,11 @@ def _relationship_new_record(
     relation = entry["row"].get("relation")
     if not isinstance(relation, dict):
         raise ValueError(f"new bundle: relationship row has no relation: {identity}")
+    profiles = chain_profile_entries(chain)
+    profile_entry = profiles.get(identity)
+    mechanics: dict[str, Any] = {}
+    if profile_entry is not None:
+        mechanics = dict(profile_entry["entry"].get("serializer_mechanics") or {})
     return {
         "kind": "relationship",
         "o2_artifact": entry["artifact"],
@@ -407,6 +435,9 @@ def _relationship_new_record(
             "native_grounding_note": str(
                 (relation.get("native_grounding") or {}).get("note") or ""
             ),
+            "native_construct": str(
+                (relation.get("native_grounding") or {}).get("native_construct") or ""
+            ),
             "native_modeled_direction": str(
                 relation.get("native_modeled_direction") or ""
             ),
@@ -416,6 +447,11 @@ def _relationship_new_record(
                 if isinstance(item, dict)
             ],
         },
+        "representation_mechanics": mechanics,
+        "profile_entry_present": profile_entry is not None,
+        "exclusion_lineage_class": str(
+            (relation.get("exclusion_lineage") or {}).get("ontology_class") or ""
+        ),
         "support_state": str(entry["row"].get("support_state") or ""),
     }
 
@@ -428,6 +464,13 @@ def _class_new_record(
     if entry is None:
         raise ValueError(f"new bundle: identity missing from O2 chain: {identity}")
     row = entry["row"]
+    profiles = chain_profile_entries(chain)
+    profile_entry = profiles.get(identity)
+    grounding_mechanics: dict[str, Any] = {}
+    if profile_entry is not None:
+        grounding_mechanics = dict(
+            profile_entry["entry"].get("library_grounding_mechanics") or {}
+        )
     if identity == "VerificationCase":
         construct = row.get("construct") or {}
         declared: dict[str, Any] = {
@@ -448,6 +491,8 @@ def _class_new_record(
         "kind": "class",
         "o2_artifact": entry["artifact"],
         "declared": declared,
+        "library_grounding_mechanics": grounding_mechanics,
+        "profile_entry_present": profile_entry is not None,
         "support_state": str(row.get("support_state") or ""),
     }
 
@@ -543,20 +588,478 @@ def compare_declared(
             old_declared.get("kernel_mapping_kind"),
             new_declared.get("kernel_mapping_kind"),
         )
-        if old_declared.get("kernel_mapping_kind") == "file":
-            compare(
-                "source_file",
-                old_declared.get("source_file"),
-                new_declared.get("source_file"),
-            )
-            compare(
-                "declaration",
-                old_declared.get("declaration"),
-                new_declared.get("declaration"),
-            )
 
     classification = "EQUIVALENT" if not mismatches else "BLOCKING_MISMATCH"
     return {"classification": classification, "reasons": mismatches, "fields": fields}
+
+
+# ---------------------------------------------------------------------------
+# Representation contract, grounding identity, claim boundary, scope
+# ---------------------------------------------------------------------------
+
+
+#: Reviewed representation-contract field sets: the old mapping mechanics
+#: (ontology sysml_mapping configuration + strategy) and the new profile
+#: serializer mechanics must carry EXACTLY these fields with equal values.
+#: Any missing, extra, or differing field is load-bearing drift.
+EXPECTED_REPRESENTATION_FIELDS: dict[str, tuple[str, ...]] = {
+    "hasSubject": (
+        "strategy",
+        "membership_types",
+        "member_property",
+        "owner_types",
+    ),
+    "verifiedBy": (
+        "strategy",
+        "membership_types",
+        "element_types",
+        "owner_membership_types",
+        "reference_property",
+        "direction",
+    ),
+    "derivesRequirementFromNeed": (
+        "strategy",
+        "connection_definition",
+        "need_role",
+        "requirement_role",
+        "query_direction",
+        "source_lineage_of",
+        "target_lineage_of",
+    ),
+    "derivedRequirementsOfNeed": (
+        "strategy",
+        "connection_definition",
+        "need_role",
+        "requirement_role",
+        "query_direction",
+        "source_lineage_of",
+        "target_lineage_of",
+    ),
+    "hasRelevantArchitecture": (
+        "strategy",
+        "relationship_types",
+        "direction",
+        "source_property",
+        "target_property",
+        "source_types",
+        "exclude_source_specializations_of",
+    ),
+}
+
+#: Reviewed scope/exclusion axes each new-side relationship must declare
+#: (they encode the old path's enforcement points; hasRelevantArchitecture
+#: additionally compares the exclusion lineage class against the old mapping).
+EXPECTED_SCOPE_AXES: dict[str, frozenset[str]] = {
+    "hasSubject": frozenset({"source", "target"}),
+    "verifiedBy": frozenset({"source"}),
+    "derivesRequirementFromNeed": frozenset({"role-identity", "witness", "claim"}),
+    "derivedRequirementsOfNeed": frozenset({"role-identity", "witness", "claim"}),
+    "hasRelevantArchitecture": frozenset(
+        {"source-domain", "source-types", "exclusion", "witness"}
+    ),
+}
+
+#: Reviewed claim-boundary contract: the new-side claim text must satisfy the
+#: old strength class's boundary (the field carrying the claim text and the
+#: required fragments).
+CLAIM_CONTRACT: dict[str, tuple[str, tuple[str, ...]]] = {
+    "derivesRequirementFromNeed": (
+        "claim_boundary",
+        ("provenance only", "neither satisfaction nor logical implication"),
+    ),
+    "derivedRequirementsOfNeed": (
+        "claim_boundary",
+        ("provenance only", "neither satisfaction nor logical implication"),
+    ),
+    "hasSubject": (
+        "native_grounding_note",
+        ("narrowed by the declared scope restrictions",),
+    ),
+    "verifiedBy": (
+        "native_grounding_note",
+        ("coverage relation only",),
+    ),
+    "hasRelevantArchitecture": (
+        "native_grounding_note",
+        ("by itself is NOT hasRelevantArchitecture",),
+    ),
+}
+
+#: Reviewed VerificationCase standard-library anchors (the profile's
+#: library_grounding_mechanics must name exactly these roles).
+VERIFICATIONCASE_LIBRARY_ANCHORS = {
+    "definition_role": "VerificationCases::VerificationCase",
+    "usage_role": "VerificationCases::verificationCases",
+}
+
+#: The VerificationCase standard-library grounding proof is not bound to the
+#: cutover revision on EITHER authority path: the old side's parity evidence
+#: and the retained privileged run are historical, and the new side's proof
+#: step has not been executed at the cutover revision yet.
+VERIFICATIONCASE_PROOF_MISSING = (
+    "standard-library grounding proof is not bound to the cutover revision on "
+    "either authority path: the reviewed parity evidence and the retained "
+    "privileged run (34576049742 at candidate 0a23902370) are historical; the "
+    "O3 cutover must execute the profile's controlled standard-library proof "
+    "(licensed exporter anchor resolution + read-back) at the exact cutover "
+    "revision before this dimension can classify beyond NOT_YET_COMPARABLE"
+)
+
+
+def _canonical_value(value: Any) -> Any:
+    if isinstance(value, list):
+        try:
+            return sorted(value, key=lambda item: json.dumps(item, sort_keys=True))
+        except TypeError:
+            return sorted(str(item) for item in value)
+    return value
+
+
+def compare_representation_contract(
+    identity: str,
+    old_identity: dict[str, Any] | None,
+    new_identity: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Old mapping mechanics vs the new profile serializer mechanics.
+
+    Serializer mechanics are representation, not Projection semantics: this
+    is an O3 authority-path parity check, never a change to the
+    Projection/Profile separation. Every reviewed mechanics field must be
+    present on BOTH sides with an equal value; missing, extra, or differing
+    fields are load-bearing drift (BLOCKING_MISMATCH).
+    """
+    if identity not in EXPECTED_REPRESENTATION_FIELDS:
+        return {
+            "classification": "EQUIVALENT",
+            "reasons": [],
+            "fields": {},
+            "detail": "no representation mechanics on either authority path",
+        }
+    if old_identity is None or new_identity is None:
+        return {
+            "classification": "BLOCKING_MISMATCH",
+            "reasons": ["missing-identity"],
+            "fields": {},
+        }
+    old_declared = old_identity["declared"]
+    old_mechanics: dict[str, Any] = {"strategy": old_declared.get("strategy")}
+    old_mechanics.update(old_declared.get("configuration") or {})
+    new_mechanics = dict(new_identity.get("representation_mechanics") or {})
+    # semantic_strength is a declared semantic-core field, echoed in the new
+    # mechanics for the profile's own consistency checks; exclude it here.
+    new_mechanics.pop("semantic_strength", None)
+
+    expected = set(EXPECTED_REPRESENTATION_FIELDS[identity])
+    old_keys, new_keys = set(old_mechanics), set(new_mechanics)
+    fields: dict[str, dict[str, Any]] = {}
+    reasons: list[str] = []
+    for key in sorted(expected - old_keys):
+        reasons.append(f"missing-old-mechanics:{key}")
+    for key in sorted(expected - new_keys):
+        reasons.append(f"missing-new-mechanics:{key}")
+    for key in sorted((old_keys | new_keys) - expected):
+        reasons.append(f"unreviewed-mechanics-field:{key}")
+    for key in sorted(expected & old_keys & new_keys):
+        old_value = _canonical_value(old_mechanics[key])
+        new_value = _canonical_value(new_mechanics[key])
+        ok = old_value == new_value
+        fields[key] = {"old": old_value, "new": new_value, "ok": ok}
+        if not ok:
+            reasons.append(key)
+    if identity in K_PAIR:
+        # The K pair's modeled native direction is part of the compared
+        # contract (reviewed constant on the old side; declared on the new).
+        old_native = old_identity["runtime_status"].get("old_native_direction")
+        new_native = new_identity["declared"].get("native_modeled_direction")
+        ok = old_native == new_native
+        fields["native_modeled_direction"] = {
+            "old": old_native,
+            "new": new_native,
+            "ok": ok,
+        }
+        if not ok:
+            reasons.append("native_modeled_direction")
+    classification = "EQUIVALENT" if not reasons else "BLOCKING_MISMATCH"
+    return {"classification": classification, "reasons": reasons, "fields": fields}
+
+
+def compare_grounding_identity(
+    identity: str,
+    old_identity: dict[str, Any] | None,
+    new_identity: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Grounding-identity comparison (kernel declaration / library grounding).
+
+    File-mapped classes compare declaration grounding exactly (source file,
+    declaration, and the API metaclass derived from the declaration).
+    ``VerificationCase`` compares the construct identity, the covered type
+    population, and the reviewed library anchors — never ``native == native``
+    and never API metaclass equality alone; the standard-library grounding
+    PROOF remains pending until it is executed at the cutover revision
+    (UG-28), so a clean construct comparison still classifies
+    NOT_YET_COMPARABLE, and any construct/anchor/type-population drift is a
+    BLOCKING_MISMATCH.
+    """
+    from .kernel_contract import declaration_identity
+
+    if old_identity is None or new_identity is None:
+        return {
+            "classification": "BLOCKING_MISMATCH",
+            "reasons": ["missing-identity"],
+            "fields": {},
+        }
+    old_declared = old_identity["declared"]
+    new_declared = new_identity["declared"]
+    fields: dict[str, dict[str, Any]] = {}
+    reasons: list[str] = []
+
+    if identity == "VerificationCase":
+        kind_ok = (
+            old_declared.get("kernel_mapping_kind")
+            == new_declared.get("kernel_mapping_kind")
+            == "native"
+        )
+        fields["construct_kind"] = {
+            "old": old_declared.get("kernel_mapping_kind"),
+            "new": new_declared.get("kernel_mapping_kind"),
+            "ok": kind_ok,
+        }
+        if not kind_ok:
+            reasons.append("construct-kind")
+        new_grounding = str(new_declared.get("native_grounding") or "")
+        construct_identity_ok = "VerificationCase" in new_grounding
+        fields["construct_identity"] = {
+            "old": "native verification-case construct (authored ontology)",
+            "new": new_grounding,
+            "ok": construct_identity_ok,
+        }
+        if not construct_identity_ok:
+            reasons.append("construct-identity")
+        mechanics = new_identity.get("library_grounding_mechanics") or {}
+        anchors = {
+            role: str((mechanics.get(role) or {}).get("library_identity") or "")
+            for role in ("definition_role", "usage_role")
+        }
+        anchors_ok = anchors == VERIFICATIONCASE_LIBRARY_ANCHORS
+        fields["library_anchors"] = {
+            "old": "reviewed parity evidence (authored ontology carries no structured anchors)",
+            "new": anchors,
+            "ok": anchors_ok,
+        }
+        if not anchors_ok:
+            reasons.append("library-anchors")
+        old_types = set(old_identity.get("related_case_element_types") or [])
+        new_types = {
+            role: str((mechanics.get(role) or {}).get("applies_to") or "")
+            for role in ("definition_role", "usage_role")
+        }
+        type_population_ok = bool(old_types) and set(new_types.values()) == old_types
+        fields["grounded_type_population"] = {
+            "old": sorted(old_types),
+            "new": sorted(set(new_types.values())),
+            "ok": type_population_ok,
+        }
+        if not type_population_ok:
+            reasons.append("grounded-type-population")
+        if reasons:
+            return {
+                "classification": "BLOCKING_MISMATCH",
+                "reasons": reasons,
+                "fields": fields,
+            }
+        return {
+            "classification": "NOT_YET_COMPARABLE",
+            "reasons": [],
+            "fields": fields,
+            "missing_evidence": VERIFICATIONCASE_PROOF_MISSING,
+        }
+
+    if old_declared.get("kernel_mapping_kind") == "file":
+        for key in ("source_file", "declaration"):
+            old_value = old_declared.get(key)
+            new_value = new_declared.get(key)
+            ok = old_value == new_value
+            fields[key] = {"old": old_value, "new": new_value, "ok": ok}
+            if not ok:
+                reasons.append(key)
+        expected_type = declaration_identity(str(old_declared.get("declaration")))[1]
+        new_type = new_declared.get("api_metaclass")
+        ok = expected_type == new_type
+        fields["api_metaclass"] = {"old": expected_type, "new": new_type, "ok": ok}
+        if not ok:
+            reasons.append("api_metaclass")
+        return {
+            "classification": "EQUIVALENT" if not reasons else "BLOCKING_MISMATCH",
+            "reasons": reasons,
+            "fields": fields,
+        }
+
+    # Relationships: the new native construct must name the same witness
+    # kind the old strategy executes (structural, mechanics-derived token).
+    mechanics = new_identity.get("representation_mechanics") or {}
+    if identity in K_PAIR:
+        token = str(mechanics.get("connection_definition") or "")
+    elif identity == "hasSubject":
+        token = str((mechanics.get("membership_types") or [""])[0] or "")
+    elif identity == "verifiedBy":
+        token = str((mechanics.get("membership_types") or [""])[0] or "")
+    elif identity == "hasRelevantArchitecture":
+        token = str((mechanics.get("relationship_types") or [""])[0] or "")
+    else:
+        raise ValueError(f"grounding comparison: unexpected identity {identity!r}")
+    construct = str(new_declared.get("native_construct") or "")
+    ok = bool(token) and token in construct
+    fields["witness_construct"] = {"old": token, "new": construct, "ok": ok}
+    if not ok:
+        reasons.append("witness-construct")
+    return {
+        "classification": "EQUIVALENT" if not reasons else "BLOCKING_MISMATCH",
+        "reasons": reasons,
+        "fields": fields,
+    }
+
+
+def compare_claim_boundary(
+    identity: str,
+    old_identity: dict[str, Any] | None,
+    new_identity: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Claim-boundary comparison: the new-side claim text must satisfy the
+    old strength class's reviewed boundary contract."""
+    if identity not in CLAIM_CONTRACT:
+        return {
+            "classification": "EQUIVALENT",
+            "reasons": [],
+            "fields": {},
+            "detail": "no predicate claim on either authority path",
+        }
+    if old_identity is None or new_identity is None:
+        return {
+            "classification": "BLOCKING_MISMATCH",
+            "reasons": ["missing-identity"],
+            "fields": {},
+        }
+    text_field, fragments = CLAIM_CONTRACT[identity]
+    text = str(new_identity["declared"].get(text_field) or "")
+    missing = [fragment for fragment in fragments if fragment not in text]
+    ok = not missing
+    fields = {
+        "claim_text_source": text_field,
+        "claim_text": text[:220],
+        "required_fragments": list(fragments),
+        "missing_fragments": missing,
+        "ok": ok,
+    }
+    return {
+        "classification": "EQUIVALENT" if ok else "BLOCKING_MISMATCH",
+        "reasons": [] if ok else ["claim-boundary-contract"],
+        "fields": fields,
+    }
+
+
+def compare_scope_exclusions(
+    identity: str,
+    old_identity: dict[str, Any] | None,
+    new_identity: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Scope/exclusion comparison: the new-side restriction axes must match
+    the reviewed enforcement set; hasRelevantArchitecture additionally
+    compares the exclusion lineage class against the old mapping value."""
+    if identity not in EXPECTED_SCOPE_AXES:
+        return {
+            "classification": "EQUIVALENT",
+            "reasons": [],
+            "fields": {},
+            "detail": "no scope/exclusion restrictions on either authority path",
+        }
+    if old_identity is None or new_identity is None:
+        return {
+            "classification": "BLOCKING_MISMATCH",
+            "reasons": ["missing-identity"],
+            "fields": {},
+        }
+    expected_axes = set(EXPECTED_SCOPE_AXES[identity])
+    new_axes = set(new_identity["declared"].get("scope_restriction_axes") or [])
+    fields: dict[str, dict[str, Any]] = {}
+    reasons: list[str] = []
+    axes_ok = new_axes == expected_axes
+    fields["scope_axes"] = {
+        "old": sorted(expected_axes),
+        "new": sorted(new_axes),
+        "ok": axes_ok,
+    }
+    if not axes_ok:
+        reasons.append("scope-axes")
+    if identity == "hasRelevantArchitecture":
+        old_exclusion = (
+            old_identity["declared"].get("configuration") or {}
+        ).get("exclude_source_specializations_of")
+        new_exclusion = new_identity.get("exclusion_lineage_class") or ""
+        exclusion_ok = bool(old_exclusion) and old_exclusion == new_exclusion
+        fields["exclusion_lineage"] = {
+            "old": old_exclusion,
+            "new": new_exclusion,
+            "ok": exclusion_ok,
+        }
+        if not exclusion_ok:
+            reasons.append("exclusion-lineage")
+    classification = "EQUIVALENT" if not reasons else "BLOCKING_MISMATCH"
+    return {"classification": classification, "reasons": reasons, "fields": fields}
+
+
+#: The comparison dimensions exposed per identity (the overall static result
+#: must never be EQUIVALENT merely because the semantic core matches).
+COMPARISON_DIMENSIONS = (
+    "declared_semantic_core",
+    "representation_contract",
+    "grounding_identity",
+    "claim_boundary",
+    "scope_exclusions",
+)
+
+_CLASSIFICATION_SEVERITY = (
+    "BLOCKING_MISMATCH",
+    "INTENTIONAL_MIGRATION_REVIEW_REQUIRED",
+    "NOT_YET_COMPARABLE",
+    "UNSUPPORTED_BOTH",
+    "EQUIVALENT",
+)
+
+
+def compare_identity_dimensions(
+    identity: str,
+    old_identity: dict[str, Any] | None,
+    new_identity: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Assemble every static comparison dimension for one identity."""
+    dimensions = {
+        "declared_semantic_core": compare_declared(
+            identity, old_identity, new_identity
+        ),
+        "representation_contract": compare_representation_contract(
+            identity, old_identity, new_identity
+        ),
+        "grounding_identity": compare_grounding_identity(
+            identity, old_identity, new_identity
+        ),
+        "claim_boundary": compare_claim_boundary(identity, old_identity, new_identity),
+        "scope_exclusions": compare_scope_exclusions(
+            identity, old_identity, new_identity
+        ),
+    }
+    classifications = {
+        name: value["classification"] for name, value in dimensions.items()
+    }
+    overall = next(
+        classification
+        for classification in _CLASSIFICATION_SEVERITY
+        if classification in classifications.values()
+    )
+    return {
+        "dimensions": dimensions,
+        "classifications": classifications,
+        "overall_static": overall,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -807,11 +1310,14 @@ def check_support_preservation(
                 "old_runtime_support": old_support,
                 "new_support_state": new_identity["support_state"],
                 "promotion": "none",
-                "verdict": "PRESERVED_AT_READINESS",
+                "readiness_verdict": "NO_PROMOTION",
+                "runtime_preservation": "NOT_YET_COMPARABLE",
                 "cutover_requirement": (
                     "the O3 runtime must preserve the old path's exact "
-                    "queryable/blocked behavior for this identity; publication "
-                    "and vocabulary presence are never support promotion"
+                    "queryable/blocked behavior for this identity; runtime "
+                    "preservation remains part of the future same-revision "
+                    "execution comparison, and publication or vocabulary "
+                    "presence is never support promotion"
                 ),
             }
         )
@@ -989,7 +1495,7 @@ def build_scope_document(root: Path) -> dict[str, Any]:
     new_bundle = extract_new_bundle(chain)
     identities: list[dict[str, Any]] = []
     for identity in O3_SCOPE_IDENTITIES:
-        declared = compare_declared(
+        comparison = compare_identity_dimensions(
             identity,
             old_bundle["identities"].get(identity),
             new_bundle["identities"].get(identity),
@@ -1001,7 +1507,7 @@ def build_scope_document(root: Path) -> dict[str, Any]:
                 "o2_source": new_bundle["identities"][identity]["o2_artifact"],
                 "old_authority": old_bundle["identities"][identity],
                 "new_authority": new_bundle["identities"][identity],
-                "declared_semantics": declared,
+                "comparison": comparison,
                 "runtime_behavior": {
                     "classification": "NOT_YET_COMPARABLE",
                     "reason": (
@@ -1037,8 +1543,12 @@ def build_scope_document(root: Path) -> dict[str, Any]:
             "Planning/evidence for the O3 authority transition. This document "
             "is NOT activation authority: no runtime authority is switched, "
             "no YAML is retired, and no support state is promoted by its "
-            "existence. Every declared-semantics comparison below is exact; "
-            "runtime-behavior equivalence remains NOT_YET_COMPARABLE until "
+            "existence. Static parity is compared per identity across "
+            "separate dimensions (declared semantic core, representation "
+            "contract, grounding identity, claim boundary, scope/exclusions); "
+            "any static mismatch fails closed, and an identity is never "
+            "EQUIVALENT merely because its semantic core matches. "
+            "Runtime-behavior equivalence remains NOT_YET_COMPARABLE until "
             "the same-revision comparison harness runs at cutover over an "
             "exact-revision validated ingestion."
         ),
@@ -1058,24 +1568,58 @@ def build_scope_document(root: Path) -> dict[str, Any]:
         "contract_checks": contract_checks,
         "support_preservation": support_matrix,
         "summary": {
-            "declared_equivalent": sorted(
-                item["identity"]
-                for item in identities
-                if item["declared_semantics"]["classification"] == "EQUIVALENT"
-            ),
-            "declared_mismatches": sorted(
-                item["identity"]
-                for item in identities
-                if item["declared_semantics"]["classification"]
-                != "EQUIVALENT"
-            ),
+            "static_parity": {
+                "dimensions": {
+                    dimension: {
+                        "equivalent": sorted(
+                            item["identity"]
+                            for item in identities
+                            if item["comparison"]["classifications"][dimension]
+                            == "EQUIVALENT"
+                        ),
+                        "not_yet_comparable": sorted(
+                            item["identity"]
+                            for item in identities
+                            if item["comparison"]["classifications"][dimension]
+                            == "NOT_YET_COMPARABLE"
+                        ),
+                        "mismatch": sorted(
+                            item["identity"]
+                            for item in identities
+                            if item["comparison"]["classifications"][dimension]
+                            not in ("EQUIVALENT", "NOT_YET_COMPARABLE")
+                        ),
+                    }
+                    for dimension in COMPARISON_DIMENSIONS
+                },
+                "identities_fully_equivalent": sorted(
+                    item["identity"]
+                    for item in identities
+                    if item["comparison"]["overall_static"] == "EQUIVALENT"
+                ),
+                "identities_with_mismatch": sorted(
+                    item["identity"]
+                    for item in identities
+                    if item["comparison"]["overall_static"]
+                    not in ("EQUIVALENT", "NOT_YET_COMPARABLE")
+                ),
+                "identities_with_pending_dimension": sorted(
+                    item["identity"]
+                    for item in identities
+                    if item["comparison"]["overall_static"] == "NOT_YET_COMPARABLE"
+                ),
+            },
+            "runtime": {
+                "completed": [],
+                "equivalent": [],
+                "not_yet_comparable": sorted(
+                    item["identity"] for item in identities
+                ),
+            },
             "contract_check_failures": sorted(
                 check["check"] + ":" + check["identity"]
                 for check in contract_checks
                 if check["result"] != "PASS"
-            ),
-            "runtime_not_yet_comparable": sorted(
-                item["identity"] for item in identities
             ),
         },
     }
@@ -1117,11 +1661,16 @@ def check_scope_document(root: Path, document: dict[str, Any]) -> list[str]:
                 f"checked-out revision: {exc}"
             )
     for item in expected["identities"]:
-        if item["declared_semantics"]["classification"] != "EQUIVALENT":
-            errors.append(
-                "declared-semantics mismatch for "
-                f"{item['identity']}: {item['declared_semantics']['reasons']}"
-            )
+        for dimension, report in item["comparison"]["dimensions"].items():
+            if report["classification"] in (
+                "BLOCKING_MISMATCH",
+                "INTENTIONAL_MIGRATION_REVIEW_REQUIRED",
+                "UNSUPPORTED_BOTH",
+            ):
+                errors.append(
+                    f"static mismatch for {item['identity']} ({dimension}): "
+                    f"{report.get('reasons')}"
+                )
     for check in expected["contract_checks"]:
         if check["result"] != "PASS":
             errors.append(

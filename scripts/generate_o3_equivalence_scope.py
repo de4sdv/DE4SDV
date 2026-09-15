@@ -90,12 +90,19 @@ def main(argv: list[str] | None = None) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(o3_equivalence.canonical_json(document), encoding="utf-8")
     summary = document["summary"]
+    static = summary["static_parity"]
     print(f"wrote {o3_equivalence.O3_SCOPE_PATH}")
     print(f"scope identities: {len(document['identities'])}")
     print(
-        "declared equivalent: "
-        f"{len(summary['declared_equivalent'])}; mismatches: "
-        f"{len(summary['declared_mismatches'])}"
+        "static parity: "
+        f"{len(static['identities_fully_equivalent'])} fully equivalent; "
+        f"{len(static['identities_with_pending_dimension'])} with a pending "
+        f"dimension; {len(static['identities_with_mismatch'])} with mismatch"
+    )
+    print(
+        "runtime equivalence: "
+        f"{len(summary['runtime']['completed'])} completed; "
+        f"{len(summary['runtime']['not_yet_comparable'])} not yet comparable"
     )
     print(f"contract checks failing: {len(summary['contract_check_failures'])}")
     print(

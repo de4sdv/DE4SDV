@@ -187,57 +187,128 @@ configuration/evaluation scope, same runtime build, same representation
 completeness boundary. No comparison across different ingestions is called
 equivalence.
 
-## 6. Equivalence matrix (Task D) — summary
+## 6. Equivalence matrix (Task D) — per-dimension
 
-Full per-identity records: scope document `identities[]`. Summary at the
-comparison base:
+Full per-identity records: scope document `identities[].comparison`. Static
+parity is compared per identity across SEPARATE dimensions, and an identity
+is never `EQUIVALENT` merely because its semantic core matches. Summary at
+the comparison base:
 
-- **Declared semantics: 13/13 EQUIVALENT** (exact-field comparison of the
-  old ontology declaration vs the new projection declaration for domain,
-  range, canonical direction, semantic strength; kernel mapping file +
-  declaration for classes). Zero mismatches.
+- **declared_semantic_core: 13/13 EQUIVALENT** (domain, range, canonical
+  direction, semantic strength; kernel mapping kind for classes).
+- **representation_contract: 13/13 EQUIVALENT** — the old mapping mechanics
+  and the new Profile serializer mechanics carry exactly the reviewed fields
+  with equal values; missing, extra, or differing fields are load-bearing
+  drift and block (§8).
+- **grounding_identity: 12/13 EQUIVALENT; 1/13 NOT_YET_COMPARABLE**
+  (`VerificationCase` — the construct identity, reviewed standard-library
+  anchors, and covered type population all compare EQUIVALENT, but the
+  executable library-grounding proof is not bound to the cutover revision on
+  either authority path; see §8).
+- **claim_boundary: 13/13 EQUIVALENT** — every new-side claim text satisfies
+  the old strength class's reviewed boundary contract.
+- **scope_exclusions: 13/13 EQUIVALENT** — restriction axes and the
+  `MemberProduct` exclusion lineage match the old enforcement points.
 - **Reviewed contract checks: 62/62 PASS** (K pair one-fact/two-navigations
   integrity, hasSubject and verifiedBy restrictions, bounded
   hasRelevantArchitecture, no promotion keys, vocabulary-only honesty,
   projection/profile separation and echo consistency, excluded identities
   absent).
-- **Runtime behavior: NOT_YET_COMPARABLE (13/13)** — by design: the new
-  authority path has no runtime implementation at readiness. The cutover PR
-  must execute the comparison harness over a privileged exact-revision
-  ingestion and classify every identity as EQUIVALENT or BLOCKING_MISMATCH
-  before activation.
+- **Runtime behavior: NOT_YET_COMPARABLE (13/13)** — the new authority path
+  has no runtime implementation at readiness; the cutover PR must execute
+  the same-revision comparison harness over a privileged exact-revision
+  ingestion before any activation claim.
 
-| identity | declared | runtime | note |
-| --- | --- | --- | --- |
-| MethodPhase | EQUIVALENT | NOT_YET_COMPARABLE | enum def MethodPhase, file-mapped |
-| MethodContractObligation | EQUIVALENT | NOT_YET_COMPARABLE | item def, file-mapped |
-| EvaluationScopeMembership | EQUIVALENT | NOT_YET_COMPARABLE | item def, file-mapped |
-| EvaluationSourceKind | EQUIVALENT | NOT_YET_COMPARABLE | enum def, file-mapped |
-| TestedScopeDeclaration | EQUIVALENT | NOT_YET_COMPARABLE | item def, file-mapped |
-| RetainedExecutionRecordReference | EQUIVALENT | NOT_YET_COMPARABLE | item def, file-mapped |
-| AcceptanceAttestationReference | EQUIVALENT | NOT_YET_COMPARABLE | item def, file-mapped |
-| VerificationCase | EQUIVALENT | NOT_YET_COMPARABLE | native construct |
-| hasSubject | EQUIVALENT | NOT_YET_COMPARABLE | Requirement → MemberProduct |
-| verifiedBy | EQUIVALENT | NOT_YET_COMPARABLE | Requirement → VerificationCase |
-| derivesRequirementFromNeed | EQUIVALENT | NOT_YET_COMPARABLE | Requirement → Need (inverse navigation) |
-| derivedRequirementsOfNeed | EQUIVALENT | NOT_YET_COMPARABLE | Need → Requirement (forward) |
-| hasRelevantArchitecture | EQUIVALENT | NOT_YET_COMPARABLE | Requirement → ArchitectureElement, relevance |
+Honest totals at readiness:
 
-No BLOCKING_MISMATCH is currently declared; there are no
-INTENTIONAL_MIGRATION_REVIEW_REQUIRED rows. If the cutover harness produces
-either, activation is blocked until reviewed (UG-26).
+```text
+static authority-contract parity: 12/13 identities fully equivalent across
+all static dimensions; 1/13 (VerificationCase) carries one dimension pending
+the cutover-revision grounding proof. No static mismatch exists anywhere.
+runtime equivalence: 0/13 completed; 13/13 NOT_YET_COMPARABLE.
+```
+
+| identity | core | repr | grounding | claim | scope | overall static | runtime |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| MethodPhase | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| MethodContractObligation | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| EvaluationScopeMembership | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| EvaluationSourceKind | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| TestedScopeDeclaration | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| RetainedExecutionRecordReference | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| AcceptanceAttestationReference | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| VerificationCase | EQ | EQ | pending proof | EQ | EQ | NOT_YET_COMPARABLE | NOT_YET_COMPARABLE |
+| hasSubject | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| verifiedBy | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| derivesRequirementFromNeed | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| derivedRequirementsOfNeed | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+| hasRelevantArchitecture | EQ | EQ | EQ | EQ | EQ | EQUIVALENT | NOT_YET_COMPARABLE |
+
+No `BLOCKING_MISMATCH` exists; there are no
+`INTENTIONAL_MIGRATION_REVIEW_REQUIRED` rows. Any mismatch the cutover
+produces blocks activation until reviewed (UG-26).
 
 ## 7. Support-state preservation
 
-Matrix: scope document `support_preservation`. Every identity:
-`old_runtime_support` preserved, `new_support_state = vocabulary-only`,
-`promotion = none`, verdict `PRESERVED_AT_READINESS`. The O3 runtime must
-preserve the old path's exact queryable/blocked behavior; generated row ≠
-supported, runtime mapping exists ≠ supported, historical retained run ≠
-current support, API metaclass exists ≠ semantic support. Negative tests
-lock accidental promotion (`supported-vs-vocabulary-only mismatch blocks`).
+Matrix: scope document `support_preservation`. Per identity: the old runtime
+support is recorded (`runtime-queryable` for the implemented relationships,
+`runtime-binding-identity` for file-mapped classes, native vocabulary for
+`VerificationCase`), `new_support_state = vocabulary-only`,
+`promotion = none`, `readiness_verdict = NO_PROMOTION`,
+`runtime_preservation = NOT_YET_COMPARABLE`.
+
+At readiness this proves ONLY that artifact publication does not promote
+support. Runtime support preservation is a separate, future obligation: the
+O3 harness must prove the new authority path preserves the old path's exact
+queryable/blocked behavior for every identity. Generated row ≠ supported;
+runtime mapping exists ≠ supported; historical retained run ≠ current
+support; API metaclass exists ≠ semantic support. Negative tests lock
+accidental promotion.
 
 ## 8. Special equivalence contracts
+
+**Representation contract (per relationship).** The old mapping mechanics
+are compared field-by-field against the new Profile serializer mechanics
+with reviewed exact field sets:
+
+```text
+hasSubject:            strategy, membership_types, member_property, owner_types
+verifiedBy:            strategy, membership_types, element_types,
+                       owner_membership_types, reference_property, direction
+K pair:                strategy, connection_definition, need_role,
+                       requirement_role, query_direction, source_lineage_of,
+                       target_lineage_of, native modeled direction
+hasRelevantArchitecture: strategy, relationship_types, direction,
+                       source_property, target_property, source_types,
+                       exclude_source_specializations_of = MemberProduct
+```
+
+Missing, extra, or differing fields are load-bearing drift
+(`BLOCKING_MISMATCH`). Adversarial tests mutate ONE old-side field at a time
+while keeping domain/range/direction/strength unchanged and prove the block
+(direction `incoming` → `outgoing`; exclusion removed or class-changed;
+`source_types` changed; `membership_types`/`member_property` changed;
+`reference_property` changed; `query_direction` swapped;
+`connection_definition`/`need_role`/`requirement_role` changed). Serializer
+mechanics stay representation — this is an O3 authority-path parity check,
+never a change to the Projection/Profile separation. The K pair
+additionally machine-locks ONE modeled `DerivesFromNeed` fact / TWO
+navigations.
+
+**VerificationCase grounding (UG-28).** `native == native` is never
+sufficient and API metaclass equality alone is never accepted. The
+comparison checks the construct identity, the reviewed standard-library
+anchors — `VerificationCases::VerificationCase` (implied Subclassification,
+definition role) and `VerificationCases::verificationCases` (implied
+Subsetting, usage role) — and the covered type population
+(`{VerificationCaseDefinition, VerificationCaseUsage}`); all three compare
+EQUIVALENT against the old path's machine contract. The executable
+library-grounding PROOF remains `NOT_YET_COMPARABLE`: the old side's
+evidence is a parity-reviewed record and the retained privileged run
+(`34576049742` at candidate `0a23902370`) is historical, and the new side's
+proof step (licensed exporter anchor resolution + read-back) has not been
+executed at the cutover revision. Construct/anchor/type-population drift
+blocks.
 
 - **K pair** (`derivesRequirementFromNeed`, `derivedRequirementsOfNeed`):
   ONE `connection def DerivesFromNeed` witness; typed roles
@@ -410,9 +481,12 @@ the readiness tooling is planning evidence, not runtime input).
 - **Blocking items for O3 activation (evidence-gated, not semantic):**
   1. no current exact-revision validated ingestion for the cutover
      candidate revision (§9) — MISSING;
-  2. the same-revision runtime comparison has not run (13/13
-     NOT_YET_COMPARABLE by design);
-  3. snapshot/context cache identities do not yet include an authority
+  2. the same-revision runtime comparison has not run (runtime: 0/13
+     completed; 13/13 NOT_YET_COMPARABLE by design);
+  3. the `VerificationCase` standard-library grounding proof is not bound to
+     the cutover revision on either authority path
+     (`grounding_identity` pending — §8);
+  4. snapshot/context cache identities do not yet include an authority
      bundle id (§12).
 - **Intentional migrations requiring review: none currently declared.**
   Any future difference the cutover classifies as
