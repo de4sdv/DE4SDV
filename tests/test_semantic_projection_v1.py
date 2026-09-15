@@ -1086,6 +1086,7 @@ class TestRuntimeIndependence:
             not in {
                 "projection_v1.py",
                 "projection_o22.py",  # build-time O2.2 generator (documented)
+                "projection_o23.py",  # build-time O2.3 generator (documented)
                 "authority_inventory.py",
                 "generate_semantic_projection_v1.py",
             }

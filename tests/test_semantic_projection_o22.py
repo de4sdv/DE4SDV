@@ -1074,6 +1074,9 @@ class TestPreservationAndRuntimeIndependence:
             rel = path.relative_to(REPO_ROOT).as_posix()
             if rel == "de4sdv/semantic/projection_o22.py":
                 continue
+            if rel == "de4sdv/semantic/projection_o23.py":
+                # build-time O2.3 generator (documented, same pattern)
+                continue
             text = path.read_text(encoding="utf-8")
             if "projection_o22" in text or "semantic-projection-v1.1" in text:
                 offenders.append(rel)
