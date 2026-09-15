@@ -1085,6 +1085,7 @@ class TestRuntimeIndependence:
             if path.name
             not in {
                 "projection_v1.py",
+                "projection_o22.py",  # build-time O2.2 generator (documented)
                 "authority_inventory.py",
                 "generate_semantic_projection_v1.py",
             }

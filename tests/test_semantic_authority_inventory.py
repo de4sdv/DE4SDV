@@ -275,9 +275,16 @@ class TestLayers:
     #: (deliberate, documented extension — never silent): it is a build-time
     #: generator that reuses the reviewed revision-binding/documentation
     #: machinery and names the O1 artifacts only to prohibit reading them.
+    #: `projection_o22.py` was added by O2.2 (same deliberate, documented
+    #: pattern): another build-time generator that imports the shared
+    #: machinery and names the O1 artifacts only to prohibit reading them.
     #: The added assertion below keeps the guard's intent: no other module in
     #: the package may import them either.
-    _BUILD_TIME_GOVERNANCE_MODULES = ("authority_inventory.py", "projection_v1.py")
+    _BUILD_TIME_GOVERNANCE_MODULES = (
+        "authority_inventory.py",
+        "projection_o22.py",
+        "projection_v1.py",
+    )
 
     def test_reviewed_decisions_not_runtime_values(self):
         """The runtime never reads the inventory or the decisions dataset."""

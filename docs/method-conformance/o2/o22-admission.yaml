@@ -1,0 +1,145 @@
+# O2.2 Semantic Projection extension admission boundary (machine-locked reviewed migration boundary).
+#
+# This manifest is GOVERNANCE data: it records WHICH identities the O2.2
+# additive generation stage may emit. It supplies NO engineering semantics —
+# every generated semantic field is derived exclusively from the reviewed
+# representation contract and the governed model representation, never from
+# this file and never from any O1 review artifact.
+#
+# Provenance of the admission decision: the merged O1 reviewed governance on
+# main (PR #249) admitted the overall O2 set (13 identities) with its
+# sequencing; the O2.1 stage (PR #250/#252) published the seven c1
+# identities. This manifest encodes the reviewed o2.2 sequencing phase as a
+# deterministic boundary; it does not reinterpret it.
+#
+# Machine locks (enforced by de4sdv/semantic/projection_o22.py and its tests):
+#   * `admitted` is EXACTLY the three settled c2/c3 identities — an extra
+#     admission is a generation failure, a missing admitted identity is a
+#     generation failure;
+#   * `sequencing` (o2.1 + o2.2 + o2.3) is EXACTLY the 13-identity overall O2
+#     admission, imported from the frozen O2.1 lock;
+#   * the cumulative O2 semantic surface (o2.1 seven + o2.2 three) is exactly
+#     ten distinct identities;
+#   * no identity may appear in both `admitted` and `guarded`;
+#   * `guarded` equals the frozen guard set (the O2.1 seven — never
+#     re-emitted or re-bound by the extension — plus every O2.1-guarded
+#     identity plus the O2.3 set);
+#   * the generator emits exactly the `admitted` set and asserts that no
+#     guarded identity appears in O2.2 output;
+#   * the emission path iterates ONLY `admitted` — new ontology/model entries
+#     cannot expand the output (there is no heuristic query, no "all c2/c3
+#     rows", no "all verification-looking declarations" filter).
+#
+# Generation is not authority activation: these rows do not switch runtime
+# dispatch, do not retire authored contract authority, and do not promote
+# support. O3 owns authority transition; O4 owns authored-ontology retirement.
+
+schema: de4sdv.o2-2-admission/v1
+status: reviewed O2.2 migration boundary (additive generation stage)
+base_revision: 4be6a7bfbfb9f737dd525c9f1c7e22a47fdd8218
+
+#: The exact three settled c2/c3 identities this stage generates.
+admitted:
+  - VerificationCase
+  - hasSubject
+  - verifiedBy
+
+#: The complete reviewed O2 admission (13 identities) and its intended
+#: sequencing. Later phases start only through explicit review.
+sequencing:
+  o2.1:
+    - MethodPhase
+    - MethodContractObligation
+    - EvaluationScopeMembership
+    - EvaluationSourceKind
+    - TestedScopeDeclaration
+    - RetainedExecutionRecordReference
+    - AcceptanceAttestationReference
+  o2.2:
+    - VerificationCase
+    - hasSubject
+    - verifiedBy
+  o2.3:
+    - derivesRequirementFromNeed
+    - derivedRequirementsOfNeed
+    - hasRelevantArchitecture
+
+#: Identities that must NOT appear in O2.2 output, with the reviewed reason.
+#: The O2.1 seven are guarded because the extension is additive: they remain
+#: published in the immutable v1 baseline and are never re-emitted or
+#: re-bound. Blocked is not the same as absent; retired is not the same as
+#: unsupported; rename-required is not the same as application-semantic
+#: admitted; and a reviewed text equivalence is not a structural admission.
+guarded:
+  - identity: MethodPhase
+    kind: class
+    reason: "already published in the immutable O2.1 baseline (semantic-projection-v1.json, bound to the permanent Stage A revision); the O2.2 extension must not re-emit or re-bind it"
+  - identity: MethodContractObligation
+    kind: class
+    reason: "already published in the immutable O2.1 baseline (semantic-projection-v1.json, bound to the permanent Stage A revision); the O2.2 extension must not re-emit or re-bind it"
+  - identity: EvaluationScopeMembership
+    kind: class
+    reason: "already published in the immutable O2.1 baseline (semantic-projection-v1.json, bound to the permanent Stage A revision); the O2.2 extension must not re-emit or re-bind it"
+  - identity: EvaluationSourceKind
+    kind: class
+    reason: "already published in the immutable O2.1 baseline (semantic-projection-v1.json, bound to the permanent Stage A revision); the O2.2 extension must not re-emit or re-bind it"
+  - identity: TestedScopeDeclaration
+    kind: class
+    reason: "already published in the immutable O2.1 baseline (semantic-projection-v1.json, bound to the permanent Stage A revision); the O2.2 extension must not re-emit or re-bind it"
+  - identity: RetainedExecutionRecordReference
+    kind: class
+    reason: "already published in the immutable O2.1 baseline (semantic-projection-v1.json, bound to the permanent Stage A revision); the O2.2 extension must not re-emit or re-bind it"
+  - identity: AcceptanceAttestationReference
+    kind: class
+    reason: "already published in the immutable O2.1 baseline (semantic-projection-v1.json, bound to the permanent Stage A revision); the O2.2 extension must not re-emit or re-bind it"
+  - identity: derivesRequirementFromNeed
+    kind: relationship
+    reason: "admitted to the overall O2 set; deferred to O2.3 by reviewed sequencing"
+  - identity: derivedRequirementsOfNeed
+    kind: relationship
+    reason: "admitted to the overall O2 set; deferred to O2.3 by reviewed sequencing"
+  - identity: hasRelevantArchitecture
+    kind: relationship
+    reason: "admitted to the overall O2 set; deferred to O2.3 by reviewed sequencing"
+  - identity: MethodEvaluationScope
+    kind: class
+    reason: "documentation equivalence reviewed, but the structural exclusions-with-rationale gap remains open; O2 generates only from settled structural representation"
+  - identity: DerivesFromNeed
+    kind: class
+    reason: "class-definition equivalence review remains separate; the accepted K relationship semantics are unaffected and no O2.2 class row may be generated"
+  - identity: derivesNeedFromConcern
+    kind: relationship
+    reason: "retired without replacement (O1 c4); a retired identity is not absent and must not be emitted"
+  - identity: realizedBy
+    kind: relationship
+    reason: "rename/replacement resolution required (O1 c5); rename-required is not application-semantic admitted"
+  - identity: specifiesFunction
+    kind: relationship
+    reason: "rename/replacement resolution required (O1 c5); rename-required is not application-semantic admitted"
+  - identity: hasRelevantEvidenceContract
+    kind: relationship
+    reason: "blocked: EvidenceContract-specific identity is not machine-resolvable; a blocked identity is not absent and must not be emitted"
+  - identity: EvidenceContract
+    kind: class
+    reason: "blocked scope (O1 c5); EvidenceContract identity remains unresolved and is excluded from the bounded O2.2 scope"
+  - identity: ArchitectureElement
+    kind: class
+    reason: "excluded from the bounded O2.2 scope: no settled representation admission in O1 for this generation stage"
+  - identity: Function
+    kind: class
+    reason: "excluded from the bounded O2.2 scope: no settled representation admission in O1 for this generation stage"
+  - identity: LogicalElement
+    kind: class
+    reason: "excluded from the bounded O2.2 scope: no settled representation admission in O1 for this generation stage"
+  - identity: PhysicalElement
+    kind: class
+    reason: "excluded from the bounded O2.2 scope: no settled representation admission in O1 for this generation stage"
+  - identity: Interface
+    kind: class
+    reason: "excluded from the bounded O2.2 scope: no settled representation admission in O1 for this generation stage"
+  - identity: allocatedTo
+    kind: relationship
+    reason: "PLE/allocation scope not admitted for bounded generation"
+  - identity: deployedTo
+    kind: relationship
+    reason: "deployment scope not admitted for bounded generation; deployment and realization identities remain separately reviewed"
