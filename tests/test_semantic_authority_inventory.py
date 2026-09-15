@@ -278,11 +278,13 @@ class TestLayers:
     #: `projection_o22.py` was added by O2.2 (same deliberate, documented
     #: pattern): another build-time generator that imports the shared
     #: machinery and names the O1 artifacts only to prohibit reading them.
-    #: The added assertion below keeps the guard's intent: no other module in
-    #: the package may import them either.
+    #: `projection_o23.py` was added by O2.3 (same pattern again): build-time
+    #: generator for the final O2 slice. The added assertion below keeps the
+    #: guard's intent: no other module in the package may import them either.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "projection_o22.py",
+        "projection_o23.py",
         "projection_v1.py",
     )
 
