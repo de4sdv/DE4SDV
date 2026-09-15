@@ -32,11 +32,12 @@ registration are published in Stage B — see the design record):
     or reads the v1.1 artifacts; support states come from a closed
     vocabulary with no promotion input.
 
-Stage B (artifact publication) additionally activates the committed-artifact
-consistency tests; they require the canonical artifacts and are deferred here
-by the squash-safe delivery sequence. No artifact-dependent test is silently
-skipped: in Stage A the artifact-dependent tests are simply not registered
-yet.
+Stage B (artifact publication) activates the committed-artifact consistency
+tests and the ``check_repo`` gate-registration test: the canonical v1.1
+artifacts now exist, parse, byte-match deterministic regeneration, and the
+repository gate invokes the v1.1 ``--check`` fail-closed. The artifacts bind
+the permanent Stage A revision the #253 squash-merge produced — not any
+feature-branch commit.
 """
 
 from __future__ import annotations
@@ -1099,26 +1100,243 @@ class TestPreservationAndRuntimeIndependence:
 
 
 # ---------------------------------------------------------------------------
-# 6. Stage A gate behavior (non-registration, non-permissiveness)
+# 7. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
+COMMITTED_SOURCE_REVISION = "7dbbf4b83ea2a14e2aa1b8998564b3167b99c9a1"
 
-class TestStageAGate:
-    def test_check_reports_missing_artifacts_stage_a(self) -> None:
-        errors = po22.run_check_errors_o22(REPO_ROOT)
+
+def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
+    """Synthetic real Git checkout for end-to-end gate tests.
+
+    Copies the fixture inputs, initializes a real repository, commits the
+    inputs as revision R1, rebinds both copied v1 baselines to R1, commits
+    that as R2, regenerates the v1.1 artifacts bound to R2, and commits them
+    (HEAD = R3). Returns ``(root, R2, R3)``. The gate then runs against a real
+    ancestor chain with real blobs — no stubbing.
+    """
+    root = _fixture_root(tmp_path)
+
+    def git(*args: str) -> None:
+        subprocess.run(
+            ["git", *args], cwd=root, check=True, capture_output=True
+        )
+
+    def head() -> str:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    git("init", "-q")
+    git("config", "user.name", "gate-test")
+    git("config", "user.email", "gate-test@local")
+    git("add", "-A")
+    git("commit", "-q", "-m", "inputs")
+    r1 = head()
+    for baseline_path in (
+        po22.BASELINE_PROJECTION_V1_PATH,
+        po22.BASELINE_PROFILE_V1_PATH,
+    ):
+        path = root / baseline_path
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["binding"]["source_revision"] = r1
+        path.write_text(json.dumps(document), encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-q", "-m", "rebind baselines to inputs revision")
+    r2 = head()
+    built = po22.build_pair_o22(root, source_revision=r2)
+    (root / po22.PROJECTION_V11_JSON_PATH).write_text(
+        po22.canonical_json(built["projection"]), encoding="utf-8"
+    )
+    (root / po22.PROFILE_V11_JSON_PATH).write_text(
+        po22.canonical_json(built["profile"]), encoding="utf-8"
+    )
+    git("add", "-A")
+    git("commit", "-q", "-m", "artifacts bound to inputs revision")
+    return root, r2, head()
+
+
+class TestCommittedArtifacts:
+    def test_committed_artifacts_match_regeneration(self) -> None:
+        assert po22.run_check_errors_o22(REPO_ROOT) == []
+
+    def test_committed_artifacts_exist_and_parse(self) -> None:
+        projection = json.loads(
+            (REPO_ROOT / po22.PROJECTION_V11_JSON_PATH).read_text(encoding="utf-8")
+        )
+        profile = json.loads(
+            (REPO_ROOT / po22.PROFILE_V11_JSON_PATH).read_text(encoding="utf-8")
+        )
+        assert projection["schema"] == po22.PROJECTION_V11_SCHEMA
+        assert profile["schema"] == po22.PROFILE_V11_SCHEMA
+        for document in (projection, profile):
+            assert document["binding"]["source_revision"] == (
+                COMMITTED_SOURCE_REVISION
+            )
+            assert document["binding"]["api_binding"]["status"] == "unclaimed"
+        rows = list(projection["concepts"]) + list(projection["predicates"])
+        assert tuple(row["identity"] for row in rows) == po22.O22_ADMITTED_IDENTITIES
+        assert all(row["support_state"] == "vocabulary-only" for row in rows)
+        assert projection["extends"]["artifact"] == po22.BASELINE_PROJECTION_V1_PATH
+        assert profile["extends"]["artifact"] == po22.BASELINE_PROFILE_V1_PATH
+        assert projection["extends"] != profile["extends"]
+
+    def test_committed_pins_match_baseline_bytes(self) -> None:
+        import hashlib
+
+        for document_path, baseline_path in (
+            (po22.PROJECTION_V11_JSON_PATH, po22.BASELINE_PROJECTION_V1_PATH),
+            (po22.PROFILE_V11_JSON_PATH, po22.BASELINE_PROFILE_V1_PATH),
+        ):
+            document = json.loads(
+                (REPO_ROOT / document_path).read_text(encoding="utf-8")
+            )
+            pin = document["extends"]
+            expected = "sha256:" + hashlib.sha256(
+                (REPO_ROOT / baseline_path).read_bytes()
+            ).hexdigest()
+            assert pin["artifact_digest"] == expected, document_path
+            baseline = json.loads(
+                (REPO_ROOT / baseline_path).read_text(encoding="utf-8")
+            )
+            assert pin["source_revision"] == baseline["binding"]["source_revision"]
+
+    def test_committed_projection_separation_remains_clean(self) -> None:
+        projection = json.loads(
+            (REPO_ROOT / po22.PROJECTION_V11_JSON_PATH).read_text(encoding="utf-8")
+        )
+        rows = list(projection["concepts"]) + list(projection["predicates"])
+        blob = json.dumps(rows)
+        for banned in (
+            "memberElement",
+            "reference_property",
+            "member_property",
+            "owner_types",
+            "owner_membership_types",
+            "element_types",
+            "ReferenceSubsetting",
+            "Subclassification",
+            "Subsetting",
+            "serializer",
+            "shadow",
+            "metaclass",
+            "implied",
+        ):
+            assert banned not in blob, banned
+
+    def test_editing_either_artifact_fails_the_gate(self, tmp_path) -> None:
+        root, revision, head = _git_backed_repo(tmp_path)
+        assert head != revision
+        assert po22.run_check_errors_o22(root) == []
+        for artifact_path in (
+            po22.PROJECTION_V11_JSON_PATH,
+            po22.PROFILE_V11_JSON_PATH,
+        ):
+            path = root / artifact_path
+            original = path.read_text(encoding="utf-8")
+            path.write_text(original + "\n", encoding="utf-8")
+            errors = po22.run_check_errors_o22(root)
+            assert errors, artifact_path
+            assert any("differs from regeneration" in error for error in errors)
+            path.write_text(original, encoding="utf-8")
+            assert po22.run_check_errors_o22(root) == []
+
+    def test_gate_reports_missing_artifacts_when_absent(self, tmp_path) -> None:
+        # The gate must never treat missing artifacts as success.
+        root, revision, head = _git_backed_repo(tmp_path)
+        (root / po22.PROJECTION_V11_JSON_PATH).unlink()
+        errors = po22.run_check_errors_o22(root)
         assert errors == [
-            f"semantic projection v1.1 missing: {po22.PROJECTION_V11_JSON_PATH}",
-            f"api representation profile v1.1 missing: {po22.PROFILE_V11_JSON_PATH}",
+            f"semantic projection v1.1 missing: {po22.PROJECTION_V11_JSON_PATH}"
         ]
 
-    def test_generator_module_has_check_entrypoint(self) -> None:
-        import sys
 
-        sys.path.insert(0, str(REPO_ROOT / "scripts"))
-        try:
-            import generate_semantic_projection_o22 as generator
+class TestRepositoryGateWiring:
+    """The v1.1 gate owns its own failure attribution in ``check_repo``."""
 
-            assert callable(generator.main)
-            assert generator.main(["--check"]) == 1  # artifacts absent in Stage A
-        finally:
-            sys.path.remove(str(REPO_ROOT / "scripts"))
+    def test_check_repo_fails_when_o22_gate_fails(self) -> None:
+        from unittest import mock
+
+        from scripts import check_repo
+
+        with mock.patch.object(
+            check_repo, "find_duplicate_global_packages", return_value={}
+        ), mock.patch.object(
+            check_repo.validate_aebs_executable_bench, "validate_bench", return_value=[]
+        ), mock.patch.object(
+            check_repo.check_model_sync, "run_all_checks", return_value=[]
+        ), mock.patch.object(
+            check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]
+        ), mock.patch.object(
+            check_repo.check_naming, "run_all_checks", return_value=[]
+        ), mock.patch.object(
+            check_repo.generate_semantic_projection_v1,
+            "run_check_errors",
+            return_value=[],
+        ), mock.patch.object(
+            check_repo.generate_semantic_authority_inventory,
+            "run_check_errors",
+            return_value=[],
+        ), mock.patch.object(
+            check_repo.generate_semantic_projection_o22,
+            "run_check_errors_o22",
+            return_value=["sentinel projection v1.1 error"],
+        ):
+            assert check_repo.main() == 1
+
+    def test_check_repo_passes_when_all_gates_pass(self) -> None:
+        from unittest import mock
+
+        from scripts import check_repo
+
+        with mock.patch.object(
+            check_repo, "find_duplicate_global_packages", return_value={}
+        ), mock.patch.object(
+            check_repo.validate_aebs_executable_bench, "validate_bench", return_value=[]
+        ), mock.patch.object(
+            check_repo.check_model_sync, "run_all_checks", return_value=[]
+        ), mock.patch.object(
+            check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]
+        ), mock.patch.object(
+            check_repo.check_naming, "run_all_checks", return_value=[]
+        ), mock.patch.object(
+            check_repo.generate_semantic_projection_v1,
+            "run_check_errors",
+            return_value=[],
+        ), mock.patch.object(
+            check_repo.generate_semantic_projection_o22,
+            "run_check_errors_o22",
+            return_value=[],
+        ), mock.patch.object(
+            check_repo.generate_semantic_authority_inventory,
+            "run_check_errors",
+            return_value=[],
+        ):
+            assert check_repo.main() == 0
+
+    def test_check_repo_actually_invokes_the_o22_gate(self) -> None:
+        # A pass-through spy proves check_repo calls the v1.1 gate (rather
+        # than the test suite accidentally bypassing it).
+        from unittest import mock
+
+        from scripts import check_repo
+
+        calls: list[int] = []
+        original = check_repo.generate_semantic_projection_o22.run_check_errors_o22
+
+        def spy(root):
+            calls.append(1)
+            return original(root)
+
+        with mock.patch.object(
+            check_repo.generate_semantic_projection_o22,
+            "run_check_errors_o22",
+            side_effect=spy,
+        ):
+            result = check_repo.main()
+        assert calls, "check_repo did not invoke the O2.2 gate"
+        assert result == 0

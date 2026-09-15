@@ -38,6 +38,11 @@ try:
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import generate_semantic_projection_v1
 
+try:
+    from scripts import generate_semantic_projection_o22
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import generate_semantic_projection_o22
+
 REQUIRED_FILES = [
     "README.md",
     "CONTRIBUTING.md",
@@ -168,6 +173,7 @@ def main() -> int:
     naming_errors = check_naming.run_all_checks()
     inventory_errors = generate_semantic_authority_inventory.run_check_errors(root)
     projection_v1_errors = generate_semantic_projection_v1.run_check_errors(root)
+    projection_o22_errors = generate_semantic_projection_o22.run_check_errors_o22(root)
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -211,6 +217,11 @@ def main() -> int:
         for error in projection_v1_errors:
             print(f"- {error}")
 
+    if projection_o22_errors:
+        print("Repository check failed. Semantic projection v1.1 errors:")
+        for error in projection_o22_errors:
+            print(f"- {error}")
+
     if (
         missing
         or duplicate_packages
@@ -220,6 +231,7 @@ def main() -> int:
         or naming_errors
         or inventory_errors
         or projection_v1_errors
+        or projection_o22_errors
     ):
         return 1
 

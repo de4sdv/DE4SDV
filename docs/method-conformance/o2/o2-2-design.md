@@ -6,13 +6,14 @@ baseline (`semantic-projection-v1.json` /
 `api-representation-profile-v1.json`, bound to
 `f1095fc027cc20948d8fb7933964b96d443920e2`) remains **immutable**.
 
-**Delivery:** squash-safe two-PR sequence — Stage A (this PR) delivers the
-additive implementation foundation (module, generator, admission manifest,
-design record, tests); Stage B generates and commits the v1.1 artifacts bound
-to Stage A's permanent squash-merge commit and activates repository
-enforcement. A feature-branch commit cannot serve as durable
-`source_revision` in a squash-only repository (main keeps linear history;
-PRs are squash-merged), so no canonical artifact may bind to one.
+**Delivery:** squash-safe two-PR sequence — Stage A (PR #253) delivered the
+additive implementation foundation and was squash-merged as
+`7dbbf4b83ea2a14e2aa1b8998564b3167b99c9a1` (topology: Stage A squash → X =
+`7dbbf4b…`; Stage B artifacts bind to X; Stage B squash → Y with X still an
+ancestor of Y — a feature-branch commit can never serve as durable
+`source_revision` in a squash-only repository). Stage B publishes the v1.1
+artifacts bound to that permanent revision and activates repository
+enforcement.
 
 **Scope:** exactly the three settled c2/c3 identities:
 
@@ -153,11 +154,11 @@ doc text.
 | Path | Role |
 |---|---|
 | `de4sdv/semantic/projection_o22.py` | O2.2 extension architecture: admission locks, contract-locked semantic-core derivation, independent baseline anchoring (projection pin → projection baseline; profile pin → profile baseline), artifact builders, profile compatibility gate (per-identity semantic-contract echo), committed-artifact check. Build-time/governance module; runtime-inert. |
-| `scripts/generate_semantic_projection_o22.py` | offline deterministic generator with `--check`; gate registration activates in Stage B. |
+| `scripts/generate_semantic_projection_o22.py` | offline deterministic generator with `--check`; gate registered in `scripts/check_repo.py`. |
 | `docs/method-conformance/o2/o22-admission.yaml` | machine-locked O2.2 admission boundary (governance data; never runtime-read). |
-| `docs/method-conformance/o2/semantic-projection-v1.1.json` | generated extension projection (Stage B), extends `semantic-projection-v1.json`. |
-| `docs/method-conformance/o2/api-representation-profile-v1.1.json` | generated extension profile (Stage B), extends `api-representation-profile-v1.json`. |
-| `tests/test_semantic_projection_o22.py` | positive/negative/adversarial/lock/preservation/runtime-independence suite (63 tests). |
+| `docs/method-conformance/o2/semantic-projection-v1.1.json` | published extension projection (Stage B), bound to `7dbbf4b…`, extends `semantic-projection-v1.json`. |
+| `docs/method-conformance/o2/api-representation-profile-v1.1.json` | published extension profile (Stage B), bound to `7dbbf4b…`, extends `api-representation-profile-v1.json`. |
+| `tests/test_semantic_projection_o22.py` | positive/negative/adversarial/lock/preservation/runtime-independence/committed-artifact/gate-wiring suite. |
 
 Why an extension (v1.1) instead of an in-place widening of v1: the v1
 artifacts are revision-bound and repository-gated; mutating them would
@@ -199,9 +200,12 @@ CI-owned).
 
 ## Known limitations / intentionally deferred
 
-- No committed v1.1 artifacts in Stage A (squash-safe delivery); the `--check`
-  gate exists and reports absent artifacts as errors, but is not registered
-  in `scripts/check_repo.py` until Stage B (no "missing means pass" path).
+- The v1.1 artifacts are published and repository-gated: `scripts/check_repo.py`
+  now enforces O1 inventory + O2.1 v1 + O2.2 v1.1 fail-closed; the committed
+  artifacts are byte-checked against deterministic regeneration, and missing
+  artifacts are errors — never "missing means pass". (Delivery history:
+  Stage A shipped the machinery without artifacts; Stage B bound them to the
+  permanent Stage A squash-merge commit.)
 - `api_binding` unclaimed; retained privileged runs are shape evidence only.
 - O2.3 identities, `MethodEvaluationScope`, `DerivesFromNeed`, and the
   retired/blocked/rename-required identities remain untouched by design.
@@ -210,7 +214,15 @@ CI-owned).
 
 ## Verification
 
-Stage A suite (63 tests): positive scope against the real production
+Stage B suite additions: committed artifacts exist, parse, byte-match
+deterministic regeneration, bind to `7dbbf4b…`, keep `api_binding` unclaimed
+and all rows `vocabulary-only`, retain the independent extends pins with
+digests matched against the committed baseline bytes, and stay
+mechanics-free; a real-git end-to-end gate test proves editing either
+committed artifact fails the gate (and restoring it passes); the repository
+wiring is proven by sentinel-failure, all-gates-pass, and pass-through-spy
+tests. Stage A suite (63 tests) remains: positive scope against the real
+production
 declarations (definition, six usages, three verify targets, lineage anchors);
 projection/profile separation (no serializer mechanics in projection rows —
 banned-key and banned-term scans; mechanics asserted present in the profile;
