@@ -1583,6 +1583,10 @@ class TestSupersessionAndGate:
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
         ), mock.patch.object(
+            check_repo.generate_semantic_projection_v1,
+            "run_check_errors",
+            return_value=[],
+        ), mock.patch.object(
             check_repo.generate_semantic_authority_inventory,
             "run_check_errors",
             return_value=["sentinel inventory error"],
@@ -1590,6 +1594,10 @@ class TestSupersessionAndGate:
             assert check_repo.main() == 1
 
     def test_check_repo_passes_when_inventory_gate_passes(self):
+        # The projection-v1 gate is mocked to pass here (added by O2.1,
+        # deliberate and documented — the v1-side sentinel assertion lives in
+        # tests/test_semantic_projection_v1.py): this test owns the inventory
+        # gate's failure/pass attribution, not the v1 gate's.
         with mock.patch.object(
             check_repo, "find_duplicate_global_packages", return_value={}
         ), mock.patch.object(
@@ -1600,6 +1608,10 @@ class TestSupersessionAndGate:
             check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
+        ), mock.patch.object(
+            check_repo.generate_semantic_projection_v1,
+            "run_check_errors",
+            return_value=[],
         ), mock.patch.object(
             check_repo.generate_semantic_authority_inventory,
             "run_check_errors",

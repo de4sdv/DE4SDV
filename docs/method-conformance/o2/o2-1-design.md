@@ -268,18 +268,20 @@ configured to silently pass).
 
 ## Verification
 
-Gate wiring: Stage A does not register the v1 `--check` in
-`scripts/check_repo.py`; Stage B registers it alongside the O1 inventory
-check together with the artifacts it validates. The Stage A suite covers:
-seven-identity positive scope against the real production declarations;
-admission machine-locks (manifest vs frozen locks, both directions); the full
-negative scope; the adversarial matrix (extra vocabulary, missing
-declaration, ambiguous grounding, wrong kind, missing documentation,
-unresolved typing, unsupported member form, O1-costume rows,
+Gate wiring: `scripts/check_repo.py` runs the v1 `--check` alongside the O1
+inventory check, fail-closed. It is registered in Stage B together with the
+artifacts it validates; Stage A shipped without the registration (and without
+the artifacts) so that nothing bound to an ephemeral feature-branch commit.
+The Stage A suite covers: seven-identity positive scope against the real
+production declarations; admission machine-locks (manifest vs frozen locks,
+both directions); the full negative scope; the adversarial matrix (extra
+vocabulary, missing declaration, ambiguous grounding, wrong kind, missing
+documentation, unresolved typing, unsupported member form, O1-costume rows,
 representation-vs-admission); v0 compatibility; runtime independence.
 
-Deferred to Stage B (intent preserved; extracted copy
-`o2-stage-b-deferred-tests.py`; also in this branch's history at `866a6f5`):
+Activated in Stage B (published with the canonical artifacts bound to the
+Stage A squash-merge revision `f1095fc…`, recovered from the reviewed PR #250
+history):
 
 - `TestCommittedArtifacts::test_committed_artifacts_match_regeneration`
 - `TestCommittedArtifacts::test_committed_artifacts_exist_and_parse`
