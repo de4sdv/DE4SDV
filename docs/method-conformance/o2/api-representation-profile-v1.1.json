@@ -1,0 +1,234 @@
+{
+  "schema": "de4sdv.api-representation-profile.v1.1",
+  "profile_version": "v1.1",
+  "status": "generated O2.2 SysML API Representation Profile extension (representation mechanics for the three settled c2/c3 identities)",
+  "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, canonical direction, semantic strength, scope restrictions, exclusions, or claim boundaries - those live in the Semantic Projection (the per-identity `semantic_contract_echo` is held to them by the compatibility gate). No current SysML API project/commit closure was produced and no current API element UUID is claimed; retained privileged runs are representation-shape evidence only and the standard-library anchors are run-pinned, never universal constants. The runtime does not read this artifact.",
+  "extends": {
+    "artifact": "docs/method-conformance/o2/api-representation-profile-v1.json",
+    "schema": "de4sdv.api-representation-profile.v1",
+    "source_revision": "f1095fc027cc20948d8fb7933964b96d443920e2",
+    "artifact_digest": "sha256:48a887e7f79bf0270fce8240b006c745541468bd1592434095f73e9ad105372d",
+    "note": "Additive extension of this immutable O2.1 baseline: the baseline remains canonical for its own content and is neither re-emitted nor re-bound here. The recorded digest pins the baseline bytes this extension was generated against; the baseline's own repository gate validates its revision binding, and the extension gate additionally requires the baseline source revision to remain an ancestor of the extension source revision."
+  },
+  "binding": {
+    "source_revision": "7dbbf4b83ea2a14e2aa1b8998564b3167b99c9a1",
+    "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
+    "artifact_commit": null,
+    "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
+    "generation_software": {
+      "program_inputs": [
+        "de4sdv/semantic/authority_inventory.py",
+        "de4sdv/semantic/kernel_contract.py",
+        "de4sdv/semantic/projection_o22.py",
+        "de4sdv/semantic/projection_v1.py",
+        "scripts/generate_semantic_projection_o22.py"
+      ],
+      "note": "Generation-software revision: the commit containing these program inputs byte-for-byte (including the frozen O2.1 module whose locks this extension imports). Distinguished from the semantic-model revision so generator changes are never confused with model or contract changes."
+    },
+    "semantic_model_revision": {
+      "model_inputs": [
+        "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+      ],
+      "note": "Semantic-model revision: the governed model declarations and the reviewed contract files these artifacts were generated from, contained byte-for-byte in source_revision. The ontology/kernel contract supplies the reviewed declared predicate contract and declaration locators; the model files carry the lineage anchors and the governed verification constructs."
+    },
+    "api_binding": {
+      "status": "unclaimed",
+      "note": "O2.2 produces no validated SysML API project/commit closure and claims no current API element UUID. Element identity is resolved at a bound API revision through ingestion-validated kernel bindings (KernelBindingIndex, fail closed); the exact-revision API closure belongs to the privileged ingestion path and a later reviewed step. Retained privileged-run evidence is representation-shape evidence only, and the pinned standard-library anchor evidence is run-pinned, never a universal constant."
+    },
+    "admission_manifest": {
+      "path": "docs/method-conformance/o2/o22-admission.yaml",
+      "digest": "sha256:80ec9affcbbc954a4f0416a8d6e0282ddbd3b4ab7055330952f332b9331955b7"
+    },
+    "ontology_contract_locator": {
+      "path": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+      "digest": "sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4"
+    },
+    "baseline_projection": {
+      "path": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "digest": "sha256:2d142255106942958efdbcd9697439cdb48f6c5ef0e3918024a942bd19515d8f"
+    },
+    "baseline_profile": {
+      "path": "docs/method-conformance/o2/api-representation-profile-v1.json",
+      "digest": "sha256:48a887e7f79bf0270fce8240b006c745541468bd1592434095f73e9ad105372d"
+    },
+    "bound_inputs": {
+      "approach/framework/ontology/de4sdv-basic-ontology.yaml": "sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4",
+      "de4sdv/semantic/authority_inventory.py": "sha256:6ecd3ee167ebb89f72f4fd21e039d6ee54930889da0714281ece5e882a7e6f6d",
+      "de4sdv/semantic/kernel_contract.py": "sha256:aedbdc7452bfd6ff4d8c126e91e6e287349ffa79f895f49fd4099d554916cd01",
+      "de4sdv/semantic/projection_o22.py": "sha256:0f320ad7a02781051a304760575dd9d35c15d123a4d648c9f81a0dc028dfde21",
+      "de4sdv/semantic/projection_v1.py": "sha256:b568b8e93482b77f0f7bf44cda2411f6deba4d4267248b19a6608e4394c2af10",
+      "docs/method-conformance/o2/api-representation-profile-v1.json": "sha256:48a887e7f79bf0270fce8240b006c745541468bd1592434095f73e9ad105372d",
+      "docs/method-conformance/o2/o22-admission.yaml": "sha256:80ec9affcbbc954a4f0416a8d6e0282ddbd3b4ab7055330952f332b9331955b7",
+      "docs/method-conformance/o2/semantic-projection-v1.json": "sha256:2d142255106942958efdbcd9697439cdb48f6c5ef0e3918024a942bd19515d8f",
+      "scripts/generate_semantic_projection_o22.py": "sha256:275c401f81aeaec3269765ca752d640667ee50355fe0f7bf70d97900528e64f4",
+      "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml": "sha256:c5c2bdeb216bbd639543d00b69f6e7184bedaa708479365749c95de776c7185b",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:7fd6dd879f303ed9b99ccfe8e0e845b894155fbd0ef752a4756f6ceffdcdfe53",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:bb4da71d2b07489141b3bc5a55e83c7262d349a88784d065c0603fa16992da45"
+    }
+  },
+  "evidence_basis": {
+    "kind": "retained privileged full-model API ingestion run",
+    "run": "34576049742",
+    "artifact": "10195168006",
+    "candidate_revision": "0a23902370de9fc74d6118afe480382e0b0d8aa0",
+    "scope": "Serializer representation shapes only (membership kinds, property paths, implied library edges, shadow-reference bridges). Not a current exact-revision API closure and not a semantic source for generation."
+  },
+  "representation_contract": {
+    "identity_resolution": {
+      "rule": "ingestion-validated kernel binding: exactly one API element whose declaredName and @type match the governed declaration and whose serializer-recorded source document equals the bound source file; multiple candidates are ambiguous and zero candidates is unresolved (both fail closed); the runtime consumes the resulting KernelElementBinding through KernelBindingIndex, never a name-based fallback",
+      "prohibited_fallbacks": [
+        "declaredName alone",
+        "qualifiedName alone",
+        "package path",
+        "source filename",
+        "doc text",
+        "string matching"
+      ]
+    },
+    "lineage_resolution": "validated lineage proof over the representation-tolerant relationship graph: the element's authored typing/classification chain plus the tool-derived implied subsumption edges resolve to the governed lineage root through the ingestion-validated kernel binding (KernelBindingIndex.element_id_for); explicit and implied grounding provenance stay separate; a missing validated binding fails closed and no name/path/string fallback exists",
+    "verification_case_mechanics": "definition/usage resolution through the verification-membership strategy: the membership anchors on the verified requirement and the case is resolved from the ownership chain, stopping only at a VerificationCaseUsage or VerificationCaseDefinition; the standard-library roles stay visible as implied grounding edges",
+    "subject_membership_mechanics": "the subject witness is the configured SubjectMembership member (memberElement) of the owning requirement usage; both the owner and the member are resolved through the validated lineages before a hop is emitted",
+    "library_anchor_mechanics": "the pinned standard-library anchors are resolved only by the controlled library-proof step (licensed exporter reading the pinned library documents) and are run-pinned evidence; the qualified names used there never become a general identity fallback and no library UUID is recorded as a universal constant",
+    "serializer_importer_compatibility": {
+      "uuid_preservation": "single-transaction-required",
+      "known_omissions": [],
+      "out_of_export_risk": "the verification constructs, their memberships and member elements, the lineage anchors, and the implied library edges must survive official export, API import, and read-back; pruning any required witness makes the identity unsupported for that revision"
+    },
+    "completeness_check": "fail closed: a missing or drifted contract entry, a missing or ambiguous model witness, a missing lineage anchor declaration, no objective verify witness, or a foreign verification usage blocks generation for that identity"
+  },
+  "profiles": [
+    {
+      "profile_identity": "de4sdv.api-representation-profile.v1.1#VerificationCase",
+      "for_identity": "VerificationCase",
+      "representation_class": "native-verification-construct",
+      "semantic_contract_echo": {
+        "native_grounding": "native verification-case construct (VerificationCase), pinned standard library"
+      },
+      "library_grounding_mechanics": {
+        "definition_role": {
+          "library_identity": "VerificationCases::VerificationCase",
+          "mechanism": "implied Subclassification",
+          "provenance": "implied",
+          "applies_to": "VerificationCaseDefinition"
+        },
+        "usage_role": {
+          "library_identity": "VerificationCases::verificationCases",
+          "mechanism": "implied Subsetting",
+          "provenance": "implied",
+          "applies_to": "VerificationCaseUsage"
+        },
+        "library_proof_step": "controlled standard-library proof: the licensed exporter resolves the pinned library anchors by their qualified names from the pinned Systems Library/VerificationCases.sysml document and records the resolved anchor identities in the export artifact; the read-back proves each implied edge targets exactly the recorded anchor with a uri into that document. The qualified names are used only by this controlled proof step — never as a general identity fallback.",
+        "anchor_policy": "run-pinned anchor evidence, not universal constants: no library UUID is recorded as a stable identity across revisions",
+        "evidence": {
+          "kind": "retained privileged full-model API ingestion run",
+          "run": "34576049742",
+          "candidate_revision": "0a23902370de9fc74d6118afe480382e0b0d8aa0",
+          "artifact": "full-model-api-ingestion-0a23902370de9fc74d6118afe480382e0b0d8aa0",
+          "scope": "standard-library grounding shape evidence only (implied edge shapes and metaclass separation); not a current exact-revision API closure"
+        }
+      },
+      "api_metaclasses": [
+        "VerificationCaseDefinition",
+        "VerificationCaseUsage"
+      ],
+      "api_metaclass_note": "recorded separately from the standard-library grounding; the metaclass alone is not the semantic proof (UG-28)",
+      "resolution": {
+        "identity": "ingestion-validated kernel binding: exactly one API element whose declaredName and @type match the governed declaration and whose serializer-recorded source document equals the bound source file; multiple candidates are ambiguous and zero candidates is unresolved (both fail closed); the runtime consumes the resulting KernelElementBinding through KernelBindingIndex, never a name-based fallback"
+      },
+      "witness_forms": [
+        "definition: toolchain-materialized implied Subclassification to the library definition anchor (general|superclassifier external reference; provenance implied)",
+        "usage: implied Subsetting to the library base-feature anchor (provenance implied)",
+        "objective: the definition's objective owns the verify targets through requirement-verification memberships inherited by the usages"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.api-representation-profile.v1.1#hasSubject",
+      "for_identity": "hasSubject",
+      "representation_class": "subject-membership-relationship",
+      "semantic_contract_echo": {
+        "domain": "Requirement",
+        "range": "MemberProduct",
+        "canonical_direction": "Requirement -> MemberProduct",
+        "semantic_strength": "native-reference",
+        "scope_restrictions": [
+          "the source must machine-resolve into the governed Requirement lineage",
+          "the subject member must machine-resolve into the governed MemberProduct lineage"
+        ]
+      },
+      "serializer_mechanics": {
+        "strategy": "subject-membership",
+        "membership_types": [
+          "SubjectMembership"
+        ],
+        "member_property": "memberElement",
+        "owner_types": [
+          "RequirementUsage"
+        ]
+      },
+      "resolution": {
+        "identity": "ingestion-validated kernel binding: exactly one API element whose declaredName and @type match the governed declaration and whose serializer-recorded source document equals the bound source file; multiple candidates are ambiguous and zero candidates is unresolved (both fail closed); the runtime consumes the resulting KernelElementBinding through KernelBindingIndex, never a name-based fallback",
+        "lineage": "validated lineage proof over the representation-tolerant relationship graph: the element's authored typing/classification chain plus the tool-derived implied subsumption edges resolve to the governed lineage root through the ingestion-validated kernel binding (KernelBindingIndex.element_id_for); explicit and implied grounding provenance stay separate; a missing validated binding fails closed and no name/path/string fallback exists"
+      },
+      "witness_forms": [
+        "SubjectMembership serializes with memberElement (the subject) and owningRelatedElement (the owner); memberName and ownedRelatedElement are compatible shapes",
+        "the subject member may serialize as ReferenceUsage or PartUsage; the member's authored FeatureTyping carries the product-line typing",
+        "lineage enforcement runs through the validated kernel binding index and the representation-tolerant relationship graph; explicit versus implied grounding provenance is preserved",
+        "a corrupted configuration (missing declared lineage) refuses to run instead of degrading silently"
+      ],
+      "mechanics_refs": {
+        "runtime_strategy": "subject-membership",
+        "lineage_resolver": "validated lineage proof through the kernel binding index and the representation-tolerant relationship graph (fail closed)"
+      },
+      "runtime_mapping_state": "existing-not-authority"
+    },
+    {
+      "profile_identity": "de4sdv.api-representation-profile.v1.1#verifiedBy",
+      "for_identity": "verifiedBy",
+      "representation_class": "verification-membership-relationship",
+      "semantic_contract_echo": {
+        "domain": "Requirement",
+        "range": "VerificationCase",
+        "canonical_direction": "Requirement -> VerificationCase",
+        "semantic_strength": "native-verification",
+        "scope_restrictions": [
+          "the anchored source must be machine-proven in the governed Requirement domain"
+        ]
+      },
+      "serializer_mechanics": {
+        "strategy": "verification-membership",
+        "membership_types": [
+          "RequirementVerificationMembership"
+        ],
+        "reference_property": "verifiedRequirement",
+        "direction": "reverse",
+        "element_types": [
+          "VerificationCaseUsage",
+          "VerificationCaseDefinition"
+        ],
+        "owner_membership_types": [
+          "FeatureMembership",
+          "OwningMembership",
+          "ObjectiveMembership",
+          "RequirementVerificationMembership"
+        ]
+      },
+      "resolution": {
+        "identity": "ingestion-validated kernel binding: exactly one API element whose declaredName and @type match the governed declaration and whose serializer-recorded source document equals the bound source file; multiple candidates are ambiguous and zero candidates is unresolved (both fail closed); the runtime consumes the resulting KernelElementBinding through KernelBindingIndex, never a name-based fallback",
+        "lineage": "validated lineage proof over the representation-tolerant relationship graph: the element's authored typing/classification chain plus the tool-derived implied subsumption edges resolve to the governed lineage root through the ingestion-validated kernel binding (KernelBindingIndex.element_id_for); explicit and implied grounding provenance stay separate; a missing validated binding fails closed and no name/path/string fallback exists"
+      },
+      "witness_forms": [
+        "RequirementVerificationMembership anchors the verified requirement through verifiedRequirement (derived; redefines referencedConstraint), with the ReferenceSubsetting shadow-reference bridge where the serializer references a shadow usage",
+        "the case is resolved from the membership's ownership chain (owner membership types FeatureMembership, OwningMembership, ObjectiveMembership, RequirementVerificationMembership), stopping only at a VerificationCaseUsage or VerificationCaseDefinition",
+        "direction extraction is reverse: the canonical Requirement -> VerificationCase navigation reads the single native witness backwards; the modeled fact never reverses",
+        "source-domain identity rule: candidate-first; direct Requirement-lineage grounding or the reviewed shadow bridge followed by the lineage proof; unresolved anchors fail closed; never name-based"
+      ],
+      "mechanics_refs": {
+        "runtime_strategy": "verification-membership",
+        "lineage_resolver": "validated lineage proof through the kernel binding index and the representation-tolerant relationship graph (fail closed)"
+      },
+      "runtime_mapping_state": "existing-not-authority"
+    }
+  ]
+}

@@ -1156,6 +1156,10 @@ class TestRepositoryGateWiring:
             "run_check_errors",
             return_value=[],
         ), mock.patch.object(
+            check_repo.generate_semantic_projection_o22,
+            "run_check_errors_o22",
+            return_value=[],
+        ), mock.patch.object(
             check_repo.generate_semantic_projection_v1,
             "run_check_errors",
             return_value=["sentinel projection v1 error"],
