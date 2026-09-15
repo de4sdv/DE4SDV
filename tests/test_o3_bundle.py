@@ -44,6 +44,20 @@ def _binding_for(root: Path, revision: str, *, project: str = "pid-1", commit: s
     )
 
 
+def _validation_records():
+    """Structured evidence records (paths are placeholders here; digest
+    re-verification against real files is exercised separately)."""
+    return {
+        name: {
+            "status": "passed",
+            "artifact": name,
+            "path": f"/tmp/test-{name}.json",
+            "sha256": "sha256:" + "c" * 64,
+        }
+        for name in ob.REQUIRED_VALIDATIONS
+    }
+
+
 def _closed_bundle(
     root: Path,
     revision: str,
@@ -59,11 +73,7 @@ def _closed_bundle(
         binding_sha256="sha256:" + "b" * 64,
         element_count=1,
         export_identity_sha256=None,
-        validations={
-            "full_model_semantic_queries": "passed",
-            "product_line_scope": "passed",
-            "semantic_mcp": "passed",
-        },
+        validations=_validation_records(),
         verification_case_grounding={"result": grounding},
         generated_at="1970-01-01T00:00:00+00:00",
     )
@@ -489,3 +499,134 @@ class TestAuthorityAwareCaches:
         assert other is not first, "different authority must miss the cache"
         assert len(viewer._SEMANTIC_CTX_CACHE) == 2
         viewer._SEMANTIC_CTX_CACHE.clear()
+
+
+class TestClosureEvidenceStrictness:
+    """BLOCKER B/C: closure records must be exactly-successful and
+    self-verifying — raw status text or a recorded digest string alone can
+    never close an executable bundle."""
+
+    def _closed(self, *, grounding="EQUIVALENT"):
+        return _closed_bundle(REPO_ROOT, "a" * 40, grounding=grounding)
+
+    def _closure(self, closed):
+        return closed["api_closure"]
+
+    def test_validation_status_must_be_exactly_passed(self) -> None:
+        for name in ob.REQUIRED_VALIDATIONS:
+            for status in ("failed", "error", "unknown", None):
+                closed, _binding, _digest = self._closed()
+                closure = self._closure(closed)
+                if status is None:
+                    closure["validation"][name].pop("status", None)
+                else:
+                    closure["validation"][name]["status"] = status
+                errors = ob.verify_bundle_document(closed, root=REPO_ROOT)
+                assert any(
+                    name in error and "passed" in error for error in errors
+                ), (name, status, errors)
+
+    def test_missing_validation_record_blocks(self) -> None:
+        closed, _binding, _digest = self._closed()
+        self._closure(closed)["validation"].pop("semantic_mcp")
+        errors = ob.verify_bundle_document(closed, root=REPO_ROOT)
+        assert any("semantic_mcp" in error for error in errors)
+
+    def test_validation_evidence_digest_reverification(self, tmp_path: Path) -> None:
+        files = {}
+        for name in ob.REQUIRED_VALIDATIONS:
+            path = tmp_path / f"{name}.json"
+            path.write_text('{"result": "passed"}', encoding="utf-8")
+            files[name] = path
+        binder = _binding_for(REPO_ROOT, "a" * 40)
+        bundle = ob.build_candidate_bundle(REPO_ROOT, git_revision="a" * 40)
+        attestation = ob.build_closure_attestation(
+            bundle,
+            binding=binder,
+            binding_sha256="sha256:" + "b" * 64,
+            element_count=1,
+            export_identity_sha256=None,
+            validations={
+                name: {
+                    "status": "passed",
+                    "artifact": name,
+                    "path": str(files[name]),
+                    "sha256": ob.sha256_file(files[name]),
+                }
+                for name in ob.REQUIRED_VALIDATIONS
+            },
+            verification_case_grounding={"result": "EQUIVALENT"},
+            generated_at="1970-01-01T00:00:00+00:00",
+        )
+        closed = ob.close_bundle(bundle, attestation)
+        assert (
+            ob.verify_bundle_document(
+                closed,
+                root=REPO_ROOT,
+                binding=binder,
+                binding_sha256="sha256:" + "b" * 64,
+                require_closed=True,
+                validation_artifacts=files,
+            )
+            == []
+        )
+        files["semantic_mcp"].write_text('{"result": "regressed"}', encoding="utf-8")
+        errors = ob.verify_bundle_document(
+            closed, root=REPO_ROOT, validation_artifacts=files
+        )
+        assert any("semantic_mcp" in error and "digest" in error for error in errors)
+        files["semantic_mcp"].unlink()
+        errors = ob.verify_bundle_document(
+            closed, root=REPO_ROOT, validation_artifacts=files
+        )
+        assert any("semantic_mcp" in error and "missing" in error for error in errors)
+
+    def test_activation_eligibility_is_recomputed(self) -> None:
+        closed, _binding, _digest = self._closed(grounding="NOT_YET_COMPARABLE")
+        closure = self._closure(closed)
+        assert closure["activation_eligible"] is False
+        closure["activation_eligible"] = True
+        errors = ob.verify_bundle_document(closed, root=REPO_ROOT)
+        assert any("activation_eligible" in error for error in errors)
+
+    def test_blocking_grounding_can_never_be_activation_eligible(self) -> None:
+        closed, _binding, _digest = self._closed(grounding="BLOCKING_MISMATCH")
+        closure = self._closure(closed)
+        assert closure["activation_eligible"] is False
+        closure["activation_eligible"] = True
+        errors = ob.verify_bundle_document(closed, root=REPO_ROOT)
+        assert any("BLOCKING_MISMATCH" in error for error in errors)
+
+    def test_eligible_true_requires_equivalent_grounding_and_passed_validations(
+        self,
+    ) -> None:
+        closed, _binding, _digest = self._closed(grounding="EQUIVALENT")
+        closure = self._closure(closed)
+        assert closure["activation_eligible"] is True
+        closure["validation"]["product_line_scope"]["status"] = "failed"
+        closure["activation_eligible"] = True
+        errors = ob.verify_bundle_document(closed, root=REPO_ROOT)
+        assert any("activation_eligible" in error for error in errors)
+
+    def test_closure_digest_must_reproduce_from_structured_fields(self) -> None:
+        closed, _binding, _digest = self._closed()
+        self._closure(closed)["import_closure_digest"] = "sha256:" + "d" * 64
+        errors = ob.verify_bundle_document(closed, root=REPO_ROOT)
+        assert any("does not reproduce" in error for error in errors)
+
+    def test_closure_components_are_self_verifying(self) -> None:
+        mutations = (
+            ("export_identity_sha256", "sha256:" + "e" * 64),
+            ("element_count", 2),
+            ("binding_sha256", "sha256:" + "f" * 64),
+            ("sysml_commit_id", "other-commit"),
+            ("sysml_project_id", "other-project"),
+        )
+        for field, value in mutations:
+            closed, _binding, _digest = self._closed()
+            self._closure(closed)[field] = value
+            errors = ob.verify_bundle_document(closed, root=REPO_ROOT)
+            assert any("does not reproduce" in error for error in errors), (
+                field,
+                errors,
+            )

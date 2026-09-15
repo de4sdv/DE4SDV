@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -322,6 +323,15 @@ def compute_import_closure_digest(
     )
 
 
+REQUIRED_VALIDATIONS = (
+    "full_model_semantic_queries",
+    "product_line_scope",
+    "semantic_mcp",
+)
+
+_VALIDATION_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+
 def build_closure_attestation(
     bundle: dict[str, Any],
     *,
@@ -329,11 +339,23 @@ def build_closure_attestation(
     binding_sha256: str,
     element_count: int,
     export_identity_sha256: str | None,
-    validations: dict[str, str],
+    validations: dict[str, dict[str, Any]],
     verification_case_grounding: dict[str, Any],
     generated_at: str,
 ) -> dict[str, Any]:
-    """Structured exact-revision API closure attestation for one bundle ID."""
+    """Structured exact-revision API closure attestation for one bundle ID.
+
+    Validation records are structured evidence bindings — each carries
+    ``status`` (must be exactly ``passed`` for an executable closure),
+    ``artifact`` (the validation evidence name), ``path`` and the ``sha256``
+    of the exact produced validation output. Raw CLI text alone can never
+    satisfy closure verification.
+    """
+    grounding_result = str(verification_case_grounding.get("result") or "")
+    validation_records = {name: dict(record) for name, record in validations.items()}
+    activation_eligible = grounding_result == "EQUIVALENT" and all(
+        record.get("status") == "passed" for record in validation_records.values()
+    )
     return {
         "schema": O3_ATTESTATION_SCHEMA,
         "bundle_id": bundle["bundle_id"],
@@ -351,7 +373,8 @@ def build_closure_attestation(
             element_count=int(element_count),
             export_identity_sha256=export_identity_sha256,
         ),
-        "validation": dict(validations),
+        "validation": validation_records,
+        "activation_eligible": activation_eligible,
         "verification_case_grounding": dict(verification_case_grounding),
         "generated_at": generated_at,
     }
@@ -381,12 +404,14 @@ def verify_bundle_document(
     binding: Any = None,
     binding_sha256: str | None = None,
     require_closed: bool = False,
+    validation_artifacts: dict[str, Path] | None = None,
 ) -> list[str]:
     """Verify a candidate bundle document against the checkout at ``root``.
 
     Returns a list of errors (empty = valid). ``require_closed`` makes the
     exact-revision API closure mandatory — the executable state. Any
-    mismatch fails closed.
+    mismatch fails closed. ``validation_artifacts`` re-verifies the recorded
+    validation evidence digests against the actual produced outputs.
     """
     errors: list[str] = []
     if bundle.get("schema") != O3_BUNDLE_SCHEMA:
@@ -448,7 +473,11 @@ def verify_bundle_document(
         if not isinstance(closure, dict):
             errors.append("closed bundle carries no API closure attestation")
         else:
-            errors.extend(_attestation_errors(closure))
+            errors.extend(
+                _attestation_errors(
+                    closure, validation_artifacts=validation_artifacts
+                )
+            )
             if binding is not None:
                 errors.extend(
                     _binding_closure_errors(
@@ -463,7 +492,11 @@ def verify_bundle_document(
     return errors
 
 
-def _attestation_errors(closure: dict[str, Any]) -> list[str]:
+def _attestation_errors(
+    closure: dict[str, Any],
+    *,
+    validation_artifacts: dict[str, Path] | None = None,
+) -> list[str]:
     errors: list[str] = []
     if closure.get("schema") != O3_ATTESTATION_SCHEMA:
         errors.append(f"closure attestation schema mismatch: {closure.get('schema')!r}")
@@ -477,16 +510,74 @@ def _attestation_errors(closure: dict[str, Any]) -> list[str]:
     ):
         if not closure.get(field):
             errors.append(f"closure attestation missing {field}")
-    validations = closure.get("validation")
-    if not isinstance(validations, dict) or not all(
-        str(validations.get(key) or "")
-        for key in (
-            "full_model_semantic_queries",
-            "product_line_scope",
-            "semantic_mcp",
+
+    # The closure digest must reproduce from its own structured fields —
+    # a recorded string is never accepted on its own.
+    element_count = closure.get("element_count")
+    if not isinstance(element_count, int) or isinstance(element_count, bool):
+        errors.append("closure attestation element_count is not an integer")
+    elif closure.get("import_closure_digest"):
+        expected_digest = compute_import_closure_digest(
+            git_revision=str(closure.get("git_revision") or ""),
+            binding_sha256=str(closure.get("binding_sha256") or ""),
+            sysml_project_id=str(closure.get("sysml_project_id") or ""),
+            sysml_commit_id=str(closure.get("sysml_commit_id") or ""),
+            element_count=element_count,
+            export_identity_sha256=closure.get("export_identity_sha256"),
         )
-    ):
+        if closure.get("import_closure_digest") != expected_digest:
+            errors.append(
+                "closure import_closure_digest does not reproduce from its "
+                "structured fields (tampered or inconsistent attestation)"
+            )
+
+    # Validation evidence: structured records with exactly-successful status
+    # bound to the exact produced output digests.
+    validations = closure.get("validation")
+    if not isinstance(validations, dict):
         errors.append("closure attestation lacks structured validation results")
+        validations = {}
+    for name in REQUIRED_VALIDATIONS:
+        record = validations.get(name)
+        if not isinstance(record, dict):
+            errors.append(f"validation {name} has no structured evidence record")
+            continue
+        status = record.get("status")
+        if status != "passed":
+            errors.append(
+                f"validation {name} status is not 'passed' (got {status!r}); "
+                "unresolved evidence can never close an executable bundle"
+            )
+        artifact = record.get("artifact")
+        if not isinstance(artifact, str) or not artifact:
+            errors.append(f"validation {name} record lacks an artifact name")
+        digest = record.get("sha256")
+        if not isinstance(digest, str) or not _VALIDATION_DIGEST_RE.match(digest):
+            errors.append(
+                f"validation {name} record lacks a well-formed sha256 digest "
+                "of the exact validation output"
+            )
+        if not isinstance(record.get("path"), str) or not record.get("path"):
+            errors.append(f"validation {name} record lacks the evidence path")
+        if validation_artifacts is not None and name in validation_artifacts:
+            path = Path(validation_artifacts[name])
+            if not path.is_file():
+                errors.append(
+                    f"validation {name} evidence artifact is missing: {path}"
+                )
+            elif isinstance(digest, str) and sha256_file(path) != digest:
+                errors.append(
+                    f"validation {name} evidence digest does not match the "
+                    "attested sha256 of the produced output"
+                )
+    for name, record in validations.items():
+        if name in REQUIRED_VALIDATIONS:
+            continue
+        if not isinstance(record, dict) or record.get("status") != "passed":
+            errors.append(
+                f"validation {name} record must carry an exactly-passed status"
+            )
+
     grounding = closure.get("verification_case_grounding")
     if not isinstance(grounding, dict) or grounding.get("result") not in (
         "EQUIVALENT",
@@ -494,6 +585,29 @@ def _attestation_errors(closure: dict[str, Any]) -> list[str]:
         "BLOCKING_MISMATCH",
     ):
         errors.append("closure attestation lacks a structured grounding result")
+
+    # Activation eligibility is recomputed, never accepted on trust.
+    recorded_eligible = closure.get("activation_eligible")
+    if not isinstance(recorded_eligible, bool):
+        errors.append("closure attestation lacks an explicit activation_eligible")
+    else:
+        grounding_result = (
+            str(grounding.get("result")) if isinstance(grounding, dict) else ""
+        )
+        expected_eligible = grounding_result == "EQUIVALENT" and all(
+            isinstance(record, dict) and record.get("status") == "passed"
+            for record in validations.values()
+        )
+        if recorded_eligible != expected_eligible:
+            errors.append(
+                "closure activation_eligible does not reproduce from the "
+                "grounding result and validation statuses"
+            )
+        if grounding_result == "BLOCKING_MISMATCH" and recorded_eligible:
+            errors.append(
+                "a BLOCKING_MISMATCH grounding result can never be activation "
+                "eligible"
+            )
     return errors
 
 
@@ -723,12 +837,14 @@ def load_o3_authority(
     binding: Any,
     binding_sha256: str,
     expected_git_revision: str | None = None,
+    validation_artifacts: dict[str, Path] | None = None,
 ) -> O3Authority:
     """Verify a CLOSED candidate bundle and build the authority façade.
 
     Unclosed bundles and any verification error fail closed. The resulting
     authority is the only provider for the migrated 13; all other identities
-    delegate to ``contract``.
+    delegate to ``contract``. ``validation_artifacts`` re-verifies the
+    closure's validation evidence against the actual produced outputs.
     """
     if isinstance(source, (str, Path)):
         bundle = json.loads(Path(source).read_text(encoding="utf-8"))
@@ -740,6 +856,7 @@ def load_o3_authority(
         binding=binding,
         binding_sha256=binding_sha256,
         require_closed=True,
+        validation_artifacts=validation_artifacts,
     )
     if expected_git_revision is not None and binding.git_commit != expected_git_revision:
         errors.append(

@@ -83,9 +83,11 @@ revision.
   closure attestation (`de4sdv.o3-api-closure-attestation/v1`):
   bundle_id, git_revision, binding digest, SysML project/commit, element
   count, export digest, import/export closure digest, structured validation
-  results (`full_model_semantic_queries`, `product_line_scope`,
-  `semantic_mcp`), the structured VerificationCase grounding result, and a
-  generation timestamp.
+  evidence records (`full_model_semantic_queries`, `product_line_scope`,
+  `semantic_mcp`) each carrying an exactly-`passed` status + artifact name
+  + path + the sha256 of the exact produced output, an explicit recomputed
+  `activation_eligible`, the structured VerificationCase grounding result,
+  and a generation timestamp.
 
 Candidate execution requires a closed bundle; an unclosed bundle fails
 closed (`load_o3_authority` refuses). A closure attesting
@@ -151,6 +153,18 @@ projection/profile chains     == recomputed from the checkout (path, schema,
                                  source revision, digest)
 runtime build identity        == recomputed from the checkout
 bundle_id                     == recomputed content digest
+import_closure_digest         == reproduced from the attestation's own
+                                 structured fields (a recorded string alone
+                                 is never accepted)
+required validation statuses  == "passed" EXACTLY (failed / error / unknown /
+                                 missing can never close an executable
+                                 bundle)
+validation evidence digests   == sha256 of the exact produced validation
+                                 outputs (re-verified against the artifacts
+                                 when they are available)
+activation_eligible           == recomputed (grounding EQUIVALENT AND every
+                                 required validation exactly passed); a
+                                 BLOCKING grounding is never eligible
 ```
 
 Any mismatch fails closed. Identity resolution still uses the
@@ -195,10 +209,24 @@ compared claim CLASS is the authority-declared strength class (the
 artifact-level claim text was compared statically by the readiness
 package).
 
-Class identities: all eight classes compare ingestion-validated kernel
-UUIDs + sysml types under both paths (never names); the seven file-mapped
-classes additionally compare declaration + source file. `VerificationCase`
-compares identity only; its grounding is the separate proof below.
+Class identities: the SEVEN file-mapped migrated classes compare
+ingestion-validated kernel UUIDs + sysml types + declaration + source file
+under both paths (never names). `VerificationCase` is native-grounded and
+NEVER passes through the file-mapped binder (which rejects native mappings
+by design — proven against the real `OntologyApiBinder`/`KernelContract`);
+its runtime result consumes the structured grounding proof:
+EQUIVALENT → EQUIVALENT, NOT_YET_COMPARABLE → NOT_YET_COMPARABLE,
+BLOCKING_MISMATCH → BLOCKING_MISMATCH, absent/unknown → NOT_YET_COMPARABLE.
+No ingestion kernel UUID is ever manufactured for the native mapping.
+
+One closure identity: the runner never recomputes a second closure digest.
+`compare` consumes the bundle-attested `import_closure_digest` after
+independently verifying it — self-reproduction from structured fields,
+binding digest, SysML project/commit, git revision, chain/runtime
+identities, strict validation evidence re-verified against the produced
+outputs — and requires the live element count to equal the attested
+ingestion closure. The report and BOTH manifests carry that same digest;
+any divergence fails closed before a report exists.
 
 K pair: the runner compares the exact same-revision witness population
 old-vs-new (must be equal), machine-locks ONE modeled fact / TWO
@@ -207,9 +235,14 @@ separately flags drift from the reviewed O2.3 baseline count (the baseline
 statement is carried into the report for review; the constant is
 test-locked against the artifact).
 
-Exit codes: `compare` returns 1 only for `BLOCKING_MISMATCH`;
-`NOT_YET_COMPARABLE` is archived with diagnostics (activation remains
-blocked regardless).
+Exit codes: `compare` is GREEN only for a fully `EQUIVALENT` result; every
+other classification (`NOT_YET_COMPARABLE`,
+`INTENTIONAL_MIGRATION_REVIEW_REQUIRED`, `UNSUPPORTED_BOTH`,
+`BLOCKING_MISMATCH`) exits non-zero while STILL writing the structured
+report. `bundle` exits non-zero on closure errors or a BLOCKING grounding;
+it may close a `NOT_YET_COMPARABLE` bundle so the comparison machinery can
+run, with `activation_eligible` explicitly `false`, and the compare step
+owns final workflow success.
 
 ## 9. VerificationCase grounding proof
 

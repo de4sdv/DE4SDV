@@ -10,12 +10,20 @@ structure, never by name text alone.
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import importlib.util
+import json
 import sys
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
+from de4sdv.semantic import o3_bundle as ob
 from de4sdv.semantic import o3_equivalence as oe
+from de4sdv.sysml_api.revisions import OntologyIdentity
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,6 +33,56 @@ _spec = importlib.util.spec_from_file_location(
 assert _spec is not None and _spec.loader is not None
 runner = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(runner)
+
+_BINDING_DIGEST = "sha256:" + "b" * 64
+
+
+def _attested_binding(
+    root: Path, revision: str, *, project: str = "pid", commit: str = "cid"
+):
+    ontology_sha = hashlib.sha256((root / ob.ONTOLOGY_PATH).read_bytes()).hexdigest()
+    return SimpleNamespace(
+        git_commit=revision,
+        semantic_validation="passed",
+        sysml_project_id=project,
+        sysml_commit_id=commit,
+        ontology=OntologyIdentity(ob.ONTOLOGY_PATH, ontology_sha),
+        kernel_bindings=(),
+        scope="full-model",
+    )
+
+
+def _evidence_records(evidence_dir: Path):
+    """Structured validation evidence records bound to REAL produced files."""
+    records = {}
+    for name in ob.REQUIRED_VALIDATIONS:
+        path = evidence_dir / f"{name}.json"
+        path.write_text(json.dumps({"result": "passed"}), encoding="utf-8")
+        records[name] = {
+            "status": "passed",
+            "artifact": name,
+            "path": str(path),
+            "sha256": ob.sha256_file(path),
+        }
+    return records
+
+
+def _closed_bundle(*, grounding="EQUIVALENT", export=None):
+    revision = "a" * 40
+    binding = _attested_binding(REPO_ROOT, revision)
+    bundle = ob.build_candidate_bundle(REPO_ROOT, git_revision=revision)
+    evidence_dir = Path(tempfile.mkdtemp(prefix="o3-evidence-"))
+    attestation = ob.build_closure_attestation(
+        bundle,
+        binding=binding,
+        binding_sha256=_BINDING_DIGEST,
+        element_count=1,
+        export_identity_sha256=export,
+        validations=_evidence_records(evidence_dir),
+        verification_case_grounding={"result": grounding},
+        generated_at="1970-01-01T00:00:00+00:00",
+    )
+    return ob.close_bundle(bundle, attestation), binding
 
 
 class _Mapping:
@@ -51,8 +109,16 @@ class _Traversal:
 class _Binder:
     def __init__(self, class_ids):
         self._class_ids = class_ids
+        self.calls: list[str] = []
 
     def bind_class(self, name):
+        self.calls.append(name)
+        if name == "VerificationCase":
+            # Mirrors the REAL OntologyApiBinder/KernelContract contract: the
+            # file-mapped binder rejects native mappings. Any O3 code path
+            # that calls this for VerificationCase must fail, not silently
+            # receive a manufactured identity.
+            raise ValueError("ontology class VerificationCase is not file-mapped")
         element_id_value, sysml_type = self._class_ids[name]
         return SimpleNamespace(
             sysml=SimpleNamespace(
@@ -599,3 +665,283 @@ class TestSupportSeparation:
         assert evidence["artifact_support_preservation"]["classification"] == (
             "BLOCKING_MISMATCH"
         )
+
+
+class TestClassIdentityComparison:
+    """BLOCKER A: seven file-mapped classes go through the file-mapped
+    binder; VerificationCase consumes the grounding proof and NEVER touches
+    the file binder (the fake binder raises if it is ever called)."""
+
+    def _services(self):
+        return (
+            _fake_service(authority="de4sdv.o0-o1-authored-v1"),
+            _fake_service(authority="o3-candidate:o3b-test"),
+        )
+
+    def test_seven_file_classes_compare_and_vc_never_uses_the_binder(self):
+        old, new = self._services()
+        result = runner.compare_class_identities(
+            old, new, verification_case_grounding={"result": "EQUIVALENT"}
+        )
+        assert result["classification"] == "EQUIVALENT"
+        assert result["identities"]["VerificationCase"]["classification"] == "EQUIVALENT"
+        assert "VerificationCase" not in old.binder.calls
+        assert "VerificationCase" not in new.binder.calls
+        assert sorted(old.binder.calls) == sorted(runner.FILE_MAPPED_CLASSES)
+
+    def test_vc_grounding_classification_passthrough(self):
+        old, new = self._services()
+        for grounding, expected in (
+            ("NOT_YET_COMPARABLE", "NOT_YET_COMPARABLE"),
+            ("BLOCKING_MISMATCH", "BLOCKING_MISMATCH"),
+            ("EQUIVALENT", "EQUIVALENT"),
+        ):
+            result = runner.compare_class_identities(
+                old, new, verification_case_grounding={"result": grounding}
+            )
+            assert result["identities"]["VerificationCase"]["classification"] == expected
+
+    def test_absent_or_unknown_grounding_is_not_yet_comparable(self):
+        old, new = self._services()
+        result = runner.compare_class_identities(
+            old, new, verification_case_grounding=None
+        )
+        assert (
+            result["identities"]["VerificationCase"]["classification"]
+            == "NOT_YET_COMPARABLE"
+        )
+        assert result["classification"] == "NOT_YET_COMPARABLE"
+
+    def test_file_class_mismatch_is_never_downgraded_by_vc(self):
+        old = _fake_service(authority="old")
+        class_ids = dict(old.binder._class_ids)
+        class_ids["MethodPhase"] = ("uuid-other", "EnumerationDefinition")
+        new = _fake_service(authority="new", class_ids=class_ids)
+        result = runner.compare_class_identities(
+            old, new, verification_case_grounding={"result": "NOT_YET_COMPARABLE"}
+        )
+        assert result["classification"] == "BLOCKING_MISMATCH"
+
+    def test_real_file_binder_rejects_verification_case(self):
+        from de4sdv.semantic.api_binding import OntologyApiBinder
+        from de4sdv.semantic.kernel_contract import KernelContract
+
+        contract = KernelContract.load(REPO_ROOT / ob.ONTOLOGY_PATH)
+        binder = OntologyApiBinder(
+            contract,
+            SimpleNamespace(),
+            project_id="pid",
+            commit_id="cid",
+            kernel_bindings=None,
+        )
+        with pytest.raises(ValueError, match="not file-mapped"):
+            binder.bind_class("VerificationCase")
+
+    def test_scope_partition_is_exact(self):
+        assert "VerificationCase" in runner.CLASS_IDENTITIES
+        assert "VerificationCase" not in runner.FILE_MAPPED_CLASSES
+        assert len(runner.FILE_MAPPED_CLASSES) == 7
+
+
+class TestSingleClosureIdentity:
+    """BLOCKER C/D: exactly ONE import/export closure identity across
+    bundle, report and manifests; unresolved comparisons exit non-zero."""
+
+    def test_resolves_the_bundle_attested_closure(self):
+        closed, binding = _closed_bundle()
+        digest = runner.resolve_attested_closure(
+            closed,
+            binding=binding,
+            binding_sha256=_BINDING_DIGEST,
+            element_count=1,
+        )
+        assert digest == closed["api_closure"]["import_closure_digest"]
+
+    def test_element_count_mismatch_blocks(self):
+        closed, binding = _closed_bundle()
+        with pytest.raises(ob.O3BundleError, match="element count"):
+            runner.resolve_attested_closure(
+                closed,
+                binding=binding,
+                binding_sha256=_BINDING_DIGEST,
+                element_count=2,
+            )
+
+    def test_binding_digest_mismatch_blocks(self):
+        closed, binding = _closed_bundle()
+        with pytest.raises(ob.O3BundleError, match="binding digest"):
+            runner.resolve_attested_closure(
+                closed,
+                binding=binding,
+                binding_sha256="sha256:" + "9" * 64,
+                element_count=1,
+            )
+
+    def test_tampered_closure_digest_blocks(self):
+        closed, binding = _closed_bundle()
+        closed["api_closure"]["import_closure_digest"] = "sha256:" + "d" * 64
+        with pytest.raises(ob.O3BundleError, match="failed verification"):
+            runner.resolve_attested_closure(
+                closed,
+                binding=binding,
+                binding_sha256=_BINDING_DIGEST,
+                element_count=1,
+            )
+
+    def test_different_export_identity_changes_and_protects_the_closure(self):
+        first, _ = _closed_bundle(export="sha256:" + "1" * 64)
+        second, _ = _closed_bundle(export="sha256:" + "2" * 64)
+        assert (
+            first["api_closure"]["import_closure_digest"]
+            != second["api_closure"]["import_closure_digest"]
+        )
+        first["api_closure"]["export_identity_sha256"] = "sha256:" + "2" * 64
+        with pytest.raises(ob.O3BundleError, match="failed verification"):
+            runner.resolve_attested_closure(
+                first,
+                binding=_attested_binding(REPO_ROOT, "a" * 40),
+                binding_sha256=_BINDING_DIGEST,
+                element_count=1,
+            )
+
+    def test_report_requires_the_single_attested_closure(self):
+        closed, binding = _closed_bundle()
+        old = _fake_service(authority="de4sdv.o0-o1-authored-v1")
+        new = _fake_service(authority="o3-candidate:o3b-test")
+        with pytest.raises(ob.O3BundleError, match="ONE closure identity"):
+            runner.build_runtime_equivalence_report(
+                old,
+                new,
+                root=REPO_ROOT,
+                bundle=closed,
+                binding=binding,
+                binding_sha256=_BINDING_DIGEST,
+                import_closure_digest="sha256:" + "e" * 64,
+                git_revision="a" * 40,
+                verification_case_grounding={"result": "EQUIVALENT"},
+                generated_at="t",
+            )
+
+    def _full_report(self, *, grounding):
+        closed, binding = _closed_bundle()
+        digest = closed["api_closure"]["import_closure_digest"]
+        old = _fake_service(authority="de4sdv.o0-o1-authored-v1")
+        new = _fake_service(authority="o3-candidate:o3b-test")
+        return runner.build_runtime_equivalence_report(
+            old,
+            new,
+            root=REPO_ROOT,
+            bundle=closed,
+            binding=binding,
+            binding_sha256=_BINDING_DIGEST,
+            import_closure_digest=digest,
+            git_revision="a" * 40,
+            verification_case_grounding={"result": grounding},
+            generated_at="t",
+        )
+
+    def test_one_closure_digest_everywhere_and_equivalent_is_green(self):
+        report = self._full_report(grounding="EQUIVALENT")
+        assert report["overall"] == "EQUIVALENT"
+        assert report["import_closure_digest"] == report["manifests"]["old"][
+            "import_closure_digest"
+        ]
+        assert report["import_closure_digest"] == report["manifests"]["new"][
+            "import_closure_digest"
+        ]
+        assert runner.compare_exit_code(report) == 0
+
+    def test_not_yet_comparable_report_exits_non_zero(self):
+        report = self._full_report(grounding="NOT_YET_COMPARABLE")
+        assert report["overall"] == "NOT_YET_COMPARABLE"
+        assert runner.compare_exit_code(report) != 0
+
+    def test_blocking_report_exits_non_zero(self):
+        report = self._full_report(grounding="BLOCKING_MISMATCH")
+        assert report["overall"] == "BLOCKING_MISMATCH"
+        assert runner.compare_exit_code(report) != 0
+
+
+class TestExitRules:
+    def test_compare_exit_codes(self):
+        assert runner.compare_exit_code({"overall": "EQUIVALENT"}) == 0
+        for classification in (
+            "BLOCKING_MISMATCH",
+            "NOT_YET_COMPARABLE",
+            "INTENTIONAL_MIGRATION_REVIEW_REQUIRED",
+            "UNSUPPORTED_BOTH",
+            "unknown",
+        ):
+            assert runner.compare_exit_code({"overall": classification}) != 0
+
+    def test_bundle_exit_codes(self):
+        assert (
+            runner.bundle_exit_code(
+                closure_errors=[], grounding_result="EQUIVALENT"
+            )
+            == 0
+        )
+        # comparison-capable: NOT_YET_COMPARABLE may close for the compare
+        # step (activation_eligible stays false); compare owns final success
+        assert (
+            runner.bundle_exit_code(
+                closure_errors=[], grounding_result="NOT_YET_COMPARABLE"
+            )
+            == 0
+        )
+        assert (
+            runner.bundle_exit_code(
+                closure_errors=[], grounding_result="BLOCKING_MISMATCH"
+            )
+            != 0
+        )
+        assert (
+            runner.bundle_exit_code(
+                closure_errors=["closure mismatch"], grounding_result="EQUIVALENT"
+            )
+            != 0
+        )
+
+
+class TestValidationEvidenceRecords:
+    def _args(self, *, status="passed", artifacts=True, tmp_path):
+        validation = []
+        validation_artifact = []
+        for name in ob.REQUIRED_VALIDATIONS:
+            validation.append(f"{name}={status}")
+            if artifacts:
+                path = tmp_path / f"{name}.json"
+                path.write_text(json.dumps({"result": status}), encoding="utf-8")
+                validation_artifact.append(f"{name}={path}")
+        return argparse.Namespace(
+            validation=validation, validation_artifact=validation_artifact
+        )
+
+    def test_records_bind_status_artifact_and_digest(self, tmp_path) -> None:
+        records = runner.bundle_validation_records(self._args(tmp_path=tmp_path))
+        for name in ob.REQUIRED_VALIDATIONS:
+            record = records[name]
+            assert record["status"] == "passed"
+            assert record["artifact"] == name
+            assert record["sha256"] == ob.sha256_file(
+                tmp_path / f"{name}.json"
+            )
+
+    def test_failed_status_is_refused(self, tmp_path) -> None:
+        with pytest.raises(SystemExit):
+            runner.bundle_validation_records(
+                self._args(status="failed", tmp_path=tmp_path)
+            )
+
+    def test_missing_artifact_binding_is_refused(self, tmp_path) -> None:
+        with pytest.raises(SystemExit):
+            runner.bundle_validation_records(
+                self._args(artifacts=False, tmp_path=tmp_path)
+            )
+
+    def test_missing_artifact_file_is_refused(self, tmp_path) -> None:
+        args = self._args(tmp_path=tmp_path)
+        for name in ob.REQUIRED_VALIDATIONS:
+            (tmp_path / f"{name}.json").unlink()
+        with pytest.raises(SystemExit):
+            runner.bundle_validation_records(args)

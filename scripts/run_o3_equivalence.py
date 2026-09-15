@@ -73,6 +73,35 @@ CLASS_IDENTITIES = (
     "VerificationCase",
 )
 
+#: ``VerificationCase`` is native-grounded. It must NEVER pass through the
+#: file-mapped binder (``OntologyApiBinder.bind_class`` rejects native
+#: mappings by design); its runtime-equivalence identity consumes the
+#: structured standard-library grounding proof instead.
+NATIVE_CLASS_IDENTITY = "VerificationCase"
+
+#: The seven file-mapped migrated classes: their runtime identity resolves
+#: through the file-mapped kernel binder (declaration + source file +
+#: API metaclass + ingestion-validated kernel UUID).
+FILE_MAPPED_CLASSES = tuple(
+    name for name in CLASS_IDENTITIES if name != NATIVE_CLASS_IDENTITY
+)
+
+
+_CLASSIFICATION_SEVERITY = {
+    "EQUIVALENT": 0,
+    "UNSUPPORTED_BOTH": 1,
+    "NOT_YET_COMPARABLE": 2,
+    "INTENTIONAL_MIGRATION_REVIEW_REQUIRED": 3,
+    "BLOCKING_MISMATCH": 4,
+}
+
+
+def _worst_classification(*classifications: str) -> str:
+    """Severity-ordered merge of comparison classifications."""
+    return max(
+        classifications, key=lambda value: _CLASSIFICATION_SEVERITY.get(value, 4)
+    )
+
 
 def _git_head(root: Path) -> str:
     result = subprocess.run(
@@ -510,11 +539,31 @@ def k_pair_evidence(
     return evidence
 
 
-def compare_class_identities(old_service, new_service) -> dict[str, Any]:
-    """Class identity resolution under both authority paths (UUID-based)."""
+def compare_class_identities(
+    old_service,
+    new_service,
+    *,
+    verification_case_grounding: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Class identity resolution under both authority paths.
+
+    Seven file-mapped classes resolve through the file-mapped kernel binder
+    and are compared on declaration identity, source file, API metaclass and
+    ingestion-validated kernel UUID.
+
+    ``VerificationCase`` is native-grounded and NEVER touches the file-mapped
+    binder (``OntologyApiBinder.bind_class`` rejects native mappings by
+    design). Its per-identity runtime result consumes the structured
+    standard-library grounding proof:
+
+    grounding EQUIVALENT         -> EQUIVALENT
+    grounding NOT_YET_COMPARABLE -> NOT_YET_COMPARABLE
+    grounding BLOCKING_MISMATCH  -> BLOCKING_MISMATCH
+    grounding absent/unknown     -> NOT_YET_COMPARABLE
+    """
     results: dict[str, Any] = {}
     classification = "EQUIVALENT"
-    for name in CLASS_IDENTITIES:
+    for name in FILE_MAPPED_CLASSES:
         old_binding = old_service.binder.bind_class(name)
         new_binding = new_service.binder.bind_class(name)
         old_mapping = old_service.contract.mapping(name)
@@ -524,29 +573,41 @@ def compare_class_identities(old_service, new_service) -> dict[str, Any]:
             "new_element_id": new_binding.sysml.element_id,
             "old_sysml_type": old_binding.sysml.type,
             "new_sysml_type": new_binding.sysml.type,
+            "old_declaration": getattr(old_mapping, "declaration", None),
+            "new_declaration": getattr(new_mapping, "declaration", None),
+            "old_source_file": getattr(old_mapping, "file", None),
+            "new_source_file": getattr(new_mapping, "file", None),
         }
         ok = (
             entry["old_element_id"] == entry["new_element_id"]
             and entry["old_sysml_type"] == entry["new_sysml_type"]
+            and entry["old_declaration"] == entry["new_declaration"]
+            and entry["old_source_file"] == entry["new_source_file"]
         )
-        if name != "VerificationCase":
-            entry["old_declaration"] = getattr(old_mapping, "declaration", None)
-            entry["new_declaration"] = getattr(new_mapping, "declaration", None)
-            entry["old_source_file"] = getattr(old_mapping, "file", None)
-            entry["new_source_file"] = getattr(new_mapping, "file", None)
-            ok = ok and (
-                entry["old_declaration"] == entry["new_declaration"]
-                and entry["old_source_file"] == entry["new_source_file"]
-            )
-        else:
-            entry["grounding"] = (
-                "native construct; the standard-library grounding proof is "
-                "reported separately"
-            )
         entry["classification"] = "EQUIVALENT" if ok else "BLOCKING_MISMATCH"
         if not ok:
-            classification = "BLOCKING_MISMATCH"
+            classification = _worst_classification(classification, "BLOCKING_MISMATCH")
         results[name] = entry
+
+    grounding = verification_case_grounding or {}
+    grounding_result = str(grounding.get("result") or "")
+    if grounding_result not in ("EQUIVALENT", "NOT_YET_COMPARABLE", "BLOCKING_MISMATCH"):
+        grounding_result = "NOT_YET_COMPARABLE"
+    results[NATIVE_CLASS_IDENTITY] = {
+        "classification": grounding_result,
+        "mechanism": (
+            "native construct identity + governed type population "
+            "(VerificationCaseDefinition / VerificationCaseUsage) + "
+            "exact-revision standard-library grounding proof "
+            "(VerificationCases::VerificationCase implied Subclassification; "
+            "VerificationCases::verificationCases implied Subsetting); "
+            "no file-mapped binder, no manufactured ingestion kernel UUID"
+        ),
+        "grounding_result": grounding_result,
+        "grounding": grounding or None,
+    }
+    if grounding_result != "EQUIVALENT":
+        classification = _worst_classification(classification, grounding_result)
     return {"classification": classification, "identities": results}
 
 
@@ -622,6 +683,18 @@ def build_runtime_equivalence_report(
     generated_at: str,
 ) -> dict[str, Any]:
     """The full same-revision equivalence report over both authority paths."""
+    attested_closure = str(
+        (bundle.get("api_closure") or {}).get("import_closure_digest") or ""
+    )
+    if not attested_closure:
+        raise ob.O3BundleError(
+            "report requires the bundle-attested import/export closure digest"
+        )
+    if import_closure_digest != attested_closure:
+        raise ob.O3BundleError(
+            "report import_closure_digest differs from the bundle-attested "
+            "closure; exactly ONE closure identity is permitted"
+        )
     elements = _elements_of(new_service)
     runtime_build = ob.compute_runtime_build(root)
     old_collected: dict[str, dict[str, Any]] = {}
@@ -667,7 +740,11 @@ def build_runtime_equivalence_report(
     manifest_errors = oe.validate_manifest_pair(manifests["old"], manifests["new"])
 
     k_evidence = k_pair_evidence(old_collected, new_collected)
-    classes = compare_class_identities(old_service, new_service)
+    classes = compare_class_identities(
+        old_service,
+        new_service,
+        verification_case_grounding=verification_case_grounding,
+    )
     projection_documents = [
         json.loads((root / rel).read_text(encoding="utf-8"))
         for rel, _schema in ob.PROJECTION_CHAIN
@@ -698,12 +775,11 @@ def build_runtime_equivalence_report(
         )
 
     classifications = [entry["classification"] for entry in per_identity.values()]
-    overall = "EQUIVALENT"
-    if manifest_errors or "BLOCKING_MISMATCH" in classifications:
+    if manifest_errors:
         overall = "BLOCKING_MISMATCH"
-    elif grounding_blocked:
-        overall = "NOT_YET_COMPARABLE"
-    if "NOT_YET_COMPARABLE" in classifications and overall == "EQUIVALENT":
+    elif classifications:
+        overall = _worst_classification(*classifications)
+    else:
         overall = "NOT_YET_COMPARABLE"
 
     report = {
@@ -775,6 +851,116 @@ def _require_exact_revision(requested: str, root: Path) -> str:
     return head
 
 
+def bundle_validation_records(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
+    """Structured validation evidence records for the closure attestation.
+
+    Each required validation must be exactly ``passed`` AND bound to the
+    sha256 of its exact produced output file — raw CLI status text alone can
+    never close an executable bundle.
+    """
+    statuses = dict(item.split("=", 1) for item in args.validation)
+    artifacts = dict(item.split("=", 1) for item in args.validation_artifact)
+    records: dict[str, dict[str, Any]] = {}
+    for name in ob.REQUIRED_VALIDATIONS:
+        status = statuses.get(name)
+        if status != "passed":
+            raise SystemExit(
+                f"validation {name} status must be exactly 'passed' "
+                f"(got {status!r}); unresolved evidence cannot close an "
+                "executable bundle"
+            )
+        path = artifacts.get(name)
+        if not path:
+            raise SystemExit(
+                f"validation {name} requires --validation-artifact "
+                f"{name}=<path> evidence binding"
+            )
+        artifact_path = Path(path)
+        if not artifact_path.is_file():
+            raise SystemExit(f"validation {name} evidence artifact is missing: {path}")
+        records[name] = {
+            "status": "passed",
+            "artifact": name,
+            "path": str(artifact_path),
+            "sha256": ob.sha256_file(artifact_path),
+        }
+    return records
+
+
+def resolve_attested_closure(
+    bundle: dict[str, Any],
+    *,
+    binding: Any,
+    binding_sha256: str,
+    element_count: int,
+) -> str:
+    """THE one import/export closure identity for the comparison run.
+
+    Independently verifies the bundle-attested closure (digest self-
+    reproduction, binding digest, SysML project/commit, git revision, chain
+    and runtime identities, strict validation evidence re-verified against
+    the produced outputs) and the live element count; returns the attested
+    digest. Fails closed on any divergence.
+    """
+    closure = bundle.get("api_closure") if isinstance(bundle, dict) else None
+    if not isinstance(closure, dict):
+        raise ob.O3BundleError(
+            "runtime comparison requires the bundle-attested API closure"
+        )
+    artifacts: dict[str, Path] = {}
+    records = closure.get("validation")
+    if isinstance(records, dict):
+        for name in ob.REQUIRED_VALIDATIONS:
+            record = records.get(name)
+            if isinstance(record, dict) and record.get("path"):
+                artifacts[name] = Path(str(record["path"]))
+    errors = ob.verify_bundle_document(
+        bundle,
+        root=ROOT,
+        binding=binding,
+        binding_sha256=binding_sha256,
+        require_closed=True,
+        validation_artifacts=artifacts or None,
+    )
+    if errors:
+        raise ob.O3BundleError(
+            "bundle-attested closure failed verification: " + "; ".join(errors)
+        )
+    recorded_count = closure.get("element_count")
+    if not isinstance(recorded_count, int) or isinstance(recorded_count, bool):
+        raise ob.O3BundleError("bundle closure element count is not an integer")
+    if recorded_count != int(element_count):
+        raise ob.O3BundleError(
+            "bundle closure element count differs from the live validated "
+            "boundary; the import/export closure cannot be reproduced"
+        )
+    return str(closure["import_closure_digest"])
+
+
+def compare_exit_code(report: dict[str, Any]) -> int:
+    """Only a fully EQUIVALENT privileged comparison run is successful.
+
+    NOT_YET_COMPARABLE, INTENTIONAL_MIGRATION_REVIEW_REQUIRED,
+    UNSUPPORTED_BOTH and BLOCKING_MISMATCH all fail the privileged evidence
+    gate; the structured report is written before exiting either way.
+    """
+    return 0 if report.get("overall") == "EQUIVALENT" else 2
+
+
+def bundle_exit_code(*, closure_errors: list[str], grounding_result: str) -> int:
+    """Bundle mode exit: a BLOCKING grounding or closure error is non-green.
+
+    A NOT_YET_COMPARABLE grounding may still produce a comparison-capable
+    closed bundle (activation_eligible stays false) so the comparison
+    machinery can run; the compare step owns final success.
+    """
+    if closure_errors:
+        return 1
+    if grounding_result == "BLOCKING_MISMATCH":
+        return 2
+    return 0
+
+
 def run_bundle(args: argparse.Namespace) -> int:
     """Build the candidate bundle core, run the grounding proof, close it."""
     from de4sdv.sysml_api.revisions import RevisionBinding
@@ -796,7 +982,7 @@ def run_bundle(args: argparse.Namespace) -> int:
         export_identity_sha256 = "sha256:" + hashlib.sha256(
             Path(args.export).read_bytes()
         ).hexdigest()
-    validations = dict(validation.split("=", 1) for validation in args.validation)
+    validations = bundle_validation_records(args)
     attestation = ob.build_closure_attestation(
         bundle,
         binding=binding,
@@ -808,12 +994,16 @@ def run_bundle(args: argparse.Namespace) -> int:
         generated_at=datetime.now(timezone.utc).isoformat(),
     )
     closed = ob.close_bundle(bundle, attestation)
+    validation_artifacts = {
+        name: Path(str(record["path"])) for name, record in validations.items()
+    }
     errors = ob.verify_bundle_document(
         closed,
         root=ROOT,
         binding=binding,
         binding_sha256=_binding_sha256(args.binding),
         require_closed=True,
+        validation_artifacts=validation_artifacts,
     )
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -829,8 +1019,11 @@ def run_bundle(args: argparse.Namespace) -> int:
     print(f"bundle id: {closed['bundle_id']}")
     print(f"git revision: {revision}")
     print(f"grounding proof: {grounding['result']}")
+    print(f"activation_eligible: {attestation['activation_eligible']}")
     print(f"closure verification errors: {errors or 'none'}")
-    return 1 if errors else 0
+    return bundle_exit_code(
+        closure_errors=errors, grounding_result=str(grounding["result"])
+    )
 
 
 def run_compare(args: argparse.Namespace) -> int:
@@ -859,13 +1052,11 @@ def run_compare(args: argparse.Namespace) -> int:
             else None
         ),
     )
-    import_closure_digest = ob.compute_import_closure_digest(
-        git_revision=revision,
+    import_closure_digest = resolve_attested_closure(
+        bundle,
+        binding=binding,
         binding_sha256=binding_digest,
-        sysml_project_id=str(binding.sysml_project_id),
-        sysml_commit_id=str(binding.sysml_commit_id),
         element_count=len(elements),
-        export_identity_sha256=None,
     )
     report = build_runtime_equivalence_report(
         old_service,
@@ -889,7 +1080,7 @@ def run_compare(args: argparse.Namespace) -> int:
     if report["diagnostics"]:
         for diagnostic in report["diagnostics"]:
             print(f"  diagnostic: {diagnostic}")
-    return 1 if report["overall"] == "BLOCKING_MISMATCH" else 0
+    return compare_exit_code(report)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -905,7 +1096,18 @@ def main(argv: list[str] | None = None) -> int:
     bundle_parser.add_argument("--output-dir", required=True)
     bundle_parser.add_argument("--element-sources", default=None)
     bundle_parser.add_argument("--export", default=None)
-    bundle_parser.add_argument("--validation", action="append", default=[])
+    bundle_parser.add_argument(
+        "--validation",
+        action="append",
+        default=[],
+        help="name=status (must be exactly 'passed' for all required validations)",
+    )
+    bundle_parser.add_argument(
+        "--validation-artifact",
+        action="append",
+        default=[],
+        help="name=path of the exact produced validation output (sha256-bound)",
+    )
 
     compare_parser = subparsers.add_parser(
         "compare", help="same-revision old-vs-new runtime equivalence report"

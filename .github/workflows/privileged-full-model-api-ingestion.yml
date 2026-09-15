@@ -240,6 +240,7 @@ jobs:
         # O3 Stage A evidence: candidate machinery only — no activation, no
         # authority switch, no YAML retirement. Exact-revision only: the
         # runner refuses any revision other than the checked-out SHA.
+        # Validation evidence is sha256-bound to the exact produced outputs.
         run: |
           mkdir -p /tmp/o3
           python scripts/run_o3_equivalence.py bundle \
@@ -250,7 +251,10 @@ jobs:
             --export /tmp/de4sdv-full-model-export.json \
             --validation full_model_semantic_queries=passed \
             --validation product_line_scope=passed \
-            --validation semantic_mcp=passed
+            --validation semantic_mcp=passed \
+            --validation-artifact full_model_semantic_queries=/tmp/de4sdv-full-model-semantic-validation.json \
+            --validation-artifact product_line_scope=/tmp/de4sdv-product-line-scope-validation.json \
+            --validation-artifact semantic_mcp=/tmp/de4sdv-semantic-mcp-validation.json
 
       - name: Run same-revision O3 runtime equivalence comparison
         run: |
