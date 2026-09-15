@@ -29,22 +29,30 @@ never-emitted.
 
 ## Delivery
 
-**Stage A (this PR)**: additive implementation foundation —
+**Stage A**: additive implementation foundation —
 `de4sdv/semantic/projection_o23.py`, `scripts/generate_semantic_projection_o23.py`,
 `docs/method-conformance/o2/o23-admission.yaml`, this design record, and
 `tests/test_semantic_projection_o23.py`; plus the minimum deliberate
 allowlist updates in three existing guard scans that enumerate build-time
-semantic modules (documented in each test). No canonical v1.2 artifacts, no
-`check_repo.py` registration.
+semantic modules (documented in each test). Stage A was squash-merged as
+`b6db63643a7613f1582b72a1d6daf43d64fd206b` (PR #255).
 
-**Stage B (after Stage-A squash-merge)**: the permanent resulting `main`
-commit becomes the O2.3 `source_revision`; `semantic-projection-v1.2.json`
-and `api-representation-profile-v1.2.json` are generated bound to that
-revision, committed, and the v1.2 `--check` gate is registered in
-`scripts/check_repo.py` together with the committed-artifact tests. Topology:
-Stage A squash → X = permanent `main`; Stage B artifacts bind to X; Stage B
-squash → Y with X still an ancestor of Y. A feature-branch commit can never
-serve as durable `source_revision` in a squash-only repository.
+**Stage B (published)**: the canonical v1.2 artifacts —
+`docs/method-conformance/o2/semantic-projection-v1.2.json` and
+`docs/method-conformance/o2/api-representation-profile-v1.2.json` — are
+generated bound to the permanent Stage-A revision
+`b6db63643a7613f1582b72a1d6daf43d64fd206b` (never to a Stage-B feature
+commit), committed, and repository-enforced: `scripts/check_repo.py`
+registers `generate_semantic_projection_o23.run_check_errors_o23` alongside
+the O1 inventory and the O2.1/O2.2 projection gates, fail-closed (missing
+artifacts are errors; stale revisions, baseline digest drift, and
+non-ancestor baselines fail; no squash special-case; no warning downgrade).
+Committed-artifact consistency tests, end-to-end gate-edit tests, and the
+repository-wiring regressions are active. Topology: Stage A squash → X =
+`b6db636…`; Stage B artifacts bind to X; Stage B squash → Y with X still an
+ancestor of Y. After acceptance and merge, the O2 generated semantic subset
+is complete for the reviewed 13-identity scope; O3 authority transition and
+O4 ontology retirement remain separate reviewed gates.
 
 ## Baseline-extension architecture
 
