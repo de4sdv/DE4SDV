@@ -15,9 +15,12 @@ registration are published in Stage B — see the design record):
     model-derived semantic core; the pair invariants (same connection
     definition, same witness population, inverse domain/range, opposite
     canonical directions, identical strength and claim boundary,
-    iff-equivalence) are machine-locked on the emitted rows and the
-    end-order-swap / argument-order / query-direction identity traps all
-    fail closed;
+    iff-equivalence) are machine-locked on the emitted rows, and a REAL
+    end-declaration swap fixture proves that reordering the two ends changes
+    nothing (roles, canonical pair, modeled direction, strength, claim
+    boundary, and the one-witness contract are all order-independent);
+    connect-argument order and query direction likewise never establish role
+    identity;
 3.  **extends discipline**: the extension pins the immutable O2.2 baselines
     by path, schema, source revision, and artifact digest (projection ->
     projection baseline, profile -> profile baseline, independently), and
@@ -261,6 +264,41 @@ def _fixture_root(
     return root
 
 
+def _git_commit_all(root: Path, message: str) -> str:
+    """Commit everything in the fixture checkout; return the new HEAD id."""
+    import subprocess
+
+    def _git(*args: str) -> str:
+        result = subprocess.run(
+            ["git", *args], cwd=root, capture_output=True, text=True
+        )
+        assert result.returncode == 0, result.stderr
+        return result.stdout.strip()
+
+    _git("add", "-A")
+    _git("-c", "user.name=o23-fixture", "-c", "user.email=o23@local",
+         "commit", "-q", "-m", message)
+    return _git("rev-parse", "HEAD")
+
+
+def _git_backed_inputs_repo(tmp_path: Path) -> tuple[Path, str]:
+    """A real Git-backed checkout of the generator's inputs.
+
+    The containment check is exercised UNSTUBBED against this fixture: every
+    bound input is committed as revision X, so generation bound to X must
+    pass; editing any bound input afterwards must fail containment.
+    """
+    import subprocess
+
+    root = _fixture_root(tmp_path)
+    result = subprocess.run(
+        ["git", "init", "-q"], cwd=root, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+    revision = _git_commit_all(root, "fixture inputs")
+    return root, revision
+
+
 # ---------------------------------------------------------------------------
 # 1. Positive scope (actual production declarations)
 # ---------------------------------------------------------------------------
@@ -392,6 +430,122 @@ class TestPositiveScope:
 
 
 # ---------------------------------------------------------------------------
+# 3b. Executed-generation-path provenance (O2.3 review correction)
+# ---------------------------------------------------------------------------
+
+
+class TestBoundInputProvenance:
+    """Every repository source whose code executes during generation is a
+    bound input; editing one must invalidate the source-revision binding."""
+
+    def test_projection_module_is_a_bound_program_input(self, pair) -> None:
+        contract = KernelContract.load(REPO_ROOT / po23.ONTOLOGY_PATH)
+        inputs = po23.collect_bound_inputs_o23(REPO_ROOT, contract)
+        # The v0 K module executes its pair-parity gate during generation, so
+        # it must be bound in all three places.
+        assert "de4sdv/semantic/projection.py" in inputs
+        binding = pair["projection"]["binding"]
+        assert "de4sdv/semantic/projection.py" in binding["generation_software"][
+            "program_inputs"
+        ]
+        assert "de4sdv/semantic/projection.py" in binding["bound_inputs"]
+        assert "de4sdv/semantic/projection.py" in pair["profile"]["binding"][
+            "bound_inputs"
+        ]
+
+    def test_revision_identity_plumbing_is_a_bound_program_input(self, pair) -> None:
+        contract = KernelContract.load(REPO_ROOT / po23.ONTOLOGY_PATH)
+        inputs = po23.collect_bound_inputs_o23(REPO_ROOT, contract)
+        assert "de4sdv/sysml_api/revisions.py" in inputs
+        binding = pair["projection"]["binding"]
+        assert "de4sdv/sysml_api/revisions.py" in binding["generation_software"][
+            "program_inputs"
+        ]
+        assert "de4sdv/sysml_api/revisions.py" in binding["bound_inputs"]
+
+    def test_bound_input_count_and_exclusions(self, pair) -> None:
+        contract = KernelContract.load(REPO_ROOT / po23.ONTOLOGY_PATH)
+        inputs = po23.collect_bound_inputs_o23(REPO_ROOT, contract)
+        # 9 program sources + 7 data inputs = 16 (audited count).
+        assert len(inputs) == 16
+        assert len(po23.BOUND_INPUT_PROGRAM_PATHS_O23) == 9
+        assert set(po23.BOUND_INPUT_PROGRAM_PATHS_O23) <= set(inputs)
+        # Transitive imports whose code never executes during generation are
+        # deliberately NOT bound (audit exclusions).
+        for excluded in (
+            "de4sdv/semantic/model_edges.py",
+            "de4sdv/semantic/relationships.py",
+            "de4sdv/sysml_api/errors.py",
+            "de4sdv/sysml_api/client.py",
+            "de4sdv/sysml_api/repository.py",
+        ):
+            assert excluded not in inputs, excluded
+
+    def test_provenance_edit_of_projection_module_fails(self, tmp_path) -> None:
+        """BLOCKER A regression (adversarial, real Git-backed fixture).
+
+        1. Build a real Git-backed checkout of the generator's inputs and
+           commit them as revision X.
+        2. Bind generation to X (the REAL containment check, unstubbed) —
+           this is the green control.
+        3. Modify ONLY ``de4sdv/semantic/projection.py`` (the executed v0
+           pair-parity gate) without committing.
+        4. The source-revision containment check must FAIL — a future change
+           to ``_assert_oracle_parity`` cannot silently occur outside the
+           O2.3 artifact binding. Committing the change and rebinding to the
+           new revision restores generation, proving the failure was exactly
+           the uncommitted input change.
+        """
+        from de4sdv.semantic.authority_inventory import InventoryError
+
+        root, revision = _git_backed_inputs_repo(tmp_path)
+
+        # Green control: real containment passes on the committed inputs.
+        control = po23.build_pair_o23(root, source_revision=revision)
+        assert len(control["projection"]["predicates"]) == 3
+        assert control["projection"]["binding"]["source_revision"] == revision
+
+        # Mutate ONLY the v0 K module.
+        target = root / "de4sdv/semantic/projection.py"
+        original = target.read_text(encoding="utf-8")
+        target.write_text(
+            original + "\n# provenance probe (review correction)\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(
+            InventoryError, match=r"de4sdv/semantic/projection\.py"
+        ):
+            po23.build_pair_o23(root, source_revision=revision)
+
+        # Commit the change and rebind: containment passes again on the new
+        # revision; the failure was exactly the uncommitted input edit.
+        rebound_revision = _git_commit_all(root, "provenance probe committed")
+        rebound = po23.build_pair_o23(root, source_revision=rebound_revision)
+        assert len(rebound["projection"]["predicates"]) == 3
+
+    def test_provenance_edit_of_other_executed_inputs_fails(
+        self, tmp_path
+    ) -> None:
+        """The same containment lock covers the other executed-generation
+        sources (representative sample: authority_inventory and the
+        revisions plumbing)."""
+        from de4sdv.semantic.authority_inventory import InventoryError
+
+        for relative in (
+            "de4sdv/semantic/authority_inventory.py",
+            "de4sdv/sysml_api/revisions.py",
+        ):
+            root, revision = _git_backed_inputs_repo(tmp_path / relative.split("/")[-1])
+            target = root / relative
+            target.write_text(
+                target.read_text(encoding="utf-8") + "\n# probe\n",
+                encoding="utf-8",
+            )
+            with pytest.raises(InventoryError, match=relative):
+                po23.build_pair_o23(root, source_revision=revision)
+
+
+# ---------------------------------------------------------------------------
 # 2. One modeled fact, two navigations (pair contract)
 # ---------------------------------------------------------------------------
 
@@ -466,16 +620,120 @@ class TestKPairInvariants:
             "derivedRequirementsOfNeed"
         ]
 
-    def test_end_order_swap_cannot_change_role_meaning(self) -> None:
-        """Role identity is keyed by typing, not by authored end order."""
-        contract = KernelContract.load(REPO_ROOT / po23.ONTOLOGY_PATH)
-        semantics = po23.derive_k_semantics(contract, REPO_ROOT)
-        assert semantics["need_role"] == "need"
-        assert semantics["requirement_role"] == "derivedRequirement"
-        # The roles are resolved FROM the typed ends: the Need-lineage end
-        # carries the need role regardless of its position.
-        ends = {end["ontology_class"]: end["role"] for end in semantics["ends"]}
+    def test_real_end_declaration_swap_preserves_full_semantics(
+        self, tmp_path, stubbed_gate
+    ) -> None:
+        """A REAL swap of the two end declarations changes NOTHING.
+
+        Declaration order is not semantic authority: role identity comes from
+        the typed ends, and the modeled direction is the validated
+        documentation statement. The swapped fixture must yield identical
+        rows — same roles, canonical pair, modeled direction, strength,
+        claim boundary, and one-witness contract.
+        """
+
+        def _swap_end_declarations(text):
+            first = "    end need : StakeholderNeedCandidate;"
+            second = "    end derivedRequirement : RequirementCandidate;"
+            assert first in text and second in text, "end declarations not found"
+            assert first + "\n" + second in text, "end declarations not adjacent"
+            return text.replace(first + "\n" + second, second + "\n" + first)
+
+        base_root = _fixture_root(tmp_path / "base")
+        swapped_root = _fixture_root(
+            tmp_path / "swapped",
+            file_mutators={_METHOD_CONTEXT_FILE: _swap_end_declarations},
+        )
+        # The swap really happened.
+        swapped_text = (swapped_root / _METHOD_CONTEXT_FILE).read_text(encoding="utf-8")
+        swapped_index = swapped_text.index("end derivedRequirement :")
+        need_index = swapped_text.index("end need :")
+        assert swapped_index < need_index, "fixture swap did not take effect"
+
+        base = po23.build_pair_o23(base_root, source_revision="f" * 40)
+        swapped = po23.build_pair_o23(swapped_root, source_revision="f" * 40)
+
+        # Full row equality: nothing semantic depends on declaration order.
+        assert swapped["projection"]["predicates"] == base["projection"]["predicates"]
+
+        rows = {row["identity"]: row for row in swapped["projection"]["predicates"]}
+        relation = rows["derivesRequirementFromNeed"]["relation"]
+        companion = rows["derivedRequirementsOfNeed"]["relation"]
+        assert relation["canonical_direction"] == "Requirement -> Need"
+        assert companion["canonical_direction"] == "Need -> Requirement"
+        assert relation["native_modeled_direction"] == "Need -> Requirement"
+        assert companion["native_modeled_direction"] == "Need -> Requirement"
+        assert relation["semantic_strength"] == companion["semantic_strength"]
+        assert relation["claim_boundary"] == companion["claim_boundary"]
+        assert (
+            relation["one_modeled_fact_two_navigations"]["witness"]
+            == companion["one_modeled_fact_two_navigations"]["witness"]
+        )
+
+        # The semantic core itself: roles keyed by typing survive the swap.
+        swapped_semantics = po23.derive_k_semantics(
+            KernelContract.load(swapped_root / po23.ONTOLOGY_PATH), swapped_root
+        )
+        base_semantics = po23.derive_k_semantics(
+            KernelContract.load(base_root / po23.ONTOLOGY_PATH), base_root
+        )
+        for key in (
+            "need_role",
+            "requirement_role",
+            "need_end_type",
+            "requirement_end_type",
+            "native_direction",
+            "native_direction_roles",
+            "canonical_direction",
+            "query_direction",
+            "domain",
+            "range",
+            "semantic_strength",
+            "claim_boundary",
+        ):
+            assert swapped_semantics[key] == base_semantics[key], key
+        assert swapped_semantics["need_role"] == "need"
+        assert swapped_semantics["requirement_role"] == "derivedRequirement"
+        assert swapped_semantics["native_direction_roles"] == [
+            "need",
+            "derivedRequirement",
+        ]
+        ends = {end["ontology_class"]: end["role"] for end in swapped_semantics["ends"]}
         assert ends == {"Need": "need", "Requirement": "derivedRequirement"}
+
+    def test_connect_argument_order_cannot_establish_role_identity(
+        self, tmp_path, stubbed_gate
+    ) -> None:
+        """Swapping the authored ``connect A to B`` arguments of a usage
+        witness changes nothing: role identity and the modeled direction are
+        never derived from connection argument order."""
+
+        def _swap_arguments(text):
+            target = (
+                "connect needCommonAEBSCapability to "
+                "reqDetectForwardCollisionRisk;"
+            )
+            replacement = (
+                "connect reqDetectForwardCollisionRisk to "
+                "needCommonAEBSCapability;"
+            )
+            assert target in text, "usage witness not found"
+            return text.replace(target, replacement, 1)
+
+        base_root = _fixture_root(tmp_path / "base")
+        swapped_root = _fixture_root(
+            tmp_path / "swapped",
+            file_mutators={po23.K_WITNESS_MODEL_FILE: _swap_arguments},
+        )
+        base = po23.build_pair_o23(base_root, source_revision="f" * 40)
+        swapped = po23.build_pair_o23(swapped_root, source_revision="f" * 40)
+        assert swapped["projection"]["predicates"] == base["projection"]["predicates"]
+        # The witness evidence records names only — never argument roles.
+        semantics = po23.derive_k_semantics(
+            KernelContract.load(swapped_root / po23.ONTOLOGY_PATH), swapped_root
+        )
+        assert semantics["native_direction"] == "Need -> Requirement"
+        assert len(semantics["usage_witnesses"]) == 5
 
     def test_query_direction_cannot_define_end_identity(self) -> None:
         """The companion query direction follows from the model, never the
@@ -1390,15 +1648,57 @@ class TestPreservationAndRuntimeIndependence:
         assert offenders == []
 
     def test_generator_module_is_build_time_only(self) -> None:
-        source = (REPO_ROOT / "scripts/generate_semantic_projection_o23.py").read_text(
-            encoding="utf-8"
+        """The generator is a build-time tool: its actual import graph must
+        never reach the runtime semantic authority modules."""
+        import ast
+
+        forbidden_modules = {
+            "de4sdv.semantic.traversal",
+            "de4sdv.semantic.query",
+            "de4sdv.semantic.runtime",
+            "de4sdv.semantic.mcp_server",
+            "de4sdv.semantic.impact",
+            "de4sdv.semantic.relationships",
+            "de4sdv.semantic.model_edges",
+        }
+
+        def _imports(source: str, *, relative_base: str = "") -> set[str]:
+            tree = ast.parse(source)
+            found: set[str] = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    found.update(alias.name for alias in node.names)
+                elif isinstance(node, ast.ImportFrom):
+                    if node.level:
+                        found.add(relative_base + (node.module or ""))
+                    elif node.module:
+                        found.add(node.module)
+            return found
+
+        generator_imports = _imports(
+            (REPO_ROOT / "scripts/generate_semantic_projection_o23.py").read_text(
+                encoding="utf-8"
+            )
         )
-        assert "traversal" not in source
-        assert "runtime" not in source.replace("runtime ", "").replace(
-            "runtime;", ""
-        ) or True  # generator never imports the runtime modules
-        for forbidden in ("import de4sdv.semantic.traversal", "de4sdv.semantic.query"):
-            assert forbidden not in source
+        assert not (generator_imports & forbidden_modules), (
+            generator_imports & forbidden_modules
+        )
+        # The generator builds through the O2.3 build-time module only.
+        assert any("projection_o23" in module for module in generator_imports), (
+            generator_imports
+        )
+
+        # The build-time module itself must not import runtime authority
+        # modules either (relative imports normalized to the package prefix).
+        module_imports = _imports(
+            (REPO_ROOT / "de4sdv/semantic/projection_o23.py").read_text(
+                encoding="utf-8"
+            ),
+            relative_base="de4sdv.semantic.",
+        )
+        assert not (module_imports & forbidden_modules), (
+            module_imports & forbidden_modules
+        )
 
     def test_ontology_authority_not_retired(self) -> None:
         assert (REPO_ROOT / po23.ONTOLOGY_PATH).is_file()

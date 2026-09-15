@@ -29,7 +29,10 @@ K pair — ONE modeled fact, TWO navigations (final K decision,
   RequirementCandidate``). No second modeled relationship exists, none is
   manufactured, and connection evidence is never duplicated as two
   independent propositions.
-- Native modeled direction: ``Need -> Requirement`` (authored end order).
+- Native modeled direction: ``Need -> Requirement`` — the validated
+  ``Native direction:`` statement carried by the connection definition's
+  documentation (never inferred from declaration order; reordering the two
+  end declarations changes nothing).
   ``derivesRequirementFromNeed`` (Requirement -> Need) is inverse traversal
   over that witness; ``derivedRequirementsOfNeed`` is the forward traversal.
 - Role identity is established from the model's typed ends against the
@@ -164,18 +167,34 @@ BASELINE_PROFILE_V11_PATH = f"{O2_DIRECTORY}/api-representation-profile-v1.1.jso
 ONTOLOGY_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 
 #: Program sources whose behavior produces the O2.3 artifacts. Every one is a
-#: bound input. The O2.1 module is included because the extension imports its
-#: frozen locks; the O2.2 module because the extension reuses its reviewed
-#: structural anchor locators; the v0 model-authority module because the K
-#: pair reuses its reviewed identity/claim probes (all read-only reuse — none
-#: of these files is modified).
+#: bound input. Executed-generation-path audit (O2.3 review correction): the
+#: set covers every repository source whose code executes (or whose consumed
+#: constant values derive from code) during artifact generation:
+#:   * this module and its generator;
+#:   * the O2.1 module (frozen locks consumed; anchor helper executed);
+#:   * the O2.2 module (reviewed anchor locators executed);
+#:   * the v0 K module ``projection.py`` (the reviewed pair-parity gate
+#:     ``_assert_oracle_parity`` EXECUTES during generation — its verdict is
+#:     part of the generation decision, so a change to it must invalidate the
+#:     artifact binding);
+#:   * the shared binding/documentation machinery (authority_inventory) and
+#:     the governed contract loader (kernel_contract);
+#:   * the v0 model-authority module (the reviewed identity/claim probes
+#:     consumed as constants);
+#:   * the sysml_api revision-identity plumbing (``OntologyIdentity.from_file``
+#:     executes during generation through ``KernelContract.load``).
+#: Transitively imported modules whose code never executes during generation
+#: (``model_edges.py``, ``relationships.py``, ``sysml_api`` siblings) are
+#: deliberately NOT bound. None of these files is modified by O2.3.
 BOUND_INPUT_PROGRAM_PATHS_O23: tuple[str, ...] = (
     "de4sdv/semantic/projection_o23.py",
     "de4sdv/semantic/projection_o22.py",
     "de4sdv/semantic/projection_v1.py",
+    "de4sdv/semantic/projection.py",
     "de4sdv/semantic/authority_inventory.py",
     "de4sdv/semantic/kernel_contract.py",
     "de4sdv/semantic/model_authority.py",
+    "de4sdv/sysml_api/revisions.py",
     "scripts/generate_semantic_projection_o23.py",
 )
 
@@ -740,7 +759,15 @@ def _derivation_usage_witnesses(root: Path) -> list[dict[str, str]]:
 
 
 def _parse_definition_ends(block: str, definition: str) -> list[tuple[str, str]]:
-    """The definition block's typed ends, in authored order: (role, type)."""
+    """The definition block's typed ends as (role, type) pairs.
+
+    Declaration order is preserved only as parse order for pairing role names
+    with their types; it is NEVER read as semantic authority — role identity
+    is keyed by typing against the governed lineages and the modeled
+    direction comes from the validated documentation statement, so reordering
+    these declarations changes nothing (machine-locked by a real swap
+    fixture).
+    """
     end_pattern = re.compile(
         r"(?m)^\s*end\s+([A-Za-z][A-Za-z0-9_]*)\s*:\s*"
         r"([A-Za-z][A-Za-z0-9_]*)\s*;"
@@ -767,6 +794,14 @@ def _class_declaration_name(contract: KernelContract, ontology_class: str) -> st
     return declared.strip()
 
 
+def _doc_bodies(block: str) -> list[str]:
+    """Normalized documentation bodies owned by the located definition block."""
+    return [
+        " ".join(match.group(1).replace("*", " ").split())
+        for match in re.finditer(r"doc\s*/\*(.*?)\*/", block, flags=re.DOTALL)
+    ]
+
+
 def _extract_claim_strength(block: str, definition: str) -> tuple[str, str, str]:
     """The definition doc's claim-strength statement, via the reviewed v0 probe.
 
@@ -775,9 +810,7 @@ def _extract_claim_strength(block: str, definition: str) -> tuple[str, str, str]
     (missing provenance/claim-boundary doc) and multiple conflicting
     statements both fail closed.
     """
-    doc_bodies: list[str] = []
-    for match in re.finditer(r"doc\s*/\*(.*?)\*/", block, flags=re.DOTALL):
-        doc_bodies.append(" ".join(match.group(1).replace("*", " ").split()))
+    doc_bodies = _doc_bodies(block)
     if not doc_bodies:
         raise ProjectionO23Error(
             f"{definition}: the definition carries no owned documentation; "
@@ -806,6 +839,56 @@ def _extract_claim_strength(block: str, definition: str) -> tuple[str, str, str]
     return strength, boundary, " ".join(doc_bodies)
 
 
+#: Locator for the modeled semantic direction statement the definition
+#: documentation carries ("Native direction: need -> derivedRequirement.").
+#: The statement is MODEL TEXT; the probe only finds it and the roles are
+#: validated against the typed ends. Declaration order is never read as
+#: semantic authority.
+_NATIVE_DIRECTION = re.compile(
+    r"Native direction:\s*([A-Za-z_][A-Za-z0-9_]*)\s*->\s*([A-Za-z_][A-Za-z0-9_]*)"
+)
+
+
+def _validated_native_direction(
+    block: str, definition: str, need_role: str, requirement_role: str
+) -> tuple[str, str]:
+    """The VALIDATED modeled-direction statement from the model documentation.
+
+    The final K decision fixes the modeled semantic direction as
+    ``need -> derivedRequirement``, and the governed model states it
+    explicitly in the definition documentation. Generation uses that reviewed
+    statement and validates its roles against the typed ends; reordering the
+    two end declarations therefore changes nothing. Missing, conflicting, or
+    role-mismatched statements fail closed — the direction is never inferred
+    from declaration order.
+    """
+    statements: set[tuple[str, str]] = set()
+    for body in _doc_bodies(block):
+        for match in _NATIVE_DIRECTION.finditer(body):
+            statements.add((match.group(1), match.group(2)))
+    if not statements:
+        raise ProjectionO23Error(
+            f"{definition}: the definition documentation does not state "
+            "'Native direction: <role> -> <role>'; the modeled direction "
+            "must come from the reviewed model statement, never from "
+            "declaration order"
+        )
+    if len(statements) > 1:
+        raise ProjectionO23Error(
+            f"{definition}: the definition owns {len(statements)} conflicting "
+            "native-direction statements; refusing to pick one"
+        )
+    roles = next(iter(statements))
+    if roles != (need_role, requirement_role):
+        raise ProjectionO23Error(
+            f"{definition}: the documentation states the native direction "
+            f"{roles[0]!r} -> {roles[1]!r} but the typed ends carry "
+            f"{need_role!r} -> {requirement_role!r}; drift requires explicit "
+            "review, never silent regeneration"
+        )
+    return roles
+
+
 def derive_k_semantics(contract: KernelContract, root: Path) -> dict[str, Any]:
     """Derive the K pair's semantic core from the validated model representation.
 
@@ -817,16 +900,22 @@ def derive_k_semantics(contract: KernelContract, root: Path) -> dict[str, Any]:
     2. the typed ends carry domain and range: each end's TYPE is resolved to
        the governed lineage ontology class through the contract's kernel
        mappings — role identity is keyed by typing, NEVER by end order,
-       connection argument order, or query direction (an end-order swap in
-       the model changes only the recorded native direction, not role
-       meaning — machine-locked by tests);
-    3. the definition documentation carries the provenance meaning and the
-       claim boundary, located by the reviewed v0 probe;
-    4. the canonical direction for the reviewed canonical predicate identity
+       connection argument order, or query direction (reordering the two end
+       declarations changes nothing: roles, the canonical pair, and the
+       modeled direction are all order-independent — machine-locked by a
+       real end-order-swap fixture);
+    3. the modeled semantic direction comes from the definition
+       documentation's explicit ``Native direction: need -> derivedRequirement``
+       statement, VALIDATED against the typed-end roles — declaration order
+       is never read as semantic authority (missing, conflicting, or
+       role-mismatched statements fail closed);
+    4. the definition documentation also carries the provenance meaning and
+       the claim boundary, located by the reviewed v0 probe;
+    5. the canonical direction for the reviewed canonical predicate identity
        comes from the v0 predicate-shape probe matched against the resolved
        end classes; the query direction follows from the model (inverse
-       exactly when the canonical direction is not the native one);
-    5. the authored ontology YAML is then pair-parity-checked by the
+       exactly when the canonical direction is not the modeled one);
+    6. the authored ontology YAML is then pair-parity-checked by the
        reviewed v0 parity gate (``_assert_oracle_parity``) — drift fails
        generation; YAML never becomes semantic authority.
 
@@ -900,10 +989,24 @@ def derive_k_semantics(contract: KernelContract, root: Path) -> dict[str, Any]:
         definition_block, K_CONNECTION_DEFINITION_CLASS
     )
 
-    # Native direction is authored model content (the authored end order);
-    # role meaning is not. Canonical direction comes from the reviewed
-    # predicate identity via the v0 predicate-shape probe.
-    native_direction = f"{need_side['ontology_class']} -> {requirement_side['ontology_class']}"
+    # The modeled semantic direction is the VALIDATED documentation statement
+    # ("Native direction: need -> derivedRequirement.") mapped through the
+    # typed-end roles to the governed lineages. Declaration order is never
+    # semantic authority; reordering the two end declarations changes nothing.
+    direction_roles = _validated_native_direction(
+        definition_block,
+        K_CONNECTION_DEFINITION_CLASS,
+        need_side["role"],
+        requirement_side["role"],
+    )
+    role_to_class = {
+        need_side["role"]: need_side["ontology_class"],
+        requirement_side["role"]: requirement_side["ontology_class"],
+    }
+    native_direction = (
+        f"{role_to_class[direction_roles[0]]} -> "
+        f"{role_to_class[direction_roles[1]]}"
+    )
     match = PREDICATE_SHAPE.fullmatch(K_CANONICAL_PREDICATE)
     if match is None:  # pragma: no cover - the frozen identity always matches
         raise ProjectionO23Error(
@@ -946,6 +1049,7 @@ def derive_k_semantics(contract: KernelContract, root: Path) -> dict[str, Any]:
         "semantic_strength": strength,
         # O2.3 evidence anchors (abstract semantic level):
         "native_direction": native_direction,
+        "native_direction_roles": [direction_roles[0], direction_roles[1]],
         "canonical_direction": canonical_direction,
         "claim_boundary": claim_boundary,
         "meaning": meaning,
@@ -955,11 +1059,14 @@ def derive_k_semantics(contract: KernelContract, root: Path) -> dict[str, Any]:
         "authority_provenance": (
             "validated model representation: the governed DerivesFromNeed "
             "application definition's typed ends (domain/range, roles keyed "
-            "by typing against the governed lineages), authored end order "
-            "(native direction), predicate identity matched to end classes "
+            "by typing against the governed lineages), the validated "
+            "'Native direction' documentation statement (the modeled "
+            "direction; declaration order is never semantic authority), "
+            "predicate identity matched to end classes "
             "(canonical direction), and ingested definition documentation "
             "(meaning, claim strength, claim boundary); the v0 "
-            "model-authority probes are reused read-only and the ontology "
+            "model-authority probes are reused read-only, the v0 pair-parity "
+            "gate executes read-only, and the ontology "
             "YAML is pair-parity-checked as the O0/O1 oracle only"
         ),
     }
@@ -972,7 +1079,10 @@ def _assert_k_pair_invariants(semantics: dict[str, Any]) -> None:
     level), this asserts the derived semantics themselves: opposite canonical
     directions over the same witness, inverse domain/range, identical
     strength and claim boundary, and the exact iff-equivalence of the two
-    navigations for every modeled edge.
+    navigations for every modeled edge. The modeled direction is the
+    validated documentation statement, which must resolve to the typed
+    Need -> Requirement lineages (the lock restates that invariant; it never
+    reintroduces declaration order).
     """
     if semantics["native_direction"] != (
         f"{semantics['need_end_type']} -> {semantics['requirement_end_type']}"
@@ -1116,8 +1226,8 @@ def derive_k_pair_rows(
                 "native_modeled_direction": semantics["native_direction"],
                 "inverse_navigation": (
                     "inverse queries reverse traversal direction only; the "
-                    "modeled fact is the declared native direction "
-                    "(Need -> Requirement)"
+                    "modeled fact carries the validated native direction "
+                    "statement (Need -> Requirement)"
                 ),
                 "one_modeled_fact_two_navigations": {
                     "companion_predicate": (
@@ -1567,8 +1677,11 @@ def _binding_block_o23(
                 "Generation-software revision: the commit containing these "
                 "program inputs byte-for-byte (including the frozen O2.1 "
                 "module whose locks this extension imports, the O2.2 module "
-                "whose reviewed anchor locators it reuses, and the v0 "
-                "model-authority module whose K probes it reuses). "
+                "whose reviewed anchor locators it reuses, the v0 K module "
+                "whose reviewed pair-parity gate `_assert_oracle_parity` "
+                "EXECUTES during generation, the v0 model-authority module "
+                "whose K probes it reuses, and the sysml_api revision-identity "
+                "plumbing executed through contract loading). "
                 "Distinguished from the semantic-model revision so generator "
                 "changes are never confused with model or contract changes."
             ),
@@ -1718,8 +1831,9 @@ def _profile_entry_o23(row: dict[str, Any], contract: KernelContract) -> dict[st
             "StakeholderNeedCandidate, derivedRequirement : "
             "RequirementCandidate) — never by end order, connection argument "
             "order, query direction, declaredName, qualifiedName, package "
-            "path, or source text; an end-order swap changes only the "
-            "recorded native direction, never role meaning",
+            "path, or source text; the modeled direction is the validated "
+            "documentation statement (need -> derivedRequirement), so "
+            "reordering the two end declarations changes nothing",
             (
                 "the canonical Requirement -> Need query is INVERSE traversal "
                 "over the native witness (native direction need -> "

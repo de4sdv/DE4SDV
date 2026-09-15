@@ -74,8 +74,11 @@ is preserved exactly:
   `connection … : DerivesFromNeed connect <need> to <req>;` usages; the
   population is a reviewed lock (5): disappearance, addition, or foreign
   typing fails generation.
-- **Two navigations**: native modeled direction is `Need -> Requirement`
-  (authored end order). `derivesRequirementFromNeed` (Requirement → Need) is
+- **Two navigations**: the modeled semantic direction is `Need -> Requirement`
+  — the VALIDATED `Native direction: need -> derivedRequirement` statement
+  carried by the connection definition's documentation (declaration order is
+  never read as semantic authority; reordering the two end declarations
+  changes nothing). `derivesRequirementFromNeed` (Requirement → Need) is
   inverse traversal over that witness; `derivedRequirementsOfNeed` is the
   forward traversal over the SAME witness. Both rows are emitted from ONE
   model-derived semantic core (`derive_k_semantics`) — the companion row is
@@ -89,8 +92,9 @@ is preserved exactly:
   governed Need/Requirement lineage class through the contract's kernel
   mappings. End order, connection argument order, query direction,
   declaredName, qualifiedName, package path, and source text never establish
-  role identity (machine-locked, including the end-order-swap trap: a swap
-  changes only the recorded native direction, never role meaning).
+  role identity (machine-locked by a REAL end-declaration swap fixture:
+  roles, the canonical pair, the modeled direction, strength, claim
+  boundary, and the one-witness contract are all identical after a swap).
 - **Claim**: design-input provenance only ("the design-input Requirement
   originates from the stakeholder Need"). No logical implication, need or
   requirement satisfaction, allocation, realization, verification, evidence,
@@ -206,16 +210,31 @@ unclaimed` for the v1.2 family; retained privileged runs (including
 `10195168006`) remain representation-shape evidence only. No privileged
 ingestion was dispatched for Stage A.
 
-## Bound inputs (14)
+## Bound inputs (16)
 
-Program: `projection_o23.py`, `projection_o22.py` (anchor locators),
-`projection_v1.py` (frozen locks), `authority_inventory.py`,
-`kernel_contract.py`, `model_authority.py` (K probes),
-`generate_semantic_projection_o23.py`. Data: `o23-admission.yaml`, ontology
-YAML, both v1.1 baseline artifacts, `de4sdv_method_context.sysml` (Need,
-Requirement, DerivesFromNeed anchors), `de4sdv_product_line.sysml`
-(MemberProduct anchor), `aebs_needs_requirements.sysml` (K usage
-witnesses).
+Executed-generation-path audit (O2.3 review correction): the bound set
+covers every repository source whose code executes — or whose consumed
+constant values derive from code — during artifact generation.
+
+Program: `projection_o23.py`; `projection_o22.py` (anchor locators execute);
+`projection_v1.py` (frozen locks consumed; anchor helper executes);
+`projection.py` (the v0 K module — the reviewed pair-parity gate
+`_assert_oracle_parity` EXECUTES during generation; its verdict is part of
+the generation decision); `authority_inventory.py` (digest/git/loader
+machinery executes); `kernel_contract.py` (contract loading executes);
+`model_authority.py` (the reviewed K probes are consumed as constants);
+`de4sdv/sysml_api/revisions.py` (`OntologyIdentity.from_file` executes
+through `KernelContract.load`); `generate_semantic_projection_o23.py`.
+Data: `o23-admission.yaml`, ontology YAML, both v1.1 baseline artifacts,
+`de4sdv_method_context.sysml` (Need, Requirement, DerivesFromNeed anchors),
+`de4sdv_product_line.sysml` (MemberProduct anchor),
+`aebs_needs_requirements.sysml` (K usage witnesses).
+
+Deliberately NOT bound (imported transitively, zero generation-phase
+execution): `de4sdv/semantic/model_edges.py`,
+`de4sdv/semantic/relationships.py`, `de4sdv/sysml_api/errors.py`,
+`de4sdv/sysml_api/client.py`, `de4sdv/sysml_api/repository.py`, and the
+package `__init__` files.
 
 ## Runtime boundary
 
