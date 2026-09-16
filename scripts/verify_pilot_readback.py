@@ -29,6 +29,9 @@ from de4sdv.sysml_api.client import ApiClient
 from urllib.parse import unquote
 
 from de4sdv.semantic.relationships import build_relationship_graph
+from de4sdv.semantic.verification_grounding import (
+    resolve_implied_library_grounding,
+)
 from de4sdv.sysml_api.repository import SysMLRepository, reference_ids
 from de4sdv.sysml_api.revisions import RevisionBinding
 
@@ -374,69 +377,24 @@ def main() -> int:
         target_keys: tuple[str, ...],
         anchor_id: str,
     ) -> dict | None:
-        """Toolchain-materialized implied grounding from ``source_id`` to the
-        library anchor, from either real serialized shape:
+        """Shared reviewed predicate (de4sdv.semantic.verification_grounding).
 
-        - inline target reference (the relationship carries the target id and
-          an ``@uri``), or
-        - split out-of-bundle reference: the relationship carries only its
-          specific end, while the export artifact records the target in
-          ``external_references`` (property_path general/superclassifier/
-          subsettedFeature + target_id + uri) — the shape the reviewed
-          exporter produces for references into the pinned libraries.
-
-        The witness must be marked ``isImplied``; a missing witness, wrong
-        target id, or a uri outside VerificationCases.sysml fails closed.
+        Toolchain-materialized implied grounding from ``source_id`` to the
+        library anchor, from either real serialized shape: an inline target
+        reference with ``@uri``, or a split out-of-bundle reference recorded
+        in the export artifact's ``external_references``. The witness must be
+        marked ``isImplied``; a missing witness, wrong target id, or a uri
+        outside the pinned document fails closed.
         """
-        for element in elements:
-            if str(element.get("@type")) not in kinds:
-                continue
-            if element.get("isImplied") is not True:
-                continue
-            specific: set[str] = set()
-            for key in specific_keys:
-                specific.update(reference_ids(element.get(key)))
-            if source_id not in specific:
-                continue
-            witness_id = str(element.get("@id") or "")
-            # route 1: inline target with @uri
-            for key in target_keys:
-                value = element.get(key)
-                for item in (value if isinstance(value, list) else [value]):
-                    if not isinstance(item, dict):
-                        continue
-                    if str(item.get("@id") or "") != anchor_id:
-                        continue
-                    uri = unquote(str(item.get("@uri") or ""))
-                    if "VerificationCases.sysml" in uri:
-                        return {
-                            "witness_id": witness_id,
-                            "target": anchor_id,
-                            "uri": uri,
-                            "mechanism": "inline-reference",
-                            "provenance": "implied",
-                        }
-            # route 2: split out-of-bundle reference in the export artifact
-            for reference in external_references:
-                if str(reference.get("source_element_id") or "") != witness_id:
-                    continue
-                if str(reference.get("target_id") or "") != anchor_id:
-                    continue
-                path = str(reference.get("property_path") or "")
-                if path not in (*target_keys, "general", "superclassifier", "subsettedFeature", "type"):
-                    continue
-                uri = unquote(str(reference.get("uri") or ""))
-                if "VerificationCases.sysml" not in uri:
-                    continue
-                return {
-                    "witness_id": witness_id,
-                    "target": anchor_id,
-                    "uri": uri,
-                    "property_path": path,
-                    "mechanism": "external-reference",
-                    "provenance": "implied",
-                }
-        return None
+        return resolve_implied_library_grounding(
+            elements,
+            external_references,
+            source_id=source_id,
+            kinds=kinds,
+            specific_keys=specific_keys,
+            target_keys=target_keys,
+            anchor_id=anchor_id,
+        )
 
     definition_element = by_short.get(PILOT_DEFINITION)
     definition_id = str((definition_element or {}).get("@id") or "")

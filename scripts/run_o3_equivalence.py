@@ -36,6 +36,7 @@ if str(ROOT) not in sys.path:
 
 from de4sdv.semantic import o3_bundle as ob  # noqa: E402
 from de4sdv.semantic import o3_equivalence as oe  # noqa: E402
+from de4sdv.semantic import verification_grounding as vg  # noqa: E402
 from de4sdv.sysml_api.repository import element_id  # noqa: E402
 
 RUNTIME_EQUIVALENCE_REPORT_SCHEMA = "de4sdv.o3-runtime-equivalence-report/v1"
@@ -117,178 +118,37 @@ def _git_head(root: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-def prove_verification_case_grounding(
-    elements: list[dict[str, Any]],
-    *,
-    element_sources: dict[str, str] | None = None,
-    library_document_suffix: str = VERIFICATIONCASE_LIBRARY_DOCUMENT_SUFFIX,
-) -> dict[str, Any]:
-    """Prove the governed standard-library grounding of VerificationCase.
+def _load_export_grounding(export_path: "Path | None", *, revision: str) -> dict[str, Any]:
+    """Prove the VerificationCase grounding from the exact-revision export.
 
-    Identity is finished by STRUCTURE, never by qualified-name text: for each
-    governed verification definition/usage, an IMPLIED Subclassification
-    (definition role) / Subsetting (usage role) edge must resolve to exactly
-    one candidate whose provenance lives in the pinned
-    ``Systems Library/VerificationCases.sysml`` document — evidenced by the
-    serializer-recorded source document (when supplied) or the serialized
-    reference URI. The candidate's name must match the reviewed anchor name
-    (an additional check, not the proof). Names may locate candidates; they
-    never finish identity.
-
-    Results: ``EQUIVALENT`` when every governed element proves its role
-    anchor with a single consistent anchor identity; ``BLOCKING_MISMATCH``
-    when structure/anchors/roles disagree; ``NOT_YET_COMPARABLE`` when the
-    imported representation cannot establish the proof (missing implied
-    edges, missing library provenance signals).
+    Fail-closed: the export artifact is required (exporter-resolved anchors +
+    split external references); a missing artifact, a missing git_commit, or a
+    git_commit that does not match the checked-out revision refuses the proof.
+    The predicate itself is the ONE shared reviewed mechanism
+    (de4sdv.semantic.verification_grounding).
     """
-    from de4sdv.semantic.relationships import build_relationship_graph
-
-    by_id: dict[str, dict[str, Any]] = {}
-    for element in elements:
-        candidate = element_id(element)
-        if candidate is not None:
-            by_id[candidate] = element
-    graph = build_relationship_graph(elements)
-
-    governed_definitions = [
-        element
-        for element in elements
-        if str(element.get("@type")) == VERIFICATIONCASE_DEFINITION_TYPE
-    ]
-    governed_usages = [
-        element
-        for element in elements
-        if str(element.get("@type")) == VERIFICATIONCASE_USAGE_TYPE
-    ]
-    result: dict[str, Any] = {
-        "schema": VERIFICATION_CASE_GROUNDING_SCHEMA,
-        "result": "NOT_YET_COMPARABLE",
-        "anchors": {
-            "definition_role": {
-                "library_identity": VERIFICATIONCASE_DEFINITION_ANCHOR,
-                "mechanism": "implied Subclassification",
-                "applies_to": VERIFICATIONCASE_DEFINITION_TYPE,
-            },
-            "usage_role": {
-                "library_identity": VERIFICATIONCASE_USAGE_ANCHOR,
-                "mechanism": "implied Subsetting",
-                "applies_to": VERIFICATIONCASE_USAGE_TYPE,
-            },
-        },
-        "governed_population": {
-            "definitions": len(governed_definitions),
-            "usages": len(governed_usages),
-        },
-        "proved": {"definition_role": [], "usage_role": []},
-        "missing": [],
-        "conflicts": [],
-    }
-    if not governed_definitions or not governed_usages:
-        result["missing"].append(
-            "governed VerificationCaseDefinition/Usage population is empty in "
-            "the imported revision"
+    if export_path is None or not Path(export_path).is_file():
+        raise SystemExit(
+            "the export artifact is required for the VerificationCase "
+            "grounding proof (--export); the proof is fail-closed without it"
         )
-        return result
-
-    def _library_provenance(hop_target: str, hop_uri: str | None) -> str | None:
-        if element_sources:
-            source = element_sources.get(hop_target)
-            if source and str(source).endswith(library_document_suffix):
-                return "serializer-recorded-source-document"
-        if hop_uri and library_document_suffix in str(hop_uri):
-            return "serialized-reference-uri"
-        return None
-
-    def _prove(
-        governed: list[dict[str, Any]],
-        *,
-        families: tuple[str, ...],
-        expected_anchor_name: str,
-        role: str,
-    ) -> None:
-        anchor_ids: set[str] = set()
-        for element in governed:
-            governed_id = element_id(element)
-            if governed_id is None:
-                result["missing"].append(f"{role}: governed element without id")
-                continue
-            proved_here: list[dict[str, Any]] = []
-            for hop in graph.outgoing(governed_id, families):
-                if not hop.is_implied:
-                    continue
-                if hop.kind[:1].isupper() and not any(
-                    family.lower() in hop.kind.lower() for family in families
-                ):
-                    continue
-                target = by_id.get(hop.target)
-                if target is None:
-                    continue
-                provenance = _library_provenance(hop.target, hop.target_uri)
-                if provenance is None:
-                    continue
-                target_name = str(
-                    target.get("declaredName") or target.get("name") or ""
-                )
-                if target_name != expected_anchor_name:
-                    result["conflicts"].append(
-                        f"{role}: implied {hop.kind} from {governed_id} targets "
-                        f"library-document element named {target_name!r}, not "
-                        f"the reviewed anchor {expected_anchor_name!r}"
-                    )
-                    continue
-                anchor_ids.add(hop.target)
-                proved_here.append(
-                    {
-                        "governed_element_id": governed_id,
-                        "anchor_element_id": hop.target,
-                        "mechanism": hop.kind,
-                        "provenance": provenance,
-                        "witness_hop_id": hop.witness_id,
-                    }
-                )
-            if not proved_here:
-                result["missing"].append(
-                    f"{role}: no implied library-grounding proof for governed "
-                    f"element {governed_id}"
-                )
-            result["proved"][role].extend(proved_here)
-        if len(anchor_ids) > 1:
-            result["conflicts"].append(
-                f"{role}: multiple distinct anchor identities "
-                f"{sorted(anchor_ids)}; library identity is ambiguous"
-            )
-
-    _prove(
-        governed_definitions,
-        families=("Subclassification",),
-        expected_anchor_name=VERIFICATIONCASE_DEFINITION_ANCHOR,
-        role="definition_role",
-    )
-    _prove(
-        governed_usages,
-        families=("Subsetting",),
-        expected_anchor_name=VERIFICATIONCASE_USAGE_ANCHOR,
-        role="usage_role",
-    )
-
-    if result["conflicts"]:
-        result["result"] = "BLOCKING_MISMATCH"
-        return result
-    if result["missing"]:
-        result["result"] = "NOT_YET_COMPARABLE"
-        result["note"] = (
-            "the imported representation cannot establish the full "
-            "standard-library grounding; O3 activation is blocked until the "
-            "proof step succeeds at the exact cutover revision"
+    export = json.loads(Path(export_path).read_text(encoding="utf-8"))
+    export_revision = str(export.get("git_commit") or "")
+    if not export_revision:
+        raise SystemExit(
+            "export artifact records no git_commit; exact-revision grounding "
+            "evidence is refused"
         )
-        return result
-    result["result"] = "EQUIVALENT"
-    return result
-
-
-# ---------------------------------------------------------------------------
-# Deterministic subject populations and per-predicate sweeps
-# ---------------------------------------------------------------------------
+    if export_revision != revision:
+        raise SystemExit(
+            f"export git_commit {export_revision!r} does not match the "
+            f"checked-out revision {revision!r}"
+        )
+    return vg.prove_verification_case_grounding(
+        elements=export.get("elements") or [],
+        external_references=export.get("external_references") or [],
+        library_anchors=export.get("library_anchors") or {},
+    )
 
 
 def _elements_of(service) -> list[dict[str, Any]]:
@@ -968,14 +828,7 @@ def run_bundle(args: argparse.Namespace) -> int:
     revision = _require_exact_revision(args.git_revision, ROOT)
     binding = RevisionBinding.load(args.binding)
     elements = _load_elements(args.api_url, binding)
-    element_sources = None
-    if args.element_sources:
-        element_sources = json.loads(
-            Path(args.element_sources).read_text(encoding="utf-8")
-        )
-    grounding = prove_verification_case_grounding(
-        elements, element_sources=element_sources
-    )
+    grounding = _load_export_grounding(args.export, revision=revision)
     bundle = ob.build_candidate_bundle(ROOT, git_revision=revision)
     export_identity_sha256 = None
     if args.export:
@@ -1044,14 +897,7 @@ def run_compare(args: argparse.Namespace) -> int:
     old_service = build_semantic_runtime(**common)
     new_service = build_semantic_runtime(**common, semantic_authority=bundle)
     elements = _load_elements(args.api_url, binding)
-    grounding = prove_verification_case_grounding(
-        elements,
-        element_sources=(
-            json.loads(Path(args.element_sources).read_text(encoding="utf-8"))
-            if args.element_sources
-            else None
-        ),
-    )
+    grounding = _load_export_grounding(args.export, revision=revision)
     import_closure_digest = resolve_attested_closure(
         bundle,
         binding=binding,
@@ -1094,8 +940,14 @@ def main(argv: list[str] | None = None) -> int:
     bundle_parser.add_argument("--binding", required=True, type=Path)
     bundle_parser.add_argument("--git-revision", required=True)
     bundle_parser.add_argument("--output-dir", required=True)
-    bundle_parser.add_argument("--element-sources", default=None)
-    bundle_parser.add_argument("--export", default=None)
+    bundle_parser.add_argument(
+        "--export",
+        required=True,
+        help=(
+            "exact-revision export artifact (elements + library_anchors + "
+            "external_references); required for the grounding proof"
+        ),
+    )
     bundle_parser.add_argument(
         "--validation",
         action="append",
@@ -1118,7 +970,11 @@ def main(argv: list[str] | None = None) -> int:
     compare_parser.add_argument("--git-revision", required=True)
     compare_parser.add_argument("--bundle", required=True)
     compare_parser.add_argument("--output", required=True)
-    compare_parser.add_argument("--element-sources", default=None)
+    compare_parser.add_argument(
+        "--export",
+        required=True,
+        help="exact-revision export artifact; required for the grounding proof",
+    )
 
     args = parser.parse_args(argv)
     if args.mode == "bundle":
