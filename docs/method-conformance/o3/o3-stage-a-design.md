@@ -246,25 +246,32 @@ owns final workflow success.
 
 ## 9. VerificationCase grounding proof
 
-`prove_verification_case_grounding(elements, element_sources=...)` — the
-executable realization of the pending readiness dimension. Identity is
-finished by STRUCTURE, never by name text:
+`de4sdv.semantic.verification_grounding` — ONE shared reviewed mechanism,
+used by the privileged pilot read-back (`scripts/verify_pilot_readback.py`)
+and the O3 runner alike. The proof runs on the exact-revision EXPORT
+ARTIFACT (elements + `external_references` + `library_anchors`); the export
+`git_commit` must equal the checked-out revision, else the proof refuses.
+Identity is finished by STRUCTURE, never by name text:
 
+- anchor identity comes from the exporter-resolved `library_anchors` map
+  (element ids resolved BY NAME from the pinned library at export time);
 - for each governed `VerificationCaseDefinition`, an IMPLIED
-  `Subclassification` edge must resolve to a candidate whose provenance
-  lives in the pinned `Systems Library/VerificationCases.sysml` document —
-  evidenced by the serializer-recorded source document (when supplied) or
-  the serialized reference URI;
+  `Subclassification` witness (specific end = the governed element) must
+  link to the definition anchor, either inline (reference `@uri`) or via
+  the exporter's split `external_references` record — with the uri inside
+  the pinned `Systems Library/VerificationCases.sysml` document;
 - for each governed `VerificationCaseUsage`, the analogous implied
-  `Subsetting` to `verificationCases`;
-- the candidate's name must match the reviewed anchor name (additional
-  check, never the proof); multiple distinct anchor identities conflict.
+  `Subsetting` to the usage anchor;
+- a NON-implied edge linking a governed element to the anchor with the
+  right uri is contradictory evidence (conflict) and blocks.
 
-Results: `EQUIVALENT` (every governed element proves its role, one anchor
-per role); `BLOCKING_MISMATCH` (anchor/role conflicts); `NOT_YET_COMPARABLE`
-(missing implied edges or missing library provenance signals — blocks O3
-activation until proven at the cutover revision). The closure attestation
-carries this result; `BLOCKING_MISMATCH` refuses candidate execution.
+Results: `EQUIVALENT` (every governed element proves its role); `BLOCKING_MISMATCH`
+(conflicts — non-implied shapes); `NOT_YET_COMPARABLE` (missing anchors,
+witnesses or uri evidence — blocks O3 activation until proven at the cutover
+revision). The closure attestation carries this result; `BLOCKING_MISMATCH`
+refuses candidate execution. Measured on the first exact-revision attempt's
+retained export (revision `62d1a435…`): 22/22 definitions + 34/34 usages
+proved → `EQUIVALENT`.
 
 ## 10. Authority-bundle-aware cache and snapshot identity
 
@@ -293,8 +300,13 @@ environment selector.
   unchanged);
 - after the existing ingestion/validation steps, two O3 evidence steps run
   `scripts/run_o3_equivalence.py bundle` and `compare` against the same
-  local API service + binding, with all existing behavior preserved;
-- the O3 outputs are uploaded alongside the existing exact-head evidence.
+  local API service + binding + exact-revision export artifact, with all
+  existing behavior preserved;
+- the O3 outputs are uploaded alongside the existing exact-head evidence;
+- the job timeout is 300 minutes (raised from 180 after the first
+  exact-revision attempt — the full pipeline plus the runtime-equivalence
+  comparison exceeded 3 hours; the comparison itself was cut off at 38
+  minutes of progress).
 
 Production deployment/selection is untouched. Scheduled nightly behavior
 remains functional.

@@ -23,6 +23,7 @@ import pytest
 
 from de4sdv.semantic import o3_bundle as ob
 from de4sdv.semantic import o3_equivalence as oe
+from de4sdv.semantic import verification_grounding as vg
 from de4sdv.sysml_api.revisions import OntologyIdentity
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -478,109 +479,142 @@ class TestKPairEvidence:
 
 
 class TestVerificationCaseGrounding:
+    """VerificationCase standard-library grounding from the exact-revision
+    export artifact — the ONE shared reviewed mechanism
+    (de4sdv.semantic.verification_grounding), used by the pilot read-back and
+    the O3 runner alike. Names never finish identity: exporter-resolved
+    anchor ids + implied witnesses + pinned-document uri evidence do."""
+
+    URI = "file:///sysml.library/Systems%20Library/VerificationCases.sysml#x"
+
     @staticmethod
-    def _elements(*, def_implied=True, usage_implied=True, uri=True, def_anchor="VerificationCase", usage_anchor="verificationCases"):
-        uri_suffix = "#uuid" if uri else ""
-        uri_prefix = "file:///lib/Systems Library/VerificationCases.sysml" if uri else ""
-        return [
+    def _export(
+        *,
+        def_implied=True,
+        usage_implied=True,
+        uri=True,
+        def_anchor_id="anchor-def",
+        usage_anchor_id="anchor-use",
+        def_ref_target=None,
+        usage_kind="Subsetting",
+        inline=False,
+        with_anchors=True,
+    ):
+        """Export-shaped corpus: elements + external_references + anchors.
+
+        ``inline=True`` exercises the inline-target route (@uri on the
+        relationship); the default exercises the split external-reference
+        route the reviewed exporter produces.
+        """
+        uri_value = TestVerificationCaseGrounding.URI if uri else ""
+        elements = [
             {"@id": "def1", "@type": "VerificationCaseDefinition"},
             {"@id": "use1", "@type": "VerificationCaseUsage"},
-            {"@id": "anchor-def", "declaredName": def_anchor},
-            {"@id": "anchor-use", "declaredName": usage_anchor},
             {
                 "@id": "sub1",
                 "@type": "Subclassification",
                 "isImplied": def_implied,
                 "subclassifier": {"@id": "def1"},
-                "superclassifier": {
-                    "@id": "anchor-def",
-                    **({"@uri": uri_prefix + uri_suffix} if uri else {}),
-                },
             },
             {
                 "@id": "sub2",
-                "@type": "Subsetting",
+                "@type": usage_kind,
                 "isImplied": usage_implied,
                 "subsettingFeature": {"@id": "use1"},
-                "subsettedFeature": {
-                    "@id": "anchor-use",
-                    **({"@uri": uri_prefix + uri_suffix} if uri else {}),
-                },
             },
         ]
+        references = [
+            {
+                "source_element_id": "sub1",
+                "target_id": (
+                    def_ref_target if def_ref_target is not None else def_anchor_id
+                ),
+                "property_path": "general",
+                "uri": uri_value,
+            },
+            {
+                "source_element_id": "sub2",
+                "target_id": usage_anchor_id,
+                "property_path": "subsettedFeature",
+                "uri": uri_value,
+            },
+        ]
+        if inline:
+            elements[2]["superclassifier"] = {
+                "@id": def_anchor_id,
+                "@uri": TestVerificationCaseGrounding.URI,
+            }
+            elements[3]["subsettedFeature"] = {
+                "@id": usage_anchor_id,
+                "@uri": TestVerificationCaseGrounding.URI,
+            }
+            references = []
+        anchors = (
+            {
+                "VerificationCases::VerificationCase": def_anchor_id,
+                "VerificationCases::verificationCases": usage_anchor_id,
+            }
+            if with_anchors
+            else {}
+        )
+        return elements, references, anchors
+
+    def _prove(self, **kwargs):
+        elements, references, anchors = self._export(**kwargs)
+        return vg.prove_verification_case_grounding(
+            elements=elements,
+            external_references=references,
+            library_anchors=anchors,
+        )
 
     def test_fully_proven_grounding_is_equivalent(self) -> None:
-        result = runner.prove_verification_case_grounding(self._elements())
+        result = self._prove()
         assert result["result"] == "EQUIVALENT"
         assert result["governed_population"] == {"definitions": 1, "usages": 1}
+        assert len(result["proved"]["definition_role"]) == 1
+        assert len(result["proved"]["usage_role"]) == 1
+        assert result["missing"] == [] and result["conflicts"] == []
 
-    def test_wrong_definition_anchor_name_blocks(self) -> None:
-        result = runner.prove_verification_case_grounding(
-            self._elements(def_anchor="SomethingElse")
-        )
+    def test_inline_target_route_also_proves(self) -> None:
+        result = self._prove(inline=True)
+        assert result["result"] == "EQUIVALENT"
+
+    def test_missing_library_anchors_is_not_yet_comparable(self) -> None:
+        result = self._prove(with_anchors=False)
+        assert result["result"] == "NOT_YET_COMPARABLE"
+        assert any("library_anchors" in entry for entry in result["missing"])
+
+    def test_missing_library_evidence_is_not_yet_comparable(self) -> None:
+        """Names alone cannot finish the proof: no uri evidence, no proof."""
+        result = self._prove(uri=False)
+        assert result["result"] == "NOT_YET_COMPARABLE"
+        assert result["missing"]
+
+    def test_wrong_anchor_target_id_is_not_yet_comparable(self) -> None:
+        result = self._prove(def_ref_target="some-other-id")
+        assert result["result"] == "NOT_YET_COMPARABLE"
+        assert any("definition_role" in entry for entry in result["missing"])
+
+    def test_non_implied_edge_is_blocking(self) -> None:
+        result = self._prove(def_implied=False)
         assert result["result"] == "BLOCKING_MISMATCH"
         assert result["conflicts"]
 
-    def test_wrong_usage_anchor_name_blocks(self) -> None:
-        result = runner.prove_verification_case_grounding(
-            self._elements(usage_anchor="somethingElse")
-        )
-        assert result["result"] == "BLOCKING_MISMATCH"
-
-    def test_missing_implied_edge_is_not_yet_comparable(self) -> None:
-        result = runner.prove_verification_case_grounding(
-            self._elements(def_implied=False)
-        )
+    def test_wrong_role_kind_is_not_yet_comparable(self) -> None:
+        """A usage wired through Subclassification instead of Subsetting
+        never proves the usage role."""
+        result = self._prove(usage_kind="Subclassification")
         assert result["result"] == "NOT_YET_COMPARABLE"
-
-    def test_missing_library_evidence_is_not_yet_comparable(self) -> None:
-        """Names alone cannot finish the proof."""
-        result = runner.prove_verification_case_grounding(
-            self._elements(uri=False)
-        )
-        assert result["result"] == "NOT_YET_COMPARABLE"
-
-    def test_source_document_evidence_also_proves(self) -> None:
-        result = runner.prove_verification_case_grounding(
-            self._elements(uri=False),
-            element_sources={
-                "anchor-def": "Systems Library/VerificationCases.sysml",
-                "anchor-use": "Systems Library/VerificationCases.sysml",
-            },
-        )
-        assert result["result"] == "EQUIVALENT"
-
-    def test_wrong_role_mechanism_blocks(self) -> None:
-        elements = self._elements()
-        # Convert the usage-role proof edge into a Subclassification: the
-        # usage role requires implied Subsetting, so the proof cannot hold.
-        for element in elements:
-            if element.get("@id") == "sub2":
-                element["@type"] = "Subclassification"
-        result = runner.prove_verification_case_grounding(elements)
-        assert result["result"] != "EQUIVALENT"
-
-    def test_conflicting_anchor_identities_block(self) -> None:
-        elements = self._elements()
-        elements.append(
-            {
-                "@id": "sub1b",
-                "@type": "Subclassification",
-                "isImplied": True,
-                "subclassifier": {"@id": "def1"},
-                "superclassifier": {
-                    "@id": "anchor-def-2",
-                    "@uri": "file:///lib/Systems Library/VerificationCases.sysml#x",
-                },
-            }
-        )
-        elements.append({"@id": "anchor-def-2", "declaredName": "VerificationCase"})
-        result = runner.prove_verification_case_grounding(elements)
-        assert result["result"] == "BLOCKING_MISMATCH"
-        assert any("multiple distinct anchor" in conflict for conflict in result["conflicts"])
 
     def test_empty_governed_population_is_not_yet_comparable(self) -> None:
-        result = runner.prove_verification_case_grounding([])
+        result = vg.prove_verification_case_grounding(
+            elements=[],
+            external_references=[],
+            library_anchors={
+                "VerificationCases::VerificationCase": "anchor-def",
+                "VerificationCases::verificationCases": "anchor-use",
+            },
+        )
         assert result["result"] == "NOT_YET_COMPARABLE"
 
 
