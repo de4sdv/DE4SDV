@@ -45,6 +45,7 @@ from typing import Any
 import pytest
 
 from scripts.validate_semantic_mcp import (
+    _native_verification_subject_record,
     _select_native_verification_subject,
     validate_semantic_results,
 )
@@ -1494,3 +1495,64 @@ def test_selector_and_public_traversal_agree_on_eligibility(
         edge["predicate"] == "verifiedBy"
         for edge in service.impact("req-unresolved")["edges"]
     )
+
+
+class TestMcpValidatorRevisionGateScope:
+    """Regression for the privileged-run failure (exact revision 44f6db5):
+    the REAL results shape — seven revision-bound tool results PLUS the
+    ``native_verification_subject`` proof-metadata record — must satisfy the
+    revision gate. The metadata record is deliberately revision-less (it is
+    not a tool output); unknown keys are still refused; a tool result
+    without its revision still fails.
+    """
+
+    def _real_shape(self, service, repository, traversal):
+        elements = repository.elements
+        model_status = service.model_status()
+        resolve_element = service.resolve_element("reqCommandEmergencyBraking")
+        root_id = resolve_element["element"]["element_id"]
+        inspect_element = service.inspect_element(root_id)
+        neighbors = service.semantic_neighbors(root_id)
+        impact = service.impact("reqCommandEmergencyBraking")
+        coverage = service.verification_coverage(root_id)
+        case_ids = sorted(
+            edge["target"]
+            for edge in impact["edges"]
+            if edge["predicate"] == "verifiedBy"
+        )
+        assert case_ids, "runtime produced no native verification case"
+        trace = service.trace(root_id, case_ids[0], max_depth=4)
+        results = {
+            "model_status": model_status,
+            "resolve_element": resolve_element,
+            "inspect_element": inspect_element,
+            "semantic_neighbors": neighbors,
+            "impact": impact,
+            "trace": trace,
+            "verification_coverage": coverage,
+        }
+        subject = _select_native_verification_subject(elements, traversal)
+        results["native_verification_subject"] = (
+            _native_verification_subject_record(subject)
+        )
+        return results
+
+    def test_real_shape_with_proof_metadata_passes(self, integration_service):
+        service, repository, contract, traversal = integration_service
+        results = self._real_shape(service, repository, traversal)
+        assert "revision" not in results["native_verification_subject"]
+        validate_semantic_results(results, expected_revision=_expected_revision())
+
+    def test_unknown_result_key_is_refused(self, integration_service):
+        service, repository, contract, traversal = integration_service
+        results = self._real_shape(service, repository, traversal)
+        results["rogue_metadata"] = {"revision": _expected_revision()}
+        with pytest.raises(RuntimeError, match="unexpected MCP result key"):
+            validate_semantic_results(results, expected_revision=_expected_revision())
+
+    def test_tool_result_without_revision_still_fails(self, integration_service):
+        service, repository, contract, traversal = integration_service
+        results = self._real_shape(service, repository, traversal)
+        results["model_status"].pop("revision")
+        with pytest.raises(RuntimeError, match="model_status revision mismatch"):
+            validate_semantic_results(results, expected_revision=_expected_revision())
