@@ -78,6 +78,12 @@ REQUIRED_SEMANTIC_PROOF_TOOLS = {
     "verification_coverage",
 }
 
+#: ``results`` entries that are proof METADATA rather than MCP tool results.
+#: The revision gate in :func:`validate_semantic_results` binds tool OUTPUTS
+#: to the expected revision; the Proof-B subject record documents the
+#: selection and is not a tool output. Unknown keys are still refused.
+NON_TOOL_RESULT_KEYS = frozenset({"native_verification_subject"})
+
 #: Reviewed discriminators that establish the governed DE4SDV ``Requirement``
 #: identity of a Proof-B subject (c5 R2 verifiedBy-domain consistency
 #: review): direct Requirement-lineage grounding of the anchored usage, or
@@ -379,6 +385,16 @@ def validate_semantic_results(
     if missing:
         raise RuntimeError(f"MCP proof did not exercise tools: {sorted(missing)}")
     for name, result in results.items():
+        if name in NON_TOOL_RESULT_KEYS:
+            # Proof metadata, not a tool result: the revision gate binds tool
+            # OUTPUTS to the expected revision; the subject record documents
+            # the Proof-B selection (see _native_verification_subject_record).
+            continue
+        if name not in REQUIRED_SEMANTIC_PROOF_TOOLS:
+            raise RuntimeError(
+                f"unexpected MCP result key: {name!r}; only the seven proof "
+                "tools and known proof metadata may appear in results"
+            )
         if result.get("revision") != expected_revision:
             raise RuntimeError(
                 f"{name} revision mismatch: {result.get('revision')} != {expected_revision}"
@@ -541,6 +557,30 @@ def _select_native_verification_subject(
     )
 
 
+def _native_verification_subject_record(subject: dict[str, Any]) -> dict[str, Any]:
+    """Proof-B subject record — proof METADATA, never a tool result.
+
+    It documents the independent native-verification subject selection and
+    deliberately carries NO ``revision`` field: the revision gate in
+    :func:`validate_semantic_results` binds MCP tool OUTPUTS to the expected
+    revision, and this record is not a tool output.
+    """
+    return {
+        "element_id": subject["element_id"],
+        "sysml_type": subject["sysml_type"],
+        "verification_case_id": subject["verification_case_id"],
+        "requirement_identity": subject["requirement_identity"],
+        "selection": (
+            "RequirementVerificationMembership anchored on a "
+            "RequirementUsage; the anchored usage's governed DE4SDV "
+            "Requirement identity is machine-proven (direct "
+            "Requirement-lineage grounding or the reviewed "
+            "ReferenceSubsetting shadow bridge) and the verification "
+            "case resolves through the reviewed verifiedBy resolver"
+        ),
+    }
+
+
 async def run_mcp_validation(
     *,
     api_url: str,
@@ -637,20 +677,9 @@ async def run_mcp_validation(
             )
             subject = _select_native_verification_subject(elements, traversal)
             subject_id = subject["element_id"]
-            results["native_verification_subject"] = {
-                "element_id": subject_id,
-                "sysml_type": subject["sysml_type"],
-                "verification_case_id": subject["verification_case_id"],
-                "requirement_identity": subject["requirement_identity"],
-                "selection": (
-                    "RequirementVerificationMembership anchored on a "
-                    "RequirementUsage; the anchored usage's governed DE4SDV "
-                    "Requirement identity is machine-proven (direct "
-                    "Requirement-lineage grounding or the reviewed "
-                    "ReferenceSubsetting shadow bridge) and the verification "
-                    "case resolves through the reviewed verifiedBy resolver"
-                ),
-            }
+            results["native_verification_subject"] = (
+                _native_verification_subject_record(subject)
+            )
             proof_b_impact = _structured(
                 await session.call_tool(
                     "impact", {"identifier": subject_id}
