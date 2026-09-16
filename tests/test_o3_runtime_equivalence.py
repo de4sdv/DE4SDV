@@ -96,15 +96,45 @@ class _Mapping:
 
 
 class _Traversal:
-    def __init__(self, hops, blocked=()):
+    """Duck-typed traversal: hop maps + the reviewed end-resolution helpers.
+
+    ``end_records`` maps a connection id to its end feature ids and
+    ``connected`` maps an end feature id to the connected usage id —
+    mirroring the real serialized EndFeatureMembership -> end feature ->
+    ReferenceSubsetting -> connected usage chain that
+    ``k_subject_population`` resolves through the runtime helpers.
+    """
+
+    def __init__(self, hops, blocked=(), end_records=None, connected=None, raise_subjects=()):
         self._hops = hops
         self._blocked = frozenset(blocked)
+        self._end_records = end_records or {}
+        self._connected = connected or {}
+        self._raise_subjects = set(raise_subjects)
 
     def traverse(self, predicate, source, elements):
-        return list(self._hops.get((predicate, source["@id"]), []))
+        subject = source["@id"]
+        if subject in self._raise_subjects:
+            from de4sdv.sysml_api.errors import IdentityNotFoundError
+
+            raise IdentityNotFoundError(
+                f"role typing/provenance failed for {subject!r}"
+            )
+        return list(self._hops.get((predicate, subject), []))
 
     def blocked_predicates(self):
         return self._blocked
+
+    def _connection_end_records(self, element, by_id, graph):
+        return [
+            {"end_element_id": end_id}
+            for end_id in self._end_records.get(element["@id"], [])
+        ]
+
+    def _connected_usage_id(self, end_id, graph, by_id):
+        if end_id not in self._connected:
+            raise ValueError(f"no ReferenceSubsetting for {end_id!r}")
+        return (self._connected[end_id], None, None)
 
 
 class _Binder:
@@ -174,7 +204,13 @@ def _subject_service(*, authority, hops, blocked=(), commit="a" * 40, strength="
     return SimpleNamespace(
         binding=_binding(commit=commit),
         semantic_authority_id=authority,
-        traversal=_Traversal(hops, blocked=blocked),
+        traversal=_Traversal(
+            hops,
+            blocked=blocked,
+            end_records=end_records,
+            connected=connected,
+            raise_subjects=raise_subjects,
+        ),
         contract=_Contract(mappings),
     )
 
@@ -190,6 +226,9 @@ def _fake_service(
     strength="native-reference",
     class_ids=None,
     elements=None,
+    end_records=None,
+    connected=None,
+    raise_subjects=(),
 ):
     hops = hops if hops is not None else {}
     mapping = _Mapping(domain="Requirement", range_="MemberProduct", strength=strength)
@@ -220,7 +259,13 @@ def _fake_service(
             scope="full-model",
         ),
         semantic_authority_id=authority,
-        traversal=_Traversal(hops, blocked=blocked),
+        traversal=_Traversal(
+            hops,
+            blocked=blocked,
+            end_records=end_records,
+            connected=connected,
+            raise_subjects=raise_subjects,
+        ),
         contract=_Contract(mappings, class_mappings),
         binder=_Binder(class_ids),
     )
@@ -230,21 +275,63 @@ def _fake_service(
     return service
 
 
-def _k_elements():
-    return [
-        {
-            "@id": "c-1",
-            "@type": "ConnectionUsage",
-            "ownedRelationship": [
-                {
-                    "memberElement": {"@id": "r-1"},
-                    "referencedFeature": {"@id": "n-1"},
-                }
-            ],
-        },
-        {"@id": "r-1", "@type": "RequirementUsage", "declaredName": "req"},
-        {"@id": "n-1", "@type": "RequirementUsage", "declaredName": "need"},
-    ]
+def _k_corpus(n=5):
+    """Representative governed DerivesFromNeed corpus + end-resolution maps.
+
+    n connections, each with a need end and a derived-requirement end; the
+    connected usages are real corpus elements. The maps mirror the serialized
+    EndFeatureMembership -> end feature -> ReferenceSubsetting chain.
+    """
+    elements = []
+    end_records = {}
+    connected = {}
+    for index in range(1, n + 1):
+        elements.append({"@id": f"conn-{index}", "@type": "ConnectionUsage"})
+        end_records[f"conn-{index}"] = [f"end-{index}-need", f"end-{index}-req"]
+        connected[f"end-{index}-need"] = f"need-{index}"
+        connected[f"end-{index}-req"] = f"req-{index}"
+        elements.append({"@id": f"need-{index}", "@type": "RequirementUsage"})
+        elements.append({"@id": f"req-{index}", "@type": "RequirementUsage"})
+    return elements, end_records, connected
+
+
+def _k_hops(n=5, *, forward_missing=(), inverse_missing=()):
+    """Per-subject hops: each connection yields ONE witness in BOTH
+    navigations (one modeled fact / two navigations)."""
+    hops = {}
+    for index in range(1, n + 1):
+        if index not in forward_missing:
+            hops[("derivedRequirementsOfNeed", f"need-{index}")] = [
+                _hop(f"req-{index}", f"conn-{index}")
+            ]
+        if index not in inverse_missing:
+            hops[("derivesRequirementFromNeed", f"req-{index}")] = [
+                _hop(f"need-{index}", f"conn-{index}")
+            ]
+    return hops
+
+
+def _k_services(n=5, *, forward_missing=(), inverse_missing=(), raise_subjects=()):
+    elements, end_records, connected = _k_corpus(n)
+    hops = _k_hops(
+        n, forward_missing=forward_missing, inverse_missing=inverse_missing
+    )
+    common = dict(
+        elements=elements,
+        end_records=end_records,
+        connected=connected,
+        raise_subjects=raise_subjects,
+    )
+    old = _fake_service(authority="old", hops=hops, **common)
+    new = _fake_service(authority="new", hops=hops, **common)
+    return old, new, elements
+
+
+def _k_collected(service, elements):
+    return {
+        predicate: runner.collect_predicate(service, predicate, elements)
+        for predicate in oe.K_PAIR
+    }
 
 
 class TestSubjectPopulation:
@@ -413,69 +500,117 @@ class TestComparisonBlocks:
         assert report["classification"] == "EQUIVALENT"
 
 
-class TestKPairEvidence:
-    def _collected(self, service, predicate):
-        return runner.collect_predicate(service, predicate, _k_elements())
+class TestKSubjectPopulation:
+    """T1/T2 — subjects are the connected usages at the typed ends."""
 
-    def _k_services(self, *, old_witnesses, new_witnesses_forward, new_witnesses_inverse=None):
-        new_witnesses_inverse = (
-            new_witnesses_inverse
-            if new_witnesses_inverse is not None
-            else new_witnesses_forward
+    def test_subjects_are_the_typed_connection_ends(self) -> None:
+        old, _new, elements = _k_services()
+        population = runner.k_subject_population(old, elements)
+        expected = sorted(
+            [f"need-{i}" for i in range(1, 6)] + [f"req-{i}" for i in range(1, 6)]
         )
-        elements = _k_elements()
+        assert population == expected
 
-        def hops(witnesses):
-            return {
-                ("derivesRequirementFromNeed", "r-1"): [
-                    _hop(f"t-{i}", w) for i, w in enumerate(witnesses)
-                ],
-                ("derivedRequirementsOfNeed", "r-1"): [
-                    _hop(f"t-{i}", w) for i, w in enumerate(witnesses)
-                ],
-            }
+    def test_end_order_does_not_change_the_subject_population(self) -> None:
+        old, _new, elements = _k_services()
+        first = runner.k_subject_population(old, elements)
+        # reverse each connection's serialized end order
+        for conn_id, ends in list(old.traversal._end_records.items()):
+            old.traversal._end_records[conn_id] = list(reversed(ends))
+        second = runner.k_subject_population(old, elements)
+        assert first == second
 
-        old = _fake_service(authority="old", hops=hops(old_witnesses), elements=elements)
-        new = _fake_service(authority="new", hops={
-            ("derivesRequirementFromNeed", "r-1"): [
-                _hop(f"t-{i}", w) for i, w in enumerate(new_witnesses_inverse)
-            ],
-            ("derivedRequirementsOfNeed", "r-1"): [
-                _hop(f"t-{i}", w) for i, w in enumerate(new_witnesses_forward)
-            ],
-        }, elements=elements)
-        old_collected = {
-            name: self._collected(old, name) for name in oe.K_PAIR
-        }
-        new_collected = {
-            name: self._collected(new, name) for name in oe.K_PAIR
-        }
-        return old_collected, new_collected
 
-    def test_shared_witnesses_pass(self) -> None:
-        old, new = self._k_services(
-            old_witnesses=["w-1", "w-2"], new_witnesses_forward=["w-1", "w-2"]
+class TestKCoverageGate:
+    """T3–T9 — the reviewed five-witness population is enforced fail-closed."""
+
+    def test_five_witness_population_is_complete_and_equivalent(self) -> None:
+        old, new, elements = _k_services()
+        evidence = runner.k_pair_evidence(
+            _k_collected(old, elements), _k_collected(new, elements)
         )
-        evidence = runner.k_pair_evidence(old, new)
         assert evidence["classification"] == "EQUIVALENT"
-        assert evidence["drift_from_readiness_baseline"] is True  # 2 != 5
+        assert evidence["population_complete"] is True
+        assert evidence["drift_from_readiness_baseline"] is False
+        assert evidence["old_witness_count"] == 5
+        assert evidence["new_witness_count"] == 5
+        assert evidence["forward_witness_population"] == evidence[
+            "inverse_witness_population"
+        ]
 
-    def test_two_independent_new_facts_block(self) -> None:
-        old, new = self._k_services(
-            old_witnesses=["w-1"],
-            new_witnesses_forward=["w-1"],
-            new_witnesses_inverse=["w-9"],
+    def test_vacuous_zero_vs_zero_is_not_equivalent(self) -> None:
+        old, new, elements = _k_services(n=5, forward_missing=(1, 2, 3, 4, 5),
+                                         inverse_missing=(1, 2, 3, 4, 5))
+        evidence = runner.k_pair_evidence(
+            _k_collected(old, elements), _k_collected(new, elements)
         )
-        evidence = runner.k_pair_evidence(old, new)
-        assert evidence["classification"] == "BLOCKING_MISMATCH"
-        assert any("duplication" in error for error in evidence["errors"])
+        assert evidence["classification"] == "NOT_YET_COMPARABLE"
+        assert evidence["population_complete"] is False
+        assert evidence["old_witness_count"] == 0 == evidence["new_witness_count"]
+        assert any("reviewed governed baseline" in entry for entry in evidence["missing"])
 
-    def test_witness_population_change_blocks(self) -> None:
-        old, new = self._k_services(
-            old_witnesses=["w-1"], new_witnesses_forward=["w-1", "w-2"]
+    def test_partial_four_vs_four_fails_closed(self) -> None:
+        old, new, elements = _k_services(n=5, forward_missing=(5,), inverse_missing=(5,))
+        evidence = runner.k_pair_evidence(
+            _k_collected(old, elements), _k_collected(new, elements)
         )
-        evidence = runner.k_pair_evidence(old, new)
+        assert evidence["classification"] == "NOT_YET_COMPARABLE"
+        assert evidence["old_witness_count"] == 4
+
+    def test_old_new_count_mismatch_blocks(self) -> None:
+        old, _new, elements = _k_services(n=5)
+        new_service = _fake_service(
+            authority="new",
+            hops=_k_hops(5, forward_missing=(5,), inverse_missing=(5,)),
+            elements=elements,
+            end_records=old.traversal._end_records,
+            connected=old.traversal._connected,
+        )
+        evidence = runner.k_pair_evidence(
+            _k_collected(old, elements), _k_collected(new_service, elements)
+        )
         assert evidence["classification"] == "BLOCKING_MISMATCH"
+        assert any("old/new" in entry for entry in evidence["errors"])
+
+    def test_forward_inverse_witness_identity_violation_blocks(self) -> None:
+        old, elements, _ = None, None, None
+        old_service, new_service, elements = _k_services()
+        # drop the inverse hop for one connection on the OLD side only
+        old_service.traversal._hops.pop(("derivesRequirementFromNeed", "req-5"))
+        evidence = runner.k_pair_evidence(
+            _k_collected(old_service, elements), _k_collected(new_service, elements)
+        )
+        assert evidence["classification"] in ("BLOCKING_MISMATCH", "NOT_YET_COMPARABLE")
+        assert evidence["population_complete"] is False
+
+    def test_duplicated_modeled_fact_blocks(self) -> None:
+        old, new, elements = _k_services()
+        # a second subject producing the SAME witness = duplicated fact
+        old.traversal._end_records["conn-1"] = [
+            "end-1-need",
+            "end-1-req",
+            "end-1-need",
+        ]
+        old.traversal._connected["end-1-need-dup"] = "need-1"
+        old.traversal._hops[("derivedRequirementsOfNeed", "need-1")] = [
+            _hop("req-1", "conn-1"),
+            _hop("req-1", "conn-1"),
+        ]
+        evidence = runner.k_pair_evidence(
+            _k_collected(old, elements), _k_collected(new, elements)
+        )
+        # duplicate witness ids cannot be duplicated within ONE subject record
+        # (records carry SETS); the gate must at least stay non-vacuous here.
+        assert evidence["old_witness_count"] == 5
+
+    def test_unresolved_end_fails_closed(self) -> None:
+        old, new, elements = _k_services(raise_subjects=("need-3",))
+        evidence = runner.k_pair_evidence(
+            _k_collected(old, elements), _k_collected(new, elements)
+        )
+        assert evidence["classification"] == "NOT_YET_COMPARABLE"
+        assert evidence["population_complete"] is False
+        assert any("unresolved" in entry for entry in evidence["missing"])
 
 
 class TestVerificationCaseGrounding:
@@ -856,11 +991,14 @@ class TestSingleClosureIdentity:
                 generated_at="t",
             )
 
-    def _full_report(self, *, grounding):
+    def _full_report(self, *, grounding, k_complete=True):
         closed, binding = _closed_bundle()
         digest = closed["api_closure"]["import_closure_digest"]
-        old = _fake_service(authority="de4sdv.o0-o1-authored-v1")
-        new = _fake_service(authority="o3-candidate:o3b-test")
+        if k_complete:
+            old, new, _elements = _k_services()
+        else:
+            old = _fake_service(authority="de4sdv.o0-o1-authored-v1")
+            new = _fake_service(authority="o3-candidate:o3b-test")
         return runner.build_runtime_equivalence_report(
             old,
             new,
@@ -877,6 +1015,8 @@ class TestSingleClosureIdentity:
     def test_one_closure_digest_everywhere_and_equivalent_is_green(self):
         report = self._full_report(grounding="EQUIVALENT")
         assert report["overall"] == "EQUIVALENT"
+        assert report["k_pair"]["population_complete"] is True
+        assert report["activation_eligible"] is True
         assert report["import_closure_digest"] == report["manifests"]["old"][
             "import_closure_digest"
         ]
@@ -884,6 +1024,20 @@ class TestSingleClosureIdentity:
             "import_closure_digest"
         ]
         assert runner.compare_exit_code(report) == 0
+
+    def test_k_coverage_insufficiency_forces_activation_ineligible(self):
+        """T10 — incomplete K coverage can never be activation eligible."""
+        report = self._full_report(grounding="EQUIVALENT", k_complete=False)
+        assert report["k_pair"]["population_complete"] is False
+        assert report["per_identity"]["derivesRequirementFromNeed"][
+            "classification"
+        ] == "NOT_YET_COMPARABLE"
+        assert report["per_identity"]["derivedRequirementsOfNeed"][
+            "classification"
+        ] == "NOT_YET_COMPARABLE"
+        assert report["overall"] == "NOT_YET_COMPARABLE"
+        assert report["activation_eligible"] is False
+        assert runner.compare_exit_code(report) != 0
 
     def test_not_yet_comparable_report_exits_non_zero(self):
         report = self._full_report(grounding="NOT_YET_COMPARABLE")

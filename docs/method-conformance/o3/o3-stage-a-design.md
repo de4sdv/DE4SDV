@@ -228,12 +228,25 @@ outputs — and requires the live element count to equal the attested
 ingestion closure. The report and BOTH manifests carry that same digest;
 any divergence fails closed before a report exists.
 
-K pair: the runner compares the exact same-revision witness population
-old-vs-new (must be equal), machine-locks ONE modeled fact / TWO
-navigations via the accepted consistency check (duplication blocks), and
-separately flags drift from the reviewed O2.3 baseline count (the baseline
-statement is carried into the report for review; the constant is
-test-locked against the artifact).
+K pair: the runner derives its K query subjects from the **typed ends of the
+corpus connections** (the connected usages of every `ConnectionUsage`,
+resolved through the runtime's own reviewed end-resolution helpers —
+EndFeatureMembership → end feature → ReferenceSubsetting chain; role
+identity is NEVER decided in the runner). The runtime traversal types the
+roles against the governed lineages during the sweep (need end → forward
+`derivedRequirementsOfNeed`; derivedRequirement end → inverse
+`derivesRequirementFromNeed`), and the **coverage gate** in
+`k_pair_evidence` fails closed: the reviewed exact baseline is
+`READINESS_BASELINE_K_WITNESS_COUNT` (5) governed `DerivesFromNeed`
+witnesses, and vacuous or partial equality is never equivalence evidence —
+`0/0` and `4/4` classify `NOT_YET_COMPARABLE` (never EQUIVALENT), old/new or
+forward/inverse disagreements and duplicated facts classify
+`BLOCKING_MISMATCH`, unresolved role typing is reported and fails closed.
+`drift_from_readiness_baseline` is `false` only when the population is
+complete. The report also carries `activation_eligible` = closure eligibility
+AND overall EQUIVALENT AND K population complete; the baseline statement is
+carried into the report for review (the constant is test-locked against the
+artifact).
 
 Exit codes: `compare` is GREEN only for a fully `EQUIVALENT` result; every
 other classification (`NOT_YET_COMPARABLE`,
@@ -303,10 +316,9 @@ environment selector.
   local API service + binding + exact-revision export artifact, with all
   existing behavior preserved;
 - the O3 outputs are uploaded alongside the existing exact-head evidence;
-- the job timeout is 300 minutes (raised from 180 after the first
-  exact-revision attempt — the full pipeline plus the runtime-equivalence
-  comparison exceeded 3 hours; the comparison itself was cut off at 38
-  minutes of progress).
+- the job timeout is 360 minutes (raised 180 → 300 after the first
+  exact-revision attempt exceeded 3 hours, and 300 → 360 after the second
+  completed in 4h59m37s — a 23-second margin is operationally unsafe).
 
 Production deployment/selection is untouched. Scheduled nightly behavior
 remains functional.
