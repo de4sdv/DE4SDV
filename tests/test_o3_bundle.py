@@ -125,7 +125,7 @@ class TestBundleIntegrity:
             binding=binding,
             binding_sha256=digest,
         )
-        assert authority.authority_id == f"o3-candidate:{closed['bundle_id']}"
+        assert authority.authority_id == ob.o3_authority_id(closed["bundle_id"])
         assert authority.activation_blocked is False
 
     def test_partially_grounded_bundle_loads_but_blocks_activation(self) -> None:

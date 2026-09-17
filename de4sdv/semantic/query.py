@@ -243,19 +243,39 @@ class SemanticQueryService:
             "element_count": element_count,
             "gaps": gaps,
             "provenance": self._provenance(),
+            "semantic_authority": self._semantic_authority(),
         }
-        if self.semantic_authority_id != LEGACY_AUTHORITY_ID:
-            payload["semantic_authority"] = {
-                "id": self.semantic_authority_id,
-                "kind": "o3-candidate",
-                "migrated_scope": "reviewed-13-identity-subset",
+        return payload
+
+    def _semantic_authority(self) -> dict[str, Any]:
+        """Deployment provenance: which semantic authority produced answers.
+
+        Always present, so a deployed service can be inspected for
+        ``legacy`` vs ``o3`` without guessing from the absence of a block.
+        The O3 block identifies the exact bundle; the bundle was verified
+        against this exact revision and revision binding at startup.
+        """
+        if self.semantic_authority_id == LEGACY_AUTHORITY_ID:
+            return {
+                "id": LEGACY_AUTHORITY_ID,
+                "kind": "legacy",
                 "note": (
-                    "candidate authority path (Projection semantics + Profile "
-                    "representation mechanics); not production authority; "
-                    "activation requires privileged exact-revision evidence"
+                    "authored KernelContract authority (production default; "
+                    "unchanged behavior)"
                 ),
             }
-        return payload
+        return {
+            "id": self.semantic_authority_id,
+            "kind": "o3",
+            "migrated_scope": "reviewed-13-identity-subset",
+            "note": (
+                "explicitly selected O3 authority bundle (Semantic Projection "
+                "semantics + API Representation Profile mechanics); every "
+                "other identity delegates to the legacy authored "
+                "KernelContract; verified against this exact revision and "
+                "revision binding at startup"
+            ),
+        }
 
     def resolve_element(
         self, identifier: str, *, expected_type: str | None = None

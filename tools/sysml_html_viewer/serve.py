@@ -55,7 +55,12 @@ from .ask_model import (
 )
 from . import repo_guide
 from .repo_guide import MAX_QUESTION_CHARS as GUIDE_MAX_QUESTION_CHARS
-from .ask_model_semantic import build_method_context_api, start_warmup, warm_status
+from .ask_model_semantic import (
+    build_method_context_api,
+    semantic_authority_status,
+    start_warmup,
+    warm_status,
+)
 from .model_parse import ModelFile, build_member_index, load_model
 from .model_parse import ElementRef  # noqa: F401  (type only)
 
@@ -447,6 +452,11 @@ class _Handler(SimpleHTTPRequestHandler):
                 "service": "DE4SDV public Ask-model viewer",
                 "application_git_commit": server.application_revision,
                 "model_git_commit": server.model_revision,
+                # Deployment provenance: which semantic authority serves
+                # answers (legacy | o3 + exact bundle id + revision); an
+                # invalid selector surfaces its error here and semantic
+                # answers are refused in that state.
+                "semantic_authority": semantic_authority_status(),
                 "semantic_warmup": {
                     "status": warmup_state.get("status", "unknown")
                 },

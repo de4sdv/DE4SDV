@@ -1,11 +1,15 @@
-"""O3 candidate authority bundle — revision-bound verification and the
-Projection/Profile-backed authority façade (Stage A; read-only).
+"""O3 authority bundle — revision-bound verification and the
+Projection/Profile-backed authority façade (Stage A machinery; production
+selection is Stage B).
 
-This module implements the CANDIDATE O3 authority path for the reviewed
-13-identity migrated set. It does not activate anything:
+This module implements the O3 authority path for the reviewed 13-identity
+migrated set. It does not activate anything by itself:
 
-- production runtime selection is unchanged (the legacy authored
-  ``KernelContract`` path stays the production default);
+- production authority is selected EXPLICITLY (see
+  :mod:`de4sdv.semantic.authority_selection`): the legacy authored
+  ``KernelContract`` path is the production default, and a bundle can only
+  become production authority when an accepted CLOSED bundle is explicitly
+  selected by id/path and verified activation-eligible at startup;
 - the authored ontology YAML stays present (O4 owns retirement);
 - no bundle produced by this machinery is accepted cutover authority until
   a privileged exact-revision ingestion and the same-revision comparison
@@ -27,8 +31,10 @@ Bundle states:
   identity + the authored ontology's ingestion-compatibility identity);
 - an EXECUTABLE CLOSED bundle additionally carries a structured API closure
   attestation (``de4sdv.o3-api-closure-attestation/v1``) bound to the core
-  bundle ID. Only closed bundles may drive candidate execution outside
-  synthetic fixtures; an unclosed bundle fails closed.
+  bundle ID. Only closed bundles may drive execution outside synthetic
+  fixtures; an unclosed bundle fails closed. Production selection
+  additionally requires ``activation_eligible`` (recomputed), so a closed
+  but ineligible bundle can never start the production O3 authority.
 """
 
 from __future__ import annotations
@@ -110,11 +116,24 @@ RUNTIME_BUILD_FILES = (
     "de4sdv/semantic/kernel_binding_index.py",
     "de4sdv/semantic/kernel_contract.py",
     "de4sdv/semantic/authority_ids.py",
+    "de4sdv/semantic/authority_selection.py",
     "de4sdv/semantic/o3_bundle.py",
     "de4sdv/sysml_api/revisions.py",
 )
 
 LEGACY_AUTHORITY_ID = "de4sdv.o0-o1-authored-v1"
+
+
+def o3_authority_id(bundle_id: str) -> str:
+    """Deterministic service authority id for one O3 bundle.
+
+    One id for the facade, the query service, the impact surface, the
+    provenance blocks and the authority-keyed cache/snapshot identities —
+    the bundle id is the authority identity, so no cache can be shared
+    across two different bundles or across legacy/O3.
+    """
+    return f"o3:{bundle_id}"
+
 
 _BUNDLE_ID_COMPONENTS = (
     "schema",
@@ -684,7 +703,7 @@ class O3AuthorityFacade:
         self._projection_rows = projection_rows
         self._profile_entries = profile_entries
         self.bundle_id = str(bundle["bundle_id"])
-        self.authority_id = f"o3-candidate:{self.bundle_id}"
+        self.authority_id = o3_authority_id(self.bundle_id)
         from de4sdv.sysml_api.revisions import OntologyIdentity
 
         self.identity = OntologyIdentity.from_dict(
@@ -838,13 +857,21 @@ def load_o3_authority(
     binding_sha256: str,
     expected_git_revision: str | None = None,
     validation_artifacts: dict[str, Path] | None = None,
+    require_activation_eligible: bool = False,
 ) -> O3Authority:
-    """Verify a CLOSED candidate bundle and build the authority façade.
+    """Verify a CLOSED bundle and build the authority façade.
 
     Unclosed bundles and any verification error fail closed. The resulting
     authority is the only provider for the migrated 13; all other identities
     delegate to ``contract``. ``validation_artifacts`` re-verifies the
     closure's validation evidence against the actual produced outputs.
+
+    ``require_activation_eligible`` is the PRODUCTION selection rule: when
+    true, a closed bundle whose recomputed ``activation_eligible`` is not
+    exactly true (grounding EQUIVALENT and every required validation exactly
+    passed) refuses to load. The same-revision comparison path keeps the
+    default (``False``) so it can still run against a closed but ineligible
+    bundle, which remains marked ``activation_blocked`` for its consumers.
     """
     if isinstance(source, (str, Path)):
         bundle = json.loads(Path(source).read_text(encoding="utf-8"))
@@ -871,6 +898,22 @@ def load_o3_authority(
         raise O3BundleError(
             "closure attests a BLOCKING_MISMATCH in the VerificationCase "
             "grounding proof; candidate execution is refused"
+        )
+    if require_activation_eligible and closure.get("activation_eligible") is not True:
+        failed_validations = sorted(
+            name
+            for name, record in (closure.get("validation") or {}).items()
+            if not isinstance(record, dict) or record.get("status") != "passed"
+        )
+        detail = (
+            f"; non-passed validation evidence: {failed_validations}"
+            if failed_validations
+            else ""
+        )
+        raise O3BundleError(
+            "production activation requires activation_eligible=true; the "
+            f"bundle is not activation eligible (grounding "
+            f"{grounding_result or 'absent'}{detail})"
         )
     projection_rows, profile_entries = _load_chain_rows(root)
     facade = O3AuthorityFacade(

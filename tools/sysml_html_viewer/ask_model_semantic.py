@@ -39,6 +39,9 @@ from pathlib import Path
 
 _SEMANTIC_RUNTIME = None
 _SEMANTIC_ERROR: str | None = None
+#: Provenance of the authority selection the running service was built
+#: under (captured at build time; exposed through /ask-status.json).
+_AUTHORITY_SELECTION: dict | None = None
 # short-lived memo: element UUID -> method-context dict
 _SEMANTIC_CTX_CACHE: dict[str, dict] = {}
 
@@ -53,7 +56,49 @@ _SNAPSHOT_FORMAT = 2
 
 
 def warm_status() -> dict:
-    return dict(_WARM_STATE)
+    status = dict(_WARM_STATE)
+    service = _SEMANTIC_RUNTIME
+    if service is not None:
+        status["semantic_authority_id"] = str(
+            getattr(service, "semantic_authority_id", "") or ""
+        )
+    return status
+
+
+def semantic_authority_status() -> dict:
+    """Deployment provenance: which semantic authority is requested/served.
+
+    Always available (even before warmup or after a fail-closed startup):
+    reports the explicit selector, the exact bundle id for an O3 selection,
+    and — once the runtime is built — the served authority id. An invalid
+    selector surfaces its error here; semantic answers are refused in that
+    state (the explicitly labeled regex path never consults semantic
+    authority).
+    """
+    if _AUTHORITY_SELECTION is not None:
+        block = dict(_AUTHORITY_SELECTION)
+    else:
+        try:
+            from de4sdv.semantic.authority_selection import (
+                resolve_authority_selection,
+            )
+
+            block = resolve_authority_selection(environ=os.environ).provenance()
+        except Exception as exc:  # noqa: BLE001 — status must survive
+            block = {
+                "kind": "invalid",
+                "error": str(exc),
+                "note": (
+                    "semantic authority selector is invalid; semantic "
+                    "answers are refused (no fallback to legacy authority)"
+                ),
+            }
+    service = _SEMANTIC_RUNTIME
+    if service is not None:
+        block["semantic_authority_id"] = str(
+            getattr(service, "semantic_authority_id", "") or ""
+        )
+    return block
 
 
 def semantic_enabled() -> bool:
@@ -61,8 +106,16 @@ def semantic_enabled() -> bool:
 
 
 def _runtime():
-    """Build the semantic runtime once per process (fail-closed contract)."""
-    global _SEMANTIC_RUNTIME, _SEMANTIC_ERROR
+    """Build the semantic runtime once per process (fail-closed contract).
+
+    Authority is selected explicitly through the deployment environment
+    (``DE4SDV_SEMANTIC_AUTHORITY``; default legacy). A requested O3 bundle
+    that fails selection or startup verification raises here — the viewer
+    serves NO semantic answers in that state and never degrades to legacy
+    answers; the failure is surfaced through ``semantic_authority_status()``
+    and ``warm_status()``.
+    """
+    global _SEMANTIC_RUNTIME, _SEMANTIC_ERROR, _AUTHORITY_SELECTION
     if _SEMANTIC_RUNTIME is not None:
         return _SEMANTIC_RUNTIME
     if _SEMANTIC_ERROR is not None:
@@ -89,14 +142,17 @@ def _runtime():
         )
         raise RuntimeError(_SEMANTIC_ERROR)
     try:
-        from de4sdv.semantic.runtime import build_semantic_runtime
-        _SEMANTIC_RUNTIME = build_semantic_runtime(
+        from de4sdv.semantic.authority_selection import (
+            build_selected_semantic_runtime,
+        )
+        _SEMANTIC_RUNTIME, selection = build_selected_semantic_runtime(
             api_url=api_url,
             binding_path=Path(binding),
             expected_git_revision=expected,
             ontology_path=Path(ontology),
             api_timeout=float(os.environ.get("DE4SDV_API_TIMEOUT", "900")),
         )
+        _AUTHORITY_SELECTION = selection.provenance()
     except Exception as exc:  # noqa: BLE001 — fail-closed, error kept
         _SEMANTIC_ERROR = f"semantic runtime unavailable: {exc}"
         raise RuntimeError(_SEMANTIC_ERROR) from exc
