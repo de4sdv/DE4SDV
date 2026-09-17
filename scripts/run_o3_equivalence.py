@@ -37,6 +37,8 @@ if str(ROOT) not in sys.path:
 from de4sdv.semantic import o3_bundle as ob  # noqa: E402
 from de4sdv.semantic import o3_equivalence as oe  # noqa: E402
 from de4sdv.semantic import verification_grounding as vg  # noqa: E402
+from de4sdv.semantic.relationships import build_relationship_graph  # noqa: E402
+from de4sdv.sysml_api.errors import IdentityNotFoundError  # noqa: E402
 from de4sdv.sysml_api.repository import element_id  # noqa: E402
 
 RUNTIME_EQUIVALENCE_REPORT_SCHEMA = "de4sdv.o3-runtime-equivalence-report/v1"
@@ -236,6 +238,51 @@ def subject_population(
     return sorted(subjects)
 
 
+def k_subject_population(service, elements: list[dict[str, Any]]) -> list[str]:
+    """Query subjects for the K pair: the connected usages at the typed ends
+    of every ``ConnectionUsage`` in the corpus.
+
+    Representation/coverage mechanics ONLY: candidate ends are discovered
+    through the runtime's own reviewed end-resolution helpers
+    (``_connection_end_records`` / ``_connected_usage_id`` — the serialized
+    EndFeatureMembership -> end feature -> ReferenceSubsetting -> connected
+    usage chain). Role identity (need vs derivedRequirement) is NEVER decided
+    here: the runtime traversal types the roles against the governed lineages
+    during the sweep, and :func:`k_pair_evidence` proves the reviewed
+    five-witness population from the resulting hop witnesses. No connection
+    owner ids, no names, no declaration order, no source text.
+    """
+    traversal = service.traversal
+    by_id = {
+        candidate: element
+        for element in elements
+        if (candidate := element_id(element)) is not None
+    }
+    graph = build_relationship_graph(list(by_id.values()))
+    subjects: list[str] = []
+    seen: set[str] = set()
+    for element in elements:
+        if str(element.get("@type")) != "ConnectionUsage":
+            continue
+        try:
+            records = traversal._connection_end_records(element, by_id, graph)
+        except (IdentityNotFoundError, ValueError):
+            continue
+        for record in records:
+            try:
+                connected, _subsetting_id, _kind = (
+                    traversal._connected_usage_id(
+                        record["end_element_id"], graph, by_id
+                    )
+                )
+            except (IdentityNotFoundError, ValueError, KeyError):
+                continue
+            if connected and connected in by_id and connected not in seen:
+                seen.add(connected)
+                subjects.append(connected)
+    return sorted(subjects)
+
+
 def _result_record(service, predicate: str, subject_id: str, hops: list[Any]) -> dict[str, Any]:
     mapping = service.contract.relationship_mapping(predicate)
     blocked = predicate in service.traversal.blocked_predicates()
@@ -250,6 +297,20 @@ def _result_record(service, predicate: str, subject_id: str, hops: list[Any]) ->
         if witness:
             witnesses.add(witness)
         strategies.add(str(hop.strategy))
+    k_witness: dict[str, Any] | None = None
+    if predicate in oe.K_PAIR and hops:
+        hop_witness = getattr(hops[0], "witness", None)
+        if isinstance(hop_witness, dict):
+            k_witness = {
+                "connection_id": hop_witness.get("connection_id"),
+                "need_end_id": hop_witness.get("need_end_id"),
+                "derived_requirement_end_id": hop_witness.get(
+                    "derived_requirement_end_id"
+                ),
+                "role_lineage_provenance": hop_witness.get(
+                    "role_lineage_provenance"
+                ),
+            }
     return {
         "source_revision": str(service.binding.git_commit),
         "sysml_project_id": str(service.binding.sysml_project_id),
@@ -257,6 +318,7 @@ def _result_record(service, predicate: str, subject_id: str, hops: list[Any]) ->
         "predicate": predicate,
         "subject_id": subject_id,
         "direction": f"{mapping.domain} -> {mapping.range}",
+        "query_direction": str(mapping.configuration.get("query_direction") or ""),
         "semantic_strength": str(mapping.semantic_strength),
         # Runtime surfaces carry no claim TEXT; the compared claim CLASS is
         # the authority-declared strength class (the artifact-level claim
@@ -269,6 +331,7 @@ def _result_record(service, predicate: str, subject_id: str, hops: list[Any]) ->
         "unsupported": [],
         "targets": sorted(targets),
         "witnesses": sorted(witnesses),
+        "k_witness": k_witness,
     }
 
 
@@ -284,13 +347,26 @@ def collect_predicate(
         for element in elements
         if (candidate := element_id(element)) is not None
     }
-    subjects = subject_population(elements, predicate)
+    if predicate in oe.K_PAIR:
+        subjects = k_subject_population(service, elements)
+    else:
+        subjects = subject_population(elements, predicate)
     records: dict[str, dict[str, Any]] = {}
+    unresolved: list[dict[str, str]] = []
     for subject in subjects:
         element = by_id[subject]
-        hops = service.traversal.traverse(predicate, element, elements)
+        try:
+            hops = service.traversal.traverse(predicate, element, elements)
+        except IdentityNotFoundError as exc:
+            if predicate not in oe.K_PAIR:
+                raise
+            # Role typing/provenance failure on a governed K end: fail closed
+            # (the coverage gate classifies this as insufficient evidence —
+            # never as vacuous equality).
+            unresolved.append({"subject_id": subject, "error": str(exc)})
+            continue
         records[subject] = _result_record(service, predicate, subject, hops)
-    return {"subjects": subjects, "records": records}
+    return {"subjects": subjects, "records": records, "unresolved": unresolved}
 
 
 def compare_collected(
@@ -352,32 +428,121 @@ def k_pair_evidence(
     old_collected: dict[str, dict[str, Any]],
     new_collected: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    """ONE modeled fact / TWO navigations, compared at the same revision."""
-    def _witnesses(collected: dict[str, Any], predicate: str, side: str) -> set[str]:
-        found: set[str] = set()
-        for record in collected[predicate]["records"].values():
-            found |= set(record["witnesses"])
-        return found
+    """ONE modeled fact / TWO navigations — with a fail-closed coverage gate.
 
-    old_navigations = {
-        name: {"witnesses": sorted(_witnesses(old_collected, name, "old"))}
-        for name in oe.K_PAIR
-    }
-    new_navigations = {
-        name: {"witnesses": sorted(_witnesses(new_collected, name, "new"))}
-        for name in oe.K_PAIR
-    }
-    errors = oe.check_k_pair_witness_consistency(old_navigations, new_navigations)
-    population = sorted(set(old_navigations[oe.K_PAIR[0]]["witnesses"]))
+    The reviewed exact-revision baseline is ``READINESS_BASELINE_K_WITNESS_COUNT``
+    governed ``DerivesFromNeed`` connection witnesses. Vacuous or partial
+    equality is NEVER semantic-equivalence evidence: insufficient coverage
+    classifies ``NOT_YET_COMPARABLE`` (never EQUIVALENT); real old/new or
+    forward/inverse disagreements and duplicated modeled facts classify
+    ``BLOCKING_MISMATCH``. A zero-vs-zero equality is rejected outright.
+    """
+    expected = READINESS_BASELINE_K_WITNESS_COUNT
+    forward_predicate = "derivedRequirementsOfNeed"
+    inverse_predicate = "derivesRequirementFromNeed"
+
+    def _witnesses(collected: dict[str, Any], predicate: str) -> list[str]:
+        return sorted(
+            {
+                witness
+                for record in collected[predicate]["records"].values()
+                for witness in record["witnesses"]
+            }
+        )
+
+    def _duplicates(collected: dict[str, Any], predicate: str) -> list[str]:
+        per_witness: dict[str, list[str]] = {}
+        for subject, record in collected[predicate]["records"].items():
+            for witness in record["witnesses"]:
+                per_witness.setdefault(witness, []).append(subject)
+        return sorted(
+            witness for witness, subjects in per_witness.items() if len(subjects) > 1
+        )
+
+    errors: list[str] = []
+    missing: list[str] = []
+    sides: dict[str, dict[str, list[str]]] = {}
+    unresolved_counts: dict[str, int] = {}
+    for side, collected in (("old", old_collected), ("new", new_collected)):
+        forward = _witnesses(collected, forward_predicate)
+        inverse = _witnesses(collected, inverse_predicate)
+        sides[side] = {"forward": forward, "inverse": inverse}
+        unresolved = [
+            entry
+            for predicate in (forward_predicate, inverse_predicate)
+            for entry in collected[predicate].get("unresolved", [])
+        ]
+        unresolved_counts[side] = len(unresolved)
+        for direction, population in (("forward", forward), ("inverse", inverse)):
+            if len(population) != expected:
+                missing.append(
+                    f"{side} {direction} witness population is "
+                    f"{len(population)}; the reviewed governed baseline is "
+                    f"{expected} authored DerivesFromNeed connection usages"
+                )
+        # Forward/inverse identity is a hard contradiction only when this
+        # side was fully measurable; unresolved ends are insufficiency.
+        if not unresolved and forward != inverse:
+            errors.append(
+                f"{side} forward and inverse navigations do not share the "
+                "same witness population (one modeled fact / two navigations "
+                "violated)"
+            )
+        for predicate in (forward_predicate, inverse_predicate):
+            duplicates = _duplicates(collected, predicate)
+            if duplicates:
+                errors.append(
+                    f"{side} {predicate} duplicates modeled facts "
+                    f"{duplicates}; each fact must appear once per navigation"
+                )
+        if unresolved:
+            missing.append(
+                f"{side} has {len(unresolved)} unresolved K subject(s): "
+                + "; ".join(
+                    f"{entry['subject_id']}: {entry['error']}"
+                    for entry in unresolved[:3]
+                )
+            )
+    both_measured = unresolved_counts["old"] == 0 and unresolved_counts["new"] == 0
+    if both_measured:
+        if sides["old"]["forward"] != sides["new"]["forward"]:
+            errors.append("old/new forward witness populations differ")
+        if sides["old"]["inverse"] != sides["new"]["inverse"]:
+            errors.append("old/new inverse witness populations differ")
+    elif (
+        sides["old"]["forward"] != sides["new"]["forward"]
+        or sides["old"]["inverse"] != sides["new"]["inverse"]
+    ):
+        missing.append(
+            "old/new K witness populations differ while unresolved subjects "
+            "remain; coverage is insufficient for a semantic comparison"
+        )
+
+    population_complete = not errors and not missing
+    if errors:
+        classification = "BLOCKING_MISMATCH"
+    elif missing:
+        classification = "NOT_YET_COMPARABLE"
+    else:
+        classification = "EQUIVALENT"
     evidence: dict[str, Any] = {
-        "classification": "BLOCKING_MISMATCH" if errors else "EQUIVALENT",
-        "errors": errors,
-        "old_witness_population": population,
-        "new_witness_population": sorted(
-            set(new_navigations[oe.K_PAIR[0]]["witnesses"])
+        "classification": classification,
+        "expected_witness_population": expected,
+        "old_witness_population": sides["old"]["forward"],
+        "new_witness_population": sides["new"]["forward"],
+        "old_witness_count": len(sides["old"]["forward"]),
+        "new_witness_count": len(sides["new"]["forward"]),
+        "forward_witness_population": sorted(
+            set(sides["old"]["forward"]) | set(sides["new"]["forward"])
         ),
+        "inverse_witness_population": sorted(
+            set(sides["old"]["inverse"]) | set(sides["new"]["inverse"])
+        ),
+        "population_complete": population_complete,
+        "drift_from_readiness_baseline": not population_complete,
+        "errors": errors,
+        "missing": missing,
         "reviewed_baseline_statement": None,
-        "drift_from_readiness_baseline": None,
     }
     artifact = ROOT / "docs/method-conformance/o2/semantic-projection-v1.2.json"
     try:
@@ -392,10 +557,6 @@ def k_pair_evidence(
                 )
     except (OSError, ValueError):
         pass
-    if evidence["classification"] == "EQUIVALENT":
-        evidence["drift_from_readiness_baseline"] = (
-            len(population) != READINESS_BASELINE_K_WITNESS_COUNT
-        )
     return evidence
 
 
@@ -621,8 +782,19 @@ def build_runtime_equivalence_report(
             "subject_count": compared[predicate]["subject_count"],
             "mismatch_count": compared[predicate]["mismatch_count"],
         }
-        if predicate in oe.K_PAIR and k_evidence["classification"] != "EQUIVALENT":
-            per_identity[predicate]["classification"] = "BLOCKING_MISMATCH"
+    for predicate in oe.K_PAIR:
+        entry = per_identity[predicate]
+        entry["classification"] = _worst_classification(
+            entry["classification"], k_evidence["classification"]
+        )
+        entry["k_coverage"] = {
+            "expected_witness_population": k_evidence[
+                "expected_witness_population"
+            ],
+            "old_witness_count": k_evidence["old_witness_count"],
+            "new_witness_count": k_evidence["new_witness_count"],
+            "population_complete": k_evidence["population_complete"],
+        }
     for name, entry in classes["identities"].items():
         per_identity[name] = {
             "kind": "class",
@@ -669,6 +841,11 @@ def build_runtime_equivalence_report(
         },
         "per_identity": per_identity,
         "k_pair": k_evidence,
+        "activation_eligible": (
+            bool((bundle.get("api_closure") or {}).get("activation_eligible"))
+            and overall == "EQUIVALENT"
+            and bool(k_evidence["population_complete"])
+        ),
         "verification_case_grounding": verification_case_grounding,
         "support_preservation": support,
         "overall": overall,
@@ -920,6 +1097,16 @@ def run_compare(args: argparse.Namespace) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(ob.canonical_json(report), encoding="utf-8")
     print(f"overall: {report['overall']}")
+    print(f"activation_eligible: {report['activation_eligible']}")
+    k_pair = report["k_pair"]
+    print(
+        "k pair: "
+        f"{k_pair['classification']} "
+        f"(old={k_pair['old_witness_count']} "
+        f"new={k_pair['new_witness_count']} "
+        f"expected={k_pair['expected_witness_population']} "
+        f"complete={k_pair['population_complete']})"
+    )
     print(f"bundle id: {report['bundle_id']}")
     for name, entry in sorted(report["per_identity"].items()):
         print(f"  {name}: {entry['classification']}")
