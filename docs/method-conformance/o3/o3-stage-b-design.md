@@ -97,10 +97,44 @@ activation        recomputed activation_eligible must be exactly true for
                   keeps loading ineligible bundles for evidence)
 ```
 
-The same closed bundle that the privileged acceptance run attests is what
-production loads: nothing is silently reconstructed or refreshed. A stale
-bundle fails on content (revision, runtime build, chain digests, binding
-digest), never on a string comparison alone.
+A stale bundle fails on content (revision, runtime build, chain digests,
+binding digest), never on a string comparison alone. The binding the
+runtime validates is the binding the deployed service actually runs with;
+its exact relationship to the privileged acceptance bundle is defined in
+§3.1.
+
+### 3.1 Deployment-bound closure (production binding identity)
+
+The deployment import creates deployment-specific Project/Commit UUIDs
+(ADR 0013: the privileged CI run's ephemeral UUIDs are never reused), so
+the closure attestation that production loads is generated for the
+**deployment binding** with the SAME machinery
+(`scripts/run_o3_equivalence.py bundle`), after the deployment exists,
+from the exact deployed revision. Invariants of that generation:
+
+- the bundle CORE is revision- and files-bound: **bundle id, git
+  revision, runtime build identity, the migrated identity set, the
+  Projection/Profile chain digests and the ontology compatibility
+  identity are identical to the privileged acceptance bundle**;
+- only binding/closure-dependent fields differ: `binding_sha256`, the
+  deployment `sysml_project_id` / `sysml_commit_id`, the
+  validation-evidence records (deployment-side validator outputs),
+  `element_count` where the deployment import legitimately differs,
+  `generated_at`, and the recomputed `activation_eligible`;
+- the three required validators are re-run against the DEPLOYED read-only
+  API for the deployment closure's validation evidence; the `semantic_mcp`
+  validator runs client-side against the deployed endpoint rather than
+  modifying the production host environment solely to install the MCP
+  client;
+- the privileged run remains the acceptance evidence for the mechanism,
+  the same-revision runtime equivalence, the K population and the
+  grounding; the deployment-bound closure is the operational artifact
+  that satisfies the runtime's exact-binding startup validation.
+
+A redeploy creates a new binding and therefore requires a new
+deployment-bound closure before (re-)activation; the previous closure
+fails closed against the new binding, by design. The procedure lives in
+`o3-activation-and-rollback.md` §2 step 0.
 
 ## 4. Provider routing (unchanged)
 
@@ -246,7 +280,13 @@ O3 bundles                         none accepted by this PR
 9.  require no mismatch anywhere in the per-identity, K pair, and
     support-preservation evidence;
 10. require activation_eligible = true (and the report's
-    k_comparison_matrix fully equivalent).
+    k_comparison_matrix fully equivalent);
+11. deploy the exact evidence revision to the production stack (the
+    selector stays legacy: deployment is not activation);
+12. re-run the three required validators against the deployed read-only
+    API and generate the DEPLOYMENT-BOUND closure (§3.1), then review the
+    deployment-closure acceptance diff: bundle core identical, only
+    binding/closure-dependent fields changed.
 ```
 
 The pre-Stage-B bundle is NOT final cutover evidence: the runtime build
@@ -272,6 +312,8 @@ comparison result              per-identity classifications (all EQUIVALENT)
 K coverage result              expected/old/new witness populations + matrix
 grounding result               VerificationCase grounding (EQUIVALENT)
 rollback test result           O3 → legacy → O3 evidence at the accepted build
+deployment closure             deployment-bound closure + acceptance diff
+                               (bundle core identical; binding/closure-only deltas)
 known limitations              stated explicitly, not smoothed over
 ```
 
