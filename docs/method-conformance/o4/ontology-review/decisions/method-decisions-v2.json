@@ -1,0 +1,1337 @@
+[
+  {
+    "identity": "EngineeringIncrement",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def EngineeringIncrement` (de4sdv_method_context.sysml:44) with model-resident doc; reviewed definition text still YAML-established via classes:EngineeringIncrement (ontology yaml:107); O1 stage batched-parity (authority-review-decisions.yaml:32).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321): a part def classifies systems and parts of systems. 'Engineering increment' is not a native SysML concept."
+      }
+    ],
+    "delta": "DE4SDV application concept (bounded work package that changes/tests/publishes engineering knowledge) represented as a part def so slices can type their increment parts; no native semantic content beyond part classification.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative (kernel doc becomes canonical after parity review; the YAML row retires as semantic authority).",
+    "target_definition": "Bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. (model doc canonical; the YAML row and model doc differ only by the leading article 'A'.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Actual model usage: slice increment definitions specialize it (VisualizationIncrement, MiddlewareIncrement) and framing slices type increment parts with it; pilot YAML metadata carries `type: EngineeringIncrement`. Removal would rewrite published slice sources even though no runtime traversal consumes it. Keep; close doc parity only.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml",
+        "symbol_or_surface": "part def VisualizationIncrement :> EngineeringIncrement",
+        "role": "slice increment supertype"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_increment_framing.sysml",
+        "symbol_or_surface": "part def MiddlewareIncrement :> EngineeringIncrement",
+        "role": "slice increment supertype"
+      },
+      {
+        "path": "methodologies/sysmod-sysmlv2/pilots/aebs-logical-architecture.yaml",
+        "symbol_or_surface": "type: EngineeringIncrement",
+        "role": "pilot metadata"
+      },
+      {
+        "path": "tests/test_sysml_full_ingestion.py:320",
+        "symbol_or_surface": "by_class['EngineeringIncrement'].status == 'unresolved'",
+        "role": "ingestion binding validation asserts its unresolved classification"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:44",
+        "finding": "Reviewed anchor for EngineeringIncrement (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:107",
+        "finding": "Reviewed anchor for EngineeringIncrement (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml:25",
+        "finding": "Reviewed anchor for EngineeringIncrement (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_increment_framing.sysml:20",
+        "finding": "Reviewed anchor for EngineeringIncrement (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:32",
+        "finding": "Reviewed anchor for EngineeringIncrement (review)."
+      }
+    ],
+    "dependencies": [
+      "relationships group addressesConcern = KEEP_VOCABULARY_ONLY/NEW_APPLICATION_SEMANTICS (parent-decisions.json): increment-level concern predicate; does not require changes to this class"
+    ],
+    "decisions": [
+      "KEEP as DE4SDV application semantic; complete model-side doc parity; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract requires the declaration to be ontology-mapped or kernel_sync.excluded (AGENTS.md; scripts/check_model_sync.py [ONTOLOGY-KERNEL]); the ingestion binder classifies it without an API object ('unresolved' asserted in tests/test_sysml_full_ingestion.py:320). Representation-only at runtime.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "FeatureIncrement",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def FeatureIncrement :> EngineeringIncrement` (de4sdv_method_context.sysml:48); YAML row classes:FeatureIncrement (yaml:113); O1 batched-parity (authority-review-decisions.yaml:50).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321). Product-line feature/variation semantics are DE4SDV/PLE vocabulary, not native SysML classes."
+      }
+    ],
+    "delta": "DE4SDV application concept; text divergence found: model doc says 'variability decision' while the YAML definition says 'native SysML v2 variation/variant choice' - resolve against the PLE variation semantics (feature model, variation points, variants) before parity closes.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity; PLE variation semantics remain the reference for the 'variation/variant choice' wording.",
+    "target_definition": "An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice. (Keep YAML wording pending PLE alignment; 'variability decision' in the model doc is loose.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Real slice usage in both feature packages: increments are typed FeatureIncrement throughout AEBS and middleware architectural slices. Keep; fix the model-doc wording so 'variation/variant choice' is not blurred into an unspecified 'variability decision'.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_functional_architecture.sysml:30",
+        "symbol_or_surface": "part incAEBS004 : FeatureIncrement",
+        "role": "slice increment typing"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml:35",
+        "symbol_or_surface": "part incMW008 : FeatureIncrement",
+        "role": "slice increment typing"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml:25",
+        "symbol_or_surface": "part incMW009 : FeatureIncrement",
+        "role": "slice increment typing"
+      },
+      {
+        "path": "docs/guides/sysml-elements.md:41-46",
+        "symbol_or_surface": "part incMW007 : FeatureIncrement",
+        "role": "documented pattern"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:48",
+        "finding": "Reviewed anchor for FeatureIncrement (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:113",
+        "finding": "Reviewed anchor for FeatureIncrement (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_functional_architecture.sysml:30",
+        "finding": "Reviewed anchor for FeatureIncrement (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "docs/guides/sysml-elements.md:46",
+        "finding": "Reviewed anchor for FeatureIncrement (repository)."
+      }
+    ],
+    "dependencies": [
+      "PLE group (Feature, VariationPoint, Variant, FeatureConfiguration) for 'variation/variant choice' wording"
+    ],
+    "decisions": [
+      "KEEP; resolve doc wording against PLE variation semantics; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime binding. Name overlaps the PLE identity `Feature` but is not the same concept (increment, not feature) - keep distinct, do not merge.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "NeedsRequirementsIncrement",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def NeedsRequirementsIncrement :> EngineeringIncrement` (de4sdv_method_context.sysml:52); YAML row (yaml:119); O1 batched-parity (authority-review-decisions.yaml:68).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321)."
+      }
+    ],
+    "delta": "DE4SDV application concept: increment kind focused on needs/draft requirements/traceability/V&V planning; no native SysML content beyond part classification.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity.",
+    "target_definition": "An engineering increment focused on needs, draft requirements, traceability, and V&V planning. (model doc matches YAML.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Heavily used as the `subject increment` type in needs/requirements slices of both feature packages; removal would rewrite many slice sources. Keep unchanged.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:27,43",
+        "symbol_or_surface": "part incAEBS003 : NeedsRequirementsIncrement; subject increment : NeedsRequirementsIncrement",
+        "role": "slice increment typing"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_stakeholder_needs.sysml:34",
+        "symbol_or_surface": "part incMW004 : NeedsRequirementsIncrement",
+        "role": "slice increment typing"
+      },
+      {
+        "path": "methodologies/sysmod-sysmlv2/pilots/middleware-stakeholder-needs.yaml:5",
+        "symbol_or_surface": "type: NeedsRequirementsIncrement",
+        "role": "pilot metadata"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:52",
+        "finding": "Reviewed anchor for NeedsRequirementsIncrement (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:119",
+        "finding": "Reviewed anchor for NeedsRequirementsIncrement (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:43",
+        "finding": "Reviewed anchor for NeedsRequirementsIncrement (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:68",
+        "finding": "Reviewed anchor for NeedsRequirementsIncrement (review)."
+      }
+    ],
+    "dependencies": [],
+    "decisions": [
+      "KEEP; parity only; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime binding.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "IncrementEngineeringQuestion",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def IncrementEngineeringQuestion` (de4sdv_method_context.sysml:180); YAML row (yaml:125); doc-only usage bodies in framing slices; O1 batched-parity (authority-review-decisions.yaml:86).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321)."
+      }
+    ],
+    "delta": "DE4SDV framing vocabulary: the increment's engineering question. Content is carried in `doc` text, not typed attributes; distinct from the requirement-typed ProblemStatement (slices connect them with an explicit dependency).",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity (bounded framing vocabulary; never a semantic authority for content claims).",
+    "target_definition": "The engineering question that an increment answers. (Keep; note that the question content is documentation-only.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Actual framing usages exist in both feature packages; the question content is doc-carried. Do not promote the doc text into queryable semantics without a reviewed representation decision; keep bounded.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml:54",
+        "symbol_or_surface": "part visualizationEngineeringQuestion : IncrementEngineeringQuestion",
+        "role": "framing part (doc-carried question content)"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_increment_framing.sysml:56",
+        "symbol_or_surface": "part engineeringQuestionMW002 : IncrementEngineeringQuestion",
+        "role": "framing part"
+      },
+      {
+        "path": "docs/guides/sysml-elements.md:52",
+        "symbol_or_surface": "framing files use IncrementEngineeringQuestion parts",
+        "role": "documented pattern"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:180",
+        "finding": "Reviewed anchor for IncrementEngineeringQuestion (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:125",
+        "finding": "Reviewed anchor for IncrementEngineeringQuestion (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml:54",
+        "finding": "Reviewed anchor for IncrementEngineeringQuestion (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:86",
+        "finding": "Reviewed anchor for IncrementEngineeringQuestion (review)."
+      }
+    ],
+    "dependencies": [
+      "architecture group ProblemStatement (framing-to-problem dependency in slices)"
+    ],
+    "decisions": [
+      "KEEP as bounded framing vocabulary; parity only; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime binding; no typed attributes, so nothing is queryable beyond the declaration identity.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "IncrementLifecycleDecision",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def IncrementLifecycleDecision` (de4sdv_method_context.sysml:184); YAML row (yaml:130) mentions accepted/deferred/invalidated; O1 batched-parity (authority-review-decisions.yaml:104).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321)."
+      }
+    ],
+    "delta": "DE4SDV application record: decision an increment supports. Divergence: YAML says '(accepted, deferred, or invalidated)' while the model doc omits the value set - restore the accepted/deferred/invalidated boundary in the model doc.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity.",
+    "target_definition": "A lifecycle decision that an increment supports (accepted, deferred, or invalidated). (Restore the value set.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Real usages with substantive doc content in both packages (kill gates, baseline decisions, successor decisions). Keep; add the decision-value vocabulary back to the model doc for boundary fidelity.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_physical_software_realization.sysml:314",
+        "symbol_or_surface": "part realizationKillGate : IncrementLifecycleDecision",
+        "role": "slice decision record"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:307,323",
+        "symbol_or_surface": "boundedBaselineDecision010 / successorIncrementDecision010 : IncrementLifecycleDecision",
+        "role": "slice decision records"
+      },
+      {
+        "path": "tests/test_middleware_v_and_v_evidence.py:117,120",
+        "symbol_or_surface": "asserts decision parts present",
+        "role": "test coupling"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:184",
+        "finding": "Reviewed anchor for IncrementLifecycleDecision (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:130",
+        "finding": "Reviewed anchor for IncrementLifecycleDecision (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:307",
+        "finding": "Reviewed anchor for IncrementLifecycleDecision (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:104",
+        "finding": "Reviewed anchor for IncrementLifecycleDecision (review)."
+      }
+    ],
+    "dependencies": [
+      "Baseline (decision-to-baseline coupling in slices)"
+    ],
+    "decisions": [
+      "KEEP; parity fix restores accepted/deferred/invalidated boundary text; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime binding.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "IncrementTraceabilityShell",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def IncrementTraceabilityShell` (de4sdv_method_context.sysml:176); YAML row (yaml:135); O1 batched-parity (authority-review-decisions.yaml:122).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321). No native 'traceability shell' concept."
+      }
+    ],
+    "delta": "Redundant vocabulary: a doc-only shell whose doc text restates the trace chain steps in prose ('framing -> concerns/views -> ... -> gaps'); it adds no semantics beyond the trace vocabulary it duplicates (TraceLink/RequiredTraceChain).",
+    "disposition": "MERGE",
+    "target_authority": "none as a separate identity; its per-increment intent is absorbed by the redesigned trace-expectation vocabulary.",
+    "target_definition": "Merged into the redesigned increment trace-expectation identity (see RequiredTraceChain redesign); the two slice usages become trace expectation references, not shells.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "Challenge accepted: the shell is redundant vocabulary; but it is an actual framing part in two published slices, so removal/merge edits source text even though nothing traverses it. Merge, do not delete outright.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml:79",
+        "symbol_or_surface": "part visualizationTraceabilityShell : IncrementTraceabilityShell",
+        "role": "framing shell (doc-only)"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_increment_framing.sysml:49",
+        "symbol_or_surface": "part traceabilityShellMW002 : IncrementTraceabilityShell",
+        "role": "framing shell (doc-only)"
+      },
+      {
+        "path": "docs/guides/sysml-elements.md:52",
+        "symbol_or_surface": "framing files use IncrementTraceabilityShell parts",
+        "role": "documented pattern"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:176",
+        "finding": "Reviewed anchor for IncrementTraceabilityShell (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:135",
+        "finding": "Reviewed anchor for IncrementTraceabilityShell (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml:79",
+        "finding": "Reviewed anchor for IncrementTraceabilityShell (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:122",
+        "finding": "Reviewed anchor for IncrementTraceabilityShell (review)."
+      }
+    ],
+    "dependencies": [
+      "RequiredTraceChain (redesign)",
+      "TraceLink (redesign)",
+      "c4 concern/need disposition review"
+    ],
+    "decisions": [
+      "MERGE into the redesigned trace-expectation vocabulary; migrate the two slice usages; no separate successor identity."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (MERGE).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime binding; no attributes, so no queryable content beyond the declaration.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": "Increment trace expectation (redesigned RequiredTraceChain)"
+  },
+  {
+    "identity": "SignalMappingDisposition",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "Kernel declaration `enum def SignalMappingDisposition` (de4sdv_method_process.sysml:152) with model-resident literal docs (mapped :153, candidate :156, deferred :159, notApplicable :162); YAML row (yaml:145); the enum declaration itself has no doc (doc_text_observation: doc-absent).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 7.8 Enumerations; 8.3.8.2 EnumerationDefinition (PDF 312): an enumeration definition is a kind of attribute definition whose instances are limited to enumerated values."
+      }
+    ],
+    "delta": "Native enumeration semantics carry DE4SDV review-disposition vocabulary for boundary crossings; value set and literal docs are DE4SDV application meaning, not native.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity (add the enum-level doc; literal docs already model-resident).",
+    "target_definition": "The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable). (Add enum-level doc to the model declaration.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Typed by the kernel record shape (`attribute disposition : SignalMappingDisposition`, de4sdv_method_process.sysml:185); no slice usage yet (grep of model roots found none) and no runtime binding. Keep bounded; do not promote; the first real slice usage must decide whether dispositions live on the record or are carried by native relationships plus gap records.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:185",
+        "symbol_or_surface": "attribute disposition : SignalMappingDisposition",
+        "role": "kernel-internal typed attribute of LogicalToSoftwareSignalMappingRecord"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:152-165",
+        "finding": "Reviewed anchor for SignalMappingDisposition (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:145",
+        "finding": "Reviewed anchor for SignalMappingDisposition (repository)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:166",
+        "finding": "Reviewed anchor for SignalMappingDisposition (review)."
+      }
+    ],
+    "dependencies": [
+      "LogicalToSoftwareSignalMappingRecord (owner of the typed attribute)",
+      "SystemToSoftwareSignalMappingCandidate (same boundary-crossing semantic cluster)"
+    ],
+    "decisions": [
+      "KEEP as bounded DE4SDV application vocabulary; parity = add enum-level doc; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "No API/runtime handling; consumed only by the kernel record shape. Kernel<->ontology contract mapping required.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "LogicalToSoftwareSignalMappingRecord",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "Kernel declaration `item def LogicalToSoftwareSignalMappingRecord` (de4sdv_method_process.sysml:167) with 13 String attributes incl. disposition; YAML row (yaml:150); O1 batched-parity (authority-review-decisions.yaml:184).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.10.2 ItemDefinition (PDF 319): an item definition is an occurrence definition for things that may be acted on by a system, including items exchanged between parts."
+      }
+    ],
+    "delta": "Native item/record representation of a DE4SDV control record: preserves trace and review obligations for a boundary crossing without claiming runtime interoperability. Delta: identity-bearing fields (semanticSource, softwareContractArtifact/Message/Field, adapterEndpoints, mappingId) are free-text strings that duplicate externally-authoritative artifacts (.proto/.vsidl) and are not resolvable references; adoption unproven (no model-root usage).",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity; content authority for contract facts stays external (proto/vsidl artifacts).",
+    "target_definition": "Reusable control-record shape for an interface-bearing logical or semantic information item crossing into a software, service, topic, API, or physical boundary; exact contract fields and runtime observations remain external. (Keep; open decision on string-typed endpoint fields.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Keep the control semantic but keep it bounded: zero consumers today; the middleware slice demonstrates the same boundary facts natively (allocation + dependencies). If later used for traversal, the endpoint fields must become resolvable references, not strings.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:167-189",
+        "symbol_or_surface": "item def LogicalToSoftwareSignalMappingRecord",
+        "role": "kernel-internal record shape; no other consumers in model, runtime or tests"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:167",
+        "finding": "Reviewed anchor for LogicalToSoftwareSignalMappingRecord (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:150",
+        "finding": "Reviewed anchor for LogicalToSoftwareSignalMappingRecord (repository)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:184",
+        "finding": "Reviewed anchor for LogicalToSoftwareSignalMappingRecord (review)."
+      }
+    ],
+    "dependencies": [
+      "SignalMappingDisposition",
+      "SystemToSoftwareSignalMappingCandidate",
+      "middleware physical/software realization slice (native usage pattern)"
+    ],
+    "decisions": [
+      "KEEP; do not promote: record must not become a second authority for facts already carried by native allocations/dependencies or external contract artifacts; decide string-vs-reference endpoint representation at first real usage."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "No API/runtime handling; attribute docs are model-resident; the disposition attribute types SignalMappingDisposition. Kernel<->ontology contract mapping required.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "SystemToSoftwareSignalMappingCandidate",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "Kernel declaration `allocation def SystemToSoftwareSignalMappingCandidate` (de4sdv_method_process.sysml:191) with non-claiming doc; YAML row (yaml:155); one real usage in the middleware realization slice; O1 confidence medium ('allocation realization semantics unresolved').",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.15.2 AllocationDefinition (PDF 334): an allocation definition is a connection definition specifying that some or all of the responsibility to realize the intent of the source is allocated to the target instances; 'allocation' itself defines mappings, not proof of realization."
+      }
+    ],
+    "delta": "Native allocation semantics grounding a DE4SDV candidate relationship; DE4SDV delta: explicit candidate/non-claiming boundary ('the allocation alone never proves field identity or runtime interoperability') plus required specialization payload (typed port, contract record, transformation, status, owner, next action, evidence/gap).",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity; the DE4SDV claim boundary must stay reviewable.",
+    "target_definition": "Reusable non-claiming allocation relationship from a logical/function signal responsibility to a concrete software/adapter signal endpoint; the allocation alone never proves field identity or runtime interoperability. (Keep.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "The only member of the signal-mapping cluster with a real usage, grounded in native allocation semantics; c5 counted it as an allocation witness (part -> item). Keep; close the open c5 thread on how allocation-usage semantics interact with the non-claiming boundary.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml:624",
+        "symbol_or_surface": "#AdapterExchangeExcluded allocation vehicleSpeedSystemToSoftwareSignalCandidate : SystemToSoftwareSignalMappingCandidate",
+        "role": "model usage (allocation to software adapter signal)"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml:861",
+        "symbol_or_surface": "metadata def AdapterExchangeExcluded",
+        "role": "annotation marking adapter-exchange exclusions on the candidate"
+      },
+      {
+        "path": "docs/method-conformance/o1/c5-relevance-realization-review.md:119",
+        "symbol_or_surface": "SystemToSoftwareSignalMappingCandidate | 1 | part -> item",
+        "role": "c5 allocation-witness classification"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:191",
+        "finding": "Reviewed anchor for SystemToSoftwareSignalMappingCandidate (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:155",
+        "finding": "Reviewed anchor for SystemToSoftwareSignalMappingCandidate (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml:624",
+        "finding": "Reviewed anchor for SystemToSoftwareSignalMappingCandidate (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c5-relevance-realization-review.md:119",
+        "finding": "Reviewed anchor for SystemToSoftwareSignalMappingCandidate (review)."
+      }
+    ],
+    "dependencies": [
+      "relationships group c5 realization semantics (realizedBy layer classification)",
+      "LogicalToSoftwareSignalMappingRecord (same cluster)",
+      "middleware physical/software realization slice",
+      "parent-decisions.json realizedBy = REDESIGN -> allocatedToArchitecture (allocation-only; distinct from dependency-based functional allocation) - keep the signal-mapping candidate's allocation semantics aligned with that redesign"
+    ],
+    "decisions": [
+      "KEEP; parity = doc parity; keep the non-claiming boundary wording aligned with the c5 allocation realization review."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Native allocation def; no API/runtime binding; kernel<->ontology contract mapping required. Allocation usages are classified by the c5 realization review, not by runtime code.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "IncrementSize",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "Kernel declaration `enum def IncrementSize` (de4sdv_method_process.sysml:204) with literal docs XS/S/M/L; YAML row (yaml:160); guidance duplicated in methodologies/sysmod-sysmlv2/increment-workflow.md:115-121.",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.8.2 EnumerationDefinition (PDF 312)."
+      }
+    ],
+    "delta": "Native enumeration carrying DE4SDV process-guidance vocabulary; not engineering semantics and not a claim surface. Zero semantic consumers.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "none beyond bounded vocabulary: stays model-resident as guidance labels; never promoted to semantic authority.",
+    "target_definition": "Size guidance for an increment (XS correction, S slice, M cross-viewpoint, L end-to-end baseline). (Keep as vocabulary-only.)",
+    "migration": "PROJECTION_ONLY",
+    "rationale": "Challenge accepted: pure guidance vocabulary with no consumers; the same labels live in the workflow prose. Keeping it bounded avoids removing a declaration the contract-test fixture still names; no semantic migration, no authority promotion.",
+    "consumers": [
+      {
+        "path": "tests/test_ontology_kernel_contract.py:261-262",
+        "symbol_or_surface": "\"enum def IncrementSize {\" (fixture text)",
+        "role": "contract-test fixture references the declaration name; rename/removal touches the fixture"
+      },
+      {
+        "path": "methodologies/sysmod-sysmlv2/increment-workflow.md:115-121",
+        "symbol_or_surface": "## Increment sizes table XS/S/M/L",
+        "role": "prose source of the guidance"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:204",
+        "finding": "Reviewed anchor for IncrementSize (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:160",
+        "finding": "Reviewed anchor for IncrementSize (repository)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:220",
+        "finding": "Reviewed anchor for IncrementSize (review)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "methodologies/sysmod-sysmlv2/increment-workflow.md:115",
+        "finding": "Reviewed anchor for IncrementSize (repository)."
+      }
+    ],
+    "dependencies": [],
+    "decisions": [
+      "DEMOTE to vocabulary-only; no promotion; if the method keeps size guidance in prose only, this is a later retirement candidate (not now)."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime handling; appears in a contract-test fixture.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "SystemLayer",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def SystemLayer` (de4sdv_method_context.sysml:56) and its three specializations System1SDVProductLine/System2EngineeringAndAssuranceSystem/System3OpenSourceGovernanceEcosystem (context:60-70); YAML row (yaml:165); external framing authority ADR 0004.",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321). ASELCM three-system framing is an external architecture decision, not native SysML."
+      }
+    ],
+    "delta": "DE4SDV application umbrella over the ASELCM three-system framing (docs/architecture-decisions/0004-adopt-aselcm-three-system-framing.md); the umbrella itself is doc-only - the content lives in the three used specializations.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity (doc); framing authority for the layer names remains ADR 0004.",
+    "target_definition": "Coarse ASELCM-style layer used to frame DE4SDV increments and their environments. (Keep.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "The three specializations are real usages in framing slices (system1/system2/system3 parts); the umbrella is needed to keep them a designed set. Keep; no merge.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml:97,104,110",
+        "symbol_or_surface": "system1ConfiguredAEBSSDVMember / system2VisualizationInstrument / system3ReviewEcosystem",
+        "role": "framing slice layer parts"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml:74-76",
+        "symbol_or_surface": "system1SDVProductLine / system2EngineeringAndAssuranceSystem / system3OpenSourceGovernanceEcosystem",
+        "role": "framing slice layer parts"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml:128",
+        "symbol_or_surface": "part system2Instrument : System2EngineeringAndAssuranceSystem",
+        "role": "slice usage"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:56",
+        "finding": "Reviewed anchor for SystemLayer (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:60",
+        "finding": "Reviewed anchor for SystemLayer (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:165",
+        "finding": "Reviewed anchor for SystemLayer (repository)."
+      },
+      {
+        "type": "ADR",
+        "path_or_reference": "docs/architecture-decisions/0004-adopt-aselcm-three-system-framing.md",
+        "finding": "Reviewed anchor for SystemLayer (ADR)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:238",
+        "finding": "Reviewed anchor for SystemLayer (review)."
+      }
+    ],
+    "dependencies": [
+      "docs/architecture-decisions/0004-adopt-aselcm-three-system-framing.md (external framing decision)"
+    ],
+    "decisions": [
+      "KEEP; parity only; framing authority stays ADR 0004; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime binding; no semantic consumer of the umbrella itself beyond classification of the specializations.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "ArchitectureDecisionRecord",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def ArchitectureDecisionRecord` (de4sdv_method_context.sysml:160) with doc naming it an R003 derivation target; YAML row (yaml:261) plus R003 rule wiring (yaml:705-724); enforcement in scripts/check_model_sync.py sync point 6 (comments/code at :454, :805, :1118).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321). ADR content has no native SysML / KerML representation; the decision document is an external artifact."
+      }
+    ],
+    "delta": "External-fact reference identity: the decision content is authoritative in Git ADR documents (docs/architecture-decisions/), while the model carries the reference identity and its role as a permitted R003 design-input origin (alongside Need and RegulatoryConstraint).",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external for content (Git ADR documents under docs/architecture-decisions/); model-authoritative only for the reference identity/typing role.",
+    "target_definition": "A reviewed architecture or method decision recorded as an ADR in Git that a design-input requirement can trace to as its semantic origin. (Keep; content stays external.)",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "Correct external boundary: the model must not mirror ADR content, only reference it. The identity is enforced as an R003 origin type by check_model_sync sync point 6 ('Each requirement ... shall trace to at least one Need, RegulatoryConstraint, or ArchitectureDecisionRecord'), so it is a real graph type, not vocabulary. No current slice targets an ADR-typed element; the check resolves target types including specialization closure.",
+    "consumers": [
+      {
+        "path": "scripts/check_model_sync.py:454",
+        "symbol_or_surface": "# Sync point 6 comment: trace to Need, RegulatoryConstraint, or ArchitectureDecisionRecord",
+        "role": "CI enforcement of the R003 origin set"
+      },
+      {
+        "path": "scripts/check_model_sync.py:1118",
+        "symbol_or_surface": "[SP6] error message listing permitted origin types",
+        "role": "failing-closed enforcement output"
+      },
+      {
+        "path": "tests/test_check_model_sync.py:113-149",
+        "symbol_or_surface": "synthetic derivation cases incl. ArchitectureDecisionRecord targets",
+        "role": "test coverage of the R003 origin resolution"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:160",
+        "finding": "Reviewed anchor for ArchitectureDecisionRecord (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:261",
+        "finding": "Reviewed anchor for ArchitectureDecisionRecord (repository)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "scripts/check_model_sync.py:1118",
+        "finding": "Reviewed anchor for ArchitectureDecisionRecord (test)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:514",
+        "finding": "Reviewed anchor for ArchitectureDecisionRecord (review)."
+      }
+    ],
+    "dependencies": [
+      "check_model_sync.py sync point 6 (R003)",
+      "architecture group Requirement derivation semantics",
+      "docs/architecture-decisions/ (external ADR corpus)"
+    ],
+    "decisions": [
+      "KEEP as external reference; no content mirroring; parity for the reference doc text only; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; R003 grounding set is loaded from the ontology rules and resolved against modeled types (scripts/check_model_sync.py sync point 6); no runtime API binding; no current slice usage.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "MissingRealizationRecord",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def MissingRealizationRecord` (de4sdv_method_context.sysml:188); YAML row (yaml:357); used as supertype and as direct typing in slices; O1 batched-parity (authority-review-decisions.yaml:861).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321). No native concept for 'missing realization'."
+      }
+    ],
+    "delta": "DE4SDV application record for a missing/blocked realization allocation of a conceptual element; overlaps the architecture-group Gap identity and the c5 realization vocabulary - the record must not become a second authority for realization semantics.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity; realization semantics authority stays with the c5-reviewed relationships.",
+    "target_definition": "A record of a missing or blocked realization allocation for a conceptual element. (Keep; align wording with the c5 realization review.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Used in real slices (middleware VSIDL->ROS2 realization gap; AEBS supertype for missing physical realization). Keep; parity; keep bounded (record, not a claim).",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml:73",
+        "symbol_or_surface": "part directVSIDLToROS2Realization : MissingRealizationRecord",
+        "role": "slice gap record"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml:417",
+        "symbol_or_surface": "part def MissingPhysicalRealizationRecord :> MissingRealizationRecord",
+        "role": "slice specialization"
+      },
+      {
+        "path": "tests/test_middleware_variability_configuration.py:134",
+        "symbol_or_surface": "asserts MissingRealizationRecord part present",
+        "role": "test coupling"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:188",
+        "finding": "Reviewed anchor for MissingRealizationRecord (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:357",
+        "finding": "Reviewed anchor for MissingRealizationRecord (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml:73",
+        "finding": "Reviewed anchor for MissingRealizationRecord (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:861",
+        "finding": "Reviewed anchor for MissingRealizationRecord (review)."
+      }
+    ],
+    "dependencies": [
+      "architecture group Gap",
+      "c5 realization vocabulary (realizedBy)"
+    ],
+    "decisions": [
+      "KEEP; parity only; keep distinct from Gap and from c5 realization relationships; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime handling.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "BlockedRealizationBranchRecord",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def BlockedRealizationBranchRecord` (de4sdv_method_context.sysml:192); YAML row (yaml:362); used in AEBS realization slices; O1 batched-parity (authority-review-decisions.yaml:879).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321)."
+      }
+    ],
+    "delta": "DE4SDV application record for a realization branch blocked by a source defect or gap; sibling of MissingRealizationRecord; overlaps Gap - keep the two records distinct (missing vs blocked) until a reviewed merge decision says otherwise.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity.",
+    "target_definition": "A record of a realization branch blocked by a source defect or gap. (Keep.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Real usages in AEBS physical/software realization slices (direct typing and supertype). Keep; parity; no merge with MissingRealizationRecord at this time.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_physical_software_realization.sysml:258",
+        "symbol_or_surface": "part blockedPredictedTrajectoryRemainsDeferred : BlockedRealizationBranchRecord",
+        "role": "slice blocked-branch record"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_physical_software_realization.sysml:418",
+        "symbol_or_surface": "part def BlockedPhysicalRealizationBranchRecord :> BlockedRealizationBranchRecord",
+        "role": "slice specialization"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:192",
+        "finding": "Reviewed anchor for BlockedRealizationBranchRecord (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:362",
+        "finding": "Reviewed anchor for BlockedRealizationBranchRecord (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_visualization_physical_software_realization.sysml:258",
+        "finding": "Reviewed anchor for BlockedRealizationBranchRecord (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:879",
+        "finding": "Reviewed anchor for BlockedRealizationBranchRecord (review)."
+      }
+    ],
+    "dependencies": [
+      "MissingRealizationRecord",
+      "architecture group Gap",
+      "c5 realization vocabulary"
+    ],
+    "decisions": [
+      "KEEP; parity only; keep distinct from MissingRealizationRecord and Gap; no rename."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; no runtime handling.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "TraceLink",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "Kernel declaration `item def TraceLink` (de4sdv_method_process.sysml:88-93): String attributes fromElement/toElement/status; used only as item-usage parts inside RequiredTraceChain (process:108-146) and exposed by methodProcessView (process:237 `expose DE4SDV_MethodProcess::*`); YAML row (yaml:382); O1 note 'no executable chain validation' (authority-review-decisions.yaml:952).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 trace/derivation relationships are native relationship usages (dependency/derive/allocation) between actual elements; SysML v2 8.3.10.2 ItemDefinition (PDF 319) classifies items, not relationships."
+      }
+    ],
+    "delta": "Flagged finding: the identity claims a relationship ('a relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts') but is a string record - endpoints are free text and cannot resolve to elements; no native relationship semantics is used. The claim has no fitting representation.",
+    "disposition": "REDESIGN",
+    "target_authority": "model-authoritative DE4SDV vocabulary after redesign (trace facts carried by native relationships; any residual link record must carry resolvable element references).",
+    "target_definition": "Trace links are native relationship usages (dependency/derive/allocation/typed connection) between actual model elements, reviewed with an explicit claim boundary (draft/reviewed); any reified link record must reference elements, not strings.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "String item is not a native relationship (parent-flagged). Redesign, do not delete: the item usages are actual parts of RequiredTraceChain and are exposed through the method process view, so removal alone would still rewrite source. Couple the redesign to the RequiredTraceChain redesign so the chain's links become reviewable, resolvable trace facts.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:108-146",
+        "symbol_or_surface": "part concernToNeed : TraceLink { ... } etc. (10 item usages)",
+        "role": "kernel-internal usages inside RequiredTraceChain"
+      },
+      {
+        "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:237",
+        "symbol_or_surface": "expose DE4SDV_MethodProcess::*",
+        "role": "view exposure (published method-process view)"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:88",
+        "finding": "Reviewed anchor for TraceLink (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:382",
+        "finding": "Reviewed anchor for TraceLink (repository)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:952",
+        "finding": "Reviewed anchor for TraceLink (review)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "methodologies/sysmod-sysmlv2/increment-workflow.md:141-156",
+        "finding": "Reviewed anchor for TraceLink (repository)."
+      }
+    ],
+    "dependencies": [
+      "RequiredTraceChain (redesign)",
+      "IncrementTraceabilityShell (merge)",
+      "relationships group (native trace/verification relationships)"
+    ],
+    "decisions": [
+      "REDESIGN to native relationship usage or a reference-carrying link record; coordinate with RequiredTraceChain redesign and the two shell usages; no O3 amendment (not among the 13 frozen identities)."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": {
+      "rule": "No API/runtime handling; no executable chain validation exists (O1 note); view exposure only. Kernel<->ontology contract mapping required; a rename/removal must update the YAML in the same commit.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": "native relationship usages (dependency/derive/allocation) or redesigned link record with resolvable element references"
+  },
+  {
+    "identity": "RequiredTraceChain",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def RequiredTraceChain` (de4sdv_method_process.sysml:95-148): fixed 10-part chain concernToNeed -> ... -> evidenceToBaseline, parts typed TraceLink; YAML row (yaml:387); O1 note 'Chain vocabulary used in review; no executable chain validation' (authority-review-decisions.yaml:970); chain text in methodologies/sysmod-sysmlv2/increment-workflow.md:141-156.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "Plan v1.2 RFLP invariant: Requirement -> Function -> LogicalElement -> PhysicalElement is the canonical decomposition toward realization; direct cross-layer links are not canonical (DE4SDV_Unified_Semantic_Engineering_Plan_v1.2-7.md:3; c5-relevance-realization-review.md:95-100)."
+      }
+    ],
+    "delta": "Universal fixed ordered chain with a mandatory first link concern->need. Conflicts: (a) O1 c4 disposition - derivesNeedFromConcern retired without replacement; the accepted increment-level predicate is addressesConcern : EngineeringIncrement -> Concern (c4-concern-need-disposition-review.md:232,379,401); (b) the RFLP graph invariant above. A universal fixed chain is the wrong shape.",
+    "disposition": "REDESIGN",
+    "target_authority": "model-authoritative DE4SDV method vocabulary after redesign (review expectation per increment, not a universal constraint).",
+    "target_definition": "For a given increment: the reviewed trace expectation - which links between which element kinds are required, optional, or intentionally missing (with gap records), grounded in native relationships where they exist; no fixed universal chain, no mandatory concern->need first link.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "Redesign not preserve (parent-flagged): the fixed chain's concern->need step conflicts with the c4 disposition and the plan's RFLP invariant. The replacement must be per-increment, gap-recording, and expressed over real relationships; the TraceLink string parts cannot carry it, so the two redesigns are one migration.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:237",
+        "symbol_or_surface": "expose DE4SDV_MethodProcess::*",
+        "role": "view exposure of the chain parts"
+      },
+      {
+        "path": "methodologies/sysmod-sysmlv2/increment-workflow.md:141-156",
+        "symbol_or_surface": "## Required trace chain (prose chain incl. concern -> Need)",
+        "role": "prose source mirrored by the model"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:95",
+        "finding": "Reviewed anchor for RequiredTraceChain (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:387",
+        "finding": "Reviewed anchor for RequiredTraceChain (repository)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c4-concern-need-disposition-review.md:232",
+        "finding": "Reviewed anchor for RequiredTraceChain (review)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c4-concern-need-disposition-review.md:379",
+        "finding": "Reviewed anchor for RequiredTraceChain (review)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c5-relevance-realization-review.md:95",
+        "finding": "Reviewed anchor for RequiredTraceChain (review)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:970",
+        "finding": "Reviewed anchor for RequiredTraceChain (review)."
+      }
+    ],
+    "dependencies": [
+      "TraceLink (redesign)",
+      "IncrementTraceabilityShell (merge)",
+      "c4 concern/need disposition review",
+      "plan v1.2 RFLP invariant",
+      "relationships group (addressesConcern, DerivesFromNeed)",
+      "parent-decisions.json derivesNeedFromConcern = REMOVE/REMOVE_FROM_ONTOLOGY (retired per c4; explicitly NOT renamed to addressesConcern and no 'motivates' inference) - confirms the chain's concern->need first link cannot be preserved"
+    ],
+    "decisions": [
+      "REDESIGN to a per-increment reviewed trace expectation with gap records and allowed link variants; absorb IncrementTraceabilityShell; couple to the TraceLink redesign; no O3 amendment (not among the 13 frozen identities); flag the KerML version-alignment caveat where native relationship semantics are invoked (attached KerML 1.0 Beta 1 vs repo pin 20250201)."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": {
+      "rule": "No API/runtime handling; no executable chain validation (O1 note); view exposure only. Kernel<->ontology contract mapping required; rename/removal must update the YAML in the same commit.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": "Increment trace expectation (working name; per-increment reviewed trace expectation)"
+  },
+  {
+    "identity": "Baseline",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def DE4SDVEvidenceBaseline :> OperationalEntity` (de4sdv_operational_context.sysml:34); YAML row classes:Baseline (yaml:398) mapped to it; boundary text 'without implying accepted evidence' model-resident; O1 confidence medium (authority-review-decisions.yaml:988).",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321). A controlled baseline state is an external configuration-management fact, not a native SysML concept."
+      }
+    ],
+    "delta": "External-fact reference identity: a reviewed and controlled state of model/evidence/configuration/publication artifacts. Content authority is external (Git-controlled baselines / baseline register); the model carries the reference identity plus the explicit non-claim ('without implying accepted evidence').",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external for baseline content (Git/baseline register); model-authoritative for the reference identity and its claim boundary.",
+    "target_definition": "A reviewed and controlled state of model, evidence, configuration, or publication artifacts, referenced without implying accepted evidence. (Keep; content stays external.)",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "Correct external boundary: keep as a reference identity; the model must not mirror baseline contents. The non-claim boundary is the value of the identity and is model-resident. Note the row/decaration name split (YAML key 'Baseline' vs declaration DE4SDVEvidenceBaseline) is bookkeeping, not a rename request.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml:83,105",
+        "symbol_or_surface": "actor evidenceBaseline / part visualizationEvidenceBaseline : DE4SDVEvidenceBaseline",
+        "role": "slice references to the baseline identity"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml:130,153",
+        "symbol_or_surface": "actor evidenceBaseline / part de4sdvEvidenceBaseline : DE4SDVEvidenceBaseline",
+        "role": "slice references"
+      },
+      {
+        "path": "docs/naming/naming-conventions.md:197",
+        "symbol_or_surface": "BL | Baseline | Baseline decision record",
+        "role": "naming convention coupling"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml:34",
+        "finding": "Reviewed anchor for Baseline (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:398",
+        "finding": "Reviewed anchor for Baseline (repository)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:695",
+        "finding": "Reviewed anchor for Baseline (repository)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_operational_context.sysml:153",
+        "finding": "Reviewed anchor for Baseline (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:988",
+        "finding": "Reviewed anchor for Baseline (review)."
+      }
+    ],
+    "dependencies": [
+      "relationships group capturedInBaseline",
+      "IncrementLifecycleDecision (baseline decisions in slices)",
+      "parent-decisions.json capturedInBaseline = KEEP_EXTERNAL_REFERENCE/EXTERNAL_BOUNDARY (consistent: 'the Baseline model concept describes what is referenced, not who governs it'; no second mutable baseline list in SysML)"
+    ],
+    "decisions": [
+      "KEEP as external reference; parity for the reference doc text only; no rename (declaration already DE4SDVEvidenceBaseline)."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": {
+      "rule": "Kernel<->ontology contract mapping required; the relationship `capturedInBaseline` has range Baseline (relationships group); no runtime handling.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "MethodEvaluationScope",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Kernel declaration `part def MethodEvaluationScope` (de4sdv_method_conformance.sysml:85-94) with attributes incrementId/subjectType; YAML row (yaml:423); O1 c1 correction R1: docs equivalence reviewed but structural exclusions gap stays open (authority-review-decisions.yaml:1074-1103); excluded from O2.1 with reviewed reason and absent from the O3 13-identity chain by design.",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321). Evaluation-scope semantics are DE4SDV contract vocabulary (ADR 0019 subsystem), not native SysML."
+      }
+    ],
+    "delta": "DE4SDV contract vocabulary: binds increment identity, eligible subject types, and explicit exclusions; contribution set and evaluation scope are distinct sets. Flagged structural gap: the definition claims explicit exclusions with rationale, but the model body carries only incrementId/subjectType - exclusions live in the delivered runtime input, which is implementation evidence, not model-authority parity.",
+    "disposition": "REDESIGN",
+    "target_authority": "model-authoritative after the exclusions structural gap is closed (declaration gains a model-resident exclusions-with-rationale representation).",
+    "target_definition": "An evaluation scope binding increment identity, eligible subject types, and explicit exclusions (with rationale). Contribution set and evaluation scope are distinct sets; membership is a reviewed scope decision, not an inferred impact claim. (Same meaning; exclusions must become structurally carried.)",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2/O3 gates can admit it. Not among the 13 frozen identities; no O3 amendment.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/method_contract.py:33,46",
+        "symbol_or_surface": "class MethodEvaluationScope (dataclass; exclusions: dict[str,str])",
+        "role": "runtime mirror/dataclass for Lane B contract binding (method-conformance C/D)"
+      },
+      {
+        "path": "de4sdv/semantic/projection_v1.py:177",
+        "symbol_or_surface": "guarded identity set including MethodEvaluationScope",
+        "role": "projection guard"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml:144,146,154-164",
+        "symbol_or_surface": "part def AebsOverridePilotScopeBase :> MethodEvaluationScope; part <'PSC-009D'>aebsOverridePilotScope {...} + EvaluationScopeMembership members",
+        "role": "INC-AEBS-009D pilot scope instantiation"
+      },
+      {
+        "path": "tests/test_method_contract_binding.py:223,228,241",
+        "symbol_or_surface": "MethodEvaluationScope( ... exclusions={} )",
+        "role": "binding test construction"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:85",
+        "finding": "Reviewed anchor for MethodEvaluationScope (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml:423",
+        "finding": "Reviewed anchor for MethodEvaluationScope (repository)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_contract.py:33",
+        "finding": "Reviewed anchor for MethodEvaluationScope (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o2/o21-admission.yaml:72",
+        "finding": "Reviewed anchor for MethodEvaluationScope (review)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o3/o3-equivalence-scope.json",
+        "finding": "Reviewed anchor for MethodEvaluationScope (review). (MethodEvaluationScope in scope.excluded_identities; excluded-identity-absent check PASS)"
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml:1074",
+        "finding": "Reviewed anchor for MethodEvaluationScope (review)."
+      }
+    ],
+    "dependencies": [
+      "EvaluationScopeMembership (frozen 13; membership semantics)",
+      "o1 c1 conformance parity review",
+      "o2 admission gating",
+      "o3 authority transition"
+    ],
+    "decisions": [
+      "REDESIGN the declaration to carry explicit exclusions (with rationale) structurally; then complete model-authority parity; do not force O2/O3 admission before the gap closes; no rename."
+    ],
+    "blocker": "Structural exclusions-with-rationale representation is not model-resident; evidence_state stays repository-evidenced until a reviewed representation decision and implementation/parity review exist.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": {
+      "rule": "Runtime consumption is implementation evidence only: the runtime MethodEvaluationScope input (incl. exclusions) is delivered by Lane C/D execution, not model-authority parity; O2 may only generate from semantics already proven model-resident (o21-admission.yaml:72). Kernel<->ontology contract mapping required; renaming would ripple to method_contract.py and the guard sets in projection_v1.py/o3_equivalence.py plus the C1_INCOMPLETE test tuples.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": null
+    },
+    "rename_or_merge_target": null
+  }
+]

@@ -1,0 +1,2054 @@
+[
+  {
+    "identity": "MethodPhase",
+    "kind": "class",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "enum def MethodPhase in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.9 (enumerations) or \u00a77.7 (item records), as representation only"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "governed DE4SDV definition is the meaning."
+      }
+    ],
+    "delta": "The thirteen governed increment phases, not an OMG lifecycle.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV application semantic model (external facts remain external)",
+    "target_definition": "One of the 13 phases of the DE4SDV increment workflow.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Retain the frozen meaning. It is necessary to the existing deterministic conformance contract. The native carrier provides typing/storage, not method-policy authority. No duplicate generic OMG concept establishes the DE4SDV rules.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/projection_v1.py",
+        "symbol_or_surface": null,
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "phase attribute of MethodContractObligation",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method_pilot.decode_model_obligation_closure",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:28",
+        "finding": "Reviewed anchor for MethodPhase (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c1-conformance-parity-review.md",
+        "finding": "Reviewed anchor for MethodPhase (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_pilot.py",
+        "finding": "Reviewed anchor for MethodPhase (runtime)."
+      }
+    ],
+    "dependencies": [
+      "MethodContractObligation"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Frozen meaning unchanged; review classification corrects no behavior. O3 candidate equivalence proven; production default still legacy.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "MethodContractObligation",
+    "kind": "class",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "item def MethodContractObligation in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.9 (enumerations) or \u00a77.7 (item records), as representation only"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "governed DE4SDV definition is the meaning."
+      }
+    ],
+    "delta": "Phase-neutral obligation schema, selectors, applicability, population/cardinality, source and claim limits are DE4SDV rules. ItemDefinition does not evaluate them.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV application semantic model (external facts remain external)",
+    "target_definition": "A typed model-resident method-contract obligation: stable explicit identifier, phase reference, typed subject selector, restricted applicability, population policy, pinned predicate with declared input/output types, target filters, per-subject cardinality bounds, requiredness, evaluation source, optional attestation-policy reference, and exact claim boundary. Model materialization of the frozen baseline Section 7 schema.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Retain the frozen meaning. It is necessary to the existing deterministic conformance contract. The native carrier provides typing/storage, not method-policy authority. No duplicate generic OMG concept establishes the DE4SDV rules.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/method_pilot.py:471",
+        "symbol_or_surface": "decode_model_obligation_closure",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method_evaluator.validate_contract and MethodEvaluator",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "O3 facade",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:46",
+        "finding": "Reviewed anchor for MethodContractObligation (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c1-conformance-parity-review.md",
+        "finding": "Reviewed anchor for MethodContractObligation (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_pilot.py",
+        "finding": "Reviewed anchor for MethodContractObligation (runtime)."
+      }
+    ],
+    "dependencies": [
+      "MethodPhase",
+      "EvaluationSourceKind",
+      "MethodEvaluationScope"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Frozen meaning unchanged; review classification corrects no behavior. O3 candidate equivalence proven; production default still legacy.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "EvaluationScopeMembership",
+    "kind": "class",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "item def EvaluationScopeMembership in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.9 (enumerations) or \u00a77.7 (item records), as representation only"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "governed DE4SDV definition is the meaning."
+      }
+    ],
+    "delta": "Reviewed evaluation membership and contributes flag are application facts, not KerML Namespace membership.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV application semantic model (external facts remain external)",
+    "target_definition": "Explicit membership of one subject in an evaluation scope, carrying the contributes flag that separates the contribution set from reused evaluation-scope members.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Retain the frozen meaning. It is necessary to the existing deterministic conformance contract. The native carrier provides typing/storage, not method-policy authority. No duplicate generic OMG concept establishes the DE4SDV rules.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/method_pilot.py",
+        "symbol_or_surface": "resolve_pilot_identities and assemble_pilot_context",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method_contract.MethodEvaluationScope",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:100",
+        "finding": "Reviewed anchor for EvaluationScopeMembership (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c1-conformance-parity-review.md",
+        "finding": "Reviewed anchor for EvaluationScopeMembership (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_pilot.py",
+        "finding": "Reviewed anchor for EvaluationScopeMembership (runtime)."
+      }
+    ],
+    "dependencies": [
+      "MethodEvaluationScope"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Frozen meaning unchanged; review classification corrects no behavior. O3 candidate equivalence proven; production default still legacy.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "EvaluationSourceKind",
+    "kind": "class",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "enum def EvaluationSourceKind in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.9 (enumerations) or \u00a77.7 (item records), as representation only"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "governed DE4SDV definition is the meaning."
+      }
+    ],
+    "delta": "Closed source vocabulary separates pinned model/repository inputs from live delivery outside deterministic V1.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV application semantic model (external facts remain external)",
+    "target_definition": "The kind of input an obligation reads: a pinned model record, a pinned repository artifact, or a live delivery adapter (outside deterministic V1 evaluation).",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Retain the frozen meaning. It is necessary to the existing deterministic conformance contract. The native carrier provides typing/storage, not method-policy authority. No duplicate generic OMG concept establishes the DE4SDV rules.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/method_pilot.py",
+        "symbol_or_surface": "decode_model_obligation_closure",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method_evaluator.validate_contract",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:28",
+        "finding": "Reviewed anchor for EvaluationSourceKind (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c1-conformance-parity-review.md",
+        "finding": "Reviewed anchor for EvaluationSourceKind (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_pilot.py",
+        "finding": "Reviewed anchor for EvaluationSourceKind (runtime)."
+      }
+    ],
+    "dependencies": [
+      "MethodContractObligation"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Frozen meaning unchanged; review classification corrects no behavior. O3 candidate equivalence proven; production default still legacy.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "TestedScopeDeclaration",
+    "kind": "class",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "item def TestedScopeDeclaration in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.9 (enumerations) or \u00a77.7 (item records), as representation only"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "governed DE4SDV definition is the meaning."
+      }
+    ],
+    "delta": "Git execution head and pinned profiles are conservative scope-equality inputs; no automatic carry-forward.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV application semantic model (external facts remain external)",
+    "target_definition": "A candidate evaluation's declaration of the tested scope it compares retained evidence against: execution head and pinned profile identities (conservative scope-equality inputs).",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Retain the frozen meaning. It is necessary to the existing deterministic conformance contract. The native carrier provides typing/storage, not method-policy authority. No duplicate generic OMG concept establishes the DE4SDV rules.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/method_pilot.py:437",
+        "symbol_or_surface": "decode_declared_tested_scope",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method_evaluator.ScopeEqualityComparison",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:114",
+        "finding": "Reviewed anchor for TestedScopeDeclaration (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c1-conformance-parity-review.md",
+        "finding": "Reviewed anchor for TestedScopeDeclaration (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_pilot.py",
+        "finding": "Reviewed anchor for TestedScopeDeclaration (runtime)."
+      }
+    ],
+    "dependencies": [
+      "MethodEvaluationScope"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Frozen meaning unchanged; review classification corrects no behavior. O3 candidate equivalence proven; production default still legacy.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "RetainedExecutionRecordReference",
+    "kind": "class",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "item def RetainedExecutionRecordReference in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.9 (enumerations) or \u00a77.7 (item records), as representation only"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "governed DE4SDV definition is the meaning."
+      }
+    ],
+    "delta": "Model schema is authority for the reference meaning only; external record bytes, digest checks and run provenance remain external. Declaration is not evidence that a record exists.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV application semantic model (external facts remain external)",
+    "target_definition": "A model-resident reference to one retained execution record with explicit external identity, artifact path, digest, and run identity; record bytes stay external.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Retain the frozen meaning. It is necessary to the existing deterministic conformance contract. The native carrier provides typing/storage, not method-policy authority. No duplicate generic OMG concept establishes the DE4SDV rules.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "method_evaluator.FileSource and execution-outcome predicates",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "model declaration/projection",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no blanket claim of populated item usages",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:126",
+        "finding": "Reviewed anchor for RetainedExecutionRecordReference (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c1-conformance-parity-review.md",
+        "finding": "Reviewed anchor for RetainedExecutionRecordReference (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_pilot.py",
+        "finding": "Reviewed anchor for RetainedExecutionRecordReference (runtime)."
+      }
+    ],
+    "dependencies": [
+      "TestedScopeDeclaration"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Frozen meaning unchanged; review classification corrects no behavior. O3 candidate equivalence proven; production default still legacy.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "AcceptanceAttestationReference",
+    "kind": "class",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "item def AcceptanceAttestationReference in textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.9 (enumerations) or \u00a77.7 (item records), as representation only"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "governed DE4SDV definition is the meaning."
+      }
+    ],
+    "delta": "Model reference does not approve policy or grant authority. Missing registry differs from known-empty registry.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV application semantic model (external facts remain external)",
+    "target_definition": "A model-resident reference to the authorization policy and the machine-declared decision-registry location. Policy status (proposed vs approved) is carried by the policy document, not by this reference; a missing registry and a known-empty registry are different states.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Retain the frozen meaning. It is necessary to the existing deterministic conformance contract. The native carrier provides typing/storage, not method-policy authority. No duplicate generic OMG concept establishes the DE4SDV rules.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/method_pilot.py",
+        "symbol_or_surface": "acceptanceAttestation pilot item",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method_evaluator registry scan/acceptance predicates",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:139",
+        "finding": "Reviewed anchor for AcceptanceAttestationReference (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c1-conformance-parity-review.md",
+        "finding": "Reviewed anchor for AcceptanceAttestationReference (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_pilot.py",
+        "finding": "Reviewed anchor for AcceptanceAttestationReference (runtime)."
+      }
+    ],
+    "dependencies": [
+      "MethodContractObligation"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Frozen meaning unchanged; review classification corrects no behavior. O3 candidate equivalence proven; production default still legacy.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "VerificationCase",
+    "kind": "class",
+    "o3_protected": true,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "VerificationCaseDefinition/Usage; VerificationCases::VerificationCase and ::verificationCases",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a7\u00a78.3.24.3\u20134, 8.4.20.1\u20132, 9.2.17.2.3\u20134"
+      }
+    ],
+    "delta": "None in the frozen definition: declared verification/check carrier, not proof of execution or pass.",
+    "disposition": "KEEP_NATIVE",
+    "target_authority": "normative SysML",
+    "target_definition": "A planned or executed check that evaluates whether a requirement or model claim is satisfied. Declared case identity does not establish execution, verdict or acceptance.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Keep a projection identity for stable coverage/API vocabulary, not a parallel DE4SDV verification metaclass. Explicit language concept has normative implicit library anchoring. Exact-main export proves 22 definitions and 34 usages; this is not evidence that all checks ran.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/traversal.py",
+        "symbol_or_surface": "_verification_membership_hops",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "impact.VerificationCase category",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "verification_grounding",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "MCP verification_coverage",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/verification_grounding.py",
+        "finding": "Reviewed anchor for VerificationCase (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c2-verification-grounding-review.md",
+        "finding": "Reviewed anchor for VerificationCase (review)."
+      },
+      {
+        "type": "evidence-artifact",
+        "path_or_reference": "evidence/current-ingestion/o3/de4sdv-o3-verification-case-grounding.json",
+        "finding": "Reviewed anchor for VerificationCase (evidence-artifact)."
+      }
+    ],
+    "dependencies": [
+      "verifiedBy"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_NATIVE).",
+    "implicit_rule": {
+      "rule": "checkVerificationCaseSpecialization / checkVerificationCaseUsageSpecialization require direct or indirect base specialization/subsetting; objective subject redefinition and binding also implied.",
+      "source": "SysML \u00a7\u00a78.3.24.3\u20134, 8.4.20",
+      "api_observable": "Exact-main export records implied edges and external library provenance; retained proof is export-backed. Do not assert complete library target objects in imported API.",
+      "current_handling": "verification_grounding consumes exact-revision evidence; metaclass/name alone rejected."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "hasSubject",
+    "kind": "relationship",
+    "o3_protected": true,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "SubjectMembership and requirement subject parameter",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a78.3.21 SubjectMembership"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "\u00a78.4.17 Requirements Semantics"
+      }
+    ],
+    "delta": "Source must be governed RequirementCandidate lineage (not Need); target must be governed MemberProduct lineage (not bench/increment/claim).",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV application model over native SubjectMembership",
+    "target_definition": "Requirement R has MemberProduct M as its native subject; both endpoint lineages must be proven. No applicability, selection or satisfaction claim.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Native subject meaning is exact for the core relation but does not impose either DE4SDV endpoint restriction. Keep stable bounded predicate; generic subject navigation would include facts deliberately excluded. No semantic change.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/traversal.py",
+        "symbol_or_surface": "_subject_membership_hops",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "impact and query.neighbors/trace",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "MCP",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py",
+        "finding": "Reviewed anchor for hasSubject (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c3-subject-grounding-review.md",
+        "finding": "Reviewed anchor for hasSubject (review)."
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "MemberProduct"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Subject parameter redefinition and inherited typing; specialization transitivity for endpoint lineages.",
+      "source": "SysML \u00a78.4.17; KerML \u00a78.3.3 Specialization/FeatureTyping",
+      "api_observable": "Membership/end features and authored/implied lineage references available at retained revision; qualified names not required.",
+      "current_handling": "Validated kernel bindings plus model_edges/relationship graph; candidate-first, fail closed."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "verifiedBy",
+    "kind": "relationship",
+    "o3_protected": true,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "RequirementVerificationMembership::verifiedRequirement; verification objective ownership",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a7\u00a78.3.24.2\u20134, 8.4.20"
+      },
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML \u00a78.3.3.3.9 ReferenceSubsetting"
+      }
+    ],
+    "delta": "Frozen runtime restricts queried source to governed RequirementCandidate lineage; native SysML admits broader RequirementUsage population. Declared coverage only.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV restricted projection of normative SysML verification",
+    "target_definition": "Governed Requirement R is a declared verification objective of VerificationCase C. No execution, outcome, satisfaction or approval asserted.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "O1 c2 calls the fact native exact; later c5 source-domain enforcement adds the same kind of application restriction acknowledged for hasSubject. Reclassify the authority description, not the frozen meaning or query results. Native core is reused, not duplicated. ReferenceSubsetting shadow is navigational representation, never a new requirement identity.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/traversal.py",
+        "symbol_or_surface": "_verification_membership_hops, build_reference_subsetting_bridge, requirement_identity",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "query.verification_coverage",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "MCP",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:62",
+        "finding": "Reviewed anchor for verifiedBy (runtime)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:322",
+        "finding": "Reviewed anchor for verifiedBy (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c2-verification-grounding-review.md",
+        "finding": "Reviewed anchor for verifiedBy (review)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c5-relevance-realization-review.md",
+        "finding": "Reviewed anchor for verifiedBy (review)."
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "VerificationCase"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Classification correction only: O1 native-sysml target omits the already-frozen DE4SDV domain restriction. No O3 behavior change or semantic amendment proposed.",
+    "implicit_rule": {
+      "rule": "Derived verifiedRequirement feature from RVMs; objective redefinition/binding; inherited objective and ReferenceSubsetting specialization.",
+      "source": "SysML \u00a7\u00a78.3.24.2\u20134, 8.4.20; KerML \u00a78.3.3.3.9",
+      "api_observable": "RVM membership and shadow ReferenceSubsetting visible in retained export/API evidence; derived property need not be flattened.",
+      "current_handling": "Runtime resolves objective owner chain and exact declared source lineage; deduplicates and refuses shadow identity promotion."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "derivesRequirementFromNeed",
+    "kind": "relationship",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "DE4SDV_MethodContext::DerivesFromNeed connection definition, typed need/derivedRequirement ends and owned documentation",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.13 Connections"
+      },
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML FeatureTyping/ReferenceSubsetting establish endpoint structure, not design provenance."
+      }
+    ],
+    "delta": "Design-input provenance, typed candidate lineages, canonical direction and exclusion of logical implication are DE4SDV application semantics.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV_MethodContext::DerivesFromNeed model authority",
+    "target_definition": "Requirement R is derived from stakeholder need N. Design-input derivation; direction R -> N. No satisfaction, allocation, verification, evidence, or acceptance claim. Grounded in the DE4SDV application connection definition DerivesFromNeed: the Need grounds the `need` end, the derived design requirement grounds the `derivedRequirement` end. DE4SDV's Requirement -> Need query is inverse navigation over that native witness.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "The normatively native connection alone would say the values are linked, not that a requirement originates in a need. The reviewed application definition supplies that meaning. Keep both frozen query identities over ONE modeled fact; inverse navigation is not a normative implicit derivation relation. Do not adopt the standard Derivation pattern with originalImpliesDerived.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/traversal.py",
+        "symbol_or_surface": "_derivation_connection_hops",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "model_authority",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "projection_o23",
+        "role": null
+      },
+      {
+        "path": "query/trace/impact",
+        "symbol_or_surface": null,
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:25",
+        "finding": "Reviewed anchor for derivesRequirementFromNeed (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/k-slice/v11-final-decision.md",
+        "finding": "Reviewed anchor for derivesRequirementFromNeed (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:520",
+        "finding": "Reviewed anchor for derivesRequirementFromNeed (runtime)."
+      }
+    ],
+    "dependencies": [
+      "Need",
+      "Requirement",
+      "DerivesFromNeed"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "FeatureTyping, specialization and ReferenceSubsetting prove typed connection endpoints; no implied engineering derivation.",
+      "source": "KerML \u00a7\u00a78.3.3.1.8, 8.3.3.3.7, 8.3.3.3.9\u201310; SysML connections",
+      "api_observable": "Authored and implied edges consumed from exact export/import evidence; current K set is five connections.",
+      "current_handling": "model_edges retains relationship provenance; one witness traversed both directions, missing/ambiguous ends fail closed."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "derivedRequirementsOfNeed",
+    "kind": "relationship",
+    "o3_protected": true,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "DE4SDV_MethodContext::DerivesFromNeed connection definition, typed need/derivedRequirement ends and owned documentation",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.13 Connections"
+      },
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML FeatureTyping/ReferenceSubsetting establish endpoint structure, not design provenance."
+      }
+    ],
+    "delta": "Design-input provenance, typed candidate lineages, canonical direction and exclusion of logical implication are DE4SDV application semantics.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV_MethodContext::DerivesFromNeed model authority",
+    "target_definition": "Inverse navigation of derivesRequirementFromNeed over the SAME discriminator witness: the need N is the design-input origin of the derived requirement R. This predicate declares no new model fact; it reuses the identical DerivesFromNeed connection traversed in the reverse direction, with the same lineage grounding and fail-closed closure semantics.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "The normatively native connection alone would say the values are linked, not that a requirement originates in a need. The reviewed application definition supplies that meaning. Keep both frozen query identities over ONE modeled fact; inverse navigation is not a normative implicit derivation relation. Do not adopt the standard Derivation pattern with originalImpliesDerived.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/traversal.py",
+        "symbol_or_surface": "_derivation_connection_hops",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "model_authority",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "projection_o23",
+        "role": null
+      },
+      {
+        "path": "query/trace/impact",
+        "symbol_or_surface": null,
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:25",
+        "finding": "Reviewed anchor for derivedRequirementsOfNeed (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/k-slice/v11-final-decision.md",
+        "finding": "Reviewed anchor for derivedRequirementsOfNeed (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:520",
+        "finding": "Reviewed anchor for derivedRequirementsOfNeed (runtime)."
+      }
+    ],
+    "dependencies": [
+      "Need",
+      "Requirement",
+      "DerivesFromNeed"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "FeatureTyping, specialization and ReferenceSubsetting prove typed connection endpoints; no implied engineering derivation.",
+      "source": "KerML \u00a7\u00a78.3.3.1.8, 8.3.3.3.7, 8.3.3.3.9\u201310; SysML connections",
+      "api_observable": "Authored and implied edges consumed from exact export/import evidence; current K set is five connections.",
+      "current_handling": "model_edges retains relationship provenance; one witness traversed both directions, missing/ambiguous ends fail closed."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "hasRelevantArchitecture",
+    "kind": "relationship",
+    "o3_protected": true,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "KerML Dependency, architecture client -> requirement supplier; reverse query",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 \u00a78.3.2.2.2 Dependency"
+      }
+    ],
+    "delta": "Requirement lineage; part/action constituent filter; MemberProduct source exclusion; relevance only; not realization.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV bounded application projection over native Dependency",
+    "target_definition": "Reverse relevance: an incoming dependency from an architecture element (part, action, or their definitions) that is derived from or traces to the requirement. Sources grounded in the MemberProduct kernel lineage (resolved through the governed kernel mapping, never by bare name) are excluded \u2014 configured-product traces are product-line relationships, not architecture relevance.",
+    "migration": "CURRENT_O3_13",
+    "rationale": "Dependency genuinely establishes specification dependency/change sensitivity, justifying bounded relevance. It does not prove the broader engineering claim of realization. This frozen incoming query is NOT the inverse of specifiesFunction: it selects oppositely authored dependencies. Interface/behavior widening would need a separate O3 amendment.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/traversal.py",
+        "symbol_or_surface": "_dependency_hops",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "impact",
+        "role": null
+      },
+      {
+        "path": "query.neighbors/trace",
+        "symbol_or_surface": null,
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "viewer semantic context",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:200",
+        "finding": "Reviewed anchor for hasRelevantArchitecture (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c5-relevance-realization-review.md",
+        "finding": "Reviewed anchor for hasRelevantArchitecture (review)."
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "ArchitectureElement",
+      "MemberProduct"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Transitive specialization/typing used for governed Requirement eligibility and MemberProduct exclusion, not for inventing Dependency edges.",
+      "source": "KerML \u00a78.3.3.1.8 Specialization and \u00a78.3.3.3.7 FeatureTyping",
+      "api_observable": "Validated bindings and explicit/implied graph edges; frozen dependency witnesses are explicit.",
+      "current_handling": "Correct scoped consumption at retained revision; no name/namespace heuristic."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "addressesConcern",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No exact native association for this increment-level method fact.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No normative identity asserted."
+      }
+    ],
+    "delta": "Increment-level addressing is not requirement/viewpoint FramedConcernMembership.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "DE4SDV model-resident method vocabulary",
+    "target_definition": "Engineering increment records an explicitly reviewed concern within its scope; no automatic concern satisfaction.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Keep as documented vocabulary because it names a distinct increment-scoping/provenance decision, not because a generic graph edge could be implemented. Current YAML declares only signature, no definition. Add the reviewed definition to the authoritative model vocabulary; no automatic runtime traversal or universal cardinality.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "KernelContract relationship enumeration and inventory",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no executable mapping",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method workflow prose only",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for addressesConcern (review)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "methodologies/sysmod-sysmlv2/increment-workflow.md",
+        "finding": "Reviewed anchor for addressesConcern (repository)."
+      }
+    ],
+    "dependencies": [
+      "EngineeringIncrement",
+      "Concern"
+    ],
+    "decisions": [
+      "Method owner must accept the proposed precise definition; no executable support requested."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "hasStakeholder",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No exact native association for this increment-level method fact.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No normative identity asserted."
+      }
+    ],
+    "delta": "Increment stakeholder association is not native stakeholder membership of a requirement.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "DE4SDV model-resident method vocabulary",
+    "target_definition": "Engineering increment identifies a stakeholder role participating in or affected by that increment.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Keep as documented vocabulary because it names a distinct increment-scoping/provenance decision, not because a generic graph edge could be implemented. Current YAML declares only signature, no definition. Add the reviewed definition to the authoritative model vocabulary; no automatic runtime traversal or universal cardinality.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "KernelContract relationship enumeration and inventory",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no executable mapping",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method workflow prose only",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for hasStakeholder (review)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "methodologies/sysmod-sysmlv2/increment-workflow.md",
+        "finding": "Reviewed anchor for hasStakeholder (repository)."
+      }
+    ],
+    "dependencies": [
+      "EngineeringIncrement",
+      "Stakeholder"
+    ],
+    "decisions": [
+      "Method owner must accept the proposed precise definition; no executable support requested."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "selectedViewpoint",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No exact native association for this increment-level method fact.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No normative identity asserted."
+      }
+    ],
+    "delta": "Method selection decision, not native view conformance or ownership.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "DE4SDV model-resident method vocabulary",
+    "target_definition": "Engineering increment records a viewpoint explicitly selected for its review questions.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Keep as documented vocabulary because it names a distinct increment-scoping/provenance decision, not because a generic graph edge could be implemented. Current YAML declares only signature, no definition. Add the reviewed definition to the authoritative model vocabulary; no automatic runtime traversal or universal cardinality.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "KernelContract relationship enumeration and inventory",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no executable mapping",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method workflow prose only",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for selectedViewpoint (review)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "methodologies/sysmod-sysmlv2/increment-workflow.md",
+        "finding": "Reviewed anchor for selectedViewpoint (repository)."
+      }
+    ],
+    "dependencies": [
+      "EngineeringIncrement",
+      "Viewpoint"
+    ],
+    "decisions": [
+      "Method owner must accept the proposed precise definition; no executable support requested."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "producesView",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No exact native association for this increment-level method fact.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No normative identity asserted."
+      }
+    ],
+    "delta": "Production provenance is not native ownedMembership nor view definition/usage typing.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "DE4SDV model-resident method vocabulary",
+    "target_definition": "Engineering increment identifies a view artifact produced as an increment deliverable.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Keep as documented vocabulary because it names a distinct increment-scoping/provenance decision, not because a generic graph edge could be implemented. Current YAML declares only signature, no definition. Add the reviewed definition to the authoritative model vocabulary; no automatic runtime traversal or universal cardinality.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "KernelContract relationship enumeration and inventory",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no executable mapping",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method workflow prose only",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for producesView (review)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "methodologies/sysmod-sysmlv2/increment-workflow.md",
+        "finding": "Reviewed anchor for producesView (repository)."
+      }
+    ],
+    "dependencies": [
+      "EngineeringIncrement",
+      "View"
+    ],
+    "decisions": [
+      "Method owner must accept the proposed precise definition; no executable support requested."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "recordsAssumption",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No exact native association for this increment-level method fact.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No normative identity asserted."
+      }
+    ],
+    "delta": "Recording an assumption is not native assume-constraint truth.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "DE4SDV model-resident method vocabulary",
+    "target_definition": "Engineering increment explicitly records an assumption relevant to its bounded work.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Keep as documented vocabulary because it names a distinct increment-scoping/provenance decision, not because a generic graph edge could be implemented. Current YAML declares only signature, no definition. Add the reviewed definition to the authoritative model vocabulary; no automatic runtime traversal or universal cardinality.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "KernelContract relationship enumeration and inventory",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no executable mapping",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method workflow prose only",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for recordsAssumption (review)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "methodologies/sysmod-sysmlv2/increment-workflow.md",
+        "finding": "Reviewed anchor for recordsAssumption (repository)."
+      }
+    ],
+    "dependencies": [
+      "EngineeringIncrement",
+      "Assumption"
+    ],
+    "decisions": [
+      "Method owner must accept the proposed precise definition; no executable support requested."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "recordsGap",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No exact native association for this increment-level method fact.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No normative identity asserted."
+      }
+    ],
+    "delta": "Recorded gap state is not inferred merely from absent API edges.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "DE4SDV model-resident method vocabulary",
+    "target_definition": "Engineering increment explicitly records an unresolved engineering/evidence gap.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Keep as documented vocabulary because it names a distinct increment-scoping/provenance decision, not because a generic graph edge could be implemented. Current YAML declares only signature, no definition. Add the reviewed definition to the authoritative model vocabulary; no automatic runtime traversal or universal cardinality.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "KernelContract relationship enumeration and inventory",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no executable mapping",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method workflow prose only",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for recordsGap (review)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "methodologies/sysmod-sysmlv2/increment-workflow.md",
+        "finding": "Reviewed anchor for recordsGap (repository)."
+      }
+    ],
+    "dependencies": [
+      "EngineeringIncrement",
+      "Gap"
+    ],
+    "decisions": [
+      "Method owner must accept the proposed precise definition; no executable support requested."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "derivesNeedFromConcern",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "None: provenance, framing and weak addressing are different claims.",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML \u00a78.3.21 FramedConcernMembership is a required-constraint relation, NOT need origin."
+      }
+    ],
+    "delta": "No required distinct DE4SDV meaning or consumer established.",
+    "disposition": "REMOVE",
+    "target_authority": "retired; historical evidence retained",
+    "target_definition": "No active target identity. Need source/rationale and native concern/viewpoint framing remain.",
+    "migration": "REMOVE_FROM_ONTOLOGY",
+    "rationale": "Agree with O1 c4 retirement based on the separate rejection of three candidate meanings and no required query, not on absence alone. Do not rename it to existing increment-level addressesConcern or infer a motivates inverse. Preserve historical rows, remove only future active catalogue row through reviewed migration.",
+    "consumers": [
+      {
+        "path": "Vocabulary/inventory",
+        "symbol_or_surface": "only",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no executable consumer",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c4-concern-need-disposition-review.md",
+        "finding": "Reviewed anchor for derivesNeedFromConcern (review)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:98",
+        "finding": "Reviewed anchor for derivesNeedFromConcern (model)."
+      }
+    ],
+    "dependencies": [
+      "Need",
+      "Concern"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REMOVE).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "constrainedBy",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No exact fit for regulatory provenance as currently discussed.",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML \u00a78.4.17 required constraints impose satisfaction conditions"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "that is not automatically regulatory source provenance."
+      }
+    ],
+    "delta": "Regulation identity, applicability, version and claim boundary need a governed provenance contract.",
+    "disposition": "REDESIGN",
+    "target_authority": "DE4SDV regulatory provenance plus external regulation authority",
+    "target_definition": "Requirement records an applicable regulatory source/constraint with jurisdiction, scope and source identity; it does not claim compliance.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "YAML has only Requirement -> RegulatoryConstraint; O1 describes provenance. Choose provenance versus an actual formal required constraint explicitly. Recommended target is a weak regulatory-source reference, not silently adopting stronger required-constraint semantics.",
+    "consumers": [
+      {
+        "path": "Inventory/vocabulary",
+        "symbol_or_surface": null,
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no configured traversal",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for constrainedBy (review)."
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "RegulatoryConstraint"
+    ],
+    "decisions": [
+      "Approve regulatory-source interpretation and identifier, or supply a separately modeled normative constraint."
+    ],
+    "blocker": "Domain owner must decide provenance versus normative requirement-constraint claim.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": null,
+    "rename_or_merge_target": "hasRegulatorySource (proposed)"
+  },
+  {
+    "identity": "realizedBy",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "AllocationUsage carrier does not establish realization.",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML \u00a7\u00a77.15, 8.4.11, 9.2.8 Allocations"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "not requirement satisfaction."
+      }
+    ],
+    "delta": "Current signature is Requirement -> ArchitectureElement; allocation is the only declared strength.",
+    "disposition": "REDESIGN",
+    "target_authority": "DE4SDV typed allocation projection grounded in native Allocation",
+    "target_definition": "Requirement is explicitly allocated to an architecture element at allocation strength only; no realization or satisfaction claim.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "Agree with c5 rename-required. Preserve signature for proposed allocatedToArchitecture, avoiding collision with existing Function -> LogicalElement allocatedTo. Distinguish this allocation from dependency-based functional relevance. EndFeatureMembership/ReferenceSubsetting must replace invalid source-property assumptions through a reviewed profile.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "SemanticTraversal allocation dispatch into _dependency_hops",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "impact and generic query",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "currently no real-shaped source hops",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:200",
+        "finding": "Reviewed anchor for realizedBy (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c5-relevance-realization-review.md",
+        "finding": "Reviewed anchor for realizedBy (review)."
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "ArchitectureElement",
+      "allocatedTo",
+      "deployedTo"
+    ],
+    "decisions": [
+      "Approve allocatedToArchitecture as allocation-only replacement; do not imply composed realization."
+    ],
+    "blocker": "Owner-approved name/signature and real serialized allocation-end closure.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": null,
+    "rename_or_merge_target": "allocatedToArchitecture"
+  },
+  {
+    "identity": "specifiesFunction",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "KerML Dependency Requirement client -> action supplier",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML \u00a78.3.2.2.2 Dependency"
+      }
+    ],
+    "delta": "Requirement lineage and action target; explicit authored dependency supports relevance only.",
+    "disposition": "REDESIGN",
+    "target_authority": "DE4SDV application relevance projection over native Dependency",
+    "target_definition": "Requirement has a relevant functional action/flow responsibility through an authored outgoing dependency; no specification, allocation or satisfaction claim.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "Agree c5 rename-required; recommend hasRelevantFunction. Do not merge into O3 hasRelevantArchitecture: those witnesses are oppositely directed authored dependencies, not two navigations of the same fact. Current semantic strength is correctly weak; name is not.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "SemanticTraversal._dependency_hops",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "impact",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "query neighbors/trace",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "viewer context",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:200",
+        "finding": "Reviewed anchor for specifiesFunction (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c5-relevance-realization-review.md",
+        "finding": "Reviewed anchor for specifiesFunction (review)."
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "Function"
+    ],
+    "decisions": [
+      "Approve hasRelevantFunction and compatibility alias/deprecation interval."
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": null,
+    "rename_or_merge_target": "hasRelevantFunction"
+  },
+  {
+    "identity": "allocatedTo",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "AllocationDefinition/Usage with governed function and logical endpoint roles",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML \u00a7\u00a77.15, 8.4.11, 9.2.8"
+      }
+    ],
+    "delta": "Function -> LogicalElement layer restrictions; native allocation is not satisfaction.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV restricted native allocation projection",
+    "target_definition": "Function responsibility is explicitly allocated to a logical architecture element; allocation only.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Keep the layer relation, not a new native Allocation concept. Current vocabulary-only absence is not lack of meaning. Prove actual allocation end roles and target layer identities before traversal. Do not repurpose this name for Requirement -> ArchitectureElement.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Vocabulary contract only",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "native allocations in functional/logical model slices are potential future witnesses, not current predicate support",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for allocatedTo (review)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml",
+        "finding": "Reviewed anchor for allocatedTo (model)."
+      }
+    ],
+    "dependencies": [
+      "Function",
+      "LogicalElement"
+    ],
+    "decisions": [
+      "Approve layer-identity discriminator and closure contract."
+    ],
+    "blocker": "Typed allocation-end profile and exact-revision closure not yet accepted.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "deployedTo",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Logical-to-physical AllocationUsage is a candidate carrier, not software deployment semantics.",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML \u00a7\u00a77.15, 8.4.11 define allocation, not installed software/runtime placement."
+      }
+    ],
+    "delta": "Logical responsibility realization/allocation and software deployment are different propositions.",
+    "disposition": "REDESIGN",
+    "target_authority": "DE4SDV bounded logical-to-physical allocation semantic; deployment remains separately governed",
+    "target_definition": "Logical architecture element is explicitly allocated to a physical realization element. This does not assert installation, execution or deployment success.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "Current L->P signature is too broad for deployment. Recommend logicalAllocatedToPhysical for this original identity; any actual software-to-execution-node deployment would be a separate future identity, not silently substituted or included in target counts.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Vocabulary only",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "physical realization slices offer allocations, not executable deployedTo traversal",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for deployedTo (review)."
+      }
+    ],
+    "dependencies": [
+      "LogicalElement",
+      "PhysicalElement",
+      "allocatedTo"
+    ],
+    "decisions": [
+      "Approve logicalAllocatedToPhysical allocation-only replacement or retain blocked until a real deployment contract is specified."
+    ],
+    "blocker": "Architecture owner must resolve logical realization versus software deployment.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": null,
+    "rename_or_merge_target": "logicalAllocatedToPhysical"
+  },
+  {
+    "identity": "usesVerificationMethod",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "VerificationMethod metadata annotation and VerificationMethod::kind",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML \u00a7\u00a77.26.3, 9.2.17.2.6\u20137"
+      }
+    ],
+    "delta": "A projection navigation from annotated verification case to its method values; no extra modeled edge or execution assertion.",
+    "disposition": "KEEP_NATIVE",
+    "target_authority": "normative SysML VerificationCases library",
+    "target_definition": "Verification case is annotated with one or more standard verification method kinds. Annotation alone does not prove execution.",
+    "migration": "NATIVE_OR_LIBRARY_ADOPTION",
+    "rationale": "Retain stable consumer vocabulary only as projection of normative metadata; do not author a second relationship or adopt an unrelated domain-library relation. O1 accepted-library label conflates normative library and domain adoption. Method metadata is a descriptor, not retained execution evidence.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Model VerificationMethod annotations",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "vocabulary relationship has no traversal",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "existing viewer renders model values",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for usesVerificationMethod (review)."
+      },
+      {
+        "type": "ADR",
+        "path_or_reference": "docs/architecture-decisions/0009-adopt-requirements-management-attributes.md",
+        "finding": "Reviewed anchor for usesVerificationMethod (ADR)."
+      }
+    ],
+    "dependencies": [
+      "VerificationCase",
+      "VerificationMethod"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_NATIVE).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "hasAcceptanceCriterion",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "Verification objective, RequirementVerificationMembership and explicit criterion role",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML \u00a7\u00a78.3.24.2\u20134, 8.4.20: passing criteria must be modeled explicitly."
+      }
+    ],
+    "delta": "AcceptanceCriterion role must be distinguished from any verified requirement; no human acceptance implied.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV criterion-role model over native objectives",
+    "target_definition": "Verification case identifies the explicitly modeled criterion used to judge its bounded result; no policy acceptance follows.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Native objective structure gives a semantic foothold; not every verified objective is a criterion and not every criterion grants acceptance. Keep the bounded role, but require a shared non-heuristic criterion binding before making it queryable.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Vocabulary only",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "verification objectives in model are supporting evidence, not implemented predicate",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for hasAcceptanceCriterion (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:477",
+        "finding": "Reviewed anchor for hasAcceptanceCriterion (runtime)."
+      }
+    ],
+    "dependencies": [
+      "VerificationCase",
+      "AcceptanceCriterion"
+    ],
+    "decisions": [
+      "Distinguish test verdict criterion from authorization/acceptance decision."
+    ],
+    "blocker": "Reusable criterion-role identity and owner-approved cardinality.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "validatedBy",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No exact native ValidationCase/fitness-for-use relation established.",
+    "normative_reference": [
+      {
+        "source": "SysML v2",
+        "reference": "SysML \u00a7\u00a77.26 and 8.3.24 define verification, not an interchangeable validation-case metaclass."
+      }
+    ],
+    "delta": "Stakeholder need, context, intended use, scenario applicability and validation claim boundary are application semantics.",
+    "disposition": "REDESIGN",
+    "target_authority": "DE4SDV fitness-for-use validation planning model; outcome evidence external",
+    "target_definition": "Need has a planned contextual validation scenario for assessing fitness for intended use; no successful validation outcome asserted.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "Recommend hasValidationScenario to remove planned-versus-passed ambiguity. Native use cases/actions may encode scenarios but cannot supply fitness-for-use or stakeholder acceptance. Do not substitute verifiedBy or silently claim SysML validation support.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Vocabulary only",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no configured validation traversal",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for validatedBy (review)."
+      }
+    ],
+    "dependencies": [
+      "Need",
+      "ValidationScenario"
+    ],
+    "decisions": [
+      "Approve planned relation, required context and evidence boundary; outcome relation would require separate governed evidence."
+    ],
+    "blocker": "Domain-owner approval of validation plan versus evaluated outcome semantics.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": null,
+    "rename_or_merge_target": "hasValidationScenario"
+  },
+  {
+    "identity": "validatesFitnessForUse",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "No native relation; proposed inverse query over the same validation-plan record.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No exact normative construct asserted."
+      }
+    ],
+    "delta": "Current name suggests successful outcome whereas validatedBy has no outcome contract.",
+    "disposition": "MERGE",
+    "target_authority": "DE4SDV validation-plan projection (inverse navigation only)",
+    "target_definition": "Inverse navigation over the reviewed Need-to-ValidationScenario planning record; no additional modeled fact or success assertion.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "Two undefined vocabulary rows do not establish an inverse law. Recommend one fact authority under the redesigned validatedBy identity, retaining an explicit deprecated inverse consumer alias only if needed. No current executable consumers require an independent identity. If domain owner wants outcome semantics instead, it must be separately designed, not called this inverse.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Vocabulary contract only",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "no runtime mapping",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for validatesFitnessForUse (review)."
+      }
+    ],
+    "dependencies": [
+      "validatedBy",
+      "ValidationScenario",
+      "Need"
+    ],
+    "decisions": [
+      "Approve merge into validation planning rather than independent result claim."
+    ],
+    "blocker": "Approve same-fact inverse law; reject implied successful-validation claim.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (MERGE).",
+    "implicit_rule": null,
+    "rename_or_merge_target": "validatedBy"
+  },
+  {
+    "identity": "hasEvidence",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "External immutable execution/evidence record association",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No native verification structure establishes retained evidence existence, digest validity or acceptance."
+      }
+    ],
+    "delta": "Case/evidence identity, exact revision, execution scope and integrity checks belong to explicit evidence reference contract.",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external evidence system; model owns only typed reference schema",
+    "target_definition": "Verification case is associated with an externally retained evidence artifact whose identity, digest, run and tested scope are explicit; association implies neither pass nor acceptance.",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "Preserve external-data-required, not an empty native traversal misreported as no evidence. Model reference schema can be model-authoritative without fabricating the bytes or decision. Do not merge with RetainedExecutionRecordReference: it is a specific execution-record reference class, not every evidence association.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "SemanticTraversal external strategy returns no hops",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "query coverage reports external requirement",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method evaluator reads pinned files",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py",
+        "finding": "Reviewed anchor for hasEvidence (runtime)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/method_evaluator.py",
+        "finding": "Reviewed anchor for hasEvidence (runtime)."
+      }
+    ],
+    "dependencies": [
+      "VerificationCase",
+      "EvidenceArtifact",
+      "RetainedExecutionRecordReference",
+      "TestedScopeDeclaration"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "hasEvidenceStatus",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "External artifact lifecycle/maturity status; VVStatus is not an exact superset.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "Normative verification VerdictKind is not artifact status"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "ODE4HERA VVStatus describes a narrower V&V state."
+      }
+    ],
+    "delta": "Draft/planned/executed/accepted/rejected/gap dimensions and authority are not interchangeable.",
+    "disposition": "REDESIGN",
+    "target_authority": "external evidence/decision authority; model references typed status vocabulary",
+    "target_definition": "Evidence artifact references separately governed production/maturity and acceptance decision states, with authority and revision; never infer acceptance from a V&V enum.",
+    "migration": "REQUIRES_SEMANTIC_MIGRATION",
+    "rationale": "O1 accepted-library relation target is not justified by mapping an external artifact to requirements verificationStatus. Separate status dimensions and preserve actual external authority. A modeled property may project the reference; it cannot mint authoritative acceptance.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Vocabulary only",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "model verificationStatus values are NOT current hasEvidenceStatus traversal",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for hasEvidenceStatus (review)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml",
+        "finding": "Reviewed anchor for hasEvidenceStatus (model)."
+      }
+    ],
+    "dependencies": [
+      "EvidenceStatus",
+      "EvidenceArtifact",
+      "AcceptanceAttestationReference"
+    ],
+    "decisions": [
+      "Accept orthogonal execution/maturity/acceptance states rather than a single misleading VVStatus alias."
+    ],
+    "blocker": "Status taxonomy, migration map and evidence-owner authority decision.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "supportedByEvidence",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "DE4SDV assurance argument reference to external evidence; not native satisfaction",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No exact native epistemic-support/acceptance relation established."
+      }
+    ],
+    "delta": "Argument role, rationale, applicability and assessed sufficiency are beyond an arbitrary Dependency.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "DE4SDV assurance argument/reference semantics; evidence and acceptance external",
+    "target_definition": "Assurance claim cites evidence in an explicitly stated supporting argument and applicability scope; citation alone does not establish sufficiency or claim acceptance.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Retain the semantic distinction from hasEvidence: a case produces/associates evidence, an argument cites evidence in support of a claim. Use native connection/metadata only as representation after a reviewed argument-role contract. Do not strengthen Dependency or AssertConstraintUsage into evidential proof.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Vocabulary only",
+        "role": null
+      },
+      {
+        "path": "claim/evidence",
+        "symbol_or_surface": "model prose does not implement this predicate",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for supportedByEvidence (review)."
+      }
+    ],
+    "dependencies": [
+      "AssuranceClaim",
+      "EvidenceArtifact"
+    ],
+    "decisions": [
+      "Approve cited support versus assessed sufficient support claim."
+    ],
+    "blocker": "Reviewed assurance-argument schema and evidence reference contract.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "hasRelevantEvidenceContract",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "Incoming KerML Dependency to governed Requirement; target needs EvidenceContract identity",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML \u00a78.3.2.2.2 Dependency supplies only specification-dependency/relevance core."
+      }
+    ],
+    "delta": "EvidenceContract-specific range role cannot be inferred from verification membership; acceptance criteria are counterexamples.",
+    "disposition": "BLOCKED",
+    "target_authority": "DE4SDV application semantic, pending exact EvidenceContract identity",
+    "target_definition": "Requirement has an explicitly relevant evidence contract through an authored incoming dependency; contract identity must be proven and no execution/acceptance claim follows.",
+    "migration": "BLOCKED",
+    "rationale": "Keep as blocked reservation, not migrate blind or retire because evidence is absent. Current fail-closed gate is correct. Future model must supply semantic distinction and exact binding; removing the gate merely to get edges would reintroduce false evidence.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "SemanticTraversal._evidence_contract_identity_ids returns empty by decision",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "blocked_predicates -> query/coverage/impact/MCP structured incomplete state",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:302",
+        "finding": "Reviewed anchor for hasRelevantEvidenceContract (runtime)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/traversal.py:477",
+        "finding": "Reviewed anchor for hasRelevantEvidenceContract (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/c5-relevance-realization-review.md",
+        "finding": "Reviewed anchor for hasRelevantEvidenceContract (review)."
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "EvidenceContract"
+    ],
+    "decisions": [
+      "Resolve EvidenceContract role separate from AcceptanceCriterion before reopening predicate."
+    ],
+    "blocker": "No revision-bound non-heuristic EvidenceContract discriminator.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (BLOCKED).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "capturedInBaseline",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "External baseline membership manifest/reference",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML membership is namespace containment, not immutable configuration/evidence baselining."
+      }
+    ],
+    "delta": "Selected artifact version, digest, baseline identity and approval policy are external configuration/evidence facts.",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external configuration/evidence baseline manifest; modeled references only",
+    "target_definition": "Evidence artifact version is explicitly included in an immutable identified baseline manifest; inclusion does not itself approve evidence.",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "Do not create a second mutable baseline list in SysML or treat native ownership as a baseline. Retain typed references to the governed external manifest; the Baseline model concept describes what is referenced, not who grants approval.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "Vocabulary only",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "revision binding/retained artifact manifests implement external provenance separately",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "docs/method-conformance/o1/authority-review-decisions.yaml",
+        "finding": "Reviewed anchor for capturedInBaseline (review)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/sysml_api/revisions.py",
+        "finding": "Reviewed anchor for capturedInBaseline (runtime)."
+      }
+    ],
+    "dependencies": [
+      "EvidenceArtifact",
+      "Baseline"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  }
+]
