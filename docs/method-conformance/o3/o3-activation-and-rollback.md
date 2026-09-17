@@ -34,6 +34,10 @@ Placement rules (ask-viewer):
   `/srv/de4sdv/artifacts/o3/` (read-only mount at `/run/de4sdv/o3` inside
   the container). The directory is empty under normal legacy operation
   and is never read unless `o3` is selected;
+- the bundle placed there is the **deployment-bound closure** for the
+  deployed binding (step 0 below), not the privileged run's bundle: the
+  privileged bundle binds the CI ingestion's ephemeral binding and is
+  refused against the deployment binding by design;
 - the bundle is kept OUTSIDE the repository checkout so deploy-time
   cleanliness checks stay authoritative.
 
@@ -59,7 +63,58 @@ Preconditions:
 Steps:
 
 ```text
-1. copy the accepted bundle to the host:
+0. generate the deployment-bound closure — required once per deployed
+   binding (a redeploy creates a new binding and needs a new closure):
+
+   a. confirm the deployed revision equals the accepted evidence revision
+      (deployment-status.json .baseline.git_commit);
+   b. fetch the deployment artifacts READ-ONLY (never modify the host):
+      - /srv/de4sdv/artifacts/current/de4sdv-full-model-binding.json
+      - /srv/de4sdv/artifacts/current/de4sdv-full-model-semantic-validation.json
+      (record their sha256; the binding bytes must be identical to the
+      file the deployed service reads);
+   c. from a clean checkout AT the deployed revision (the runner refuses
+      moving refs), run the three required validators against the
+      DEPLOYED read-only API; the semantic_mcp validator runs client-side
+      against the deployed endpoint (do not install MCP client
+      dependencies on the production host just for this):
+
+        python scripts/validate_full_model_semantic_queries.py \
+          --api-url <deployed API> --binding <deployment binding> \
+          --semantic-report <deployment semantic-validation report> \
+          --output <full_model_semantic_queries.json>
+
+        python scripts/validate_product_line_scope_api.py \
+          --api-url <deployed API> --binding <deployment binding> \
+          --export <evidence export> --output <product_line_scope.json>
+
+        python scripts/validate_semantic_mcp.py \
+          --api-url <deployed API> --binding <deployment binding> \
+          --expected-git-revision <deployed SHA> \
+          --output <semantic_mcp.json>
+
+   d. generate the closure with the existing machinery:
+
+        python scripts/run_o3_equivalence.py bundle \
+          --api-url <deployed API> --binding <deployment binding> \
+          --git-revision <deployed SHA> --export <evidence export> \
+          --validation full_model_semantic_queries=passed \
+          --validation-artifact full_model_semantic_queries=<c output> \
+          --validation product_line_scope=passed \
+          --validation-artifact product_line_scope=<c output> \
+          --validation semantic_mcp=passed \
+          --validation-artifact semantic_mcp=<c output> \
+          --output-dir <dir>
+
+   e. review the deployment-closure acceptance diff against the
+      privileged acceptance bundle: bundle id, git revision, runtime
+      build, migrated identity set, Projection/Profile chain digests and
+      ontology compatibility identity must be IDENTICAL; only
+      binding/closure-dependent fields (binding_sha256, deployment
+      project/commit UUIDs, validator records, generated_at) may differ;
+      require grounding EQUIVALENT and activation_eligible=true.
+
+1. copy the reviewed deployment-bound closure to the host:
      /srv/de4sdv/artifacts/o3/de4sdv-o3-authority-bundle.json
    and record its sha256 next to the acceptance package;
 
@@ -128,6 +183,9 @@ Notes:
 
 - the bundle file stays on the host; a retained artifact is not active
   authority and is never consulted under `legacy`;
+- a redeploy (new deployment binding) requires a new deployment-bound
+  closure before re-activation: the retained closure fails closed against
+  the new binding, by design;
 - authority-keyed caches cannot cross the rollback: snapshots and the
   semantic-context cache carry the authority id, so a legacy process
   never loads O3-warmed caches and O3 re-activation reuses only its own
@@ -143,6 +201,7 @@ Notes:
 | `o3` without bundle path/id | refuses to start; the error names the missing variable |
 | bundle missing / unreadable / wrong schema / core state / wrong id | refuses to start; the error names the path and the mismatch |
 | stale bundle (revision, runtime build, chain digests, binding digest, SysML project/commit) | refuses to start; no silent reconstruction |
+| privileged-run bundle against a deployment binding | refuses to start (binding digest / SysML project / SysML commit differ); generate the deployment-bound closure (step 0) instead |
 | ineligible bundle (grounding not EQUIVALENT, or any required validation not exactly passed) | refuses to start |
 | viewer process with a refused O3 request | serves NO semantic answers; `/ask-status.json` reports `.semantic_authority.kind == "invalid"` with the reason; the explicitly labeled non-semantic regex path (never a semantic authority) may still answer `/ask` method-context questions |
 | MCP process with a refused O3 request | exits non-zero at startup with `semantic authority selection failed: …` |
