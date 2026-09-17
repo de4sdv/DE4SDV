@@ -78,6 +78,37 @@ def test_deploy_workflow_exports_app_git_sha_in_every_remote_block() -> None:
         )
 
 
+def test_deploy_py_compose_helper_sets_app_git_sha() -> None:
+    """Live evidence 2026-09-17 (deploy run 35238614605): compose
+    interpolates the whole file for ANY subcommand, and the first
+    `stop caddy` refused because only recreate_ask_viewer provided the
+    required DE4SDV_APP_GIT_SHA. The shared compose() helper must derive
+    it from the already-validated checkout so no compose call site can
+    miss it."""
+    source = DEPLOY_PY.read_text(encoding="utf-8")
+    compose_body = source.split("def compose(", 1)[1].split("\ndef ", 1)[0]
+    assert 'env["DE4SDV_APP_GIT_SHA"] = git_head(repo)' in compose_body
+
+
+def test_api_deploy_workflow_provides_app_git_sha_to_deploy_py() -> None:
+    """The deploy-public-sysml-api workflow executes the PINNED revision's
+    deploy.py, which predates the compose() self-sufficiency fix; the ssh
+    invocation must provide DE4SDV_APP_GIT_SHA through `sudo env` so
+    compose interpolation cannot refuse (run 35238614605 regression).
+    `sudo env` keeps the assignment intact through sudo's env reset, and
+    $DEPLOY_SHA expands on the runner before the command is sent."""
+    workflow = (
+        REPO / ".github/workflows/deploy-public-sysml-api.yml"
+    ).read_text(encoding="utf-8")
+    assert (
+        "sudo env DEPLOY_DIR=/srv/de4sdv DE4SDV_APP_GIT_SHA=$DEPLOY_SHA "
+        "/srv/de4sdv/venv/bin/python deployment/scripts/deploy.py"
+    ) in workflow
+    # The bare `sudo DEPLOY_DIR=... python` form (no var, subject to sudo's
+    # env reset) must be gone.
+    assert "sudo DEPLOY_DIR=/srv/de4sdv /srv/de4sdv/venv/bin/python" not in workflow
+
+
 def test_deploy_workflow_sets_canonical_origin_on_host_checkout() -> None:
     """Live evidence 2026-09-09 (run 34395255931): the deployed checkout is
     cloned from a local Git bundle, which carries no 'origin' remote, so

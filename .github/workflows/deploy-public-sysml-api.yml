@@ -380,10 +380,16 @@ jobs:
           # 33617984547: 'Timeout, server not responding.' after 20 min of
           # silence, killing deploy.py mid-import). ServerAliveInterval
           # keeps the connection alive without loosening any validation.
+          # DE4SDV_APP_GIT_SHA is REQUIRED by compose interpolation for ANY
+          # subcommand (deploy run 35238614605: the first `stop caddy`
+          # refused once the ask-viewer requirement existed). The pinned
+          # revision's deploy.py predates the compose() self-sufficiency
+          # fix, so the workflow provides the variable through `sudo env`
+          # (survives sudo's env reset). $DEPLOY_SHA expands on the runner.
           ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=60 -o ServerAliveCountMax=30 \
             -o TCPKeepAlive=yes "$SSH_USER@$SSH_HOST" \
-            'cd /srv/de4sdv/DE4SDV && sudo DEPLOY_DIR=/srv/de4sdv /srv/de4sdv/venv/bin/python deployment/scripts/deploy.py --bundle-dir /srv/de4sdv/artifacts/incoming --repo /srv/de4sdv/DE4SDV'
+            "cd /srv/de4sdv/DE4SDV && sudo env DEPLOY_DIR=/srv/de4sdv DE4SDV_APP_GIT_SHA=$DEPLOY_SHA /srv/de4sdv/venv/bin/python deployment/scripts/deploy.py --bundle-dir /srv/de4sdv/artifacts/incoming --repo /srv/de4sdv/DE4SDV"
 
       - name: Post-deploy public verification (mandatory)
         run: |
