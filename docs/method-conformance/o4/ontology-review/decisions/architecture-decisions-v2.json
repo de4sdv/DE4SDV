@@ -1,0 +1,1739 @@
+[
+  {
+    "identity": "Stakeholder",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "part def Stakeholder and SAF-derived role part defs",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a77.21.3 Concern Definitions and Usages (stakeholder mechanism)"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a78.3.21.12 StakeholderMembership (PartUsage owned via StakeholderMembership must specialize the stakeholder parameter typing)"
+      }
+    ],
+    "delta": "SAF-derived role catalogue is DE4SDV application vocabulary; the native stakeholder relation exists only inside a Concern. The native stakeholder mechanism (StakeholderMembership; \u00a78.3.21.12) is a usage-site witness; the class itself is the DE4SDV role/typing catalogue.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative DE4SDV stakeholder-role catalogue; roles must remain source-backed by SAF references, never invented",
+    "target_definition": "A role, person, organization, or community with concerns about the system or increment.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "A separate identity survives: increment-level stakeholder association (hasStakeholder) is a real method fact native Concern membership cannot express; roles consumed by concerns inside requirements still route through native StakeholderMembership.",
+    "consumers": [
+      {
+        "path": "de4sdv_stakeholders.sysml",
+        "symbol_or_surface": "role defs",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "stakeholder memberships inside governed concern usages (aebs_needs_requirements.sysml:52+)",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "check_model_sync role vocabulary",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml",
+        "finding": "Reviewed anchor for Stakeholder (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml:13-17",
+        "finding": "part def Stakeholder base (risk/effort/contact/categories attributes); header comment states stakeholder parameters are part usages typed by part definitions"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:52",
+        "finding": "native stakeholder parameter usages inside governed concern definitions"
+      }
+    ],
+    "dependencies": [
+      "Concern",
+      "hasStakeholder"
+    ],
+    "decisions": [
+      "Record SAF-source adoption/publication disposition for the re-declared role defs (currently unrecorded)."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml:13-17",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:52"
+      ]
+    }
+  },
+  {
+    "identity": "Concern",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "SysML v2 ConcernDefinition/ConcernUsage; pinned Systems Library Requirements::concerns",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a77.21.3 Concern Definitions and Usages"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a78.3.21.3 ConcernDefinition; \u00a78.3.21.4 ConcernUsage; \u00a78.3.21.5 FramedConcernMembership"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a78.4.17.4 Concern Definitions; \u00a78.4.17.5 Concern Usages"
+      }
+    ],
+    "delta": "None on the concept; DE4SDV adds usage conventions (viewpoint framing) only.",
+    "disposition": "KEEP_NATIVE",
+    "target_authority": "normative SysML (Systems Library)",
+    "target_definition": "An interest or issue that matters to a stakeholder and motivates views, needs, requirements, or evidence.",
+    "migration": "PROJECTION_ONLY",
+    "rationale": "Native construct carries the meaning; DE4SDV keeps the projection identity for stable vocabulary and viewpoint framing conventions. Do not duplicate native semantics as application classes.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "governed concern usages in feature slices",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "DE4SDV_MethodViewpoints selections",
+        "role": null
+      },
+      {
+        "path": "MCP/viewer",
+        "symbol_or_surface": "semantic context",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for Concern (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:26-50",
+        "finding": "native concern defs (ProductLineCapabilityClassificationConcern, RegulatoryScopeWithoutComplianceClaimConcern, IncrementBoundaryConcern)"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml",
+        "finding": "SAF viewpoint catalogue; DE4SDV viewpoints frame these concerns"
+      }
+    ],
+    "dependencies": [
+      "Stakeholder",
+      "Viewpoint"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_NATIVE); evidence anchors re-verified and strengthened.",
+    "implicit_rule": {
+      "rule": "Concern specializes Requirement; owned StakeholderMemberships; framing a concern via FramedConcernMembership makes it a required constraint of the framer.",
+      "source": "SysML \u00a7\u00a77.21.3, 8.3.21.3-4, 8.4.17.2",
+      "api_observable": "RequirementUsage/RequirementDefinition metaclasses and memberships serialize in exports.",
+      "current_handling": "Consumed as native requirement lineage; no relabeling."
+    },
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:26-50",
+        "model:textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml"
+      ]
+    }
+  },
+  {
+    "identity": "Need",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "requirement def StakeholderNeedCandidate (+ specializations) typed usages",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native Need concept; requirement usages carry it by authored typing."
+      }
+    ],
+    "delta": "Need-ness is DE4SDV application typing over native RequirementUsage; ADR 0009 attribute set (NRM) is adopted application semantics.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative StakeholderNeedCandidate lineage",
+    "target_definition": "Stakeholder-expressed problem-space intent, before conversion into design-input requirements.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Identity must survive: K pair domain/range, c3 hasSubject exclusions and R003 all depend on the Need/Requirement sibling-lineage distinction; native RequirementUsage cannot distinguish them.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "K lineage traversal",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "c3 subject gating",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "derivesRequirementFromNeed endpoints",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "R003 grounding",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:98",
+        "finding": "Reviewed anchor for Need (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:98-123",
+        "finding": "StakeholderNeedCandidate :> RequirementsManagementAttributeBase + need specializations"
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "derivesRequirementFromNeed",
+      "hasSubject"
+    ],
+    "decisions": [
+      "Close the definition-text parity (reviewed definition still YAML-established)."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:98-123"
+      ]
+    }
+  },
+  {
+    "identity": "Requirement",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "requirement def RequirementCandidate on the SYSMOD seam",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native DE4SDV Requirement class; native RequirementUsage/Definition are the representation."
+      }
+    ],
+    "delta": "DE4SDV Requirement = governed RequirementCandidate lineage (validated bindings), NOT API metaclass equality; ADR 0009 attributes adopted.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative RequirementCandidate lineage",
+    "target_definition": "A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Identity must survive as the governed lineage discriminator: verifiedBy/hasSubject/hasRelevantArchitecture/specifiesFunction all enforce it at runtime; API metaclass alone is explicitly insufficient (c3/c5).",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "validated kernel bindings",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "traversal domain gates",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "impact",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "R003",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:125",
+        "finding": "Reviewed anchor for Requirement (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:125-150",
+        "finding": "RequirementCandidate :> SYSMODRequirementBase, RequirementsManagementAttributeBase + named sub-candidates"
+      }
+    ],
+    "dependencies": [
+      "Need",
+      "verifiedBy",
+      "hasRelevantArchitecture"
+    ],
+    "decisions": [
+      "Close the definition-text parity."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:125-150"
+      ]
+    }
+  },
+  {
+    "identity": "ProblemStatement",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "requirement def ProblemStatement (SYSMOD problem-statement pattern)",
+    "normative_reference": [
+      {
+        "source": "SYSMOD/SysML",
+        "reference": "SYSMOD/SysML pattern, not a native OMG concept."
+      }
+    ],
+    "delta": "Problem-statement role is DE4SDV application vocabulary on a native requirement def.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity",
+    "target_definition": "The problem that is to be solved by the system or increment, modeled as a requirement.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Bounded but load-bearing only as an R003 exclusion (traced into, not out of); keep, no runtime role beyond grounding.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "R003 exclusion grounding in check_model_sync",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "declaration+doc in method context",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:94",
+        "finding": "Reviewed anchor for ProblemStatement (model)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "scripts/check_model_sync.py:934",
+        "finding": "R003 exclusion grounding: ProblemStatement is traced INTO, not out of (excluded from origin set)"
+      }
+    ],
+    "dependencies": [
+      "Requirement"
+    ],
+    "decisions": [
+      "Close the definition-text parity."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "test:scripts/check_model_sync.py:934"
+      ]
+    }
+  },
+  {
+    "identity": "RegulatoryConstraint",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "requirement def RegulatoryConstraintCandidate",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native regulatory concept; requirement usages carry it by authored typing."
+      }
+    ],
+    "delta": "No-compliance-claim boundary and controlled source identity are DE4SDV application semantics; the normative source itself stays external.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative candidate lineage; external regulations remain external",
+    "target_definition": "A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Must survive: R003 origin type; the no-compliance-claim boundary is the point. Note constrainedBy (relationship group) redesigns the Requirement->RegulatoryConstraint association separately; this class record is not that association.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "R003 origin set",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "constrainedBy vocabulary",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "declaration+doc",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:160",
+        "finding": "Reviewed anchor for RegulatoryConstraint (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:154-157",
+        "finding": "requirement def RegulatoryConstraintCandidate doc: \"Grounds the ontology RegulatoryConstraint class and R003 derivation targets\""
+      },
+      {
+        "type": "test",
+        "path_or_reference": "scripts/check_model_sync.py:805,1118,934",
+        "finding": "R003 origin set enforcement (Need | RegulatoryConstraint | ArchitectureDecisionRecord) and ProblemStatement exclusion"
+      }
+    ],
+    "dependencies": [
+      "Requirement",
+      "constrainedBy"
+    ],
+    "decisions": [
+      "Close the definition-text parity; keep the no-compliance claim machine-visible."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:154-157",
+        "test:scripts/check_model_sync.py:805,1118,934"
+      ]
+    }
+  },
+  {
+    "identity": "ArchitectureElement",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Umbrella over native part/port/behavior defs in architecture slices",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native ArchitectureElement concept; part/port/action defs are the representation."
+      }
+    ],
+    "delta": "The umbrella itself (which constituents qualify, MemberProduct exclusion) is DE4SDV application semantics (c5).",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative umbrella definition (home to be decided)",
+    "target_definition": "Any model element used to describe system context, function, logical realization, physical/software realization, interface, or behavior.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Survives as the declared umbrella whose executable constituent filter (part/action usages+definitions) c5 reviewed; interface/behavior widening is a separate reviewed decision. No model-resident definition home yet \u2014 that is the gap, not the concept.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "hasRelevantArchitecture range",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "c5 constituent filter",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "check naming of umbrella constituents",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for ArchitectureElement (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        "finding": "YAML-only declaration; verified no model-resident declaration at bc2b65a"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:122",
+        "finding": "only model occurrence of the name is a TraceLink string literal (toElement = \"ArchitectureElement\")"
+      },
+      {
+        "type": "review",
+        "path_or_reference": "repo/de4sdv/semantic/traversal.py:200-300",
+        "finding": "hasRelevantArchitecture runtime engine: declared range carried in the ontology mapping; executable constituent filter admits part/action usages+definitions (c5)"
+      }
+    ],
+    "dependencies": [
+      "hasRelevantArchitecture",
+      "Function",
+      "LogicalElement",
+      "PhysicalElement"
+    ],
+    "decisions": [
+      "Decide umbrella definition home; widening the constituent filter requires a reviewed mapping decision."
+    ],
+    "blocker": "Choose the model home (method-context package) for the umbrella definition before projection.",
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "repository:approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:122",
+        "review:repo/de4sdv/semantic/traversal.py:200-300"
+      ]
+    }
+  },
+  {
+    "identity": "Function",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Umbrella over native action/state/behavior definitions",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native Function class; ActionUsage/ActionDefinition are the representation."
+      }
+    ],
+    "delta": "Function-ness as an ontology range class is DE4SDV application vocabulary over native behavior elements.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative umbrella definition (home to be decided)",
+    "target_definition": "A behavior or transformation expected from the system or product-line architecture.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Survives as the target umbrella of specifiesFunction (action-typed constituents, c5); no model-resident definition home yet. Do not mint a parallel Function metaclass.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "specifiesFunction target filter",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "functional-architecture slices",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for Function (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        "finding": "YAML-only declaration; verified no model-resident declaration at bc2b65a"
+      },
+      {
+        "type": "review",
+        "path_or_reference": "repo/docs/method-conformance/o1/c5-relevance-realization-review.md",
+        "finding": "specifiesFunction executable target filter is action-typed constituents; declared umbrella is broader (action/state/behavior)"
+      }
+    ],
+    "dependencies": [
+      "specifiesFunction",
+      "ArchitectureElement"
+    ],
+    "decisions": [
+      "Decide umbrella definition home; keep action-typed executable filter."
+    ],
+    "blocker": "Choose the umbrella definition home.",
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "repository:approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        "review:repo/docs/method-conformance/o1/c5-relevance-realization-review.md"
+      ]
+    }
+  },
+  {
+    "identity": "LogicalElement",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Umbrella over native part defs in logical-architecture slices",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native LogicalElement concept."
+      }
+    ],
+    "delta": "Layer assignment is DE4SDV application vocabulary over native part defs.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative umbrella definition (home to be decided)",
+    "target_definition": "A logical service, component, or responsibility grouping that realizes functions.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Survives as allocatedTo range and deployedTo domain (both future); RFLP invariant needs the layer discriminator. No model-resident definition home yet.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "logical-architecture slices",
+        "role": null
+      },
+      {
+        "path": "allocatedTo/deployedTo",
+        "symbol_or_surface": "vocabulary",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for LogicalElement (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        "finding": "YAML-only declaration; verified no model-resident declaration at bc2b65a; allocatedTo range (vocabulary-only)"
+      }
+    ],
+    "dependencies": [
+      "allocatedTo",
+      "deployedTo",
+      "PhysicalElement"
+    ],
+    "decisions": [
+      "Decide umbrella definition home."
+    ],
+    "blocker": "Choose the umbrella definition home.",
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "repository:approach/framework/ontology/de4sdv-basic-ontology.yaml"
+      ]
+    }
+  },
+  {
+    "identity": "PhysicalElement",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Umbrella over native part defs in physical/software realization slices",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native PhysicalElement concept."
+      }
+    ],
+    "delta": "Layer assignment is DE4SDV application vocabulary over native part defs.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative umbrella definition (home to be decided)",
+    "target_definition": "A physical, software, hardware, deployment, or platform element that realizes conceptual elements or functions.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Survives as deployedTo range (future); RFLP terminus. No model-resident definition home yet.",
+    "consumers": [
+      {
+        "path": "physical/software",
+        "symbol_or_surface": "realization slices",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "deployedTo vocabulary",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for PhysicalElement (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        "finding": "YAML-only declaration; verified no model-resident declaration at bc2b65a; deployedTo range (blocked redesign)"
+      }
+    ],
+    "dependencies": [
+      "LogicalElement",
+      "deployedTo"
+    ],
+    "decisions": [
+      "Decide umbrella definition home."
+    ],
+    "blocker": "Choose the umbrella definition home.",
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "repository:approach/framework/ontology/de4sdv-basic-ontology.yaml"
+      ]
+    }
+  },
+  {
+    "identity": "Interface",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Umbrella over native port defs and connection elements",
+    "normative_reference": [
+      {
+        "source": "Native",
+        "reference": "Native port/connection constructs are the representation; no Interface umbrella concept."
+      }
+    ],
+    "delta": "Interface-ness as an ontology class is DE4SDV application vocabulary.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "model-authoritative umbrella vocabulary (home to be decided)",
+    "target_definition": "A boundary or interaction point through which items, signals, services, or information are exchanged.",
+    "migration": "PROJECTION_ONLY",
+    "rationale": "Vocabulary-only today: no predicate has Interface in domain/range and c5 excluded interface/behavior constituents from the executable filter. Keep as declared umbrella vocabulary; promotion to executable range would be a separate reviewed widening.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "No runtime mapping",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "functional-interface concerns and port defs in slices",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for Interface (model)."
+      },
+      {
+        "type": "repository",
+        "path_or_reference": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        "finding": "YAML-only declaration; verified no model-resident declaration at bc2b65a; no predicate in the executable set names it as domain/range"
+      }
+    ],
+    "dependencies": [
+      "ArchitectureElement"
+    ],
+    "decisions": [
+      "Do not widen hasRelevantArchitecture to interfaces without a reviewed mapping decision."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_VOCABULARY_ONLY); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "repository:approach/framework/ontology/de4sdv-basic-ontology.yaml"
+      ]
+    }
+  },
+  {
+    "identity": "Scenario",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Operational-context parts + scenario-identity enums",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native Scenario concept in SysML v2; parts and enums are representation."
+      }
+    ],
+    "delta": "Bounded-situation semantics (operational/validation/test/threat) is DE4SDV application meaning; O1 already reclassified it from native-sysml.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity (scenario-identity enum + operational-context pattern documented)",
+    "target_definition": "A bounded operational, validation, test, or threat situation used to reason about behavior and evidence.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Survives as vocabulary + pattern: check_model_sync sync point 1 enforces scenario-identity enum parity, proving real consumption. Do not import variation/verification semantics into it.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "scenario-identity enums (MiddlewareScenarioIdentity)",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "operational-context parts",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "check_model_sync sync 1",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "method_evaluator Scenario identity enum",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for Scenario (model)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "scripts/check_model_sync.py",
+        "finding": "Reviewed anchor for Scenario (test)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml:11-72",
+        "finding": "enum def DegradedInputScenarioIdentity + scenario-typed attributes on evidence-contract items"
+      },
+      {
+        "type": "test",
+        "path_or_reference": "scripts/check_model_sync.py:59-142",
+        "finding": "sync point 1: SysML scenario-identity enums <-> Python evaluator scenario identities, parity-enforced"
+      }
+    ],
+    "dependencies": [
+      "ValidationScenario"
+    ],
+    "decisions": [
+      "Keep bounded; no promotion to a native claim surface."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml:11-72",
+        "test:scripts/check_model_sync.py:59-142"
+      ]
+    }
+  },
+  {
+    "identity": "ValidationScenario",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Scenario parts with bounded validation outcomes (passBoundedValidation)",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native validation-scenario construct; \u00a78.3.24 verification is not validation."
+      }
+    ],
+    "delta": "Fitness-for-use semantics, applicability and bounded outcome are DE4SDV application meaning; O1 reclassified it from native-sysml.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative DE4SDV validation vocabulary after parity",
+    "target_definition": "A scenario used to assess stakeholder fitness for intended use.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Survives as the range of the redesigned hasValidationScenario planning relation (relationship group decision); no native/library substitute exists. Bounded outcome vocabulary is slice-local, not acceptance.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "middleware_verification_evidence validation scenario parts",
+        "role": null
+      },
+      {
+        "path": "validatedBy/validatesFitnessForUse",
+        "symbol_or_surface": "redesigns",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml",
+        "finding": "Reviewed anchor for ValidationScenario (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:422,453,485",
+        "finding": "in-model statement: \"(SysML v2 provides no native validation-case keyword)\" with bounded validation usage notes"
+      }
+    ],
+    "dependencies": [
+      "validatedBy",
+      "Scenario"
+    ],
+    "decisions": [
+      "Outcome relation, if ever added, must be separately governed evidence \u2014 not this class."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:422,453,485"
+      ]
+    }
+  },
+  {
+    "identity": "VerificationMethod",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "SysML VerificationMethod metadata (AttributeDefinition) + VerificationMethodKind Model-resident usage verified: @VerificationMethod{ kind = ... } native metadata annotations in AEBS/middleware verification slices; the ADR 0009 amendment adds the ODE4HERA verificationMethod (NRM A8, upstream String[0..1]) as an adopted carrier populated with the native VerificationMethodKind vocabulary.",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a77.26.3 Viewpoint/verification metadata overview; \u00a79.2.17.2.6 VerificationMethod; \u00a79.2.17.2.7 VerificationMethodKind"
+      },
+      {
+        "source": "DE4SDV-governance",
+        "reference": "ADR 0009 amendment: verificationMethod (NRM A8) typed upstream String[0..1]; DE4SDV populates it with the standard VerificationMethodKind vocabulary"
+      }
+    ],
+    "delta": "Usage convention (ODE4HERA verificationMethod attribute carrying standard kinds) is ADR 0009 application mapping; no extra semantics.",
+    "disposition": "KEEP_NATIVE",
+    "target_authority": "normative SysML metadata vocabulary (Systems Library)",
+    "target_definition": "A method used to check requirement satisfaction, carried as native VerificationMethod metadata with standard method-kind vocabulary.",
+    "migration": "NATIVE_OR_LIBRARY_ADOPTION",
+    "rationale": "Class is native; keep the identity as the projection anchor of native metadata. The usesVerificationMethod relationship (relationship group) is a projection of this metadata, not a second fact. O1 classifying the CLASS accepted-library-grounded conflates the ODE4HERA attribute mapping with the native construct.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "VerificationMethod annotations in verification slices",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "usesVerificationMethod projection target",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "V&V review docs",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for VerificationMethod (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml:84-117",
+        "finding": "@VerificationMethod{ kind = test | analyze | (test, analyze) } annotations on verification case items"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml:100-130",
+        "finding": "@VerificationMethod{ kind = inspect | analyze } annotations"
+      },
+      {
+        "type": "ADR",
+        "path_or_reference": "docs/architecture-decisions/0009-adopt-ode4hera-requirements-attributes.md:8-14",
+        "finding": "NRM A8 verificationMethod adoption statement with native method-kind vocabulary"
+      }
+    ],
+    "dependencies": [
+      "usesVerificationMethod",
+      "VerificationCase"
+    ],
+    "decisions": [
+      "Record metadata vs attribute-mapping distinction in the grounding record."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_NATIVE); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml:84-117",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml:100-130",
+        "ADR:docs/architecture-decisions/0009-adopt-ode4hera-requirements-attributes.md:8-14"
+      ]
+    }
+  },
+  {
+    "identity": "AcceptanceCriterion",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "requirement def MiddlewareAcceptanceCriterion (feature-slice kernel mapping)",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native AcceptanceCriterion concept; verified requirement usages are the representation."
+      }
+    ],
+    "delta": "Criterion-role semantics (what makes a result acceptable) are DE4SDV application meaning; O1 reclassified in c5 (acceptance-criterion role distinct from EvidenceContract). Re-verified representation: exactly two per-slice criterion definitions (MiddlewareAcceptanceCriterion, VisualizationAcceptanceCriterion); c5 measured 14 declared acceptance-criterion-role usages. Requirement-def representation expresses the criterion condition but does not by itself establish the result/artifact acceptance role, which stays DE4SDV application semantics with an open identity contract.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative criterion-role lineage (promotion decision pending)",
+    "target_definition": "A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Survives: c5 measured 14+ natively verified acceptance-criterion-role usages \u2014 real population, deliberately NOT treated as EvidenceContract. Cross-slice kernel mapping (MiddlewareAcceptanceCriterion) needs a promotion-vs-retain decision; hasAcceptanceCriterion stays blocked until a reusable lineage exists.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "middleware_verification_evidence criterion defs",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "visualization acceptance criteria",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "c5 identity analysis",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "hasAcceptanceCriterion (blocked)",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for AcceptanceCriterion (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml",
+        "finding": "Reviewed anchor for AcceptanceCriterion (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:146",
+        "finding": "requirement def MiddlewareAcceptanceCriterion (kernel-mapped slice definition)"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml:158",
+        "finding": "requirement def VisualizationAcceptanceCriterion"
+      },
+      {
+        "type": "review",
+        "path_or_reference": "repo/docs/method-conformance/o1/c5-relevance-realization-review.md",
+        "finding": "c5: 7 middleware + 7 visualization acceptance-criterion-role usages; role distinct from EvidenceContract"
+      }
+    ],
+    "dependencies": [
+      "hasAcceptanceCriterion",
+      "VerificationCase",
+      "EvidenceContract"
+    ],
+    "decisions": [
+      "Decide kernel promotion of the criterion role; separate test-verdict criteria from authorization/acceptance."
+    ],
+    "blocker": "Kernel promotion vs retained slice mapping must be decided before a machine-resolvable criterion identity exists.",
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:146",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml:158",
+        "review:repo/docs/method-conformance/o1/c5-relevance-realization-review.md"
+      ]
+    }
+  },
+  {
+    "identity": "EvidenceArtifact",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "External evidence registers + retained-evidence items referenced from slices",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native evidence-artifact concept; slice references are representation."
+      }
+    ],
+    "delta": "Evidence identity/digest/authority are external facts; the model carries typed references only.",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external evidence systems; model owns typed reference schema",
+    "target_definition": "A reviewable artifact that supports a verification, validation, assurance, or release decision.",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "Boundary must hold: RetainedExecutionRecordReference is the model-resident reference precedent; artifact bytes/status/acceptance stay external. Do not mirror evidence content into SysML.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "RetainedMiddlewareEvidence references",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "bench evidence YAML",
+        "role": null
+      },
+      {
+        "path": "hasEvidence/capturedInBaseline",
+        "symbol_or_surface": "external contracts",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for EvidenceArtifact (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:86,231-291",
+        "finding": "item def RetainedMiddlewareEvidence + four retained runtime evidence records (reference-shaped, not byte-carrying)"
+      }
+    ],
+    "dependencies": [
+      "hasEvidence",
+      "capturedInBaseline",
+      "EvidenceStatus"
+    ],
+    "decisions": [
+      "Keep plan Section 10/12 evidence-reference modeling pending; no content mirroring."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_EXTERNAL_REFERENCE); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:86,231-291"
+      ]
+    }
+  },
+  {
+    "identity": "EvidenceContract",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Per-slice evidence-contract requirement definitions (8 per-slice defs, no lineage)",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native EvidenceContract concept; requirement usages are the representation."
+      }
+    ],
+    "delta": "Bounded-observations/acceptance-boundary/retained-evidence-obligations semantics are DE4SDV method meaning; O1 reclassified from native-sysml. Re-verified count: eight lineage-less per-slice evidence-contract requirement defs (DegradedInput, Bicycle, Nominal, RegulatoryCriterion, NonActivation, Pedestrian, PartialIntervention, Override) plus one distinct traceability bridge candidate (EvidenceContractTraceabilityRequirementCandidate :> RequirementCandidate, method_context.sysml:152) that heads claims/arguments/counterclaims and is NOT the contract role.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative contract-role lineage after the identity discriminator exists",
+    "target_definition": "A requirement usage that defines the bounded observations, acceptance boundary, and retained-evidence obligations for a verification case. Planning vocabulary, not proof of verification.",
+    "migration": "BLOCKED",
+    "rationale": "Class meaning survives, but machine identity does not exist: c5 measured no specialization lineage joining the 8 per-slice defs, no kernel binding, and native verification membership also admits acceptance-criterion role. hasRelevantEvidenceContract stays blocked/fail-closed until a reviewed lineage contract exists. Do not reopen by heuristic.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "_evidence_contract_identity_ids empty-by-decision",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "blocked_predicates surfaces",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "c5 review",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml",
+        "finding": "Reviewed anchor for EvidenceContract (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml:41",
+        "finding": "requirement def DegradedInputEvidenceContract (bare, no specialization)"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml:31",
+        "finding": "requirement def BicycleEvidenceContract (bare)"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml:192",
+        "finding": "requirement def NominalEvidenceContractRequirement (bare)"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:152",
+        "finding": "EvidenceContractTraceabilityRequirementCandidate :> RequirementCandidate (distinct traceability role)"
+      }
+    ],
+    "dependencies": [
+      "hasRelevantEvidenceContract",
+      "AcceptanceCriterion",
+      "Requirement"
+    ],
+    "decisions": [
+      "Design the lineage contract in the model first; then O2 projection, then O3 transition."
+    ],
+    "blocker": "Reviewed EvidenceContract-specific identity/lineage contract required (shared specialization lineage or kernel binding).",
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml:41",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml:31",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml:192",
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:152"
+      ]
+    }
+  },
+  {
+    "identity": "EvidenceStatus",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "ACCEPTED_LIBRARY",
+    "source": "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via DE4SDV adapter; slice-local outcome/disposition enums",
+    "normative_reference": [
+      {
+        "source": "Library",
+        "reference": "Library definition: VVStatus enum in the pinned Requirements Management library (sysand-lock.toml pin); slice enums are DE4SDV."
+      }
+    ],
+    "delta": "Orthogonal lifecycle dimensions (draft/planned/executed/accepted/rejected/gap) and decision authority are not interchangeable with VVStatus. Re-verified split: the accepted-library claim covers the requirement-verification-status dimension (VVStatus, NRM A13+A14, adopted); evidence-artifact outcome vocabularies (MiddlewareEvidenceOutcome/Disposition, ExecutionEnvironmentEvidenceStatus) are governed slice-local enums and are not part of the accepted-library claim; no acceptance semantics follow.",
+    "disposition": "KEEP_ACCEPTED_LIBRARY",
+    "target_authority": "accepted pinned library (VVStatus) for requirement verification status; external evidence systems for artifact status",
+    "target_definition": "Lifecycle status for evidence and verification results; no parallel DE4SDV status vocabulary.",
+    "migration": "NATIVE_OR_LIBRARY_ADOPTION",
+    "rationale": "Library adoption is real and pinned; keep. But hasEvidenceStatus (relationship group) overclaims: artifact production/maturity status and acceptance decisions are not VVStatus. Class and relationship dispositions differ deliberately.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "VVStatus via method-context adapter (de4sdv_method_context.sysml public import)",
+        "role": null
+      },
+      {
+        "path": "MiddlewareEvidenceOutcome/Disposition",
+        "symbol_or_surface": "slice enums",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "ExecEnvEvidenceStatus",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml",
+        "finding": "Reviewed anchor for EvidenceStatus (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml:24",
+        "finding": "public import RequirementsManagement::VVStatus (adapter seam)"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:111",
+        "finding": "attribute :>> verificationStatus = VVStatus::NotStarted (adopted library values in governed usages)"
+      }
+    ],
+    "dependencies": [
+      "hasEvidenceStatus",
+      "EvidenceArtifact",
+      "AcceptanceAttestationReference"
+    ],
+    "decisions": [
+      "Keep single VVStatus vocabulary for requirement verification status; never reuse it as evidence-artifact acceptance authority."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_ACCEPTED_LIBRARY); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml:24",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:111"
+      ]
+    }
+  },
+  {
+    "identity": "Assumption",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "part def IncrementAssumption (+ slice specializations)",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native assume/assumption concept; parts carry it by authored typing."
+      }
+    ],
+    "delta": "Treated-as-true-for-this-increment semantics and scope are DE4SDV application meaning.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity",
+    "target_definition": "A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Survives: recordsAssumption targets it; real slice usages exist (aebs_visualization_framing asmSystem1Unchanged/asmRealSourcesRequired). Records are claims of assumption, not truth; keep bounded.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "recordsAssumption target",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "slice assumption parts",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "declaration+doc",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:98",
+        "finding": "Reviewed anchor for Assumption (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:164",
+        "finding": "part def IncrementAssumption"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml:142,148",
+        "finding": "governed assumption usages (asmSystem1Unchanged, asmRealSourcesRequired)"
+      }
+    ],
+    "dependencies": [
+      "recordsAssumption"
+    ],
+    "decisions": [
+      "Close the definition-text parity."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:164",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml:142,148"
+      ]
+    }
+  },
+  {
+    "identity": "Gap",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "part def IncrementGap",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No native gap concept; parts carry it by authored typing."
+      }
+    ],
+    "delta": "Known-missing/must-not-be-hidden semantics is DE4SDV application meaning; gap state is declared, never inferred from absent edges.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative after parity",
+    "target_definition": "A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Survives: recordsGap targets it; RequiredTraceChain redesign depends on gap records as first-class alternatives to links; overlaps Missing/BlockedRealizationRecord but stays distinct.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "recordsGap target",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "IncrementGap usages in slices",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "declaration+doc",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for Gap (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:168",
+        "finding": "part def IncrementGap"
+      }
+    ],
+    "dependencies": [
+      "recordsGap",
+      "RequiredTraceChain"
+    ],
+    "decisions": [
+      "Close the definition-text parity; keep distinct from realization records."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:168"
+      ]
+    }
+  },
+  {
+    "identity": "AssuranceClaim",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "Claim usages framed by the argumentation-assurance viewpoint (mechanism evidence absent) Re-verified mechanism: claim/argument layer modeled with requirement defs (VisualizationClaim, VisualizationCounterClaim), argument usages, and explicit argument/evidence dependency traces, framed by ArgumentationAssuranceConcern/ArgumentationAssuranceViewpoint across AEBS slices; middleware evidence records carry claimBoundary attributes. No assert constraint usages exist in the model (verified: zero `assert` declarations).",
+    "normative_reference": [
+      {
+        "source": "No",
+        "reference": "No standard argumentation construct identified; AssertConstraintUsage asserts constraints, not claim acceptance."
+      }
+    ],
+    "delta": "Claim bounding, argument structure and acceptance authority are DE4SDV application semantics; certification/homologation stays external.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative bounded claim vocabulary; acceptance authority external",
+    "target_definition": "A claim about safety, security, compliance alignment, release readiness, or fitness-for-use that requires argument and evidence before acceptance. Bounded; never implies certification or homologation.",
+    "migration": "NEW_APPLICATION_SEMANTICS",
+    "rationale": "Survives but is currently the weakest-grounded class (O1 unknown): middleware_verification_evidence carries a bounded claim part with deferred counterclaims \u2014 real usage exists. Keep bounded; supportedByEvidence redesign is its companion; do not let the argumentation-assurance viewpoint framing imply a native argumentation metaclass exists.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "bounded claim + deferred counterclaims in middleware_verification_evidence",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "supportedByEvidence (vocabulary)",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "AssuranceViewpoint framing",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "finding": "Reviewed anchor for AssuranceClaim (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml",
+        "finding": "Reviewed anchor for AssuranceClaim (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml:618-742",
+        "finding": "claims/counterclaims as requirement defs, argument usages, dependency traces argument->claim and evidence->claim"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml:139-145",
+        "finding": "ArgumentationAssuranceConcern framed by ArgumentationAssuranceViewpoint"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:254-304",
+        "finding": "bounded claimBoundary attributes on retained evidence records"
+      }
+    ],
+    "dependencies": [
+      "supportedByEvidence",
+      "Viewpoint"
+    ],
+    "decisions": [
+      "Decide the claim/argument/counterclaim model before supportedByEvidence migration."
+    ],
+    "blocker": "Claim-design decision (O1 gate: grounding inspection) still open.",
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml:618-742",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml:139-145",
+        "model:textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml:254-304"
+      ]
+    }
+  },
+  {
+    "identity": "Viewpoint",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "SysML ViewpointDefinition/ViewpointUsage; pinned Systems Library Views::Viewpoint",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a77.26.3 Viewpoint Definitions and Usages"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a78.3.26.8 ViewpointDefinition; \u00a78.3.26.9 ViewpointUsage"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a78.4.22.3 Viewpoint Definitions; \u00a78.4.22.4 Viewpoint Usages"
+      }
+    ],
+    "delta": "None on the concept; SAF/DE4SDV viewpoint selections are usage conventions.",
+    "disposition": "KEEP_NATIVE",
+    "target_authority": "normative SysML (Systems Library Views)",
+    "target_definition": "A specification of stakeholder concerns, conventions, and expected view content.",
+    "migration": "PROJECTION_ONLY",
+    "rationale": "Native construct exact; keep the identity as stable vocabulary pointer. Viewpoint is a requirement kind \u2014 treat selections as requirement-engineering structure, not decoration; viewpointSatisfactions are native viewpoint checks, not DE4SDV acceptance.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "SAF_Viewpoints catalogue",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "DE4SDV_MethodViewpoints selections",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "assurance views in slices",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_viewpoints.sysml",
+        "finding": "Reviewed anchor for Viewpoint (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:85-129",
+        "finding": "native viewpoint defs (IncrementFramingViewpoint, ProductLineClassificationViewpoint, RegulatoryScopeViewpoint, ProductLineConfigurationViewpoint, ProductModelAssemblyViewpoint)"
+      }
+    ],
+    "dependencies": [
+      "Concern",
+      "View"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_NATIVE); evidence anchors re-verified and strengthened.",
+    "implicit_rule": {
+      "rule": "Viewpoint specializes Requirement; viewpoint subject is a view; satisfaction checks are native requirement constraints.",
+      "source": "SysML \u00a7\u00a77.26.2-7.26.3, 8.3.26",
+      "api_observable": "Viewpoint defs/usages and checks serialize in exports.",
+      "current_handling": "Consumed natively; no relabeling."
+    },
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:85-129"
+      ]
+    }
+  },
+  {
+    "identity": "View",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "SysML ViewDefinition/ViewUsage; pinned Systems Library Views::View",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a78.3.26.7 ViewDefinition; \u00a78.3.26.11 ViewUsage"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a78.4.22 Views and Viewpoints Semantics"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "\u00a79.2.16 Views (Systems Library base)"
+      }
+    ],
+    "delta": "None on the concept; generated-view artifacts are DE4SDV usage conventions.",
+    "disposition": "KEEP_NATIVE",
+    "target_authority": "normative SysML (Systems Library Views)",
+    "target_definition": "A representation produced according to a viewpoint for stakeholder review.",
+    "migration": "PROJECTION_ONLY",
+    "rationale": "Native construct exact; keep as stable vocabulary pointer. Views are representation artifacts, never claim witnesses \u2014 producesView is production provenance vocabulary, not evidence.",
+    "consumers": [
+      {
+        "path": null,
+        "symbol_or_surface": "assurance views (aebsNominalEvidenceAssuranceView etc.)",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "viewer rendering",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "producesView vocabulary",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_viewpoints.sysml",
+        "finding": "Reviewed anchor for View (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml:92",
+        "finding": "assurance view usages (aebsBicycleVerificationAssuranceView)"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml:312",
+        "finding": "aebsNominalEvidenceAssuranceView"
+      }
+    ],
+    "dependencies": [
+      "Viewpoint"
+    ],
+    "decisions": [],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_NATIVE); evidence anchors re-verified and strengthened.",
+    "implicit_rule": {
+      "rule": "View satisfies required viewpoints via native viewpoint checks; viewCondition/viewRendering structure.",
+      "source": "SysML \u00a7\u00a77.26.4-7.26.5, 8.3.26.7",
+      "api_observable": "View defs/usages serialize; satisfied viewpoints derive from checks.",
+      "current_handling": "Consumed natively; viewer renders views; no semantics fabricated."
+    },
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "model:textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml:92",
+        "model:textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml:312"
+      ]
+    }
+  },
+  {
+    "identity": "DerivesFromNeed",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "DE4SDV application connection def in method context (typed ends + owned doc)",
+    "normative_reference": [
+      {
+        "source": "Native",
+        "reference": "Native connection semantics carry linkage/typing only, not design provenance."
+      }
+    ],
+    "delta": "Design-input provenance, typed candidate lineages, provenance-only claim boundary are DE4SDV application semantics; standard Derivation library deliberately unadopted.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative (already achieved; privileged-closure-proven at K)",
+    "target_definition": "DE4SDV application connection definition for design-input derivation: derivedRequirement originates from the stakeholder need. Provenance only \u2014 no satisfaction or logical implication.",
+    "migration": "ALREADY_COMPLETE",
+    "rationale": "Model-authoritative today with exact-revision closure evidence; the O3 13 covers its two query identities. The class identity (the connection definition) is the semantic anchor of the frozen pair; keep as-is. Standard Derivation library stays pinned-not-adopted (originalImpliesDerived overclaims).",
+    "consumers": [
+      {
+        "path": "model_authority.py",
+        "symbol_or_surface": "reads ends/docs from validated model",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "projection_o23",
+        "role": null
+      },
+      {
+        "path": null,
+        "symbol_or_surface": "DerivesFromNeed usages in slices",
+        "role": null
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml:25",
+        "finding": "Reviewed anchor for DerivesFromNeed (model)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/model_authority.py",
+        "finding": "Reviewed anchor for DerivesFromNeed (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "repo/de4sdv/semantic/model_authority.py:1-14",
+        "finding": "projection/predicate semantics read from the validated model (ends, direction, strength, boundary); the module locates, never defines"
+      },
+      {
+        "type": "review",
+        "path_or_reference": "repo/docs/method-conformance/k-slice/v11-final-decision.md",
+        "finding": "K slice final decision: minimal application connection; standard Derivation library rejected (originalImpliesDerived overclaims)"
+      }
+    ],
+    "dependencies": [
+      "derivesRequirementFromNeed",
+      "derivedRequirementsOfNeed",
+      "Need",
+      "Requirement"
+    ],
+    "decisions": [
+      "Keep pinned-not-adopted status for the standard Derivation library; any adoption is an upstream-involvement decision."
+    ],
+    "blocker": null,
+    "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
+    "implicit_rule": null,
+    "rename_or_merge_target": null,
+    "recheck": {
+      "status": "confirmed-unchanged",
+      "evidence_updates": [
+        "review:repo/de4sdv/semantic/model_authority.py:1-14",
+        "review:repo/docs/method-conformance/k-slice/v11-final-decision.md"
+      ]
+    }
+  }
+]

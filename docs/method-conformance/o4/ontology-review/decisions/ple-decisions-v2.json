@@ -1,0 +1,1174 @@
+[
+  {
+    "identity": "ProductLine",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Legacy YAML classes:ProductLine definition; kernel witness part def ProductLine with doc at textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:15-17.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.3.3.7 (FeatureTyping) p. 200: typing is conformance only, no lifecycle/execution/evidence semantics follow"
+      },
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.3.2.3 (Subclassification) p. 179: SDVProductLine :> ProductLine is subset semantics only"
+      }
+    ],
+    "delta": "Wording delta only: YAML 'shared assets and variability' vs model doc 'shared assets and controlled variability'. No native construct carries 'product line'; meaning is DE4SDV-owned.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative (DE4SDV application semantic library, doc on part def); YAML row becomes projection/parity oracle. Existing configuration authority unchanged.",
+    "target_definition": "part def ProductLine with reviewed doc definition retained as the product-line classification root; no standard-library anchoring claim.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Application concept with no SysML/KerML construct; part def is a representation choice, so classification is REPRESENTATION_ONLY per the cross-cutting rule (application part def stays representation-only without a pattern witness). Keep as DE4SDV application semantic; complete doc parity in the batched-parity wave; authority flip is authority-only, no semantic change.",
+    "consumers": [
+      {
+        "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+        "symbol_or_surface": "private import DE4SDV_ProductLine::*; GovernedDE4SDVAEBSReferenceProductLineScope :> SDVProductLine",
+        "role": "Gate C-reviewed (ADR 0014) scope model specializes the ProductLine root; real model consumption of the identity",
+        "evidence": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:14,151"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:15-17",
+        "finding": "Reviewed anchor for ProductLine (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for ProductLine (review). classes:ProductLine"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:151",
+        "finding": "Reviewed anchor for ProductLine (model)."
+      }
+    ],
+    "dependencies": [
+      "scripts/check_model_sync.py [ONTOLOGY-KERNEL] set-equation (AGENTS.md)",
+      "O1 inventory record ProductLine"
+    ],
+    "decisions": [
+      "Keep identity/name; complete model-side doc parity (normalized-exact or reviewed equivalence) before authority flip",
+      "No PLEML dependency; do not invent standard-library grounding",
+      "No semantic change: authority-only migration"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "MemberProduct",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Legacy YAML classes:MemberProduct definition; kernel witness part def ProductLineMemberProduct at textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:23-25.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.3.3.7 (FeatureTyping) p. 200: subject typing yields conformance only"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75 (variations/variants): variant choices concern member-product variability, but the member-product concept itself is application-level"
+      }
+    ],
+    "delta": "Wording delta: YAML 'configured product or product variant that belongs to a product line' vs doc 'Configured product or product variant belonging to a product line'. Identity name MemberProduct vs declaration name ProductLineMemberProduct (inventory binding).",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative (doc on ProductLineMemberProduct); YAML row becomes projection/parity oracle.",
+    "target_definition": "part def ProductLineMemberProduct with reviewed doc definition; keep as the governed member-product lineage anchor referenced by hasSubject grounding.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Application part def: typing gives conformance only (KerML FeatureTyping), no native semantic content. Genuine model consumers exist as requirement subject types feeding the frozen hasSubject traversal, so the meaning must complete in-model (doc parity), while staying an application semantic. No rename: declaration name is the mapping target of the O1 identity.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml",
+        "symbol_or_surface": "subject memberProduct : ProductLineMemberProduct (lines 32, 84, 94-225)",
+        "role": "Requirement SubjectMembership typing; the governed member-product lineage consumed by hasSubject traversal",
+        "evidence": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:84"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_requirements.sysml",
+        "symbol_or_surface": "subject memberProduct : ProductLineMemberProduct",
+        "role": "Same subject-typing pattern in middleware slices",
+        "evidence": "textual-notation-of-model/packages/features/middleware/middleware_requirements.sysml:44-107"
+      },
+      {
+        "path": "de4sdv/semantic/impact.py",
+        "symbol_or_surface": "add_hop(hop, \"MemberProduct\", \"product-line\")",
+        "role": "String label for product-line hops from hasSubject; gap text cites 'governed member-product lineage'. Label is a constant, not a declaration binding \u2014 do not overclaim identity/lineage resolution",
+        "evidence": "de4sdv/semantic/impact.py:145,151-155"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:23-25",
+        "finding": "Reviewed anchor for MemberProduct (model)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/impact.py:145",
+        "finding": "Reviewed anchor for MemberProduct (runtime)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:84",
+        "finding": "Reviewed anchor for MemberProduct (model)."
+      }
+    ],
+    "dependencies": [
+      "hasSubject frozen meaning (O3 13) \u2014 subject grounding must stay in member-product lineage",
+      "scripts/check_model_sync.py [ONTOLOGY-KERNEL]"
+    ],
+    "decisions": [
+      "Keep declaration name ProductLineMemberProduct; identity name MemberProduct remains the inventory binding",
+      "Complete doc parity; do not rename silently (would touch aebs/middleware/scoping imports, ontology YAML, O1 tests)",
+      "No PLEML dependency"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": null,
+    "rename_or_merge_target": "None recommended; ProductLineMemberProduct stays the mapping target of identity MemberProduct. Any unification rename is an explicit migration touching model imports, ontology YAML and O1 test lists."
+  },
+  {
+    "identity": "Feature",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Legacy YAML classes:Feature definition (with disjointWith CommonCapability); kernel witness part def ProductLineFeatureCandidate at textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:35-37.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.3.2.3 (Subclassification) p. 179: membership in ProductLineCharacteristic taxonomy is subset semantics"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75 (Variations and Variants): variability/variant structure is the native frame for the 'variability is shown' rule; the candidate-vs-feature distinction itself is DE4SDV/ISO 26580"
+      }
+    ],
+    "delta": "YAML disjointWith CommonCapability is NOT expressed in the model (no native disjointing between ProductLineFeatureCandidate and CommonProductLineCapability). The ISO 26580 candidate rule is doc-carried (line 36) plus R001 review, not native. Close or explicitly record the disjointness delta.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative (doc on ProductLineFeatureCandidate); YAML row becomes projection/parity oracle.",
+    "target_definition": "part def ProductLineFeatureCandidate :> ProductLineCharacteristic with reviewed doc; the 'must not be accepted as a feature until member-product variability is shown' obligation stays a reviewed doc/rule, never invented as native consequence.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Application part def (representation-only; typing confers no rule semantics). The candidate-status rule is a DE4SDV/ISO 26580 obligation carried by doc + review; the YAML disjointness has no model counterpart, a real semantic delta to resolve at parity. Keep identity; do not recast features as native variation.",
+    "consumers": [
+      {
+        "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+        "symbol_or_surface": "part def VehiclePlatformIntegrationChoice :> ProductLineFeatureCandidate",
+        "role": "Gate C-reviewed scope model uses the feature-candidate classification for the vehicle-platform integration choice",
+        "evidence": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:34"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:35-37",
+        "finding": "Reviewed anchor for Feature (model)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for Feature (review). classes:Feature disjointWith CommonCapability"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:34",
+        "finding": "Reviewed anchor for Feature (model)."
+      }
+    ],
+    "dependencies": [
+      "CommonCapability row (paired disjointness delta)",
+      "scripts/check_model_sync.py [ONTOLOGY-KERNEL]"
+    ],
+    "decisions": [
+      "Resolve disjointness delta: add native classification disjointness or record a reviewed equivalence/drop decision",
+      "Preserve candidate-until-shown obligation as reviewed doc rule; never claim it as native semantic consequence",
+      "No PLEML dependency"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "No native rule; 'feature candidate until variability shown' is an ISO 26580-aligned DE4SDV review obligation (doc line 36 + R001).",
+      "source": null,
+      "api_observable": null,
+      "current_handling": "PartDefinition export; no sysml_mapping; no runtime consumer; vocabulary-only retention."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "ProductLineCharacteristic",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Legacy YAML classes:ProductLineCharacteristic definition; kernel witness part def ProductLineCharacteristic at textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:27-29.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.3.2.3 (Subclassification) p. 179: the four-branch classification is subtype structure, no further native semantics"
+      }
+    ],
+    "delta": "Model carries the four YAML branches via subtypes (CommonProductLineCapability:31, ProductLineFeatureCandidate:35, DeferredProductLineScope:39, ProductLineVariantChoice:43). ProductLineVariantChoice and DeferredVariantChoice (43-49) are extra vocabulary declarations beyond the YAML row; line 44 already states they are descriptive vocabulary, not substitutes for native variant semantics. Parity review must include them.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative (taxonomy in kernel file); YAML row becomes projection/parity oracle.",
+    "target_definition": "part def ProductLineCharacteristic kept as the classification base; branch coverage (capability, feature candidate, deferred scope, variant-choice vocabulary) recorded explicitly.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Application taxonomy node; representation-only. Its value is the reviewed branch structure, which exists in-model already; the remaining work is definition parity and recording that the variant-choice branch is vocabulary, not variation semantics. No merge: the classification base is referenced as named supertype by consumers.",
+    "consumers": [
+      {
+        "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+        "symbol_or_surface": "ProductLineScopeDecisionRecord/DevelopmentProductDecisionBindingStage/... :> ProductLineCharacteristic (lines 19,27,86,97,123)",
+        "role": "Scope decisions and classification records specialize the taxonomy base in the Gate C-reviewed scope model",
+        "evidence": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:19,27,86,97,123"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:27-29,43-49",
+        "finding": "Reviewed anchor for ProductLineCharacteristic (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:19",
+        "finding": "Reviewed anchor for ProductLineCharacteristic (model)."
+      }
+    ],
+    "dependencies": [
+      "Feature, CommonCapability, DeferredProductLineScope rows",
+      "scripts/check_model_sync.py [ONTOLOGY-KERNEL]"
+    ],
+    "decisions": [
+      "Keep as classification base; document the four branches including the vocabulary-only variant-choice branch",
+      "Ensure ProductLineVariantChoice/DeferredVariantChoice are covered by the ontology-kernel contract (mapping or exclusion with reason)",
+      "No PLEML dependency"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "CommonCapability",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Legacy YAML classes:CommonCapability definition (disjointWith Feature); kernel witness part def CommonProductLineCapability at textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:31-33.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.3.2.3 (Subclassification) p. 179"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75 for the boundary: common capabilities are not variation points"
+      }
+    ],
+    "delta": "disjointWith Feature not modeled (same delta as Feature row). Doc definition close to YAML ('required across member products; not a feature unless it distinguishes member products'). Model slices use it as the non-varying classification.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative (doc on CommonProductLineCapability); YAML row becomes projection/parity oracle.",
+    "target_definition": "part def CommonProductLineCapability :> ProductLineCharacteristic with reviewed doc; explicit statement that it is a classification, not a variation point and not a configuration element.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Application part def, representation-only. Heavily consumed by feature slices as classification of capabilities that do not vary across member products; keep identity and close the disjointness/parity deltas. Semantic-vs-configuration: a common capability is classified, not selected \u2014 selections belong to BoF/configuration layer.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_feature_classification.sysml",
+        "symbol_or_surface": "part adapterLayer/signalAccessCapability/... : CommonProductLineCapability (56,69,78,87,95,102)",
+        "role": "Middleware feature classification uses the kernel type for non-varying capabilities",
+        "evidence": "textual-notation-of-model/packages/features/middleware/middleware_feature_classification.sysml:56-102"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml",
+        "symbol_or_surface": "part forwardCollisionRiskMitigation/vehicleTargetAEBSSupport : CommonProductLineCapability (84-85)",
+        "role": "AEBS increment framing classifies capabilities as common; aebs_needs_requirements.sysml:22 derives AEBSCapability",
+        "evidence": "textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml:84-85"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:31-33",
+        "finding": "Reviewed anchor for CommonCapability (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_feature_classification.sysml:56",
+        "finding": "Reviewed anchor for CommonCapability (model)."
+      }
+    ],
+    "dependencies": [
+      "Feature row",
+      "Gate C scope model classification usage"
+    ],
+    "decisions": [
+      "Close disjointness delta jointly with Feature row",
+      "Keep name; do not model common capabilities as variations or selections",
+      "No PLEML dependency"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "DeferredProductLineScope",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "REPRESENTATION_ONLY",
+    "source": "Legacy YAML classes:DeferredProductLineScope definition (includes 'recorded gaps'); kernel witness part def DeferredProductLineScope at textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:39-41.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.3.2.3 (Subclassification) p. 179"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75 for the adjacent native mechanism (DeferredProductLineVariation:57-59) that must not be duplicated"
+      }
+    ],
+    "delta": "Doc drops 'including recorded gaps' nuance; usage shows gaps typed as parts of this kind (aebs_needs_requirements.sysml:368-413). Keep gap-record convention documented at parity. The native deferred-choice mechanism (variation part def DeferredProductLineVariation with variant deferredChoice, lines 57-59) is separate and must not be merged with this classification.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative (doc on DeferredProductLineScope); YAML row becomes projection/parity oracle.",
+    "target_definition": "part def DeferredProductLineScope kept as the deliberate-deferral classification; doc restored to include recorded-gap usage; boundary kept against native variation.",
+    "migration": "MODEL_AUTHORITY_PARITY",
+    "rationale": "Application part def, representation-only, but with the most real model footprint in this group (gap records across AEBS/middleware slices). Its meaning is scope classification, not variation: unresolved choices are modeled natively (variation/variant), while deferred scope is recorded as typed parts. Keep separate from DeferredProductLineVariation; document boundary.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml",
+        "symbol_or_surface": "part operatingConditionsGap/.../bicycleTargetGap : DeferredProductLineScope (368-413)",
+        "role": "Recorded gap inventory typed by the deferred-scope classification",
+        "evidence": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:368-413"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_feature_classification.sysml",
+        "symbol_or_surface": "part safetyPathDecision : DeferredProductLineScope (112); middleware_stakeholder_needs.sysml:134-150",
+        "role": "Deferred items classified in middleware slices",
+        "evidence": "textual-notation-of-model/packages/features/middleware/middleware_feature_classification.sysml:112"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:39-41,57-59",
+        "finding": "Reviewed anchor for DeferredProductLineScope (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml:368,390",
+        "finding": "Reviewed anchor for DeferredProductLineScope (model)."
+      }
+    ],
+    "dependencies": [
+      "VariationPoint/Variant rows (boundary)",
+      "scripts/check_model_sync.py [ONTOLOGY-KERNEL]"
+    ],
+    "decisions": [
+      "Keep as deferral classification; document recorded-gap convention",
+      "Keep distinct from native DeferredProductLineVariation/DeferredVariantChoice (variation mechanism vs scope classification)",
+      "No PLEML dependency"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "VariationPoint",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "YAML classes:VariationPoint row is a vocabulary pointer (kernel.native: 'SysML v2 variation definition/usage'); native witnesses: variation part def DeferredProductLineVariation (de4sdv_product_line.sysml:57-59), variation part usages in aebs_increment_framing.sysml:95-100, vehicle_sensing_boundary.sysml:203-215, sdv_platform_stack.sysml:56-59, scoping:134.",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75 (Variations and Variants): a variation is always abstract; variants may only be declared inside a variation; variant kind must be consistent with the owning variation's kind"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a78.4.2.3 p. 435 (Variation Definitions and Usages); VariantMembership p. 309"
+      }
+    ],
+    "delta": "No semantic change: the concept IS the native construct. YAML row remains a vocabulary pointer; method context (represent/usage conventions) is documented in the kernel file header (lines 8-11) which forbids a project-local variation-point part definition.",
+    "disposition": "KEEP_NATIVE",
+    "target_authority": "native-sysml (SysML v2 variation construct carries the meaning; no DE4SDV-owned declaration).",
+    "target_definition": "No DE4SDV definition: variation definition/usage in models; YAML row stays a pointer. Grounding record (exact-fit + standard-construct at a bound revision) to be recorded in the vocabulary/projection layer.",
+    "migration": "ALREADY_COMPLETE",
+    "rationale": "Explicit native construct with multiple model witnesses already in place; consuming slices use the native notation correctly (vehicle_sensing_boundary.sysml:37 even cites the spec's variation section). The YAML row never should become a part taxonomy \u2014 kernel file explicitly prohibits it. Keep native; only the pointer record and grounding evidence remain to be captured.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml",
+        "symbol_or_surface": "variation part lidarSensor/radarSensor/cameraSensor with [0]/[1] present/absent variants",
+        "role": "In-model native variation structure for sensor selection",
+        "evidence": "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml:203-215"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml",
+        "symbol_or_surface": "variation part aebsSensorPackageSelection / aebsEvidenceLevelSelection",
+        "role": "Native variation usages recording unresolved AEBS variability",
+        "evidence": "textual-notation-of-model/packages/features/aebs/aebs_increment_framing.sysml:95-100"
+      },
+      {
+        "path": "tests/test_sysml_full_ingestion.py",
+        "symbol_or_surface": "by_class[\"VariationPoint\"].status == \"native\"",
+        "role": "Ontology-binding validator classifies the row as native (validator consumption of the YAML contract)",
+        "evidence": "tests/test_sysml_full_ingestion.py:316"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:8-11,57-59",
+        "finding": "Reviewed anchor for VariationPoint (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml:203-215",
+        "finding": "Reviewed anchor for VariationPoint (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:134",
+        "finding": "Reviewed anchor for VariationPoint (model)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_sysml_full_ingestion.py:316",
+        "finding": "Reviewed anchor for VariationPoint (test)."
+      }
+    ],
+    "dependencies": [
+      "Variation membership API representation in the pinned toolchain",
+      "kernel file notation guard (de4sdv_product_line.sysml:8-11)"
+    ],
+    "decisions": [
+      "Keep as native pointer; never model a generic variation-point part definition",
+      "Record exact-fit/standard-construct grounding evidence at a bound revision",
+      "No PLEML dependency for the native construct"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_NATIVE).",
+    "implicit_rule": {
+      "rule": "Variation is implicitly abstract (no 'abstract' keyword needed); variants only inside a variation; variant kind consistent with owning variation kind (SysML \u00a77.6.7) \u2014 implicit constraints, no DE4SDV duplication.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": "Exported as VariationDefinition/Usage + VariationMembership/VariantMembership API objects; no YAML sysml_mapping; no Python runtime traversal today."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "Variant",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NATIVE_EXPLICIT",
+    "source": "YAML classes:Variant row is a vocabulary pointer (kernel.native: 'SysML v2 variant usage'); native witnesses: vehicle_sensing_boundary.sysml:204-215 (variant part lidarPresent[1]/lidarAbsent[0], ...), sdv_platform_stack.sysml:59 (variant part autoware : AutowareStack), aebs_increment_framing.sysml:96,100, kernel de4sdv_product_line.sysml:58 (variant part deferredChoice).",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75 (Variations and Variants): variant members; kind consistency constraint"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a78.4.2.3 p. 435 (Variation Definitions and Usages); VariantMembership p. 309: a Usage that represents a variant in the owning variation context"
+      }
+    ],
+    "delta": "No semantic change. YAML notation note ('variants are usages, not reusable product-line classes by themselves') is consistent with the model and with VariantMembership being a membership, not a class. Only the grounding record remains.",
+    "disposition": "KEEP_NATIVE",
+    "target_authority": "native-sysml (variant usage construct carries the meaning).",
+    "target_definition": "No DE4SDV definition: variant usages inside variations; YAML row stays a vocabulary pointer.",
+    "migration": "ALREADY_COMPLETE",
+    "rationale": "Explicit native construct with multiple in-model witnesses, including the present/absent [1]/[0] pattern and platform-stack choices. Variants are correctly modeled as usages. Vocabulary-only retention for the pointer row; no runtime consumer today. Artifact publication must not promote the pointer to a runtime claim.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
+        "symbol_or_surface": "variation part vehicleApplication ... variant part autoware : AutowareStack",
+        "role": "Native variant usage in the SDV platform stack variation structure",
+        "evidence": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml:56-59"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml",
+        "symbol_or_surface": "doc 'All platform-stack variant selections are inherited unchanged'",
+        "role": "Slice documents inherited variant selections (member assembly context)",
+        "evidence": "textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml:30,150"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml",
+        "symbol_or_surface": "doc 'BoF and generated projection own the concrete variant selections'",
+        "role": "Boundary statement: selections live in configuration layer, variants in model",
+        "evidence": "textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml:7"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml:204-215",
+        "finding": "Reviewed anchor for Variant (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml:59",
+        "finding": "Reviewed anchor for Variant (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:58",
+        "finding": "Reviewed anchor for Variant (model)."
+      }
+    ],
+    "dependencies": [
+      "VariationPoint row",
+      "FeatureConfiguration row (selection boundary)"
+    ],
+    "decisions": [
+      "Keep as native pointer; variants stay usages",
+      "Record standard-construct grounding evidence at a bound revision",
+      "Concrete selections remain in the configuration/BoF layer (no model duplication)"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_NATIVE).",
+    "implicit_rule": {
+      "rule": "Variant kind must be consistent with the owning variation's kind (SysML \u00a77.6.7) \u2014 implicit constraint.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": "Exported as VariantMembership-bearing usages; no YAML sysml_mapping; no Python runtime consumer today."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "FeatureConfiguration",
+    "kind": "class",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "YAML classes:FeatureConfiguration row with kernel.external pointing to Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/.",
+    "normative_reference": [
+      {
+        "source": "DE4SDV review basis",
+        "reference": "No native normative construct: configuration records are an external boundary, not a SysML semantic"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75 is the adjacent native frame for the variant choices configurations refer to"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "Repo Gate C scope review + ADR 0014 govern the admitted AEBS product-line scope separately from configuration validity"
+      }
+    ],
+    "delta": "No model declaration exists or should exist. Delta is boundary clarity: keep BoF YAML operational authority; separate 'configuration-valid-under-current-tool' from 'admitted-by-governed-scope' (plan line 155).",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external-reference: Bill-of-Features YAML under model-based-product-line-engineering/feature-configurations/ remains operational authority until an authorized PLE cutover. Existing configuration authority unchanged.",
+    "target_definition": "BoF record family (catalogue resolution + configurator evaluation), not a SysML type; any future library-grounded target (PLEML or explicitly reviewed alternative) requires its own qualification evidence.",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "The identity is a configuration-layer record family, not a system semantic; there is no native construct to fit. The configurator (tools/configure_variant.py) implements the working catalogue/BoF path (three of four ISO 26580 components) and is operational authority. PLEML is pinned-not-adopted (gates PLE-R\u2192PLE-Q\u2192PLE-S\u2192PLE-A; UG-13): conditional library targets stay conditional and must not be counted as adopted. Do not force PLEML reuse; do not clone the catalogue node-for-node into it.",
+    "consumers": [
+      {
+        "path": "tools/configure_variant.py",
+        "symbol_or_surface": "configurator: reads BoF YAML, validates against feature model, generates product-model projection (docstring 1-30)",
+        "role": "Operational consumer of the configuration semantics",
+        "evidence": "tools/configure_variant.py:1-30"
+      },
+      {
+        "path": "model-based-product-line-engineering/feature-configurations/",
+        "symbol_or_surface": "middleware-autoware-aaos-sdv-reference.yaml, inc-aebs-009a-jetson.yaml, example-linux-score-autoware.yaml, ... (8 files)",
+        "role": "Bill-of-Features records carrying the operational configuration data",
+        "evidence": "tests/test_middleware_variability_configuration.py:13,158-159"
+      },
+      {
+        "path": "tests/test_sysml_full_ingestion.py",
+        "symbol_or_surface": "by_class[\"FeatureConfiguration\"].status == \"external\"",
+        "role": "Ontology-binding validator classifies the row as external (consumption of the YAML class entry)",
+        "evidence": "tests/test_sysml_full_ingestion.py:318"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for FeatureConfiguration (review). classes:FeatureConfiguration kernel.external"
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "tools/configure_variant.py:1-30",
+        "finding": "Reviewed anchor for FeatureConfiguration (runtime)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_sysml_full_ingestion.py:318",
+        "finding": "Reviewed anchor for FeatureConfiguration (test)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "model-based-product-line-engineering/feature-models/README.md",
+        "finding": "Reviewed anchor for FeatureConfiguration (model)."
+      }
+    ],
+    "dependencies": [
+      "PLEML requalification gates (plan \u00a77.3) if a library path is ever chosen",
+      "Gate C scope review / ADR 0014 (admitted product scope)",
+      "configurator regression tests (tests/test_configure_variant.py)"
+    ],
+    "decisions": [
+      "Keep external boundary and BoF operational authority; existing config authority unchanged",
+      "Do not force PLEML reuse; treat PLEML as one option gated by qualification",
+      "Report configuration validity and governed-scope admission separately",
+      "No model part def for FeatureConfiguration"
+    ],
+    "blocker": "Any accepted-library-grounded target is blocked by PLEML adoption gates (PLE-R \u2192 PLE-Q \u2192 PLE-S \u2192 PLE-A); current PLEML pin is pinned-not-adopted, and this review does not contact upstream or declare adoption.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "specifiesFeature",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "YAML relationships:specifiesFeature (domain Requirement, range Feature); grounding_kind yaml-vocabulary; runtime support vocabulary-only. No model declaration, no sysml_mapping, no model witness anywhere.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.2.2.2 p. 141 (Dependency): a plain Dependency is entirely model-level, with no instance-level semantics \u2014 it cannot carry requirement\u2192feature specification strength"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "Plan \u00a710 line 344: preserve existing signatures until an explicit migration"
+      }
+    ],
+    "delta": "Nothing to migrate semantically today; the claim is a declared vocabulary edge with no witness. Keep domain/range signature frozen (Requirement \u2192 Feature) until an explicit reviewed migration decides a native realization.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "legacy-yaml vocabulary retained as reviewed vocabulary; no runtime authority, no PLEML commitment.",
+    "target_definition": "Declared DE4SDV method vocabulary (requirement specifies a product-line feature); a future reviewed migration may realize it natively (e.g. requirement subject/satisfy patterns) once requirement and feature usages coexist in models.",
+    "migration": "PROJECTION_ONLY",
+    "rationale": "No native SysML relationship kind expresses 'requirement specifies feature'; no model definition witnesses it. Classifying NO_NATIVE_SEMANTIC_FIT is honest and keeps the row as vocabulary. It is requirement-side DE4SDV method scope, not PLE-library scope: no PLEML dependency, do not count PLEML as the target. Do not silently collapse it into Dependency (KerML: no instance semantics).",
+    "consumers": [
+      {
+        "path": "tests/test_o1_c1_conformance_parity.py",
+        "symbol_or_surface": "\"specifiesFeature\" in reviewed relationship-name lists (357); also c2:116, c3:113, c4:101, c5:103, test_semantic_authority_inventory.py:92",
+        "role": "Inventory/O1 parity tests assert the name set \u2014 token occurrence, not semantic consumption; renaming would touch immutable-record test expectations",
+        "evidence": "tests/test_o1_c1_conformance_parity.py:357"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for specifiesFeature (review). relationships:specifiesFeature"
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_o1_c1_conformance_parity.py:357",
+        "finding": "Reviewed anchor for specifiesFeature (test)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_semantic_authority_inventory.py:92",
+        "finding": "Reviewed anchor for specifiesFeature (test)."
+      }
+    ],
+    "dependencies": [
+      "Feature usages in models (scoping/feature slices)",
+      "O1 test expectation lists (immutable records)",
+      "plan \u00a710 signature/strength decision pending"
+    ],
+    "decisions": [
+      "Retain declared vocabulary with no runtime/semantic-support claim",
+      "No PLEML dependency; PLEML is not the natural target for requirement-side vocabulary",
+      "Defer native realization decision until feature usages exist in models; any realization is an explicit signature/migration review (UG-04-style)"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "specifiesCommonCapability",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "YAML relationships:specifiesCommonCapability (domain Requirement, range CommonCapability); yaml-vocabulary; vocabulary-only. No model declaration or witness.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.2.2.2 p. 141 (Dependency): no instance-level semantics"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "Plan \u00a710 line 344: preserve signatures until explicit migration"
+      }
+    ],
+    "delta": "Same shape as specifiesFeature: declared vocabulary, no witness. Keep signature frozen (Requirement \u2192 CommonCapability) until explicit reviewed migration.",
+    "disposition": "KEEP_VOCABULARY_ONLY",
+    "target_authority": "legacy-yaml vocabulary retained as reviewed vocabulary; no runtime authority.",
+    "target_definition": "Declared DE4SDV method vocabulary (requirement specifies a common capability); realization deferred to a reviewed migration.",
+    "migration": "PROJECTION_ONLY",
+    "rationale": "No native construct or model witness. Requirement-side scope; no PLEML dependency. Keep as vocabulary-only so no runtime consumer can misinterpret an unwitnessed edge as support.",
+    "consumers": [
+      {
+        "path": "tests/test_o1_c1_conformance_parity.py",
+        "symbol_or_surface": "name in reviewed relationship lists (358); c2-c5 + inventory tests likewise",
+        "role": "Parity/inventory token occurrence only",
+        "evidence": "tests/test_o1_c1_conformance_parity.py:358"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for specifiesCommonCapability (review). relationships:specifiesCommonCapability"
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_o1_c1_conformance_parity.py:358",
+        "finding": "Reviewed anchor for specifiesCommonCapability (test)."
+      }
+    ],
+    "dependencies": [
+      "specifiesFeature row",
+      "CommonCapability model usages"
+    ],
+    "decisions": [
+      "Retain vocabulary; no runtime claim",
+      "No PLEML dependency",
+      "Pair with specifiesFeature for any future native realization decision"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_VOCABULARY_ONLY).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "appliesToMemberProduct",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "YAML relationships:appliesToMemberProduct (domain FeatureConfiguration, range MemberProduct); yaml-vocabulary; vocabulary-only. No model declaration.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.2.2.2 p. 141 (Dependency): model-level only; indistinguishable from generic dependency without an explicit claim boundary"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "Runtime claim boundary: hasSubject is NOT appliesToMemberProduct, PLE selection, or configuration membership (de4sdv/semantic/projection_o22.py:285-299)"
+      }
+    ],
+    "delta": "None to migrate; the row must stay an external configuration-layer edge. The important delta is negative: it must never be collapsed into hasSubject or any subject hop.",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external-reference: configuration-layer data (BoF YAML) with FeatureConfiguration; no model-native authority, no PLEML commitment.",
+    "target_definition": "Configuration \u2192 member-product binding recorded in the configuration layer; realized as claim-boundary exclusion in runtime, never as a semantic traversal.",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "Config-to-member-product binding is external configuration semantics; no native construct fits. The runtime already states the boundary explicitly: hasSubject must not resolve as appliesToMemberProduct/PLE selection/configuration membership (projection_o22.py), and a PLE configuration relation must never produce subject hops (test_o1_c3_subject_grounding.py:1243-1265). Keep as external boundary; keep the exclusion documented in projection claim boundaries.",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/projection_o22.py",
+        "symbol_or_surface": "_O22_STRONGER_RELATIONS[\"hasSubject\"] includes \"appliesToMemberProduct\", \"PLE selection\", \"configuration membership\"",
+        "role": "Runtime claim-boundary exclusion list; the name is consumed as an explicit non-collapse boundary",
+        "evidence": "de4sdv/semantic/projection_o22.py:291"
+      },
+      {
+        "path": "de4sdv/semantic/projection_o23.py",
+        "symbol_or_surface": "does_not_assert: '... the relation is realizedBy, specifiesFunction, allocatedTo, deployedTo, or appliesToMemberProduct'",
+        "role": "Second claim-boundary statement in the O23 projection",
+        "evidence": "de4sdv/semantic/projection_o23.py:544"
+      },
+      {
+        "path": "tests/test_o1_c3_subject_grounding.py",
+        "symbol_or_surface": "test_ple_configuration_relation_is_not_a_subject_hop",
+        "role": "Regression test enforcing the boundary",
+        "evidence": "tests/test_o1_c3_subject_grounding.py:1243-1265"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for appliesToMemberProduct (review). relationships:appliesToMemberProduct"
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/projection_o22.py:291",
+        "finding": "Reviewed anchor for appliesToMemberProduct (runtime)."
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/projection_o23.py:544",
+        "finding": "Reviewed anchor for appliesToMemberProduct (runtime)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_o1_c3_subject_grounding.py:1243",
+        "finding": "Reviewed anchor for appliesToMemberProduct (test)."
+      }
+    ],
+    "dependencies": [
+      "FeatureConfiguration row",
+      "MemberProduct row",
+      "hasSubject frozen meaning (O3 13)"
+    ],
+    "decisions": [
+      "Keep external boundary; configuration layer owns the binding",
+      "Preserve runtime exclusions verbatim (no collapse into hasSubject)",
+      "No PLEML commit; re-evaluate only if model-native member-product instances and an authorized config cutover exist"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": {
+      "rule": "PLE configuration relations are not subject memberships (PLE selection is not hasSubject); product-line relationships are not architecture relevance (projection_o23.py:546-548).",
+      "source": null,
+      "api_observable": null,
+      "current_handling": "Named only in runtime exclusion/claim-boundary text; no sysml_mapping, no traversal."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "selectsFeature",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "YAML relationships:selectsFeature (domain FeatureConfiguration, range Feature); yaml-vocabulary; vocabulary-only. No model declaration.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.2.2.2 p. 141 (Dependency)"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75: concrete choices land in native variant structure, not in new relationship kinds"
+      }
+    ],
+    "delta": "None; keep as configuration-layer selection edge. Feature-side selection semantics remain configurator behavior, not model semantics, until an authorized cutover.",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external-reference (BoF YAML + configurator evaluation); no model-native authority.",
+    "target_definition": "Configuration selects declared feature choices (BoF entries resolved against the feature catalogue); no SysML relationship kind is created.",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "Selection is configurator/configuration behavior over catalogue features (tools/configure_variant.py: reads BoF, validates against feature model, generates product-model projection). No native 'selects' relationship exists; modeling one would collide with native variation/variant semantics. Keep external; the configurator remains operational authority with unchanged behavior.",
+    "consumers": [
+      {
+        "path": "tools/configure_variant.py",
+        "symbol_or_surface": "selection semantics: alternative groups, OR-groups, optional/mandatory leaves (docstring, 'Selection semantics')",
+        "role": "Operational consumer: the configurator evaluates feature selections",
+        "evidence": "tools/configure_variant.py:1-35"
+      },
+      {
+        "path": "tests/test_o1_c3_subject_grounding.py",
+        "symbol_or_surface": "test_ple_configuration_relation_is_not_a_subject_hop (FeatureConfiguration -> selects -> MemberProduct-shaped graph)",
+        "role": "Boundary regression: selection never yields subject hops",
+        "evidence": "tests/test_o1_c3_subject_grounding.py:1243-1254"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for selectsFeature (review). relationships:selectsFeature"
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "tools/configure_variant.py:1-35",
+        "finding": "Reviewed anchor for selectsFeature (runtime)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_o1_c3_subject_grounding.py:1243",
+        "finding": "Reviewed anchor for selectsFeature (test)."
+      }
+    ],
+    "dependencies": [
+      "FeatureConfiguration row",
+      "Feature row (catalogue side)"
+    ],
+    "decisions": [
+      "Keep external boundary; no model relationship",
+      "No PLEML commit; requalification gates apply if ever adopted",
+      "Preserve configurator behavior and tests as operational evidence"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": {
+      "rule": "Configuration selections must not be presented as model semantics; 'configuration-valid-under-current-tool' is separate from 'admitted-by-governed-scope' (plan line 155).",
+      "source": null,
+      "api_observable": null,
+      "current_handling": "No sysml_mapping; no traversal; BoF YAML only."
+    },
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "instantiatesCanonicalArchitecture",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "YAML relationships:instantiatesCanonicalArchitecture (domain MemberProduct, range ArchitectureElement) with a long self-declared claim boundary; yaml-vocabulary, vocabulary-only; no sysml_mapping; authority target unknown.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.2.2.2 p. 141 (Dependency): cannot distinguish canonical-architecture bindings from ordinary part-to-part dependencies without an explicit selector"
+      },
+      {
+        "source": "DE4SDV review basis",
+        "reference": "Runtime boundary: a source in the MemberProduct lineage does not establish architecture relevance (de4sdv/semantic/projection_o23.py:546-548)"
+      }
+    ],
+    "delta": "No semantic migration possible yet. The YAML definition already documents the boundary: executable mapping requires an explicit canonical-usage selector (e.g. API-side allowlist of canonical packages), never a name-based filter; it must not restate allocations or make a composite projection a resolved configured product.",
+    "disposition": "KEEP_CONDITIONAL",
+    "target_authority": "unresolved (T/E stage): either a reviewed selector-backed representation or retirement; not PLEML-dependent.",
+    "target_definition": "Conditional: descriptive vocabulary now; executable identity only after selector design + reachability proof. If the selector cannot be designed without heuristics, the identity should be redesigned or removed rather than kept aspirational.",
+    "migration": "BLOCKED",
+    "rationale": "Honest blocked state: the identity's own definition states a generic dependency traversal cannot distinguish canonical-architecture bindings without inventing a naming heuristic, and the runtime explicitly refuses to derive architecture relevance from MemberProduct lineage. Gate is a selector design review (inventory transition_gate: 'canonical-usage selector review'). Keep conditionally; do not force an executable mapping; do not invent relationship UUIDs where none exist (plan line 481).",
+    "consumers": [
+      {
+        "path": "de4sdv/semantic/projection_o23.py",
+        "symbol_or_surface": "does_not_assert: '... that a source in the MemberProduct lineage establishes architecture relevance (product-line relationships are not architecture relevance)'",
+        "role": "Runtime boundary that keeps this identity non-derivable from lineage alone",
+        "evidence": "de4sdv/semantic/projection_o23.py:546-548"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for instantiatesCanonicalArchitecture (review). relationships:instantiatesCanonicalArchitecture (definition text)"
+      },
+      {
+        "type": "runtime",
+        "path_or_reference": "de4sdv/semantic/projection_o23.py:546-548",
+        "finding": "Reviewed anchor for instantiatesCanonicalArchitecture (runtime)."
+      },
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for instantiatesCanonicalArchitecture (review). transition_gate 'canonical-usage selector review'"
+      }
+    ],
+    "dependencies": [
+      "hasRelevantArchitecture frozen meaning (relevance separation)",
+      "T/E selector review",
+      "canonical package allowlist design"
+    ],
+    "decisions": [
+      "Keep conditionally as vocabulary with the explicit claim boundary",
+      "Require API-side allowlist selector design + reachability proof before any executable mapping",
+      "If selector design fails, propose REDESIGN or REMOVE rather than leaving an aspirational row",
+      "No PLEML dependency"
+    ],
+    "blocker": "No canonical-usage selector exists; name-based filters are prohibited; reachability proof absent. Identity stays vocabulary-only until a selector design passes review.",
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_CONDITIONAL).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "includesCommonCapability",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NO_NATIVE_SEMANTIC_FIT",
+    "source": "YAML relationships:includesCommonCapability (domain FeatureConfiguration, range CommonCapability); yaml-vocabulary; vocabulary-only. No model declaration.",
+    "normative_reference": [
+      {
+        "source": "KerML 1.0",
+        "reference": "KerML 1.0 formal \u00a78.3.2.2.2 p. 141 (Dependency)"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75: common/non-varying items are not variants"
+      }
+    ],
+    "delta": "None; configuration-layer inclusion edge only. Keep signature frozen until explicit migration.",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external-reference (BoF YAML); no model-native authority.",
+    "target_definition": "Configuration includes a common capability (non-varying baseline item); recorded in the configuration layer, not as a model relationship.",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "Inclusion of common capabilities is configuration bookkeeping over non-varying baseline content; no native construct fits (common capabilities are not variants). Same boundary regime as the other configuration relations; keep external, no runtime mapping.",
+    "consumers": [
+      {
+        "path": "tests/test_execution_environment_ple.py",
+        "symbol_or_surface": "config enumeration over feature-configurations/*.yaml (93,118,135-157)",
+        "role": "Tests exercise baseline/common content through the configurator, not through a model relationship",
+        "evidence": "tests/test_execution_environment_ple.py:93-157"
+      },
+      {
+        "path": "tests/test_aebs_visualization_configuration.py",
+        "symbol_or_surface": "boundary assertions on feature-configurations/ (17,131,142)",
+        "role": "Slice boundary tests",
+        "evidence": "tests/test_aebs_visualization_configuration.py:131-142"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for includesCommonCapability (review). relationships:includesCommonCapability"
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_execution_environment_ple.py:93",
+        "finding": "Reviewed anchor for includesCommonCapability (test)."
+      },
+      {
+        "type": "test",
+        "path_or_reference": "tests/test_aebs_visualization_configuration.py:142",
+        "finding": "Reviewed anchor for includesCommonCapability (test)."
+      }
+    ],
+    "dependencies": [
+      "FeatureConfiguration row",
+      "CommonCapability row"
+    ],
+    "decisions": [
+      "Keep external boundary; no model relationship",
+      "No PLEML commit",
+      "Pair with selectsFeature/appliesToMemberProduct for any future configuration-layer review"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": null,
+    "rename_or_merge_target": null
+  },
+  {
+    "identity": "variesAt",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "YAML relationships:variesAt (domain Feature, range VariationPoint); yaml-vocabulary. Grounding witness: native variation structure in the models (variation part def DeferredProductLineVariation with owned variant, de4sdv_product_line.sysml:57-59; variation part vehiclePlatformIntegrationMode, scoping:134; sensor variation parts, vehicle_sensing_boundary.sysml:203-215; aebs_increment_framing.sysml:95-100).",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75 (Variations and Variants): variants are declared inside a variation; variation always abstract; kind consistency"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a78.4.2.3 p. 435 (Variation Definitions and Usages); VariantMembership p. 309"
+      }
+    ],
+    "delta": "The DE4SDV relation names the same fact the native construct expresses: which varying element a variation governs. Target realization is derived navigation over native variation/variant membership, not a declared YAML edge; no sysml_mapping should be added for a YAML-authored edge.",
+    "disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+    "target_authority": "model-authoritative via native variation structure (DE4SDV relation identity kept as navigation vocabulary only).",
+    "target_definition": "variesAt = derived relation: a feature varies at the variation whose variants offer/deny it; resolved from native VariationMembership/VariantMembership facts once feature usages participate in variations. Until then, retained as declared vocabulary with no runtime claim.",
+    "migration": "PROJECTION_ONLY",
+    "rationale": "This is the one PLE relationship with genuine native grounding: the variation construct is exactly the 'varies at' fact. Keeping it as a declared YAML edge would duplicate native semantics; inventing a variation-point part taxonomy is explicitly prohibited (kernel file:8-11). Correct move: keep the identity, realize as derived traversal, and never claim a fact without a native witness. If witnesses never appear, the row stays vocabulary-only (no negative meaning from missing implementation).",
+    "consumers": [
+      {
+        "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+        "symbol_or_surface": "variation part vehiclePlatformIntegrationMode (134); VehiclePlatformIntegrationChoice :> ProductLineFeatureCandidate (34)",
+        "role": "Gate C-reviewed scope model has both a feature-candidate and its variation \u2014 the nearest witnessed feature-to-variation pairing",
+        "evidence": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:34,134"
+      },
+      {
+        "path": "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml",
+        "symbol_or_surface": "variation part lidarSensor/radarSensor/cameraSensor with present/absent variants",
+        "role": "Native variation structure acting as the grounding witness class",
+        "evidence": "textual-notation-of-model/packages/architecture/vehicle_sensing_boundary.sysml:203-215"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for variesAt (review). relationships:variesAt"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml:57-59",
+        "finding": "Reviewed anchor for variesAt (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml:134",
+        "finding": "Reviewed anchor for variesAt (model)."
+      }
+    ],
+    "dependencies": [
+      "VariationPoint and Variant rows",
+      "Feature row (feature usages in models)",
+      "hasRelevantArchitecture-style derived traversal conventions"
+    ],
+    "decisions": [
+      "Keep relation identity as navigation vocabulary; realize as derived fact over native variation membership",
+      "Do not author a variation-point part taxonomy or a YAML edge mapping",
+      "Evidence gate: a feature usage participating in a variation's variant membership; until then vocabulary-only",
+      "No PLEML dependency"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_DE4SDV_APPLICATION_SEMANTIC).",
+    "implicit_rule": {
+      "rule": "Implicit native constraints apply (variation abstract; variant kind consistency); no additional implicit rule needed for the relation itself.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": "No sysml_mapping today. Intended handling: derived query over VariationMembership/VariantMembership API objects; must not be declared as an authored edge."
+    },
+    "rename_or_merge_target": "None; if the derived realization lands, variesAt remains the navigation name and must not be merged into another predicate."
+  },
+  {
+    "identity": "selectsVariant",
+    "kind": "relationship",
+    "o3_protected": false,
+    "classification": "NATIVE_GROUNDED_DE4SDV",
+    "source": "YAML relationships:selectsVariant (domain FeatureConfiguration, range Variant); yaml-vocabulary. Grounding: variant usages in the models (vehicle_sensing_boundary.sysml:204-215, sdv_platform_stack.sysml:59, aebs_increment_framing.sysml:96,100); configuration side is the BoF YAML.",
+    "normative_reference": [
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a77.6.7 p. 75: variant usages enumerate the allowed choices of a variation (the object of selection)"
+      },
+      {
+        "source": "SysML 2.0",
+        "reference": "SysML 2.0 \u00a78.4.2.3 p. 435; VariantMembership p. 309"
+      }
+    ],
+    "delta": "The selected object is a native variant usage; the selecting side is external configuration data. No model relationship is created now; any future model-native realization (choice recorded in a configured product context) must use native variant structure, not a new relationship kind.",
+    "disposition": "KEEP_EXTERNAL_REFERENCE",
+    "target_authority": "external-reference for the operational selection (BoF YAML / generated projection); native variant structure owns the choice space.",
+    "target_definition": "Configuration selects among native variant usages; recorded in the configuration layer. When model-native configured products are ever derived, the selection must ground in native variant choice/redefinition semantics.",
+    "migration": "EXTERNAL_BOUNDARY",
+    "rationale": "The range is native (variant choice), so the relation is grounded in native semantics rather than invented; but the subject is the external configuration layer, so operationally it stays an external reference. This keeps the small architecture coherent: FeatureConfiguration and its edges stay external; only the target vocabulary is native. Existing config authority unchanged; no forced PLEML reuse.",
+    "consumers": [
+      {
+        "path": "textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml",
+        "symbol_or_surface": "doc 'BoF and generated projection own the concrete variant selections; this package does not duplicate them'",
+        "role": "Explicit boundary statement that selections live in configuration files, variants in model",
+        "evidence": "textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml:7"
+      },
+      {
+        "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml",
+        "symbol_or_surface": "doc 'inherited variant selections' (30,150)",
+        "role": "Slice documents selection inheritance without re-modeling selections",
+        "evidence": "textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml:30,150"
+      }
+    ],
+    "evidence": [
+      {
+        "type": "review",
+        "path_or_reference": "ple-input.json",
+        "finding": "Reviewed anchor for selectsVariant (review). relationships:selectsVariant"
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml:7",
+        "finding": "Reviewed anchor for selectsVariant (model)."
+      },
+      {
+        "type": "model",
+        "path_or_reference": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml:59",
+        "finding": "Reviewed anchor for selectsVariant (model)."
+      }
+    ],
+    "dependencies": [
+      "Variant and VariationPoint rows",
+      "FeatureConfiguration row",
+      "configure_variant.py regression tests"
+    ],
+    "decisions": [
+      "Keep operational selection in the configuration layer; native variant usages own the choice space",
+      "No new model relationship kind; future model-native configured products must use native variant choice semantics",
+      "No PLEML commit; adoption gates apply if ever chosen"
+    ],
+    "blocker": null,
+    "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (KEEP_EXTERNAL_REFERENCE).",
+    "implicit_rule": {
+      "rule": "Variant selections are configuration facts; they must not be re-modeled as structural relationships or duplicated into the shared asset model.",
+      "source": null,
+      "api_observable": null,
+      "current_handling": "No sysml_mapping; no traversal. BoF/configurator path only; generated product-model projections inherit selections."
+    },
+    "rename_or_merge_target": null
+  }
+]

@@ -11,6 +11,7 @@ Phase-10 pilot.
 | [result-algebra.md](result-algebra.md) | Normative field/reason-vocabulary spelling fixed by Package A (frozen baseline §7–§8). |
 | [mc-outcome-owner-matrix.md](mc-outcome-owner-matrix.md) + [mc-matrix.json](mc-matrix.json) | All 40 MC cases with owners (B: 4, C: 29, D: 7), machine-extracted from the frozen baseline. |
 | [pilot-scope.md](pilot-scope.md) | Declared real Phase-10 pilot, admitted configuration, identities, and the admitted acceptance-authority gap. |
+| [o4/ontology-review/](o4/ontology-review/README.md) | Accepted O4 ontology-review package: governed target input for the remaining ontology-authority migration, with architecture rereview and hardened validation. Governance only — never runtime authority. |
 
 Ownership: A approves this specification (this branch); B implements the
 minimum normative API slice for B-owned cases and encodes the pilot obligation

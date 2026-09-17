@@ -1,0 +1,105 @@
+{
+  "schema": "de4sdv-ontology-review-integrated/v2",
+  "review_package": "docs/method-conformance/o4/ontology-review",
+  "source_revision": "bc2b65abb623e50032f177d566e34e1a41c09f34",
+  "row_count": 93,
+  "classes": 59,
+  "relationships": 34,
+  "duplicates": 0,
+  "classification_counts": {
+    "REPRESENTATION_ONLY": 48,
+    "NATIVE_EXPLICIT": 12,
+    "NO_NATIVE_SEMANTIC_FIT": 23,
+    "ACCEPTED_LIBRARY": 1,
+    "NATIVE_GROUNDED_DE4SDV": 9
+  },
+  "disposition_counts": {
+    "KEEP_DE4SDV_APPLICATION_SEMANTIC": 50,
+    "MERGE": 2,
+    "KEEP_VOCABULARY_ONLY": 10,
+    "KEEP_NATIVE": 8,
+    "KEEP_EXTERNAL_REFERENCE": 10,
+    "KEEP_ACCEPTED_LIBRARY": 1,
+    "REDESIGN": 9,
+    "REMOVE": 1,
+    "BLOCKED": 1,
+    "KEEP_CONDITIONAL": 1
+  },
+  "migration_counts": {
+    "MODEL_AUTHORITY_PARITY": 26,
+    "REQUIRES_SEMANTIC_MIGRATION": 10,
+    "CURRENT_O3_13": 13,
+    "PROJECTION_ONLY": 8,
+    "ALREADY_COMPLETE": 3,
+    "EXTERNAL_BOUNDARY": 10,
+    "NEW_APPLICATION_SEMANTICS": 16,
+    "NATIVE_OR_LIBRARY_ADOPTION": 3,
+    "BLOCKED": 3,
+    "REMOVE_FROM_ONTOLOGY": 1
+  },
+  "o3_protected": 13,
+  "o3_amendments_required": 0,
+  "accepted_target": {
+    "retained": 90,
+    "removed": [
+      "derivesNeedFromConcern"
+    ],
+    "merged": [
+      "IncrementTraceabilityShell",
+      "validatesFitnessForUse"
+    ]
+  },
+  "errors": [],
+  "mutation_selftest": [
+    {
+      "mutant": "m1 consumer path single-char fragment",
+      "rejected": true,
+      "example_error": "EngineeringIncrement: consumer one/two-character fragment: 't'"
+    },
+    {
+      "mutant": "m2 consumers replaced by a string",
+      "rejected": true,
+      "example_error": "EngineeringIncrement: semantic_consumers must be an array, got str"
+    },
+    {
+      "mutant": "m3 unknown semantic classification",
+      "rejected": true,
+      "example_error": "EngineeringIncrement: invalid semantic classification 'NATIVE_MAYBE'"
+    },
+    {
+      "mutant": "m4 evidence emptied",
+      "rejected": true,
+      "example_error": "EngineeringIncrement: evidence is empty (no anchors and no explicit evidence-gap statement)"
+    },
+    {
+      "mutant": "m5 duplicate identity row",
+      "rejected": true,
+      "example_error": "inventory: expected 93 rows, got 94"
+    },
+    {
+      "mutant": "m6 O3 disposition changed without amendment",
+      "rejected": true,
+      "example_error": "verifiedBy: O3-protected identity disposition 'REMOVE' requires O3_AMENDMENT_REQUIRED"
+    },
+    {
+      "mutant": "m7 normative_reference as bare string",
+      "rejected": true,
+      "example_error": "EngineeringIncrement: normative_reference must be an array, got str"
+    },
+    {
+      "mutant": "m8 blockers as string",
+      "rejected": true,
+      "example_error": "EngineeringIncrement: blockers must be an array, got str"
+    },
+    {
+      "mutant": "m9 evidence single-char fragment",
+      "rejected": true,
+      "example_error": "EngineeringIncrement: evidence one/two-character fragment: 'e'"
+    }
+  ],
+  "mutation_selftest_passed": true,
+  "pre_repair_artifact_rejected": null,
+  "pre_repair_rejection_reasons": [
+    "pre-repair audit artifact not present in the governed tree (audit-only; see RECHECK-REPORT.md \u00a72)"
+  ]
+}
