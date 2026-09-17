@@ -194,6 +194,16 @@ def validate_repo_head(repo: Path, git_commit: str) -> None:
 def compose(*args: str, repo: Path) -> None:
     env = dict(os.environ)
     env["DEPLOY_DIR"] = str(DEPLOY_DIR)
+    # compose interpolates the WHOLE file for EVERY subcommand: the
+    # ask-viewer service's required DE4SDV_APP_GIT_SHA must be present even
+    # for commands that never touch the viewer (`stop caddy`, `up -d
+    # --build postgres sysml2-api`). Live evidence 2026-09-17 (deploy run
+    # 35238614605): the first `stop caddy` was refused with "required
+    # variable DE4SDV_APP_GIT_SHA is missing a value" because only
+    # recreate_ask_viewer provided it. The repository checkout is validated
+    # at the bundle SHA before any compose call, so HEAD is the deployed
+    # SHA.
+    env["DE4SDV_APP_GIT_SHA"] = git_head(repo)
     subprocess.run(
         [
             "docker",
