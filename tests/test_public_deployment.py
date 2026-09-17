@@ -676,6 +676,41 @@ def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     )
 
 
+def test_workflow_transfers_only_regular_bundle_files() -> None:
+    """The privileged evidence bundle carries evidence subdirectories.
+
+    The bundle now includes the o3/ Stage-A evidence directory; ``scp``
+    without ``-r`` fails closed on a directory (deploy run 35232563477:
+    'local "/tmp/bundle/o3" is not a regular file' — the job aborted
+    before deploy.py ran). The transfer must send regular files only and
+    still fail closed when the bundle holds no regular files.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
+        encoding="utf-8"
+    )
+    transfer_step = wf.split(
+        "- name: Transfer validated bundle and run fail-closed deploy", 1
+    )[1]
+    transfer_step = transfer_step.split(
+        "- name: Post-deploy public verification (mandatory)", 1
+    )[0]
+    scp_lines = [
+        line
+        for line in transfer_step.splitlines()
+        if line.strip().startswith("scp -i /tmp/deploy_key")
+    ]
+    assert len(scp_lines) == 1
+    scp_line = scp_lines[0]
+    # The raw glob is replaced by the shell-selected regular-file list.
+    assert "/tmp/bundle/*" not in scp_line
+    assert '"${bundle_files[@]}"' in scp_line
+    # Selection is regular-files-only and fails closed when empty.
+    assert "for entry in /tmp/bundle/*" in transfer_step
+    assert '[ -f "$entry" ]' in transfer_step
+    assert '[ "${#bundle_files[@]}" -eq 0 ]' in transfer_step
+    assert "bundle contains no regular files" in transfer_step
+
+
 def test_compose_publishes_only_proxy_ports() -> None:
     compose_text = (DEPLOYMENT / "compose.yaml").read_text(encoding="utf-8")
     ports_sections = compose_text.count("ports:")

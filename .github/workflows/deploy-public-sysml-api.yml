@@ -354,7 +354,25 @@ jobs:
           # deployments can survive.
           ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             'sudo rm -rf /srv/de4sdv/artifacts/incoming && sudo mkdir -p /srv/de4sdv/artifacts/incoming /srv/de4sdv/status && sudo chown -R "$(whoami)" /srv/de4sdv/artifacts /srv/de4sdv/status'
-          scp -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/bundle/* "$SSH_USER@$SSH_HOST:/srv/de4sdv/artifacts/incoming/"
+          # Transfer only regular files: the privileged evidence bundle also
+          # carries evidence subdirectories (o3/ Stage-A closure bundle,
+          # attestation, grounding proof, equivalence report) that are not
+          # deployment inputs. scp without -r fails closed on any directory
+          # (deploy run 35232563477: 'local "/tmp/bundle/o3" is not a
+          # regular file' — the job aborted before deploy.py ran). Evidence
+          # subdirectories stay on the runner; only files are transferred,
+          # and an empty bundle still fails closed.
+          bundle_files=()
+          for entry in /tmp/bundle/*; do
+            if [ -f "$entry" ]; then
+              bundle_files+=("$entry")
+            fi
+          done
+          if [ "${#bundle_files[@]}" -eq 0 ]; then
+            echo "bundle contains no regular files" >&2
+            exit 1
+          fi
+          scp -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "${bundle_files[@]}" "$SSH_USER@$SSH_HOST:/srv/de4sdv/artifacts/incoming/"
           # deploy.py uses the dedicated deployment venv created by
           # provision-server.sh and stops the public proxy before importing.
           # The import runs ~15-20 min with no output; without keepalives an
