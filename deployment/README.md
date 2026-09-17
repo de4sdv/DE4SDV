@@ -234,6 +234,25 @@ and an independent rate-limit budget (`guide_global`, `guide_daily`,
 hourly/daily spend. No server-side user memory or accounts exist in V1;
 conversation state is browser-local.
 
+## Semantic authority selection (O3 Stage B)
+
+The ask-viewer and the semantic MCP server select their semantic authority
+explicitly. The default is the legacy authored `KernelContract` authority;
+an accepted closed O3 authority bundle for the frozen 13-identity subset
+can be selected per deployment. The variables
+(`DE4SDV_SEMANTIC_AUTHORITY`, `DE4SDV_O3_AUTHORITY_BUNDLE`,
+`DE4SDV_O3_AUTHORITY_BUNDLE_ID`) are supplied through the compose
+substitution environment (`/srv/de4sdv/sysml2-api.env` or the deploy
+session), and an O3 bundle is delivered under `/srv/de4sdv/artifacts/o3/`
+(mounted read-only at `/run/de4sdv/o3`). Selection is fail-closed: an
+invalid O3 request refuses the runtime instead of serving legacy answers.
+The deployed authority is visible at `GET /ask-status.json`
+(`.semantic_authority`). Activation and rollback procedures and the
+reasoning behind them live in
+`docs/method-conformance/o3/o3-activation-and-rollback.md`; Stage B
+ships no accepted bundle, so production remains legacy until a reviewed
+cutover decision.
+
 ## Known limitations
 
 - The pilot implementation serializes large result sets server-side; complete

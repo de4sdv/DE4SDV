@@ -102,6 +102,19 @@ services:
       # entrypoint refuses to serve when the mounted checkout HEAD does not
       # equal this SHA. deploy.py always sets it to the deployed SHA.
       DE4SDV_APP_GIT_SHA: ${DE4SDV_APP_GIT_SHA:?DE4SDV_APP_GIT_SHA is required (set to the exact deployed SHA)}
+      # O3 semantic-authority selection. Default legacy: the authored
+      # KernelContract path, unchanged behavior. Values come from the
+      # compose substitution environment (the --env-file passed by
+      # deployment/scripts/deploy.py, e.g. /srv/de4sdv/sysml2-api.env),
+      # never from the service env file, which this section overrides.
+      # An explicit `o3` request is verified at startup against the exact
+      # revision, the revision binding, the closed bundle schema/id and its
+      # activation eligibility; any mismatch refuses the runtime (there is
+      # no fallback to legacy). Procedures: docs/method-conformance/o3/
+      # o3-activation-and-rollback.md
+      DE4SDV_SEMANTIC_AUTHORITY: ${DE4SDV_SEMANTIC_AUTHORITY:-legacy}
+      DE4SDV_O3_AUTHORITY_BUNDLE: ${DE4SDV_O3_AUTHORITY_BUNDLE:-/run/de4sdv/o3/de4sdv-o3-authority-bundle.json}
+      DE4SDV_O3_AUTHORITY_BUNDLE_ID: ${DE4SDV_O3_AUTHORITY_BUNDLE_ID:-}
     expose:
       - "8787"
     read_only: true
@@ -114,6 +127,13 @@ services:
     volumes:
       - ${DEPLOY_SOURCE_DIR:-/srv/de4sdv/DE4SDV}:/srv/de4sdv/DE4SDV:ro
       - ${DEPLOY_DIR}/artifacts/current/de4sdv-full-model-binding.json:/run/de4sdv/de4sdv-full-model-binding.json:ro
+      # O3 authority-bundle delivery directory: empty (and never read)
+      # under legacy authority; an activation places the accepted closed
+      # bundle here and points DE4SDV_O3_AUTHORITY_BUNDLE/_ID at it. Kept
+      # OUTSIDE the repo checkout so deploy-time cleanliness stays
+      # authoritative. Rollback leaves the file in place: a retained
+      # artifact is not active authority.
+      - ${DEPLOY_DIR}/artifacts/o3:/run/de4sdv/o3:ro
       - ask_viewer_cache:/var/cache/de4sdv-viewer
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/ask-status.json', timeout=5)"]

@@ -32,6 +32,7 @@ def build_semantic_runtime(
     method_conformance: Any = None,
     method_context_provider: Any = None,
     semantic_authority: "dict[str, Any] | str | Path | None" = None,
+    require_activation_eligible: bool = False,
 ) -> SemanticQueryService:
     """Assemble the existing API-first semantic architecture for one revision.
 
@@ -53,15 +54,23 @@ def build_semantic_runtime(
 
     - ``None`` (production default): the legacy authored ``KernelContract``
       path — behaviorally unchanged;
-    - a CLOSED O3 candidate bundle (document dict, str, or path to the
+    - a CLOSED O3 authority bundle (document dict, str, or path to the
       bundle JSON): the reviewed 13 migrated identities resolve exclusively
-      through the verified candidate bundle (Semantic Projection semantics +
+      through the verified bundle (Semantic Projection semantics +
       API Representation Profile mechanics), every other identity delegates
       to the legacy contract. The bundle must carry a structured
       exact-revision API closure attestation matching this binding; an
       unclosed or mismatched bundle fails closed. There is no implicit
       fallback between the two paths and never two providers for one
       identity.
+
+    Production surfaces select this explicitly through
+    :mod:`de4sdv.semantic.authority_selection` (default legacy; an explicit
+    O3 request fails closed instead of degrading to legacy).
+    ``require_activation_eligible`` refuses a closed but not activation-
+    eligible bundle — the production selection rule; the same-revision
+    comparison path keeps it false so an ineligible bundle can still be
+    compared (and stays marked activation-blocked).
 
     ``semantic_authority_id`` on the returned service labels the authority
     path for provenance and cache/snapshot identity; it never changes query
@@ -85,6 +94,7 @@ def build_semantic_runtime(
                 "sha256:" + hashlib.sha256(binding_path.read_bytes()).hexdigest()
             ),
             expected_git_revision=expected_git_revision,
+            require_activation_eligible=require_activation_eligible,
         )
         authority = o3_authority.facade
         authority_id = o3_authority.authority_id
