@@ -8,9 +8,11 @@ Stage A machinery (evidence tooling; NOT activation):
   proof against the bound API revision, and writes the closed executable
   bundle + the structured closure attestation;
 - ``compare`` mode instantiates the OLD authority path (legacy authored
-  ``KernelContract``) and the NEW candidate authority path (verified closed
+  ``KernelContract``) and the NEW O3 authority path (verified closed
   bundle) over the SAME engineering inputs and produces the same-revision
-  runtime equivalence report (``de4sdv.o3-runtime-equivalence-report/v1``).
+  runtime equivalence report (``de4sdv.o3-runtime-equivalence-report/v1``),
+  including the complete per-subject K comparison matrix (``k_comparison_matrix``)
+  alongside the aggregate K witness populations.
 
 The only semantic variable between the two paths is the authority path.
 Any basis difference (revision, SysML project/commit, import closure,
@@ -424,6 +426,113 @@ def compare_collected(
 # ---------------------------------------------------------------------------
 
 
+def build_k_comparison_matrix(compared: dict[str, Any]) -> dict[str, Any]:
+    """The COMPLETE per-subject K comparison matrix (evidence hardening).
+
+    The aggregate ``k_pair`` evidence persists witness populations; this
+    matrix persists one independently inspectable row for every compared K
+    subject under both K predicates (both navigations of the same modeled
+    facts), each carrying the subject identity, the predicate and query
+    direction, the semantic strength / claim class, the per-side results
+    (target identities, witness identities, native witness identity,
+    support state, completeness), and the equality classification with its
+    mismatch list. A per-witness index records which subjects and targets
+    each native witnessed connection covers on each side.
+
+    Comparison semantics are unchanged: this is derivable evidence from the
+    same per-subject comparison results the report already computes.
+    """
+    rows: list[dict[str, Any]] = []
+    witness_index: dict[str, dict[str, Any]] = {}
+
+    def _side(result: dict[str, Any] | None) -> dict[str, Any] | None:
+        if not result:
+            return None
+        return {
+            "targets": list(result.get("targets") or []),
+            "witnesses": list(result.get("witnesses") or []),
+            "native_witness": result.get("k_witness"),
+            "support_state": result.get("support_state"),
+            "completeness": result.get("completeness"),
+            "strategy": result.get("strategy"),
+        }
+
+    for predicate in oe.K_PAIR:
+        collected = compared.get(predicate) or {}
+        for subject in sorted(collected.get("subjects") or {}):
+            entry = collected["subjects"][subject]
+            old = entry.get("old")
+            new = entry.get("new")
+            reference = old or new or {}
+            row = {
+                "subject_id": subject,
+                "predicate": predicate,
+                "direction": str(reference.get("direction") or ""),
+                "query_direction": str(reference.get("query_direction") or ""),
+                "semantic_strength": str(reference.get("semantic_strength") or ""),
+                "claim_boundary": str(reference.get("claim_boundary") or ""),
+                "old_authority_result": _side(old),
+                "new_authority_result": _side(new),
+                "equality": {
+                    "classification": str(entry.get("classification") or ""),
+                    "mismatches": list(entry.get("mismatches") or []),
+                },
+            }
+            rows.append(row)
+            for side_name, result in (("old", old), ("new", new)):
+                witness = (result or {}).get("k_witness") or {}
+                connection_id = witness.get("connection_id")
+                if not connection_id:
+                    continue
+                record = witness_index.setdefault(
+                    str(connection_id),
+                    {
+                        "connection_id": str(connection_id),
+                        "need_end_id": witness.get("need_end_id"),
+                        "derived_requirement_end_id": witness.get(
+                            "derived_requirement_end_id"
+                        ),
+                        "role_lineage_provenance": witness.get(
+                            "role_lineage_provenance"
+                        ),
+                        "old_subjects": [],
+                        "new_subjects": [],
+                        "old_targets": [],
+                        "new_targets": [],
+                        "_classifications": [],
+                    },
+                )
+                record[f"{side_name}_subjects"].append(subject)
+                record[f"{side_name}_targets"].extend(
+                    result.get("targets") or []
+                )
+                record["_classifications"].append(
+                    str(entry.get("classification") or "")
+                )
+    for record in witness_index.values():
+        classifications = record.pop("_classifications")
+        record["old_subjects"] = sorted(set(record["old_subjects"]))
+        record["new_subjects"] = sorted(set(record["new_subjects"]))
+        record["old_targets"] = sorted(set(record["old_targets"]))
+        record["new_targets"] = sorted(set(record["new_targets"]))
+        record["classification"] = _worst_classification(*classifications)
+    return {
+        "grain": (
+            "one row per compared (subject, K predicate) pair; each row "
+            "carries both authority results with target/witness/native-"
+            "witness identities, semantic strength, claim/support state, "
+            "completeness, and the equality classification"
+        ),
+        "predicates": list(oe.K_PAIR),
+        "row_count": len(rows),
+        "rows": rows,
+        "witness_index": {
+            connection: witness_index[connection]
+            for connection in sorted(witness_index)
+        },
+    }
+
+
 def k_pair_evidence(
     old_collected: dict[str, dict[str, Any]],
     new_collected: dict[str, dict[str, Any]],
@@ -747,7 +856,7 @@ def build_runtime_equivalence_report(
         },
         "new": {
             "schema": oe.COMPARISON_MANIFEST_SCHEMA,
-            "authority_path": "o3-candidate",
+            "authority_path": "o3-authority",
             "git_revision": str(binding.git_commit),
             "sysml_project_id": str(binding.sysml_project_id),
             "sysml_commit_id": str(binding.sysml_commit_id),
@@ -761,6 +870,7 @@ def build_runtime_equivalence_report(
     manifest_errors = oe.validate_manifest_pair(manifests["old"], manifests["new"])
 
     k_evidence = k_pair_evidence(old_collected, new_collected)
+    k_matrix = build_k_comparison_matrix(compared)
     classes = compare_class_identities(
         old_service,
         new_service,
@@ -841,6 +951,7 @@ def build_runtime_equivalence_report(
         },
         "per_identity": per_identity,
         "k_pair": k_evidence,
+        "k_comparison_matrix": k_matrix,
         "activation_eligible": (
             bool((bundle.get("api_closure") or {}).get("activation_eligible"))
             and overall == "EQUIVALENT"
@@ -1106,6 +1217,12 @@ def run_compare(args: argparse.Namespace) -> int:
         f"new={k_pair['new_witness_count']} "
         f"expected={k_pair['expected_witness_population']} "
         f"complete={k_pair['population_complete']})"
+    )
+    print(
+        "k comparison matrix: "
+        f"{report['k_comparison_matrix']['row_count']} subject row(s), "
+        f"{len(report['k_comparison_matrix']['witness_index'])} witness "
+        "entries"
     )
     print(f"bundle id: {report['bundle_id']}")
     for name, entry in sorted(report["per_identity"].items()):

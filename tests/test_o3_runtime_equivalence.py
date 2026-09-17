@@ -177,10 +177,23 @@ def _binding(*, commit="a" * 40, project="pid", sysml="cid"):
     )
 
 
-def _hop(target, witness, strategy="s"):
-    return SimpleNamespace(
+def _hop(target, witness, strategy="s", *, k_witness=None):
+    hop = SimpleNamespace(
         target={"@id": target}, api_object={"@id": witness}, strategy=strategy
     )
+    if k_witness is not None:
+        hop.witness = k_witness
+    return hop
+
+
+def _k_witness(index: int) -> dict:
+    """Real K hop witness shape (traversal.py): connection + typed ends."""
+    return {
+        "connection_id": f"conn-{index}",
+        "need_end_id": [f"end-{index}-need"],
+        "derived_requirement_end_id": [f"end-{index}-req"],
+        "role_lineage_provenance": "authored",
+    }
 
 
 def _membership_elements():
@@ -297,16 +310,17 @@ def _k_corpus(n=5):
 
 def _k_hops(n=5, *, forward_missing=(), inverse_missing=()):
     """Per-subject hops: each connection yields ONE witness in BOTH
-    navigations (one modeled fact / two navigations)."""
+    navigations (one modeled fact / two navigations), carrying the real
+    native-witness identity of the governed connection usage."""
     hops = {}
     for index in range(1, n + 1):
         if index not in forward_missing:
             hops[("derivedRequirementsOfNeed", f"need-{index}")] = [
-                _hop(f"req-{index}", f"conn-{index}")
+                _hop(f"req-{index}", f"conn-{index}", k_witness=_k_witness(index))
             ]
         if index not in inverse_missing:
             hops[("derivesRequirementFromNeed", f"req-{index}")] = [
-                _hop(f"need-{index}", f"conn-{index}")
+                _hop(f"need-{index}", f"conn-{index}", k_witness=_k_witness(index))
             ]
     return hops
 
@@ -1048,6 +1062,134 @@ class TestSingleClosureIdentity:
         report = self._full_report(grounding="BLOCKING_MISMATCH")
         assert report["overall"] == "BLOCKING_MISMATCH"
         assert runner.compare_exit_code(report) != 0
+
+
+class TestKComparisonMatrix:
+    """Evidence hardening: the report persists the complete per-subject K
+    comparison matrix (subject/target/witness identities, both authority
+    results, strength, support/completeness, equality) in addition to the
+    aggregate K witness populations. Comparison semantics are unchanged."""
+
+    @staticmethod
+    def _matrix():
+        old, new, elements = _k_services()
+        compared = {
+            predicate: runner.compare_collected(
+                runner.collect_predicate(old, predicate, elements),
+                runner.collect_predicate(new, predicate, elements),
+            )
+            for predicate in oe.K_PAIR
+        }
+        return runner.build_k_comparison_matrix(compared)
+
+    def test_matrix_rows_cover_every_compared_subject_and_predicate(self) -> None:
+        matrix = self._matrix()
+        assert matrix["predicates"] == list(oe.K_PAIR)
+        # The complete witness-derived population (both ends of every
+        # connection) is compared under BOTH navigations: 10 subjects ×
+        # 2 predicates. Quiet absence rows (the non-matching end) are part
+        # of the persisted matrix.
+        subjects = {f"need-{index}" for index in range(1, 6)} | {
+            f"req-{index}" for index in range(1, 6)
+        }
+        assert matrix["row_count"] == 20
+        for predicate in oe.K_PAIR:
+            assert {
+                row["subject_id"]
+                for row in matrix["rows"]
+                if row["predicate"] == predicate
+            } == subjects
+
+    def test_row_carries_both_authority_results_and_equality(self) -> None:
+        matrix = self._matrix()
+        row = next(
+            item
+            for item in matrix["rows"]
+            if item["predicate"] == "derivedRequirementsOfNeed"
+            and item["subject_id"] == "need-1"
+        )
+        assert row["semantic_strength"] == "native-reference"
+        assert row["claim_boundary"] == "native-reference"
+        old = row["old_authority_result"]
+        new = row["new_authority_result"]
+        assert old["targets"] == ["req-1"]
+        assert old["witnesses"] == ["conn-1"]
+        assert old["native_witness"]["connection_id"] == "conn-1"
+        assert old["native_witness"]["need_end_id"] == ["end-1-need"]
+        assert old["native_witness"]["derived_requirement_end_id"] == ["end-1-req"]
+        assert old["support_state"] == "runtime-queryable"
+        assert old["completeness"] == "complete"
+        assert new == old
+        assert row["equality"] == {"classification": "EQUIVALENT", "mismatches": []}
+
+    def test_witness_index_covers_every_native_witness(self) -> None:
+        matrix = self._matrix()
+        index = matrix["witness_index"]
+        assert set(index) == {f"conn-{index}" for index in range(1, 6)}
+        record = index["conn-1"]
+        assert record["need_end_id"] == ["end-1-need"]
+        assert record["derived_requirement_end_id"] == ["end-1-req"]
+        # conn-1 is the witness of the forward row (need-1) and the inverse
+        # row (req-1) on both authority sides.
+        assert record["old_subjects"] == ["need-1", "req-1"]
+        assert record["new_subjects"] == ["need-1", "req-1"]
+        assert record["old_targets"] == ["need-1", "req-1"]
+        assert record["new_targets"] == ["need-1", "req-1"]
+        assert record["classification"] == "EQUIVALENT"
+
+    def test_matrix_surfaces_mismatch_rows(self) -> None:
+        """A real old/new disagreement persists per subject and per witness."""
+        elements, end_records, connected = _k_corpus()
+        common = dict(
+            elements=elements, end_records=end_records, connected=connected
+        )
+        old_hops = _k_hops()
+        new_hops = _k_hops()
+        new_hops.pop(("derivedRequirementsOfNeed", "need-3"))
+        old = _fake_service(authority="old", hops=old_hops, **common)
+        new = _fake_service(authority="new", hops=new_hops, **common)
+        compared = {
+            predicate: runner.compare_collected(
+                runner.collect_predicate(old, predicate, elements),
+                runner.collect_predicate(new, predicate, elements),
+            )
+            for predicate in oe.K_PAIR
+        }
+        matrix = runner.build_k_comparison_matrix(compared)
+        row = next(
+            item
+            for item in matrix["rows"]
+            if item["predicate"] == "derivedRequirementsOfNeed"
+            and item["subject_id"] == "need-3"
+        )
+        assert row["equality"]["classification"] != "EQUIVALENT"
+        assert row["equality"]["mismatches"]
+        assert row["old_authority_result"]["targets"] == ["req-3"]
+        assert row["new_authority_result"]["targets"] == []
+        assert matrix["witness_index"]["conn-3"]["classification"] != "EQUIVALENT"
+
+    def test_report_persists_the_matrix_with_unchanged_comparison_fields(self) -> None:
+        closed, binding = _closed_bundle()
+        old, new, _elements = _k_services()
+        report = runner.build_runtime_equivalence_report(
+            old,
+            new,
+            root=REPO_ROOT,
+            bundle=closed,
+            binding=binding,
+            binding_sha256=_BINDING_DIGEST,
+            import_closure_digest=closed["api_closure"]["import_closure_digest"],
+            git_revision="a" * 40,
+            verification_case_grounding={"result": "EQUIVALENT"},
+            generated_at="t",
+        )
+        assert report["overall"] == "EQUIVALENT"
+        assert report["k_comparison_matrix"]["row_count"] == 20
+        # Aggregate K evidence and per-identity classifications unchanged.
+        assert report["k_pair"]["population_complete"] is True
+        assert report["per_identity"]["derivedRequirementsOfNeed"][
+            "classification"
+        ] == "EQUIVALENT"
 
 
 class TestExitRules:
