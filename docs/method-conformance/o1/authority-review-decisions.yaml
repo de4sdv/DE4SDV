@@ -227,15 +227,18 @@ entries:
     disposition: keep-as-is
     confidence: high
     stage: batched-parity (post-0a/0b)
-    note: 'O4 review correction (demotion; KEEP_VOCABULARY_ONLY): native enumeration carrying
-      DE4SDV process-guidance vocabulary — not engineering semantics and not a claim
-      surface; stays model-resident as guidance labels; never promoted to semantic
-      authority. Zero semantic consumers. The former model-definition-parity obligation
-      is superseded; inventory-description correction only — no semantic/model/runtime
-      change.'
+    note: 'O4 review correction (demotion; KEEP_VOCABULARY_ONLY): bounded DE4SDV
+      process-guidance vocabulary — model-resident, no runtime semantic/traversal
+      claim and no runtime semantic consumers; never promoted to semantic authority.
+      The O1 authority-target vocabulary has no vocabulary-only value;
+      model-authoritative is retained as the legacy O1 schema''s model-side
+      destination only and does not imply runtime semantic promotion. The O4
+      definition-parity requirement remains (the authored-YAML definition authority
+      must still be retired before O4 closure); projection remains vocabulary-only.
+      Inventory-description correction only — no semantic/model/runtime change.'
     unknowns: []
     required_evidence:
-    - 'demotion record: bounded guidance vocabulary only (no definition-parity obligation; never promoted to semantic authority)'
+    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
     semantic_text_equivalence: review-required
