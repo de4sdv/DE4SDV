@@ -679,7 +679,11 @@ class TestPLE:
         accepted = inventory["adoption_status_counts"].get("accepted", 0)
         pinned = inventory["adoption_status_counts"]["pinned-not-adopted"]
         assert pinned == 8
-        assert accepted == 4
+        # The O4 review correction batch (W1) corrected the accepted-library
+        # labels of usesVerificationMethod/VerificationMethod, leaving exactly
+        # the two evidence/status library adoptions (EvidenceStatus,
+        # hasEvidenceStatus).
+        assert accepted == 2
         for identity in PLEML_IDENTITIES:
             assert _entries(inventory)[identity]["reviewed"]["adoption_status"] != (
                 "accepted"

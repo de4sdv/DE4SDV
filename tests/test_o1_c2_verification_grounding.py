@@ -354,9 +354,21 @@ class TestC2ScopeAndCounts:
         )
         assert entries["verifiedBy"]["reviewed"]["authority_current"] == "legacy-yaml"
 
-    def test_authority_targets_remain_native_sysml(self, inventory):
-        for entry in _entries(inventory, C2_IDENTITIES).values():
-            assert entry["reviewed"]["authority_target"] == "native-sysml"
+    def test_authority_targets_reviewed_outcomes(self, inventory):
+        """The reviewed c2 outcomes as corrected by the O4 review correction
+        batch (W1, finding 17): VerificationCase keeps native-sysml, while
+        verifiedBy's authority-target description is corrected to
+        de4sdv-application-semantic (c5 applied the same Requirement-lineage
+        source restriction c3 recorded for hasSubject)."""
+        entries = _entries(inventory, C2_IDENTITIES)
+        assert (
+            entries["VerificationCase"]["reviewed"]["authority_target"]
+            == "native-sysml"
+        )
+        assert (
+            entries["verifiedBy"]["reviewed"]["authority_target"]
+            == "de4sdv-application-semantic"
+        )
 
     def test_evidence_states_are_parity_reviewed(self, inventory):
         for entry in _entries(inventory, C2_IDENTITIES).values():
