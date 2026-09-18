@@ -512,7 +512,9 @@ class TestMethodEvaluationScopeIncomplete:
     def test_required_evidence_sequence_starts_with_representation_decision(self):
         """O2 cannot close this gap alone: the sequence starts with a reviewed
         semantic/model representation decision, then implementation + parity
-        review, then O2 generation, then the O3 transition."""
+        review, then O2 admission/generation under O4. O3 stays frozen
+        throughout O4, so no O3 transition obligation may appear (lifecycle
+        consistency correction)."""
         decisions = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
         row = decisions["entries"]["MethodEvaluationScope"]
         required = row["required_evidence"]
@@ -520,7 +522,8 @@ class TestMethodEvaluationScopeIncomplete:
         assert "representation decision" in required[0]
         joined = " ".join(required)
         assert "parity review" in joined
-        assert "O2" in joined and "O3" in joined
+        assert "O2" in joined
+        assert "O3" not in joined
 
     def test_runtime_exclusions_are_not_model_authority(self, inventory):
         """The runtime exclusions input is implementation evidence for the
