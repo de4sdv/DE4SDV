@@ -5,12 +5,12 @@
   "extends": {
     "artifact": "docs/method-conformance/o2/semantic-projection-v1.1.json",
     "schema": "de4sdv.semantic-projection.v1.1",
-    "source_revision": "7dbbf4b83ea2a14e2aa1b8998564b3167b99c9a1",
-    "artifact_digest": "sha256:654b0aab0140bf0a77b1da4af93b4c2129a045cd12784ada8fe5518b5ea60b95",
+    "source_revision": "c835e69ce54b768786af80a0257eb19c53d01e42",
+    "artifact_digest": "sha256:3f6fedc668bf6740aea969a3eba7d936c43a3d4e3c8270bf2b4e22e953ec5533",
     "note": "Additive extension of this immutable O2.2 baseline: the baseline remains canonical for its own content and is neither re-emitted nor re-bound here. The recorded digest pins the baseline bytes this extension was generated against; the baseline's own repository gate validates its revision binding, and the extension gate additionally requires the baseline source revision to remain an ancestor of the extension source revision."
   },
   "binding": {
-    "source_revision": "b6db63643a7613f1582b72a1d6daf43d64fd206b",
+    "source_revision": "bf901371eee07c3c330ff00f2977f47fcb78231d",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -50,11 +50,11 @@
     },
     "baseline_projection": {
       "path": "docs/method-conformance/o2/semantic-projection-v1.1.json",
-      "digest": "sha256:654b0aab0140bf0a77b1da4af93b4c2129a045cd12784ada8fe5518b5ea60b95"
+      "digest": "sha256:3f6fedc668bf6740aea969a3eba7d936c43a3d4e3c8270bf2b4e22e953ec5533"
     },
     "baseline_profile": {
       "path": "docs/method-conformance/o2/api-representation-profile-v1.1.json",
-      "digest": "sha256:ab0820363018437f0b905078457ff8bed5a01d41d6c8d2d7de356b315753b6a4"
+      "digest": "sha256:8098b73ffe1295c3fff385b6e464135db5c4ce60c70014905c2549f735b03ee2"
     },
     "bound_inputs": {
       "approach/framework/ontology/de4sdv-basic-ontology.yaml": "sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4",
@@ -66,12 +66,12 @@
       "de4sdv/semantic/projection_o23.py": "sha256:c37930cbedde3872e6db0496784ee4665d813c6832ee9fab7a07f837d7f697b5",
       "de4sdv/semantic/projection_v1.py": "sha256:b568b8e93482b77f0f7bf44cda2411f6deba4d4267248b19a6608e4394c2af10",
       "de4sdv/sysml_api/revisions.py": "sha256:4c8e03fb1cabdcd503ef0fd838218bd8690be72c26ea7b3b83feecf91745c7d7",
-      "docs/method-conformance/o2/api-representation-profile-v1.1.json": "sha256:ab0820363018437f0b905078457ff8bed5a01d41d6c8d2d7de356b315753b6a4",
+      "docs/method-conformance/o2/api-representation-profile-v1.1.json": "sha256:8098b73ffe1295c3fff385b6e464135db5c4ce60c70014905c2549f735b03ee2",
       "docs/method-conformance/o2/o23-admission.yaml": "sha256:384f4793ed1827f9fde0deff607aa0ac0bc17b046b9060cda735337a0de3fe49",
-      "docs/method-conformance/o2/semantic-projection-v1.1.json": "sha256:654b0aab0140bf0a77b1da4af93b4c2129a045cd12784ada8fe5518b5ea60b95",
+      "docs/method-conformance/o2/semantic-projection-v1.1.json": "sha256:3f6fedc668bf6740aea969a3eba7d936c43a3d4e3c8270bf2b4e22e953ec5533",
       "scripts/generate_semantic_projection_o23.py": "sha256:d22b9233e20db4b87f9c057ef85aa1544d3999c6a82eae5d467a126531860a6e",
       "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml": "sha256:be62174359805cb5fa26bc93773573e716e73a812b2b6c32a0271583c257e352",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:7fd6dd879f303ed9b99ccfe8e0e845b894155fbd0ef752a4756f6ceffdcdfe53",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:83c513b2e18aec6ed8e1c219c307996aa0d879a105edf6a2cec901f02691bf5f",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:bb4da71d2b07489141b3bc5a55e83c7262d349a88784d065c0603fa16992da45"
     }
   },
