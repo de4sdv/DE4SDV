@@ -53,6 +53,11 @@ try:
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     from ontology_review import validate_review
 
+try:
+    from scripts import generate_o4_execution_register
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import generate_o4_execution_register
+
 REQUIRED_FILES = [
     "README.md",
     "CONTRIBUTING.md",
@@ -186,6 +191,7 @@ def main() -> int:
     projection_o22_errors = generate_semantic_projection_o22.run_check_errors_o22(root)
     projection_o23_errors = generate_semantic_projection_o23.run_check_errors_o23(root)
     ontology_review_errors = validate_review.run_check_errors(root)
+    o4_register_errors = generate_o4_execution_register.run_check_errors(root)
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -244,6 +250,11 @@ def main() -> int:
         for error in ontology_review_errors:
             print(f"- {error}")
 
+    if o4_register_errors:
+        print("Repository check failed. O4 execution register errors:")
+        for error in o4_register_errors:
+            print(f"- {error}")
+
     if (
         missing
         or duplicate_packages
@@ -256,6 +267,7 @@ def main() -> int:
         or projection_o22_errors
         or projection_o23_errors
         or ontology_review_errors
+        or o4_register_errors
     ):
         return 1
 
