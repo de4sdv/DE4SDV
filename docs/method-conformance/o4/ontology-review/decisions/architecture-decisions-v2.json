@@ -1196,7 +1196,7 @@
       "Requirement"
     ],
     "decisions": [
-      "Design the lineage contract in the model first; then O2 projection, then O3 transition."
+      "Design the lineage contract in the model first; then O2 projection, then the governed O4 authority retirement."
     ],
     "blocker": "Reviewed EvidenceContract-specific identity/lineage contract required (shared specialization lineage or kernel binding).",
     "change_summary": "Recheck at bc2b65a: decision confirmed (KEEP_DE4SDV_APPLICATION_SEMANTIC); evidence anchors re-verified and strengthened.",
