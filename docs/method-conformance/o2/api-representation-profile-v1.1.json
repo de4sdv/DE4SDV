@@ -11,7 +11,7 @@
     "note": "Additive extension of this immutable O2.1 baseline: the baseline remains canonical for its own content and is neither re-emitted nor re-bound here. The recorded digest pins the baseline bytes this extension was generated against; the baseline's own repository gate validates its revision binding, and the extension gate additionally requires the baseline source revision to remain an ancestor of the extension source revision."
   },
   "binding": {
-    "source_revision": "69dc8e7f2d4d5e018467f9aa87074c0fcd644b35",
+    "source_revision": "712b8c2aa5544247cce0f9901640ddcc9d3daf7d",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -64,7 +64,7 @@
       "docs/method-conformance/o2/semantic-projection-v1.json": "sha256:2d142255106942958efdbcd9697439cdb48f6c5ef0e3918024a942bd19515d8f",
       "scripts/generate_semantic_projection_o22.py": "sha256:275c401f81aeaec3269765ca752d640667ee50355fe0f7bf70d97900528e64f4",
       "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml": "sha256:c5c2bdeb216bbd639543d00b69f6e7184bedaa708479365749c95de776c7185b",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:83c513b2e18aec6ed8e1c219c307996aa0d879a105edf6a2cec901f02691bf5f",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:1f0394a1ebfedd100e7861b38f2213d2afbfd543ba6dd4533260bb1d59be447c",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:bb4da71d2b07489141b3bc5a55e83c7262d349a88784d065c0603fa16992da45"
     }
   },
