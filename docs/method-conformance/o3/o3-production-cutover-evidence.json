@@ -1,0 +1,107 @@
+{
+  "schema": "de4sdv.o3-production-cutover-evidence/v1",
+  "status": "complete",
+  "scope": "frozen 13-identity O3 semantic-authority migration (Stage B) — exactly the reviewed 13; no fourteenth identity; no O3 semantic amendment",
+  "deployed_git_revision": "020d1d20e5c03542f67f38b1cc716f4332478538",
+  "privileged_evidence": {
+    "workflow": ".github/workflows/privileged-full-model-api-ingestion.yml",
+    "run_id": "35203768046",
+    "run_result": "success",
+    "artifact_name": "full-model-api-ingestion-020d1d20e5c03542f67f38b1cc716f4332478538",
+    "export_sha256": "sha256:6de3e8f544ac2fa110a48c2efd01928c84e1dc928a569de7d922eb689c47b22c"
+  },
+  "bundle": {
+    "id": "o3b-31f999503d96233ce974f0bfd72a5df0",
+    "schema": "de4sdv.o3-authority-bundle/v1",
+    "state": "closed",
+    "sha256": "sha256:bcd853a9f61faa9feb9422a2db9ded4cf76ff9b2013eaa82c0b0ebbc2b99e167",
+    "runtime_build": "rb-68f6e13c9e27f3a39a7a5b934add8089",
+    "migrated_identities": [
+      "MethodPhase",
+      "MethodContractObligation",
+      "EvaluationScopeMembership",
+      "EvaluationSourceKind",
+      "TestedScopeDeclaration",
+      "RetainedExecutionRecordReference",
+      "AcceptanceAttestationReference",
+      "VerificationCase",
+      "hasSubject",
+      "verifiedBy",
+      "derivesRequirementFromNeed",
+      "derivedRequirementsOfNeed",
+      "hasRelevantArchitecture"
+    ]
+  },
+  "deployment_binding": {
+    "git_revision": "020d1d20e5c03542f67f38b1cc716f4332478538",
+    "sysml_project_id": "78c216ab-cb91-4047-89b1-2ceadc372fcf",
+    "sysml_commit_id": "c522449f-4475-4758-b320-b4c968c10672",
+    "binding_sha256": "sha256:de6bf14b161ac968b470be2752b36e17466db9bf5aab308a1ed20e6b51849f53",
+    "semantic_validation_report_sha256": "sha256:15fd6e77144f966ed31e509dcfc263379f1529bdc0ff99b6503ee7fb1d202533",
+    "element_count": 82102,
+    "deployment_run_id": "35241617116",
+    "deployment_run_result": "success"
+  },
+  "deployment_bound_closure": {
+    "result": "closed, verified, activation_eligible",
+    "grounding": "EQUIVALENT",
+    "closure_verification_errors": "none",
+    "activation_eligible": true,
+    "import_closure_digest": "sha256:aa96aa046abbbe2920439a9d637cfdedfe7c139e9e9d2d7869d35496610a5497",
+    "attestation_sha256": "sha256:9f1389bd3b35944d38c3898009f474e88fa83b5625c07ffd25eee57fb6b60bf1",
+    "grounding_artifact_sha256": "sha256:786de3f0c456c7a52d18a178a1e1ef491d89e49cce4fdd90842314dfc0f20cdc",
+    "diff_vs_privileged_closure": "core identical (bundle id, revision, runtime build, 13 identities, projection/profile chains, ontology identity); only binding/closure-dependent fields differ (binding_sha256, deployment project/commit, import closure digest, generated_at, validator records); element_count equal; grounding artifact byte-identical",
+    "validator_artifacts": {
+      "full_model_semantic_queries": "sha256:a99d4c6bed68ffd61071fd0464b8ef1bbd3976943c5efbc8c77f62920dc6c046",
+      "product_line_scope": "sha256:65d5159b8a411b4dd46aff374effe65f1d32662fb1451565e29b8dd189ad15f7",
+      "semantic_mcp": "sha256:a21d04a757ab6855fa837c2168f718f69878f3b8a0ebb7c2c6950f372bba6128"
+    }
+  },
+  "production_cutover": {
+    "activation_utc": "2026-09-17T19:05Z~19:24Z (recreate ~19:05Z reconstructed; warmup ready + O3 snapshot written 19:24Z; first viewer poll kind=o3 ~19:07Z)",
+    "rollback_utc": "2026-09-17T20:28Z (legacy; warmup ready on first poll from its own snapshot)",
+    "reactivation_utc": "2026-09-17T20:48Z (o3; warmup ready on first poll from its own snapshot)",
+    "probe_batteries": {
+      "o3_activation_corrected": "15/15 PASS",
+      "legacy_rollback": "15/15 PASS",
+      "o3_reactivation": "15/15 PASS",
+      "cross_phase_answers": "identical (11/11 query payloads byte-identical after stripping provenance blocks)"
+    },
+    "probe_design_failures_retained": {
+      "battery": "first o3 battery (retained as audit evidence)",
+      "result": "13/15 PASS, exit 1",
+      "failures": [
+        "hasSubject initially queried from the verification-case side; the governed ontology contract defines hasSubject on the requirement side (SubjectMembership memberElement)",
+        "unmigrated-delegation probe scanned a PartUsage with no ontology-mapped relations; corrected to the specifiesFunction Dependency (requirement -> ActionUsage)"
+      ],
+      "assessment": "probe-design errors, not semantic or runtime failures; corrected battery 15/15; no production change required or made"
+    },
+    "cache_isolation": {
+      "scheme": "{sysml_commit_id}.{sha256(authority_id)[:12]}.json",
+      "legacy_snapshot": {"file": "c522449f-4475-4758-b320-b4c968c10672.68b20f605453.json", "sha256": "sha256:f4e9c1cdadc7f5a5116ba701d93ef378b9adc74e76b6fe36f031b1afb63a7353", "mtime": "2026-09-17T16:39Z, unchanged across all phases"},
+      "o3_snapshot": {"file": "c522449f-4475-4758-b320-b4c968c10672.39919dbad354.json", "sidecar_sha256": "8e7a410e8727b65d4ebed18db6265c95e0c339317a97996fb987670cdd815165", "mtime": "2026-09-17T19:24Z, unchanged across phases 2-3"},
+      "finding": "no cross-authority cache reuse; each authority loaded only its own snapshot (instant warmup ready on phases 2-3; first activation paid the by-design cold load)"
+    }
+  },
+  "final_production_authority": {
+    "selector": "DE4SDV_SEMANTIC_AUTHORITY=o3",
+    "authority_id": "o3:o3b-31f999503d96233ce974f0bfd72a5df0",
+    "bundle_host_path": "/srv/de4sdv/artifacts/o3/de4sdv-o3-authority-bundle.json",
+    "viewer_warmup": "ready",
+    "checked_at_utc": "2026-09-17"
+  },
+  "known_limitations": [
+    "Phase-1 recreate instant is reconstructed (anchors: first poll ~19:07Z, snapshot write 19:24Z); containers were replaced twice during the exercise",
+    "First O3 activation pays a by-design cold load (~18 min at 82k elements); later switches reuse the authority's own snapshot",
+    "MCP probe batteries run client-side over WAN; the production host environment was not modified for them",
+    "trace reports governed semantic_status=incomplete (path found, no gaps) and verification_coverage reports partial — identical across authorities",
+    "O3 remains frozen at exactly the 13 identities; any future semantic change to them requires a versioned amendment with new projection/profile/equivalence evidence"
+  ],
+  "operator_evidence_packages": [
+    "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/O3_PRODUCTION_CUTOVER_PACKAGE.md",
+    "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/deployment-closure-acceptance-package.md",
+    "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/closure_diff.txt",
+    "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/cutover/ (probe logs, outputs, snapshot captures)"
+  ],
+  "statement": "O3 is complete for exactly the frozen 13-identity scope. Production semantic authority is the reviewed O3 bundle o3b-31f999503d96233ce974f0bfd72a5df0 at revision 020d1d20e5c03542f67f38b1cc716f4332478538; no additional ontology identity is migrated by O3, and no O3 semantic amendment exists."
+}
