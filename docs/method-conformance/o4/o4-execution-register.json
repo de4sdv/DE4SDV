@@ -1,14 +1,38 @@
 {
   "accounting": {
-    "by_wave": {
-      "W2": 26,
-      "W3": 10,
+    "by_base_wave": {
+      "W2": 35,
+      "W3": 11,
       "W4": 10,
-      "W5": 10,
+      "W5": 11,
       "W6": 9,
-      "W7": 11,
       "closure": 1
     },
+    "by_disposition": {
+      "BLOCKED": 1,
+      "KEEP_ACCEPTED_LIBRARY": 1,
+      "KEEP_CONDITIONAL": 1,
+      "KEEP_DE4SDV_APPLICATION_SEMANTIC": 50,
+      "KEEP_EXTERNAL_REFERENCE": 10,
+      "KEEP_NATIVE": 8,
+      "KEEP_VOCABULARY_ONLY": 10,
+      "MERGE": 2,
+      "REDESIGN": 9,
+      "REMOVE": 1
+    },
+    "by_migration_class": {
+      "ALREADY_COMPLETE": 3,
+      "BLOCKED": 3,
+      "CURRENT_O3_13": 13,
+      "EXTERNAL_BOUNDARY": 10,
+      "MODEL_AUTHORITY_PARITY": 26,
+      "NATIVE_OR_LIBRARY_ADOPTION": 3,
+      "NEW_APPLICATION_SEMANTICS": 16,
+      "PROJECTION_ONLY": 8,
+      "REMOVE_FROM_ONTOLOGY": 1,
+      "REQUIRES_SEMANTIC_MIGRATION": 10
+    },
+    "gated_total": 11,
     "merged": 2,
     "o3_complete": 13,
     "o4_targets": 77,
@@ -18,19 +42,35 @@
   },
   "blockers_by_wave": {
     "W0": {
+      "held_in_gate": [],
       "review_open_decisions": [
         "decision-13"
       ],
       "rows_with_row_blockers": []
     },
     "W1": {
+      "held_in_gate": [],
       "review_open_decisions": [
         "decision-12"
       ],
       "rows_with_row_blockers": []
     },
     "W2": {
+      "held_in_gate": [
+        "ArchitectureElement",
+        "Function",
+        "LogicalElement",
+        "PhysicalElement",
+        "AcceptanceCriterion",
+        "EvidenceContract",
+        "AssuranceClaim",
+        "hasAcceptanceCriterion",
+        "hasRelevantEvidenceContract"
+      ],
       "review_open_decisions": [
+        "decision-3",
+        "decision-5",
+        "decision-6",
         "decision-7",
         "decision-11",
         "decision-14"
@@ -40,20 +80,28 @@
       ]
     },
     "W3": {
+      "held_in_gate": [
+        "allocatedTo"
+      ],
       "review_open_decisions": [
         "decision-4"
       ],
       "rows_with_row_blockers": []
     },
     "W5": {
+      "held_in_gate": [
+        "instantiatesCanonicalArchitecture"
+      ],
       "review_open_decisions": [
-        "decision-9"
+        "decision-9",
+        "decision-10"
       ],
       "rows_with_row_blockers": [
         "FeatureConfiguration"
       ]
     },
     "W6": {
+      "held_in_gate": [],
       "review_open_decisions": [
         "decision-1",
         "decision-2",
@@ -69,28 +117,6 @@
         "validatedBy",
         "hasEvidenceStatus",
         "supportedByEvidence"
-      ]
-    },
-    "W7": {
-      "review_open_decisions": [
-        "decision-3",
-        "decision-5",
-        "decision-6",
-        "decision-9",
-        "decision-10"
-      ],
-      "rows_with_row_blockers": [
-        "ArchitectureElement",
-        "Function",
-        "LogicalElement",
-        "PhysicalElement",
-        "AcceptanceCriterion",
-        "EvidenceContract",
-        "AssuranceClaim",
-        "allocatedTo",
-        "hasAcceptanceCriterion",
-        "hasRelevantEvidenceContract",
-        "instantiatesCanonicalArchitecture"
       ]
     }
   },
@@ -109,6 +135,88 @@
     ],
     "review_mapping": "review Deliverable 8 Wave 1 (no model changes)"
   },
+  "generation": "deterministically generated from the governed integrated review using reviewed, machine-checked wave-mapping rules",
+  "interpretations": [
+    {
+      "id": "interp-1",
+      "rows": [
+        "SignalMappingDisposition",
+        "LogicalToSoftwareSignalMappingRecord",
+        "SystemToSoftwareSignalMappingCandidate"
+      ],
+      "statement": "The three MODEL_AUTHORITY_PARITY-classified signal rows are native-classified in the review but carry parity work; the explicit 26-row parity count takes precedence \u2014 they migrate with the definitions parity wave (W2)."
+    },
+    {
+      "id": "interp-2",
+      "rows": [
+        "AcceptanceCriterion",
+        "ArchitectureElement",
+        "AssuranceClaim",
+        "EvidenceContract",
+        "Function",
+        "Interface",
+        "LogicalElement",
+        "PhysicalElement",
+        "ValidationScenario",
+        "addressesConcern",
+        "allocatedTo",
+        "hasAcceptanceCriterion",
+        "hasRelevantEvidenceContract",
+        "hasStakeholder",
+        "instantiatesCanonicalArchitecture",
+        "producesView",
+        "recordsAssumption",
+        "recordsGap",
+        "selectedViewpoint",
+        "specifiesCommonCapability",
+        "specifiesFeature"
+      ],
+      "statement": "Seventeen rows named in no burn-down wave are placed by fall-through rules F1 (low-dependency application semantics/vocabulary -> W4) and F2 (owner-gated architecture/evidence semantics -> the W7 gate with base-wave re-entry)."
+    },
+    {
+      "id": "interp-3",
+      "rows": [
+        "hasEvidenceStatus"
+      ],
+      "statement": "hasEvidenceStatus: the burn-down prose lists it with the external-boundary items, but the final structured row classification (REQUIRES_SEMANTIC_MIGRATION, disposition REDESIGN) takes precedence \u2014 it is handled in the redesign wave (W6). The source review is not modified; this is an execution-plan interpretation."
+    },
+    {
+      "id": "interp-4",
+      "rows": [
+        "AcceptanceCriterion",
+        "ArchitectureElement",
+        "AssuranceClaim",
+        "EvidenceContract",
+        "Function",
+        "LogicalElement",
+        "PhysicalElement",
+        "allocatedTo",
+        "hasAcceptanceCriterion",
+        "hasRelevantEvidenceContract",
+        "instantiatesCanonicalArchitecture"
+      ],
+      "statement": "W7 is a decision/holding gate, not a semantic treatment: held rows carry base_wave (their curated, machine-checked re-entry destination), gate_wave W7 and their gate decisions/blockers; a review edit that invalidates a base or gate assumption fails the register gate."
+    },
+    {
+      "id": "interp-5",
+      "rows": [
+        "FeatureConfiguration",
+        "Variant",
+        "VariationPoint",
+        "appliesToMemberProduct",
+        "includesCommonCapability",
+        "selectsFeature",
+        "selectsVariant",
+        "variesAt"
+      ],
+      "statement": "Decision-9 (PLE configurator authority) covers the configuration/selection rows only; native structural variation (VariationPoint, Variant, variesAt) projects without committing configurator authority, and PLE-domain rows that carry dependency flags but no gate keep their base waves."
+    },
+    {
+      "id": "interp-6",
+      "rows": [],
+      "statement": "Dependency flags are derived from the governed row text and anchors (PLE family + decision-9 + the Deliverable 9 PLE bullet + tokens; evidence >=2-token rule with the hasEvidence exception; SAF and canonical-architecture patterns); a review edit that changes an anchor fails the register gate."
+    }
+  ],
   "o4_completion_boundary": [
     "the complete reviewed target inventory is accounted for (93 = 90 retained + 1 removal + 2 merges; machine-enforced)",
     "semantic authority has migrated to the intended model/native/library sources",
@@ -122,10 +230,11 @@
   ],
   "review_open_decisions": [
     {
-      "blocks_waves": [
+      "activity_gates": [],
+      "decision": "Approve the five renames (`allocatedToArchitecture`, `hasRelevantFunction`, `hasValidationScenario`, `hasRegulatorySource`, `logicalAllocatedToPhysical`) and the deprecation/alias policy per predicate.",
+      "gates_base_waves": [
         "W6"
       ],
-      "decision": "Approve the five renames + deprecation/alias policy",
       "id": "decision-1",
       "rows": [
         "realizedBy",
@@ -136,21 +245,23 @@
       ]
     },
     {
-      "blocks_waves": [
+      "activity_gates": [],
+      "decision": "`constrainedBy`: provenance-reference vs normative required-constraint semantics (recommend the former).",
+      "gates_base_waves": [
         "W6"
       ],
-      "decision": "constrainedBy: provenance-reference vs normative required-constraint semantics",
       "id": "decision-2",
       "rows": [
         "constrainedBy"
       ]
     },
     {
-      "blocks_waves": [
-        "W6",
-        "W7"
+      "activity_gates": [],
+      "decision": "`supportedByEvidence`/AssuranceClaim: claim/argument/counterclaim model; cited vs assessed-sufficient support.",
+      "gates_base_waves": [
+        "W2",
+        "W6"
       ],
-      "decision": "supportedByEvidence/AssuranceClaim claim model; cited vs assessed-sufficient support",
       "id": "decision-3",
       "rows": [
         "supportedByEvidence",
@@ -158,11 +269,12 @@
       ]
     },
     {
-      "blocks_waves": [
+      "activity_gates": [],
+      "decision": "EvidenceStatus split: approve the orthogonal status dimensions (production/maturity vs verification verdict vs acceptance) and their authorities.",
+      "gates_base_waves": [
         "W3",
         "W6"
       ],
-      "decision": "EvidenceStatus split: orthogonal status dimensions + authorities",
       "id": "decision-4",
       "rows": [
         "EvidenceStatus",
@@ -170,10 +282,11 @@
       ]
     },
     {
-      "blocks_waves": [
-        "W7"
+      "activity_gates": [],
+      "decision": "Umbrella-class definition homes (method-context package?) and whether `hasRelevantArchitecture`'s executable filter widens to interface/behavior constituents.",
+      "gates_base_waves": [
+        "W2"
       ],
-      "decision": "Umbrella-class definition homes; hasRelevantArchitecture filter width",
       "id": "decision-5",
       "rows": [
         "ArchitectureElement",
@@ -183,10 +296,11 @@
       ]
     },
     {
-      "blocks_waves": [
-        "W7"
+      "activity_gates": [],
+      "decision": "AcceptanceCriterion kernel promotion vs retained slice mapping.",
+      "gates_base_waves": [
+        "W2"
       ],
-      "decision": "AcceptanceCriterion kernel promotion vs retained slice mapping",
       "id": "decision-6",
       "rows": [
         "AcceptanceCriterion",
@@ -194,20 +308,22 @@
       ]
     },
     {
-      "blocks_waves": [
+      "activity_gates": [],
+      "decision": "`MethodEvaluationScope` exclusions: model-resident representation shape.",
+      "gates_base_waves": [
         "W2"
       ],
-      "decision": "MethodEvaluationScope exclusions: model-resident representation shape",
       "id": "decision-7",
       "rows": [
         "MethodEvaluationScope"
       ]
     },
     {
-      "blocks_waves": [
+      "activity_gates": [],
+      "decision": "Trace-chain redesign: approve per-increment trace expectation replacing the fixed universal chain (touches published slices).",
+      "gates_base_waves": [
         "W6"
       ],
-      "decision": "Trace-chain redesign: per-increment trace expectation (public API compatibility scope)",
       "id": "decision-8",
       "rows": [
         "TraceLink",
@@ -215,66 +331,66 @@
       ]
     },
     {
-      "blocks_waves": [
-        "W5",
-        "W7"
+      "activity_gates": [],
+      "decision": "PLE configurator authority: keep external catalogue position (ADR 0006) or model selection algebra after PLE-Q/S/A.",
+      "gates_base_waves": [
+        "W5"
       ],
-      "decision": "PLE configurator authority: external catalogue (ADR 0006) vs model selection algebra",
       "id": "decision-9",
       "rows": [
         "FeatureConfiguration",
         "selectsFeature",
-        "includesCommonCapability",
         "appliesToMemberProduct",
-        "selectsVariant",
-        "specifiesFeature",
-        "specifiesCommonCapability",
-        "VariationPoint",
-        "Variant",
-        "variesAt"
+        "includesCommonCapability",
+        "selectsVariant"
       ]
     },
     {
-      "blocks_waves": [
-        "W7"
+      "activity_gates": [],
+      "decision": "Canonical architecture source for `instantiatesCanonicalArchitecture`.",
+      "gates_base_waves": [
+        "W5"
       ],
-      "decision": "Canonical architecture source for instantiatesCanonicalArchitecture",
       "id": "decision-10",
       "rows": [
         "instantiatesCanonicalArchitecture"
       ]
     },
     {
-      "blocks_waves": [
+      "activity_gates": [],
+      "decision": "SAF role-def adoption/publication disposition (unrecorded provenance flag).",
+      "gates_base_waves": [
         "W2"
       ],
-      "decision": "SAF role-def adoption/publication disposition",
       "id": "decision-11",
       "rows": [
         "Stakeholder"
       ]
     },
     {
-      "blocks_waves": [
+      "activity_gates": [
         "W1"
       ],
-      "decision": "ADR 0009 status header correction",
+      "decision": "ADR 0009 status header correction (Proposed \u2192 adopted-amendment wording).",
+      "gates_base_waves": [],
       "id": "decision-12",
       "rows": []
     },
     {
-      "blocks_waves": [
+      "activity_gates": [
         "W0"
       ],
-      "decision": "Live-API anchor read-back before any stronger-than-export claim",
+      "decision": "Live-API read-back of the 22/34 implied verification anchors before any stronger-than-export claim.",
+      "gates_base_waves": [],
       "id": "decision-13",
       "rows": []
     },
     {
-      "blocks_waves": [
+      "activity_gates": [],
+      "decision": "Feature/CommonCapability `disjointWith` axiom: close it model-resident (typed constraint or reviewed declaration) or explicitly drop the axiom from the ontology at parity \u2014 it currently has no model witness.",
+      "gates_base_waves": [
         "W2"
       ],
-      "decision": "Feature/CommonCapability disjointWith axiom: model-resident or explicitly dropped",
       "id": "decision-14",
       "rows": [
         "Feature",
@@ -282,10 +398,11 @@
       ]
     },
     {
-      "blocks_waves": [
+      "activity_gates": [],
+      "decision": "Renaming successor for the trace-chain redesign: confirm the per-increment trace-expectation identity name before Wave 5 (used by the two slice usages and the merged shell).",
+      "gates_base_waves": [
         "W6"
       ],
-      "decision": "Renaming successor for the trace-chain redesign",
       "id": "decision-15",
       "rows": [
         "RequiredTraceChain",
@@ -296,6 +413,7 @@
   "rows": [
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -315,16 +433,19 @@
       },
       "desired_target_authority": "model-authoritative (kernel doc becomes canonical after parity review; the YAML row retires as semantic authority).",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "EngineeringIncrement",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP as DE4SDV application semantic; complete model-side doc parity; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative (kernel doc becomes canonical after parity review; the YAML row retires as semantic authority).",
@@ -348,6 +469,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -364,21 +486,24 @@
           "Variant",
           "VariationPoint"
         ],
-        "ple": false,
+        "ple": true,
         "saf": false
       },
       "desired_target_authority": "model-authoritative after parity; PLE variation semantics remain the reference for the 'variation/variant choice' wording.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "FeatureIncrement",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP; resolve doc wording against PLE variation semantics; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity; PLE variation semantics remain the reference for the 'variation/variant choice' wording.",
@@ -402,6 +527,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -416,16 +542,19 @@
       },
       "desired_target_authority": "model-authoritative after parity.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "NeedsRequirementsIncrement",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP; parity only; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity.",
@@ -449,6 +578,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -467,16 +597,19 @@
       },
       "desired_target_authority": "model-authoritative after parity (bounded framing vocabulary; never a semantic authority for content claims).",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "IncrementEngineeringQuestion",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP as bounded framing vocabulary; parity only; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity (bounded framing vocabulary; never a semantic authority for content claims).",
@@ -500,6 +633,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -518,16 +652,19 @@
       },
       "desired_target_authority": "model-authoritative after parity.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "IncrementLifecycleDecision",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP; parity fix restores accepted/deferred/invalidated boundary text; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity.",
@@ -551,6 +688,7 @@
     },
     {
       "accounting_status": "merged",
+      "base_wave": null,
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -572,16 +710,19 @@
       },
       "desired_target_authority": "none as a separate identity; its per-increment intent is absorbed by the redesigned trace-expectation vocabulary.",
       "final_disposition": "MERGE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "IncrementTraceabilityShell",
       "kind": "class",
       "membership": "merged",
-      "merge_into": "Increment trace expectation (redesigned RequiredTraceChain)",
+      "merge_into": "RequiredTraceChain",
+      "merge_note": "bound to the redesigned per-increment trace-expectation successor intent (RequiredTraceChain redesign); the final successor identity name is pending decision-15 \u2014 not yet decided",
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "MERGE into the redesigned trace-expectation vocabulary; migrate the two slice usages; no separate successor identity."
       ],
-      "proposed_wave": null,
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "none as a separate identity; its per-increment intent is absorbed by the redesigned trace-expectation vocabulary.",
@@ -605,6 +746,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -623,14 +765,17 @@
       },
       "desired_target_authority": "DE4SDV application semantic model (external facts remain external)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "MethodPhase",
       "kind": "class",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application semantic model (external facts remain external)",
@@ -655,6 +800,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -675,16 +821,19 @@
       },
       "desired_target_authority": "model-authoritative after parity (add the enum-level doc; literal docs already model-resident).",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "SignalMappingDisposition",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP as bounded DE4SDV application vocabulary; parity = add enum-level doc; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity (add the enum-level doc; literal docs already model-resident).",
@@ -708,6 +857,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -729,16 +879,19 @@
       },
       "desired_target_authority": "model-authoritative after parity; content authority for contract facts stays external (proto/vsidl artifacts).",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "LogicalToSoftwareSignalMappingRecord",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP; do not promote: record must not become a second authority for facts already carried by native allocations/dependencies or external contract artifacts; decide string-vs-reference endpoint representation at first real usage."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity; content authority for contract facts stays external (proto/vsidl artifacts).",
@@ -762,6 +915,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -785,16 +939,19 @@
       },
       "desired_target_authority": "model-authoritative after parity; the DE4SDV claim boundary must stay reviewable.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "SystemToSoftwareSignalMappingCandidate",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP; parity = doc parity; keep the non-claiming boundary wording aligned with the c5 allocation realization review."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity; the DE4SDV claim boundary must stay reviewable.",
@@ -818,6 +975,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": "inventory-description correction (no semantic change)",
       "current_authority": "legacy-yaml",
@@ -832,16 +990,19 @@
       },
       "desired_target_authority": "none beyond bounded vocabulary: stays model-resident as guidance labels; never promoted to semantic authority.",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "IncrementSize",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [
         "DEMOTE to vocabulary-only; no promotion; if the method keeps size guidance in prose only, this is a later retirement candidate (not now)."
       ],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "none beyond bounded vocabulary: stays model-resident as guidance labels; never promoted to semantic authority.",
@@ -865,6 +1026,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -881,16 +1043,19 @@
       },
       "desired_target_authority": "model-authoritative after parity (doc); framing authority for the layer names remains ADR 0004.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "SystemLayer",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP; parity only; framing authority stays ADR 0004; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity (doc); framing authority for the layer names remains ADR 0004.",
@@ -914,6 +1079,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -931,10 +1097,14 @@
       },
       "desired_target_authority": "model-authoritative (DE4SDV application semantic library, doc on part def); YAML row becomes projection/parity oracle. Existing configuration authority unchanged.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "ProductLine",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
@@ -942,7 +1112,6 @@
         "No PLEML dependency; do not invent standard-library grounding",
         "No semantic change: authority-only migration"
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative (DE4SDV application semantic library, doc on part def); YAML row becomes projection/parity oracle. Existing configuration authority unchanged.",
@@ -966,6 +1135,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -985,10 +1155,14 @@
       },
       "desired_target_authority": "model-authoritative (doc on ProductLineMemberProduct); YAML row becomes projection/parity oracle.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "MemberProduct",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
@@ -996,7 +1170,6 @@
         "Complete doc parity; do not rename silently (would touch aebs/middleware/scoping imports, ontology YAML, O1 tests)",
         "No PLEML dependency"
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative (doc on ProductLineMemberProduct); YAML row becomes projection/parity oracle.",
@@ -1020,6 +1193,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1039,10 +1213,16 @@
       },
       "desired_target_authority": "model-authoritative (doc on ProductLineFeatureCandidate); YAML row becomes projection/parity oracle.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-14"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "Feature",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
@@ -1050,7 +1230,6 @@
         "Preserve candidate-until-shown obligation as reviewed doc rule; never claim it as native semantic consequence",
         "No PLEML dependency"
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative (doc on ProductLineFeatureCandidate); YAML row becomes projection/parity oracle.",
@@ -1074,6 +1253,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1096,10 +1276,14 @@
       },
       "desired_target_authority": "model-authoritative (taxonomy in kernel file); YAML row becomes projection/parity oracle.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "ProductLineCharacteristic",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
@@ -1107,7 +1291,6 @@
         "Ensure ProductLineVariantChoice/DeferredVariantChoice are covered by the ontology-kernel contract (mapping or exclusion with reason)",
         "No PLEML dependency"
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative (taxonomy in kernel file); YAML row becomes projection/parity oracle.",
@@ -1131,6 +1314,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1150,10 +1334,16 @@
       },
       "desired_target_authority": "model-authoritative (doc on CommonProductLineCapability); YAML row becomes projection/parity oracle.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-14"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "CommonCapability",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
@@ -1161,7 +1351,6 @@
         "Keep name; do not model common capabilities as variations or selections",
         "No PLEML dependency"
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative (doc on CommonProductLineCapability); YAML row becomes projection/parity oracle.",
@@ -1185,6 +1374,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1205,10 +1395,14 @@
       },
       "desired_target_authority": "model-authoritative (doc on DeferredProductLineScope); YAML row becomes projection/parity oracle.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "DeferredProductLineScope",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
@@ -1216,7 +1410,6 @@
         "Keep distinct from native DeferredProductLineVariation/DeferredVariantChoice (variation mechanism vs scope classification)",
         "No PLEML dependency"
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative (doc on DeferredProductLineScope); YAML row becomes projection/parity oracle.",
@@ -1240,6 +1433,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "native-sysml",
@@ -1257,10 +1451,14 @@
       },
       "desired_target_authority": "native-sysml (SysML v2 variation construct carries the meaning; no DE4SDV-owned declaration).",
       "final_disposition": "KEEP_NATIVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "VariationPoint",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "ALREADY_COMPLETE",
       "o3_complete": false,
       "open_decisions": [
@@ -1268,7 +1466,6 @@
         "Record exact-fit/standard-construct grounding evidence at a bound revision",
         "No PLEML dependency for the native construct"
       ],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "native-sysml (SysML v2 variation construct carries the meaning; no DE4SDV-owned declaration).",
@@ -1292,6 +1489,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "native-sysml",
@@ -1313,10 +1511,14 @@
       },
       "desired_target_authority": "native-sysml (variant usage construct carries the meaning).",
       "final_disposition": "KEEP_NATIVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Variant",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "ALREADY_COMPLETE",
       "o3_complete": false,
       "open_decisions": [
@@ -1324,7 +1526,6 @@
         "Record standard-construct grounding evidence at a bound revision",
         "Concrete selections remain in the configuration/BoF layer (no model duplication)"
       ],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "native-sysml (variant usage construct carries the meaning).",
@@ -1348,6 +1549,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [
         "Any accepted-library-grounded target is blocked by PLEML adoption gates (PLE-R \u2192 PLE-Q \u2192 PLE-S \u2192 PLE-A); current PLEML pin is pinned-not-adopted, and this review does not contact upstream or declare adoption."
       ],
@@ -1368,10 +1570,16 @@
       },
       "desired_target_authority": "external-reference: Bill-of-Features YAML under model-based-product-line-engineering/feature-configurations/ remains operational authority until an authorized PLE cutover. Existing configuration authority unchanged.",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [
+        "decision-9"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision + row-blocker",
       "identity": "FeatureConfiguration",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [
@@ -1380,7 +1588,6 @@
         "Report configuration validity and governed-scope admission separately",
         "No model part def for FeatureConfiguration"
       ],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external-reference: Bill-of-Features YAML under model-based-product-line-engineering/feature-configurations/ remains operational authority until an authorized PLE cutover. Existing configuration authority unchanged.",
@@ -1405,6 +1612,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1425,16 +1633,21 @@
       },
       "desired_target_authority": "model-authoritative DE4SDV stakeholder-role catalogue; roles must remain source-backed by SAF references, never invented",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-11"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "Stakeholder",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "Record SAF-source adoption/publication disposition for the re-declared role defs (currently unrecorded)."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative DE4SDV stakeholder-role catalogue; roles must remain source-backed by SAF references, never invented",
@@ -1459,6 +1672,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "native-sysml",
@@ -1480,14 +1694,17 @@
       },
       "desired_target_authority": "normative SysML (Systems Library)",
       "final_disposition": "KEEP_NATIVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Concern",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "normative SysML (Systems Library)",
@@ -1511,6 +1728,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1533,16 +1751,19 @@
       },
       "desired_target_authority": "model-authoritative StakeholderNeedCandidate lineage",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Need",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "Close the definition-text parity (reviewed definition still YAML-established)."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative StakeholderNeedCandidate lineage",
@@ -1566,6 +1787,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1588,16 +1810,19 @@
       },
       "desired_target_authority": "model-authoritative RequirementCandidate lineage",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Requirement",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "Close the definition-text parity."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative RequirementCandidate lineage",
@@ -1621,6 +1846,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1639,16 +1865,19 @@
       },
       "desired_target_authority": "model-authoritative after parity",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "ProblemStatement",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "Close the definition-text parity."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity",
@@ -1672,6 +1901,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1692,16 +1922,19 @@
       },
       "desired_target_authority": "external for content (Git ADR documents under docs/architecture-decisions/); model-authoritative only for the reference identity/typing role.",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "ArchitectureDecisionRecord",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP as external reference; no content mirroring; parity for the reference doc text only; no rename."
       ],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external for content (Git ADR documents under docs/architecture-decisions/); model-authoritative only for the reference identity/typing role.",
@@ -1725,6 +1958,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -1745,16 +1979,19 @@
       },
       "desired_target_authority": "model-authoritative candidate lineage; external regulations remain external",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "RegulatoryConstraint",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "Close the definition-text parity; keep the no-compliance claim machine-visible."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative candidate lineage; external regulations remain external",
@@ -1778,6 +2015,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Choose the model home (method-context package) for the umbrella definition before projection."
       ],
@@ -1804,16 +2042,21 @@
       },
       "desired_target_authority": "model-authoritative umbrella definition (home to be decided)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-5"
+      ],
+      "gate_wave": "W7",
+      "gated_by": "owner-decision + row-blocker",
       "identity": "ArchitectureElement",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Decide umbrella definition home; widening the constituent filter requires a reviewed mapping decision."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative umbrella definition (home to be decided)",
@@ -1827,17 +2070,18 @@
         "traversal_required": true
       },
       "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "REPRESENTATION_ONLY",
       "review_index": 28,
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)",
         "Choose the model home (method-context package) for the umbrella definition before projection."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 umbrella definition home (decision-5); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Choose the umbrella definition home."
       ],
@@ -1860,16 +2104,21 @@
       },
       "desired_target_authority": "model-authoritative umbrella definition (home to be decided)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-5"
+      ],
+      "gate_wave": "W7",
+      "gated_by": "owner-decision + row-blocker",
       "identity": "Function",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Decide umbrella definition home; keep action-typed executable filter."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative umbrella definition (home to be decided)",
@@ -1883,17 +2132,18 @@
         "traversal_required": true
       },
       "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "REPRESENTATION_ONLY",
       "review_index": 29,
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)",
         "Choose the umbrella definition home."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 umbrella definition home (decision-5); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Choose the umbrella definition home."
       ],
@@ -1918,16 +2168,21 @@
       },
       "desired_target_authority": "model-authoritative umbrella definition (home to be decided)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-5"
+      ],
+      "gate_wave": "W7",
+      "gated_by": "owner-decision + row-blocker",
       "identity": "LogicalElement",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Decide umbrella definition home."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative umbrella definition (home to be decided)",
@@ -1941,17 +2196,18 @@
         "traversal_required": true
       },
       "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "REPRESENTATION_ONLY",
       "review_index": 30,
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)",
         "Choose the umbrella definition home."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 umbrella definition home (decision-5); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Choose the umbrella definition home."
       ],
@@ -1974,16 +2230,21 @@
       },
       "desired_target_authority": "model-authoritative umbrella definition (home to be decided)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-5"
+      ],
+      "gate_wave": "W7",
+      "gated_by": "owner-decision + row-blocker",
       "identity": "PhysicalElement",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Decide umbrella definition home."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative umbrella definition (home to be decided)",
@@ -1997,17 +2258,18 @@
         "traversal_required": true
       },
       "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "REPRESENTATION_ONLY",
       "review_index": 31,
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)",
         "Choose the umbrella definition home."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 umbrella definition home (decision-5); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2026,16 +2288,19 @@
       },
       "desired_target_authority": "model-authoritative umbrella vocabulary (home to be decided)",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Interface",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [
         "Do not widen hasRelevantArchitecture to interfaces without a reviewed mapping decision."
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "model-authoritative umbrella vocabulary (home to be decided)",
@@ -2055,10 +2320,11 @@
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2077,16 +2343,19 @@
       },
       "desired_target_authority": "model-authoritative after parity (scenario-identity enum + operational-context pattern documented)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Scenario",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "Keep bounded; no promotion to a native claim surface."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity (scenario-identity enum + operational-context pattern documented)",
@@ -2110,6 +2379,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "native-sysml",
@@ -2128,14 +2398,17 @@
       },
       "desired_target_authority": "normative SysML",
       "final_disposition": "KEEP_NATIVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "VerificationCase",
       "kind": "class",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "normative SysML",
@@ -2160,6 +2433,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2180,16 +2454,19 @@
       },
       "desired_target_authority": "model-authoritative DE4SDV validation vocabulary after parity",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "ValidationScenario",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Outcome relation, if ever added, must be separately governed evidence \u2014 not this class."
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative DE4SDV validation vocabulary after parity",
@@ -2209,10 +2486,11 @@
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": "inventory-description correction (no semantic change)",
       "current_authority": "accepted-library-grounded",
@@ -2233,16 +2511,19 @@
       },
       "desired_target_authority": "normative SysML metadata vocabulary (Systems Library)",
       "final_disposition": "KEEP_NATIVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "VerificationMethod",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NATIVE_OR_LIBRARY_ADOPTION",
       "o3_complete": false,
       "open_decisions": [
         "Record metadata vs attribute-mapping distinction in the grounding record."
       ],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "normative SysML metadata vocabulary (Systems Library)",
@@ -2266,6 +2547,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Kernel promotion vs retained slice mapping must be decided before a machine-resolvable criterion identity exists."
       ],
@@ -2290,16 +2572,21 @@
       },
       "desired_target_authority": "model-authoritative criterion-role lineage (promotion decision pending)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-6"
+      ],
+      "gate_wave": "W7",
+      "gated_by": "owner-decision + row-blocker",
       "identity": "AcceptanceCriterion",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Decide kernel promotion of the criterion role; separate test-verdict criteria from authorization/acceptance."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative criterion-role lineage (promotion decision pending)",
@@ -2313,17 +2600,18 @@
         "traversal_required": true
       },
       "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "REPRESENTATION_ONLY",
       "review_index": 37,
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)",
         "Kernel promotion vs retained slice mapping must be decided before a machine-resolvable criterion identity exists."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 criterion-role lineage (decision-6; a promotion may adjust the disposition and re-review this base); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "external-reference",
@@ -2347,16 +2635,19 @@
       },
       "desired_target_authority": "external evidence systems; model owns typed reference schema",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "EvidenceArtifact",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [
         "Keep plan Section 10/12 evidence-reference modeling pending; no content mirroring."
       ],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external evidence systems; model owns typed reference schema",
@@ -2380,6 +2671,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Reviewed EvidenceContract-specific identity/lineage contract required (shared specialization lineage or kernel binding)."
       ],
@@ -2404,16 +2696,19 @@
       },
       "desired_target_authority": "model-authoritative contract-role lineage after the identity discriminator exists",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": "W7",
+      "gated_by": "row-blocker",
       "identity": "EvidenceContract",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "BLOCKED",
       "o3_complete": false,
       "open_decisions": [
         "Design the lineage contract in the model first; then O2 projection, then O3 transition."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "model-authoritative contract-role lineage after the identity discriminator exists",
@@ -2427,17 +2722,18 @@
         "traversal_required": false
       },
       "required_semantic_projection_change": false,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "REPRESENTATION_ONLY",
       "review_index": 39,
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)",
         "Reviewed EvidenceContract-specific identity/lineage contract required (shared specialization lineage or kernel binding)."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 contract-role lineage after the identity discriminator (row blocker); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "accepted-library-grounded",
@@ -2461,16 +2757,21 @@
       },
       "desired_target_authority": "accepted pinned library (VVStatus) for requirement verification status; external evidence systems for artifact status",
       "final_disposition": "KEEP_ACCEPTED_LIBRARY",
+      "gate_decisions": [
+        "decision-4"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "EvidenceStatus",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NATIVE_OR_LIBRARY_ADOPTION",
       "o3_complete": false,
       "open_decisions": [
         "Keep single VVStatus vocabulary for requirement verification status; never reuse it as evidence-artifact acceptance authority."
       ],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "accepted pinned library (VVStatus) for requirement verification status; external evidence systems for artifact status",
@@ -2494,6 +2795,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2512,16 +2814,19 @@
       },
       "desired_target_authority": "model-authoritative after parity",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Assumption",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "Close the definition-text parity."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity",
@@ -2545,6 +2850,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2565,16 +2871,19 @@
       },
       "desired_target_authority": "model-authoritative after parity",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Gap",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "Close the definition-text parity; keep distinct from realization records."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity",
@@ -2598,6 +2907,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2618,16 +2928,19 @@
       },
       "desired_target_authority": "model-authoritative after parity; realization semantics authority stays with the c5-reviewed relationships.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "MissingRealizationRecord",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP; parity only; keep distinct from Gap and from c5 realization relationships; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity; realization semantics authority stays with the c5-reviewed relationships.",
@@ -2651,6 +2964,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2672,16 +2986,19 @@
       },
       "desired_target_authority": "model-authoritative after parity.",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "BlockedRealizationBranchRecord",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP; parity only; keep distinct from MissingRealizationRecord and Gap; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after parity.",
@@ -2705,6 +3022,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Claim-design decision (O1 gate: grounding inspection) still open."
       ],
@@ -2728,16 +3046,21 @@
       },
       "desired_target_authority": "model-authoritative bounded claim vocabulary; acceptance authority external",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-3"
+      ],
+      "gate_wave": "W7",
+      "gated_by": "owner-decision + row-blocker",
       "identity": "AssuranceClaim",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Decide the claim/argument/counterclaim model before supportedByEvidence migration."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative bounded claim vocabulary; acceptance authority external",
@@ -2751,17 +3074,18 @@
         "traversal_required": true
       },
       "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 45,
       "validation_evidence_requirement": [
         "grounding inspection before any authority claim",
         "Claim-design decision (O1 gate: grounding inspection) still open."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 bounded claim vocabulary (decision-3); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "native-sysml",
@@ -2782,14 +3106,17 @@
       },
       "desired_target_authority": "normative SysML (Systems Library Views)",
       "final_disposition": "KEEP_NATIVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Viewpoint",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "normative SysML (Systems Library Views)",
@@ -2813,6 +3140,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "native-sysml",
@@ -2831,14 +3159,17 @@
       },
       "desired_target_authority": "normative SysML (Systems Library Views)",
       "final_disposition": "KEEP_NATIVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "View",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "normative SysML (Systems Library Views)",
@@ -2862,6 +3193,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2883,16 +3215,22 @@
       },
       "desired_target_authority": "model-authoritative DE4SDV vocabulary after redesign (trace facts carried by native relationships; any residual link record must carry resolvable element references).",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-8",
+        "decision-15"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "TraceLink",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "REDESIGN to native relationship usage or a reference-carrying link record; coordinate with RequiredTraceChain redesign and the two shell usages; no O3 amendment (not among the 13 frozen identities)."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative DE4SDV vocabulary after redesign (trace facts carried by native relationships; any residual link record must carry resolvable element references).",
@@ -2916,6 +3254,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2945,16 +3284,22 @@
       },
       "desired_target_authority": "model-authoritative DE4SDV method vocabulary after redesign (review expectation per increment, not a universal constraint).",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-8",
+        "decision-15"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "RequiredTraceChain",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "REDESIGN to a per-increment reviewed trace expectation with gap records and allowed link variants; absorb IncrementTraceabilityShell; couple to the TraceLink redesign; no O3 amendment (not among the 13 frozen identities); flag the KerML version-alignment caveat where native relationship semantics are invoked (attached KerML 1.0 Beta 1 vs repo pin 20250201)."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative DE4SDV method vocabulary after redesign (review expectation per increment, not a universal constraint).",
@@ -2978,6 +3323,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -2999,16 +3345,19 @@
       },
       "desired_target_authority": "external for baseline content (Git/baseline register); model-authoritative for the reference identity and its claim boundary.",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "Baseline",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [
         "KEEP as external reference; parity for the reference doc text only; no rename (declaration already DE4SDVEvidenceBaseline)."
       ],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external for baseline content (Git/baseline register); model-authoritative for the reference identity and its claim boundary.",
@@ -3032,6 +3381,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3054,14 +3404,17 @@
       },
       "desired_target_authority": "DE4SDV application semantic model (external facts remain external)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "MethodContractObligation",
       "kind": "class",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application semantic model (external facts remain external)",
@@ -3086,6 +3439,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3104,14 +3458,17 @@
       },
       "desired_target_authority": "DE4SDV application semantic model (external facts remain external)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "EvaluationSourceKind",
       "kind": "class",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application semantic model (external facts remain external)",
@@ -3136,6 +3493,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Structural exclusions-with-rationale representation is not model-resident; evidence_state stays repository-evidenced until a reviewed representation decision and implementation/parity review exist."
       ],
@@ -3159,16 +3517,21 @@
       },
       "desired_target_authority": "model-authoritative after the exclusions structural gap is closed (declaration gains a model-resident exclusions-with-rationale representation).",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-7"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision + row-blocker",
       "identity": "MethodEvaluationScope",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
         "REDESIGN the declaration to carry explicit exclusions (with rationale) structurally; then complete model-authority parity; do not force O2/O3 admission before the gap closes; no rename."
       ],
-      "proposed_wave": "W2",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative after the exclusions structural gap is closed (declaration gains a model-resident exclusions-with-rationale representation).",
@@ -3196,6 +3559,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3214,14 +3578,17 @@
       },
       "desired_target_authority": "DE4SDV application semantic model (external facts remain external)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "EvaluationScopeMembership",
       "kind": "class",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application semantic model (external facts remain external)",
@@ -3246,6 +3613,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3264,14 +3632,17 @@
       },
       "desired_target_authority": "DE4SDV application semantic model (external facts remain external)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "TestedScopeDeclaration",
       "kind": "class",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application semantic model (external facts remain external)",
@@ -3296,6 +3667,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3314,14 +3686,17 @@
       },
       "desired_target_authority": "DE4SDV application semantic model (external facts remain external)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "RetainedExecutionRecordReference",
       "kind": "class",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application semantic model (external facts remain external)",
@@ -3346,6 +3721,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3364,14 +3740,17 @@
       },
       "desired_target_authority": "DE4SDV application semantic model (external facts remain external)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "AcceptanceAttestationReference",
       "kind": "class",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application semantic model (external facts remain external)",
@@ -3396,6 +3775,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "closure",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "model-authoritative",
@@ -3420,16 +3800,19 @@
       },
       "desired_target_authority": "model-authoritative (already achieved; privileged-closure-proven at K)",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "DerivesFromNeed",
       "kind": "class",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "ALREADY_COMPLETE",
       "o3_complete": false,
       "open_decisions": [
         "Keep pinned-not-adopted status for the standard Derivation library; any adoption is an upstream-involvement decision."
       ],
-      "proposed_wave": "closure",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "model-authoritative (already achieved; privileged-closure-proven at K)",
@@ -3453,6 +3836,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3473,16 +3857,19 @@
       },
       "desired_target_authority": "DE4SDV model-resident method vocabulary",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "addressesConcern",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Method owner must accept the proposed precise definition; no executable support requested."
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV model-resident method vocabulary",
@@ -3502,10 +3889,11 @@
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3526,16 +3914,19 @@
       },
       "desired_target_authority": "DE4SDV model-resident method vocabulary",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "hasStakeholder",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Method owner must accept the proposed precise definition; no executable support requested."
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV model-resident method vocabulary",
@@ -3555,10 +3946,11 @@
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3580,16 +3972,19 @@
       },
       "desired_target_authority": "DE4SDV model-resident method vocabulary",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "selectedViewpoint",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Method owner must accept the proposed precise definition; no executable support requested."
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV model-resident method vocabulary",
@@ -3609,10 +4004,11 @@
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3633,16 +4029,19 @@
       },
       "desired_target_authority": "DE4SDV model-resident method vocabulary",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "producesView",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Method owner must accept the proposed precise definition; no executable support requested."
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV model-resident method vocabulary",
@@ -3662,10 +4061,11 @@
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "removed",
+      "base_wave": null,
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3686,14 +4086,17 @@
       },
       "desired_target_authority": "retired; historical evidence retained",
       "final_disposition": "REMOVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "derivesNeedFromConcern",
       "kind": "relationship",
       "membership": "removed",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REMOVE_FROM_ONTOLOGY",
       "o3_complete": false,
       "open_decisions": [],
-      "proposed_wave": null,
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "retired; historical evidence retained",
@@ -3718,6 +4121,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "model-authoritative",
@@ -3740,14 +4144,17 @@
       },
       "desired_target_authority": "DE4SDV_MethodContext::DerivesFromNeed model authority",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "derivesRequirementFromNeed",
       "kind": "relationship",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV_MethodContext::DerivesFromNeed model authority",
@@ -3769,6 +4176,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "model-authoritative",
@@ -3791,14 +4199,17 @@
       },
       "desired_target_authority": "DE4SDV_MethodContext::DerivesFromNeed model authority",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "derivedRequirementsOfNeed",
       "kind": "relationship",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV_MethodContext::DerivesFromNeed model authority",
@@ -3820,6 +4231,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [
         "Domain owner must decide provenance versus normative requirement-constraint claim."
       ],
@@ -3842,16 +4254,22 @@
       },
       "desired_target_authority": "DE4SDV regulatory provenance plus external regulation authority",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-1",
+        "decision-2"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision + row-blocker",
       "identity": "constrainedBy",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "Approve regulatory-source interpretation and identifier, or supply a separately modeled normative constraint."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV regulatory provenance plus external regulation authority",
@@ -3876,6 +4294,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3896,10 +4315,14 @@
       },
       "desired_target_authority": "legacy-yaml vocabulary retained as reviewed vocabulary; no runtime authority, no PLEML commitment.",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "specifiesFeature",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [
@@ -3907,7 +4330,6 @@
         "No PLEML dependency; PLEML is not the natural target for requirement-side vocabulary",
         "Defer native realization decision until feature usages exist in models; any realization is an explicit signature/migration review (UG-04-style)"
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "legacy-yaml vocabulary retained as reviewed vocabulary; no runtime authority, no PLEML commitment.",
@@ -3927,10 +4349,11 @@
       "validation_evidence_requirement": [
         "PLE-Q/S qualification + authorized PLE-A adoption"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3947,15 +4370,19 @@
           "Feature",
           "specifiesFeature"
         ],
-        "ple": true,
+        "ple": false,
         "saf": false
       },
       "desired_target_authority": "legacy-yaml vocabulary retained as reviewed vocabulary; no runtime authority.",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "specifiesCommonCapability",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [
@@ -3963,7 +4390,6 @@
         "No PLEML dependency",
         "Pair with specifiesFeature for any future native realization decision"
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "legacy-yaml vocabulary retained as reviewed vocabulary; no runtime authority.",
@@ -3983,10 +4409,11 @@
       "validation_evidence_requirement": [
         "PLE-Q/S qualification + authorized PLE-A adoption"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [
         "Owner-approved name/signature and real serialized allocation-end closure."
       ],
@@ -4013,16 +4440,21 @@
       },
       "desired_target_authority": "DE4SDV typed allocation projection grounded in native Allocation",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-1"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision + row-blocker",
       "identity": "realizedBy",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "Approve allocatedToArchitecture as allocation-only replacement; do not imply composed realization."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV typed allocation projection grounded in native Allocation",
@@ -4049,6 +4481,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -4069,16 +4502,21 @@
       },
       "desired_target_authority": "DE4SDV application relevance projection over native Dependency",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-1"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "specifiesFunction",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "Approve hasRelevantFunction and compatibility alias/deprecation interval."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application relevance projection over native Dependency",
@@ -4104,6 +4542,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -4126,14 +4565,17 @@
       },
       "desired_target_authority": "DE4SDV bounded application projection over native Dependency",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "hasRelevantArchitecture",
       "kind": "relationship",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV bounded application projection over native Dependency",
@@ -4158,6 +4600,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [
         "Typed allocation-end profile and exact-revision closure not yet accepted."
       ],
@@ -4180,16 +4623,19 @@
       },
       "desired_target_authority": "DE4SDV restricted native allocation projection",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": "W7",
+      "gated_by": "row-blocker",
       "identity": "allocatedTo",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Approve layer-identity discriminator and closure contract."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV restricted native allocation projection",
@@ -4203,17 +4649,18 @@
         "traversal_required": true
       },
       "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML row retires as semantic authority when its projection/profile rows are generated from model or pinned-library authority and exact-revision equivalence evidence is recorded wherever traversal is claimed. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "NATIVE_GROUNDED_DE4SDV",
       "review_index": 72,
       "validation_evidence_requirement": [
         "native allocation representation proof",
         "Typed allocation-end profile and exact-revision closure not yet accepted."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: native allocation projection \u2014 typed allocation-end profile (row blocker; review Deliverable 9: the definition-home decision gates its projection rows); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [
         "Architecture owner must resolve logical realization versus software deployment."
       ],
@@ -4238,16 +4685,21 @@
       },
       "desired_target_authority": "DE4SDV bounded logical-to-physical allocation semantic; deployment remains separately governed",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-1"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision + row-blocker",
       "identity": "deployedTo",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "Approve logicalAllocatedToPhysical allocation-only replacement or retain blocked until a real deployment contract is specified."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV bounded logical-to-physical allocation semantic; deployment remains separately governed",
@@ -4272,6 +4724,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": "o3-side inventory-description recorded; frozen semantics untouched",
       "current_authority": "legacy-yaml",
@@ -4292,14 +4745,17 @@
       },
       "desired_target_authority": "DE4SDV restricted projection of normative SysML verification",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "verifiedBy",
       "kind": "relationship",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV restricted projection of normative SysML verification",
@@ -4324,6 +4780,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": "inventory-description correction (no semantic change)",
       "current_authority": "legacy-yaml",
@@ -4344,14 +4801,17 @@
       },
       "desired_target_authority": "normative SysML VerificationCases library",
       "final_disposition": "KEEP_NATIVE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "usesVerificationMethod",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NATIVE_OR_LIBRARY_ADOPTION",
       "o3_complete": false,
       "open_decisions": [],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "normative SysML VerificationCases library",
@@ -4375,6 +4835,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "Reusable criterion-role identity and owner-approved cardinality."
       ],
@@ -4397,16 +4858,21 @@
       },
       "desired_target_authority": "DE4SDV criterion-role model over native objectives",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-6"
+      ],
+      "gate_wave": "W7",
+      "gated_by": "owner-decision + row-blocker",
       "identity": "hasAcceptanceCriterion",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Distinguish test verdict criterion from authorization/acceptance decision."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV criterion-role model over native objectives",
@@ -4420,17 +4886,18 @@
         "traversal_required": true
       },
       "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "NATIVE_GROUNDED_DE4SDV",
       "review_index": 76,
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)",
         "Reusable criterion-role identity and owner-approved cardinality."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 criterion-role model over native objectives (decision-6); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [
         "Domain-owner approval of validation plan versus evaluated outcome semantics."
       ],
@@ -4454,16 +4921,21 @@
       },
       "desired_target_authority": "DE4SDV fitness-for-use validation planning model; outcome evidence external",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-1"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision + row-blocker",
       "identity": "validatedBy",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "Approve planned relation, required context and evidence boundary; outcome relation would require separate governed evidence."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV fitness-for-use validation planning model; outcome evidence external",
@@ -4488,6 +4960,7 @@
     },
     {
       "accounting_status": "merged",
+      "base_wave": null,
       "blockers": [
         "Approve same-fact inverse law; reject implied successful-validation claim."
       ],
@@ -4513,16 +4986,19 @@
       },
       "desired_target_authority": "DE4SDV validation-plan projection (inverse navigation only)",
       "final_disposition": "MERGE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": "row-blocker",
       "identity": "validatesFitnessForUse",
       "kind": "relationship",
       "membership": "merged",
       "merge_into": "validatedBy",
+      "merge_note": "merges into validatedBy (retained identity; redesign wave W6); no separate target remains",
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "Approve merge into validation planning rather than independent result claim."
       ],
-      "proposed_wave": null,
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV validation-plan projection (inverse navigation only)",
@@ -4547,6 +5023,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "external-reference",
@@ -4571,14 +5048,17 @@
       },
       "desired_target_authority": "external evidence system; model owns only typed reference schema",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "hasEvidence",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external evidence system; model owns only typed reference schema",
@@ -4602,6 +5082,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [
         "Status taxonomy, migration map and evidence-owner authority decision."
       ],
@@ -4626,16 +5107,21 @@
       },
       "desired_target_authority": "external evidence/decision authority; model references typed status vocabulary",
       "final_disposition": "REDESIGN",
+      "gate_decisions": [
+        "decision-4"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision + row-blocker",
       "identity": "hasEvidenceStatus",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "REQUIRES_SEMANTIC_MIGRATION",
       "o3_complete": false,
       "open_decisions": [
         "Accept orthogonal execution/maturity/acceptance states rather than a single misleading VVStatus alias."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "external evidence/decision authority; model references typed status vocabulary",
@@ -4660,6 +5146,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -4680,16 +5167,19 @@
       },
       "desired_target_authority": "DE4SDV model-resident method vocabulary",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "recordsAssumption",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Method owner must accept the proposed precise definition; no executable support requested."
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV model-resident method vocabulary",
@@ -4709,10 +5199,11 @@
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W4",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -4733,16 +5224,19 @@
       },
       "desired_target_authority": "DE4SDV model-resident method vocabulary",
       "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "recordsGap",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Method owner must accept the proposed precise definition; no executable support requested."
       ],
-      "proposed_wave": "W4",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV model-resident method vocabulary",
@@ -4762,10 +5256,11 @@
       "validation_evidence_requirement": [
         "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in D8)"
+      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W6",
       "blockers": [
         "Reviewed assurance-argument schema and evidence reference contract."
       ],
@@ -4788,16 +5283,21 @@
       },
       "desired_target_authority": "DE4SDV assurance argument/reference semantics; evidence and acceptance external",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [
+        "decision-3"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision + row-blocker",
       "identity": "supportedByEvidence",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "NEW_APPLICATION_SEMANTICS",
       "o3_complete": false,
       "open_decisions": [
         "Approve cited support versus assessed sufficient support claim."
       ],
-      "proposed_wave": "W6",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV assurance argument/reference semantics; evidence and acceptance external",
@@ -4822,6 +5322,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -4845,10 +5346,16 @@
       },
       "desired_target_authority": "external-reference: configuration-layer data (BoF YAML) with FeatureConfiguration; no model-native authority, no PLEML commitment.",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [
+        "decision-9"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "appliesToMemberProduct",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [
@@ -4856,7 +5363,6 @@
         "Preserve runtime exclusions verbatim (no collapse into hasSubject)",
         "No PLEML commit; re-evaluate only if model-native member-product instances and an authorized config cutover exist"
       ],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external-reference: configuration-layer data (BoF YAML) with FeatureConfiguration; no model-native authority, no PLEML commitment.",
@@ -4880,6 +5386,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "O3-complete",
       "blockers": [],
       "corrections_batch": "o3-side inventory-description recorded; frozen semantics untouched",
       "current_authority": "legacy-yaml",
@@ -4900,14 +5407,17 @@
       },
       "desired_target_authority": "DE4SDV application model over native SubjectMembership",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "hasSubject",
       "kind": "relationship",
       "membership": "o3-complete",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "CURRENT_O3_13",
       "o3_complete": true,
       "open_decisions": [],
-      "proposed_wave": "O4-complete",
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application model over native SubjectMembership",
@@ -4932,6 +5442,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W2",
       "blockers": [
         "No revision-bound non-heuristic EvidenceContract discriminator."
       ],
@@ -4954,16 +5465,19 @@
       },
       "desired_target_authority": "DE4SDV application semantic, pending exact EvidenceContract identity",
       "final_disposition": "BLOCKED",
+      "gate_decisions": [],
+      "gate_wave": "W7",
+      "gated_by": "row-blocker",
       "identity": "hasRelevantEvidenceContract",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "BLOCKED",
       "o3_complete": false,
       "open_decisions": [
         "Resolve EvidenceContract role separate from AcceptanceCriterion before reopening predicate."
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "DE4SDV application semantic, pending exact EvidenceContract identity",
@@ -4977,7 +5491,7 @@
         "traversal_required": false
       },
       "required_semantic_projection_change": false,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML definition row retires as semantic authority when model-side definition parity (normalized-exact or reviewed-equivalent) is bound and O2 admission for the row completes; YAML remains generated parity/review metadata only. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "NATIVE_GROUNDED_DE4SDV",
       "review_index": 86,
       "validation_evidence_requirement": [
@@ -4986,10 +5500,11 @@
         "O3 approved authority transition (the authored mapping remains current authority during O1)",
         "No revision-bound non-heuristic EvidenceContract discriminator."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 predicate reopened over the resolved EvidenceContract role (row blocker); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -5010,10 +5525,16 @@
       },
       "desired_target_authority": "external-reference (BoF YAML + configurator evaluation); no model-native authority.",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [
+        "decision-9"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "selectsFeature",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [
@@ -5021,7 +5542,6 @@
         "No PLEML commit; requalification gates apply if ever adopted",
         "Preserve configurator behavior and tests as operational evidence"
       ],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external-reference (BoF YAML + configurator evaluation); no model-native authority.",
@@ -5045,6 +5565,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [
         "No canonical-usage selector exists; name-based filters are prohibited; reachability proof absent. Identity stays vocabulary-only until a selector design passes review."
       ],
@@ -5067,10 +5588,16 @@
       },
       "desired_target_authority": "unresolved (T/E stage): either a reviewed selector-backed representation or retirement; not PLEML-dependent.",
       "final_disposition": "KEEP_CONDITIONAL",
+      "gate_decisions": [
+        "decision-10"
+      ],
+      "gate_wave": "W7",
+      "gated_by": "owner-decision + row-blocker",
       "identity": "instantiatesCanonicalArchitecture",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "BLOCKED",
       "o3_complete": false,
       "open_decisions": [
@@ -5079,7 +5606,6 @@
         "If selector design fails, propose REDESIGN or REMOVE rather than leaving an aspirational row",
         "No PLEML dependency"
       ],
-      "proposed_wave": "W7",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "unresolved (T/E stage): either a reviewed selector-backed representation or retirement; not PLEML-dependent.",
@@ -5093,17 +5619,18 @@
         "traversal_required": false
       },
       "required_semantic_projection_change": false,
-      "retirement_condition": "YAML row retires as semantic authority when its named owner decision resolves and the row completes its base-wave treatment (parity/adoption/redesign per disposition).",
+      "retirement_condition": "YAML row retires as semantic authority when the reviewed external-boundary contract and typed-reference schema/profile entries are approved and bound; external facts stay external. Held at the W7 decision gate until the named decision/evidence resolves; re-enters its base wave on exit.",
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 88,
       "validation_evidence_requirement": [
         "selector design + reachability proof",
         "No canonical-usage selector exists; name-based filters are prohibited; reachability proof absent. Identity stays vocabulary-only until a selector design passes review."
       ],
-      "wave_basis": "review Deliverable 8 Wave 6 named set + fall-through rule F2 (owner-gated architecture/evidence semantics)"
+      "wave_basis": "W7 gate re-entry: external-boundary typed reference \u2014 selector-backed representation, or retirement if the selector design fails (decision-10); held at the W7 decision gate until the gate resolves"
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -5125,10 +5652,16 @@
       },
       "desired_target_authority": "external-reference (BoF YAML); no model-native authority.",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [
+        "decision-9"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "includesCommonCapability",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [
@@ -5136,7 +5669,6 @@
         "No PLEML commit",
         "Pair with selectsFeature/appliesToMemberProduct for any future configuration-layer review"
       ],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external-reference (BoF YAML); no model-native authority.",
@@ -5160,6 +5692,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W3",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -5183,10 +5716,14 @@
       },
       "desired_target_authority": "model-authoritative via native variation structure (DE4SDV relation identity kept as navigation vocabulary only).",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "variesAt",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [
@@ -5195,7 +5732,6 @@
         "Evidence gate: a feature usage participating in a variation's variant membership; until then vocabulary-only",
         "No PLEML dependency"
       ],
-      "proposed_wave": "W3",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "model-authoritative via native variation structure (DE4SDV relation identity kept as navigation vocabulary only).",
@@ -5219,6 +5755,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -5242,10 +5779,16 @@
       },
       "desired_target_authority": "external-reference for the operational selection (BoF YAML / generated projection); native variant structure owns the choice space.",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [
+        "decision-9"
+      ],
+      "gate_wave": null,
+      "gated_by": "owner-decision",
       "identity": "selectsVariant",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [
@@ -5253,7 +5796,6 @@
         "No new model relationship kind; future model-native configured products must use native variant choice semantics",
         "No PLEML commit; adoption gates apply if ever chosen"
       ],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external-reference for the operational selection (BoF YAML / generated projection); native variant structure owns the choice space.",
@@ -5277,6 +5819,7 @@
     },
     {
       "accounting_status": "retained",
+      "base_wave": "W5",
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -5297,14 +5840,17 @@
       },
       "desired_target_authority": "external configuration/evidence baseline manifest; modeled references only",
       "final_disposition": "KEEP_EXTERNAL_REFERENCE",
+      "gate_decisions": [],
+      "gate_wave": null,
+      "gated_by": null,
       "identity": "capturedInBaseline",
       "kind": "relationship",
       "membership": "o4-target",
       "merge_into": null,
+      "merge_note": null,
       "migration_class": "EXTERNAL_BOUNDARY",
       "o3_complete": false,
       "open_decisions": [],
-      "proposed_wave": "W5",
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
         "grounding": "external configuration/evidence baseline manifest; modeled references only",
@@ -5327,11 +5873,13 @@
       "wave_basis": "review Deliverable 8 Wave 4 (EXTERNAL_BOUNDARY bin, 10 rows named)"
     }
   ],
-  "schema": "de4sdv.o4-execution-register/v1",
+  "schema": "de4sdv.o4-execution-register/v2",
   "source": {
     "integrated_review_path": "docs/method-conformance/o4/ontology-review/integrated-review.json",
     "integrated_review_schema": "de4sdv-ontology-review-integrated/v2",
     "integrated_review_sha256": "sha256:0c7ba9827422f0b4ffe818c1308c63f8e5702e473ec9147ddc56fb283f335646",
+    "review_md_path": "docs/method-conformance/o4/ontology-review/REVIEW.md",
+    "review_md_sha256": "sha256:a2d78833fbe5bf7d456f57d995351c9b9f8378478e669722a3887764b3dfaab9",
     "reviewed_semantic_baseline": "bc2b65abb623e50032f177d566e34e1a41c09f34"
   },
   "wave_dependencies": [
@@ -5350,7 +5898,7 @@
       "wave": "W1"
     },
     {
-      "basis": "review Deliverable 8 dependency rule: parity unblocks the native/projection and redesign waves",
+      "basis": "review Deliverable 8 dependency rule: parity unblocks the native/projection and redesign waves; W7-held definition rows re-enter here",
       "requires": [],
       "unblocks": [
         "W3",
@@ -5397,9 +5945,10 @@
       "wave": "W6"
     },
     {
-      "basis": "gated rows re-enter earlier waves when their blocker resolves (review Deliverable 8 Wave 6 rule); blocked rows re-enter the earlier waves",
+      "basis": "held rows re-enter their base wave when the named decision/evidence resolves (review Deliverable 8 Wave 6 exit rule)",
+      "kind": "gate",
       "requires": [
-        "named owner decisions (Deliverable 10)"
+        "named owner decisions (Deliverable 10) and row blockers"
       ],
       "unblocks": [],
       "wave": "W7"
@@ -5434,29 +5983,29 @@
       "exit": "normalized-exact or reviewed-equivalent definition text for every row; O2 admission unblocked for these rows",
       "id": "W2",
       "kind": "semantic",
-      "name": "Definitions parity",
-      "review_mapping": "review Deliverable 8 Wave 2 (26 MODEL_AUTHORITY_PARITY rows)"
+      "name": "Definitions parity & model authority",
+      "review_mapping": "review Deliverable 8 Wave 2 (26 MODEL_AUTHORITY_PARITY rows) + gated definition rows re-entering from the W7 gate"
     },
     {
       "exit": "projection rows generated from model authority; same-revision equivalence evidence per identity where traversal is claimed",
       "id": "W3",
       "kind": "semantic",
       "name": "Native/library adoption & projection rows",
-      "review_mapping": "review Deliverable 8 Wave 3 core (native constructs + accepted library)"
+      "review_mapping": "review Deliverable 8 Wave 3 core (native constructs + accepted library); allocatedTo re-enters from the W7 gate"
     },
     {
       "exit": "model-resident definitions bound (parity) + projection rows generated; no redesign required",
       "id": "W4",
       "kind": "semantic",
       "name": "Low-dependency DE4SDV application semantics & vocabulary",
-      "review_mapping": "review fall-through rule F1 (rows not named in D8; lowest-dependency application semantics)"
+      "review_mapping": "review fall-through rule F1 (rows not named in Deliverable 8; lowest-dependency application semantics)"
     },
     {
       "exit": "contract docs + profile entries; no traversal; blocked-state surfaced wherever queried",
       "id": "W5",
       "kind": "semantic",
       "name": "External-boundary contracts",
-      "review_mapping": "review Deliverable 8 Wave 4 (10 EXTERNAL_BOUNDARY rows)"
+      "review_mapping": "review Deliverable 8 Wave 4 (10 EXTERNAL_BOUNDARY rows); instantiatesCanonicalArchitecture re-enters from the W7 gate"
     },
     {
       "exit": "old names retired through the governed transition; no signature silently changed",
@@ -5466,10 +6015,10 @@
       "review_mapping": "review Deliverable 8 Wave 5 (named design set)"
     },
     {
-      "exit": "each blocker resolved by the named decision/evidence, then normal earlier-wave treatment",
+      "exit": "each held row re-enters its base wave when its named decision/evidence resolves (review Deliverable 8 Wave 6 exit rule)",
       "id": "W7",
-      "kind": "semantic-gated",
-      "name": "Gated/blocked closures (incl. architecture-semantics definition homes)",
+      "kind": "gate",
+      "name": "Decision/holding gate (not a semantic treatment)",
       "review_mapping": "review Deliverable 8 Wave 6 + fall-through rule F2 (architecture/evidence semantics awaiting owner decisions)"
     },
     {
