@@ -1114,10 +1114,11 @@ class TestPreservationAndRuntimeIndependence:
 # 7. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# W2 pilot 2 permanent rebind (Rebind 1): the v1.1 artifacts are bound to the
-# permanent #275 squash commit; the committed-artifact consistency tests pin
-# that revision by design.
-COMMITTED_SOURCE_REVISION = "d7344c6cde503b22a14ceea0a8944f0864d0e1b7"
+# W2 batch 3 rebind: the v1.1 artifacts' source revision moved to the batch-3
+# stage revision because the v1 (O2.1 baseline) rebind updated this artifact's
+# v1 baseline pin. A post-squash rebind follow-up (PR #251 pattern) moves
+# this, and the artifact binding, to the permanent main revision after merge.
+COMMITTED_SOURCE_REVISION = "0ca33b5a0295c210ee843a49b816fa20b92c916f"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
