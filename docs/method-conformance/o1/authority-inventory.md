@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `9d31689402ce9d25119a175cdedaabe22714065e`
+- Source revision: `9c228ea0d6e5d6a9ef5abc6c6a82ae2b09d06fb7`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:9726919cb89381116f198c589096c35c0b4083d63f18e2dbfe7e2371e56b148b)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:9fc0eea7a87da7449a1cb1de555991c6451232791ffe058d0ed30a9d974b25f7)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
