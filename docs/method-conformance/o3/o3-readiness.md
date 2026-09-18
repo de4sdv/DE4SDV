@@ -11,6 +11,14 @@ API closure is claimed. O3 — the approved authority transition — begins only
 after independent review of this package and the privileged evidence it
 requires.
 
+> **Completion note (2026-09-17):** the O3 authority transition later
+> executed and completed for exactly the frozen 13-identity scope —
+> deployment-bound closure accepted, production activated, rollback proven,
+> re-activated; every probe battery 15/15. See
+> [`o3-completion-record.md`](o3-completion-record.md) and
+> `o3-production-cutover-evidence.json`. The status text above describes the
+> pre-cutover state of this document and is kept for history.
+
 Machine-readable companion (generated, `--check`-validated):
 
 - `docs/method-conformance/o3/o3-equivalence-scope.json`
