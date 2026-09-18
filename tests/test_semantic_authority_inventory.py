@@ -103,13 +103,12 @@ PLEML_GATE = "PLE-R -> PLE-Q -> PLE-S -> PLE-A"
 #: Phase-1 draft. Under exact-equality parity they are honestly `differs`.
 CONTAINMENT_ONLY_ROWS = {
     # W2 pilot 1 closed definition-level parity for EngineeringIncrement and
-    # NeedsRequirementsIncrement (their docs now observe normalized-exact and
-    # their equivalence is null), so they left this containment-only set.
-    "IncrementEngineeringQuestion",
-    "IncrementLifecycleDecision",
+    # NeedsRequirementsIncrement; W2 pilot 2 closed it for
+    # IncrementEngineeringQuestion, IncrementLifecycleDecision and
+    # ProblemStatement (their docs now observe normalized-exact and their
+    # equivalence is null), so they left this containment-only set.
     "IncrementTraceabilityShell",
     "DeferredProductLineScope",
-    "ProblemStatement",
 }
 
 CLASS_OBSERVED_KEYS = {
@@ -889,10 +888,14 @@ class TestTextParity:
         # identity outside this set moves. W2 pilot 1 then closed
         # definition-level parity for EngineeringIncrement, FeatureIncrement
         # and NeedsRequirementsIncrement: three rows moved differs ->
-        # normalized-exact (33/3 -> 30/6).
+        # normalized-exact (33/3 -> 30/6). W2 pilot 2 closed it for the six
+        # method-context rows (IncrementEngineeringQuestion,
+        # IncrementLifecycleDecision, SystemLayer, ProblemStatement,
+        # Assumption, Gap): six rows moved differs -> normalized-exact
+        # (30/6 -> 24/12).
         assert counts == {
-            "differs": 30,
-            "normalized-exact": 6,
+            "differs": 24,
+            "normalized-exact": 12,
             "doc-absent": 3,
             "doc-absent (bodyless declaration)": 1,
         }

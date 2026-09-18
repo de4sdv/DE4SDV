@@ -110,15 +110,22 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 pilot 2 (definitions parity)
+    note: 'o4-w2 pilot-2 parity-reviewed: definition-level parity is closed — the model doc
+      carries the reviewed definition text verbatim (leading article restored); the
+      engineering-question content remains documentation/content carried by usages —
+      bounded framing vocabulary, no rename. The reviewed model definition is ready for O2
+      admission; authority_current remains legacy-yaml until its O2 admission/retirement
+      condition is completed under O4. No semantic content added or removed; no authority
+      cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   IncrementLifecycleDecision:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -128,15 +135,21 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 pilot 2 (definitions parity)
+    note: 'o4-w2 pilot-2 parity-reviewed: definition-level parity is closed — the model doc
+      carries the reviewed definition text verbatim (accepted, deferred, or invalidated
+      boundary restored; no enum or structural state machine introduced). The reviewed
+      model definition is ready for O2 admission; authority_current remains legacy-yaml
+      until its O2 admission/retirement condition is completed under O4. No semantic
+      content added or removed; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   IncrementTraceabilityShell:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -269,15 +282,21 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 pilot 2 (definitions parity)
+    note: 'o4-w2 pilot-2 parity-reviewed: definition-level parity is closed — the model doc
+      carries the reviewed definition text verbatim (framing only; ADR 0004 remains the
+      framing authority for the layer names). The reviewed model definition is ready for
+      O2 admission; authority_current remains legacy-yaml until its O2 admission/retirement
+      condition is completed under O4. No semantic content added or removed; no authority
+      cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   ProductLine:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -527,15 +546,22 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: R003 exclusion grounding (traced into, not out of). Declaration + doc model-resident; reviewed
-      definition text still YAML-established; parity not yet reviewed.
+    stage: o4-w2 pilot 2 (definitions parity)
+    note: 'R003 exclusion grounding (traced into, not out of). o4-w2 pilot-2 parity-reviewed:
+      definition-level parity is closed — the model doc carries the reviewed definition text
+      verbatim (modeled-as-a-requirement qualification restored); the declaration remains a
+      requirement definition and Requirement lineage / R003 behavior are unchanged. The
+      reviewed model definition is ready for O2 admission; authority_current remains
+      legacy-yaml until its O2 admission/retirement condition is completed under O4. No
+      semantic content added or removed; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   ArchitectureDecisionRecord:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -859,15 +885,22 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 pilot 2 (definitions parity)
+    note: 'o4-w2 pilot-2 parity-reviewed: definition-level parity is closed — the model doc
+      carries the reviewed definition text verbatim (the materially narrower increment-only
+      wording replaced by the reviewed scope); recordsAssumption and existing assumption
+      semantics are unchanged. The reviewed model definition is ready for O2 admission;
+      authority_current remains legacy-yaml until its O2 admission/retirement condition is
+      completed under O4. No semantic content added or removed; no authority cutover
+      implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   Gap:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -877,15 +910,23 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: IncrementGap; "must not be hidden" boundary. Declaration + doc model-resident; reviewed definition
-      text still YAML-established; parity not yet reviewed.
+    stage: o4-w2 pilot 2 (definitions parity)
+    note: 'IncrementGap; "must not be hidden" boundary. o4-w2 pilot-2 parity-reviewed:
+      definition-level parity is closed — the model doc carries the reviewed definition text
+      verbatim (must-not-be-hidden claim boundary preserved); Gap remains distinct from
+      realization-record classes (recordsGap, RequiredTraceChain, and realization-record
+      semantics unchanged). The reviewed model definition is ready for O2 admission;
+      authority_current remains legacy-yaml until its O2 admission/retirement condition is
+      completed under O4. No semantic content added or removed; no authority cutover
+      implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   MissingRealizationRecord:
     authority_current: legacy-yaml
     authority_target: model-authoritative
