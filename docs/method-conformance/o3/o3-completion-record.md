@@ -3,8 +3,10 @@
 Date: 2026-09-17 · Evidence package: `o3-production-cutover-evidence.json`
 (`de4sdv.o3-production-cutover-evidence/v1`, this directory) · Design and
 procedure: `o3-stage-b-design.md`, `o3-activation-and-rollback.md` ·
-Acceptance inputs: the operator-side acceptance packages referenced in the
-JSON (`operator_evidence_packages`).
+Acceptance inputs: operator-local audit packages (non-repository; see
+`operator_local_audit_references` in the JSON — paths are informational
+only, with the durable SHA-256 digests of the final production-cutover
+package, the deployment-closure acceptance package and the closure diff).
 
 **Status: COMPLETE.** O3 — the approved semantic-authority transition from
 the authored YAML path to the reviewed O3 authority bundle — is complete in

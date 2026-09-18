@@ -97,11 +97,29 @@
     "trace reports governed semantic_status=incomplete (path found, no gaps) and verification_coverage reports partial — identical across authorities",
     "O3 remains frozen at exactly the 13 identities; any future semantic change to them requires a versioned amendment with new projection/profile/equivalence evidence"
   ],
-  "operator_evidence_packages": [
-    "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/O3_PRODUCTION_CUTOVER_PACKAGE.md",
-    "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/deployment-closure-acceptance-package.md",
-    "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/closure_diff.txt",
-    "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/cutover/ (probe logs, outputs, snapshot captures)"
-  ],
+  "operator_local_audit_references": {
+    "note": "Operator-local, non-repository audit references. These paths exist only in the operator environment; they are NOT governed repository evidence and must not be treated as durable sources. The durable, revision-bound facts are the digests recorded here and the structured fields of this record.",
+    "packages": [
+      {
+        "path": "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/O3_PRODUCTION_CUTOVER_PACKAGE.md",
+        "role": "final production-cutover package",
+        "sha256": "sha256:cab184ad9f40a926a15123855021b6010220c0e5212544b914bfbaeda0e29295"
+      },
+      {
+        "path": "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/deployment-closure-acceptance-package.md",
+        "role": "deployment-closure acceptance package",
+        "sha256": "sha256:4a08b3b95b7e9474ab7ce934fe81decff163787e0bb3f9b40e6524aca188bb83"
+      },
+      {
+        "path": "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/closure_diff.txt",
+        "role": "privileged-vs-deployment closure diff (DIFF_CLEAN)",
+        "sha256": "sha256:bd7e976d5442dcd2e0a4a0a82a75a0371e8b296b34d866db9078386fdab8ab8e"
+      },
+      {
+        "path": "~/.hermes/outputs/o3-stage-b-acceptance/deployment-020d1d2/cutover/",
+        "role": "probe scripts, logs, outputs and snapshot captures (directory; digests recorded per artifact in the packages above)"
+      }
+    ]
+  },
   "statement": "O3 is complete for exactly the frozen 13-identity scope. Production semantic authority is the reviewed O3 bundle o3b-31f999503d96233ce974f0bfd72a5df0 at revision 020d1d20e5c03542f67f38b1cc716f4332478538; no additional ontology identity is migrated by O3, and no O3 semantic amendment exists."
 }
