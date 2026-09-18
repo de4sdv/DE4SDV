@@ -54,7 +54,7 @@ package DE4SDV_MethodContext {
   }
 
   part def SystemLayer {
-    doc /* Coarse ASELCM-style system layer used to frame DE4SDV increments. */
+    doc /* Coarse ASELCM-style layer used to frame DE4SDV increments and their environments. */
   }
 
   part def System1SDVProductLine :> SystemLayer {
@@ -92,7 +92,7 @@ package DE4SDV_MethodContext {
   }
 
   requirement def ProblemStatement {
-    doc /* The problem that is to be solved by the system or increment. */
+    doc /* The problem that is to be solved by the system or increment, modeled as a requirement. */
   }
 
   requirement def StakeholderNeedCandidate :> RequirementsManagementAttributeBase {
@@ -162,11 +162,11 @@ package DE4SDV_MethodContext {
   }
 
   part def IncrementAssumption {
-    doc /* Assumption recorded for an engineering increment. */
+    doc /* A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record. */
   }
 
   part def IncrementGap {
-    doc /* Gap or unresolved item recorded for an engineering increment. */
+    doc /* A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden. */
   }
 
   part def IncrementScope {
@@ -178,11 +178,11 @@ package DE4SDV_MethodContext {
   }
 
   part def IncrementEngineeringQuestion {
-    doc /* Engineering question that an increment answers. */
+    doc /* The engineering question that an increment answers. */
   }
 
   part def IncrementLifecycleDecision {
-    doc /* Lifecycle decision that an increment supports. */
+    doc /* A lifecycle decision that an increment supports (accepted, deferred, or invalidated). */
   }
 
   part def MissingRealizationRecord {
