@@ -38,15 +38,21 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 pilot 1 (definitions parity)
+    note: 'o4-w2 pilot-1 parity-reviewed: definition-level doc parity is normalized-exact — the
+      model doc carries the reviewed definition text verbatim (leading article restored);
+      the kernel doc is the canonical definition home and the YAML row retires as semantic
+      authority at its reviewed closure gate; no semantic content added or removed.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: part-def representation of a DE4SDV application concept with no
+      native semantic content beyond part classification; definition-level doc now carries
+      the reviewed definition text verbatim under cosmetic normalization only — parity
+      closed (o4-w2 pilot 1), no semantic content added or removed.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   FeatureIncrement:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -56,15 +62,22 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 pilot 1 (definitions parity)
+    note: 'o4-w2 pilot-1 parity-reviewed: definition-level doc parity is normalized-exact — the
+      model doc now carries the reviewed YAML wording ("native SysML v2 variation/variant
+      choice" replaces the loose "variability decision"); PLE variation semantics remain
+      the reference for the wording; the kernel doc is canonical after parity; no semantic
+      content added or removed.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: part-def representation of a DE4SDV application concept with no
+      native semantic content beyond part classification; definition-level doc aligned to
+      the reviewed wording (PLE variation/variant-choice semantics) — parity closed
+      (o4-w2 pilot 1), no semantic content added or removed.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   NeedsRequirementsIncrement:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -74,15 +87,21 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 pilot 1 (definitions parity)
+    note: 'o4-w2 pilot-1 parity-reviewed: definition-level doc parity is normalized-exact — the
+      model doc carries the reviewed definition text verbatim (leading article restored);
+      the kernel doc is the canonical definition home and the YAML row retires as semantic
+      authority at its reviewed closure gate; no semantic content added or removed.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 generated projection from the reviewed model representation
+    - O3 approved authority transition
+    exact_fit_decision: 'exact fit: part-def representation of a DE4SDV application concept with no
+      native semantic content beyond part classification; definition-level doc now carries
+      the reviewed definition text verbatim under cosmetic normalization only — parity
+      closed (o4-w2 pilot 1), no semantic content added or removed.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   IncrementEngineeringQuestion:
     authority_current: legacy-yaml
     authority_target: model-authoritative
