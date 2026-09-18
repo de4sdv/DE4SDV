@@ -1740,7 +1740,11 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-COMMITTED_SOURCE_REVISION = "b6db63643a7613f1582b72a1d6daf43d64fd206b"
+# W2 pilot 1 rebind: the v1.2 artifacts' source revision moved to the W2
+# stage revision because the model-input doc parity change altered a bound
+# input digest. A post-squash rebind follow-up (PR #251 pattern) moves this,
+# and the artifact binding, to the permanent main revision after merge.
+COMMITTED_SOURCE_REVISION = "bf901371eee07c3c330ff00f2977f47fcb78231d"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
