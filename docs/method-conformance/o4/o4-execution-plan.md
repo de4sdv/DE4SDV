@@ -12,6 +12,10 @@ Projection/Profile artifact and no migrated identity set. No O4 semantic
 migration is performed here; execution begins only after independent review
 of this plan.
 
+The W1–W6 execution waves and W7 decision gate are subordinate work
+packages within O4; they do not alter or supersede the O0–O4 migration
+lifecycle defined by the Unified Semantic Engineering Plan.
+
 Machine companions (generated, `--check`-validated via
 `scripts/check_repo.py`):
 

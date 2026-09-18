@@ -278,13 +278,16 @@ class TestC5ScopeAndCounts:
         }
 
     def test_authority_target_counts_unchanged(self, inventory):
-        """Both rename rows keep their location targets; no target counts move."""
+        """The c5 rename rows keep their location targets; the O4 review
+        correction batch (W1) later moved three target descriptions
+        (accepted-library-grounded 12 -> 10; native-sysml 7 -> 8;
+        de4sdv-application-semantic 4 -> 5)."""
         assert inventory["authority_target_counts"] == {
-            "accepted-library-grounded": 12,
-            "de4sdv-application-semantic": 4,
+            "accepted-library-grounded": 10,
+            "de4sdv-application-semantic": 5,
             "external-reference": 2,
             "model-authoritative": 61,
-            "native-sysml": 7,
+            "native-sysml": 8,
             "retired": 1,
             "unknown": 6,
         }
@@ -329,7 +332,8 @@ class TestC5ScopeAndCounts:
         assert verification["authority_current"] == "native-sysml"
         assert verification["evidence_state"] == "parity-reviewed"
         verified_by = entries["verifiedBy"]["reviewed"]
-        assert verified_by["authority_target"] == "native-sysml"
+        # O4 review correction (W1, finding 17): corrected from native-sysml.
+        assert verified_by["authority_target"] == "de4sdv-application-semantic"
         assert verified_by["evidence_state"] == "parity-reviewed"
 
     def test_c3_row_unchanged(self, inventory):

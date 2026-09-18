@@ -397,14 +397,20 @@ class TestC4ScopeAndCounts:
         }
 
     def test_expected_authority_target_counts(self, inventory):
-        """The c4 retirement moves exactly one target row:
-        de4sdv-application-semantic 5 -> 4, retired appears with 1."""
+        """Target descriptions move under the review chain: the c4 retirement
+        moved one target row (de4sdv-application-semantic 5 -> 4; retired
+        appears with 1); the O4 review correction batch (W1) then corrected
+        the accepted-library labels of
+        usesVerificationMethod/VerificationMethod (accepted-library-grounded
+        12 -> 10; native-sysml 7 -> 8) and verifiedBy's description
+        (native-sysml -> de4sdv-application-semantic;
+        de4sdv-application-semantic 4 -> 5)."""
         assert inventory["authority_target_counts"] == {
-            "accepted-library-grounded": 12,
-            "de4sdv-application-semantic": 4,
+            "accepted-library-grounded": 10,
+            "de4sdv-application-semantic": 5,
             "external-reference": 2,
             "model-authoritative": 61,
-            "native-sysml": 7,
+            "native-sysml": 8,
             "retired": 1,
             "unknown": 6,
         }
@@ -444,7 +450,8 @@ class TestC4ScopeAndCounts:
         assert verification["evidence_state"] == "parity-reviewed"
         verified_by = entries["verifiedBy"]["reviewed"]
         assert verified_by["authority_current"] == "legacy-yaml"
-        assert verified_by["authority_target"] == "native-sysml"
+        # O4 review correction (W1, finding 17): corrected from native-sysml.
+        assert verified_by["authority_target"] == "de4sdv-application-semantic"
         assert verified_by["evidence_state"] == "parity-reviewed"
 
     def test_c3_row_unchanged(self, inventory):

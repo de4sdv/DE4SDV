@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted (adopted with the 2026-08 amendment below: verification-planning attributes)
 
 **Amendment (2026-08):** the adopted attribute set is extended with the
 library's verification-planning attributes — `verificationMethod` (NRM A8)

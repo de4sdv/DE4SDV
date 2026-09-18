@@ -224,11 +224,18 @@ entries:
     adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
-    disposition: move-meaning-into-model
+    disposition: keep-as-is
     confidence: high
     stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    note: 'O4 review correction (demotion; KEEP_VOCABULARY_ONLY): bounded DE4SDV
+      process-guidance vocabulary — model-resident, no runtime semantic/traversal
+      claim and no runtime semantic consumers; never promoted to semantic authority.
+      The O1 authority-target vocabulary has no vocabulary-only value;
+      model-authoritative is retained as the legacy O1 schema''s model-side
+      destination only and does not imply runtime semantic promotion. The O4
+      definition-parity requirement remains (the authored-YAML definition authority
+      must still be retired before O4 closure); projection remains vocabulary-only.
+      Inventory-description correction only — no semantic/model/runtime change.'
     unknowns: []
     required_evidence:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
@@ -732,16 +739,19 @@ entries:
     semantic_text_equivalence: null
   VerificationMethod:
     authority_current: accepted-library-grounded
-    authority_target: accepted-library-grounded
+    authority_target: native-sysml
     evidence_state: repository-evidenced
-    adoption_status: accepted
+    adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
     disposition: keep-as-is
     confidence: high
     stage: O2+ (parity)
-    note: ODE4HERA requirements-management library verificationMethod attribute populated with standard
-      VerificationMethodKind values (ADR 0009 amendment).
+    note: 'O4 review correction (finding 16): KEEP_NATIVE — corrected from accepted-library.
+      The construct is native SysML VerificationMethod metadata; the ODE4HERA verificationMethod
+      attribute (NRM A8, ADR 0009 amendment) is the application mapping carrier populated
+      with the native VerificationMethodKind vocabulary. Inventory-description correction
+      only — no semantic/model/runtime change.'
     unknowns: []
     required_evidence:
     - ADR 0009 grounding record (upstream attribute + standard method-kind vocabulary)
@@ -1681,7 +1691,7 @@ entries:
     semantic_text_equivalence: null
   verifiedBy:
     authority_current: legacy-yaml
-    authority_target: native-sysml
+    authority_target: de4sdv-application-semantic
     evidence_state: parity-reviewed
     adoption_status: not-applicable
     transition_gate: null
@@ -1725,21 +1735,31 @@ entries:
       objects qualify; a generic Dependency, a SubjectMembership, VerificationMethod
       metadata, retained execution or evaluation records, and name-only correspondence
       are NOT substitutes; the owner chain must resolve to a verification case usage/definition;
-      there is no name-based fallback.'
+      there is no name-based fallback. O4 review correction (finding 17) — classification
+      correction only: the authority-target description is corrected from native-sysml to
+      de4sdv-application-semantic, aligning verifiedBy with hasSubject under c5''s
+      Requirement-lineage source-domain enforcement. Frozen O3 meaning, query behavior and
+      projection artifacts are unaffected; no O3 amendment (inventory-description correction
+      only).'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   usesVerificationMethod:
     authority_current: legacy-yaml
-    authority_target: accepted-library-grounded
+    authority_target: native-sysml
     evidence_state: repository-evidenced
-    adoption_status: accepted
+    adoption_status: not-applicable
     transition_gate: null
     conditional_target: false
-    disposition: adopt-accepted-library-relation
+    disposition: keep-as-is
     confidence: medium
     stage: batched-parity (post-0a/0b)
-    note: Method carried natively by VerificationMethod metadata with standard method-kind vocabulary
-      (ADR 0009 amendment).
+    note: 'O4 review correction (finding 15): KEEP_NATIVE — corrected from accepted-library.
+      VerificationMethod metadata and the normative VerificationMethodKind vocabulary are
+      normative SysML constructs; the relationship is a projection of metadata (annotated
+      verification case to its method values), not a second modeled fact, and carries no
+      execution implication. The ODE4HERA verificationMethod attribute (NRM A8, ADR 0009
+      amendment) is the application mapping carrier, not the construct''s authority.
+      Inventory-description correction only — no semantic/model/runtime change.'
     unknowns: []
     required_evidence:
     - 'grounding record: relationship vs native metadata attribute decision'
@@ -1953,7 +1973,12 @@ entries:
       gated). Lane B verification SubjectMembership evidence informed the
       serialized shape only and does not establish this predicate.
       authority_current stays legacy-yaml during O1; any transition is an O3
-      decision. No privileged ingestion was dispatched for c3.
+      decision. No privileged ingestion was dispatched for c3. O4 review correction
+      (finding 17) — the authority-target descriptions of hasSubject and verifiedBy
+      are now mutually consistent under c5's source-domain enforcement; both record
+      DE4SDV application semantics over native witnesses. Frozen O3 meaning, query
+      behavior and projection artifacts are unaffected (inventory-description record
+      only; no O3 amendment).
     unknowns: []
     required_evidence:
     - O2 generated Semantic Projection from the reviewed application-semantic contract and native witness grounding
