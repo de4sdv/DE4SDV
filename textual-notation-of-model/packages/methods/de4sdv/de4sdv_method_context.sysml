@@ -42,15 +42,15 @@ package DE4SDV_MethodContext {
   public import VVStatus;
 
   part def EngineeringIncrement {
-    doc /* Bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
+    doc /* A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
   }
 
   part def FeatureIncrement :> EngineeringIncrement {
-    doc /* Engineering increment focused on a product-line feature, common capability, or variability decision. */
+    doc /* An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice. */
   }
 
   part def NeedsRequirementsIncrement :> EngineeringIncrement {
-    doc /* Engineering increment focused on needs, draft requirements, traceability, and V&V planning. */
+    doc /* An engineering increment focused on needs, draft requirements, traceability, and V&V planning. */
   }
 
   part def SystemLayer {
