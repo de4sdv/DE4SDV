@@ -102,8 +102,9 @@ PLEML_GATE = "PLE-R -> PLE-Q -> PLE-S -> PLE-A"
 #: The seven rows that passed only via normalized containment in the accepted
 #: Phase-1 draft. Under exact-equality parity they are honestly `differs`.
 CONTAINMENT_ONLY_ROWS = {
-    "EngineeringIncrement",
-    "NeedsRequirementsIncrement",
+    # W2 pilot 1 closed definition-level parity for EngineeringIncrement and
+    # NeedsRequirementsIncrement (their docs now observe normalized-exact and
+    # their equivalence is null), so they left this containment-only set.
     "IncrementEngineeringQuestion",
     "IncrementLifecycleDecision",
     "IncrementTraceabilityShell",
@@ -885,10 +886,13 @@ class TestTextParity:
         # direct docs are the aligned leading block); DerivesFromNeed stays
         # `differs` with `review-required` (its equivalence review is not
         # completed — the negative control against auto-promotion); no
-        # identity outside this set moves.
+        # identity outside this set moves. W2 pilot 1 then closed
+        # definition-level parity for EngineeringIncrement, FeatureIncrement
+        # and NeedsRequirementsIncrement: three rows moved differs ->
+        # normalized-exact (33/3 -> 30/6).
         assert counts == {
-            "differs": 33,
-            "normalized-exact": 3,
+            "differs": 30,
+            "normalized-exact": 6,
             "doc-absent": 3,
             "doc-absent (bodyless declaration)": 1,
         }
