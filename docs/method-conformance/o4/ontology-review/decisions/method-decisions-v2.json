@@ -1260,7 +1260,7 @@
     "target_authority": "model-authoritative after the exclusions structural gap is closed (declaration gains a model-resident exclusions-with-rationale representation).",
     "target_definition": "An evaluation scope binding increment identity, eligible subject types, and explicit exclusions (with rationale). Contribution set and evaluation scope are distinct sets; membership is a reviewed scope decision, not an inferred impact claim. (Same meaning; exclusions must become structurally carried.)",
     "migration": "MODEL_AUTHORITY_PARITY",
-    "rationale": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2/O3 gates can admit it. Not among the 13 frozen identities; no O3 amendment.",
+    "rationale": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2 admission gate can admit it under O4. Not among the 13 frozen identities; no O3 amendment.",
     "consumers": [
       {
         "path": "de4sdv/semantic/method_contract.py:33,46",
@@ -1318,11 +1318,10 @@
     "dependencies": [
       "EvaluationScopeMembership (frozen 13; membership semantics)",
       "o1 c1 conformance parity review",
-      "o2 admission gating",
-      "o3 authority transition"
+      "o2 admission gating"
     ],
     "decisions": [
-      "REDESIGN the declaration to carry explicit exclusions (with rationale) structurally; then complete model-authority parity; do not force O2/O3 admission before the gap closes; no rename."
+      "REDESIGN the declaration to carry explicit exclusions (with rationale) structurally; then complete model-authority parity; do not force O2 admission or O4 authority retirement before the gap closes; no rename."
     ],
     "blocker": "Structural exclusions-with-rationale representation is not model-resident; evidence_state stays repository-evidenced until a reviewed representation decision and implementation/parity review exist.",
     "change_summary": "Decision recorded in v1 review; canonicalized in repair stage (REDESIGN).",

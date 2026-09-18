@@ -2703,7 +2703,7 @@
       "migration_class": "BLOCKED",
       "o3_complete": false,
       "open_decisions": [
-        "Design the lineage contract in the model first; then O2 projection, then O3 transition."
+        "Design the lineage contract in the model first; then O2 projection, then the governed O4 authority retirement."
       ],
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
@@ -3499,8 +3499,7 @@
       "dependencies": [
         "EvaluationScopeMembership (frozen 13; membership semantics)",
         "o1 c1 conformance parity review",
-        "o2 admission gating",
-        "o3 authority transition"
+        "o2 admission gating"
       ],
       "dependency_flags": {
         "canonical_architecture": false,
@@ -3526,7 +3525,7 @@
       "migration_class": "MODEL_AUTHORITY_PARITY",
       "o3_complete": false,
       "open_decisions": [
-        "REDESIGN the declaration to carry explicit exclusions (with rationale) structurally; then complete model-authority parity; do not force O2/O3 admission before the gap closes; no rename."
+        "REDESIGN the declaration to carry explicit exclusions (with rationale) structurally; then complete model-authority parity; do not force O2 admission or O4 authority retirement before the gap closes; no rename."
       ],
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
@@ -3548,7 +3547,6 @@
         "Reviewed semantic/model representation decision for exclusions",
         "Implementation and parity review of that model-resident representation",
         "O2 generation from the reviewed model representation",
-        "O3 approved authority transition",
         "Structural exclusions-with-rationale representation is not model-resident; evidence_state stays repository-evidenced until a reviewed representation decision and implementation/parity review exist."
       ],
       "wave_basis": "review Deliverable 8 Wave 2 (MODEL_AUTHORITY_PARITY bin; explicit 26-row count)"
@@ -4470,7 +4468,6 @@
       "validation_evidence_requirement": [
         "reviewed identity rename/replacement decision (name, signature, and serialized end-resolution mechanics) before any O2 projection row for this entry",
         "O2 generated Semantic Projection from the reviewed replacement representation",
-        "O3 approved authority transition (the authored mapping remains current authority during O1)",
         "Owner-approved name/signature and real serialized allocation-end closure."
       ],
       "wave_basis": "review Deliverable 8 Wave 5 named design set (redesigns + traceability + claim design)"
@@ -4531,8 +4528,7 @@
       "review_index": 70,
       "validation_evidence_requirement": [
         "reviewed identity rename to the exact bounded relevance proposition (no strengthening) before any O2 projection row for this entry",
-        "O2 generated Semantic Projection from the renamed reviewed representation",
-        "O3 approved authority transition (the authored mapping remains current authority during O1)"
+        "O2 generated Semantic Projection from the renamed reviewed representation"
       ],
       "wave_basis": "review Deliverable 8 Wave 5 named design set (redesigns + traceability + claim design)"
     },
@@ -5493,7 +5489,6 @@
       "validation_evidence_requirement": [
         "reviewed EvidenceContract-specific identity/lineage contract: a machine-resolvable, revision-bound, fail-closed discriminator (explicit specialization lineage, exact application-definition/type binding, governed kernel binding, or a reviewed exact conjunction of governed relationships) separating the evidence-contract role from the acceptance-criterion role and every other verified requirement usage",
         "O2 generated Semantic Projection from the reviewed application-semantic contract and reviewed identity discriminator",
-        "O3 approved authority transition (the authored mapping remains current authority during O1)",
         "No revision-bound non-heuristic EvidenceContract discriminator."
       ],
       "wave_basis": "W7 gate re-entry: definitions/model authority \u2014 predicate reopened over the resolved EvidenceContract role (row blocker); held at the W7 decision gate until the gate resolves"
@@ -5873,7 +5868,7 @@
   "source": {
     "integrated_review_path": "docs/method-conformance/o4/ontology-review/integrated-review.json",
     "integrated_review_schema": "de4sdv-ontology-review-integrated/v2",
-    "integrated_review_sha256": "sha256:0c7ba9827422f0b4ffe818c1308c63f8e5702e473ec9147ddc56fb283f335646",
+    "integrated_review_sha256": "sha256:0900335d822bf8660ff67e7262163907dc3041a525e08c06557b817d08c55518",
     "review_md_path": "docs/method-conformance/o4/ontology-review/REVIEW.md",
     "review_md_sha256": "sha256:a2d78833fbe5bf7d456f57d995351c9b9f8378478e669722a3887764b3dfaab9",
     "reviewed_semantic_baseline": "bc2b65abb623e50032f177d566e34e1a41c09f34"

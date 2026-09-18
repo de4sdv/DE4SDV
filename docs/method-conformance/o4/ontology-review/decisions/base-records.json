@@ -2534,8 +2534,7 @@
         "required_evidence": [
           "Reviewed semantic/model representation decision for exclusions",
           "Implementation and parity review of that model-resident representation",
-          "O2 generation from the reviewed model representation",
-          "O3 approved authority transition"
+          "O2 generation from the reviewed model representation"
         ],
         "exact_fit_decision": "not exact structural fit \u2014 the SysML definition carries increment identity and eligible subject type, but explicit exclusions with rationale remain outside the model in the delivered runtime MethodEvaluationScope input. Runtime representation is implementation evidence, not model-authority parity.",
         "closure_evidence_ref": null,
@@ -3332,8 +3331,7 @@
         "unknowns": [],
         "required_evidence": [
           "reviewed identity rename/replacement decision (name, signature, and serialized end-resolution mechanics) before any O2 projection row for this entry",
-          "O2 generated Semantic Projection from the reviewed replacement representation",
-          "O3 approved authority transition (the authored mapping remains current authority during O1)"
+          "O2 generated Semantic Projection from the reviewed replacement representation"
         ],
         "exact_fit_decision": "not exact native fit as named - Outcome D (rename/replacement required). Native core: AllocationUsage is a native SysML v2 relationship witness and the requirement-rooted allocation facts are model-resident, which can ground a bounded cross-layer allocation trace. The identity fails exact fit on two counts. (1) Claim: allocation is not realization - Requirement allocated to ArchitectureElement does not mean ArchitectureElement realizes the requirement, contributes to its realization, or satisfies it; at the reviewed revision every real requirement-sourced allocation is Requirement -> Function (10 Function / 0 Logical / 0 Physical / 0 other), so no witness supports a realization reading at any layer. (2) Name: realizedBy misnames the modeled fact. The reviewed target proposition is a bounded requirement-allocation trace pending the reviewed rename/replacement; no replacement identity, signature, or composite realization query is defined by this review. Named semantic laws: AllocationUsage != realization automatically; Requirement -> Architecture allocation != physical realization automatically; a generic Dependency != realization; allocation does not collapse or redefine the canonical RFLP decomposition; no satisfaction, verification, deployment, or product-line meaning is added. Representation mechanics of any replacement must define how the serialized allocation source end is resolved (measured zero-hop behavior against the real export).",
         "closure_evidence_ref": null,
@@ -3395,8 +3393,7 @@
         "unknowns": [],
         "required_evidence": [
           "reviewed identity rename to the exact bounded relevance proposition (no strengthening) before any O2 projection row for this entry",
-          "O2 generated Semantic Projection from the renamed reviewed representation",
-          "O3 approved authority transition (the authored mapping remains current authority during O1)"
+          "O2 generated Semantic Projection from the renamed reviewed representation"
         ],
         "exact_fit_decision": "not exact native fit as named - Outcome D (rename/replacement required). Native usage: the generic Dependency supplies the witness; the bounded DE4SDV application semantic is the direction and endpoint-type discipline (Requirement-lineage source -> action-typed target) at relevance strength. The identity name overclaims: a generic Dependency with matching endpoint types does not prove specification or any stronger relation; the exact provable proposition is that function F is relevant to and addresses requirement R through an authored design-input trace (relevance only). Rename/replacement required (recorded); the replacement must carry a relevance-exact name; no replacement semantic is invented here and no strengthening is authorized (the plan preserves relevance only). Named semantic laws: Generic Dependency != specification automatically and != realization, allocation, satisfaction, or verification; ActionUsage/ActionDefinition targets are bounded native constituents - no Function ontology-class identity is claimed beyond the declared representation; RequirementUsage alone does not prove DE4SDV Requirement (Need-sourced and other non-Requirement sources are quiet absence).",
         "closure_evidence_ref": null,
@@ -4130,8 +4127,7 @@
         ],
         "required_evidence": [
           "reviewed EvidenceContract-specific identity/lineage contract: a machine-resolvable, revision-bound, fail-closed discriminator (explicit specialization lineage, exact application-definition/type binding, governed kernel binding, or a reviewed exact conjunction of governed relationships) separating the evidence-contract role from the acceptance-criterion role and every other verified requirement usage",
-          "O2 generated Semantic Projection from the reviewed application-semantic contract and reviewed identity discriminator",
-          "O3 approved authority transition (the authored mapping remains current authority during O1)"
+          "O2 generated Semantic Projection from the reviewed application-semantic contract and reviewed identity discriminator"
         ],
         "exact_fit_decision": "not exact native fit - Outcome B: the declared range cannot be enforced at the reviewed revision. The generic incoming Dependency supplies relevance only, and no governed semantic evidence establishes EvidenceContract identity: the eight per-slice evidence-contract requirement definitions carry no specialization lineage, no validated kernel binding grounds an EvidenceContract root, and native verification membership (supporting evidence only) also admits the acceptance-criterion role. The predicate therefore emits nothing; ambiguous verified requirement usages fail closed as quiet absence, never relabelled as evidence contracts, until a reviewed EvidenceContract-specific identity/lineage contract exists. Named semantic laws: RequirementUsage != EvidenceContract automatically; RequirementVerificationMembership != EvidenceContract automatically; verified AcceptanceCriterion != EvidenceContract; ordinary verified Requirement != EvidenceContract; unverified Requirement != EvidenceContract; Need != Requirement; generic Dependency != EvidenceContract identity; no name, qualifiedName, package-path, or source-text heuristic participates.",
         "closure_evidence_ref": null,

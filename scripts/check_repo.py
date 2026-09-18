@@ -58,6 +58,11 @@ try:
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import generate_o4_execution_register
 
+try:
+    from scripts import check_o4_lifecycle_consistency
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import check_o4_lifecycle_consistency
+
 REQUIRED_FILES = [
     "README.md",
     "CONTRIBUTING.md",
@@ -192,6 +197,7 @@ def main() -> int:
     projection_o23_errors = generate_semantic_projection_o23.run_check_errors_o23(root)
     ontology_review_errors = validate_review.run_check_errors(root)
     o4_register_errors = generate_o4_execution_register.run_check_errors(root)
+    lifecycle_consistency_errors = check_o4_lifecycle_consistency.run_all_checks(root)
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -255,6 +261,11 @@ def main() -> int:
         for error in o4_register_errors:
             print(f"- {error}")
 
+    if lifecycle_consistency_errors:
+        print("Repository check failed. O4 lifecycle consistency errors (O3 stays frozen throughout O4):")
+        for error in lifecycle_consistency_errors:
+            print(f"- {error}")
+
     if (
         missing
         or duplicate_packages
@@ -268,6 +279,7 @@ def main() -> int:
         or projection_o23_errors
         or ontology_review_errors
         or o4_register_errors
+        or lifecycle_consistency_errors
     ):
         return 1
 

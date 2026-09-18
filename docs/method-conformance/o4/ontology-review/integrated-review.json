@@ -5103,7 +5103,7 @@
     "Requirement"
    ],
    "open_decisions": [
-    "Design the lineage contract in the model first; then O2 projection, then O3 transition."
+    "Design the lineage contract in the model first; then O2 projection, then the governed O4 authority retirement."
    ],
    "evidence": [
     {
@@ -6885,12 +6885,12 @@
       "reference": "SysML v2 8.3.11.2 PartDefinition (PDF 321). Evaluation-scope semantics are DE4SDV contract vocabulary (ADR 0019 subsystem), not native SysML."
      }
     ],
-    "semantic_fit_rationale": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2/O3 gates can admit it. Not among the 13 frozen identities; no O3 amendment.",
+    "semantic_fit_rationale": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2 admission gate can admit it under O4. Not among the 13 frozen identities; no O3 amendment.",
     "de4sdv_semantic_delta": "DE4SDV contract vocabulary: binds increment identity, eligible subject types, and explicit exclusions; contribution set and evaluation scope are distinct sets. Flagged structural gap: the definition claims explicit exclusions with rationale, but the model body carries only incrementId/subjectType - exclusions live in the delivered runtime input, which is implementation evidence, not model-authority parity.",
-    "separate_identity_justification": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2/O3 gates can admit it. Not among the 13 frozen identities; no O3 amen"
+    "separate_identity_justification": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2 admission gate can admit it under O4. Not among the 13 frozen identit"
    },
    "assessment": {
-    "needed": "Yes \u2014 The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2/O3 gates can admit it. Not among the 13 frozen identities; no O3 amendment.",
+    "needed": "Yes \u2014 The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2 admission gate can admit it under O4. Not among the 13 frozen identities; no O3 amendment.",
     "definition_precision": "Declared; precision reviewed in rationale (see delta/rationale).",
     "name_fit": "Name fits; no rename.",
     "duplicate_identity": "No duplicate found; nearest identities checked (see rationale/dependencies).",
@@ -6900,7 +6900,7 @@
     "direction": "Not applicable.",
     "inverse_same_fact": "No inverse identity claimed.",
     "strength_justified": "No declared strength; target strength proposed in target block.",
-    "witness_sufficiency": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2/O3 gates can admit it. Not among the 13 frozen identities; no O3 amendment.",
+    "witness_sufficiency": "The identity is real (runtime-consumed, pilot scope instantiated, O2/O3 guarded), so it is not removable; but model authority cannot be claimed while the exclusions live only in the runtime input. Redesign the declaration to carry exclusions structurally, then parity, then the O2 admission gate can admit it under O4. Not among the 13 frozen identities; no O3 amendment.",
     "semantic_vs_configuration": "Meaning redistributes between model, external authority, or retirement (see target).",
     "vocabulary_only": "Runtime-consumed; support state recorded, not treated as semantic proof.",
     "usage": "4 consumer(s) traced: de4sdv/semantic/method_contract.py:33,46 (runtime mirror/dataclass for Lane B contract binding (method-conformance C/D)); de4sdv/semantic/projection_v1.py:177 (projection guard); textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml:144,146,154-164 (INC-AEBS-009D pilot scope instantiation)",
@@ -6927,7 +6927,6 @@
      "Reviewed semantic/model representation decision for exclusions",
      "Implementation and parity review of that model-resident representation",
      "O2 generation from the reviewed model representation",
-     "O3 approved authority transition",
      "Structural exclusions-with-rationale representation is not model-resident; evidence_state stays repository-evidenced until a reviewed representation decision and implementation/parity review exist."
     ],
     "merge_into": null,
@@ -6940,11 +6939,10 @@
    "dependencies": [
     "EvaluationScopeMembership (frozen 13; membership semantics)",
     "o1 c1 conformance parity review",
-    "o2 admission gating",
-    "o3 authority transition"
+    "o2 admission gating"
    ],
    "open_decisions": [
-    "REDESIGN the declaration to carry explicit exclusions (with rationale) structurally; then complete model-authority parity; do not force O2/O3 admission before the gap closes; no rename."
+    "REDESIGN the declaration to carry explicit exclusions (with rationale) structurally; then complete model-authority parity; do not force O2 admission or O4 authority retirement before the gap closes; no rename."
    ],
    "evidence": [
     {
@@ -8913,7 +8911,6 @@
     "evidence_needed": [
      "reviewed identity rename/replacement decision (name, signature, and serialized end-resolution mechanics) before any O2 projection row for this entry",
      "O2 generated Semantic Projection from the reviewed replacement representation",
-     "O3 approved authority transition (the authored mapping remains current authority during O1)",
      "Owner-approved name/signature and real serialized allocation-end closure."
     ],
     "merge_into": null,
@@ -9043,8 +9040,7 @@
     "runtime_support_target": "runtime-queryable (post-migration, exact-revision evidence required)",
     "evidence_needed": [
      "reviewed identity rename to the exact bounded relevance proposition (no strengthening) before any O2 projection row for this entry",
-     "O2 generated Semantic Projection from the renamed reviewed representation",
-     "O3 approved authority transition (the authored mapping remains current authority during O1)"
+     "O2 generated Semantic Projection from the renamed reviewed representation"
     ],
     "merge_into": null,
     "proposed_name": "hasRelevantFunction"
@@ -10974,7 +10970,6 @@
     "evidence_needed": [
      "reviewed EvidenceContract-specific identity/lineage contract: a machine-resolvable, revision-bound, fail-closed discriminator (explicit specialization lineage, exact application-definition/type binding, governed kernel binding, or a reviewed exact conjunction of governed relationships) separating the evidence-contract role from the acceptance-criterion role and every other verified requirement usage",
      "O2 generated Semantic Projection from the reviewed application-semantic contract and reviewed identity discriminator",
-     "O3 approved authority transition (the authored mapping remains current authority during O1)",
      "No revision-bound non-heuristic EvidenceContract discriminator."
     ],
     "merge_into": null,
