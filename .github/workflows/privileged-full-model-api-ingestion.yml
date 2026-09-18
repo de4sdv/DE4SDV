@@ -19,12 +19,17 @@ permissions:
   contents: read
 
 # The ingestion job builds a JVM service from source and runs the full
-# Syside export + API import chain (~35-60 min serialized). It runs on main
-# nightly and on demand via workflow_dispatch — never per-PR. A PR only
-# needs fast validation (CI + Privileged Syside Validation); its changes
-# get full ingestion coverage through the next nightly run or an explicit
-# dispatch before a production deployment, which re-verifies the exact
-# merged main SHA anyway (the deploy workflow refuses any other pairing).
+# Syside export + API import chain. Measured end-to-end runs land between
+# ~2.9 h and ~5 h serialized (the JVM build alone is ~4 min; the O3
+# comparison can exceed 38 min), so every shell stage below is instrumented
+# by scripts/measure_ingestion_command.py and its JSONL records
+# (DE4SDV_INGESTION_TIMINGS) are uploaded with the evidence — budget from
+# measured stage timings, not guesses. Currently the job condition skips
+# scheduled events; explicit workflow_dispatch provides full ingestion.
+# Trigger policy is unchanged here — never per-PR automatically. A PR only
+# needs fast validation; its changes get full ingestion coverage through an
+# explicit dispatch before a production deployment, which re-verifies the
+# exact merged main SHA anyway (the deploy workflow refuses any other pairing).
 concurrency:
   group: privileged-full-model-api-ingestion
   cancel-in-progress: false
@@ -35,6 +40,11 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    env:
+      # Stage-timing JSONL (command and internal-stage schemas);
+      # appended to by scripts/measure_ingestion_command.py and uploaded with
+      # the exact-head evidence below.
+      DE4SDV_INGESTION_TIMINGS: /tmp/de4sdv-ingestion-timings.jsonl
     timeout-minutes: 360
     services:
       postgres:
@@ -58,6 +68,8 @@ jobs:
 
       - name: Validate exact-revision checkout
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label validate-exact-revision-checkout --stdin-script <<'DE4SDV_MEASURE'
           SHA="$(git rev-parse HEAD)"
           REQUESTED="${{ github.event.inputs.ref }}"
           echo "checked-out revision: $SHA"
@@ -73,6 +85,7 @@ jobs:
             echo "requested revision $REQUESTED does not match checked-out $SHA" >&2
             exit 1
           fi
+          DE4SDV_MEASURE
 
       - uses: actions/setup-python@v5
         with:
@@ -85,37 +98,60 @@ jobs:
 
       - name: Install Sysand and pinned model dependencies
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label install-sysand-and-model-deps --stdin-script <<'DE4SDV_MEASURE'
           curl -fsSL https://sysand.com/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/sysand" sync
+          DE4SDV_MEASURE
 
       - name: Install official Syside Automator serializer
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label install-syside-serializer --stdin-script <<'DE4SDV_MEASURE'
           test -n "$SYSIDE_LICENSE_KEY"
           python -m pip install --disable-pip-version-check \
             "syside==0.10.3" "PyYAML==6.0.2" "pytest==8.4.2" \
             -r requirements-mcp.txt
+          DE4SDV_MEASURE
 
       - name: Export reviewed baseline with Syside
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label export-reviewed-baseline --stdin-script <<'DE4SDV_MEASURE'
           python scripts/export_sysml_api_baseline.py \
             --git-commit "$(git rev-parse HEAD)" \
             --output /tmp/de4sdv-full-model-export.json
+          DE4SDV_MEASURE
 
+      # Dependency-cache assessment (2026-09-18): intentionally NO actions/cache.
+      # - The Python pin set (syside==0.10.3, PyYAML==6.0.2, pytest==8.4.2,
+      #   requirements-mcp.txt) installs in seconds; caching saves negligible time.
+      # - The sbt/Ivy build (~4 min) resolves transitive dependencies without an
+      #   upstream lockfile (the pinned upstream pins sbt 1.2.8 but publishes no
+      #   dependency lock), so an exact cache key cannot be proven safe against
+      #   mutable/unpinned artifacts, and a stale cache would silently change the
+      #   built service. Keep the existing fresh build; this does not establish
+      #   reproducibility of upstream artifact resolution. No binary cache yet.
       - name: Build pinned Systems Modeling API service
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label build-api-service --stdin-script <<'DE4SDV_MEASURE'
           git clone --filter=blob:none https://github.com/Systems-Modeling/SysML-v2-API-Services.git /tmp/sysmlv2-api-services
           git -C /tmp/sysmlv2-api-services checkout 0af711b14bbcea7b240bb0a3a65817ae68302092
           curl -fsSL -o /tmp/sbt-launch.jar \
             https://repo1.maven.org/maven2/org/scala-sbt/sbt-launch/1.2.8/sbt-launch-1.2.8.jar
           (cd /tmp/sysmlv2-api-services && java -Xmx4g -jar /tmp/sbt-launch.jar stage)
+          DE4SDV_MEASURE
 
       - name: Start pinned Systems Modeling API service
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label start-api-service --stdin-script <<'DE4SDV_MEASURE'
           /tmp/sysmlv2-api-services/target/universal/stage/bin/sysml-v2-api-services \
             -J-Xmx4g \
             -Dplay.server.http.port=9000 \
@@ -131,43 +167,58 @@ jobs:
           done
           cat /tmp/sysml-api.log
           exit 1
+          DE4SDV_MEASURE
 
       - name: Import and validate exact API revision
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label import-exact-api-revision --stdin-script <<'DE4SDV_MEASURE'
           python scripts/import_sysml_api_baseline.py \
             --api-url http://127.0.0.1:9000 \
             --export /tmp/de4sdv-full-model-export.json \
             --binding /tmp/de4sdv-full-model-binding.json \
             --report /tmp/de4sdv-full-model-semantic-validation.json
+          DE4SDV_MEASURE
 
       - name: Exercise three production semantic concerns
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label semantic-queries --stdin-script <<'DE4SDV_MEASURE'
           python scripts/validate_full_model_semantic_queries.py \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
             --output /tmp/de4sdv-full-model-semantic-query-coverage.json
+          DE4SDV_MEASURE
 
       - name: Validate governed product-line scope through API identity
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label product-line-scope-api --stdin-script <<'DE4SDV_MEASURE'
           python scripts/validate_product_line_scope_api.py \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --export /tmp/de4sdv-full-model-export.json \
             --output /tmp/de4sdv-product-line-scope-validation.json
+          DE4SDV_MEASURE
 
       - name: Exercise read-only semantic MCP tools
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label semantic-mcp-tools --stdin-script <<'DE4SDV_MEASURE'
           python scripts/validate_semantic_mcp.py \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --expected-git-revision "$(git rev-parse HEAD)" \
             --output /tmp/de4sdv-semantic-mcp-validation.json
+          DE4SDV_MEASURE
 
       - name: Produce isolated committed-candidate export (transaction 1)
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label serialize-candidate-1 --stdin-script <<'DE4SDV_MEASURE'
           # Fail in seconds, not after a 60-minute run, if the license secret
           # is missing from this step's environment.
           test -n "$SYSIDE_LICENSE_KEY"
@@ -179,11 +230,14 @@ jobs:
             --identity /tmp/de4sdv-candidate-export-identity.json \
             --transaction-label candidate-1 \
             --baseline-export /tmp/de4sdv-full-model-export.json
+          DE4SDV_MEASURE
 
       - name: Produce second independent serialization transaction (MC-14)
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label serialize-candidate-2 --stdin-script <<'DE4SDV_MEASURE'
           test -n "$SYSIDE_LICENSE_KEY"
           python scripts/prepare_candidate_export.py \
             --repository "$GITHUB_WORKSPACE" \
@@ -194,47 +248,63 @@ jobs:
             --transaction-label candidate-2 \
             --reuse-checkout \
             --sync-deps=false
+          DE4SDV_MEASURE
 
       - name: Import candidate transaction 1 into a distinct API project
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label import-candidate-1 --stdin-script <<'DE4SDV_MEASURE'
           python scripts/import_sysml_api_baseline.py \
             --api-url http://127.0.0.1:9000 \
             --export /tmp/de4sdv-candidate-export.json \
             --binding /tmp/de4sdv-candidate-binding.json \
             --report /tmp/de4sdv-candidate-semantic-validation.json \
             --candidate
+          DE4SDV_MEASURE
 
       - name: Import candidate transaction 2 into a second distinct API project
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label import-candidate-2 --stdin-script <<'DE4SDV_MEASURE'
           python scripts/import_sysml_api_baseline.py \
             --api-url http://127.0.0.1:9000 \
             --export /tmp/de4sdv-candidate-export-2.json \
             --binding /tmp/de4sdv-candidate-binding-2.json \
             --report /tmp/de4sdv-candidate-semantic-validation-2.json \
             --candidate
+          DE4SDV_MEASURE
 
       - name: MC-14 correspondence across the two independent transactions
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label reimport-correspondence --stdin-script <<'DE4SDV_MEASURE'
           python scripts/verify_reimport_correspondence.py \
             --api-url http://127.0.0.1:9000 \
             --binding-a /tmp/de4sdv-candidate-binding.json \
             --binding-b /tmp/de4sdv-candidate-binding-2.json \
             --label-a transaction-1 --label-b transaction-2 \
             --output /tmp/de4sdv-reimport-correspondence.json
+          DE4SDV_MEASURE
 
       - name: Verify pilot read-back against candidate transaction 1
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label pilot-readback --stdin-script <<'DE4SDV_MEASURE'
           python scripts/verify_pilot_readback.py \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-candidate-binding.json \
             --export /tmp/de4sdv-candidate-export.json \
             --output /tmp/de4sdv-pilot-readback.json
+          DE4SDV_MEASURE
       - name: Run production-ingestion tests
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label production-ingestion-tests --stdin-script <<'DE4SDV_MEASURE'
           python -m pytest \
             tests/test_sysml_full_ingestion.py \
             tests/test_sysml_api_semantic.py \
             tests/test_semantic_mcp.py -q
+          DE4SDV_MEASURE
 
       - name: Build O3 candidate bundle and VerificationCase grounding proof
         # O3 Stage A evidence: candidate machinery only — no activation, no
@@ -242,6 +312,8 @@ jobs:
         # runner refuses any revision other than the checked-out SHA.
         # Validation evidence is sha256-bound to the exact produced outputs.
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label o3-candidate-bundle --stdin-script <<'DE4SDV_MEASURE'
           mkdir -p /tmp/o3
           python scripts/run_o3_equivalence.py bundle \
             --api-url http://127.0.0.1:9000 \
@@ -255,9 +327,12 @@ jobs:
             --validation-artifact full_model_semantic_queries=/tmp/de4sdv-full-model-semantic-validation.json \
             --validation-artifact product_line_scope=/tmp/de4sdv-product-line-scope-validation.json \
             --validation-artifact semantic_mcp=/tmp/de4sdv-semantic-mcp-validation.json
+          DE4SDV_MEASURE
 
       - name: Run same-revision O3 runtime equivalence comparison
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label o3-runtime-equivalence --stdin-script <<'DE4SDV_MEASURE'
           python scripts/run_o3_equivalence.py compare \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
@@ -266,6 +341,7 @@ jobs:
             --bundle /tmp/o3/de4sdv-o3-candidate-bundle.json \
             --export /tmp/de4sdv-full-model-export.json \
             --output /tmp/o3/de4sdv-o3-runtime-equivalence-report.json
+          DE4SDV_MEASURE
 
       - name: Trim API service log for upload
         # The raw API-service log reaches multi-GB per run; reviewers only ever
@@ -273,9 +349,12 @@ jobs:
         # artifact downloads stay small and never blow up review workstations.
         if: always()
         run: |
+          python scripts/measure_ingestion_command.py \
+            --label trim-api-service-log --stdin-script <<'DE4SDV_MEASURE'
           if [ -f /tmp/sysml-api.log ]; then
             tail -c 100000000 /tmp/sysml-api.log > /tmp/sysml-api.tail.log
           fi
+          DE4SDV_MEASURE
 
       - name: Upload exact-head ingestion evidence
         if: always()
@@ -306,3 +385,4 @@ jobs:
             /tmp/de4sdv-reimport-correspondence.json
             /tmp/de4sdv-pilot-readback.json
             /tmp/sysml-api.tail.log
+            /tmp/de4sdv-ingestion-timings.jsonl
