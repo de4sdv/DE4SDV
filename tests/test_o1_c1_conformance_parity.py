@@ -1086,13 +1086,17 @@ class TestC1TextParity:
         assert control["observed"]["doc_text_observation"] == "differs"
         assert control["reviewed"]["semantic_text_equivalence"] == "review-required"
         # No accidental propagation: reviewed-equivalent exists exactly on the
-        # five reconciled identities across the whole inventory.
+        # five reconciled identities plus the W2 batch 3 rows, which closed
+        # their doc parity by explicit reviewed-equivalence records.
         with_equivalence = {
             entry["identity"]
             for entry in inventory["entries"]
             if entry["reviewed"]["semantic_text_equivalence"] == "reviewed-equivalent"
         }
-        assert with_equivalence == set(expected)
+        assert with_equivalence == set(expected) | {
+            "LogicalToSoftwareSignalMappingRecord",
+            "SystemToSoftwareSignalMappingCandidate",
+        }
 
     def test_stale_normalized_exact_prose_removed_from_five_rows(self):
         """§18: the five rows no longer claim machine-checked normalized-exact
