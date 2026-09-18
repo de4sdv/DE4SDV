@@ -477,13 +477,20 @@ class TestReviewedDecisions:
 
     def test_required_evidence_is_forward_only(self, decisions):
         """Completed c5 work must not remain under required_evidence; every
-        item lists a forward migration stage (rename obligation, O2, O3)."""
+        item lists a forward migration stage (rename obligation, O2
+        admission/generation under O4). O3 stays frozen throughout O4: only
+        the frozen-thirteen row (hasRelevantArchitecture) legitimately keeps
+        an O3 transition item; the three non-O3 rows must not carry one
+        (lifecycle consistency correction)."""
         for identity in C5_IDENTITIES:
             items = self._row(decisions, identity)["required_evidence"]
             assert items, identity
             joined = " ".join(items)
             assert "O2 " in joined, identity
-            assert "O3 " in joined, identity
+            if identity == "hasRelevantArchitecture":
+                assert "O3 " in joined, identity
+            else:
+                assert "O3 " not in joined, identity
             for banned in ("replay", "review completed", "c5 review", "test"):
                 assert banned not in joined.lower(), (identity, banned)
         for identity in ("realizedBy", "specifiesFunction"):
