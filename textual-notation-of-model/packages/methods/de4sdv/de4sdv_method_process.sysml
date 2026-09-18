@@ -150,6 +150,7 @@ package DE4SDV_MethodProcess {
   /* ─── Recurring system-to-software signal mapping control ─── */
 
   enum def SignalMappingDisposition {
+    doc /* The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable). */
     mapped {
       doc /* The applicable logical/semantic signal has an accepted software-contract mapping for the declared scope. */
     }
