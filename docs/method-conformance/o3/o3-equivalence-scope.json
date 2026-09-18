@@ -12,7 +12,7 @@
     },
     "o1_inventory": {
       "path": "docs/method-conformance/o1/semantic-authority-inventory.json",
-      "sha256": "sha256:3b4e77256e02eac3f6e97320a06a3fda86bf5554b1c91eee8b7d2e4fadb0fdee"
+      "sha256": "sha256:622c077465913f9b14456e22fc281f21b2d00f402417c53ad262a16bfc2fe348"
     },
     "o2_chain": [
       {
