@@ -164,6 +164,27 @@ W7_EXPECTED_CLASSES = {
 }
 W7_BLOCKER_GATED = {"EvidenceContract", "hasRelevantEvidenceContract", "allocatedTo"}
 
+# The W7 gate set partitions into two disjoint groups: five rows are
+# explicitly named by Deliverable 8 Wave 6, and six are genuinely unnamed
+# fall-through rows (rule F2). Both groups and the partition are
+# machine-checked against the Deliverable 8 Wave 6 text.
+W7_D8_NAMED = {
+    "EvidenceContract",
+    "hasRelevantEvidenceContract",
+    "hasAcceptanceCriterion",
+    "allocatedTo",
+    "instantiatesCanonicalArchitecture",
+}
+W7_FALLTHROUGH = {
+    "ArchitectureElement",
+    "Function",
+    "LogicalElement",
+    "PhysicalElement",
+    "AcceptanceCriterion",
+    "AssuranceClaim",
+}
+FALLTHROUGH_CLOSURE_ROW = "DerivesFromNeed"
+
 # Deliverable 8 wave 3 core minus the MODEL_AUTHORITY_PARITY-classified
 # signal rows: the review's Wave 2 text counts 26 MODEL_AUTHORITY_PARITY
 # rows explicitly and those three rows carry parity work ("close doc parity
@@ -364,7 +385,15 @@ def parse_review_md(root: Path) -> dict[str, Any]:
         raise SystemExit(
             f"Deliverable 9 PLE bullet identities drifted: {sorted(ple_bullet)}"
         )
-    return {"decisions": decisions, "d9_ple_bullet": ple_bullet}
+
+    d8_wave6_text = ""
+    for line in lines:
+        if line.startswith("**Wave 6 —"):
+            d8_wave6_text = line
+            break
+    if not d8_wave6_text:
+        raise SystemExit("Deliverable 8 Wave 6 paragraph not found in REVIEW.md")
+    return {"decisions": decisions, "d9_ple_bullet": ple_bullet, "d8_wave6_text": d8_wave6_text}
 
 
 def o3_identities() -> list[str]:
@@ -445,6 +474,7 @@ def check_mapping_assumptions(
     register_rows: list[dict[str, Any]],
     d10_items: list[dict[str, Any]],
     d9_ple_bullet: set[str],
+    d8_wave6_text: str,
 ) -> None:
     """Fail closed when a curated mapping assumption no longer holds."""
     by = {r["identity"]: r for r in register_rows}
@@ -501,6 +531,25 @@ def check_mapping_assumptions(
             fail(f"{identity}: blocker-gated row lost its blocker")
         if identity not in W7_BLOCKER_GATED and not row["gate_decisions"]:
             fail(f"{identity}: decision-gated row lost its decision")
+
+    # W7 gate partition and the "genuinely unnamed" claim, checked against
+    # the Deliverable 8 Wave 6 paragraph itself.
+    if W7_FALLTHROUGH & W7_D8_NAMED:
+        fail("W7_FALLTHROUGH overlaps the Deliverable 8-named W7 rows")
+    if set(W7_BASE_MAP) != (W7_FALLTHROUGH | W7_D8_NAMED):
+        fail(
+            "W7 gate set is not exactly W7_FALLTHROUGH | W7_D8_NAMED: "
+            f"{sorted(set(W7_BASE_MAP) ^ (W7_FALLTHROUGH | W7_D8_NAMED))}"
+        )
+    for name in sorted(W7_D8_NAMED):
+        if not re.search(rf"(?<![A-Za-z]){re.escape(name)}(?![A-Za-z])", d8_wave6_text):
+            fail(f"{name} is no longer named by the Deliverable 8 Wave 6 text")
+    for name in sorted(W7_FALLTHROUGH):
+        if re.search(rf"(?<![A-Za-z]){re.escape(name)}(?![A-Za-z])", d8_wave6_text):
+            fail(
+                f"{name} now appears in the Deliverable 8 Wave 6 text; "
+                "re-review the W7 fall-through split"
+            )
 
     # Dependency flags cannot silently diverge from the governed row text.
     for row in register_rows:
@@ -707,7 +756,7 @@ def build_register(root: Path) -> dict[str, Any]:
             }
         )
 
-    check_mapping_assumptions(rows, register_rows, d10_items, review_md["d9_ple_bullet"])
+    check_mapping_assumptions(rows, register_rows, d10_items, review_md["d9_ple_bullet"], review_md["d8_wave6_text"])
 
     blockers_by_wave: dict[str, dict[str, list[str]]] = {}
 
@@ -734,8 +783,8 @@ def build_register(root: Path) -> dict[str, Any]:
         },
         {
             "id": "interp-2",
-            "statement": "Seventeen rows named in no burn-down wave are placed by fall-through rules F1 (low-dependency application semantics/vocabulary -> W4) and F2 (owner-gated architecture/evidence semantics -> the W7 gate with base-wave re-entry).",
-            "rows": sorted(set(W4_LOWDEP) | set(W7_BASE_MAP)),
+            "statement": "Seventeen rows named in no Deliverable-8 burn-down wave are accounted by the execution mapping: ten F1 low-dependency rows enter W4; six F2 owner-gated architecture/evidence rows enter the W7 holding gate with base-wave re-entry; and DerivesFromNeed is retained as closure-accounting only.",
+            "rows": sorted(set(W4_LOWDEP) | W7_FALLTHROUGH | {FALLTHROUGH_CLOSURE_ROW}),
         },
         {
             "id": "interp-3",
@@ -758,6 +807,19 @@ def build_register(root: Path) -> dict[str, Any]:
             "rows": [],
         },
     ]
+
+    interp2 = next(item for item in interpretations if item["id"] == "interp-2")
+    expected_interp2 = set(W4_LOWDEP) | W7_FALLTHROUGH | {FALLTHROUGH_CLOSURE_ROW}
+    if len(interp2["rows"]) != 17 or set(interp2["rows"]) != expected_interp2:
+        raise SystemExit(
+            "interp-2 must account for exactly the 17 fall-through rows "
+            f"(W4_LOWDEP | W7_FALLTHROUGH | {{{FALLTHROUGH_CLOSURE_ROW}}})"
+        )
+    if set(interp2["rows"]) & W7_D8_NAMED:
+        raise SystemExit(
+            "interp-2 must not contain rows explicitly named by Deliverable 8 Wave 6: "
+            f"{sorted(set(interp2['rows']) & W7_D8_NAMED)}"
+        )
 
     register = {
         "schema": REGISTER_SCHEMA,

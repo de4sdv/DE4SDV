@@ -144,11 +144,16 @@ with negative tests (mutated review → register gate fails).
   assessment says "keep; close doc parity only" — so parity takes
   precedence and they migrate with W2 (recorded as interpretation 1 in the
   register).
-- **Seventeen rows are named in no Deliverable 8 wave.** Fall-through rules F1/F2
-  place them: ten low-dependency application-semantics/vocabulary rows →
-  W4; six owner-gated architecture/evidence rows → the W7 gate (with base
-  waves W2/W3/W5); one already-model-authoritative row (`DerivesFromNeed`)
-  → the closure wave (accounting only).
+- **Seventeen rows are named in no Deliverable 8 wave** (`W4_LOWDEP` ∪
+  `W7_FALLTHROUGH` ∪ the closure row — machine-checked; the register's
+  interpretation 2 accounts for exactly these 17). Fall-through rule F1:
+  ten low-dependency application-semantics/vocabulary rows → W4.
+  Fall-through rule F2: six owner-gated architecture/evidence rows
+  (`ArchitectureElement`, `Function`, `LogicalElement`, `PhysicalElement`,
+  `AcceptanceCriterion`, `AssuranceClaim`) → the W7 gate with base wave W2.
+  Closure accounting: `DerivesFromNeed` → the closure wave. The remaining
+  five W7-held rows are explicitly named by Deliverable 8 Wave 6 and are
+  not fall-through rows.
 - **`hasEvidenceStatus` placement (interpretation 3).** The burn-down prose
   mentions `hasEvidenceStatus` among the external-boundary items (Wave 4),
   while the final integrated review row classifies it as

@@ -199,6 +199,36 @@ def test_interpretations_record_the_documented_deviations() -> None:
     assert by_id["interp-4"]["rows"] == sorted(gen.W7_BASE_MAP)
 
 
+def test_fallthrough_accounting_is_exactly_seventeen_rows() -> None:
+    register = _register()
+    by_id = {item["id"]: item for item in register["interpretations"]}
+
+    interp2 = set(by_id["interp-2"]["rows"])
+    expected = set(gen.W4_LOWDEP) | set(gen.W7_FALLTHROUGH) | {gen.FALLTHROUGH_CLOSURE_ROW}
+    assert len(interp2) == 17
+    assert interp2 == expected
+    # The five Deliverable 8-explicit W7 rows must NOT appear in interp-2.
+    assert interp2.isdisjoint(gen.W7_D8_NAMED)
+
+    # interp-4 keeps exactly all 11 W7-held identities.
+    assert len(by_id["interp-4"]["rows"]) == 11
+    assert set(by_id["interp-4"]["rows"]) == set(gen.W7_BASE_MAP)
+
+    # W7_FALLTHROUGH is a subset of the gate set, and the partition is exact.
+    assert set(gen.W7_FALLTHROUGH) <= set(gen.W7_BASE_MAP)
+    assert set(gen.W7_FALLTHROUGH) | set(gen.W7_D8_NAMED) == set(gen.W7_BASE_MAP)
+
+    # The six fall-through rows retain their expected classes, base waves and
+    # live gate sources (no semantic base-wave reassignment).
+    by = _rows_by_identity(register)
+    for name in sorted(gen.W7_FALLTHROUGH):
+        row = by[name]
+        assert row["base_wave"] == "W2", name
+        assert row["gate_wave"] == "W7", name
+        assert row["migration_class"] == gen.W7_EXPECTED_CLASSES[name], name
+        assert row["gate_decisions"] or row["blockers"], name
+
+
 def _mutated_repo(tmp_path: Path, mutate) -> Path:
     """Copy the governed review + register into tmp_path and apply a mutation."""
     for rel in (

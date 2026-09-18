@@ -152,18 +152,14 @@
         "AcceptanceCriterion",
         "ArchitectureElement",
         "AssuranceClaim",
-        "EvidenceContract",
+        "DerivesFromNeed",
         "Function",
         "Interface",
         "LogicalElement",
         "PhysicalElement",
         "ValidationScenario",
         "addressesConcern",
-        "allocatedTo",
-        "hasAcceptanceCriterion",
-        "hasRelevantEvidenceContract",
         "hasStakeholder",
-        "instantiatesCanonicalArchitecture",
         "producesView",
         "recordsAssumption",
         "recordsGap",
@@ -171,7 +167,7 @@
         "specifiesCommonCapability",
         "specifiesFeature"
       ],
-      "statement": "Seventeen rows named in no burn-down wave are placed by fall-through rules F1 (low-dependency application semantics/vocabulary -> W4) and F2 (owner-gated architecture/evidence semantics -> the W7 gate with base-wave re-entry)."
+      "statement": "Seventeen rows named in no Deliverable-8 burn-down wave are accounted by the execution mapping: ten F1 low-dependency rows enter W4; six F2 owner-gated architecture/evidence rows enter the W7 holding gate with base-wave re-entry; and DerivesFromNeed is retained as closure-accounting only."
     },
     {
       "id": "interp-3",
