@@ -7,6 +7,7 @@ from typing import Any
 
 from .baseline import BaselineExportBundle
 from .errors import BaselineImportError
+from .performance import timing
 from .repository import element_id
 
 
@@ -16,6 +17,9 @@ class BaselineImportResult:
     commit_id: str
     element_count: int
     internal_reference_count: int
+    # Only populated after complete identity and required-reference verification.
+    # Reuse is confined to this newly imported immutable project/commit.
+    readback_elements: tuple[dict[str, Any], ...]
 
 
 def baseline_commit_payload(
@@ -59,11 +63,11 @@ def import_baseline(
     project_id = element_id(project)
     if project_id is None:
         raise BaselineImportError("API project response did not contain an identity")
-    commit = client.request(
-        "POST",
-        f"/projects/{project_id}/commits",
-        baseline_commit_payload(bundle.elements, git_commit=bundle.git_commit),
-    )
+    with timing("commit_payload", elements=len(bundle.elements)):
+        payload = baseline_commit_payload(bundle.elements, git_commit=bundle.git_commit)
+    with timing("baseline_post"):
+        commit = client.request("POST", f"/projects/{project_id}/commits", payload)
+    del payload
     commit_id = element_id(commit)
     if commit_id is None:
         raise BaselineImportError("API commit response did not contain an identity")
@@ -76,6 +80,8 @@ def import_baseline(
         for value in values
         if (candidate_id := element_id(value)) is not None
     }
+    if len(readback) != len(values):
+        raise BaselineImportError("API readback contained missing or duplicate element identities")
     expected_ids = set(bundle.elements)
     actual_ids = set(readback)
     if expected_ids != actual_ids:
@@ -85,18 +91,22 @@ def import_baseline(
             f"API element identity readback mismatch: missing={missing[:20]}, "
             f"unexpected={unexpected[:20]}"
         )
-    expected_refs = _reference_paths(bundle.elements)
-    actual_refs = _reference_paths(readback)
-    lost_refs = sorted(expected_refs - actual_refs)
-    if lost_refs:
-        raise BaselineImportError(
-            f"API readback lost {len(lost_refs)} internal references: {lost_refs[:20]}"
-        )
+    with timing("internal_reference_comparison") as metrics:
+        expected_refs = _reference_paths(bundle.elements)
+        actual_refs = _reference_paths(readback)
+        metrics["expected_references"] = len(expected_refs)
+        metrics["actual_references"] = len(actual_refs)
+        lost_refs = sorted(expected_refs - actual_refs)
+        if lost_refs:
+            raise BaselineImportError(
+                f"API readback lost {len(lost_refs)} internal references: {lost_refs[:20]}"
+            )
     return BaselineImportResult(
         project_id=project_id,
         commit_id=commit_id,
         element_count=len(readback),
         internal_reference_count=len(expected_refs),
+        readback_elements=tuple(values),
     )
 
 

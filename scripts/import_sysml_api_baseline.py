@@ -20,7 +20,7 @@ from de4sdv.semantic.validation import validate_ontology_bindings
 from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
-from de4sdv.sysml_api.repository import SysMLRepository
+from de4sdv.sysml_api.performance import timing
 from de4sdv.sysml_api.revisions import KernelElementBinding, RevisionBinding
 
 
@@ -47,7 +47,8 @@ def run_import(
     candidate: bool = False,
 ) -> dict[str, object]:
     head = _git_head()
-    bundle = BaselineExportBundle.load(export_path)
+    with timing("export_load", export_bytes=export_path.stat().st_size):
+        bundle = BaselineExportBundle.load(export_path)
     if bundle.git_commit != head:
         raise RuntimeError(
             f"baseline export is stale: artifact={bundle.git_commit}, checked-out HEAD={head}"
@@ -69,12 +70,15 @@ def run_import(
         bundle,
         project_name=project_name or default_name,
     )
-    repository = SysMLRepository(client)
-    elements = repository.list_elements(imported.project_id, imported.commit_id)
+    # The importer has already completed API identity/reference read-back for
+    # this exact immutable project/commit. Validate ontology against those API
+    # values, not the export and not a second identical HTTP traversal.
+    elements = list(imported.readback_elements)
     contract = KernelContract.load(
         ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
     )
-    ontology = validate_ontology_bindings(contract, elements, bundle.element_sources)
+    with timing("ontology_binding_validation", elements=len(elements)):
+        ontology = validate_ontology_bindings(contract, elements, bundle.element_sources)
     # Persist the ingestion-validated kernel identities: each file-mapped
     # ontology class whose binding resolved to exactly one API UUID carries
     # that UUID, its serializer-recorded source file, and the governed
