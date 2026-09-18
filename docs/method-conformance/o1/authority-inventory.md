@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `9c228ea0d6e5d6a9ef5abc6c6a82ae2b09d06fb7`
+- Source revision: `c835e69ce54b768786af80a0257eb19c53d01e42`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:9fc0eea7a87da7449a1cb1de555991c6451232791ffe058d0ed30a9d974b25f7)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:70278a6ed1196322dc541b7055011dbb12ae0ea365d8552d3df9c76440cde0c4)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -38,9 +38,9 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 | id | grounding | runtime support | authority (current -> target) | evidence | adoption | disposition | stage | closure |
 |---|---|---|---|---|---|---|---|---|
-| EngineeringIncrement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def EngineeringIncrement | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| FeatureIncrement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def FeatureIncrement | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| NeedsRequirementsIncrement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def NeedsRequirementsIncrement | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| EngineeringIncrement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def EngineeringIncrement | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 1 (definitions parity) |  |
+| FeatureIncrement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def FeatureIncrement | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 1 (definitions parity) |  |
+| NeedsRequirementsIncrement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def NeedsRequirementsIncrement | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 1 (definitions parity) |  |
 | IncrementEngineeringQuestion | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementEngineeringQuestion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | IncrementLifecycleDecision | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementLifecycleDecision | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | IncrementTraceabilityShell | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementTraceabilityShell | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
