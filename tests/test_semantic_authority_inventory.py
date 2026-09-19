@@ -286,6 +286,10 @@ class TestLayers:
     #: deliberate, documented pattern): a read-only planning/evidence module
     #: that records the O1 inventory path/digest as scope-basis reference
     #: only — it never parses the inventory or the decisions dataset.
+    #: `vocabulary_carrier.py` was added by the O4 carrier preparation
+    #: package (same pattern): a read-only admission/check module that
+    #: reuses the verified normalization and declaration scan for
+    #: normalized-exact definition parity; it supplies no runtime values.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "projection_o22.py",
@@ -293,6 +297,7 @@ class TestLayers:
         "projection_o2p.py",
         "projection_v1.py",
         "o3_equivalence.py",
+        "vocabulary_carrier.py",
     )
 
     def test_reviewed_decisions_not_runtime_values(self):

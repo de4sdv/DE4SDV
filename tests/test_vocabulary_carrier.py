@@ -224,3 +224,15 @@ def test_check_errors_fail_closed_on_mutated_candidate_family(tmp_path):
     mutated["expected_candidates"].remove("recordsGap")
     with pytest.raises(CarrierError, match="candidate family"):
         validate_candidate_family(mutated, _review())
+
+def test_carrier_module_is_never_imported_by_the_runtime_path():
+    forbidden = {
+        "query.py", "runtime.py", "traversal.py", "mcp_server.py",
+        "validation.py", "impact.py", "api_binding.py", "kernel_binding_index.py",
+    }
+    semantic = REPO_ROOT / "de4sdv" / "semantic"
+    for name in sorted(forbidden):
+        path = semantic / name
+        if not path.is_file():
+            continue
+        assert "vocabulary_carrier" not in path.read_text(encoding="utf-8"), name
