@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from de4sdv.semantic import corpus_cache  # noqa: E402
 from de4sdv.semantic.authority_selection import (  # noqa: E402
     AuthoritySelectionError,
     build_selected_semantic_runtime,
@@ -102,6 +103,12 @@ def main() -> int:
         f"{selection.provenance()}",
         file=sys.stderr,
     )
+    # Cold-start corpus cache: a lazy snapshot-first hook on the shared
+    # repository. Installing performs no I/O, so the stdio handshake never
+    # blocks; the first listing of the bound revision is served from the
+    # identity-bound snapshot when one exists, and a snapshot miss falls
+    # back to the exact API load.
+    corpus_cache.install_corpus_snapshot(service)
     create_mcp_server(service).run(transport="stdio")
     return 0
 
