@@ -1118,7 +1118,8 @@ class TestPreservationAndRuntimeIndependence:
 # commit (the method_context boundary-record parity change). A post-squash
 # rebind follow-up (PR #251 pattern) will move this to the permanent main
 # revision after the W5 batch-1 PR merges.
-COMMITTED_SOURCE_REVISION = "09720d4d10db7fb5f3c3c106bc9080f49618fcb9"
+# TEMPORARY_STACK_BINDING: regenerate against permanent M2 after Rebind 1.
+COMMITTED_SOURCE_REVISION = "61aa5d592051c4bd8e3c9e73ba7b429ecbf36c6a"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
