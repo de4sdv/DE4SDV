@@ -32,6 +32,6 @@ package DE4SDV_OperationalContext {
   }
 
   part def DE4SDVEvidenceBaseline :> OperationalEntity {
-    doc /* DE4SDV review/evidence baseline referenced by operational or validation slices without implying accepted evidence. */
+    doc /* A reviewed and controlled state of model, evidence, configuration, or publication artifacts, referenced without implying accepted evidence. */
   }
 }

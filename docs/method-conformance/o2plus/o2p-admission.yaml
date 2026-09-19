@@ -1,0 +1,266 @@
+# O2+ native/library grounding & projection layer — admission boundary
+# (accelerated safe-set 1).
+#
+# GOVERNANCE data only: this manifest records WHICH already-native/library
+# constructs the O2+ layer grounds and emits vocabulary-only projection /
+# profile entries for. It supplies NO engineering semantics — every emitted
+# field is derived from the reviewed representation contract and the governed
+# model representations, never from this file.
+#
+# Provenance: ontology review Deliverable 8 wave 3 (native/library projection
+# rows) + the O4 execution register rows for the admitted identities. This
+# manifest encodes the reviewed safe subset as a deterministic boundary; it
+# does not reinterpret any review decision.
+#
+# Machine locks (enforced by de4sdv/semantic/projection_o2p.py and its tests):
+#   * `admitted` is EXACTLY the reviewed safe subset — an extra admission is a
+#     generation failure, a missing admitted identity is a generation failure;
+#   * `excluded` records every considered-but-not-admitted row with its
+#     reason; admitted and excluded are disjoint and together cover the
+#     reviewed candidate set;
+#   * no frozen O2 identity (the v1/v1.1/v1.2 thirteen) and no frozen O3
+#     identity (MIGRATED_IDENTITIES) may be admitted or emitted;
+#   * per-row `projection_required` / `api_profile_required` /
+#     `traversal_required` must equal the reviewed register values, and the
+#     emitted outputs must equal them exactly (`outputs.projection_row ==
+#     projection_required`, `outputs.api_profile_entry == api_profile_required`,
+#     `outputs.traversal == traversal_required`) - a grounding record for a
+#     row with `projection_required: false` is NOT a projection output;
+#     actual projection outputs are exactly {Concern, Viewpoint, View,
+#     IncrementSize}, profile entries exactly {VariationPoint, Variant},
+#     grounding-record-only exactly {VerificationMethod,
+#     usesVerificationMethod}, traversal none;
+#   * generation iterates ONLY `admitted` — no heuristic query can expand the
+#     output.
+#
+# Generation is not authority activation: these rows do not switch runtime
+# dispatch, do not retire authored YAML authority, do not promote support
+# (support stays vocabulary-only), and implement/claim no traversal. O3 owns
+# authority transition; O4 owns authored-ontology retirement.
+
+schema: de4sdv.o2plus-admission/v1
+status: reviewed O2+ grounding boundary (accelerated safe-set 1, W3 safe subset)
+
+admitted:
+  - identity: VariationPoint
+    category: native
+    construct: SysML v2 variation definition/usage
+    exact_fit: "retained: native variation construct carries the concept; do not model as a part taxonomy."
+    standard_construct: "SysML v2 variation definition/usage (native notation; owned members limited to variant usages)"
+    witness:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      contains: "variation part def DeferredProductLineVariation {"
+    projection_required: false
+    api_profile_required: true
+    traversal_required: false
+    support: vocabulary-only
+    claim_boundary: >-
+      No DE4SDV-owned declaration: the YAML row stays a pointer; representation
+      and usage conventions remain method context; no project-local
+      variation-point part definition may replace the native construct.
+
+  - identity: Variant
+    category: native
+    construct: SysML v2 variant usage
+    exact_fit: "retained: native variant usage owned by a variation point."
+    standard_construct: "SysML v2 variant usage (owned member of a variation definition/usage)"
+    witness:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      contains: "variant part deferredChoice;"
+    projection_required: false
+    api_profile_required: true
+    traversal_required: false
+    support: vocabulary-only
+    claim_boundary: >-
+      Variants are usages owned by a variation; no reusable class duplication;
+      concrete selections remain in the configuration/BoF layer.
+
+  - identity: Concern
+    category: native
+    construct: SysML v2 concern def and concern usage
+    exact_fit: "retained: SysML concern construct carries the stakeholder-interest requirement meaning; DE4SDV viewpoints are method framing, not redefinition."
+    standard_construct: "SysML v2 concern def/usage (require constraint documentation)"
+    witness:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml
+      contains: "concern def ProductLineCapabilityClassificationConcern {"
+    projection_required: true
+    api_profile_required: false
+    traversal_required: false
+    support: vocabulary-only
+    claim_boundary: >-
+      Native concern construct; kernel examples are method-governance concerns;
+      no stakeholder-role semantics carried (the SAF role-def disposition
+      remains a separate decision and is not touched).
+
+  - identity: Viewpoint
+    category: native
+    construct: SysML v2 viewpoint def
+    exact_fit: "retained: SysML viewpoint construct (conventions/expected content for views)."
+    standard_construct: "SysML v2 viewpoint def (require constraint documentation)"
+    witness:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml
+      contains: "viewpoint def IncrementFramingViewpoint {"
+    projection_required: true
+    api_profile_required: false
+    traversal_required: false
+    support: vocabulary-only
+    claim_boundary: >-
+      Native viewpoint; kernel selections are method framing; SAF viewpoints
+      remain in the separate SAF package and are not redefined here.
+
+  - identity: View
+    category: native
+    construct: SysML v2 view (concrete view usages)
+    exact_fit: "retained: SysML view construct (representation produced per viewpoint)."
+    standard_construct: "SysML v2 view usage"
+    witness:
+      file: textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml
+      contains: "view aebsVisualizationOperationalContextView {"
+    projection_required: true
+    api_profile_required: false
+    traversal_required: false
+    support: vocabulary-only
+    claim_boundary: >-
+      Native view usages expose and render model content for review; no
+      reusable view-def recipe is claimed.
+
+  - identity: VerificationMethod
+    category: library-mapped-native
+    construct: SysML VerificationMethod metadata (standard method-kind vocabulary)
+    exact_fit: "retained: native SysML VerificationMethod metadata; the ODE4HERA verificationMethod attribute (NRM A8, ADR 0009 amendment) is the application mapping carrier populated with the standard VerificationMethodKind values."
+    standard_construct: "SysML VerificationMethod metadata + normative VerificationMethodKind vocabulary"
+    witness:
+      file: textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml
+      contains: "@VerificationMethod{ kind = test; }"
+    projection_required: false
+    api_profile_required: false
+    traversal_required: false
+    support: vocabulary-only
+    claim_boundary: >-
+      Metadata, not a DE4SDV declaration: the method-kind vocabulary is
+      normative; the library carrier is a mapping, not a second authority.
+
+  - identity: usesVerificationMethod
+    category: library-mapped-native
+    construct: verification-method metadata projection (annotated verification usages)
+    exact_fit: "retained: the relationship is a projection of native VerificationMethod metadata (annotated verification usages) — not an attribute redefinition."
+    standard_construct: "VerificationMethod metadata annotation on verification usages"
+    witness:
+      file: textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml
+      contains: "@VerificationMethod{ kind = (test, analyze); }"
+    projection_required: false
+    api_profile_required: false
+    traversal_required: false
+    support: vocabulary-only
+    claim_boundary: >-
+      Vocabulary-only relationship; no runtime traversal implemented; the
+      relationship-vs-native-metadata-attribute distinction is recorded here
+      (metadata projection over the normative vocabulary).
+
+  - identity: IncrementSize
+    category: model-resident-vocabulary
+    construct: model-resident enum (bounded size-guidance labels)
+    exact_fit: "retained: bounded vocabulary; guidance labels only; never promoted to semantic authority."
+    standard_construct: "DE4SDV model-resident enum def IncrementSize"
+    witness:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+      contains: "enum def IncrementSize {"
+    projection_required: true
+    api_profile_required: false
+    traversal_required: false
+    support: vocabulary-only
+    claim_boundary: >-
+      Size guidance labels; no runtime semantic consumers; no promotion to
+      semantic authority.
+
+excluded:
+  - identity: EvidenceStatus
+    reason: decision-4 (evidence-status split) unresolved
+  - identity: hasEvidenceStatus
+    reason: decision-4 (evidence-status split) unresolved
+  - identity: allocatedTo
+    reason: W7-held (typed allocation-end profile / exact-revision closure not accepted)
+  - identity: variesAt
+    reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
+  - identity: FeatureConfiguration
+    reason: decision-9 (PLE configurator authority) unresolved
+  - identity: selectsFeature
+    reason: decision-9 (PLE configurator authority) unresolved
+  - identity: appliesToMemberProduct
+    reason: decision-9 (PLE configurator authority) unresolved
+  - identity: includesCommonCapability
+    reason: decision-9 (PLE configurator authority) unresolved
+  - identity: selectsVariant
+    reason: decision-9 (PLE configurator authority) unresolved
+  - identity: instantiatesCanonicalArchitecture
+    reason: W7-held; decision-10 (canonical architecture source) unresolved
+  - identity: Interface
+    reason: decision-5 umbrella definition-home dependency (ArchitectureElement W7-held)
+  - identity: ValidationScenario
+    reason: dependencies validatedBy (W6 redesign) + Scenario (treatment unresolved)
+  - identity: hasStakeholder
+    reason: decision-11 (SAF role-def disposition) unresolved
+  - identity: specifiesFeature
+    reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
+  - identity: specifiesCommonCapability
+    reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
+  - identity: recordsGap
+    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+  - identity: recordsAssumption
+    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+  - identity: addressesConcern
+    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+  - identity: selectedViewpoint
+    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+  - identity: producesView
+    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+  - identity: EvidenceArtifact
+    reason: T/E evidence-reference design review outstanding (boundary retained until reviewed)
+  - identity: hasEvidence
+    reason: T/E evidence-reference design review outstanding (boundary retained until reviewed)
+  - identity: capturedInBaseline
+    reason: T/E evidence-reference design review outstanding (boundary retained until reviewed)
+  - identity: Scenario
+    reason: no model-side declaration; treatment/model-representation decision outstanding
+  - identity: CommonCapability
+    reason: W2 decision-14 (Feature/CommonCapability disjointness) unresolved
+  - identity: Feature
+    reason: W2 decision-14 (Feature/CommonCapability disjointness) unresolved
+  - identity: MethodEvaluationScope
+    reason: W2 decision-7 (structural exclusions shape) unresolved
+  - identity: ProductLineCharacteristic
+    reason: depends on the decision-bound Feature/CommonCapability pair
+  - identity: Stakeholder
+    reason: W2 decision-11 (SAF role-def disposition) unresolved
+  - identity: AssuranceClaim
+    reason: W7-held (decision-3 assurance/claim model)
+  - identity: ArchitectureElement
+    reason: W7-held (decision-5 umbrella definition homes)
+  - identity: Function
+    reason: W7-held (decision-5 umbrella definition homes)
+  - identity: LogicalElement
+    reason: W7-held (decision-5 umbrella definition homes)
+  - identity: PhysicalElement
+    reason: W7-held (decision-5 umbrella definition homes)
+  - identity: AcceptanceCriterion
+    reason: W7-held (decision-6 acceptance-criterion promotion)
+  - identity: hasAcceptanceCriterion
+    reason: W7-held (decision-6 acceptance-criterion promotion)
+  - identity: EvidenceContract
+    reason: W7-held (evidence-lineage contract)
+  - identity: hasRelevantEvidenceContract
+    reason: W7-held (evidence-lineage contract)
+  - identity: constrainedBy
+    reason: W6 decision-2 (constrainedBy semantics) unresolved
+  - identity: realizedBy
+    reason: W6 decision-1 (five renames) unresolved
+  - identity: deployedTo
+    reason: W6 decision-1 (five renames) unresolved
+  - identity: validatedBy
+    reason: W6 decision-1 (five renames) unresolved
+  - identity: supportedByEvidence
+    reason: W6 decision-3 (assurance-claim model) unresolved
+  - identity: TraceLink
+    reason: W6 decision-8 (trace-chain redesign) unresolved
+  - identity: RequiredTraceChain
+    reason: W6 decision-8/decision-15 (trace redesign + successor name) unresolved

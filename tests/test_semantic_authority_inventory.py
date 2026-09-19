@@ -290,6 +290,7 @@ class TestLayers:
         "authority_inventory.py",
         "projection_o22.py",
         "projection_o23.py",
+        "projection_o2p.py",
         "projection_v1.py",
         "o3_equivalence.py",
     )
@@ -903,11 +904,13 @@ class TestTextParity:
         # differs -> normalized-exact (13/24 -> 15/22). W2 batch 6 closed
         # ProductLine, MemberProduct and DeferredProductLineScope
         # normalized-exact: three rows moved differs -> normalized-exact
-        # (15/22 -> 18/19).
+        # (15/22 -> 18/19). O4 accelerated safe-set 1 closed IncrementSize via
+        # the enum-level doc: doc-absent -> normalized-exact (19/1 -> 18/0
+        # for doc-absent rows; overall differs 19 / normalized-exact 19).
         assert counts == {
             "differs": 19,
-            "normalized-exact": 18,
-            "doc-absent": 2,
+            "normalized-exact": 19,
+            "doc-absent": 1,
             "doc-absent (bodyless declaration)": 1,
         }
 

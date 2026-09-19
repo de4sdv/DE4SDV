@@ -1740,11 +1740,11 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# W2 batch 6 Rebind 2: the v1.2 artifacts are bound to the permanent Rebind-1
-# squash commit M2, which permanently contains the rebound v1.1 baseline
-# bytes; extends points at v1.1 @ M = the batch-6 squash. The temporary
-# feature-head binding introduced for the Rebind-1 green review head is gone.
-COMMITTED_SOURCE_REVISION = "9ecff0f7a4f60859a8e33c2b5885b3661a25cc4a"
+# W5 batch 1: the v1.2 artifacts are bound to the batch-1 v1.1 rebind commit,
+# which contains the rebound v1.1 baseline bytes. A post-squash rebind
+# follow-up (PR #251 pattern) will move this to the permanent main revision
+# after the W5 batch-1 PR merges.
+COMMITTED_SOURCE_REVISION = "060f744789a9bb33e141933444f5caa2863bed94"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
