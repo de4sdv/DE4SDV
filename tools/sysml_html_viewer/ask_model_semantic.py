@@ -30,12 +30,11 @@ answer's evidence):
 """
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import threading
-from datetime import datetime, timezone
 from pathlib import Path
+
+from de4sdv.semantic import corpus_cache
 
 _SEMANTIC_RUNTIME = None
 _SEMANTIC_ERROR: str | None = None
@@ -49,10 +48,11 @@ _SEMANTIC_CTX_CACHE: dict[str, dict] = {}
 # /ask never blocks on it — see build_method_context_api)
 _COLD_LOCK = threading.Lock()
 _WARM_STATE: dict = {"status": "idle", "error": None}
-# v2: authority-bundle-aware snapshot identity — a snapshot produced under
-# one semantic authority must never load under another (identity mismatch is
-# a cache miss, never reinterpretation).
-_SNAPSHOT_FORMAT = 2
+# Snapshot format identity now lives in the shared corpus cache
+# (de4sdv.semantic.corpus_cache): a snapshot produced under one authority,
+# endpoint, binding or ontology must never load under another (identity
+# mismatch is a cache miss, never reinterpretation).
+_SNAPSHOT_FORMAT = corpus_cache.CORPUS_SNAPSHOT_FORMAT
 
 
 def warm_status() -> dict:
@@ -160,80 +160,39 @@ def _runtime():
 
 
 # ---- per-revision disk snapshot of the API element corpus -----------------
-# Only the network retrieval is replaced; binding/ontology enforcement
-# still runs on every call and the snapshot identity must match the
-# binding exactly. Snapshots live outside the repo (default ~/.cache).
+# The mechanism is shared with the MCP server (de4sdv.semantic.corpus_cache):
+# one identity-bound, checksum-verified snapshot per exact revision. Only the
+# network retrieval is replaced; binding/ontology enforcement still runs on
+# every call and the snapshot identity must match the binding exactly.
+# Snapshots live outside the repo (default ~/.cache). The helpers below are
+# thin compatibility delegates to the shared module.
 
 def _snapshot_dir() -> Path:
-    d = Path(os.environ.get(
-        "DE4SDV_SEMANTIC_SNAPSHOT_DIR",
-        str(Path.home() / ".cache" / "de4sdv" / "semantic-snapshots"),
-    ))
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+    return corpus_cache.snapshot_directory()
 
 
 def _authority_component(service) -> str:
-    """Stable filename component for the explicit semantic authority id."""
-    authority = str(getattr(service, "semantic_authority_id", "") or "unknown")
-    return hashlib.sha256(authority.encode("utf-8")).hexdigest()[:12]
+    return corpus_cache.authority_component(service)
 
 
 def _snapshot_identity(service) -> dict:
-    return {
-        "format": _SNAPSHOT_FORMAT,
-        "semantic_authority_id": str(
-            getattr(service, "semantic_authority_id", "") or ""
-        ),
-        "git_commit": str(service.binding.git_commit),
-        "sysml_project_id": str(service.binding.sysml_project_id),
-        "sysml_commit_id": str(service.binding.sysml_commit_id),
-    }
+    return corpus_cache.corpus_identity(service)
 
 
 def _snapshot_path(service) -> Path:
-    return _snapshot_dir() / (
-        f"{service.binding.sysml_commit_id}.{_authority_component(service)}.json"
-    )
+    return corpus_cache.corpus_snapshot_path(service, directory=_snapshot_dir())
 
 
 def _snapshot_write(service, elements: list[dict]) -> None:
     """Atomic snapshot write + sidecar sha256 of the main file."""
-    path = _snapshot_path(service)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".json.tmp")
-    payload = {
-        **_snapshot_identity(service),
-        "element_count": len(elements),
-        "saved_at": datetime.now(timezone.utc).isoformat(),
-        "elements": elements,
-    }
-    tmp.write_text(json.dumps(payload), encoding="utf-8")
-    digest = hashlib.sha256(tmp.read_bytes()).hexdigest()
-    path.with_suffix(".json.sha256").write_text(digest, encoding="utf-8")
-    os.replace(tmp, path)  # atomic on POSIX
+    corpus_cache.write_corpus_snapshot(
+        service, elements, directory=_snapshot_dir()
+    )
 
 
 def _snapshot_load(service) -> list[dict] | None:
     """Checksum + identity verified snapshot, or None (any doubt = miss)."""
-    path = _snapshot_path(service)
-    try:
-        raw = path.read_bytes()
-        expected_digest = path.with_suffix(".json.sha256").read_text().strip()
-        if hashlib.sha256(raw).hexdigest() != expected_digest:
-            return None
-        data = json.loads(raw.decode("utf-8"))
-        for key, value in _snapshot_identity(service).items():
-            if data.get(key) != value:
-                return None
-        elements = data.get("elements")
-        if not isinstance(elements, list) or not elements:
-            return None
-        if data.get("element_count") != len(elements):
-            return None
-        return elements
-    except (OSError, ValueError):
-        return None
+    return corpus_cache.load_corpus_snapshot(service, directory=_snapshot_dir())
 
 
 def _load_elements_with_snapshot(service) -> list[dict]:
@@ -241,20 +200,13 @@ def _load_elements_with_snapshot(service) -> list[dict]:
 
     A snapshot is never trusted without the runtime contract passing; a
     corrupted or stale snapshot is ignored (network load overwrites it).
+    On a snapshot hit the shared repository is hydrated through the explicit
+    validated adoption method (plus the service cache), so impact and the
+    ontology binder are served without refetching the full model.
     """
-    service._require_valid_revision()
-    if service._element_cache is not None:
-        return service._element_cache
-    snap = _snapshot_load(service)
-    if snap is not None:
-        service._element_cache = snap
-        return snap
-    elements = service._elements()  # network cold load (binding enforced)
-    try:
-        _snapshot_write(service, elements)
-    except OSError:
-        pass  # snapshot is an optimization, never a correctness gate
-    return elements
+    return corpus_cache.load_elements_with_snapshot(
+        service, directory=_snapshot_dir()
+    )
 
 
 def start_warmup() -> None:
