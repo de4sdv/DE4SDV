@@ -1114,10 +1114,11 @@ class TestPreservationAndRuntimeIndependence:
 # 7. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# W2 batch 5 rebind: the v1.1 artifacts' source revision moved to the permanent
-# W2 batch-5 squash commit (Rebind 1), which permanently contains the
-# realization-gap definitions-parity bytes and the unchanged v1 baseline.
-COMMITTED_SOURCE_REVISION = "bf49734742a81a97d46c29c7a296d75024509ef7"
+# W2 batch 6: the v1.1 artifacts' source revision moved to the batch-6 source
+# commit (the product-line definitions-parity change). A post-squash rebind
+# follow-up (PR #251 pattern) will move this to the permanent main revision
+# after the batch-6 PR merges.
+COMMITTED_SOURCE_REVISION = "280e1bed55edc9f072b844b7810cdd6fb76c5d62"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:

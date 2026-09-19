@@ -13,7 +13,7 @@
 
 package DE4SDV_ProductLine {
   part def ProductLine {
-    doc /* Family of related member products managed through shared assets and controlled variability. */
+    doc /* A family of related member products managed through shared assets and variability. */
   }
 
   part def SDVProductLine :> ProductLine {
@@ -21,7 +21,7 @@ package DE4SDV_ProductLine {
   }
 
   part def ProductLineMemberProduct {
-    doc /* Configured product or product variant belonging to a product line. */
+    doc /* A configured product or product variant that belongs to a product line. */
   }
 
   part def ProductLineCharacteristic {
@@ -37,7 +37,7 @@ package DE4SDV_ProductLine {
   }
 
   part def DeferredProductLineScope :> ProductLineCharacteristic {
-    doc /* Scope deliberately deferred from the current increment. */
+    doc /* Product-line scope deliberately deferred from the current increment, including recorded gaps. */
   }
 
   part def ProductLineVariantChoice :> ProductLineCharacteristic {

@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `bf49734742a81a97d46c29c7a296d75024509ef7`
+- Source revision: `280e1bed55edc9f072b844b7810cdd6fb76c5d62`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:2798a35d910b1b33908abe2c266c51fe50ec7a05ab2b70947fd1f5a36b41137f)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:f04cbaf799c512adb1018292708f35c3d4e5b2e52de58333ac326b6788c77c33)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -50,12 +50,12 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | SystemToSoftwareSignalMappingCandidate | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: allocation def SystemToSoftwareSignalMappingCandidate | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 3 (definitions parity) |  |
 | IncrementSize | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def IncrementSize | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | keep-as-is | batched-parity (post-0a/0b) |  |
 | SystemLayer | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def SystemLayer | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 2 (definitions parity) |  |
-| ProductLine | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLine | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| MemberProduct | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLineMemberProduct | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| ProductLine | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLine | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 6 (definitions parity) |  |
+| MemberProduct | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLineMemberProduct | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 6 (definitions parity) |  |
 | Feature | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLineFeatureCandidate | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | ProductLineCharacteristic | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLineCharacteristic | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | CommonCapability | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def CommonProductLineCapability | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| DeferredProductLineScope | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def DeferredProductLineScope | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| DeferredProductLineScope | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def DeferredProductLineScope | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 6 (definitions parity) |  |
 | VariationPoint | native: SysML v2 variation definition/usage | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | O2+ (parity pointer) |  |
 | Variant | native: SysML v2 variant usage | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | O2+ (parity pointer) |  |
 | FeatureConfiguration | external: Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/ | vocabulary-only | external-reference -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | retain-explicit-external-boundary | PLE |  |
