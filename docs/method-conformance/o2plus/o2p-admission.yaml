@@ -21,7 +21,15 @@
 #   * no frozen O2 identity (the v1/v1.1/v1.2 thirteen) and no frozen O3
 #     identity (MIGRATED_IDENTITIES) may be admitted or emitted;
 #   * per-row `projection_required` / `api_profile_required` /
-#     `traversal_required` must equal the reviewed register values;
+#     `traversal_required` must equal the reviewed register values, and the
+#     emitted outputs must equal them exactly (`outputs.projection_row ==
+#     projection_required`, `outputs.api_profile_entry == api_profile_required`,
+#     `outputs.traversal == traversal_required`) - a grounding record for a
+#     row with `projection_required: false` is NOT a projection output;
+#     actual projection outputs are exactly {Concern, Viewpoint, View,
+#     IncrementSize}, profile entries exactly {VariationPoint, Variant},
+#     grounding-record-only exactly {VerificationMethod,
+#     usesVerificationMethod}, traversal none;
 #   * generation iterates ONLY `admitted` — no heuristic query can expand the
 #     output.
 #

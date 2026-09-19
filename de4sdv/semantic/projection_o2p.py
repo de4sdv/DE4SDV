@@ -142,6 +142,30 @@ class ProjectionO2PError(RuntimeError):
     """Raised when O2+ generation cannot proceed safely."""
 
 
+def validate_row_outputs_o2p(identity: str, outputs: dict[str, Any]) -> None:
+    """Fail closed when emitted outputs disagree with the reviewed flags.
+
+    A grounding/admission record is NOT a projection output: rows whose
+    reviewed ``projection_required`` is false must never claim a projection
+    row, rows whose ``api_profile_required`` is false must never claim a
+    profile entry, and traversal stays false everywhere unless the review
+    explicitly requires it.
+    """
+    spec = ADMITTED_SPEC.get(identity)
+    if spec is None:
+        raise ProjectionO2PError(f"{identity}: not an admitted identity")
+    expected = {
+        "projection_row": bool(spec["projection_required"]),
+        "api_profile_entry": bool(spec["api_profile_required"]),
+        "traversal": bool(spec["traversal_required"]),
+    }
+    if {key: bool(value) for key, value in outputs.items()} != expected:
+        raise ProjectionO2PError(
+            f"{identity}: emitted outputs {outputs!r} contradict the reviewed "
+            f"flags {expected!r}"
+        )
+
+
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *args],
@@ -345,12 +369,22 @@ def _binding_block_o2p(
         },
         "semantic_model_revision": {
             "model_inputs": sorted(
-                path for path in bound_inputs if path not in set(program_inputs)
+                {row["witness"]["file"] for row in manifest["admitted"]}
             ),
             "note": (
-                "Semantic-model revision: the governed model files carrying "
-                "the admitted constructs' witnesses, contained byte-for-byte "
-                "in source_revision."
+                "Semantic-model revision: ONLY the governed model files "
+                "carrying the admitted constructs' witnesses, contained "
+                "byte-for-byte in source_revision. Tooling/toolchain "
+                "provenance is classified separately below."
+            ),
+        },
+        "tooling_revision": {
+            "tooling_inputs": [SYSIDE_WORKFLOW_PATH],
+            "note": (
+                "Tooling/toolchain provenance: the pinned Syside "
+                "workflow/version reference is revision-bound for "
+                "reproducibility but is NOT a semantic-model input and "
+                "supplies no semantics."
             ),
         },
         "api_binding": {
@@ -383,10 +417,19 @@ def derive_rows_o2p(
     for row in manifest["admitted"]:
         identity = row["identity"]
         witness = row["witness"]
+        outputs = {
+            "projection_row": bool(row["projection_required"]),
+            "api_profile_entry": bool(row["api_profile_required"]),
+            "traversal": bool(row["traversal_required"]),
+        }
+        validate_row_outputs_o2p(identity, outputs)
         rows.append(
             {
                 "identity": identity,
-                "semantic_kind": "native-pointer",
+                # No separate semantic-kind field: the governed category
+                # (native / library-mapped-native / model-resident-vocabulary)
+                # carries the precise distinction; a duplicated kind field
+                # would invite misclassification.
                 "category": row["category"],
                 "construct": row["construct"],
                 "grounding": {
@@ -398,11 +441,7 @@ def derive_rows_o2p(
                         "found": True,
                     },
                 },
-                "outputs": {
-                    "projection_row": True,
-                    "api_profile_entry": bool(row["api_profile_required"]),
-                    "traversal": False,
-                },
+                "outputs": outputs,
                 "support": "vocabulary-only",
                 "claim_boundary": " ".join(str(row["claim_boundary"]).split()),
                 "review_ref": {
@@ -457,8 +496,39 @@ def build_pair_o2p(root: Path, *, source_revision: str) -> dict[str, Any]:
     verify_source_revision_contains_inputs(root, source_revision, bound_inputs)
 
     rows, profile_entries = derive_rows_o2p(root, manifest, source_revision)
+    # Defense in depth: a derivation bug must not be able to silently emit a
+    # projection row (or profile entry, or traversal claim) beyond the
+    # reviewed flags.
+    for row in rows:
+        validate_row_outputs_o2p(row["identity"], row["outputs"])
+    profile_identities = {entry["identity"] for entry in profile_entries}
+    expected_profile_identities = {
+        identity
+        for identity, spec in ADMITTED_SPEC.items()
+        if spec["api_profile_required"]
+    }
+    if profile_identities != expected_profile_identities:
+        raise ProjectionO2PError(
+            "profile entries must exist for exactly the api_profile_required "
+            f"rows: got {sorted(profile_identities)!r}"
+        )
     admitted = sorted(row["identity"] for row in manifest["admitted"])
     binding = _binding_block_o2p(source_revision, bound_inputs, manifest)
+    projection_outputs = sorted(
+        row["identity"] for row in rows if row["outputs"]["projection_row"]
+    )
+    api_profile_outputs = sorted(
+        row["identity"] for row in rows if row["outputs"]["api_profile_entry"]
+    )
+    grounding_record_only = sorted(
+        row["identity"]
+        for row in rows
+        if not row["outputs"]["projection_row"]
+        and not row["outputs"]["api_profile_entry"]
+    )
+    traversal_outputs = sorted(
+        row["identity"] for row in rows if row["outputs"]["traversal"]
+    )
 
     projection = {
         "schema": PROJECTION_O2P_SCHEMA,
@@ -467,17 +537,25 @@ def build_pair_o2p(root: Path, *, source_revision: str) -> dict[str, Any]:
             "safe-set 1, W3 safe subset)"
         ),
         "warning": (
-            "Generated artifact. Generation is NOT authority activation: this "
-            "projection does not switch runtime dispatch, does not retire "
-            "authored YAML authority, promotes no support state, and "
-            "implements/claims no traversal. The runtime does not read this "
-            "artifact. The frozen O2 (v1/v1.1/v1.2) and O3 surfaces are never "
-            "re-emitted. Generated by scripts/generate_semantic_projection_o2p.py."
+            "Generated artifact. Rows are grounding/admission records; a row's "
+            "outputs block states which outputs it actually carries - a "
+            "grounding record for a row with projection_required false is NOT "
+            "a semantic projection output. Generation is NOT authority "
+            "activation: this projection does not switch runtime dispatch, "
+            "does not retire authored YAML authority, promotes no support "
+            "state, and implements/claims no traversal. The runtime does not "
+            "read this artifact. The frozen O2 (v1/v1.1/v1.2) and O3 surfaces "
+            "are never re-emitted. Generated by "
+            "scripts/generate_semantic_projection_o2p.py."
         ),
         "binding": binding,
         "scope": {
             "layer": "o2plus",
             "admitted": admitted,
+            "projection_outputs": projection_outputs,
+            "api_profile_outputs": api_profile_outputs,
+            "grounding_record_only": grounding_record_only,
+            "traversal_outputs": traversal_outputs,
             "frozen_o2_note": (
                 "The frozen O2 projection surface (v1 seven + v1.1 three + "
                 "v1.2 three = thirteen identities) is machine-locked as "

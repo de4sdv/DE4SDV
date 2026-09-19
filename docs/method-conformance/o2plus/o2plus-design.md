@@ -26,21 +26,40 @@ relationships).
 
 ## The layer
 
-`semantic-projection-o2plus.json` carries one row per admitted identity:
-construct, exact-fit finding, standard-construct reference, a verified witness
-(the model construct that carries the meaning, checked to exist at generation
-time), outputs (projection row / api-profile entry / traversal — matching the
-reviewed flags exactly), support `vocabulary-only`, and the claim boundary.
-`api-representation-profile-o2plus.json` carries representation mechanics for
-the `api_profile_required` rows (native variation/variant membership notation;
-pinned toolchain reference).
+`semantic-projection-o2plus.json` carries one **grounding/admission record**
+per admitted identity: construct, exact-fit finding, standard-construct
+reference, a verified witness (the model construct that carries the meaning,
+checked to exist at generation time), the governed `category`, support
+`vocabulary-only`, and the claim boundary. A grounding record is NOT a
+semantic projection output.
+
+Each record's `outputs` block states which outputs the identity actually
+carries, and it must equal the reviewed flags exactly:
+
+- `outputs.projection_row == projection_required` — actual projection outputs:
+  `Concern`, `Viewpoint`, `View`, `IncrementSize` (four rows; the artifact's
+  `scope.projection_outputs` mirrors this set);
+- `outputs.api_profile_entry == api_profile_required` — actual
+  `api-representation-profile-o2plus.json` entries: `VariationPoint`,
+  `Variant` (native variation/variant membership notation; pinned toolchain
+  reference);
+- `outputs.traversal == traversal_required` — none.
+
+`VerificationMethod` and `usesVerificationMethod` are **grounding-record-only**
+(no projection output, no profile entry). The reviewed flags are never
+reinterpreted because the record lives in a file named
+`semantic-projection-o2plus.json`.
 
 Grounding records are *bound*: both artifacts bind a `source_revision` that
-contains every bound input byte-for-byte (the witness model files, this
-admission manifest, the module, the generator, and the syside-pin workflow),
-validated fail-closed by the same source-binding machinery the O1/O2 gates
-use. The reviewed evidence item ("exact-fit + standard-construct grounding
-record at a bound revision") is therefore satisfied mechanically.
+contains every bound input byte-for-byte, validated fail-closed by the same
+source-binding machinery the O1/O2 gates use. Bound inputs are classified:
+**semantic-model inputs** (`semantic_model_revision.model_inputs` — only the
+governed witness model files), **tooling/toolchain provenance**
+(`tooling_revision` — the pinned Syside workflow/version reference, kept
+revision-bound for reproducibility but supplying no semantics), and
+**program inputs** (this manifest, the module, the generator). The reviewed
+evidence item ("exact-fit + standard-construct grounding record at a bound
+revision") is therefore satisfied mechanically.
 
 ## Boundaries
 
@@ -58,10 +77,22 @@ record at a bound revision") is therefore satisfied mechanically.
 
 ## Delivery
 
-Two-commit pattern inside the feature PR (sources → inventory → v1.1 → v1.2 →
-scope), with the O2+ pair bound to the feature sources commit and included in
-the permanent post-squash recovery chain (Rebind 1: O1 + v1.1 + O2+; Rebind 2:
-v1.2 + scope).
+Multi-commit pattern inside the feature PR (sources → inventory + v1 → v1.1 +
+O2+ → v1.2 → scope), with the O2+ pair bound to the feature sources commit
+(plus amendments) and included in the permanent post-squash recovery chain.
+Because `de4sdv_method_process.sysml` is a v1-bound input (the `IncrementSize`
+change), the permanent recovery is a **three-stage chain**: Rebind 1 (O1 +
+**v1** + O2+ → `M2`), Rebind 2 (v1.1 → `M3`, `extends v1 @ M`), Rebind 3
+(v1.2 + O3 scope → `M4`, `extends v1.1 @ M2`). Final topology: `v1 @ M`,
+`v1.1 @ M2`, `v1.2 @ M3`, O2+ `@ M`.
+
+## No separate semantic-kind field
+
+Rows carry no `semantic_kind` field: the governed `category` (`native`,
+`library-mapped-native`, `model-resident-vocabulary`) carries the precise
+distinction once, and a duplicated kind field would invite misclassification
+(for example `IncrementSize` or the library-mapped rows as "native
+pointers").
 
 ## Remaining work after this safe-set
 
