@@ -895,9 +895,14 @@ class TestTextParity:
         # (30/6 -> 24/12). W2 batch 3 closed SignalMappingDisposition via the
         # new enum-level doc: doc-absent -> normalized-exact (12/3 -> 13/2);
         # the two reviewed-equivalence rows keep their honest `differs`.
+        # W2 batch 4 closed Need/Requirement/RegulatoryConstraint via
+        # reviewed-equivalence records: three rows stay honestly `differs`
+        # (no count movement). W2 batch 5 closed MissingRealizationRecord and
+        # BlockedRealizationBranchRecord normalized-exact: two rows moved
+        # differs -> normalized-exact (13/24 -> 15/22).
         assert counts == {
-            "differs": 24,
-            "normalized-exact": 13,
+            "differs": 22,
+            "normalized-exact": 15,
             "doc-absent": 2,
             "doc-absent (bodyless declaration)": 1,
         }
