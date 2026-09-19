@@ -4,7 +4,7 @@
   "status": "generated O2.1 SysML API Representation Profile v1 (representation mechanics for the seven settled c1 identities)",
   "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries - those live in the Semantic Projection. No current SysML API project/commit closure was produced and no current API element UUID is claimed; the retained privileged run is representation-shape evidence only (its stale model text is not a semantic source), and all seven identities remain vocabulary-only. The runtime does not read this artifact.",
   "binding": {
-    "source_revision": "b4ea8327e5f586318d5546cf4e1a6b7f3ba0c265",
+    "source_revision": "fa1eff2b758ce7491698477bfd94369f2766f70f",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -44,7 +44,7 @@
       "docs/method-conformance/o2/o21-admission.yaml": "sha256:a223ee7fedb2574f7d160b782e7da211a66530b2864beff86c395756335ae773",
       "scripts/generate_semantic_projection_v1.py": "sha256:8453b1597700a53a6e747e32ab758c22735589a23f863f8bd7a26b4b0373062e",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml": "sha256:55eda7fab8ff0601a80a22b42776c0c95c88073ac2e4703ae1c3cc2f18575580",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": "sha256:0f1ead428ae126d0cd53674fbd9b3ec98d8f5c50cd98cb077c3fbad008f2f051"
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": "sha256:0798649c5af3dfda306f532b3639e917226258c5e1c9f5c25c87cffd321349c6"
     }
   },
   "evidence_basis": {
