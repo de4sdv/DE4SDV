@@ -892,11 +892,13 @@ class TestTextParity:
         # method-context rows (IncrementEngineeringQuestion,
         # IncrementLifecycleDecision, SystemLayer, ProblemStatement,
         # Assumption, Gap): six rows moved differs -> normalized-exact
-        # (30/6 -> 24/12).
+        # (30/6 -> 24/12). W2 batch 3 closed SignalMappingDisposition via the
+        # new enum-level doc: doc-absent -> normalized-exact (12/3 -> 13/2);
+        # the two reviewed-equivalence rows keep their honest `differs`.
         assert counts == {
             "differs": 24,
-            "normalized-exact": 12,
-            "doc-absent": 3,
+            "normalized-exact": 13,
+            "doc-absent": 2,
             "doc-absent (bodyless declaration)": 1,
         }
 

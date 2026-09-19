@@ -203,15 +203,23 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Enum literal docs resident. Declaration + doc model-resident; reviewed definition text still
-      YAML-established; parity not yet reviewed.
+    stage: o4-w2 batch 3 (definitions parity)
+    note: 'o4-w2 batch-3 parity-reviewed: definition-level parity is closed — the model doc
+      now carries the reviewed definition text verbatim as the enum-level documentation
+      (leading doc added; literal set and literal docs unchanged). SignalMappingDisposition
+      remains only mapping-disposition vocabulary (mapped, candidate, deferred,
+      notApplicable); no rename. The reviewed model definition is ready for O2 admission;
+      authority_current remains legacy-yaml until its O2 admission/retirement condition is
+      completed under O4. No semantic content added or removed; no authority cutover
+      implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 3) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   LogicalToSoftwareSignalMappingRecord:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -221,15 +229,28 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Attribute-level docs resident. Declaration + doc model-resident; reviewed definition text still
-      YAML-established; parity not yet reviewed.
+    stage: o4-w2 batch 3 (definitions parity)
+    note: 'o4-w2 batch-3 parity-reviewed: definition-level parity is closed by an explicit
+      reviewed-equivalence record — the model doc carries the reviewed strengthened
+      control-record wording (reusable control-record shape for an interface-bearing
+      crossing; .proto/.vsidl contract facts and runtime observations remain in their
+      authoritative external artifacts), a reviewed documented superset of the YAML
+      comparison-source definition; this record must not become a second authority for
+      external contract facts. The string-vs-reference endpoint-field representation
+      stays unresolved by design (no structure or attribute change). The reviewed model
+      definition is ready for O2 admission; authority_current remains legacy-yaml until
+      its O2 admission/retirement condition is completed under O4. No semantic content
+      added or removed; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 3) — the
+      model doc carries the reviewed strengthened control-record boundary; the YAML
+      comparison-source definition remains authoritative for its own text; the reviewed
+      equivalence is the documented strengthening, not a divergence. Parity evidence
+      only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   SystemToSoftwareSignalMappingCandidate:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -239,15 +260,29 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: medium
-    stage: batched-parity (post-0a/0b)
-    note: Allocation def with non-claiming doc; allocation realization semantics unresolved. Declaration
-      + doc model-resident; reviewed definition text still YAML-established; parity not yet reviewed.
+    stage: o4-w2 batch 3 (definitions parity)
+    note: 'o4-w2 batch-3 parity-reviewed: definition-level parity is closed by an explicit
+      reviewed-equivalence record — the model doc carries the reviewed non-claiming
+      allocation semantics (reusable non-claiming allocation relationship; the allocation
+      alone never proves field identity or runtime interoperability) plus the reviewed
+      specialization-obligation delta (typed payload/port, contract mapping record,
+      transformation, status, owner, next action, evidence or gap) that the review records
+      as part of this identity; the YAML comparison-source definition remains authoritative
+      for its own text. The realizedBy -> allocatedToArchitecture redesign is not
+      implemented or pre-empted here. The reviewed model definition is ready for O2
+      admission; authority_current remains legacy-yaml until its O2 admission/retirement
+      condition is completed under O4. No semantic content added or removed; no authority
+      cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 3) — the
+      model doc carries the reviewed non-claiming allocation semantics plus the reviewed
+      specialization-payload delta; the reviewed equivalence is the documented
+      specialization enrichment, not a divergence; parity evidence only, no authority
+      cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   IncrementSize:
     authority_current: legacy-yaml
     authority_target: model-authoritative

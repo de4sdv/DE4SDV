@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `d7344c6cde503b22a14ceea0a8944f0864d0e1b7`
+- Source revision: `44551320666567ce24148d3eef719c2e45d497b4`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:902d03e6618997e93ff60a0e54012de5e61933b33c003ae358d2ade382e25bd3)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:474c11daefa7f90fdbbb588cf9b28ccd3c96d845ee86f3d2099011c041789123)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -45,9 +45,9 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | IncrementLifecycleDecision | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementLifecycleDecision | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 2 (definitions parity) |  |
 | IncrementTraceabilityShell | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementTraceabilityShell | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | MethodPhase | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def MethodPhase | consumed by method-conformance data | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
-| SignalMappingDisposition | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def SignalMappingDisposition | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| LogicalToSoftwareSignalMappingRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: item def LogicalToSoftwareSignalMappingRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| SystemToSoftwareSignalMappingCandidate | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: allocation def SystemToSoftwareSignalMappingCandidate | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| SignalMappingDisposition | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def SignalMappingDisposition | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 3 (definitions parity) |  |
+| LogicalToSoftwareSignalMappingRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: item def LogicalToSoftwareSignalMappingRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 3 (definitions parity) |  |
+| SystemToSoftwareSignalMappingCandidate | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: allocation def SystemToSoftwareSignalMappingCandidate | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 3 (definitions parity) |  |
 | IncrementSize | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def IncrementSize | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | keep-as-is | batched-parity (post-0a/0b) |  |
 | SystemLayer | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def SystemLayer | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 2 (definitions parity) |  |
 | ProductLine | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLine | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
