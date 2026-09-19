@@ -1,0 +1,75 @@
+{
+  "schema": "de4sdv.api-representation-profile.o2plus/v1",
+  "status": "generated O2+ API Representation Profile (representation mechanics for the api_profile_required rows)",
+  "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries. The runtime does not read this artifact.",
+  "binding": {
+    "source_revision": "fa1eff2b758ce7491698477bfd94369f2766f70f",
+    "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
+    "artifact_commit": null,
+    "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
+    "generation_software": {
+      "program_inputs": [
+        "de4sdv/semantic/projection_o2p.py",
+        "docs/method-conformance/o2plus/o2p-admission.yaml",
+        "scripts/generate_semantic_projection_o2p.py"
+      ],
+      "note": "Generation-software revision: the commit containing these program inputs byte-for-byte."
+    },
+    "semantic_model_revision": {
+      "model_inputs": [
+        ".github/workflows/privileged-syside-validation.yml",
+        "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+      ],
+      "note": "Semantic-model revision: the governed model files carrying the admitted constructs' witnesses, contained byte-for-byte in source_revision."
+    },
+    "api_binding": {
+      "status": "unclaimed",
+      "note": "No validated SysML API project/commit closure is produced and no current API element UUID is claimed; the pinned toolchain reference is recorded in the profile entries."
+    },
+    "admission_manifest": {
+      "path": "docs/method-conformance/o2plus/o2p-admission.yaml",
+      "digest": "sha256:b48cbe0f77dd66fd733d2c2db0679b86a3fef40379b142148bda73c81938c63a"
+    },
+    "bound_inputs": {
+      ".github/workflows/privileged-syside-validation.yml": "sha256:6bbed271b59f0e9213592a3ea110e00c662da9cbf76b047cf82e2cd340eced7f",
+      "de4sdv/semantic/projection_o2p.py": "sha256:326651119b1bf161262fb6a4ecb1a867d102fa0d09864a50435af65621bc33be",
+      "docs/method-conformance/o2plus/o2p-admission.yaml": "sha256:b48cbe0f77dd66fd733d2c2db0679b86a3fef40379b142148bda73c81938c63a",
+      "scripts/generate_semantic_projection_o2p.py": "sha256:2a9953fd76089beb213682b7df1818899065498e294cc55316c2928f8d9992b4",
+      "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml": "sha256:b1ccdbd3275dbe6406e941f926ea4402d99049a21117f53ff873a43d94180584",
+      "textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml": "sha256:94ecaef99688b794bb1c3c3029c68fce98b9b5b091650c8122d1bd39e7103dc2",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml": "sha256:0ca123898854b1c76785d873890a1140c58c2c3c5726a7cc31f73b5b60d12a6b",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": "sha256:0798649c5af3dfda306f532b3639e917226258c5e1c9f5c25c87cffd321349c6",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:1f17a1e5478b52b100c890b3fb260504579b9fec3a8b00b17943c34d518b6728"
+    }
+  },
+  "entries": [
+    {
+      "identity": "VariationPoint",
+      "representation": {
+        "construct": "SysML v2 variation definition/usage",
+        "mechanics": "Native SysML v2 variation/variant notation as carried by the model: a `variation part def` whose owned members are `variant part` usages; membership is owned-member notation, not a project-local variation-point taxonomy.",
+        "toolchain": {
+          "syside_modeler_cli": "0.10.3",
+          "library_pins_note": "pinned library dependencies are recorded in .sysand (sensmetry-syside-views, mbse4u-sysmod, node4hera-requirements-management)"
+        },
+        "notes": "Representation mechanics only: no semantics are redefined; no API element UUID is claimed."
+      }
+    },
+    {
+      "identity": "Variant",
+      "representation": {
+        "construct": "SysML v2 variant usage",
+        "mechanics": "Native SysML v2 variation/variant notation as carried by the model: a `variation part def` whose owned members are `variant part` usages; membership is owned-member notation, not a project-local variation-point taxonomy.",
+        "toolchain": {
+          "syside_modeler_cli": "0.10.3",
+          "library_pins_note": "pinned library dependencies are recorded in .sysand (sensmetry-syside-views, mbse4u-sysmod, node4hera-requirements-management)"
+        },
+        "notes": "Representation mechanics only: no semantics are redefined; no API element UUID is claimed."
+      }
+    }
+  ]
+}

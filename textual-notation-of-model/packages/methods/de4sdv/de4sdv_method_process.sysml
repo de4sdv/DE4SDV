@@ -203,6 +203,7 @@ package DE4SDV_MethodProcess {
   /* ─── Increment size guidance ─── */
 
   enum def IncrementSize {
+    doc /* Size guidance for an increment (XS correction, S slice, M cross-viewpoint, L end-to-end baseline). */
     XS {
       doc /* One correction or trace link. */
     }

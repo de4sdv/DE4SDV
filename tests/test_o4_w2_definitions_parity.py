@@ -205,11 +205,13 @@ def test_yaml_comparison_source_is_untouched() -> None:
 def test_unrelated_reviewed_rows_are_unchanged() -> None:
     inventory = _inventory()
     entries = _entries(inventory)
-    # The W1-corrected demoted row keeps its bounded-vocabulary record.
+    # The W1-corrected demoted row keeps its bounded-vocabulary record; its
+    # W3 parity requirement was closed by O4 accelerated safe-set 1, so the
+    # residual is the no-promotion boundary (updated when that batch landed).
     increment_size = entries["IncrementSize"]["reviewed"]
     assert increment_size["disposition"] == "keep-as-is"
     assert increment_size["required_evidence"] == [
-        "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
+        "none beyond bounded vocabulary: model-resident guidance labels; never promoted to semantic authority"
     ]
     # c1's incomplete row still carries its structural gap, and c1's closed
     # rows keep their recorded outcomes.
