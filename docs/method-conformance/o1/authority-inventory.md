@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `b4ea8327e5f586318d5546cf4e1a6b7f3ba0c265`
+- Source revision: `41adff4fc891b00561aadc3ba5e1cd2571e3b9ba`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:474c11daefa7f90fdbbb588cf9b28ccd3c96d845ee86f3d2099011c041789123)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:88ecea09e1065bd929a1e04ae987ace76ac17156282ee70b4f71818a3a84018a)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -61,11 +61,11 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | FeatureConfiguration | external: Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/ | vocabulary-only | external-reference -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | retain-explicit-external-boundary | PLE |  |
 | Stakeholder | textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml: part def Stakeholder | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | candidate | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | Concern | native: SysML v2 concern def and concern usage; kernel examples in DE4SDV_MethodViewpoints | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | O2+ (parity pointer) |  |
-| Need | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def StakeholderNeedCandidate | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| Requirement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def RequirementCandidate | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| Need | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def StakeholderNeedCandidate | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 4 (definitions parity) |  |
+| Requirement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def RequirementCandidate | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 4 (definitions parity) |  |
 | ProblemStatement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def ProblemStatement | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 2 (definitions parity) |  |
 | ArchitectureDecisionRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def ArchitectureDecisionRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| RegulatoryConstraint | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def RegulatoryConstraintCandidate | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| RegulatoryConstraint | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def RegulatoryConstraintCandidate | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 4 (definitions parity) |  |
 | ArchitectureElement | native: part def, port def, and behavior definitions in feature and architecture slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | Function | native: SysML v2 action/state/behavior definitions in functional-architecture slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | LogicalElement | native: part def elements in logical-architecture slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
