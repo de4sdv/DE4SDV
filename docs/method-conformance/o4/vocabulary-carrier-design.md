@@ -65,8 +65,9 @@ profile match from that governance exclusion.
 
 ## What remains before any admission (tomorrow's steps, post-acceptance)
 
-1. Method owner accepts the five proposed definitions (owner-decision
-   packet item W4-VOC); record the acceptance reference.
+1. Method owner accepts the five proposed definitions (the consolidated
+   vocabulary-definition acceptance item of the owner-decision packet);
+   record the acceptance reference.
 2. Author the five kernel carriers (connection defs with typed ends and the
    reviewed docs) in the method-context kernel package; add the
    corresponding kernel mappings to the authored ontology data so the
