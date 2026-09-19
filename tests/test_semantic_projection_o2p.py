@@ -243,7 +243,7 @@ def test_check_passes_on_the_committed_tree() -> None:
 
 EXPECTED_PROJECTION_OUTPUTS = ["Concern", "IncrementSize", "View", "Viewpoint"]
 EXPECTED_API_PROFILE_OUTPUTS = ["Variant", "VariationPoint"]
-EXPECTED_GROUNDING_RECORD_ONLY = ["usesVerificationMethod", "VerificationMethod"]
+EXPECTED_GROUNDING_RECORD_ONLY = ["VerificationMethod", "usesVerificationMethod"]
 
 
 def test_projection_outputs_are_exactly_the_reviewed_set(artifacts: dict) -> None:
