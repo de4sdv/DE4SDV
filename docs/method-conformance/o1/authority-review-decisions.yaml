@@ -1014,15 +1014,24 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 batch 5 (definitions parity)
+    note: 'o4-w2 batch-5 parity-reviewed: definition-level parity closed normalized-exact — the
+      model doc carries the reviewed definition text verbatim under cosmetic normalization
+      only (A record of a missing or blocked realization allocation for a conceptual
+      element). The reviewed definition explicitly includes missing or blocked; the record
+      remains a bounded gap/blockage record, distinct from Gap and from the c5 realization
+      relationships, and is not authority for realization semantics. The reviewed model
+      definition is ready for O2 admission; authority_current remains legacy-yaml until its
+      O2 admission/retirement condition is completed under O4. No authority cutover
+      implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 5) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   BlockedRealizationBranchRecord:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1032,15 +1041,22 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 batch 5 (definitions parity)
+    note: 'o4-w2 batch-5 parity-reviewed: definition-level parity closed normalized-exact — the
+      model doc carries the reviewed definition text verbatim under cosmetic normalization
+      only (A record of a realization branch blocked by a source defect or gap). The record
+      remains a bounded blockage record, distinct from MissingRealizationRecord and from
+      Gap, and is not authority for realization semantics. The reviewed model definition is
+      ready for O2 admission; authority_current remains legacy-yaml until its O2
+      admission/retirement condition is completed under O4. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 5) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   AssuranceClaim:
     authority_current: unknown
     authority_target: unknown

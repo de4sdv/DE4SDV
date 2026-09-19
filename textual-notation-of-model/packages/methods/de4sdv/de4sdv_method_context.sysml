@@ -187,11 +187,11 @@ package DE4SDV_MethodContext {
   }
 
   part def MissingRealizationRecord {
-    doc /* Record of a missing realization allocation for a conceptual element. */
+    doc /* A record of a missing or blocked realization allocation for a conceptual element. */
   }
 
   part def BlockedRealizationBranchRecord {
-    doc /* Record of a blocked realization branch due to a source defect or gap. */
+    doc /* A record of a realization branch blocked by a source defect or gap. */
   }
 
   part def SourceContributionRecord {
