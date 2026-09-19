@@ -292,7 +292,7 @@ entries:
     conditional_target: false
     disposition: keep-as-is
     confidence: high
-    stage: batched-parity (post-0a/0b)
+    stage: o4-w3 batch 1 (definitions parity)
     note: 'O4 review correction (demotion; KEEP_VOCABULARY_ONLY): bounded DE4SDV
       process-guidance vocabulary — model-resident, no runtime semantic/traversal
       claim and no runtime semantic consumers; never promoted to semantic authority.
@@ -301,13 +301,17 @@ entries:
       destination only and does not imply runtime semantic promotion. The O4
       definition-parity requirement remains (the authored-YAML definition authority
       must still be retired before O4 closure); projection remains vocabulary-only.
-      Inventory-description correction only — no semantic/model/runtime change.'
+      Inventory-description correction only — no semantic/model/runtime change.
+      O4 W3 batch 1 (accelerated safe-set 1): definitions parity complete — enum-level
+      doc added (normalized-exact); literals unchanged; O2+ vocabulary-only projection
+      row recorded; never promoted to semantic authority.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - 'none beyond bounded vocabulary: model-resident guidance labels; never promoted to semantic authority'
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w3 batch 1) — enum-level doc
+      added; literals unchanged; bounded vocabulary; never promoted.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   SystemLayer:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -476,12 +480,14 @@ entries:
     conditional_target: false
     disposition: keep-as-is
     confidence: high
-    stage: O2+ (parity pointer)
+    stage: o2+ safe-set 1 (grounding + projection)
     note: Native SysML variation definition/usage. YAML row is a vocabulary pointer; representation/usage
-      conventions remain method context.
+      conventions remain method context. O2+ record (accelerated safe-set 1) — exact-fit +
+      standard-construct grounding recorded with a bound revision; vocabulary-only projection row
+      emitted; no traversal implemented or claimed.
     unknowns: []
     required_evidence:
-    - exact-fit + standard-construct grounding record at a bound revision
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'retained: native variation construct carries the concept; do not model as a part
       taxonomy.'
     closure_evidence_ref: null
@@ -495,12 +501,14 @@ entries:
     conditional_target: false
     disposition: keep-as-is
     confidence: high
-    stage: O2+ (parity pointer)
+    stage: o2+ safe-set 1 (grounding + projection)
     note: Native variant usage. YAML row is a vocabulary pointer; representation/usage conventions remain
-      method context.
+      method context. O2+ record (accelerated safe-set 1) — exact-fit + standard-construct grounding
+      recorded with a bound revision; API-representation profile entry emitted; no traversal
+      implemented or claimed.
     unknowns: []
     required_evidence:
-    - exact-fit + standard-construct grounding record at a bound revision
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'retained: native variant usage owned by a variation point.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
@@ -551,12 +559,15 @@ entries:
     conditional_target: false
     disposition: keep-as-is
     confidence: high
-    stage: O2+ (parity pointer)
+    stage: o2+ safe-set 1 (grounding + projection)
     note: Native concern def/usage; SAF viewpoint selections in kernel. YAML row is a vocabulary pointer;
-      representation/usage conventions remain method context.
+      representation/usage conventions remain method context. O2+ record (accelerated safe-set 1) —
+      exact-fit + standard-construct grounding recorded with a bound revision; vocabulary-only
+      projection row emitted; no stakeholder-role semantics carried (SAF disposition untouched);
+      no traversal implemented or claimed.
     unknowns: []
     required_evidence:
-    - exact-fit + standard-construct grounding record at a bound revision
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'retained: SysML concern construct carries the stakeholder-interest requirement
       meaning; DE4SDV viewpoints are method framing, not redefinition.'
     closure_evidence_ref: null
@@ -907,16 +918,21 @@ entries:
     conditional_target: false
     disposition: keep-as-is
     confidence: high
-    stage: O2+ (parity)
+    stage: o2+ safe-set 1 (grounding record)
     note: 'O4 review correction (finding 16): KEEP_NATIVE — corrected from accepted-library.
       The construct is native SysML VerificationMethod metadata; the ODE4HERA verificationMethod
       attribute (NRM A8, ADR 0009 amendment) is the application mapping carrier populated
       with the native VerificationMethodKind vocabulary. Inventory-description correction
-      only — no semantic/model/runtime change.'
+      only — no semantic/model/runtime change. O2+ record (accelerated safe-set 1): ADR 0009
+      grounding record completed — upstream attribute carrier + standard method-kind vocabulary
+      recorded with a bound revision; metadata distinction recorded; no projection/profile row
+      required by the review; no traversal implemented or claimed.'
     unknowns: []
     required_evidence:
-    - ADR 0009 grounding record (upstream attribute + standard method-kind vocabulary)
-    exact_fit_decision: null
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
+    exact_fit_decision: 'retained: native SysML VerificationMethod metadata; the ODE4HERA verificationMethod
+      attribute (NRM A8, ADR 0009 amendment) is the application mapping carrier populated with the
+      standard VerificationMethodKind values.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   AcceptanceCriterion:
@@ -1124,12 +1140,14 @@ entries:
     conditional_target: false
     disposition: keep-as-is
     confidence: high
-    stage: O2+ (parity pointer)
+    stage: o2+ safe-set 1 (grounding + projection)
     note: Native viewpoint def; selections in DE4SDV_MethodViewpoints + SAF_Viewpoints. YAML row is a
-      vocabulary pointer; representation/usage conventions remain method context.
+      vocabulary pointer; representation/usage conventions remain method context. O2+ record
+      (accelerated safe-set 1) — exact-fit + standard-construct grounding recorded with a bound
+      revision; vocabulary-only projection row emitted; no traversal implemented or claimed.
     unknowns: []
     required_evidence:
-    - exact-fit + standard-construct grounding record at a bound revision
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'retained: SysML viewpoint construct (conventions/expected content for views).'
     closure_evidence_ref: null
     semantic_text_equivalence: null
@@ -1142,12 +1160,14 @@ entries:
     conditional_target: false
     disposition: keep-as-is
     confidence: high
-    stage: O2+ (parity pointer)
+    stage: o2+ safe-set 1 (grounding + projection)
     note: Native view. YAML row is a vocabulary pointer; representation/usage conventions remain method
-      context.
+      context. O2+ record (accelerated safe-set 1) — exact-fit + standard-construct grounding
+      recorded with a bound revision; vocabulary-only projection row emitted; no traversal
+      implemented or claimed.
     unknowns: []
     required_evidence:
-    - exact-fit + standard-construct grounding record at a bound revision
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'retained: SysML view construct (representation produced per viewpoint).'
     closure_evidence_ref: null
     semantic_text_equivalence: null
@@ -1954,18 +1974,22 @@ entries:
     conditional_target: false
     disposition: keep-as-is
     confidence: medium
-    stage: batched-parity (post-0a/0b)
+    stage: o2+ safe-set 1 (grounding record)
     note: 'O4 review correction (finding 15): KEEP_NATIVE — corrected from accepted-library.
       VerificationMethod metadata and the normative VerificationMethodKind vocabulary are
       normative SysML constructs; the relationship is a projection of metadata (annotated
       verification case to its method values), not a second modeled fact, and carries no
       execution implication. The ODE4HERA verificationMethod attribute (NRM A8, ADR 0009
       amendment) is the application mapping carrier, not the construct''s authority.
-      Inventory-description correction only — no semantic/model/runtime change.'
+      Inventory-description correction only — no semantic/model/runtime change. O2+ record
+      (accelerated safe-set 1): relationship-vs-native-metadata-attribute distinction recorded —
+      the relationship is a projection of native VerificationMethod metadata over the normative
+      vocabulary; no traversal implemented; support remains vocabulary-only.'
     unknowns: []
     required_evidence:
-    - 'grounding record: relationship vs native metadata attribute decision'
-    exact_fit_decision: null
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
+    exact_fit_decision: 'retained: the relationship is a projection of native VerificationMethod metadata
+      (annotated verification usages) — not an attribute redefinition.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   hasAcceptanceCriterion:
