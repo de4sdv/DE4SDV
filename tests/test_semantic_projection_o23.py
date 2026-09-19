@@ -1740,11 +1740,10 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# W2 batch 4: the v1.2 artifacts are bound to the batch-4 v1.1 rebind commit,
-# which contains the rebound v1.1 baseline bytes. A post-squash rebind
-# follow-up (PR #251 pattern) will move this to the permanent main revision
-# after the batch-4 PR merges.
-COMMITTED_SOURCE_REVISION = "e1c33eeaafda0c6fc17d5b24fa1c9d11c2463b11"
+# W2 batch 4 rebind: the v1.2 artifacts are bound to the permanent W2 batch-4
+# rebind-1 squash commit (Rebind 2), which permanently contains the rebound
+# v1.1 baseline bytes (v1.1 @ M = 2a24ecaf).
+COMMITTED_SOURCE_REVISION = "58c3d7321c45ab3b6101f97f1a9f48c5e6b38319"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
