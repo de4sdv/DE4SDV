@@ -341,15 +341,24 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 batch 6 (definitions parity)
+    note: 'o4-w2 batch-6 parity-reviewed: definition-level parity closed normalized-exact — the
+      model doc carries the reviewed definition text verbatim under cosmetic normalization
+      only (A family of related member products managed through shared assets and
+      variability). The reviewed wording delta (controlled variability vs variability) is
+      resolved by adopting the governed text; no standard-library anchoring claim; the
+      declaration remains the product-line classification root. The reviewed model
+      definition is ready for O2 admission; authority_current remains legacy-yaml until its
+      O2 admission/retirement condition is completed under O4. No authority cutover
+      implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 6) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   MemberProduct:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -359,16 +368,24 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Kernel declaration ProductLineMemberProduct; specialization lineage consumed by the hasRelevantArchitecture
-      exclusion. Declaration + doc model-resident; reviewed definition text still YAML-established; parity
-      not yet reviewed.
+    stage: o4-w2 batch 6 (definitions parity)
+    note: 'o4-w2 batch-6 parity-reviewed: definition-level parity closed normalized-exact — the
+      model doc carries the reviewed definition text verbatim under cosmetic normalization
+      only (A configured product or product variant that belongs to a product line).
+      Declaration name ProductLineMemberProduct is kept (identity name MemberProduct remains
+      the inventory binding; no silent rename); the declaration remains the governed
+      member-product lineage anchor referenced by hasSubject grounding. The reviewed model
+      definition is ready for O2 admission; authority_current remains legacy-yaml until its
+      O2 admission/retirement condition is completed under O4. No authority cutover
+      implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 6) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   Feature:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -432,15 +449,24 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 batch 6 (definitions parity)
+    note: 'o4-w2 batch-6 parity-reviewed: definition-level parity closed normalized-exact — the
+      model doc carries the reviewed definition text verbatim under cosmetic normalization
+      only (Product-line scope deliberately deferred from the current increment, including
+      recorded gaps). The recorded-gap convention is documented at parity (gaps typed as
+      parts of this kind); the deferral classification stays distinct from the native
+      DeferredProductLineVariation/DeferredVariantChoice variation mechanism (no merge, no
+      inheritance). The reviewed model definition is ready for O2 admission;
+      authority_current remains legacy-yaml until its O2 admission/retirement condition is
+      completed under O4. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 6) — the model doc
+      carries the reviewed definition text verbatim under cosmetic normalization only;
+      parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   VariationPoint:
     authority_current: native-sysml
     authority_target: native-sysml

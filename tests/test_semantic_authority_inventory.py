@@ -107,8 +107,9 @@ CONTAINMENT_ONLY_ROWS = {
     # IncrementEngineeringQuestion, IncrementLifecycleDecision and
     # ProblemStatement (their docs now observe normalized-exact and their
     # equivalence is null), so they left this containment-only set.
+    # W2 batch 6 closed it for DeferredProductLineScope (normalized-exact),
+    # so it left the set as well.
     "IncrementTraceabilityShell",
-    "DeferredProductLineScope",
 }
 
 CLASS_OBSERVED_KEYS = {
@@ -899,10 +900,13 @@ class TestTextParity:
         # reviewed-equivalence records: three rows stay honestly `differs`
         # (no count movement). W2 batch 5 closed MissingRealizationRecord and
         # BlockedRealizationBranchRecord normalized-exact: two rows moved
-        # differs -> normalized-exact (13/24 -> 15/22).
+        # differs -> normalized-exact (13/24 -> 15/22). W2 batch 6 closed
+        # ProductLine, MemberProduct and DeferredProductLineScope
+        # normalized-exact: three rows moved differs -> normalized-exact
+        # (15/22 -> 18/19).
         assert counts == {
-            "differs": 22,
-            "normalized-exact": 15,
+            "differs": 19,
+            "normalized-exact": 18,
             "doc-absent": 2,
             "doc-absent (bodyless declaration)": 1,
         }
