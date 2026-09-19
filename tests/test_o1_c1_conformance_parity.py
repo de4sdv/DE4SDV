@@ -1087,9 +1087,11 @@ class TestC1TextParity:
         assert control["reviewed"]["semantic_text_equivalence"] == "review-required"
         # No accidental propagation: reviewed-equivalent exists exactly on the
         # five reconciled identities plus the W2 batch 3 rows (doc parity closed
-        # by explicit reviewed-equivalence records) and the W2 batch 4 rows
+        # by explicit reviewed-equivalence records), the W2 batch 4 rows
         # (Need, Requirement, RegulatoryConstraint: accepted definition carried
-        # verbatim plus preserved lineage/seam/R003 content).
+        # verbatim plus preserved lineage/seam/R003 content), and the W5 batch 1
+        # rows (ArchitectureDecisionRecord, Baseline: reviewed definitional text
+        # plus model-resident reviewed content).
         with_equivalence = {
             entry["identity"]
             for entry in inventory["entries"]
@@ -1101,6 +1103,8 @@ class TestC1TextParity:
             "Need",
             "Requirement",
             "RegulatoryConstraint",
+            "ArchitectureDecisionRecord",
+            "Baseline",
         }
 
     def test_stale_normalized_exact_prose_removed_from_five_rows(self):

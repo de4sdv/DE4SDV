@@ -662,15 +662,28 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: R003 origin grounding. Declaration + doc model-resident; reviewed definition text still YAML-established;
-      parity not yet reviewed.
+    stage: o4-w5 batch 1 (definitions parity)
+    note: 'o4-w5 batch-1 parity-reviewed: definition-level parity is closed by an explicit
+      reviewed-equivalence record — the model doc carries the reviewed definition text
+      verbatim from the ontology comparison source (A reviewed architecture or method
+      decision recorded as an ADR in Git that can serve as the semantic origin of a
+      design-input requirement) plus the retained R003 derivation-grounding sentence. The
+      reviewed external boundary is preserved: the model carries the reference identity and
+      its role as a permitted R003 design-input origin; ADR content stays external in
+      docs/architecture-decisions and is never mirrored. The reviewed model definition is
+      ready for O2 admission; authority_current remains legacy-yaml until its O2
+      admission/retirement condition is completed under O4. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w5 batch 1) — the
+      model doc carries the reviewed definition text verbatim plus the retained R003
+      derivation-grounding sentence; the residual difference from the ontology definition is
+      the R003 grounding, which the review requires model-resident. The reviewed equivalence
+      is the retained R003 grounding, not a divergence. Parity evidence only, no authority
+      cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   RegulatoryConstraint:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1183,16 +1196,28 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: medium
-    stage: batched-parity (post-0a/0b)
-    note: DE4SDVEvidenceBaseline; "review/evidence baseline without implying accepted evidence" boundary.
-      Declaration + doc model-resident; reviewed definition text still YAML-established; parity not yet
-      reviewed.
+    stage: o4-w5 batch 1 (definitions parity)
+    note: 'o4-w5 batch-1 parity-reviewed: definition-level parity is closed by an explicit
+      reviewed-equivalence record — the model doc carries the reviewed definition text (A
+      reviewed and controlled state of model, evidence, configuration, or publication
+      artifacts, referenced without implying accepted evidence) including the model-resident
+      non-claim boundary the review requires to stay carried (without implying accepted
+      evidence). The external boundary is preserved: content authority stays with
+      Git-controlled baselines and the baseline register; the model must not mirror baseline
+      contents; the row/declaration name split (Baseline vs DE4SDVEvidenceBaseline) is
+      bookkeeping and no rename is performed. The reviewed model definition is ready for O2
+      admission; authority_current remains legacy-yaml until its O2 admission/retirement
+      condition is completed under O4. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w5 batch 1) — the
+      model doc carries the reviewed definitional text plus the required model-resident
+      non-claim boundary; the residual difference from the ontology definition is the
+      reviewed non-claim clause. The reviewed equivalence is the retained non-claim boundary,
+      not a divergence. Parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   MethodContractObligation:
     authority_current: legacy-yaml
     authority_target: model-authoritative

@@ -159,7 +159,7 @@ package DE4SDV_MethodContext {
   }
 
   part def ArchitectureDecisionRecord {
-    doc /* Reviewed architecture or method decision (recorded as an ADR in Git) that a design-input requirement can trace to as its semantic origin. Grounds the ontology ArchitectureDecisionRecord class and R003 derivation targets. */
+    doc /* A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement. Grounds the ontology ArchitectureDecisionRecord class and R003 derivation targets. */
   }
 
   part def IncrementAssumption {
