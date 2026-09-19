@@ -96,7 +96,7 @@ package DE4SDV_MethodContext {
   }
 
   requirement def StakeholderNeedCandidate :> RequirementsManagementAttributeBase {
-    doc /* Generic base for stakeholder needs before acceptance and quality gate. Inherits the NRM Chapter 15 attribute set adopted via ADR 0009. */
+    doc /* Stakeholder-expressed problem-space intent, before conversion into design-input requirements. Inherits the NRM Chapter 15 attribute set adopted via ADR 0009. */
   }
 
   requirement def ProductLineCommonCapabilityNeed :> StakeholderNeedCandidate {
@@ -123,7 +123,8 @@ package DE4SDV_MethodContext {
   }
 
   requirement def RequirementCandidate :> SYSMODRequirementBase, RequirementsManagementAttributeBase {
-    doc /* Generic base for design-input requirement candidates before acceptance.
+    doc /* A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions.
+         * Generic base for design-input requirement candidates before acceptance.
          * Specializes the SYSMOD requirement seam, inheriting obligation,
          * stability, and motivation metadata for requirement candidates.
          * DE4SDV candidate lifecycle semantics remain local. */
@@ -154,7 +155,7 @@ package DE4SDV_MethodContext {
   }
 
   requirement def RegulatoryConstraintCandidate :> RequirementsManagementAttributeBase {
-    doc /* Constraint or reference derived from a standard, regulation, or homologation-relevant source. Carries controlled source identity and never implies compliance. Grounds the ontology RegulatoryConstraint class and R003 derivation targets. */
+    doc /* A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim. Grounds the ontology RegulatoryConstraint class and R003 derivation targets. */
   }
 
   part def ArchitectureDecisionRecord {

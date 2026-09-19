@@ -544,16 +544,30 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: StakeholderNeedCandidate requirement def; ODE4HERA attribute set via ADR 0009; consumed by K
-      lineage and R003. Declaration + doc model-resident; reviewed definition text still YAML-established;
-      parity not yet reviewed.
+    stage: o4-w2 batch 4 (definitions parity)
+    note: 'o4-w2 batch-4 parity-reviewed: definition-level parity is closed by an explicit
+      reviewed-equivalence record — the model doc carries the accepted definition verbatim
+      (Stakeholder-expressed problem-space intent, before conversion into design-input
+      requirements) plus the preserved NRM/ADR 0009 lineage sentence (Inherits the NRM
+      Chapter 15 attribute set adopted via ADR 0009). The ontology definition additionally
+      carries a kernel-modeling note (needs modeled as requirement usages of
+      StakeholderNeedCandidate specializations) that the declaration itself structurally
+      embodies. The pre-parity narrower framing sentence was replaced by the accepted
+      definition; the lineage sentence is preserved rather than erased for string equality.
+      The reviewed model definition is ready for O2 admission; authority_current remains
+      legacy-yaml until its O2 admission/retirement condition is completed under O4. No
+      semantic content removed beyond the replaced framing; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 4) — the
+      model doc carries the accepted definition verbatim plus the preserved NRM/ADR 0009
+      lineage; the residual difference from the ontology definition is its kernel-modeling
+      note, which describes the declaration itself. The reviewed equivalence is the
+      preserved lineage, not a divergence. Parity evidence only, no authority cutover
+      implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   Requirement:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -563,15 +577,31 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: RequirementCandidate requirement def; SYSMOD seam + ODE4HERA attrs; consumed by impact/K. Declaration
-      + doc model-resident; reviewed definition text still YAML-established; parity not yet reviewed.
+    stage: o4-w2 batch 4 (definitions parity)
+    note: 'o4-w2 batch-4 parity-reviewed: definition-level parity is closed by an explicit
+      reviewed-equivalence record — the model doc carries the accepted definition verbatim
+      (A verifiable design input obligation or constraint derived from needs, standards, or
+      architecture decisions) plus the preserved candidate/seam context (generic
+      design-input requirement candidate; SYSMOD requirement seam with
+      obligation/stability/motivation metadata; local DE4SDV candidate lifecycle). The
+      ontology definition additionally carries a kernel-modeling note (requirement
+      candidates on the SYSMOD requirement seam with ADR 0009 attributes) that the
+      declaration itself structurally embodies. The seam and lifecycle text is preserved
+      rather than erased for string equality. The reviewed model definition is ready for O2
+      admission; authority_current remains legacy-yaml until its O2 admission/retirement
+      condition is completed under O4. No semantic content removed beyond the replaced
+      framing; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 4) — the
+      model doc carries the accepted definition verbatim plus the preserved SYSMOD
+      seam/candidate context; the residual difference from the ontology definition is its
+      kernel-modeling note, which describes the declaration itself. The reviewed
+      equivalence is the preserved seam context, not a divergence. Parity evidence only, no
+      authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   ProblemStatement:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -624,15 +654,28 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: R003 origin grounding; no-compliance-claim boundary must stay model-carried. Declaration + doc
-      model-resident; reviewed definition text still YAML-established; parity not yet reviewed.
+    stage: o4-w2 batch 4 (definitions parity)
+    note: 'o4-w2 batch-4 parity-reviewed: definition-level parity is closed by an explicit
+      reviewed-equivalence record — the model doc carries the accepted definition verbatim
+      (A constraint or reference derived from a standard, regulation, or
+      homologation-relevant source, with controlled source identity and no compliance
+      claim) plus the retained R003 derivation-grounding sentence. The prior
+      never-implies-compliance phrasing is carried in the reviewed no-compliance-claim
+      form; external standards and regulations remain external semantic and content
+      authority and the declaration asserts no compliance. The constrainedBy relationship
+      redesign remains out of scope and unimplemented. The reviewed model definition is
+      ready for O2 admission; authority_current remains legacy-yaml until its O2
+      admission/retirement condition is completed under O4. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 4) — the
+      model doc carries the accepted definition verbatim plus the retained R003
+      derivation-grounding sentence; no compliance assertion is made and the source stays
+      external. The reviewed equivalence is the retained R003 grounding, not a divergence.
+      Parity evidence only, no authority cutover implied.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: reviewed-equivalent
   ArchitectureElement:
     authority_current: legacy-yaml
     authority_target: model-authoritative

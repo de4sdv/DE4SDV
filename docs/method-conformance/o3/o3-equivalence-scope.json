@@ -12,7 +12,7 @@
     },
     "o1_inventory": {
       "path": "docs/method-conformance/o1/semantic-authority-inventory.json",
-      "sha256": "sha256:f2dcadbfd95db285062f5ee157271d89e10e1ab526c4cfecafe4026de8a3e89b"
+      "sha256": "sha256:6d5f3c6c6e048621a250190d9ba0808a765b2abb05de33b5c9630537813d578e"
     },
     "o2_chain": [
       {
@@ -33,29 +33,29 @@
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/semantic-projection-v1.1.json",
         "schema": "de4sdv.semantic-projection.v1.1",
-        "sha256": "sha256:ddc1a6510fb85bd1032907e088d3838923231d76c89996f0ad3aaa313a1fb444",
-        "source_revision": "7f6ba6036bb924f6a3a516f6e34fabf121ba65c4"
+        "sha256": "sha256:e766aa34487401788c8059857c854e8b57e50eaa04cec07bdcbec264d4477bed",
+        "source_revision": "41adff4fc891b00561aadc3ba5e1cd2571e3b9ba"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/api-representation-profile-v1.1.json",
         "schema": "de4sdv.api-representation-profile.v1.1",
-        "sha256": "sha256:b2c4fd058c31ac85995b360d32f15c1d5cbb052c767abb181f31a4fe36d3f407",
-        "source_revision": "7f6ba6036bb924f6a3a516f6e34fabf121ba65c4"
+        "sha256": "sha256:33ea454f4157c429fbaba3f5e40a0124e6a40bebb2b65699f1ab01cb00b15d73",
+        "source_revision": "41adff4fc891b00561aadc3ba5e1cd2571e3b9ba"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/semantic-projection-v1.2.json",
         "schema": "de4sdv.semantic-projection.v1.2",
-        "sha256": "sha256:cc8bcfcc8702b297ab401e36eb8887a7fedc18502064dc02db03f35345e74246",
-        "source_revision": "80cebb696dc905f5acb866207cc76b3cedcc856e"
+        "sha256": "sha256:733ea6fdd6e89b994e8daeca5d33aba94590298e263f190716a95c4c76878f7e",
+        "source_revision": "e1c33eeaafda0c6fc17d5b24fa1c9d11c2463b11"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/api-representation-profile-v1.2.json",
         "schema": "de4sdv.api-representation-profile.v1.2",
-        "sha256": "sha256:643f2a007f2ba110619208187ef2f89c6d97bdafb5233ef97de4a61a804c25d2",
-        "source_revision": "80cebb696dc905f5acb866207cc76b3cedcc856e"
+        "sha256": "sha256:26ff7c6f49d2c0c0846e0439d97ca0c48426b5443cfd41dd2952a0e1ef803564",
+        "source_revision": "e1c33eeaafda0c6fc17d5b24fa1c9d11c2463b11"
       }
     ],
     "ontology": {
