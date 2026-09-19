@@ -1740,12 +1740,11 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# W2 batch 6 Rebind 1 (temporary downstream self-consistency): the v1.2
-# artifacts are bound to the Rebind-1 feature commit A (which carries the
-# permanently rebound v1.1 bytes); extends points at v1.1 @ M = the batch-6
-# squash. The final permanent Rebind 2 will retarget source_revision to the
-# #291 squash commit M2 after merge.
-COMMITTED_SOURCE_REVISION = "8a3d8221a7a7dc5bf9b70d1fdb4487d13b3869ba"
+# W2 batch 6 Rebind 2: the v1.2 artifacts are bound to the permanent Rebind-1
+# squash commit M2, which permanently contains the rebound v1.1 baseline
+# bytes; extends points at v1.1 @ M = the batch-6 squash. The temporary
+# feature-head binding introduced for the Rebind-1 green review head is gone.
+COMMITTED_SOURCE_REVISION = "9ecff0f7a4f60859a8e33c2b5885b3661a25cc4a"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
