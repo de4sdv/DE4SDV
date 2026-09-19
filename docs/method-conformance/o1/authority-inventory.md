@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `2a24ecafe96a3c996f0153b6cf794c2f3f1ccc67`
+- Source revision: `d9af382a655a680b4ab6ff96a79cfb5a1a58de79`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
 - ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:8c23b218ac30eca0d251263c830da4f56941c53e086d2420ad955545c35aee85)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:2798a35d910b1b33908abe2c266c51fe50ec7a05ab2b70947fd1f5a36b41137f)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
 - Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -81,8 +81,8 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | EvidenceStatus | external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter | consumed (model attributes) | accepted-library-grounded -> accepted-library-grounded | repository-evidenced | accepted | keep-as-is | O2+ (parity) |  |
 | Assumption | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementAssumption | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 2 (definitions parity) |  |
 | Gap | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementGap | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 2 (definitions parity) |  |
-| MissingRealizationRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def MissingRealizationRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| BlockedRealizationBranchRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def BlockedRealizationBranchRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| MissingRealizationRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def MissingRealizationRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 5 (definitions parity) |  |
+| BlockedRealizationBranchRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def BlockedRealizationBranchRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 5 (definitions parity) |  |
 | AssuranceClaim | native: Claim usages framed by the argumentation-assurance viewpoint | vocabulary-only | unknown -> unknown | unknown | not-applicable | defer | O2+ |  |
 | Viewpoint | native: SysML v2 viewpoint def; kernel selections in DE4SDV_MethodViewpoints and SAF_Viewpoints | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | O2+ (parity pointer) |  |
 | View | native: SysML v2 view | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | O2+ (parity pointer) |  |
