@@ -548,7 +548,7 @@ entries:
     note: 'o4-w2 batch-4 parity-reviewed: definition-level parity is closed by an explicit
       reviewed-equivalence record — the model doc carries the accepted definition verbatim
       (Stakeholder-expressed problem-space intent, before conversion into design-input
-      requirements) plus the preserved NRM/ADR-0009 lineage sentence (Inherits the NRM
+      requirements) plus the preserved NRM/ADR 0009 lineage sentence (Inherits the NRM
       Chapter 15 attribute set adopted via ADR 0009). The ontology definition additionally
       carries a kernel-modeling note (needs modeled as requirement usages of
       StakeholderNeedCandidate specializations) that the declaration itself structurally
@@ -561,7 +561,7 @@ entries:
     required_evidence:
     - O2 admission / generated Semantic Projection from the reviewed model representation
     exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 4) — the
-      model doc carries the accepted definition verbatim plus the preserved NRM/ADR-0009
+      model doc carries the accepted definition verbatim plus the preserved NRM/ADR 0009
       lineage; the residual difference from the ontology definition is its kernel-modeling
       note, which describes the declaration itself. The reviewed equivalence is the
       preserved lineage, not a divergence. Parity evidence only, no authority cutover
