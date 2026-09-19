@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 #: Committed source revision of the O2+ pair (bound at generation time to the
 #: feature sources commit; permanently rebound after the squash merge).
-COMMITTED_SOURCE_REVISION = "fa1eff2b758ce7491698477bfd94369f2766f70f"
+COMMITTED_SOURCE_REVISION = "d91fdcb462bcd29ac9c7f3aff0ad7a964a288a63"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {
