@@ -347,6 +347,17 @@ entries:
     markers:
     - kernel_contract_symbol
     retirement_status: not-applicable
+  docs/method-conformance/o4/consumer-ledger.yaml:
+    role: closure-preparation-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - kernel_sync_key
+    - ontology_dir_token
+    - ontology_path_token
+    - ontology_yaml_symbol
+    retirement_status: not-applicable
+    note: Preparation ledger + scanner; self-entry generated for scan convergence.
   docs/method-conformance/o4/o4-execution-plan.md:
     role: documentation
     markers:
@@ -800,14 +811,3 @@ entries:
     - ontology_dir_token
     - ontology_path_token
     retirement_status: pending
-  docs/method-conformance/o4/consumer-ledger.yaml:
-    role: closure-preparation-machinery
-    retirement_status: not-applicable
-    markers:
-    - kernel_contract_module
-    - kernel_contract_symbol
-    - kernel_sync_key
-    - ontology_dir_token
-    - ontology_path_token
-    - ontology_yaml_symbol
-    note: Preparation ledger + scanner; self-entry generated for scan convergence.
