@@ -1744,7 +1744,8 @@ class TestPreservationAndRuntimeIndependence:
 # which contains the rebound v1.1 baseline bytes. A post-squash rebind
 # follow-up (PR #251 pattern) will move this to the permanent main revision
 # after the W5 batch-1 PR merges.
-COMMITTED_SOURCE_REVISION = "060f744789a9bb33e141933444f5caa2863bed94"
+# TEMPORARY_STACK_BINDING: regenerate against permanent M3 after Rebind 2.
+COMMITTED_SOURCE_REVISION = "14bcd84f7a67c58bd6810fd4861fdfb1aa90a8d8"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:

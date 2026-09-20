@@ -30,9 +30,8 @@ from de4sdv.semantic.authority_inventory import validate_source_binding
 
 ROOT = Path(__file__).resolve().parents[1]
 
-#: Committed source revision of the O2+ pair (bound at generation time to the
-#: feature sources commit; permanently rebound after the squash merge).
-COMMITTED_SOURCE_REVISION = "d91fdcb462bcd29ac9c7f3aff0ad7a964a288a63"
+#: Permanent #293 squash revision; Rebind 1 preserves the accepted payload.
+COMMITTED_SOURCE_REVISION = "39bb3468d7152a401ce9ba9aedce0b63da7abc6e"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {
