@@ -12,50 +12,50 @@
     },
     "o1_inventory": {
       "path": "docs/method-conformance/o1/semantic-authority-inventory.json",
-      "sha256": "sha256:0db8747648861ab1251250ca585fbf551b7fc683fedc76e4c473a641c2f1a233"
+      "sha256": "sha256:54ba43e92d740c0938f3de89c360c63a6d6baa08c26b8ebea1b78e2652771693"
     },
     "o2_chain": [
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/semantic-projection-v1.json",
         "schema": "de4sdv.semantic-projection.v1",
-        "sha256": "sha256:c9f2b7b504212d9f7b106c63658cd534301a738b595de0cb423d6c527d62a900",
-        "source_revision": "b57670e65ee1e9fcf6d0e05cecc6bcfd3365d6f8"
+        "sha256": "sha256:0ee48eb55b6c23bea59aa14d1d9ca7cffa3ac525529e6bfd35824257c9c226a3",
+        "source_revision": "144c0fd784b7ea06ee2dc176eb6992724f5aa974"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/api-representation-profile-v1.json",
         "schema": "de4sdv.api-representation-profile.v1",
-        "sha256": "sha256:7d6a0bf896222ebd5260884984981db52a1c4b3dc0db08bc808b3c17c346c6cf",
-        "source_revision": "b57670e65ee1e9fcf6d0e05cecc6bcfd3365d6f8"
+        "sha256": "sha256:74049633604727dee55b279bb54e16fd9f217a3337e38fc823cf7bf26be2d32e",
+        "source_revision": "144c0fd784b7ea06ee2dc176eb6992724f5aa974"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/semantic-projection-v1.1.json",
         "schema": "de4sdv.semantic-projection.v1.1",
-        "sha256": "sha256:bf61a03223c1d37c42898f51ffd25846c0ca155912078149fa1e40e1ca3802fc",
-        "source_revision": "3c8f5494d2142fdc5db2830ae6a1b39f3f67dcbc"
+        "sha256": "sha256:11248ee794bf2e8df2b4a6ebebd8493309f924012d5879abeca30331bdd59cdd",
+        "source_revision": "cb10541193317514ef601396c07d009fe65eb1de"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/api-representation-profile-v1.1.json",
         "schema": "de4sdv.api-representation-profile.v1.1",
-        "sha256": "sha256:0ba316855074cda5c3bec10ed88c90e516f7657d9a5bbc012f77d7fbc142ec1b",
-        "source_revision": "3c8f5494d2142fdc5db2830ae6a1b39f3f67dcbc"
+        "sha256": "sha256:7ca6d6584f34d0b57c580172efc0d70d0783a85a1f2539249072e296fac083c2",
+        "source_revision": "cb10541193317514ef601396c07d009fe65eb1de"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/semantic-projection-v1.2.json",
         "schema": "de4sdv.semantic-projection.v1.2",
-        "sha256": "sha256:d6a744539655ed79e38d5cb0ca201102382a114b4ddb2fcfb6083e26d23387b8",
-        "source_revision": "9aa71786cd90757cb2e463ea1931ba6596a7ac41"
+        "sha256": "sha256:dfe89570c7b4168b5342dbd90dd37547ff3e6ce3e911fcf13c1ccf290974ea4f",
+        "source_revision": "910733154723deb01ecc47ac859db16da2bd1b4f"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/api-representation-profile-v1.2.json",
         "schema": "de4sdv.api-representation-profile.v1.2",
-        "sha256": "sha256:669dcf8fad49a1aa27a9a68bb3db78c483df3e4fc2bbfb5e4dde7f61ff907f8e",
-        "source_revision": "9aa71786cd90757cb2e463ea1931ba6596a7ac41"
+        "sha256": "sha256:a4dbe25998a5d6e9fb7ac0ca6ce2daa7f62c17f77f648fc37acf3513b20a0ff7",
+        "source_revision": "910733154723deb01ecc47ac859db16da2bd1b4f"
       }
     ],
     "ontology": {
