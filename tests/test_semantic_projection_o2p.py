@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # commit (the ontology/model/decisions changes invalidate the #293 binding).
 # Regenerate against the permanent safe-set 2 squash after the administrator
 # merge (the standing post-squash rebind chain).
-COMMITTED_SOURCE_REVISION = "b57670e65ee1e9fcf6d0e05cecc6bcfd3365d6f8"
+COMMITTED_SOURCE_REVISION = "78b567f34b3b3828ae61e19471d3565e704c119e"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {
