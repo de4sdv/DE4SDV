@@ -66,14 +66,14 @@ EXCLUDED_REASON_KEYWORDS: dict[str, str] = {
     "hasStakeholder": "decision-11",
     "specifiesFeature": "PLE-Q/S",
     "specifiesCommonCapability": "PLE-Q/S",
-    "recordsGap": "definition-carrier",
-    "recordsAssumption": "definition-carrier",
-    "addressesConcern": "definition-carrier",
-    "selectedViewpoint": "definition-carrier",
-    "producesView": "definition-carrier",
-    "EvidenceArtifact": "T/E evidence-reference",
-    "hasEvidence": "T/E evidence-reference",
-    "capturedInBaseline": "T/E evidence-reference",
+    "recordsGap": "W4 batch 1 treated",
+    "recordsAssumption": "W4 batch 1 treated",
+    "addressesConcern": "W4 batch 1 treated",
+    "selectedViewpoint": "W4 batch 1 treated",
+    "producesView": "W4 batch 1 treated",
+    "EvidenceArtifact": "W5 batch 2 treated",
+    "hasEvidence": "W5 batch 2 treated",
+    "capturedInBaseline": "W5 batch 2 treated",
     # W2 batch 7 (safe-set 2) treated these two rows after this manifest was
     # written; the reasons were refreshed to record the treatment while the
     # rows remain outside the O2+ admission (their representation belongs to

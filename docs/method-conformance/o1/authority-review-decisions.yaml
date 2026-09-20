@@ -979,14 +979,19 @@ entries:
     conditional_target: false
     disposition: retain-explicit-external-boundary
     confidence: high
-    stage: T/E
-    note: Evidence registers and retained-evidence items; plan Section 10/12 evidence-reference modeling
-      pending.
-    unknowns:
-    - Model-resident execution/reference semantics design (T/E lane)
+    stage: o4-w5 batch 2 (external-reference design)
+    note: 'o4-w5 batch-2 external-reference design delivered: the typed external-evidence reference contract
+      and the API-profile entries are authored and fail-closed (case/artifact identity, exact revision,
+      digest, run, tested scope; inclusion never implies pass, verification, acceptance, or approval;
+      no traversal; external authority and content boundary preserved). Reviewed acceptance of the
+      schema/profile entries remains the O4 closure precondition.'
+    unknowns: []
     required_evidence:
-    - T/E evidence-reference design (boundary retained until reviewed)
-    exact_fit_decision: null
+    - 'reviewed external-boundary contract and typed-reference schema/profile entries approved and bound
+      (O4 closure precondition)'
+    exact_fit_decision: 'not a native-fit change: the external boundary is retained
+      (retain-explicit-external-boundary); the design delivers the typed reference contract without
+      mirroring evidence content, fabricating bytes, or granting approval.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   EvidenceContract:
@@ -1505,12 +1510,19 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    stage: o4-w4 batch 1 (carrier definitions parity)
+    note: 'o4-w4 batch-1 carrier definitions parity: the reviewed definition and its reviewed domain/range
+      are carried by the model-resident kernel carrier connection def AddressesConcern (typed ends); definition
+      parity is machine-enforced normalized-exact by the O4 carrier machinery; the generated carrier
+      Projection/Profile artifacts exist. Vocabulary-only: no traversal implemented or claimed;
+      authority_current remains legacy-yaml until the O4 closure conditions.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - 'reviewed revision-bound closure binding of the generated carrier Projection/Profile artifacts
+      (O4 closure precondition; vocabulary-only, no traversal)'
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w4 batch 1): the reviewed definition
+      and domain/range are carried by the model-resident carrier connection def AddressesConcern with typed
+      ends; the carrier machinery enforces normalized-exact definition parity and refuses any traversal claim.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   hasStakeholder:
@@ -1539,12 +1551,19 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    stage: o4-w4 batch 1 (carrier definitions parity)
+    note: 'o4-w4 batch-1 carrier definitions parity: the reviewed definition and its reviewed domain/range
+      are carried by the model-resident kernel carrier connection def SelectedViewpoint (typed ends); definition
+      parity is machine-enforced normalized-exact by the O4 carrier machinery; the generated carrier
+      Projection/Profile artifacts exist. Vocabulary-only: no traversal implemented or claimed;
+      authority_current remains legacy-yaml until the O4 closure conditions.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - 'reviewed revision-bound closure binding of the generated carrier Projection/Profile artifacts
+      (O4 closure precondition; vocabulary-only, no traversal)'
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w4 batch 1): the reviewed definition
+      and domain/range are carried by the model-resident carrier connection def SelectedViewpoint with typed
+      ends; the carrier machinery enforces normalized-exact definition parity and refuses any traversal claim.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   producesView:
@@ -1556,12 +1575,19 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    stage: o4-w4 batch 1 (carrier definitions parity)
+    note: 'o4-w4 batch-1 carrier definitions parity: the reviewed definition and its reviewed domain/range
+      are carried by the model-resident kernel carrier connection def ProducesView (typed ends); definition
+      parity is machine-enforced normalized-exact by the O4 carrier machinery; the generated carrier
+      Projection/Profile artifacts exist. Vocabulary-only: no traversal implemented or claimed;
+      authority_current remains legacy-yaml until the O4 closure conditions.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - 'reviewed revision-bound closure binding of the generated carrier Projection/Profile artifacts
+      (O4 closure precondition; vocabulary-only, no traversal)'
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w4 batch 1): the reviewed definition
+      and domain/range are carried by the model-resident carrier connection def ProducesView with typed
+      ends; the carrier machinery enforces normalized-exact definition parity and refuses any traversal claim.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   derivesNeedFromConcern:
@@ -2071,13 +2097,18 @@ entries:
     conditional_target: false
     disposition: retain-explicit-external-boundary
     confidence: high
-    stage: T/E
-    note: Explicit external boundary (external-data-required); traversal returns nothing by design; model-resident
-      reference semantics only via T/E design.
+    stage: o4-w5 batch 2 (external-reference design)
+    note: 'o4-w5 batch-2 external-reference design delivered: external-data-required is preserved; the typed
+      reference contract carries identity/revision/digest/run/tested scope and machine-locks every
+      pass/verification/acceptance/approval implication to false; traversal returns nothing by design
+      and no traversal is added. Reviewed acceptance of the schema/profile entries remains the O4
+      closure precondition.'
     unknowns: []
     required_evidence:
-    - T/E evidence-reference design (boundary retained until reviewed)
-    exact_fit_decision: null
+    - 'reviewed external-boundary contract and typed-reference schema/profile entries approved and bound
+      (O4 closure precondition)'
+    exact_fit_decision: 'not a native-fit change: external-data-required is preserved; the typed reference
+      contract adds no traversal and no pass/verification/acceptance/approval implication.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   hasEvidenceStatus:
@@ -2107,12 +2138,19 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    stage: o4-w4 batch 1 (carrier definitions parity)
+    note: 'o4-w4 batch-1 carrier definitions parity: the reviewed definition and its reviewed domain/range
+      are carried by the model-resident kernel carrier connection def RecordsAssumption (typed ends); definition
+      parity is machine-enforced normalized-exact by the O4 carrier machinery; the generated carrier
+      Projection/Profile artifacts exist. Vocabulary-only: no traversal implemented or claimed;
+      authority_current remains legacy-yaml until the O4 closure conditions.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - 'reviewed revision-bound closure binding of the generated carrier Projection/Profile artifacts
+      (O4 closure precondition; vocabulary-only, no traversal)'
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w4 batch 1): the reviewed definition
+      and domain/range are carried by the model-resident carrier connection def RecordsAssumption with typed
+      ends; the carrier machinery enforces normalized-exact definition parity and refuses any traversal claim.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   recordsGap:
@@ -2124,12 +2162,19 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    stage: o4-w4 batch 1 (carrier definitions parity)
+    note: 'o4-w4 batch-1 carrier definitions parity: the reviewed definition and its reviewed domain/range
+      are carried by the model-resident kernel carrier connection def RecordsGap (typed ends); definition
+      parity is machine-enforced normalized-exact by the O4 carrier machinery; the generated carrier
+      Projection/Profile artifacts exist. Vocabulary-only: no traversal implemented or claimed;
+      authority_current remains legacy-yaml until the O4 closure conditions.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - 'reviewed revision-bound closure binding of the generated carrier Projection/Profile artifacts
+      (O4 closure precondition; vocabulary-only, no traversal)'
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w4 batch 1): the reviewed definition
+      and domain/range are carried by the model-resident carrier connection def RecordsGap with typed
+      ends; the carrier machinery enforces normalized-exact definition parity and refuses any traversal claim.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   supportedByEvidence:
@@ -2403,12 +2448,18 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: medium
-    stage: O2+
-    note: Evidence-to-baseline provenance; T/E evidence design dependent.
+    stage: o4-w5 batch 2 (external-reference design)
+    note: 'o4-w5 batch-2 external-reference design delivered: baseline membership is an exact external
+      manifest fact (a different revision of the same artifact is never carried forward) and inclusion
+      never approves evidence. The recorded O1 classification tension (move-meaning-into-model versus
+      the canonical review KEEP_EXTERNAL_REFERENCE) is documented, not silently resolved. Reviewed
+      acceptance of the schema/profile entries remains the O4 closure precondition.'
     unknowns: []
     required_evidence:
-    - T/E evidence-reference design
-    exact_fit_decision: null
+    - 'reviewed external-boundary contract and typed-reference schema/profile entries approved and bound
+      (O4 closure precondition)'
+    exact_fit_decision: 'not a native-fit change: the baseline membership stays an external manifest fact;
+      the model carries typed references only, and inclusion never approves evidence.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
 runtime_strategies:
