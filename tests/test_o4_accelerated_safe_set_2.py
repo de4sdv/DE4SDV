@@ -360,3 +360,65 @@ def test_inventory_artifact_reproduces_source_rows_commit_b_gate(inventory, deci
         _entry(inventory, "ProductLineCharacteristic")["observed"]["doc_text_observation"]
         == "normalized-exact"
     )
+
+
+# ---------------------------------------------------------------------------
+# 5. Same safe set: W4 carrier-parity and W5 external-reference-design rows
+# ---------------------------------------------------------------------------
+
+W4_CARRIER_STAGE = "o4-w4 batch 1 (carrier definitions parity)"
+W5_REFERENCE_STAGE = "o4-w5 batch 2 (external-reference design)"
+W4_ROWS = (
+    "recordsGap",
+    "recordsAssumption",
+    "addressesConcern",
+    "selectedViewpoint",
+    "producesView",
+)
+W5_ROWS = ("EvidenceArtifact", "hasEvidence", "capturedInBaseline")
+
+
+def test_w4_and_w5_rows_carry_the_safe_set_stages(decisions):
+    staged_w4 = {
+        name for name, row in decisions.items() if row.get("stage") == W4_CARRIER_STAGE
+    }
+    staged_w5 = {
+        name for name, row in decisions.items() if row.get("stage") == W5_REFERENCE_STAGE
+    }
+    assert staged_w4 == set(W4_ROWS)
+    assert staged_w5 == set(W5_ROWS)
+
+
+def test_w4_rows_record_carrier_parity_with_forward_closure_evidence(decisions):
+    for identity in W4_ROWS:
+        row = decisions[identity]
+        assert row["authority_current"] == "legacy-yaml", identity
+        assert row["authority_target"] == "model-authoritative", identity
+        assert "o4-w4 batch 1" in row["exact_fit_decision"], identity
+        assert any(
+            "O4 closure precondition" in item for item in row["required_evidence"]
+        ), identity
+        assert any("no traversal" in item for item in row["required_evidence"]), identity
+
+
+def test_w5_rows_record_the_design_with_forward_closure_evidence(decisions):
+    for identity in W5_ROWS:
+        row = decisions[identity]
+        assert "o4-w5 batch-2" in row["note"], identity
+        assert any(
+            "O4 closure precondition" in item for item in row["required_evidence"]
+        ), identity
+    # The design resolves the previous unknown; the boundary row keeps its
+    # external-current authority and never claims approval.
+    assert decisions["EvidenceArtifact"]["unknowns"] == []
+    assert decisions["hasEvidence"]["authority_current"] == "external-reference"
+    assert decisions["capturedInBaseline"]["authority_current"] == "legacy-yaml"
+    assert (
+        "not silently resolved" in decisions["capturedInBaseline"]["note"]
+    ), "the recorded classification tension must stay documented"
+
+
+def test_has_stakeholder_stays_excluded_and_untreated(decisions):
+    row = decisions["hasStakeholder"]
+    assert row["stage"] == "batched-parity (post-0a/0b)"
+    assert row["authority_current"] == "legacy-yaml"

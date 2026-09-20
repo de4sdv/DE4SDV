@@ -787,7 +787,12 @@ class TestAddressesConcernUntouched:
         assert row["evidence_state"] == "repository-evidenced"
         assert row["disposition"] == "move-meaning-into-model"
         assert row["conditional_target"] is False
-        assert row["stage"] == "batched-parity (post-0a/0b)"
+        # The c4 batch's scope: addressesConcern was NOT part of the c4
+        # retirement and must never be silently repurposed. Its stage moved on
+        # in a later, reviewed batch (O4 W4 carrier definitions parity); the
+        # executed stage is pinned in tests/test_vocabulary_carrier.py and
+        # tests/test_o4_accelerated_safe_set_2.py.
+        assert row["stage"] == "o4-w4 batch 1 (carrier definitions parity)"
 
     def test_addresses_concern_observed_entry_is_unchanged(self, inventory):
         observed = _entries(inventory)["addressesConcern"]["observed"]
