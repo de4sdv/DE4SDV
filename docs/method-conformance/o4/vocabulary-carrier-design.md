@@ -84,6 +84,10 @@ Carrier declarations live in
    carrier block; each type must be a model declaration found under the
    model roots or be explicitly listed in `library_types` (accepted-library
    constructs, e.g. the standard-library `View`, are not repo-resident).
+   `library_types` entries must be **package-qualified** (`Package::Type`) and
+   the carrier file must carry the matching `import Package::` statement; a
+   bare or unimported name is refused. The end itself uses the imported simple
+   name.
 8. **Identity binding.** The reviewed identity of each end (the review's
    domain/range) is resolved against the authored ontology: a repo-resident
    identity's end type must be exactly the ontology-mapped declaration (name
@@ -91,7 +95,9 @@ Carrier declarations live in
    accepted-library type or carry an explicit `declaration` pin that resolves
    to that exact declaration (and agrees with the ontology mapping where one
    exists). A type claimed both as a model declaration and as a listed
-   library type is refused.
+   library type is refused. The acceptance reference's `#fragment` must equal
+   the identity, and the acceptance document must record the identity as a
+   table row (not merely mention it).
 9. **Carrier placement.** The carrier file must be a model file; governance
    data paths are refused.
 

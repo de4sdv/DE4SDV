@@ -132,6 +132,15 @@ def validate_typed_reference(record: dict[str, Any]) -> dict[str, Any]:
     case_identity = _require_text(record, "case_identity", "reference")
     artifact_identity = _require_text(record, "artifact_identity", "reference")
     artifact_revision = _require_text(record, "artifact_revision", "reference")
+    for field, value in (
+        ("artifact_identity", artifact_identity),
+        ("artifact_revision", artifact_revision),
+    ):
+        if "@" in value:
+            raise EvidenceReferenceError(
+                f"reference: {field} must not contain '@'; the version identity "
+                f"form {VERSION_IDENTITY_FORM} must stay unambiguous"
+            )
     digest = normalize_digest(record.get("digest"), "reference")
     run = _require_text(record, "run", "reference")
     scope = record.get("tested_scope")
@@ -183,11 +192,21 @@ def validate_baseline_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
         raise EvidenceReferenceError(
             "baseline: entries must be a non-empty list of artifact version identities"
         )
+    normalized_entries: list[str] = []
+    for item in entries:
+        candidate = item.strip()
+        parts = candidate.split("@")
+        if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
+            raise EvidenceReferenceError(
+                f"baseline: entry {candidate!r} is not an exact "
+                f"{VERSION_IDENTITY_FORM} version identity"
+            )
+        normalized_entries.append(candidate)
     return {
         "schema": BASELINE_MANIFEST_SCHEMA,
         "baseline_identity": identity,
         "manifest_digest": digest,
-        "entries": sorted(item.strip() for item in entries),
+        "entries": sorted(normalized_entries),
         "version_identity_form": VERSION_IDENTITY_FORM,
         "second_baseline_list": False,
     }
@@ -314,21 +333,47 @@ def derived_evidence_reference_family(register: dict[str, Any]) -> set[str]:
     """The DERIVED family: evidence-lineage external-boundary rows, no traversal.
 
     A register/review edit that adds or removes such a row changes this set, so
-    the prepared profile breaks instead of silently changing its scope.
+    the prepared profile breaks instead of silently changing its scope. The
+    discriminator keys are REQUIRED on every row: a row that loses a key fails
+    generation instead of silently dropping out of the family.
     """
+    required_row_keys = (
+        "identity",
+        "final_disposition",
+        "dependency_flags",
+        "required_semantic_projection_change",
+        "required_api_representation_profile_change",
+        "required_runtime_or_consumer_change",
+    )
     family: set[str] = set()
     for row in register["rows"]:
-        flags = row.get("dependency_flags") or {}
-        runtime = row.get("required_runtime_or_consumer_change") or {}
+        missing = [key for key in required_row_keys if key not in row]
+        if missing:
+            raise EvidenceReferenceError(
+                f"register row {row.get('identity')!r} is missing discriminator "
+                f"keys {missing}; the family cannot be derived fail-closed"
+            )
+        flags = row["dependency_flags"]
+        runtime = row["required_runtime_or_consumer_change"]
+        if "evidence_lineage" not in flags:
+            raise EvidenceReferenceError(
+                f"register row {row['identity']!r}: dependency_flags.evidence_lineage missing"
+            )
+        for key in ("traversal_required", "runtime_support_target"):
+            if key not in runtime:
+                raise EvidenceReferenceError(
+                    f"register row {row['identity']!r}: "
+                    f"required_runtime_or_consumer_change.{key} missing"
+                )
         if (
-            row.get("final_disposition") == "KEEP_EXTERNAL_REFERENCE"
-            and flags.get("evidence_lineage") is True
-            and row.get("required_semantic_projection_change") is False
-            and row.get("required_api_representation_profile_change") is False
-            and runtime.get("traversal_required") is False
-            and runtime.get("runtime_support_target") == "external"
+            row["final_disposition"] == "KEEP_EXTERNAL_REFERENCE"
+            and flags["evidence_lineage"] is True
+            and row["required_semantic_projection_change"] is False
+            and row["required_api_representation_profile_change"] is False
+            and runtime["traversal_required"] is False
+            and runtime["runtime_support_target"] == "external"
         ):
-            family.add(str(row.get("identity")))
+            family.add(str(row["identity"]))
     if not family:
         raise EvidenceReferenceError("derived evidence-reference family is empty")
     return family
@@ -378,6 +423,11 @@ def _validate_schema_block(document: dict[str, Any]) -> None:
     locked = schema.get("machine_locked")
     if not isinstance(locked, dict):
         raise EvidenceReferenceError("typed_reference_schema.machine_locked required")
+    unknown_locked = sorted(set(locked) - set(MACHINE_LOCKED))
+    if unknown_locked:
+        raise EvidenceReferenceError(
+            f"typed_reference_schema.machine_locked carries unknown keys: {unknown_locked}"
+        )
     for key, expected in MACHINE_LOCKED.items():
         if locked.get(key) != expected:
             raise EvidenceReferenceError(
@@ -504,9 +554,9 @@ def validate_profile(
                 raise EvidenceReferenceError(f"{identity}: declaration file/name required")
             if not (root / file_rel).is_file():
                 raise EvidenceReferenceError(f"{identity}: declaration file missing: {file_rel}")
-            if name not in declarations:
+            if file_rel not in declarations.get(name, []):
                 raise EvidenceReferenceError(
-                    f"{identity}: declaration {name!r} not found under the model roots"
+                    f"{identity}: declaration {name!r} not found in {file_rel}"
                 )
             row["declaration"] = {"file": file_rel, "name": name}
         elif declaration is not None:
@@ -519,6 +569,10 @@ def validate_profile(
     if missing:
         raise EvidenceReferenceError(
             f"derived family rows without a profile entry: {sorted(missing)}"
+        )
+    if not set(scope) <= seen:
+        raise EvidenceReferenceError(
+            f"scope_rows without a profile entry: {sorted(set(scope) - seen)}"
         )
     profile_rows.sort(key=lambda item: item["identity"])
     return {

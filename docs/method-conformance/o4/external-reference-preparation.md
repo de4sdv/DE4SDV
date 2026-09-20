@@ -49,7 +49,7 @@ foreign-shaped records.
 
 | function | validates | guarantees |
 | --- | --- | --- |
-| `validate_typed_reference` (alias `validate_evidence_reference`) | case identity, artifact identity, exact revision, sha256 digest, run, non-empty tested scope | normalized record with the exact version identity; `implies_pass`/`implies_verification`/`implies_acceptance` machine-locked `False`; `traversal` `False`; `runtime_support` `external`; `content_mirrored` `False` |
+| `validate_typed_reference` (alias `validate_evidence_reference`) | case identity, artifact identity, exact revision, sha256 digest, run, non-empty tested scope; `@` is refused inside identity/revision so the version identity stays unambiguous | normalized record with the exact version identity; `implies_pass`/`implies_verification`/`implies_acceptance` machine-locked `False`; `traversal` `False`; `runtime_support` `external`; `content_mirrored` `False` |
 | `validate_baseline_manifest` | baseline identity, manifest digest, non-empty immutable version-identity entries | normalized manifest; `second_baseline_list` `False` |
 | `baseline_inclusion` | exact version-identity membership (`<artifact_identity>@<artifact_revision>`) in the identified manifest | `included` is explicit; a different revision is **not** included (no carry-forward); `implies_approval`/`implies_pass`/`implies_acceptance` machine-locked `False` |
 | `association_state` | reference validity | the only state an association may expose; no verdict fields |

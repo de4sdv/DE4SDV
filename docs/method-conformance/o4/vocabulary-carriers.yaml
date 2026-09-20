@@ -121,7 +121,8 @@ admitted:
         feature: view
         type: View
     # `View` is the accepted standard-library view definition (Views library);
-    # it is not repo-resident, so it is declared as an accepted-library type.
+    # it is not repo-resident, so it is declared as an accepted-library type
+    # with its package qualification, and the carrier file imports the package.
     library_types:
-      - View
+      - Views::View
     accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#producesView

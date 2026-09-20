@@ -326,3 +326,50 @@ def test_contract_never_fetches_content_and_stays_read_only():
     source = inspect.getsource(module)
     for banned in ("requests", "urllib", "http", "subprocess", "open("):
         assert banned not in source, f"contract must stay offline/read-only: {banned}"
+
+
+def test_version_identity_separator_is_unambiguous():
+    from de4sdv.semantic import external_reference_contract as module
+
+    with pytest.raises(module.EvidenceReferenceError, match="must not contain '@'"):
+        module.validate_typed_reference(_reference(artifact_identity="A@B"))
+    with pytest.raises(module.EvidenceReferenceError, match="must not contain '@'"):
+        module.validate_typed_reference(_reference(artifact_revision="B@C"))
+    with pytest.raises(module.EvidenceReferenceError, match="not an exact"):
+        module.validate_baseline_manifest(_manifest(entries=["A@B@C"]))
+    with pytest.raises(module.EvidenceReferenceError, match="not an exact"):
+        module.validate_baseline_manifest(_manifest(entries=["A@"]))
+
+
+def test_profile_declaration_must_live_in_the_named_file():
+    module, document, register, review = _load()
+
+    misfiled = copy.deepcopy(document)
+    baseline = next(e for e in misfiled["profile_entries"] if e["identity"] == "Baseline")
+    baseline["declaration"] = {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "name": "DE4SDVEvidenceBaseline",
+    }
+    with pytest.raises(module.EvidenceReferenceError, match="not found in"):
+        module.validate_profile(REPO_ROOT, misfiled, register, review)
+
+
+def test_machine_locked_refuses_unknown_keys():
+    module, document, register, review = _load()
+
+    inflated = copy.deepcopy(document)
+    inflated["typed_reference_schema"]["machine_locked"]["implies_certification"] = False
+    with pytest.raises(module.EvidenceReferenceError, match="unknown keys"):
+        module.validate_profile(REPO_ROOT, inflated, register, review)
+
+
+def test_register_row_missing_a_discriminator_fails_closed():
+    module, document, register, review = _load()
+
+    damaged = copy.deepcopy(register)
+    for row in damaged["rows"]:
+        if row["identity"] == "EvidenceArtifact":
+            row.pop("dependency_flags")
+            break
+    with pytest.raises(module.EvidenceReferenceError, match="discriminator"):
+        module.validate_profile(REPO_ROOT, document, damaged, review)

@@ -260,9 +260,15 @@ def _validate_entry(
             f"{identity}: acceptance document {accepted_path} does not carry the "
             f"engineering-review acceptance marker ({ACCEPTANCE_MARKER})"
         )
-    if identity not in acceptance_text:
+    fragment = accepted_ref.split("#", 1)[1].strip() if "#" in accepted_ref else None
+    if fragment is not None and fragment != identity:
         raise CarrierError(
-            f"{identity}: acceptance document {accepted_path} does not record this identity"
+            f"{identity}: accepted_ref fragment must equal the identity (got {fragment!r})"
+        )
+    if not re.search(rf"^\s*\|\s*{re.escape(identity)}\s*\|", acceptance_text, re.MULTILINE):
+        raise CarrierError(
+            f"{identity}: acceptance document {accepted_path} does not record this "
+            "identity as a table row"
         )
     carrier = entry.get("carrier") or {}
     file_rel = carrier.get("file")
@@ -297,6 +303,14 @@ def _validate_entry(
     if set(ends) != {"domain", "range"}:
         raise CarrierError(f"{identity}: ends must declare exactly domain and range")
     library_types = set(entry.get("library_types") or [])
+    for item in sorted(library_types):
+        parts = item.split("::")
+        if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
+            raise CarrierError(
+                f"{identity}: library_types entries must be package-qualified "
+                f"(Package::Type): {item!r}"
+            )
+    library_names = {item.split("::")[1]: item for item in library_types}
     end_rows = {}
     for role in ("domain", "range"):
         spec = ends.get(role) or {}
@@ -313,7 +327,7 @@ def _validate_entry(
             raise CarrierError(
                 f"{identity}: ends.{role} typing `end {feature} : {type_name}` not found in the carrier declaration"
             )
-        if type_name in index and type_name in library_types:
+        if type_name in index and type_name in library_names:
             raise CarrierError(
                 f"{identity}: ends.{role} type {type_name!r} is both a model "
                 "declaration and a listed accepted-library type"
@@ -369,17 +383,29 @@ def _validate_entry(
                     f"#{expected_declaration} does not resolve to the end type "
                     f"{type_name!r}"
                 )
-        elif pin is None and type_name not in library_types:
+        elif pin is None and type_name not in library_names:
             raise CarrierError(
                 f"{identity}: ends.{role} identity {reviewed_name!r} has no "
                 "repo-resident ontology declaration; the end type must be a listed "
                 "accepted-library type or carry an explicit declaration pin"
             )
-        if type_name not in index and type_name not in library_types:
+        if type_name not in index and type_name not in library_names:
             raise CarrierError(
                 f"{identity}: ends.{role} type {type_name!r} is not a model declaration "
                 "and is not marked as an accepted-library type"
             )
+        if type_name in library_names:
+            entry_name = library_names[type_name]
+            package = entry_name.split("::", 1)[0]
+            if not re.search(
+                rf"^\s*(?:private\s+|public\s+)?import\s+{re.escape(package)}\s*::",
+                text,
+                re.MULTILINE,
+            ):
+                raise CarrierError(
+                    f"{identity}: ends.{role} library type {entry_name!r} is not "
+                    f"imported by the carrier file (no `import {package}::` statement)"
+                )
         end_rows[role] = {"identity": reviewed_name, "type": type_name}
     return {
         "identity": identity,

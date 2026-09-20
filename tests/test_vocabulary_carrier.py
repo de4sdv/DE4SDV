@@ -40,6 +40,7 @@ _DEFINITIONS = {
 
 _SYSML = """package DE4SDV_MethodVocabularyCarriers {
   private import DE4SDV_MethodContext::*;
+  private import Views::*;
   part def EngineeringIncrement;
   part def IncrementGap;
   abstract concern def IncrementConcern;
@@ -64,7 +65,12 @@ def _model(tmp_path: Path) -> Path:
     acceptance = root / _ACCEPTANCE_DOC
     acceptance.write_text(
         "# acceptance\n\nStatus: accepted-as-engineering-review-evidence\n\n"
-        + "\n".join(sorted(_DEFINITIONS))
+        + "| identity | reviewed definition | domain | range |\n"
+        + "| --- | --- | --- | --- |\n"
+        + "\n".join(
+            f"| {identity} | definition | EngineeringIncrement | {range_name} |"
+            for identity, (_, range_name) in sorted(_DEFINITIONS.items())
+        )
         + "\n",
         encoding="utf-8",
     )
@@ -425,7 +431,7 @@ def test_library_type_end_is_accepted_when_declared(tmp_path):
         "domain": {"feature": "producingIncrement", "type": "EngineeringIncrement"},
         "range": {"feature": "view", "type": "View"},
     }
-    document["admitted"][0]["library_types"] = ["View"]
+    document["admitted"][0]["library_types"] = ["Views::View"]
     document["admitted"][0]["accepted_ref"] = (
         f"{_ACCEPTANCE_DOC}#producesView"
     )
@@ -611,6 +617,77 @@ def test_type_cannot_be_both_model_declaration_and_library_type(tmp_path):
 
     root = _model(tmp_path)
     document = _document()
-    document["admitted"][0]["library_types"] = ["IncrementGap"]
+    document["admitted"][0]["library_types"] = ["Views::IncrementGap"]
     with pytest.raises(CarrierError, match="both a model declaration and a listed"):
         _build(root, document, _review())
+
+
+def test_unqualified_library_type_is_refused(tmp_path):
+    from de4sdv.semantic.vocabulary_carrier import CarrierError
+
+    root = _model(tmp_path)
+    document = _document()
+    document["admitted"][0]["library_types"] = ["View"]
+    with pytest.raises(CarrierError, match="package-qualified"):
+        _build(root, document, _review())
+
+
+def test_library_type_must_be_imported_by_the_carrier_file(tmp_path):
+    from de4sdv.semantic.vocabulary_carrier import CarrierError
+
+    root = _model(tmp_path)
+    carrier = root / _CARRIER_FILE
+    carrier.write_text(
+        carrier.read_text().replace("private import Views::*;\n", ""),
+        encoding="utf-8",
+    )
+    # recordsGap's reviewed range identity is Gap (ontology-mapped), so build
+    # the producesView row (native range `View`, imported simple end type) for
+    # a clean import-check exercise.
+    carrier.write_text(
+        carrier.read_text().replace(
+            "connection def RecordsGap {",
+            "connection def ProducesView {\n"
+            "    end view : View;\n"
+            "    end producingIncrement : EngineeringIncrement;\n"
+            "    doc /* Engineering increment identifies a view artifact produced as an increment deliverable. */\n"
+            "  }\n"
+            "  connection def RecordsGap {",
+        ),
+        encoding="utf-8",
+    )
+    document = _document()
+    document["admitted"][0]["identity"] = "producesView"
+    document["admitted"][0]["carrier"]["declaration"] = "connection def ProducesView"
+    document["admitted"][0]["ends"] = {
+        "domain": {"feature": "producingIncrement", "type": "EngineeringIncrement"},
+        "range": {"feature": "view", "type": "View"},
+    }
+    document["admitted"][0]["library_types"] = ["Views::View"]
+    document["admitted"][0]["accepted_ref"] = f"{_ACCEPTANCE_DOC}#producesView"
+    with pytest.raises(CarrierError, match="not imported by the carrier file"):
+        _build(root, document, _review())
+
+
+def test_acceptance_fragment_must_equal_the_identity(tmp_path):
+    from de4sdv.semantic.vocabulary_carrier import CarrierError
+
+    root = _model(tmp_path)
+    document = _document()
+    document["admitted"][0]["accepted_ref"] = f"{_ACCEPTANCE_DOC}#somethingElse"
+    with pytest.raises(CarrierError, match="fragment must equal the identity"):
+        _build(root, document, _review())
+
+
+def test_acceptance_document_must_record_the_identity_as_a_table_row(tmp_path):
+    from de4sdv.semantic.vocabulary_carrier import CarrierError
+
+    root = _model(tmp_path)
+    acceptance = root / _ACCEPTANCE_DOC
+    acceptance.write_text(
+        "# acceptance\n\nStatus: accepted-as-engineering-review-evidence\n"
+        "\nrecordsGap is mentioned in prose only.\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(CarrierError, match="does not record this identity as a table row"):
+        _build(root, document := _document(), _review())
