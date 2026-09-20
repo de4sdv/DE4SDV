@@ -1740,9 +1740,10 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# Permanent M3: the #296 Rebind-2 squash contains v1.1 bound to M2.
-# Final #293 recovery: no temporary downstream source revision remains.
-COMMITTED_SOURCE_REVISION = "13929bd74451d9f61985117833474aba348e2ea5"
+# TEMPORARY_STACK_BINDING: safe-set 2 rebound v1.2 on its artifact commit
+# (the v1.1 baseline bytes it extends moved). Regenerate against the permanent
+# safe-set 2 squash after the administrator merge (post-squash rebind chain).
+COMMITTED_SOURCE_REVISION = "9aa71786cd90757cb2e463ea1931ba6596a7ac41"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
