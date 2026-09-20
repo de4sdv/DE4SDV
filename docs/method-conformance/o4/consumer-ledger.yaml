@@ -184,6 +184,16 @@ entries:
     - kernel_contract_module
     - kernel_contract_symbol
     retirement_status: pending
+  de4sdv/semantic/vocabulary_carrier.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: O4 W4 carrier machinery; build-time governance only, never a runtime
+      consumer.
   deployment/README.md:
     role: documentation
     markers:
@@ -418,6 +428,15 @@ entries:
     markers:
     - kernel_contract_symbol
     retirement_status: not-applicable
+  docs/method-conformance/o4/vocabulary-carrier-design.md:
+    role: documentation
+    markers:
+    - kernel_sync_key
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: O4 W4 carrier design record; references the ontology-kernel contract and
+      the authored ontology path. Not a consumer to retire.
   docs/method-conformance/r0-handoff/unified-plan-r0.json:
     role: documentation
     markers:
@@ -797,6 +816,12 @@ entries:
     - kernel_contract_module
     - kernel_contract_symbol
     - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_vocabulary_carrier.py:
+    role: test-reference
+    markers:
+    - kernel_sync_key
     - ontology_path_token
     retirement_status: not-applicable
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:

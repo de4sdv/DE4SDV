@@ -120,3 +120,110 @@ def test_unreadable_tracked_file_fails_closed(tmp_path):
     files = _files(root) + ["missing_file.md"]
     with pytest.raises(ConsumerScanError):
         scan_files(root, files)
+
+
+# ---------------------------------------------------------------------------
+# check_repo gate registration (sentinel + spy)
+# ---------------------------------------------------------------------------
+
+
+def _passing_gate_mocks():
+    from unittest import mock
+
+    from de4sdv.semantic import external_reference_contract, vocabulary_carrier
+    from scripts import check_repo
+
+    return (
+        mock.patch.object(vocabulary_carrier, "run_check_errors", return_value=[]),
+        mock.patch.object(
+            external_reference_contract, "run_check_errors", return_value=[]
+        ),
+        mock.patch.object(check_repo, "find_duplicate_global_packages", return_value={}),
+        mock.patch.object(
+            check_repo.validate_aebs_executable_bench, "validate_bench", return_value=[]
+        ),
+        mock.patch.object(check_repo.check_model_sync, "run_all_checks", return_value=[]),
+        mock.patch.object(
+            check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]
+        ),
+        mock.patch.object(check_repo.check_naming, "run_all_checks", return_value=[]),
+        mock.patch.object(
+            check_repo.generate_semantic_authority_inventory,
+            "run_check_errors",
+            return_value=[],
+        ),
+        mock.patch.object(
+            check_repo.generate_semantic_projection_v1,
+            "run_check_errors",
+            return_value=[],
+        ),
+        mock.patch.object(
+            check_repo.generate_semantic_projection_o22,
+            "run_check_errors_o22",
+            return_value=[],
+        ),
+        mock.patch.object(
+            check_repo.generate_semantic_projection_o23,
+            "run_check_errors_o23",
+            return_value=[],
+        ),
+        mock.patch.object(
+            check_repo.generate_semantic_projection_o2p,
+            "run_check_errors_o2p",
+            return_value=[],
+        ),
+        mock.patch.object(check_repo.validate_review, "run_check_errors", return_value=[]),
+        mock.patch.object(
+            check_repo.generate_o4_execution_register, "run_check_errors", return_value=[]
+        ),
+        mock.patch.object(
+            check_repo.check_o4_lifecycle_consistency, "run_all_checks", return_value=[]
+        ),
+    )
+
+
+def test_check_repo_fails_when_consumer_ledger_gate_fails():
+    from unittest import mock
+
+    from de4sdv.semantic import o4_consumers
+    from scripts import check_repo
+
+    mocks = _passing_gate_mocks()
+    for m in mocks:
+        m.start()
+    try:
+        with mock.patch.object(
+            o4_consumers,
+            "load_and_check",
+            return_value=["sentinel consumer-ledger error"],
+        ):
+            assert check_repo.main() == 1
+    finally:
+        for m in mocks:
+            m.stop()
+
+
+def test_check_repo_invokes_the_consumer_ledger_gate():
+    from unittest import mock
+
+    from de4sdv.semantic import o4_consumers
+    from scripts import check_repo
+
+    calls: list = []
+    original = o4_consumers.load_and_check
+
+    def spy(root):
+        calls.append(root)
+        return original(root)
+
+    mocks = _passing_gate_mocks()
+    for m in mocks:
+        m.start()
+    try:
+        with mock.patch.object(o4_consumers, "load_and_check", side_effect=spy):
+            code = check_repo.main()
+    finally:
+        for m in mocks:
+            m.stop()
+    assert calls, "check_repo did not invoke the consumer-ledger gate"
+    assert code == 0

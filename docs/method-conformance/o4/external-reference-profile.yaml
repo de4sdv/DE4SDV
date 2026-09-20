@@ -1,0 +1,108 @@
+schema: de4sdv.o4-external-reference-profile/v1
+status: prepared
+activation: none
+# Prepared W5 external-reference design artifact. It records the typed-reference
+# schema and the profile entries for the evidence-lineage external-boundary
+# rows. It activates nothing: no traversal, no content mirroring, no baseline
+# list, no admission, no row closure.
+source:
+  review: docs/method-conformance/o4/ontology-review/integrated-review.json
+  register: docs/method-conformance/o4/o4-execution-register.json
+governed_rows_note: >-
+  The family is DERIVED, not curated: every register row with
+  final_disposition KEEP_EXTERNAL_REFERENCE, dependency_flags.evidence_lineage
+  true, no projection/profile requirement and no traversal, targeting external
+  runtime support. A review/register edit that adds or removes such a row
+  breaks generation instead of silently changing the contract.
+expected_rows:
+  - Baseline
+  - EvidenceArtifact
+  - capturedInBaseline
+  - hasEvidence
+scope_rows:
+  - EvidenceArtifact
+  - hasEvidence
+  - capturedInBaseline
+typed_reference_schema:
+  identity: de4sdv.evidence-reference/v1
+  owns: >-
+    the model-owned typed reference schema only; artifact bytes, artifact
+    status, acceptance decisions and baseline contents stay with the external
+    evidence/configuration systems.
+  required_fields:
+    case_identity: "the VerificationCase identity the evidence is associated with (exact, non-empty)"
+    artifact_identity: "the external evidence-artifact identity (exact, non-empty)"
+    artifact_revision: "the exact artifact version/revision identity (non-empty; no floating or inferred revision)"
+    digest: "sha256 hex64, or {algorithm: sha256, value: hex64}"
+    run: "the retained execution/run identity the evidence was produced by (exact, non-empty)"
+    tested_scope: "non-empty list of scope references (conservative scope-equality inputs)"
+  version_identity_form: "<artifact_identity>@<artifact_revision>"
+  forbidden_record_fields:
+    - verdict
+    - passed
+    - accepted
+    - approval
+    - status
+    - traversal
+    - sysml_mapping
+    - implies_pass
+    - implies_acceptance
+    - implies_approval
+  machine_locked:
+    implies_pass: false
+    implies_verification: false
+    implies_acceptance: false
+    implies_approval: false
+    traversal: false
+    runtime_support: external
+    content_mirrored: false
+baseline_manifest_schema:
+  identity: de4sdv.baseline-manifest-reference/v1
+  owns: >-
+    the reference to an immutable identified external baseline manifest; the
+    model never keeps a second mutable baseline list.
+  required_fields:
+    baseline_identity: "the external baseline/manifest identity (exact, non-empty)"
+    manifest_digest: "sha256 hex64, or {algorithm: sha256, value: hex64}"
+    entries: "non-empty list of exact artifact version identities (<artifact_identity>@<artifact_revision>)"
+  membership_rule: >-
+    Inclusion is exact membership of the reference's version identity in the
+    identified manifest. A different revision of the same artifact identity is
+    NOT included (no carry-forward). Inclusion does not approve evidence.
+profile_entries:
+  - identity: EvidenceArtifact
+    representation_class: external-reference-record
+    mechanics: >-
+      Typed reference record only (case identity, artifact identity, exact
+      revision, digest, run, tested scope). No API element identity is claimed
+      and no artifact bytes or status are mirrored.
+    declaration: null
+  - identity: hasEvidence
+    representation_class: external-reference-record
+    mechanics: >-
+      Association is carried by the typed reference record of the verification
+      case; the association exposes no verdict, no pass and no acceptance, and
+      implements no traversal (external-data-required is surfaced, never
+      reported as an empty hop).
+    declaration: null
+  - identity: capturedInBaseline
+    representation_class: external-reference-record
+    mechanics: >-
+      Membership is carried by the typed reference to the identified immutable
+      external manifest; the model keeps no baseline list and inclusion never
+      approves evidence.
+    declaration: null
+  - identity: Baseline
+    representation_class: model-resident-boundary-identity
+    mechanics: >-
+      Existing model-resident boundary identity `part def DE4SDVEvidenceBaseline`
+      (parity of the reference documentation only; no rename, no second mutable
+      baseline list). The declaration describes what is referenced, not who
+      grants approval.
+    declaration:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml
+      name: DE4SDVEvidenceBaseline
+remaining_integration:
+  - Wire `de4sdv/semantic/external_reference_contract.py:run_check_errors` into `scripts/check_repo.py` (parent integration; this package adds the check, not the hook).
+  - Regenerate the O4 execution register / O1 inventory evidence rows for the three W5 rows under the two-commit pattern; the rows stay open until their reviewed evidence items resolve.
+  - Record the reviewed acceptance of the typed-reference schema/profile entries as the retirement precondition for the three YAML rows; this artifact is a prepared design, not that acceptance.

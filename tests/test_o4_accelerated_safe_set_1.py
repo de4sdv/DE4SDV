@@ -74,11 +74,15 @@ EXCLUDED_REASON_KEYWORDS: dict[str, str] = {
     "EvidenceArtifact": "T/E evidence-reference",
     "hasEvidence": "T/E evidence-reference",
     "capturedInBaseline": "T/E evidence-reference",
-    "Scenario": "no model-side declaration",
+    # W2 batch 7 (safe-set 2) treated these two rows after this manifest was
+    # written; the reasons were refreshed to record the treatment while the
+    # rows remain outside the O2+ admission (their representation belongs to
+    # the O2 admission layer).
+    "Scenario": "W2 batch 7 treated",
     "CommonCapability": "decision-14",
     "Feature": "decision-14",
     "MethodEvaluationScope": "decision-7",
-    "ProductLineCharacteristic": "decision-bound",
+    "ProductLineCharacteristic": "W2 batch 7 treated",
     "Stakeholder": "decision-11",
     "AssuranceClaim": "decision-3",
     "ArchitectureElement": "decision-5",

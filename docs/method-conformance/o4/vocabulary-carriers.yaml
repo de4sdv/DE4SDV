@@ -1,23 +1,33 @@
-# O4 vocabulary-relationship definition carriers — governed admission document.
+# O4 W4 vocabulary-relationship definition carriers — governed admission document.
 #
-# PREPARED: no admission is active. The candidate family below is DERIVED and
-# machine-locked against the canonical integrated review: every reviewed
+# ADMITTED (engineering review evidence). The candidate family below is DERIVED
+# and machine-locked against the canonical integrated review: every reviewed
 # relationship whose target carries exactly this profile (KEEP_VOCABULARY_ONLY,
 # model-resident method vocabulary authority, projection + profile required, no
 # traversal, vocabulary-only support). Each candidate's definition, flags and
 # claim boundary are read from the review at check time (single source; this
 # document never restates them).
 #
-# An entry may enter `admitted` ONLY after the method-owner definition
-# acceptance is recorded (the entry's `accepted_ref` must name the accepted
-# decision). Until then the machinery refuses every admission, and no carrier
-# declaration, projection row or profile entry exists for these relationships.
+# The five admitted entries close their definition acceptance as ENGINEERING
+# REVIEW EVIDENCE: accepted_ref names the bounded review document
+# (docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md), which
+# carries the `accepted-as-engineering-review-evidence` marker and records each
+# identity. No personal owner approval is claimed; free-text acceptance
+# references are refused by the machinery.
+#
+# hasStakeholder stays EXCLUDED (decision-11 gates its range), in addition to
+# the shared acceptance requirement.
+#
+# Generated Projection/Profile artifacts are produced by
+# scripts/generate_vocabulary_carriers.py under the two-commit source binding:
+# commit these admission inputs first, then generate and commit the artifacts.
 schema: de4sdv.o4-vocabulary-carriers/v1
-status: PREPARED - carrier family machine-locked; no admission active
+status: ADMITTED - five carriers admitted as engineering review evidence; artifacts generated under two-commit binding
 warning: >-
   Governance data, not generated output, and NOT authority activation. The
   carrier machinery is fail-closed: family drift against the canonical review,
-  unknown keys, a sysml_mapping field, a missing acceptance reference, a
+  unknown keys, a sysml_mapping field, an acceptance reference that does not
+  resolve to a governance document carrying the engineering-review marker, a
   definition that does not match the canonical review normalized-exact, an
   unresolved carrier declaration or end typing, or any reviewed-flag drift
   refuses generation. The runtime never reads this document; traversal
@@ -37,5 +47,81 @@ excluded:
     reason: >-
       decision-11 (SAF role-def adoption/publication disposition) gates its
       range; excluded from admission until that owner disposition resolves,
-      in addition to the shared method-owner definition acceptance.
-admitted: []
+      in addition to the shared definition acceptance.
+admitted:
+  - identity: recordsGap
+    carrier:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
+      declaration: connection def RecordsGap
+    ends:
+      domain:
+        feature: recordingIncrement
+        type: EngineeringIncrement
+      range:
+        feature: gap
+        type: IncrementGap
+    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#recordsGap
+  - identity: recordsAssumption
+    carrier:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
+      declaration: connection def RecordsAssumption
+    ends:
+      domain:
+        feature: recordingIncrement
+        type: EngineeringIncrement
+      range:
+        feature: assumption
+        type: IncrementAssumption
+    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#recordsAssumption
+  - identity: addressesConcern
+    carrier:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
+      declaration: connection def AddressesConcern
+    ends:
+      domain:
+        feature: reviewingIncrement
+        type: EngineeringIncrement
+      range:
+        feature: concern
+        type: IncrementConcern
+        # The reviewed range identity `Concern` is a native concept with no
+        # repo-resident ontology declaration; the generic increment-scoped
+        # range base is pinned explicitly so the end type cannot drift
+        # silently to another declaration.
+        declaration:
+          file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
+          declaration: concern def IncrementConcern
+    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#addressesConcern
+  - identity: selectedViewpoint
+    carrier:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
+      declaration: connection def SelectedViewpoint
+    ends:
+      domain:
+        feature: selectingIncrement
+        type: EngineeringIncrement
+      range:
+        feature: viewpoint
+        type: IncrementViewpoint
+        # Same pinned-base rule as addressesConcern: the reviewed range
+        # identity `Viewpoint` is native with no repo-resident declaration.
+        declaration:
+          file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
+          declaration: viewpoint def IncrementViewpoint
+    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#selectedViewpoint
+  - identity: producesView
+    carrier:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
+      declaration: connection def ProducesView
+    ends:
+      domain:
+        feature: producingIncrement
+        type: EngineeringIncrement
+      range:
+        feature: view
+        type: View
+    # `View` is the accepted standard-library view definition (Views library);
+    # it is not repo-resident, so it is declared as an accepted-library type.
+    library_types:
+      - View
+    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#producesView

@@ -417,15 +417,22 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: o4-w2 batch 7 (definitions parity)
+    note: 'o4-w2 batch-7 parity-reviewed: definition-level parity closed normalized-exact — the model
+      doc carries the reviewed definition text verbatim under cosmetic normalization only (the
+      product-line classification base with its four branches: common capability, feature candidate,
+      deferred scope, native SysML v2 variation choice). No standard-library anchoring claim; the
+      declaration remains the product-line classification root. The reviewed model definition is ready
+      for O2 admission; authority_current remains legacy-yaml until its O2 admission/retirement
+      condition is completed under O4.'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    exact_fit_decision: null
+    - O2 admission / generated Semantic Projection from the reviewed model representation
+    exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 7): the model doc
+      text equals the reviewed definition under cosmetic normalization only; declaration, name and
+      classification-root position unchanged.'
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   CommonCapability:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -831,14 +838,23 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: medium
-    stage: batched-parity (post-0a/0b)
-    note: 'RECLASSIFIED from native-sysml: operational-context parts + scenario-identity enums are representation,
-      not native "Scenario" semantics; meaning established by the DE4SDV definition.'
+    stage: o4-w2 batch 7 (bounded pattern grounding)
+    note: 'RECLASSIFIED from native-sysml: operational-context parts + scenario-identity enums are
+      representation, not native "Scenario" semantics; meaning established by the DE4SDV definition.
+      Bounded pattern grounding reviewed (o4-w2 batch 7): the representation pattern is machine-bound
+      to the evaluator by check_model_sync sync point 1; no reviewed-equivalent record is claimed (no
+      model-side declaration exists, and reviewed-equivalent is representable only for a differing doc
+      observation).'
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    - O2 admission / generated Semantic Projection from the reviewed pattern representation
+    - 'definition-level parity stays open: no model-side Scenario declaration exists, so
+      normalized-exact text parity is unattainable and reviewed-equivalent is unrepresentable for this
+      native-grounding row'
     exact_fit_decision: 'not exact-fit native: no native SysML concept named Scenario; representation
-      primitives only.'
+      primitives only. Bounded pattern grounding complete (o4-w2 batch 7): the existing
+      scenario-identity enum + operational-context pattern is reviewed as representation, with no
+      native-semantics claim and no definition-level text parity claim.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   VerificationCase:

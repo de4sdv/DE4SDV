@@ -221,7 +221,7 @@ excluded:
   - identity: capturedInBaseline
     reason: T/E evidence-reference design review outstanding (boundary retained until reviewed)
   - identity: Scenario
-    reason: no model-side declaration; treatment/model-representation decision outstanding
+    reason: W2 batch 7 treated (bounded pattern grounding, no native claim); not an O2+ row — its representation belongs to the O2 admission layer, not this native/library layer
   - identity: CommonCapability
     reason: W2 decision-14 (Feature/CommonCapability disjointness) unresolved
   - identity: Feature
@@ -229,7 +229,7 @@ excluded:
   - identity: MethodEvaluationScope
     reason: W2 decision-7 (structural exclusions shape) unresolved
   - identity: ProductLineCharacteristic
-    reason: depends on the decision-bound Feature/CommonCapability pair
+    reason: W2 batch 7 treated (definitions parity closed normalized-exact); not an O2+ row — its representation belongs to the O2 admission layer, not this native/library layer
   - identity: Stakeholder
     reason: W2 decision-11 (SAF role-def disposition) unresolved
   - identity: AssuranceClaim
