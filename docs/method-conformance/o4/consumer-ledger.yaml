@@ -1,0 +1,813 @@
+schema: de4sdv.o4-consumer-ledger/v1
+status: PREPARED - no consumer retirement is claimed; authored YAML remains the active
+  authority
+warning: 'Authored governance data (not generated). Detects every tracked file that
+  references the authored ontology authority or its KernelContract machinery, case-insensitively,
+  all file types, full content. Fail-closed: set drift in either direction, marker
+  drift, unknown roles/statuses, or live consumption by a ''retired'' row fails the
+  repository check. Do NOT set any row to ''retired'' until its consumers are migrated
+  and its rows are closed; this ledger does not authorize deletion of the authored
+  YAML.'
+roles:
+- authored-authority
+- runtime-consumer
+- validation-consumer
+- gate
+- governance-machinery
+- closure-preparation-machinery
+- test-reference
+- documentation
+- model
+- build
+retirement_statuses:
+- active
+- pending
+- retired
+- compatibility-generated
+- not-applicable
+entries:
+  .github/workflows/privileged-full-model-api-ingestion.yml:
+    role: build
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  AGENTS.md:
+    role: documentation
+    markers:
+    - kernel_sync_key
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  approach/framework/ontology/README.md:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - kernel_sync_key
+    - ontology_path_token
+    retirement_status: not-applicable
+  approach/framework/ontology/de4sdv-basic-ontology.yaml:
+    role: authored-authority
+    markers:
+    - kernel_sync_key
+    retirement_status: not-applicable
+    note: The authored ontology YAML itself; authority retirement is governed by O4
+      closure, not by this ledger.
+  approach/process-set/README.md:
+    role: documentation
+    markers:
+    - ontology_dir_token
+    retirement_status: not-applicable
+  de4sdv/semantic/api_binding.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: pending
+  de4sdv/semantic/authority_ids.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  de4sdv/semantic/authority_inventory.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - kernel_sync_key
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  de4sdv/semantic/authority_selection.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  de4sdv/semantic/impact.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: pending
+  de4sdv/semantic/kernel_binding_index.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    retirement_status: pending
+  de4sdv/semantic/kernel_contract.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_symbol
+    - kernel_sync_key
+    retirement_status: pending
+  de4sdv/semantic/o3_bundle.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  de4sdv/semantic/o3_equivalence.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  de4sdv/semantic/o4_consumers.py:
+    role: closure-preparation-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - kernel_sync_key
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    - ontology_path_us_token
+    - ontology_yaml_symbol
+    retirement_status: not-applicable
+    note: Preparation tooling only; never an authority consumer.
+  de4sdv/semantic/projection.py:
+    role: governance-machinery
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  de4sdv/semantic/projection_o22.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  de4sdv/semantic/projection_o23.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  de4sdv/semantic/projection_v1.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  de4sdv/semantic/query.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: pending
+  de4sdv/semantic/runtime.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: pending
+  de4sdv/semantic/traversal.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: pending
+  de4sdv/semantic/validation.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: pending
+  deployment/README.md:
+    role: documentation
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  deployment/ask_viewer/entrypoint.py:
+    role: runtime-consumer
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+  deployment/compose.yaml:
+    role: build
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  docs/method-conformance/conformance-baseline.md:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/k-slice/representation-decision.md:
+    role: documentation
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o1/authority-inventory.md:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o1/authority-review-decisions.yaml:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o1/c2-verification-grounding-review.md:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o1/c3-subject-grounding-review.md:
+    role: documentation
+    markers:
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o1/c4-concern-need-disposition-review.md:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o1/c5-relevance-realization-review.md:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o1/phase1-inventory-review.md:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - kernel_sync_key
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o1/semantic-authority-inventory.draft.json:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o1/semantic-authority-inventory.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o2/api-representation-profile-v1.1.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o2/api-representation-profile-v1.2.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o2/api-representation-profile-v1.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o2/o2-3-design.md:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  docs/method-conformance/o2/semantic-projection-v1.1.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o2/semantic-projection-v1.2.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o2/semantic-projection-v1.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o3/o3-equivalence-scope.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o3/o3-readiness.md:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o3/o3-stage-a-design.md:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  docs/method-conformance/o3/o3-stage-b-design.md:
+    role: documentation
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  docs/method-conformance/o4/consumer-ledger.yaml:
+    role: closure-preparation-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - kernel_sync_key
+    - ontology_dir_token
+    - ontology_path_token
+    - ontology_yaml_symbol
+    retirement_status: not-applicable
+    note: Preparation ledger + scanner; self-entry generated for scan convergence.
+  docs/method-conformance/o4/o4-execution-plan.md:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o4/o4-execution-register.json:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o4/ontology-review/REVIEW-matrix.md:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o4/ontology-review/decisions/architecture-decisions-v2.json:
+    role: documentation
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o4/ontology-review/decisions/base-records.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o4/ontology-review/decisions/method-decisions-v2.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - kernel_sync_key
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o4/ontology-review/decisions/parent-decisions-v2.json:
+    role: documentation
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  docs/method-conformance/o4/ontology-review/decisions/ple-decisions-v2.json:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  docs/method-conformance/o4/ontology-review/integrated-review.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - kernel_sync_key
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  docs/method-conformance/o4/ontology-review/normative-crosscut.md:
+    role: documentation
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  docs/method-conformance/r0-handoff/unified-plan-r0.json:
+    role: documentation
+    markers:
+    - kernel_contract_module
+    retirement_status: not-applicable
+  docs/naming/migration-manifest.md:
+    role: documentation
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  scripts/check_model_sync.py:
+    role: gate
+    markers:
+    - kernel_contract_module
+    - kernel_sync_key
+    - ontology_dir_token
+    - ontology_path_token
+    - ontology_yaml_symbol
+    retirement_status: pending
+    note: Reads the authored authority directly; retirement follows the model-to-projection
+      coverage gate replacement.
+  scripts/import_sysml_api_baseline.py:
+    role: validation-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+  scripts/ontology_review/arch_recheck.py:
+    role: governance-machinery
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  scripts/ontology_review/consolidate_review.py:
+    role: governance-machinery
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  scripts/prove_derivation_slice.py:
+    role: governance-machinery
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  scripts/query_model_impact.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+  scripts/run_o3_equivalence.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  scripts/seed_aebs_api_fixture.py:
+    role: validation-consumer
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+  scripts/semantic_mcp_server.py:
+    role: runtime-consumer
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+  scripts/validate_full_model_semantic_queries.py:
+    role: validation-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+  scripts/validate_product_line_scope_api.py:
+    role: validation-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+  scripts/validate_semantic_mcp.py:
+    role: validation-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+  tests/test_c5_integration_closure.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_check_naming.py:
+    role: test-reference
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_derivation_connection_traversal.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_derivation_implied_graph.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_derivation_runtime_consumer.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_k_real_serializer_shapes.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_lane_b_v11_round.py:
+    role: test-reference
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_method_contract_binding.py:
+    role: test-reference
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_native_semantic_traversal.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o1_c1_conformance_parity.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_o1_c2_verification_grounding.py:
+    role: test-reference
+    markers:
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_o1_c3_subject_grounding.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o1_c4_concern_need_disposition.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o1_c5_relevance_realization.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o3_bundle.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  tests/test_o3_equivalence_readiness.py:
+    role: test-reference
+    markers:
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o3_runtime_equivalence.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  tests/test_o3_stage_b.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+  tests/test_o4_consumer_ledger.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o4_preparation_accounting.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_o4_w2_batch3_definitions_parity.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o4_w2_batch4_definitions_parity.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_o4_w2_batch5_definitions_parity.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_o4_w2_batch6_definitions_parity.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_o4_w2_definitions_parity.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o4_w2_pilot2_definitions_parity.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_o4_w5_batch1_definitions_parity.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_ontology_kernel_contract.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_sync_key
+    - ontology_dir_token
+    - ontology_path_token
+    - ontology_yaml_symbol
+    retirement_status: not-applicable
+  tests/test_product_canonical_binding_f2.py:
+    role: test-reference
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_projection_model_authority.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_public_ask_deployment.py:
+    role: test-reference
+    markers:
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_public_deployment.py:
+    role: test-reference
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_semantic_authority_inventory.py:
+    role: test-reference
+    markers:
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_semantic_mcp.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_semantic_projection_o22.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_semantic_projection_o23.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_semantic_projection_v1.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+  tests/test_semantic_query_coverage_f3.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_sysml_api_live.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_sysml_api_semantic.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_sysml_full_ingestion.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:
+    role: model
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tools/sysml_html_viewer/ask_model_semantic.py:
+    role: runtime-consumer
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending

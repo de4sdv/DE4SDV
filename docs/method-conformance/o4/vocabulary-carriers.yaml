@@ -1,0 +1,41 @@
+# O4 vocabulary-relationship definition carriers — governed admission document.
+#
+# PREPARED: no admission is active. The candidate family below is DERIVED and
+# machine-locked against the canonical integrated review: every reviewed
+# relationship whose target carries exactly this profile (KEEP_VOCABULARY_ONLY,
+# model-resident method vocabulary authority, projection + profile required, no
+# traversal, vocabulary-only support). Each candidate's definition, flags and
+# claim boundary are read from the review at check time (single source; this
+# document never restates them).
+#
+# An entry may enter `admitted` ONLY after the method-owner definition
+# acceptance is recorded (the entry's `accepted_ref` must name the accepted
+# decision). Until then the machinery refuses every admission, and no carrier
+# declaration, projection row or profile entry exists for these relationships.
+schema: de4sdv.o4-vocabulary-carriers/v1
+status: PREPARED - carrier family machine-locked; no admission active
+warning: >-
+  Governance data, not generated output, and NOT authority activation. The
+  carrier machinery is fail-closed: family drift against the canonical review,
+  unknown keys, a sysml_mapping field, a missing acceptance reference, a
+  definition that does not match the canonical review normalized-exact, an
+  unresolved carrier declaration or end typing, or any reviewed-flag drift
+  refuses generation. The runtime never reads this document; traversal
+  remains unimplemented and unclaimed.
+review_source: docs/method-conformance/o4/ontology-review/integrated-review.json
+expected_candidates:
+  - recordsGap
+  - recordsAssumption
+  - addressesConcern
+  - selectedViewpoint
+  - producesView
+  - hasStakeholder
+excluded:
+  # Family member, but additionally gated: its range is the stakeholder-role
+  # catalogue whose adoption/publication disposition is decision-11.
+  - identity: hasStakeholder
+    reason: >-
+      decision-11 (SAF role-def adoption/publication disposition) gates its
+      range; excluded from admission until that owner disposition resolves,
+      in addition to the shared method-owner definition acceptance.
+admitted: []
