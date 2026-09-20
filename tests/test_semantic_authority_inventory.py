@@ -206,9 +206,12 @@ class TestCoverage:
 
     def test_kernel_equation_and_cross_slice(self, inventory):
         kernel = inventory["kernel_accounting"]
-        assert kernel["governed_declarations"] == 110
+        # Safe-set 2 added seven governed declarations (the five vocabulary
+        # carriers + the two generic range bases), all classified as
+        # kernel_sync exclusions with reasons.
+        assert kernel["governed_declarations"] == 117
         assert kernel["mapped_in_directory"] == 39
-        assert kernel["exclusions"] == 71
+        assert kernel["exclusions"] == 78
         assert (
             kernel["mapped_in_directory"] + kernel["exclusions"]
             == kernel["governed_declarations"]
@@ -227,7 +230,7 @@ class TestCoverage:
 
     def test_cross_slice_accounted_separately_from_governed_equation(self, inventory):
         # The cross-slice mapping is NOT part of the governed-directory
-        # equation: 39 + 71 = 110 holds without it.
+        # equation: 39 + 78 = 117 holds without it.
         kernel = inventory["kernel_accounting"]
         assert kernel["mapped_in_directory"] != 40
         counts = inventory["counts"]
@@ -912,9 +915,14 @@ class TestTextParity:
         # (15/22 -> 18/19). O4 accelerated safe-set 1 closed IncrementSize via
         # the enum-level doc: doc-absent -> normalized-exact (19/1 -> 18/0
         # for doc-absent rows; overall differs 19 / normalized-exact 19).
+        # O4 accelerated safe-set 2 (W2 batch 7) closed
+        # ProductLineCharacteristic normalized-exact: one row moved
+        # differs -> normalized-exact (19/19 -> 18/20). Scenario keeps its
+        # native-grounding observation (no model-side declaration, no doc
+        # observation — no count movement).
         assert counts == {
-            "differs": 19,
-            "normalized-exact": 19,
+            "differs": 18,
+            "normalized-exact": 20,
             "doc-absent": 1,
             "doc-absent (bodyless declaration)": 1,
         }

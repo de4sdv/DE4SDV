@@ -4,13 +4,13 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `39bb3468d7152a401ce9ba9aedce0b63da7abc6e`
+- Source revision: `78b567f34b3b3828ae61e19471d3565e704c119e`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
-- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:80dd19ae748183a2b886fb83f4d832bcb8f17f31c1e052175544208356a854c4)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:179a22f08a5a212d8ac08b0cf502c309fcd258517a8bc4e6a4809887a505ba0f)
+- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:9cb14ee16d69c2a1acb7139a6354b93394fa6d76c9012a93ba61cb362de85c16)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:a18f2a37a5cd2a9e7a351115d2aa0f809f1297122adf2cea87457c7b0a5d53b3)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
-- Bound inputs: 25 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
+- Bound inputs: 26 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
 
 ## Coverage
 
@@ -21,10 +21,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | total_entries | 93 |
 | relationship_mappings | 9 |
 | relationship_vocabulary_only | 25 |
-| kernel_declarations_governed_dir | 110 |
+| kernel_declarations_governed_dir | 117 |
 | kernel_mapped_in_dir | 39 |
 | kernel_mapped_out_of_dir | 1 |
-| kernel_exclusions | 71 |
+| kernel_exclusions | 78 |
 | governance_rules | 10 |
 | runtime_strategies_implemented | 8 |
 | runtime_strategies_unassociated | 2 |
@@ -53,7 +53,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | ProductLine | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLine | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 6 (definitions parity) |  |
 | MemberProduct | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLineMemberProduct | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 6 (definitions parity) |  |
 | Feature | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLineFeatureCandidate | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| ProductLineCharacteristic | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLineCharacteristic | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| ProductLineCharacteristic | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def ProductLineCharacteristic | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 7 (definitions parity) |  |
 | CommonCapability | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def CommonProductLineCapability | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | DeferredProductLineScope | textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml: part def DeferredProductLineScope | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 6 (definitions parity) |  |
 | VariationPoint | native: SysML v2 variation definition/usage | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding + projection) |  |
@@ -71,12 +71,12 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | LogicalElement | native: part def elements in logical-architecture slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | PhysicalElement | native: part def elements in physical/software realization slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | Interface | native: SysML v2 port def and connection elements | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
-| Scenario | native: Operational-context parts plus scenario-identity enums (for example MiddlewareScenarioIdentity) in verification slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| Scenario | native: Operational-context parts plus scenario-identity enums (for example MiddlewareScenarioIdentity) in verification slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 7 (bounded pattern grounding) |  |
 | VerificationCase | native: SysML v2 verification def; see aebs and middleware verification slices | consumed (verifiedBy) | native-sysml -> native-sysml | parity-reviewed | not-applicable | prove-existing-model-authority | c2 (verification batch) |  |
 | ValidationScenario | native: Scenario parts with bounded validation outcomes (for example passBoundedValidation) | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | O2+ |  |
 | VerificationMethod | external: ODE4HERA requirements-management library verificationMethod (NRM A8) populated with the SysML standard-library VerificationMethodKind values | consumed (model attributes) | accepted-library-grounded -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding record) |  |
 | AcceptanceCriterion | textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml: requirement def MiddlewareAcceptanceCriterion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| EvidenceArtifact | external: Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records | vocabulary-only | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | T/E |  |
+| EvidenceArtifact | external: Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records | vocabulary-only | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | o4-w5 batch 2 (external-reference design) |  |
 | EvidenceContract | native: Requirement usages verified by SysML v2 verification cases in DE4SDV verification slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | EvidenceStatus | external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter | consumed (model attributes) | accepted-library-grounded -> accepted-library-grounded | repository-evidenced | accepted | keep-as-is | O2+ (parity) |  |
 | Assumption | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementAssumption | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 pilot 2 (definitions parity) |  |
@@ -102,10 +102,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 | id | grounding | runtime support | authority (current -> target) | evidence | adoption | disposition | stage | closure |
 |---|---|---|---|---|---|---|---|---|
-| addressesConcern | EngineeringIncrement -> Concern | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| addressesConcern | EngineeringIncrement -> Concern | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
 | hasStakeholder | EngineeringIncrement -> Stakeholder | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| selectedViewpoint | EngineeringIncrement -> Viewpoint | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| producesView | EngineeringIncrement -> View | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| selectedViewpoint | EngineeringIncrement -> Viewpoint | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
+| producesView | EngineeringIncrement -> View | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
 | derivesNeedFromConcern | Need -> Concern | vocabulary-only | legacy-yaml -> retired | parity-reviewed | not-applicable | retire-without-replacement | c4 (concern-need disposition review) |  |
 | derivesRequirementFromNeed | Requirement -> Need (derivation-connection) | supported (closure-verified) | model-authoritative -> model-authoritative | privileged-closure-proven | rejected | keep-as-is | K | r6-3 |
 | derivedRequirementsOfNeed | Need -> Requirement (derivation-connection) | supported (closure-verified) | model-authoritative -> model-authoritative | privileged-closure-proven | rejected | keep-as-is | K | r6-3 |
@@ -122,10 +122,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | hasAcceptanceCriterion | VerificationCase -> AcceptanceCriterion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | validatedBy | Need -> ValidationScenario | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | O2+ |  |
 | validatesFitnessForUse | ValidationScenario -> Need | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | O2+ |  |
-| hasEvidence | VerificationCase -> EvidenceArtifact (external) | external (no traversal) | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | T/E |  |
+| hasEvidence | VerificationCase -> EvidenceArtifact (external) | external (no traversal) | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | o4-w5 batch 2 (external-reference design) |  |
 | hasEvidenceStatus | EvidenceArtifact -> EvidenceStatus | vocabulary-only | legacy-yaml -> accepted-library-grounded | repository-evidenced | accepted | adopt-accepted-library-relation | batched-parity (post-0a/0b) |  |
-| recordsAssumption | EngineeringIncrement -> Assumption | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| recordsGap | EngineeringIncrement -> Gap | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| recordsAssumption | EngineeringIncrement -> Assumption | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
+| recordsGap | EngineeringIncrement -> Gap | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
 | supportedByEvidence | AssuranceClaim -> EvidenceArtifact | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | O2+ |  |
 | appliesToMemberProduct | FeatureConfiguration -> MemberProduct | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | hasSubject | Requirement -> MemberProduct (subject-membership) | implemented (subject-membership) | legacy-yaml -> de4sdv-application-semantic | parity-reviewed | not-applicable | prove-existing-model-authority | c3 (hasSubject review batch) |  |
@@ -135,7 +135,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | includesCommonCapability | FeatureConfiguration -> CommonCapability | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | variesAt | Feature -> VariationPoint | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | selectsVariant | FeatureConfiguration -> Variant | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
-| capturedInBaseline | EvidenceArtifact -> Baseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | O2+ |  |
+| capturedInBaseline | EvidenceArtifact -> Baseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w5 batch 2 (external-reference design) |  |
 
 ## Reviewed consumer associations (Layer B) with witnessed evidence (Layer A)
 

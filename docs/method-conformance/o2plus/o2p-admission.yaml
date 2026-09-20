@@ -205,23 +205,23 @@ excluded:
   - identity: specifiesCommonCapability
     reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
   - identity: recordsGap
-    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
   - identity: recordsAssumption
-    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
   - identity: addressesConcern
-    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
   - identity: selectedViewpoint
-    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
   - identity: producesView
-    reason: definition-carrier machinery gap (no governed vocabulary-carrier representation; sysml_mapping is machine-coupled to implemented traversal)
+    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
   - identity: EvidenceArtifact
-    reason: T/E evidence-reference design review outstanding (boundary retained until reviewed)
+    reason: W5 batch 2 treated (external-reference design delivered; reviewed acceptance remains the closure precondition); not an O2+ row — external boundary retained
   - identity: hasEvidence
-    reason: T/E evidence-reference design review outstanding (boundary retained until reviewed)
+    reason: W5 batch 2 treated (external-reference design delivered; reviewed acceptance remains the closure precondition); not an O2+ row — external boundary retained
   - identity: capturedInBaseline
-    reason: T/E evidence-reference design review outstanding (boundary retained until reviewed)
+    reason: W5 batch 2 treated (external-reference design delivered; reviewed acceptance remains the closure precondition); not an O2+ row — external boundary retained
   - identity: Scenario
-    reason: no model-side declaration; treatment/model-representation decision outstanding
+    reason: W2 batch 7 treated (bounded pattern grounding, no native claim); not an O2+ row — its representation belongs to the O2 admission layer, not this native/library layer
   - identity: CommonCapability
     reason: W2 decision-14 (Feature/CommonCapability disjointness) unresolved
   - identity: Feature
@@ -229,7 +229,7 @@ excluded:
   - identity: MethodEvaluationScope
     reason: W2 decision-7 (structural exclusions shape) unresolved
   - identity: ProductLineCharacteristic
-    reason: depends on the decision-bound Feature/CommonCapability pair
+    reason: W2 batch 7 treated (definitions parity closed normalized-exact); not an O2+ row — its representation belongs to the O2 admission layer, not this native/library layer
   - identity: Stakeholder
     reason: W2 decision-11 (SAF role-def disposition) unresolved
   - identity: AssuranceClaim

@@ -204,6 +204,20 @@ def main() -> int:
     ontology_review_errors = validate_review.run_check_errors(root)
     o4_register_errors = generate_o4_execution_register.run_check_errors(root)
     lifecycle_consistency_errors = check_o4_lifecycle_consistency.run_all_checks(root)
+    from de4sdv.semantic import (
+        external_reference_contract,
+        o4_consumers,
+        vocabulary_carrier,
+    )
+
+    preparation_errors = (
+        vocabulary_carrier.run_check_errors(root)
+        + external_reference_contract.run_check_errors(root)
+    )
+    try:
+        consumer_ledger_errors = o4_consumers.load_and_check(root)
+    except o4_consumers.ConsumerScanError as exc:
+        consumer_ledger_errors = [f"consumer ledger scan failed: {exc}"]
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -272,6 +286,16 @@ def main() -> int:
         for error in o4_register_errors:
             print(f"- {error}")
 
+    if preparation_errors:
+        print("Repository check failed. O4 carrier/external-reference errors:")
+        for error in preparation_errors:
+            print(f"- {error}")
+
+    if consumer_ledger_errors:
+        print("Repository check failed. O4 consumer-ledger errors:")
+        for error in consumer_ledger_errors:
+            print(f"- {error}")
+
     if lifecycle_consistency_errors:
         print("Repository check failed. O4 lifecycle consistency errors (O3 stays frozen throughout O4):")
         for error in lifecycle_consistency_errors:
@@ -292,6 +316,8 @@ def main() -> int:
         or ontology_review_errors
         or o4_register_errors
         or lifecycle_consistency_errors
+        or preparation_errors
+        or consumer_ledger_errors
     ):
         return 1
 

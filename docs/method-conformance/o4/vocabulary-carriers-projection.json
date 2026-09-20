@@ -1,0 +1,169 @@
+{
+  "schema": "de4sdv.vocabulary-carrier-projection/v1",
+  "status": "generated O4 W4 vocabulary-relationship carrier projection (reviewed definitions, model-resident carriers)",
+  "warning": "Generated artifact. Vocabulary-only: every row carries an admitted reviewed definition with its carrier lineage; no traversal is implemented or claimed, no support state is promoted, and the runtime does not read this artifact.",
+  "binding": {
+    "source_revision": "fe29a0d937da5cc39a3f91a252b0c252e515ad57",
+    "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
+    "artifact_commit": null,
+    "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
+    "generation_software": {
+      "program_inputs": [
+        "de4sdv/semantic/vocabulary_carrier.py",
+        "scripts/generate_vocabulary_carriers.py"
+      ],
+      "note": "Generation-software revision: the commit containing these program inputs byte-for-byte."
+    },
+    "semantic_model_revision": {
+      "model_inputs": [
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml"
+      ],
+      "note": "Semantic-model revision: ONLY the governed model files carrying the admitted carrier declarations, contained byte-for-byte in source_revision."
+    },
+    "admission_document": {
+      "path": "docs/method-conformance/o4/vocabulary-carriers.yaml",
+      "digest": "sha256:1e74f859a1e0fb9ad8deec5d0f9eeefda5f365728f7c0bd07952cfcc5b89ecb4"
+    },
+    "acceptance_review": {
+      "paths": [
+        "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md"
+      ],
+      "note": "Engineering-review acceptance evidence bound as a governed input; the marker and identity records are machine-checked."
+    },
+    "api_binding": {
+      "status": "unclaimed",
+      "note": "No SysML API element UUID is claimed for these carriers; the profile entries state representation mechanics only."
+    },
+    "bound_inputs": {
+      "de4sdv/semantic/vocabulary_carrier.py": "sha256:f270aeecf11f10350166804316a004893630232598f67c8db9ef7e5d54b22160",
+      "docs/method-conformance/o4/ontology-review/integrated-review.json": "sha256:0900335d822bf8660ff67e7262163907dc3041a525e08c06557b817d08c55518",
+      "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md": "sha256:c9f7479e1138a74f9c29b749a6050cd292efc6e59550a93eec9e97a49f5be8ed",
+      "docs/method-conformance/o4/vocabulary-carrier-design.md": "sha256:2ea0a87da81f5b1ea3fd69edf3239dbbf4e8513e6582287c7706ece17ad6065a",
+      "docs/method-conformance/o4/vocabulary-carriers.yaml": "sha256:1e74f859a1e0fb9ad8deec5d0f9eeefda5f365728f7c0bd07952cfcc5b89ecb4",
+      "scripts/generate_vocabulary_carriers.py": "sha256:03e633b6a23027be5fdd08663c5feab0e7afb2e65647e7e9c4c2501080e7de42",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml": "sha256:830189cff2a8768c1e8910e1bc2c02e3e7f04e7f1b06cc6bb781baac19ceee47"
+    }
+  },
+  "candidates": [
+    "addressesConcern",
+    "hasStakeholder",
+    "producesView",
+    "recordsAssumption",
+    "recordsGap",
+    "selectedViewpoint"
+  ],
+  "admitted": [
+    "addressesConcern",
+    "producesView",
+    "recordsAssumption",
+    "recordsGap",
+    "selectedViewpoint"
+  ],
+  "rows": [
+    {
+      "identity": "addressesConcern",
+      "definition": "Engineering increment records an explicitly reviewed concern within its scope; no automatic concern satisfaction.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "Concern",
+        "type": "IncrementConcern"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#addressesConcern",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def AddressesConcern"
+      }
+    },
+    {
+      "identity": "producesView",
+      "definition": "Engineering increment identifies a view artifact produced as an increment deliverable.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "View",
+        "type": "View"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#producesView",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def ProducesView"
+      }
+    },
+    {
+      "identity": "recordsAssumption",
+      "definition": "Engineering increment explicitly records an assumption relevant to its bounded work.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "Assumption",
+        "type": "IncrementAssumption"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#recordsAssumption",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def RecordsAssumption"
+      }
+    },
+    {
+      "identity": "recordsGap",
+      "definition": "Engineering increment explicitly records an unresolved engineering/evidence gap.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "Gap",
+        "type": "IncrementGap"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#recordsGap",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def RecordsGap"
+      }
+    },
+    {
+      "identity": "selectedViewpoint",
+      "definition": "Engineering increment records a viewpoint explicitly selected for its review questions.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "Viewpoint",
+        "type": "IncrementViewpoint"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#selectedViewpoint",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def SelectedViewpoint"
+      }
+    }
+  ]
+}

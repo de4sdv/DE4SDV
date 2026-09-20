@@ -199,11 +199,9 @@ def test_deferred_scope_distinct_from_native_variation(model_text):
 
 
 def test_unrelated_product_line_rows_untouched(model_text):
-    # The blocked/gated classification rows keep their pre-batch docs.
-    assert (
-        "doc /* Product-line classification concept for common capabilities, feature candidates, deferred scope, and native SysML v2 variation choices. */"
-        in model_text
-    )
+    # The still-untreated classification rows keep their pre-batch docs.
+    # (ProductLineCharacteristic is treated by W2 batch 7 / safe-set 2; its
+    # doc parity is pinned in tests/test_o4_accelerated_safe_set_2.py.)
     assert (
         "doc /* Capability required across member products; not a feature unless it distinguishes member products. */"
         in model_text
@@ -278,6 +276,8 @@ def test_prior_batch_rows_unchanged(decisions):
     for identity, stage in expected_stage.items():
         assert decisions[identity]["stage"] == stage, identity
         assert decisions[identity]["authority_current"] == "legacy-yaml", identity
-    # Untreated W2 rows keep their pre-parity stage.
-    for identity in ("Feature", "CommonCapability", "ProductLineCharacteristic"):
+    # Untreated W2 rows keep their pre-parity stage. ProductLineCharacteristic
+    # left this set in W2 batch 7 (safe-set 2); its executed stage is pinned in
+    # tests/test_o4_accelerated_safe_set_2.py.
+    for identity in ("Feature", "CommonCapability"):
         assert decisions[identity]["stage"] == "batched-parity (post-0a/0b)", identity

@@ -25,7 +25,7 @@ package DE4SDV_ProductLine {
   }
 
   part def ProductLineCharacteristic {
-    doc /* Product-line classification concept for common capabilities, feature candidates, deferred scope, and native SysML v2 variation choices. */
+    doc /* The product-line classification base: a characteristic is a common capability, a feature candidate, deferred scope, or a native SysML v2 variation choice. */
   }
 
   part def CommonProductLineCapability :> ProductLineCharacteristic {

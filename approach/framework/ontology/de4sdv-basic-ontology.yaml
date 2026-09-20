@@ -66,6 +66,14 @@ kernel_sync:
       part def SystemContext: SYSMOD problem-statement pattern element consumed by feature slices
     textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:
       part def SAFDomainMapping: method-process assurance helper
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml:
+      connection def RecordsGap: vocabulary-only definition carrier for the reviewed relationship recordsGap; the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces definition parity; no separate ontology class identity is introduced
+      connection def RecordsAssumption: vocabulary-only definition carrier for the reviewed relationship recordsAssumption; the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces definition parity; no separate ontology class identity is introduced
+      connection def AddressesConcern: vocabulary-only definition carrier for the reviewed relationship addressesConcern; the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces definition parity; no separate ontology class identity is introduced
+      connection def SelectedViewpoint: vocabulary-only definition carrier for the reviewed relationship selectedViewpoint; the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces definition parity; no separate ontology class identity is introduced
+      connection def ProducesView: vocabulary-only definition carrier for the reviewed relationship producesView; the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces definition parity; no separate ontology class identity is introduced
+      concern def IncrementConcern: generic range-kind base for the vocabulary-only carriers (reviewed range Concern); not an ontology identity of its own
+      viewpoint def IncrementViewpoint: generic range-kind base for the vocabulary-only carriers (reviewed range Viewpoint); not an ontology identity of its own
     textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml:
       part def OperationalEntity: operational-context entity base
       part def SubjectVehicle: operational-context entity
