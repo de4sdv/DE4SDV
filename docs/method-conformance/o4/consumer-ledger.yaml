@@ -437,6 +437,15 @@ entries:
     retirement_status: not-applicable
     note: O4 W4 carrier design record; references the ontology-kernel contract and
       the authored ontology path. Not a consumer to retire.
+  docs/method-conformance/o4/w2-batch7-review.md:
+    role: documentation
+    markers:
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: W2 batch 7 review record; describes the executed parity treatment.
+      Not a consumer to retire.
   docs/method-conformance/r0-handoff/unified-plan-r0.json:
     role: documentation
     markers:
@@ -664,6 +673,13 @@ entries:
     - kernel_contract_module
     - kernel_contract_symbol
     retirement_status: not-applicable
+  tests/test_o4_accelerated_safe_set_2.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
   tests/test_o4_consumer_ledger.py:
     role: test-reference
     markers:
@@ -757,6 +773,7 @@ entries:
     role: test-reference
     markers:
     - kernel_contract_symbol
+    - kernel_sync_key
     - legacy_yaml_authority
     retirement_status: not-applicable
   tests/test_semantic_mcp.py:

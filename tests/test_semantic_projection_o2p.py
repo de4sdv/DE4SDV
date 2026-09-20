@@ -30,8 +30,11 @@ from de4sdv.semantic.authority_inventory import validate_source_binding
 
 ROOT = Path(__file__).resolve().parents[1]
 
-#: Permanent #293 squash revision; Rebind 1 preserves the accepted payload.
-COMMITTED_SOURCE_REVISION = "39bb3468d7152a401ce9ba9aedce0b63da7abc6e"
+# TEMPORARY_STACK_BINDING: safe-set 2 regenerated the O2+ pair on its sources
+# commit (the ontology/model/decisions changes invalidate the #293 binding).
+# Regenerate against the permanent safe-set 2 squash after the administrator
+# merge (the standing post-squash rebind chain).
+COMMITTED_SOURCE_REVISION = "b57670e65ee1e9fcf6d0e05cecc6bcfd3365d6f8"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {

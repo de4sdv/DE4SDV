@@ -3,7 +3,7 @@
   "status": "generated O2+ API Representation Profile (representation mechanics for the api_profile_required rows)",
   "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries. The runtime does not read this artifact.",
   "binding": {
-    "source_revision": "39bb3468d7152a401ce9ba9aedce0b63da7abc6e",
+    "source_revision": "b57670e65ee1e9fcf6d0e05cecc6bcfd3365d6f8",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -37,18 +37,18 @@
     },
     "admission_manifest": {
       "path": "docs/method-conformance/o2plus/o2p-admission.yaml",
-      "digest": "sha256:7bd7d16db982f70af235adb3baebc7a50b5e00c8d31c6b76d8d22713fe1c0871"
+      "digest": "sha256:db0772b9c1956bc969b97486e063b857d7a554e453a37f6c39e0f7508cff4d22"
     },
     "bound_inputs": {
       ".github/workflows/privileged-syside-validation.yml": "sha256:6bbed271b59f0e9213592a3ea110e00c662da9cbf76b047cf82e2cd340eced7f",
       "de4sdv/semantic/projection_o2p.py": "sha256:03ed5509e02126cabd2234aa84725c761b42f1b454172fbc4b6a9ef66c4e7817",
-      "docs/method-conformance/o2plus/o2p-admission.yaml": "sha256:7bd7d16db982f70af235adb3baebc7a50b5e00c8d31c6b76d8d22713fe1c0871",
+      "docs/method-conformance/o2plus/o2p-admission.yaml": "sha256:db0772b9c1956bc969b97486e063b857d7a554e453a37f6c39e0f7508cff4d22",
       "scripts/generate_semantic_projection_o2p.py": "sha256:2a9953fd76089beb213682b7df1818899065498e294cc55316c2928f8d9992b4",
       "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml": "sha256:b1ccdbd3275dbe6406e941f926ea4402d99049a21117f53ff873a43d94180584",
       "textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml": "sha256:94ecaef99688b794bb1c3c3029c68fce98b9b5b091650c8122d1bd39e7103dc2",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml": "sha256:0ca123898854b1c76785d873890a1140c58c2c3c5726a7cc31f73b5b60d12a6b",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": "sha256:0798649c5af3dfda306f532b3639e917226258c5e1c9f5c25c87cffd321349c6",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:1f17a1e5478b52b100c890b3fb260504579b9fec3a8b00b17943c34d518b6728"
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:7c04f2ddb28490554fe2c37a949de74e8bce44da758d7d0acceb211f5ad8d2e5"
     }
   },
   "entries": [

@@ -206,9 +206,12 @@ class TestCoverage:
 
     def test_kernel_equation_and_cross_slice(self, inventory):
         kernel = inventory["kernel_accounting"]
-        assert kernel["governed_declarations"] == 110
+        # Safe-set 2 added seven governed declarations (the five vocabulary
+        # carriers + the two generic range bases), all classified as
+        # kernel_sync exclusions with reasons.
+        assert kernel["governed_declarations"] == 117
         assert kernel["mapped_in_directory"] == 39
-        assert kernel["exclusions"] == 71
+        assert kernel["exclusions"] == 78
         assert (
             kernel["mapped_in_directory"] + kernel["exclusions"]
             == kernel["governed_declarations"]
@@ -227,7 +230,7 @@ class TestCoverage:
 
     def test_cross_slice_accounted_separately_from_governed_equation(self, inventory):
         # The cross-slice mapping is NOT part of the governed-directory
-        # equation: 39 + 71 = 110 holds without it.
+        # equation: 39 + 78 = 117 holds without it.
         kernel = inventory["kernel_accounting"]
         assert kernel["mapped_in_directory"] != 40
         counts = inventory["counts"]
