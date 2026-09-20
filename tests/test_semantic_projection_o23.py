@@ -1745,7 +1745,7 @@ class TestPreservationAndRuntimeIndependence:
 # follow-up (PR #251 pattern) will move this to the permanent main revision
 # after the W5 batch-1 PR merges.
 # TEMPORARY_STACK_BINDING: regenerate against permanent M3 after Rebind 2.
-COMMITTED_SOURCE_REVISION = "14bcd84f7a67c58bd6810fd4861fdfb1aa90a8d8"
+COMMITTED_SOURCE_REVISION = "f2088d42a8126c727f3d9ad0c091ba3243c94781"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
