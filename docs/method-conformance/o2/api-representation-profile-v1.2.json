@@ -11,7 +11,7 @@
     "note": "Additive extension of this immutable O2.2 baseline: the baseline remains canonical for its own content and is neither re-emitted nor re-bound here. The recorded digest pins the baseline bytes this extension was generated against; the baseline's own repository gate validates its revision binding, and the extension gate additionally requires the baseline source revision to remain an ancestor of the extension source revision."
   },
   "binding": {
-    "source_revision": "61f6930d56069dd19bca1151fbb7d678aa98b085",
+    "source_revision": "a6516b372d7d510be9935e5fdca3386972bbc890",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
