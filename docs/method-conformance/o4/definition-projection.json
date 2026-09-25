@@ -1,0 +1,580 @@
+{
+  "schema": "de4sdv.o4-definition-projection/v1",
+  "status": "admitted",
+  "warning": "vocabulary-only, no traversal, no runtime read, no authority retirement",
+  "binding": {
+    "source_revision": "bc712e5074786a9eb2ddf82f69f206839cfb9424",
+    "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
+    "artifact_commit": null,
+    "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
+    "generation_software": {
+      "program_inputs": [
+        "de4sdv/semantic/definition_projection.py",
+        "scripts/generate_definition_projection.py"
+      ],
+      "note": "Generation-software revision: the commit containing these program inputs byte-for-byte."
+    },
+    "semantic_model_revision": {
+      "model_inputs": [
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+      ],
+      "note": "Semantic-model revision: ONLY the governed model files carrying the admitted definition declarations, contained byte-for-byte in source_revision."
+    },
+    "admission_document": {
+      "path": "docs/method-conformance/o4/definition-admission.yaml",
+      "digest": "sha256:e2ef2a8bbcb9f9d1338f7f859c0776fa1544aa7b681771acc690a775d1202041"
+    },
+    "design_record": {
+      "path": "docs/method-conformance/o4/definition-admission-design.md",
+      "digest": "sha256:fcdc0fce322321e4a1373e0b983781be87d62f362a33b6f29a020e4a0e6fb045"
+    },
+    "api_binding": {
+      "status": "unclaimed",
+      "note": "No SysML API element UUID is claimed for these definitions; the profile entries state representation mechanics only."
+    },
+    "bound_inputs": {
+      "de4sdv/semantic/definition_projection.py": "sha256:0be7741d1dd914b915fa0d449093e501859da7d262b601327b53edc804a0e60a",
+      "docs/method-conformance/o4/definition-admission-design.md": "sha256:fcdc0fce322321e4a1373e0b983781be87d62f362a33b6f29a020e4a0e6fb045",
+      "docs/method-conformance/o4/definition-admission.yaml": "sha256:e2ef2a8bbcb9f9d1338f7f859c0776fa1544aa7b681771acc690a775d1202041",
+      "scripts/generate_definition_projection.py": "sha256:1703a05ea82bbedadc4cdc0fb4a10df3aae2e31b2759b95cae5efb099b4ba2a9",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:0657c24def99e7e3d2211ad859ddf01761f174980fc0a10096762ca9fed8697f",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": "sha256:0798649c5af3dfda306f532b3639e917226258c5e1c9f5c25c87cffd321349c6",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:7c04f2ddb28490554fe2c37a949de74e8bce44da758d7d0acceb211f5ad8d2e5"
+    }
+  },
+  "scope": {
+    "admission": "O4 definition-admission batch 1 (definition-admission.yaml)",
+    "admitted": [
+      "Assumption",
+      "BlockedRealizationBranchRecord",
+      "DeferredProductLineScope",
+      "EngineeringIncrement",
+      "FeatureIncrement",
+      "Gap",
+      "IncrementEngineeringQuestion",
+      "IncrementLifecycleDecision",
+      "LogicalToSoftwareSignalMappingRecord",
+      "MemberProduct",
+      "MissingRealizationRecord",
+      "Need",
+      "NeedsRequirementsIncrement",
+      "ProblemStatement",
+      "ProductLine",
+      "ProductLineCharacteristic",
+      "RegulatoryConstraint",
+      "Requirement",
+      "SignalMappingDisposition",
+      "SystemLayer",
+      "SystemToSoftwareSignalMappingCandidate"
+    ],
+    "note": "no frozen O3 or gated identity is admitted"
+  },
+  "rows": [
+    {
+      "identity": "Assumption",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementAssumption",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementAssumption"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "BlockedRealizationBranchRecord",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A record of a realization branch blocked by a source defect or gap. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def BlockedRealizationBranchRecord",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def BlockedRealizationBranchRecord"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "DeferredProductLineScope",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " Product-line scope deliberately deferred from the current increment, including recorded gaps. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def DeferredProductLineScope",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def DeferredProductLineScope"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "EngineeringIncrement",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def EngineeringIncrement",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def EngineeringIncrement"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "FeatureIncrement",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def FeatureIncrement",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def FeatureIncrement"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Gap",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementGap",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementGap"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "IncrementEngineeringQuestion",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " The engineering question that an increment answers. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementEngineeringQuestion",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementEngineeringQuestion"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "IncrementLifecycleDecision",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A lifecycle decision that an increment supports (accepted, deferred, or invalidated). ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementLifecycleDecision",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementLifecycleDecision"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "LogicalToSoftwareSignalMappingRecord",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": "\n     * Reusable control-record shape for an interface-bearing logical or\n     * semantic information item crossing into a software, service, topic, API,\n     * or physical boundary. Exact .proto/.vsidl fields and runtime observations\n     * remain in their authoritative external artifacts; this record preserves\n     * the stable trace and review obligations.\n     ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+          "declaration": "item def LogicalToSoftwareSignalMappingRecord",
+          "doc_count": 1
+        },
+        "documentation_observation": "differs",
+        "semantic_text_equivalence": "reviewed-equivalent"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+          "declaration": "item def LogicalToSoftwareSignalMappingRecord"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "MemberProduct",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A configured product or product variant that belongs to a product line. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def ProductLineMemberProduct",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def ProductLineMemberProduct"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "MissingRealizationRecord",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A record of a missing or blocked realization allocation for a conceptual element. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def MissingRealizationRecord",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def MissingRealizationRecord"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Need",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " Stakeholder-expressed problem-space intent, before conversion into design-input requirements. Inherits the NRM Chapter 15 attribute set adopted via ADR 0009. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def StakeholderNeedCandidate",
+          "doc_count": 1
+        },
+        "documentation_observation": "differs",
+        "semantic_text_equivalence": "reviewed-equivalent"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def StakeholderNeedCandidate"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "NeedsRequirementsIncrement",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " An engineering increment focused on needs, draft requirements, traceability, and V&V planning. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def NeedsRequirementsIncrement",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def NeedsRequirementsIncrement"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ProblemStatement",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " The problem that is to be solved by the system or increment, modeled as a requirement. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def ProblemStatement",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def ProblemStatement"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ProductLine",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A family of related member products managed through shared assets and variability. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def ProductLine",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def ProductLine"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ProductLineCharacteristic",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " The product-line classification base: a characteristic is a common capability, a feature candidate, deferred scope, or a native SysML v2 variation choice. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def ProductLineCharacteristic",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def ProductLineCharacteristic"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "RegulatoryConstraint",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim. Grounds the ontology RegulatoryConstraint class and R003 derivation targets. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def RegulatoryConstraintCandidate",
+          "doc_count": 1
+        },
+        "documentation_observation": "differs",
+        "semantic_text_equivalence": "reviewed-equivalent"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def RegulatoryConstraintCandidate"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Requirement",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions.\n         * Generic base for design-input requirement candidates before acceptance.\n         * Specializes the SYSMOD requirement seam, inheriting obligation,\n         * stability, and motivation metadata for requirement candidates.\n         * DE4SDV candidate lifecycle semantics remain local. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def RequirementCandidate",
+          "doc_count": 1
+        },
+        "documentation_observation": "differs",
+        "semantic_text_equivalence": "reviewed-equivalent"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def RequirementCandidate"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "SignalMappingDisposition",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable). ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+          "declaration": "enum def SignalMappingDisposition",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+          "declaration": "enum def SignalMappingDisposition"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "SystemLayer",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " Coarse ASELCM-style layer used to frame DE4SDV increments and their environments. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def SystemLayer",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def SystemLayer"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "SystemToSoftwareSignalMappingCandidate",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": "\n     * Reusable non-claiming allocation relationship from a logical/function\n     * signal responsibility to a concrete software/adapter signal endpoint.\n     * A specialization must still provide the typed payload/port, contract\n     * mapping record, transformation, status, owner, next action, and evidence\n     * or gap. The allocation alone never proves field identity or runtime\n     * interoperability.\n     ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+          "declaration": "allocation def SystemToSoftwareSignalMappingCandidate",
+          "doc_count": 1
+        },
+        "documentation_observation": "differs",
+        "semantic_text_equivalence": "reviewed-equivalent"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+          "declaration": "allocation def SystemToSoftwareSignalMappingCandidate"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    }
+  ]
+}

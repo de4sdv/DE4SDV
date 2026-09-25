@@ -1,0 +1,338 @@
+# O4 definition-admission batch 1 - governed admission document.
+#
+# ADMITTED (engineering evidence). The admitted family is DERIVED, not
+# hand-picked: every retained, ungated, non-held O4 register row whose
+# reviewed stage is a definitions-parity treatment with model-side definition
+# support, whose target requires BOTH a generated Semantic Projection row and
+# an API Representation Profile entry, and which is not already admitted in
+# another generated layer (O2 chain / O2+ / W4 carriers) or frozen in O3.
+#
+# Machine-locked properties (tests, fail-closed):
+#   * admitted set == the register-derived family above (drift fails);
+#   * every declaration anchor resolves in its named file, and the model
+#     documentation observation recomputed from the model equals
+#     ``expected_documentation_observation``;
+#   * a ``differs`` observation requires a recorded ``reviewed-equivalent``
+#     bounded review; ``normalized-exact`` requires a null equivalence;
+#   * no frozen O3 identity, no gated/held row, and no W4 carrier identity
+#     may appear as an admitted row.
+#
+# Boundaries: generation reads the governed model documentation; the
+# reviewed definition below is the parity oracle only. Admission is NOT
+# authority transition (O3 owns that), NOT authored-YAML retirement (O4
+# closure owns that), and NOT support promotion: every generated row stays
+# vocabulary-only with traversal false and no API element identity claimed.
+
+schema: de4sdv.o4-definition-admission/v1
+status: admitted
+warning: >-
+  Admission is bounded to definition/representation generation from the
+  reviewed model representation. Support stays vocabulary-only; no traversal,
+  no runtime read, no authority retirement, no external-content absorption.
+
+admitted:
+- identity: Assumption
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 2 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def IncrementAssumption
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: BlockedRealizationBranchRecord
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 5 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def BlockedRealizationBranchRecord
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A record of a realization branch blocked by a source defect or gap.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: DeferredProductLineScope
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 6 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    declaration: part def DeferredProductLineScope
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: Product-line scope deliberately deferred from the current increment, including recorded gaps.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: EngineeringIncrement
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 1 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def EngineeringIncrement
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: FeatureIncrement
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 1 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def FeatureIncrement
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: Gap
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 2 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def IncrementGap
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: IncrementEngineeringQuestion
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 2 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def IncrementEngineeringQuestion
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: The engineering question that an increment answers.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: IncrementLifecycleDecision
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 2 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def IncrementLifecycleDecision
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A lifecycle decision that an increment supports (accepted, deferred, or invalidated).
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: LogicalToSoftwareSignalMappingRecord
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 3 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+    declaration: item def LogicalToSoftwareSignalMappingRecord
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A control record for a logical or semantic information item crossing into a software, service, topic, API, or physical boundary; preserves trace and review obligations without claiming runtime interoperability.
+  expected_documentation_observation: differs
+  semantic_text_equivalence: reviewed-equivalent
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: MemberProduct
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 6 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    declaration: part def ProductLineMemberProduct
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A configured product or product variant that belongs to a product line.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: MissingRealizationRecord
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 5 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def MissingRealizationRecord
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A record of a missing or blocked realization allocation for a conceptual element.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: Need
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 4 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: requirement def StakeholderNeedCandidate
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: Stakeholder-expressed problem-space intent, before conversion into design input requirements. The kernel models needs as requirement usages of StakeholderNeedCandidate specializations carrying the ADR 0009 attribute set.
+  expected_documentation_observation: differs
+  semantic_text_equivalence: reviewed-equivalent
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: NeedsRequirementsIncrement
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 1 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def NeedsRequirementsIncrement
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: An engineering increment focused on needs, draft requirements, traceability, and V&V planning.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: ProblemStatement
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 2 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: requirement def ProblemStatement
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: The problem that is to be solved by the system or increment, modeled as a requirement.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: ProductLine
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 6 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    declaration: part def ProductLine
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A family of related member products managed through shared assets and variability.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: ProductLineCharacteristic
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 7 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    declaration: part def ProductLineCharacteristic
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: 'The product-line classification base: a characteristic is a common capability, a feature candidate, deferred scope, or a native SysML v2 variation choice.'
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: RegulatoryConstraint
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 4 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: requirement def RegulatoryConstraintCandidate
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim.
+  expected_documentation_observation: differs
+  semantic_text_equivalence: reviewed-equivalent
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: Requirement
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 4 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: requirement def RequirementCandidate
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions. The kernel models requirement candidates on the SYSMOD requirement seam with ADR 0009 attributes.
+  expected_documentation_observation: differs
+  semantic_text_equivalence: reviewed-equivalent
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: SignalMappingDisposition
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 3 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+    declaration: enum def SignalMappingDisposition
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable).
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: SystemLayer
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 pilot 2 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: part def SystemLayer
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: Coarse ASELCM-style layer used to frame DE4SDV increments and their environments.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: SystemToSoftwareSignalMappingCandidate
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 3 (definitions parity)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
+    declaration: allocation def SystemToSoftwareSignalMappingCandidate
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A reusable non-claiming allocation relationship from a logical/function signal responsibility to a concrete software or adapter signal endpoint; the allocation alone never proves field identity or runtime interoperability.
+  expected_documentation_observation: differs
+  semantic_text_equivalence: reviewed-equivalent
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+
+# Considered and NOT admitted (recorded so nothing silently disappears).
+excluded:
+  - identity: Scenario
+    reason: >-
+      Bounded pattern grounding only (W2 batch 7): no model-side declaration
+      exists, definition-level parity stays open, and the register's own
+      treatment is the operational-context pattern - not a definition row.
+  - identity: ArchitectureDecisionRecord
+    reason: >-
+      External-boundary row (W5). The canonical review/register require NO
+      projection and NO API profile (projection_required False,
+      api_profile_required False, runtime support external); content authority
+      stays external. The generic O1 residual string mentioning O2 admission
+      conflicts with the structured flags and is recorded for bounded review,
+      not silently resolved here.
+  - identity: Baseline
+    reason: >-
+      Same conflict and disposition as ArchitectureDecisionRecord: structured
+      flags say external boundary with no projection/profile requirement.
+  - identity: IncrementSize
+    reason: >-
+      Vocabulary-only W3 row; its target requires neither a projection row
+      nor a profile entry (register flags False/False).
+  - identity: recordsGap, recordsAssumption, addressesConcern, selectedViewpoint, producesView
+    reason: >-
+      Already admitted through the W4 vocabulary-carrier pair
+      (vocabulary-carriers-projection.json / -profile.json).
+  - identity: <frozen O3 13 and every gated/W7-held/merged/removed row>
+    reason: >-
+      Excluded by the machine-checked family rule (frozen 13; owner-decision
+      gates or row blockers; not o4-target).

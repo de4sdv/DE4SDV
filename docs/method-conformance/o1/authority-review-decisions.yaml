@@ -38,7 +38,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 1 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 pilot-1 parity-reviewed: definition-level parity is closed — the model doc
       carries the reviewed definition text verbatim (leading article restored); the reviewed
       model definition is ready for O2 admission; authority_current remains legacy-yaml
@@ -46,7 +46,7 @@ entries:
       added or removed.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: part-def representation of a DE4SDV application concept with no
       native semantic content beyond part classification; definition-level parity complete
       (o4-w2 pilot 1), no semantic content added or removed; no authority cutover implied.'
@@ -61,7 +61,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 1 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 pilot-1 parity-reviewed: definition-level parity is closed — the model doc
       carries the reviewed YAML wording ("native SysML v2 variation/variant choice"); PLE
       variation/variant semantics remain the reference and this change does not decide
@@ -70,7 +70,7 @@ entries:
       condition is completed under O4. No semantic content added or removed.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: part-def representation of a DE4SDV application concept with no
       native semantic content beyond part classification; definition-level doc aligned to
       the reviewed wording (PLE variation/variant-reference semantics); definition-level
@@ -87,7 +87,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 1 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 pilot-1 parity-reviewed: definition-level parity is closed — the model doc
       carries the reviewed definition text verbatim (leading article restored); the reviewed
       model definition is ready for O2 admission; authority_current remains legacy-yaml
@@ -95,7 +95,7 @@ entries:
       added or removed.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: part-def representation of a DE4SDV application concept with no
       native semantic content beyond part classification; definition-level parity complete
       (o4-w2 pilot 1), no semantic content added or removed; no authority cutover implied.'
@@ -110,7 +110,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 2 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 pilot-2 parity-reviewed: definition-level parity is closed — the model doc
       carries the reviewed definition text verbatim (leading article restored); the
       engineering-question content remains documentation/content carried by usages —
@@ -120,7 +120,7 @@ entries:
       cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -135,7 +135,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 2 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 pilot-2 parity-reviewed: definition-level parity is closed — the model doc
       carries the reviewed definition text verbatim (accepted, deferred, or invalidated
       boundary restored; no enum or structural state machine introduced). The reviewed
@@ -144,7 +144,7 @@ entries:
       content added or removed; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -203,7 +203,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 3 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-3 parity-reviewed: definition-level parity is closed — the model doc
       now carries the reviewed definition text verbatim as the enum-level documentation
       (leading doc added; literal set and literal docs unchanged). SignalMappingDisposition
@@ -214,7 +214,7 @@ entries:
       implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 3) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -229,7 +229,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 3 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-3 parity-reviewed: definition-level parity is closed by an explicit
       reviewed-equivalence record — the model doc carries the reviewed strengthened
       control-record wording (reusable control-record shape for an interface-bearing
@@ -243,7 +243,7 @@ entries:
       added or removed; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 3) — the
       model doc carries the reviewed strengthened control-record boundary; the YAML
       comparison-source definition remains authoritative for its own text; the reviewed
@@ -260,7 +260,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: medium
-    stage: o4-w2 batch 3 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-3 parity-reviewed: definition-level parity is closed by an explicit
       reviewed-equivalence record — the model doc carries the reviewed non-claiming
       allocation semantics (reusable non-claiming allocation relationship; the allocation
@@ -275,7 +275,7 @@ entries:
       cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 3) — the
       model doc carries the reviewed non-claiming allocation semantics plus the reviewed
       specialization-payload delta; the reviewed equivalence is the documented
@@ -321,7 +321,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 2 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 pilot-2 parity-reviewed: definition-level parity is closed — the model doc
       carries the reviewed definition text verbatim (framing only; ADR 0004 remains the
       framing authority for the layer names). The reviewed model definition is ready for
@@ -330,7 +330,7 @@ entries:
       cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -345,7 +345,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 6 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-6 parity-reviewed: definition-level parity closed normalized-exact — the
       model doc carries the reviewed definition text verbatim under cosmetic normalization
       only (A family of related member products managed through shared assets and
@@ -357,7 +357,7 @@ entries:
       implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 6) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -372,7 +372,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 6 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-6 parity-reviewed: definition-level parity closed normalized-exact — the
       model doc carries the reviewed definition text verbatim under cosmetic normalization
       only (A configured product or product variant that belongs to a product line).
@@ -384,7 +384,7 @@ entries:
       implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 6) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -417,7 +417,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 7 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-7 parity-reviewed: definition-level parity closed normalized-exact — the model
       doc carries the reviewed definition text verbatim under cosmetic normalization only (the
       product-line classification base with its four branches: common capability, feature candidate,
@@ -427,7 +427,7 @@ entries:
       condition is completed under O4.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 7): the model doc
       text equals the reviewed definition under cosmetic normalization only; declaration, name and
       classification-root position unchanged.'
@@ -460,7 +460,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 6 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-6 parity-reviewed: definition-level parity closed normalized-exact — the
       model doc carries the reviewed definition text verbatim under cosmetic normalization
       only (Product-line scope deliberately deferred from the current increment, including
@@ -472,7 +472,7 @@ entries:
       completed under O4. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 6) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -588,7 +588,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 4 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-4 parity-reviewed: definition-level parity is closed by an explicit
       reviewed-equivalence record — the model doc carries the accepted definition verbatim
       (Stakeholder-expressed problem-space intent, before conversion into design-input
@@ -603,7 +603,7 @@ entries:
       semantic content removed beyond the replaced framing; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 4) — the
       model doc carries the accepted definition verbatim plus the preserved NRM/ADR 0009
       lineage; the residual difference from the ontology definition is its kernel-modeling
@@ -621,7 +621,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 4 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-4 parity-reviewed: definition-level parity is closed by an explicit
       reviewed-equivalence record — the model doc carries the accepted definition verbatim
       (A verifiable design input obligation or constraint derived from needs, standards, or
@@ -637,7 +637,7 @@ entries:
       framing; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 4) — the
       model doc carries the accepted definition verbatim plus the preserved SYSMOD
       seam/candidate context; the residual difference from the ontology definition is its
@@ -655,7 +655,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 2 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'R003 exclusion grounding (traced into, not out of). o4-w2 pilot-2 parity-reviewed:
       definition-level parity is closed — the model doc carries the reviewed definition text
       verbatim (modeled-as-a-requirement qualification restored); the declaration remains a
@@ -665,7 +665,7 @@ entries:
       semantic content added or removed; no authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -711,7 +711,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 4 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-4 parity-reviewed: definition-level parity is closed by an explicit
       reviewed-equivalence record — the model doc carries the accepted definition verbatim
       (A constraint or reference derived from a standard, regulation, or
@@ -725,7 +725,7 @@ entries:
       admission/retirement condition is completed under O4. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w2 batch 4) — the
       model doc carries the accepted definition verbatim plus the retained R003
       derivation-grounding sentence; no compliance assertion is made and the source stays
@@ -1039,7 +1039,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 2 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 pilot-2 parity-reviewed: definition-level parity is closed — the model doc
       carries the reviewed definition text verbatim (the materially narrower increment-only
       wording replaced by the reviewed scope); recordsAssumption and existing assumption
@@ -1049,7 +1049,7 @@ entries:
       implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -1064,7 +1064,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 pilot 2 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'IncrementGap; "must not be hidden" boundary. o4-w2 pilot-2 parity-reviewed:
       definition-level parity is closed — the model doc carries the reviewed definition text
       verbatim (must-not-be-hidden claim boundary preserved); Gap remains distinct from
@@ -1075,7 +1075,7 @@ entries:
       implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 pilot 2) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -1090,7 +1090,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 5 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-5 parity-reviewed: definition-level parity closed normalized-exact — the
       model doc carries the reviewed definition text verbatim under cosmetic normalization
       only (A record of a missing or blocked realization allocation for a conceptual
@@ -1102,7 +1102,7 @@ entries:
       implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 5) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'
@@ -1117,7 +1117,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: o4-w2 batch 5 (definitions parity)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'o4-w2 batch-5 parity-reviewed: definition-level parity closed normalized-exact — the
       model doc carries the reviewed definition text verbatim under cosmetic normalization
       only (A record of a realization branch blocked by a source defect or gap). The record
@@ -1127,7 +1127,7 @@ entries:
       admission/retirement condition is completed under O4. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'exact fit: definition-level parity complete (o4-w2 batch 5) — the model doc
       carries the reviewed definition text verbatim under cosmetic normalization only;
       parity evidence only, no authority cutover implied.'

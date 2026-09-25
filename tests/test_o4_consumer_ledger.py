@@ -130,7 +130,11 @@ def test_unreadable_tracked_file_fails_closed(tmp_path):
 def _passing_gate_mocks():
     from unittest import mock
 
-    from de4sdv.semantic import external_reference_contract, vocabulary_carrier
+    from de4sdv.semantic import (
+        definition_projection,
+        external_reference_contract,
+        vocabulary_carrier,
+    )
     from scripts import check_repo
 
     return (
@@ -138,6 +142,7 @@ def _passing_gate_mocks():
         mock.patch.object(
             external_reference_contract, "run_check_errors", return_value=[]
         ),
+        mock.patch.object(definition_projection, "run_check_errors", return_value=[]),
         mock.patch.object(check_repo, "find_duplicate_global_packages", return_value={}),
         mock.patch.object(
             check_repo.validate_aebs_executable_bench, "validate_bench", return_value=[]

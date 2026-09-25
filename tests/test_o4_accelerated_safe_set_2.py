@@ -50,9 +50,11 @@ SCOPE = REPO_ROOT / "docs/method-conformance/o3/o3-equivalence-scope.json"
 SYNC_SCRIPT = REPO_ROOT / "scripts/check_model_sync.py"
 
 BATCH_ROWS = ("ProductLineCharacteristic", "Scenario")
-DEFINITIONS_PARITY_STAGE = "o4-w2 batch 7 (definitions parity)"
+# later-batch convention (definition admission batch 1): the parity stage is
+# superseded by the shared admission stage.
+TREATED_STAGE = "o4 definition admission batch 1 (projection + profile)"
 PATTERN_GROUNDING_STAGE = "o4-w2 batch 7 (bounded pattern grounding)"
-OBLIGATION = "O2 admission / generated Semantic Projection from the reviewed model representation"
+OBLIGATION = "runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only"
 PATTERN_OBLIGATION = (
     "O2 admission / generated Semantic Projection from the reviewed pattern representation"
 )
@@ -142,12 +144,19 @@ def test_exactly_the_batch_rows_carry_the_batch_stages(decisions):
     staged = {
         name: row.get("stage")
         for name, row in decisions.items()
-        if row.get("stage") in (DEFINITIONS_PARITY_STAGE, PATTERN_GROUNDING_STAGE)
+        if row.get("stage") in (TREATED_STAGE, PATTERN_GROUNDING_STAGE)
     }
-    assert staged == {
-        "ProductLineCharacteristic": DEFINITIONS_PARITY_STAGE,
-        "Scenario": PATTERN_GROUNDING_STAGE,
-    }
+    # later-batch convention (definition admission batch 1): the stage label
+    # is now shared by the admitted family; this batch must be inside it and
+    # the full staged set must equal the governed admitted set plus the
+    # bounded Scenario row.
+    assert staged["ProductLineCharacteristic"] == TREATED_STAGE
+    assert staged["Scenario"] == PATTERN_GROUNDING_STAGE
+    manifest = yaml.safe_load(
+        (REPO_ROOT / "docs/method-conformance/o4/definition-admission.yaml").read_text()
+    )
+    admitted = sorted(row["identity"] for row in manifest["admitted"])
+    assert sorted(n for n in staged if n != "Scenario") == admitted
 
 
 def test_product_line_characteristic_definition_parity_is_machine_checked(
@@ -172,7 +181,7 @@ def test_product_line_characteristic_row_state(decisions):
     assert row["transition_gate"] is None
     assert row["closure_evidence_ref"] is None
     assert row["semantic_text_equivalence"] is None
-    assert row["stage"] == DEFINITIONS_PARITY_STAGE
+    assert row["stage"] == TREATED_STAGE
     assert "batch-7 parity-reviewed" in row["note"]
     assert row["exact_fit_decision"].startswith(
         "exact fit: definition-level parity complete (o4-w2 batch 7)"
@@ -305,27 +314,29 @@ def test_no_new_projection_rows():
 
 
 def test_prior_batch_rows_unchanged(decisions):
+    # later-batch convention (definition admission batch 1): prior parity rows now
+    # carry the shared admission stage.
     expected_stage = {
-        "EngineeringIncrement": "o4-w2 pilot 1 (definitions parity)",
-        "FeatureIncrement": "o4-w2 pilot 1 (definitions parity)",
-        "NeedsRequirementsIncrement": "o4-w2 pilot 1 (definitions parity)",
-        "IncrementEngineeringQuestion": "o4-w2 pilot 2 (definitions parity)",
-        "IncrementLifecycleDecision": "o4-w2 pilot 2 (definitions parity)",
-        "SystemLayer": "o4-w2 pilot 2 (definitions parity)",
-        "ProblemStatement": "o4-w2 pilot 2 (definitions parity)",
-        "Assumption": "o4-w2 pilot 2 (definitions parity)",
-        "Gap": "o4-w2 pilot 2 (definitions parity)",
-        "SignalMappingDisposition": "o4-w2 batch 3 (definitions parity)",
-        "LogicalToSoftwareSignalMappingRecord": "o4-w2 batch 3 (definitions parity)",
-        "SystemToSoftwareSignalMappingCandidate": "o4-w2 batch 3 (definitions parity)",
-        "Need": "o4-w2 batch 4 (definitions parity)",
-        "Requirement": "o4-w2 batch 4 (definitions parity)",
-        "RegulatoryConstraint": "o4-w2 batch 4 (definitions parity)",
-        "MissingRealizationRecord": "o4-w2 batch 5 (definitions parity)",
-        "BlockedRealizationBranchRecord": "o4-w2 batch 5 (definitions parity)",
-        "ProductLine": "o4-w2 batch 6 (definitions parity)",
-        "MemberProduct": "o4-w2 batch 6 (definitions parity)",
-        "DeferredProductLineScope": "o4-w2 batch 6 (definitions parity)",
+        "EngineeringIncrement": "o4 definition admission batch 1 (projection + profile)",
+        "FeatureIncrement": "o4 definition admission batch 1 (projection + profile)",
+        "NeedsRequirementsIncrement": "o4 definition admission batch 1 (projection + profile)",
+        "IncrementEngineeringQuestion": "o4 definition admission batch 1 (projection + profile)",
+        "IncrementLifecycleDecision": "o4 definition admission batch 1 (projection + profile)",
+        "SystemLayer": "o4 definition admission batch 1 (projection + profile)",
+        "ProblemStatement": "o4 definition admission batch 1 (projection + profile)",
+        "Assumption": "o4 definition admission batch 1 (projection + profile)",
+        "Gap": "o4 definition admission batch 1 (projection + profile)",
+        "SignalMappingDisposition": "o4 definition admission batch 1 (projection + profile)",
+        "LogicalToSoftwareSignalMappingRecord": "o4 definition admission batch 1 (projection + profile)",
+        "SystemToSoftwareSignalMappingCandidate": "o4 definition admission batch 1 (projection + profile)",
+        "Need": "o4 definition admission batch 1 (projection + profile)",
+        "Requirement": "o4 definition admission batch 1 (projection + profile)",
+        "RegulatoryConstraint": "o4 definition admission batch 1 (projection + profile)",
+        "MissingRealizationRecord": "o4 definition admission batch 1 (projection + profile)",
+        "BlockedRealizationBranchRecord": "o4 definition admission batch 1 (projection + profile)",
+        "ProductLine": "o4 definition admission batch 1 (projection + profile)",
+        "MemberProduct": "o4 definition admission batch 1 (projection + profile)",
+        "DeferredProductLineScope": "o4 definition admission batch 1 (projection + profile)",
         "IncrementSize": "o4-w3 batch 1 (definitions parity)",
         "ArchitectureDecisionRecord": "o4-w5 batch 1 (definitions parity)",
         "Baseline": "o4-w5 batch 1 (definitions parity)",
