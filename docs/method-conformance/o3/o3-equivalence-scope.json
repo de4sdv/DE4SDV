@@ -33,29 +33,29 @@
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/semantic-projection-v1.1.json",
         "schema": "de4sdv.semantic-projection.v1.1",
-        "sha256": "sha256:11248ee794bf2e8df2b4a6ebebd8493309f924012d5879abeca30331bdd59cdd",
-        "source_revision": "cb10541193317514ef601396c07d009fe65eb1de"
+        "sha256": "sha256:b28a5911b675860ff0969b675eb84b4d0d1f034027ea97860d4654a8797da8bc",
+        "source_revision": "d1c0c915ecc207e282070770ca41dbedb28f6275"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/api-representation-profile-v1.1.json",
         "schema": "de4sdv.api-representation-profile.v1.1",
-        "sha256": "sha256:7ca6d6584f34d0b57c580172efc0d70d0783a85a1f2539249072e296fac083c2",
-        "source_revision": "cb10541193317514ef601396c07d009fe65eb1de"
+        "sha256": "sha256:84517602789286f46c0f8cabcfa65a89c1e10900c8ebe0bf19155d44164eea80",
+        "source_revision": "d1c0c915ecc207e282070770ca41dbedb28f6275"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/semantic-projection-v1.2.json",
         "schema": "de4sdv.semantic-projection.v1.2",
-        "sha256": "sha256:dfe89570c7b4168b5342dbd90dd37547ff3e6ce3e911fcf13c1ccf290974ea4f",
-        "source_revision": "910733154723deb01ecc47ac859db16da2bd1b4f"
+        "sha256": "sha256:dec7ac0e1600bf8a634c2bf5bf980d5eaf1396f9a5ba5e8b00f30edcf584b3d2",
+        "source_revision": "61f6930d56069dd19bca1151fbb7d678aa98b085"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/api-representation-profile-v1.2.json",
         "schema": "de4sdv.api-representation-profile.v1.2",
-        "sha256": "sha256:a4dbe25998a5d6e9fb7ac0ca6ce2daa7f62c17f77f648fc37acf3513b20a0ff7",
-        "source_revision": "910733154723deb01ecc47ac859db16da2bd1b4f"
+        "sha256": "sha256:739eca5e8481c30e38c8bb85fa16b43c3aab4768a999a7436efaca53cbc871ac",
+        "source_revision": "61f6930d56069dd19bca1151fbb7d678aa98b085"
       }
     ],
     "ontology": {
