@@ -3,7 +3,7 @@
   "status": "generated O2+ API Representation Profile (representation mechanics for the api_profile_required rows)",
   "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries. The runtime does not read this artifact.",
   "binding": {
-    "source_revision": "b92af1c275bc6745e39fa69185962cc12f8381e9",
+    "source_revision": "a1a875c332913c2a4e5e86844a24dd4bd47d7885",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -37,12 +37,12 @@
     },
     "admission_manifest": {
       "path": "docs/method-conformance/o2plus/o2p-admission.yaml",
-      "digest": "sha256:c981edbb0947b9b25d69a69e1a6dded89bc8f992f9d14df2d43a8573fd665350"
+      "digest": "sha256:0845fab4b4c63425811c5422e4473e5325cb0cb4ab7947796588497d23d2901c"
     },
     "bound_inputs": {
       ".github/workflows/privileged-syside-validation.yml": "sha256:6bbed271b59f0e9213592a3ea110e00c662da9cbf76b047cf82e2cd340eced7f",
       "de4sdv/semantic/projection_o2p.py": "sha256:03ed5509e02126cabd2234aa84725c761b42f1b454172fbc4b6a9ef66c4e7817",
-      "docs/method-conformance/o2plus/o2p-admission.yaml": "sha256:c981edbb0947b9b25d69a69e1a6dded89bc8f992f9d14df2d43a8573fd665350",
+      "docs/method-conformance/o2plus/o2p-admission.yaml": "sha256:0845fab4b4c63425811c5422e4473e5325cb0cb4ab7947796588497d23d2901c",
       "scripts/generate_semantic_projection_o2p.py": "sha256:2a9953fd76089beb213682b7df1818899065498e294cc55316c2928f8d9992b4",
       "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml": "sha256:b1ccdbd3275dbe6406e941f926ea4402d99049a21117f53ff873a43d94180584",
       "textual-notation-of-model/packages/features/aebs/aebs_visualization_operational_context.sysml": "sha256:94ecaef99688b794bb1c3c3029c68fce98b9b5b091650c8122d1bd39e7103dc2",
