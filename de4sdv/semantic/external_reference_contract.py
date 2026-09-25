@@ -23,6 +23,14 @@ artifact only:
   changing the contract.
 
 Read-only; never imported by the runtime; grants no authority.
+
+Acceptance: every profile entry must carry an ``accepted_ref`` that resolves to
+a repository governance document under ``docs/`` carrying the
+engineering-review acceptance marker, recording the identity as both the
+reference fragment and a table row; free-text references and personal
+owner-approval claims are refused. Recording acceptance changes nothing
+operational: ``activation`` stays ``none`` and no traversal, mirroring or
+baseline list is introduced.
 """
 from __future__ import annotations
 
@@ -44,6 +52,17 @@ REVIEW_PATH = "docs/method-conformance/o4/ontology-review/integrated-review.json
 PROFILE_SCHEMA = "de4sdv.o4-external-reference-profile/v1"
 TYPED_REFERENCE_SCHEMA = "de4sdv.evidence-reference/v1"
 BASELINE_MANIFEST_SCHEMA = "de4sdv.baseline-manifest-reference/v1"
+
+#: The acceptance document must carry this marker verbatim; a free-text
+#: acceptance reference or a personal owner-approval claim is refused.
+ACCEPTANCE_MARKER = "accepted-as-engineering-review-evidence"
+ACCEPTANCE_ROOT = "docs/"
+
+#: ``prepared`` is the pre-acceptance state; the accepted state records
+#: engineering-review evidence. Neither state activates anything.
+PROFILE_STATUS_PREPARED = "prepared"
+PROFILE_STATUS_ACCEPTED = "accepted-engineering-review-evidence"
+PROFILE_STATUSES = (PROFILE_STATUS_PREPARED, PROFILE_STATUS_ACCEPTED)
 
 VERSION_IDENTITY_FORM = "<artifact_identity>@<artifact_revision>"
 
@@ -290,9 +309,13 @@ def load_profile(path: Path) -> dict[str, Any]:
             f"external-reference profile schema must be {PROFILE_SCHEMA}: "
             f"{document.get('schema')!r}"
         )
-    if document.get("status") != "prepared" or document.get("activation") != "none":
+    if (
+        document.get("status") not in PROFILE_STATUSES
+        or document.get("activation") != "none"
+    ):
         raise EvidenceReferenceError(
-            "external-reference profile must stay prepared with activation none"
+            "external-reference profile must stay prepared-or-accepted "
+            f"(status one of {sorted(PROFILE_STATUSES)}) with activation none"
         )
     return document
 
@@ -397,9 +420,13 @@ def _declaration_index(root: Path) -> dict[str, list[str]]:
 
 
 def _validate_schema_block(document: dict[str, Any]) -> None:
-    if document.get("status") != "prepared" or document.get("activation") != "none":
+    if (
+        document.get("status") not in PROFILE_STATUSES
+        or document.get("activation") != "none"
+    ):
         raise EvidenceReferenceError(
-            "external-reference profile must stay prepared with activation none"
+            "external-reference profile must stay prepared-or-accepted "
+            f"(status one of {sorted(PROFILE_STATUSES)}) with activation none"
         )
     schema = document.get("typed_reference_schema")
     if not isinstance(schema, dict) or schema.get("identity") != TYPED_REFERENCE_SCHEMA:
@@ -440,6 +467,55 @@ def _validate_schema_block(document: dict[str, Any]) -> None:
         )
 
 
+def _validate_accepted_ref(root: Path, identity: str, entry: dict[str, Any]) -> str:
+    """Machine-check one entry's recorded acceptance (fail closed).
+
+    Mirrors the acceptance-reference validation proven for the vocabulary
+    carriers: the reference must resolve to a repository governance document
+    under ``docs/`` carrying the engineering-review acceptance marker, its
+    fragment must equal the identity, and the document must record the identity
+    as a table row. A free-text reference or a personal owner-approval claim is
+    refused. The acceptance document is a READ INPUT of this check; no revision
+    binding is claimed for it.
+    """
+    accepted_ref = entry.get("accepted_ref")
+    if not isinstance(accepted_ref, str) or not accepted_ref.strip():
+        raise EvidenceReferenceError(
+            f"{identity}: acceptance not recorded (accepted_ref required on every "
+            "profile entry)"
+        )
+    accepted_ref = accepted_ref.strip()
+    accepted_path = accepted_ref.split("#", 1)[0].strip()
+    if not accepted_path.startswith(ACCEPTANCE_ROOT):
+        raise EvidenceReferenceError(
+            f"{identity}: accepted_ref must name a repository governance document "
+            f"under {ACCEPTANCE_ROOT} (got {accepted_ref!r})"
+        )
+    acceptance_doc = root / accepted_path
+    if not acceptance_doc.is_file():
+        raise EvidenceReferenceError(
+            f"{identity}: accepted_ref does not resolve to a repository document: "
+            f"{accepted_path}"
+        )
+    acceptance_text = acceptance_doc.read_text(encoding="utf-8")
+    if ACCEPTANCE_MARKER not in acceptance_text:
+        raise EvidenceReferenceError(
+            f"{identity}: acceptance document {accepted_path} does not carry the "
+            f"engineering-review acceptance marker ({ACCEPTANCE_MARKER})"
+        )
+    fragment = accepted_ref.split("#", 1)[1].strip() if "#" in accepted_ref else None
+    if fragment != identity:
+        raise EvidenceReferenceError(
+            f"{identity}: accepted_ref fragment must equal the identity (got {fragment!r})"
+        )
+    if not re.search(rf"^\s*\|\s*{re.escape(identity)}\s*\|", acceptance_text, re.MULTILINE):
+        raise EvidenceReferenceError(
+            f"{identity}: acceptance document {accepted_path} does not record this "
+            "identity as a table row"
+        )
+    return accepted_ref
+
+
 def validate_profile(
     root: Path, document: dict[str, Any], register: dict[str, Any], review: dict[str, Any]
 ) -> dict[str, Any]:
@@ -477,7 +553,13 @@ def validate_profile(
     for entry in entries:
         if not isinstance(entry, dict):
             raise EvidenceReferenceError("profile entries must be mappings")
-        allowed = {"identity", "representation_class", "mechanics", "declaration"}
+        allowed = {
+            "identity",
+            "representation_class",
+            "mechanics",
+            "declaration",
+            "accepted_ref",
+        }
         extra = set(entry) - allowed
         if extra:
             raise EvidenceReferenceError(f"profile entry carries unknown keys: {sorted(extra)}")
@@ -489,6 +571,7 @@ def validate_profile(
         if identity in seen:
             raise EvidenceReferenceError(f"profile entry {identity}: duplicate")
         seen.add(identity)
+        accepted_ref = _validate_accepted_ref(root, identity, entry)
         mechanics = entry.get("mechanics")
         if not isinstance(mechanics, str) or not mechanics.strip():
             raise EvidenceReferenceError(f"{identity}: mechanics must be non-empty")
@@ -537,6 +620,7 @@ def validate_profile(
             "representation_class": representation_class,
             "definition": definition,
             "mechanics": mechanics,
+            "accepted_ref": accepted_ref,
             "support": "external",
             "traversal": False,
             "runtime_support": "external",
@@ -584,6 +668,9 @@ def validate_profile(
         ),
         "family": sorted(derived),
         "scope_rows": sorted(scope),
+        "acceptance_documents": sorted(
+            {row["accepted_ref"].split("#", 1)[0].strip() for row in profile_rows}
+        ),
         "profile_rows": profile_rows,
     }
 
