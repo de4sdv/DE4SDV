@@ -1740,10 +1740,9 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# TEMPORARY_STACK_BINDING: safe-set 2 rebound v1.2 on its artifact commit
-# (the v1.1 baseline bytes it extends moved). Regenerate against the permanent
-# safe-set 2 squash after the administrator merge (post-squash rebind chain).
-COMMITTED_SOURCE_REVISION = "9aa71786cd90757cb2e463ea1931ba6596a7ac41"
+# TEMPORARY_STACK_BINDING: Rebind 4 review consistency only.
+# Rebind 5 refreshes this temporarily; Rebind 6 binds permanently to M8.
+COMMITTED_SOURCE_REVISION = "910733154723deb01ecc47ac859db16da2bd1b4f"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
