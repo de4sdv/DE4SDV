@@ -3,44 +3,50 @@
   "status": "admitted",
   "warning": "vocabulary-only, no traversal, no runtime read, no authority retirement",
   "binding": {
-    "source_revision": "4e48309baf738f716277cac60a615177ee981e23",
+    "source_revision": "b92af1c275bc6745e39fa69185962cc12f8381e9",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
     "generation_software": {
       "program_inputs": [
         "de4sdv/semantic/definition_projection.py",
-        "scripts/generate_definition_projection.py"
+        "scripts/generate_definition_projection.py",
+        "de4sdv/semantic/authority_inventory.py",
+        "de4sdv/semantic/projection_o2p.py"
       ],
-      "note": "Generation-software revision: the commit containing these program inputs byte-for-byte."
+      "note": "Generation-software revision: the commit containing these program inputs byte-for-byte. Both shared modules are listed because this machinery executes them at generation time (declaration/doc-scan normalization, digests, revision containment, canonical JSON)."
     },
     "semantic_model_revision": {
       "model_inputs": [
         "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
         "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
         "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
       ],
       "note": "Semantic-model revision: ONLY the governed model files carrying the admitted definition declarations, contained byte-for-byte in source_revision."
     },
     "admission_document": {
       "path": "docs/method-conformance/o4/definition-admission.yaml",
-      "digest": "sha256:e2ef2a8bbcb9f9d1338f7f859c0776fa1544aa7b681771acc690a775d1202041"
+      "digest": "sha256:94822c3054031563735153c7620bb03a8c723ec6cc0cd647c9c543176f142697"
     },
     "design_record": {
       "path": "docs/method-conformance/o4/definition-admission-design.md",
-      "digest": "sha256:fcdc0fce322321e4a1373e0b983781be87d62f362a33b6f29a020e4a0e6fb045"
+      "digest": "sha256:bb03d067470dda6c8bd784196d054f7f80853e8eb1a5ee9501859219aae82ba8"
     },
     "api_binding": {
       "status": "unclaimed",
       "note": "No SysML API element UUID is claimed for these definitions; the profile entries state representation mechanics only."
     },
     "bound_inputs": {
-      "de4sdv/semantic/definition_projection.py": "sha256:0be7741d1dd914b915fa0d449093e501859da7d262b601327b53edc804a0e60a",
-      "docs/method-conformance/o4/definition-admission-design.md": "sha256:fcdc0fce322321e4a1373e0b983781be87d62f362a33b6f29a020e4a0e6fb045",
-      "docs/method-conformance/o4/definition-admission.yaml": "sha256:e2ef2a8bbcb9f9d1338f7f859c0776fa1544aa7b681771acc690a775d1202041",
+      "de4sdv/semantic/authority_inventory.py": "sha256:6ecd3ee167ebb89f72f4fd21e039d6ee54930889da0714281ece5e882a7e6f6d",
+      "de4sdv/semantic/definition_projection.py": "sha256:49c451436f66a0c0e0def029809fb15de2a46baa40da5f165c2624caba64e679",
+      "de4sdv/semantic/projection_o2p.py": "sha256:03ed5509e02126cabd2234aa84725c761b42f1b454172fbc4b6a9ef66c4e7817",
+      "docs/method-conformance/o4/definition-admission-design.md": "sha256:bb03d067470dda6c8bd784196d054f7f80853e8eb1a5ee9501859219aae82ba8",
+      "docs/method-conformance/o4/definition-admission.yaml": "sha256:94822c3054031563735153c7620bb03a8c723ec6cc0cd647c9c543176f142697",
       "scripts/generate_definition_projection.py": "sha256:1703a05ea82bbedadc4cdc0fb4a10df3aae2e31b2759b95cae5efb099b4ba2a9",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:0657c24def99e7e3d2211ad859ddf01761f174980fc0a10096762ca9fed8697f",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": "sha256:0798649c5af3dfda306f532b3639e917226258c5e1c9f5c25c87cffd321349c6",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:efc79cad26780814f942ad0de0cb19fae414f26fdfa95fd6aa121efaeedf0865",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:7c04f2ddb28490554fe2c37a949de74e8bce44da758d7d0acceb211f5ad8d2e5"
     }
   },
@@ -65,6 +71,7 @@
       "ProductLineCharacteristic",
       "RegulatoryConstraint",
       "Requirement",
+      "Scenario",
       "SignalMappingDisposition",
       "SystemLayer",
       "SystemToSoftwareSignalMappingCandidate"
@@ -498,6 +505,30 @@
         "kernel_binding_contract": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
           "declaration": "requirement def RequirementCandidate"
+        }
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Scenario",
+      "semantic_kind": "class",
+      "wave": "W2",
+      "definition": {
+        "documentation": " A bounded operational, validation, test, or threat situation used to reason about behavior and evidence. ",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+          "declaration": "part def Scenario",
+          "doc_count": 1
+        },
+        "documentation_observation": "normalized-exact",
+        "semantic_text_equivalence": null
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+          "declaration": "part def Scenario"
         }
       },
       "support": "vocabulary-only",

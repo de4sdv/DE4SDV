@@ -187,7 +187,10 @@ class TestCoverage:
             present = [kind for kind in kinds if kind in kernel]
             assert len(present) == 1, spec
             kinds[present[0]] += 1
-        assert kinds == {"file": 40, "native": 15, "external": 4}
+        # Definition admission batch 1 (amended): Scenario's kernel mapping
+        # moved native -> file+declaration (part def Scenario): file 40->41,
+        # native 15->14.
+        assert kinds == {"file": 41, "native": 14, "external": 4}
         assert kinds == inventory["counts"]["class_mappings"]
         assert sum(kinds.values()) == len(contract.classes)
 
@@ -924,9 +927,12 @@ class TestTextParity:
         # differs -> normalized-exact (19/19 -> 18/20). Scenario keeps its
         # native-grounding observation (no model-side declaration, no doc
         # observation — no count movement).
+        # Definition admission batch 1 (amended) added the Scenario
+        # definition home: one row moved to normalized-exact (20 -> 21);
+        # differs unchanged.
         assert counts == {
             "differs": 18,
-            "normalized-exact": 20,
+            "normalized-exact": 21,
             "doc-absent": 1,
             "doc-absent (bodyless declaration)": 1,
         }

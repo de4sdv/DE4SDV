@@ -31,7 +31,9 @@ from de4sdv.semantic.authority_inventory import validate_source_binding
 ROOT = Path(__file__).resolve().parents[1]
 
 # Permanent safe-set 2 squash (#298, M6); Rebind 4 preserves its semantics.
-COMMITTED_SOURCE_REVISION = "144c0fd784b7ea06ee2dc176eb6992724f5aa974"
+# Definition admission batch 1 (amended): the O2+ pair was regenerated on
+# this PR's source commit A1 (bound to the chain sources).
+COMMITTED_SOURCE_REVISION = "b92af1c275bc6745e39fa69185962cc12f8381e9"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {
