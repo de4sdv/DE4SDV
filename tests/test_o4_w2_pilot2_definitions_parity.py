@@ -287,9 +287,9 @@ def test_unrelated_reviewed_rows_are_unchanged() -> None:
         assert entries[identity]["observed"]["doc_text_observation"] == (
             "normalized-exact"
         ), identity
-        assert entries[identity]["reviewed"]["stage"] == (
-            "o4-w2 pilot 1 (definitions parity)"
-        ), identity
+        # later-batch convention (definition admission batch 1): prior rows now
+        # carry the shared admission stage.
+        assert entries[identity]["reviewed"]["stage"] == TREATED_STAGE, identity
     # The W1-corrected demoted row keeps its bounded-vocabulary record.
     assert entries["IncrementSize"]["reviewed"]["disposition"] == "keep-as-is"
     # The K row keeps its review-required state.
