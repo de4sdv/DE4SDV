@@ -68,10 +68,15 @@ REVIEWED_DEFINITIONS: dict[str, str] = {
     ),
 }
 
+# later-batch convention (definition admission batch 1): the O2-admission
+# obligation of these rows is discharged by the generated definition
+# projection/profile pair; the remaining forward obligation is the runtime
+# one (support stays vocabulary-only).
 REMAINING_OBLIGATION = [
-    "O2 admission / generated Semantic Projection from the reviewed model representation",
+    "runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only",
 ]
-BATCH_STAGE = "o4-w2 batch 3 (definitions parity)"
+# later-batch convention: re-stated at the current treatment stage.
+TREATED_STAGE = "o4 definition admission batch 1 (projection + profile)"
 EQUIVALENCE_ROWS = (
     "LogicalToSoftwareSignalMappingRecord",
     "SystemToSoftwareSignalMappingCandidate",
@@ -161,7 +166,7 @@ def test_enum_level_doc_is_normalized_exact() -> None:
         "SignalMappingDisposition"
     ]["reviewed"]
     assert reviewed["semantic_text_equivalence"] is None
-    assert reviewed["stage"] == BATCH_STAGE
+    assert reviewed["stage"] == TREATED_STAGE
     assert reviewed["required_evidence"] == REMAINING_OBLIGATION
     assert "parity complete (o4-w2 batch 3)" in reviewed["exact_fit_decision"]
 
@@ -178,7 +183,7 @@ def test_reviewed_equivalence_rows_record_their_equivalence() -> None:
         assert observation == "differs", identity
         reviewed = entries[identity]["reviewed"]
         assert reviewed["semantic_text_equivalence"] == "reviewed-equivalent", identity
-        assert reviewed["stage"] == BATCH_STAGE, identity
+        assert reviewed["stage"] == TREATED_STAGE, identity
         assert reviewed["required_evidence"] == REMAINING_OBLIGATION, identity
         assert reviewed["exact_fit_decision"].startswith("reviewed-equivalence:"), identity
         assert "not a divergence" in reviewed["exact_fit_decision"], identity
@@ -210,7 +215,7 @@ def test_decisions_source_records_the_closed_parity() -> None:
     entries = _decisions()
     for identity in PILOT_ROWS:
         reviewed = entries[identity]
-        assert reviewed["stage"] == BATCH_STAGE, identity
+        assert reviewed["stage"] == TREATED_STAGE, identity
         assert reviewed["required_evidence"] == REMAINING_OBLIGATION, identity
     assert entries["SignalMappingDisposition"]["semantic_text_equivalence"] is None
     for identity in EQUIVALENCE_ROWS:

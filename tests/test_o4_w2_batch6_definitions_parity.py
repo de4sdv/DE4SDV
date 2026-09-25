@@ -43,8 +43,10 @@ ACCEPTED_DEFINITION = {
         "Product-line scope deliberately deferred from the current increment, including recorded gaps."
     ),
 }
-STAGE = "o4-w2 batch 6 (definitions parity)"
-OBLIGATION = "O2 admission / generated Semantic Projection from the reviewed model representation"
+# later-batch convention (definition admission batch 1): the parity stage
+# is superseded by the shared admission stage.
+STAGE = "o4 definition admission batch 1 (projection + profile)"
+OBLIGATION = "runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only"
 
 USAGES = {
     "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml": [
@@ -117,8 +119,16 @@ def test_exact_three_row_scope(register_rows):
 
 
 def test_exactly_the_batch_rows_carry_the_batch_stage(decisions):
+    # later-batch convention (definition admission batch 1): the stage label
+    # is now shared by the admitted family; this batch must be inside it and
+    # the full staged set must equal the governed admitted set.
     staged = [name for name, row in decisions.items() if row.get("stage") == STAGE]
-    assert sorted(staged) == sorted(BATCH_ROWS)
+    assert set(BATCH_ROWS) <= set(staged)
+    manifest = yaml.safe_load(
+        (REPO_ROOT / "docs/method-conformance/o4/definition-admission.yaml").read_text()
+    )
+    admitted = sorted(row["identity"] for row in manifest["admitted"])
+    assert sorted(staged) == admitted
 
 
 def test_declaration_mapping(inventory):
@@ -254,24 +264,26 @@ def test_no_runtime_or_o3_promotion(register_rows):
 
 
 def test_prior_batch_rows_unchanged(decisions):
+    # later-batch convention (definition admission batch 1): prior parity rows now
+    # carry the shared admission stage.
     expected_stage = {
-        "EngineeringIncrement": "o4-w2 pilot 1 (definitions parity)",
-        "FeatureIncrement": "o4-w2 pilot 1 (definitions parity)",
-        "NeedsRequirementsIncrement": "o4-w2 pilot 1 (definitions parity)",
-        "IncrementEngineeringQuestion": "o4-w2 pilot 2 (definitions parity)",
-        "IncrementLifecycleDecision": "o4-w2 pilot 2 (definitions parity)",
-        "SystemLayer": "o4-w2 pilot 2 (definitions parity)",
-        "ProblemStatement": "o4-w2 pilot 2 (definitions parity)",
-        "Assumption": "o4-w2 pilot 2 (definitions parity)",
-        "Gap": "o4-w2 pilot 2 (definitions parity)",
-        "SignalMappingDisposition": "o4-w2 batch 3 (definitions parity)",
-        "LogicalToSoftwareSignalMappingRecord": "o4-w2 batch 3 (definitions parity)",
-        "SystemToSoftwareSignalMappingCandidate": "o4-w2 batch 3 (definitions parity)",
-        "Need": "o4-w2 batch 4 (definitions parity)",
-        "Requirement": "o4-w2 batch 4 (definitions parity)",
-        "RegulatoryConstraint": "o4-w2 batch 4 (definitions parity)",
-        "MissingRealizationRecord": "o4-w2 batch 5 (definitions parity)",
-        "BlockedRealizationBranchRecord": "o4-w2 batch 5 (definitions parity)",
+        "EngineeringIncrement": "o4 definition admission batch 1 (projection + profile)",
+        "FeatureIncrement": "o4 definition admission batch 1 (projection + profile)",
+        "NeedsRequirementsIncrement": "o4 definition admission batch 1 (projection + profile)",
+        "IncrementEngineeringQuestion": "o4 definition admission batch 1 (projection + profile)",
+        "IncrementLifecycleDecision": "o4 definition admission batch 1 (projection + profile)",
+        "SystemLayer": "o4 definition admission batch 1 (projection + profile)",
+        "ProblemStatement": "o4 definition admission batch 1 (projection + profile)",
+        "Assumption": "o4 definition admission batch 1 (projection + profile)",
+        "Gap": "o4 definition admission batch 1 (projection + profile)",
+        "SignalMappingDisposition": "o4 definition admission batch 1 (projection + profile)",
+        "LogicalToSoftwareSignalMappingRecord": "o4 definition admission batch 1 (projection + profile)",
+        "SystemToSoftwareSignalMappingCandidate": "o4 definition admission batch 1 (projection + profile)",
+        "Need": "o4 definition admission batch 1 (projection + profile)",
+        "Requirement": "o4 definition admission batch 1 (projection + profile)",
+        "RegulatoryConstraint": "o4 definition admission batch 1 (projection + profile)",
+        "MissingRealizationRecord": "o4 definition admission batch 1 (projection + profile)",
+        "BlockedRealizationBranchRecord": "o4 definition admission batch 1 (projection + profile)",
     }
     for identity, stage in expected_stage.items():
         assert decisions[identity]["stage"] == stage, identity

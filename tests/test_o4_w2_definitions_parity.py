@@ -74,10 +74,15 @@ REVIEWED_DEFINITIONS: dict[str, str] = {
 #: admission / generated projection from the reviewed model representation.
 #: O3 is frozen throughout O4 and these rows must never carry an O3
 #: transition requirement.
+# later-batch convention (definition admission batch 1): the O2-admission
+# obligation of these rows is discharged by the generated definition
+# projection/profile pair; the remaining forward obligation is the runtime
+# one (support stays vocabulary-only).
 REMAINING_OBLIGATION = [
-    "O2 admission / generated Semantic Projection from the reviewed model representation",
+    "runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only",
 ]
-PILOT_STAGE = "o4-w2 pilot 1 (definitions parity)"
+# later-batch convention: re-stated at the current treatment stage.
+TREATED_STAGE = "o4 definition admission batch 1 (projection + profile)"
 
 
 def _inventory() -> dict:
@@ -113,7 +118,7 @@ def test_inventory_records_the_closed_parity() -> None:
         assert observed["doc_text_observation"] == "normalized-exact", identity
         assert reviewed["semantic_text_equivalence"] is None, identity
         assert reviewed["required_evidence"] == REMAINING_OBLIGATION, identity
-        assert reviewed["stage"] == PILOT_STAGE, identity
+        assert reviewed["stage"] == TREATED_STAGE, identity
         assert "parity-reviewed" in reviewed["note"], identity
         assert "parity complete (o4-w2 pilot 1)" in reviewed["exact_fit_decision"], identity
         assert "no authority cutover implied" in reviewed["exact_fit_decision"], identity
@@ -128,7 +133,7 @@ def test_decisions_source_records_the_closed_parity() -> None:
     entries = _decisions()
     for identity in PILOT_ROWS:
         reviewed = entries[identity]
-        assert reviewed["stage"] == PILOT_STAGE, identity
+        assert reviewed["stage"] == TREATED_STAGE, identity
         assert reviewed["semantic_text_equivalence"] is None, identity
         assert reviewed["required_evidence"] == REMAINING_OBLIGATION, identity
 

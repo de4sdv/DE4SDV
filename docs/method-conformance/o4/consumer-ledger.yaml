@@ -368,6 +368,12 @@ entries:
     - ontology_yaml_symbol
     retirement_status: not-applicable
     note: Preparation ledger + scanner; self-entry generated for scan convergence.
+  docs/method-conformance/o4/definition-admission.yaml:
+    role: governance-machinery
+    markers:
+    - legacy_yaml_authority
+    retirement_status: not-applicable
+    note: Definition-admission manifest; carries the pre-admission authority annotations copied from the O1 decisions for review context (generation reads the model documentation, never a runtime authority).
   docs/method-conformance/o4/o4-execution-plan.md:
     role: documentation
     markers:
@@ -579,6 +585,11 @@ entries:
     - kernel_contract_symbol
     - ontology_dir_token
     - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_definition_projection.py:
+    role: test-reference
+    markers:
+    - legacy_yaml_authority
     retirement_status: not-applicable
   tests/test_k_real_serializer_shapes.py:
     role: test-reference

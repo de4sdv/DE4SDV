@@ -295,6 +295,7 @@ class TestLayers:
     #: normalized-exact definition parity; it supplies no runtime values.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
+        "definition_projection.py",
         "projection_o22.py",
         "projection_o23.py",
         "projection_o2p.py",
