@@ -28,12 +28,16 @@ Acceptance: every profile entry must carry an ``accepted_ref`` that resolves to
 a repository governance document under ``docs/`` carrying the
 engineering-review acceptance marker, recording the identity as both the
 reference fragment and a table row; free-text references and personal
-owner-approval claims are refused. Recording acceptance changes nothing
+owner-approval claims are refused. The acceptance document is additionally
+bound by digest: the profile pins it as ``acceptance_document: {path, sha256}``
+and ``validate_profile`` refuses a drifted document, so post-hoc edits cannot
+silently change what was accepted. Recording acceptance changes nothing
 operational: ``activation`` stays ``none`` and no traversal, mirroring or
 baseline list is introduced.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -467,6 +471,34 @@ def _validate_schema_block(document: dict[str, Any]) -> None:
         )
 
 
+def _file_digest(path: Path) -> str:
+    """Return the repository-style digest of a file's current bytes."""
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _bounded_acceptance_document(
+    root: Path, accepted_path: str, context: str, raw: str
+) -> Path:
+    """Resolve an acceptance document reference, bounded to the acceptance root."""
+    parts = Path(accepted_path).parts
+    if not accepted_path.startswith(ACCEPTANCE_ROOT) or ".." in parts:
+        raise EvidenceReferenceError(
+            f"{context} must name a repository governance document under "
+            f"{ACCEPTANCE_ROOT} without parent traversal (got {raw!r})"
+        )
+    document = (root / accepted_path).resolve()
+    acceptance_root = (root / ACCEPTANCE_ROOT).resolve()
+    if document != acceptance_root and acceptance_root not in document.parents:
+        raise EvidenceReferenceError(
+            f"{context} must resolve inside {ACCEPTANCE_ROOT} (got {raw!r})"
+        )
+    if not document.is_file():
+        raise EvidenceReferenceError(
+            f"{context} does not resolve to a repository document: {accepted_path}"
+        )
+    return document
+
+
 def _validate_accepted_ref(root: Path, identity: str, entry: dict[str, Any]) -> str:
     """Machine-check one entry's recorded acceptance (fail closed).
 
@@ -475,8 +507,9 @@ def _validate_accepted_ref(root: Path, identity: str, entry: dict[str, Any]) -> 
     under ``docs/`` carrying the engineering-review acceptance marker, its
     fragment must equal the identity, and the document must record the identity
     as a table row. A free-text reference or a personal owner-approval claim is
-    refused. The acceptance document is a READ INPUT of this check; no revision
-    binding is claimed for it.
+    refused. The document's bytes are pinned by the profile's
+    ``acceptance_document`` digest, which ``validate_profile`` re-checks against
+    the live file.
     """
     accepted_ref = entry.get("accepted_ref")
     if not isinstance(accepted_ref, str) or not accepted_ref.strip():
@@ -486,25 +519,9 @@ def _validate_accepted_ref(root: Path, identity: str, entry: dict[str, Any]) -> 
         )
     accepted_ref = accepted_ref.strip()
     accepted_path = accepted_ref.split("#", 1)[0].strip()
-    parts = Path(accepted_path).parts
-    if not accepted_path.startswith(ACCEPTANCE_ROOT) or ".." in parts:
-        raise EvidenceReferenceError(
-            f"{identity}: accepted_ref must name a repository governance document "
-            f"under {ACCEPTANCE_ROOT} without parent traversal "
-            f"(got {accepted_ref!r})"
-        )
-    acceptance_doc = (root / accepted_path).resolve()
-    acceptance_root = (root / ACCEPTANCE_ROOT).resolve()
-    if acceptance_doc != acceptance_root and acceptance_root not in acceptance_doc.parents:
-        raise EvidenceReferenceError(
-            f"{identity}: accepted_ref must resolve inside {ACCEPTANCE_ROOT} "
-            f"(got {accepted_ref!r})"
-        )
-    if not acceptance_doc.is_file():
-        raise EvidenceReferenceError(
-            f"{identity}: accepted_ref does not resolve to a repository document: "
-            f"{accepted_path}"
-        )
+    acceptance_doc = _bounded_acceptance_document(
+        root, accepted_path, f"{identity}: accepted_ref", accepted_ref
+    )
     acceptance_text = acceptance_doc.read_text(encoding="utf-8")
     if ACCEPTANCE_MARKER not in acceptance_text:
         raise EvidenceReferenceError(
@@ -529,6 +546,43 @@ def validate_profile(
 ) -> dict[str, Any]:
     """Machine-lock the prepared profile against the governed register and review."""
     _validate_schema_block(document)
+    acceptance_document = document.get("acceptance_document")
+    if not isinstance(acceptance_document, dict) or set(acceptance_document) != {
+        "path",
+        "sha256",
+    }:
+        raise EvidenceReferenceError(
+            "acceptance_document must record exactly {path, sha256}; the "
+            "acceptance document is bound by digest, not by reference alone"
+        )
+    acceptance_path = acceptance_document.get("path")
+    recorded_digest = acceptance_document.get("sha256")
+    if (
+        not isinstance(acceptance_path, str)
+        or not acceptance_path.strip()
+        or not isinstance(recorded_digest, str)
+        or not recorded_digest.strip()
+    ):
+        raise EvidenceReferenceError(
+            "acceptance_document path and sha256 must be non-empty strings"
+        )
+    acceptance_path = acceptance_path.strip()
+    acceptance_file = _bounded_acceptance_document(
+        root, acceptance_path, "acceptance_document.path", acceptance_path
+    )
+    actual_digest = _file_digest(acceptance_file)
+    raw_recorded = recorded_digest.strip().lower()
+    if raw_recorded.startswith("sha256:"):
+        raw_recorded = raw_recorded[len("sha256:") :]
+    normalized_recorded = normalize_digest(
+        raw_recorded, "acceptance_document.sha256"
+    )
+    if normalized_recorded["value"] != actual_digest.split(":", 1)[1]:
+        raise EvidenceReferenceError(
+            f"acceptance_document.sha256 does not match {acceptance_path}; "
+            "re-record the acceptance digest deliberately (post-hoc edits must "
+            "not silently change what was accepted)"
+        )
     derived = derived_evidence_reference_family(register)
     expected = document.get("expected_rows")
     if not isinstance(expected, list) or not expected:
@@ -580,6 +634,11 @@ def validate_profile(
             raise EvidenceReferenceError(f"profile entry {identity}: duplicate")
         seen.add(identity)
         accepted_ref = _validate_accepted_ref(root, identity, entry)
+        if accepted_ref.split("#", 1)[0].strip() != acceptance_path:
+            raise EvidenceReferenceError(
+                f"{identity}: accepted_ref must reference the pinned acceptance "
+                f"document ({acceptance_path})"
+            )
         mechanics = entry.get("mechanics")
         if not isinstance(mechanics, str) or not mechanics.strip():
             raise EvidenceReferenceError(f"{identity}: mechanics must be non-empty")
@@ -676,6 +735,10 @@ def validate_profile(
         ),
         "family": sorted(derived),
         "scope_rows": sorted(scope),
+        "acceptance_document": {
+            "path": acceptance_path,
+            "sha256": actual_digest,
+        },
         "acceptance_documents": sorted(
             {row["accepted_ref"].split("#", 1)[0].strip() for row in profile_rows}
         ),

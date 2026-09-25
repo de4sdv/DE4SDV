@@ -215,11 +215,11 @@ excluded:
   - identity: producesView
     reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
   - identity: EvidenceArtifact
-    reason: W5 batch 3 treated (external-reference acceptance recorded; external boundary retained); not an O2+ row — external boundary retained
+    reason: W5 batch 3 treated (external-reference acceptance recorded); not an O2+ row — external boundary retained
   - identity: hasEvidence
-    reason: W5 batch 3 treated (external-reference acceptance recorded; external boundary retained); not an O2+ row — external boundary retained
+    reason: W5 batch 3 treated (external-reference acceptance recorded); not an O2+ row — external boundary retained
   - identity: capturedInBaseline
-    reason: W5 batch 3 treated (external-reference acceptance recorded; external boundary retained); not an O2+ row — external boundary retained
+    reason: W5 batch 3 treated (external-reference acceptance recorded); not an O2+ row — external boundary retained
   - identity: Scenario
     reason: Definition admission batch 1 treated (definitions parity completed + projection/profile generated; vocabulary-only); not an O2+ row — its representation belongs to the definition-admission layer, not this native/library layer
   - identity: CommonCapability

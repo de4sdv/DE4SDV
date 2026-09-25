@@ -4,7 +4,13 @@ activation: none
 # W5 external-reference design artifact: acceptance RECORDED (bounded engineering
 # review evidence, see docs/method-conformance/o4/external-reference-acceptance-review.md).
 # It still activates nothing: no traversal, no content mirroring, no baseline
-# list, no admission, no row closure.
+# list, no admission, no row closure. The acceptance document is bound by
+# digest: an edit to it without re-recording acceptance_document.sha256 makes
+# the wired check refuse the profile (post-hoc edits cannot silently change
+# what was accepted).
+acceptance_document:
+  path: docs/method-conformance/o4/external-reference-acceptance-review.md
+  sha256: sha256:1ab147c2a8f4eade72f65499eea6a3db5b576f3881aac5bf5bb730228c216c07
 source:
   review: docs/method-conformance/o4/ontology-review/integrated-review.json
   register: docs/method-conformance/o4/o4-execution-register.json
