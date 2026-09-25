@@ -35,7 +35,7 @@ _MODEL_FILE = (
     "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
 )
 
-ADMITTED_21 = (
+ADMITTED_ROWS = (
     "Assumption",
     "BlockedRealizationBranchRecord",
     "DeferredProductLineScope",
@@ -54,6 +54,7 @@ ADMITTED_21 = (
     "ProductLineCharacteristic",
     "RegulatoryConstraint",
     "Requirement",
+    "Scenario",
     "SignalMappingDisposition",
     "SystemLayer",
     "SystemToSoftwareSignalMappingCandidate",
@@ -138,8 +139,8 @@ def test_manifest_scope_is_exactly_the_admitted_family():
 
     document = load_document(REPO_ROOT)
     admitted = [row["identity"] for row in document["admitted"]]
-    assert sorted(admitted) == list(ADMITTED_21)
-    assert len(admitted) == 21
+    assert sorted(admitted) == list(ADMITTED_ROWS)
+    assert len(admitted) == 22
 
 
 def test_family_invariant_from_canonical_governance():
@@ -206,7 +207,7 @@ def test_family_invariant_from_canonical_governance():
     document = load_document(REPO_ROOT)
     assert sorted(expected) == sorted(row["identity"] for row in document["admitted"])
     # The frozen O3 thirteen are structurally excluded from this layer.
-    assert not (set(ADMITTED_21) & set(MIGRATED_IDENTITIES))
+    assert not (set(ADMITTED_ROWS) & set(MIGRATED_IDENTITIES))
 
 
 def test_every_admitted_row_resolves_and_recomputes_expected_observation():
@@ -266,7 +267,10 @@ def test_generated_rows_stay_vocabulary_only_and_free_of_governance_fields():
 def test_excluded_section_records_the_non_admitted_rows():
     manifest = yaml.safe_load((REPO_ROOT / MANIFEST_PATH).read_text(encoding="utf-8"))
     excluded = {entry["identity"]: entry["reason"] for entry in manifest["excluded"]}
-    for identity in ("Scenario", "ArchitectureDecisionRecord", "Baseline", "IncrementSize"):
+    # Scenario joined the admitted set (batch-1 amendment) and is no longer an
+    # exclusion; the remaining considered-not-admitted rows keep their reasons.
+    assert "Scenario" not in excluded
+    for identity in ("ArchitectureDecisionRecord", "Baseline", "IncrementSize"):
         assert identity in excluded, identity
         assert excluded[identity].strip(), identity
 

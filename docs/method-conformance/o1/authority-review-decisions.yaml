@@ -688,12 +688,12 @@ entries:
       design-input requirement) plus the retained R003 derivation-grounding sentence. The
       reviewed external boundary is preserved: the model carries the reference identity and
       its role as a permitted R003 design-input origin; ADR content stays external in
-      docs/architecture-decisions and is never mirrored. The reviewed model definition is
-      ready for O2 admission; authority_current remains legacy-yaml until its O2
-      admission/retirement condition is completed under O4. No authority cutover implied.'
+      docs/architecture-decisions and is never mirrored. The reviewed external-boundary retention is recorded with a
+      bounded note (external-reference-acceptance-review.md); authority_current remains
+      legacy-yaml pending the O4 closure stage. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - 'reviewed revision-bound closure binding of the accepted external-boundary contract and typed-reference schema/profile entries (O4 closure precondition; external authority retained, no traversal)'
     exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w5 batch 1) — the
       model doc carries the reviewed definition text verbatim plus the retained R003
       derivation-grounding sentence; the residual difference from the ontology definition is
@@ -838,23 +838,22 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: medium
-    stage: o4-w2 batch 7 (bounded pattern grounding)
+    stage: o4 definition admission batch 1 (projection + profile)
     note: 'RECLASSIFIED from native-sysml: operational-context parts + scenario-identity enums are
       representation, not native "Scenario" semantics; meaning established by the DE4SDV definition.
       Bounded pattern grounding reviewed (o4-w2 batch 7): the representation pattern is machine-bound
-      to the evaluator by check_model_sync sync point 1; no reviewed-equivalent record is claimed (no
-      model-side declaration exists, and reviewed-equivalent is representable only for a differing doc
-      observation).'
+      to the evaluator by check_model_sync sync point 1; no reviewed-equivalent record was claimed while no
+      model-side declaration existed. Definition-level parity was completed in definition
+      admission batch 1 (amended): part def Scenario added to the method kernel with
+      normalized-exact text parity, so no reviewed-equivalent record is needed.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed pattern representation
-    - 'definition-level parity stays open: no model-side Scenario declaration exists, so
-      normalized-exact text parity is unattainable and reviewed-equivalent is unrepresentable for this
-      native-grounding row'
+    - runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only
     exact_fit_decision: 'not exact-fit native: no native SysML concept named Scenario; representation
       primitives only. Bounded pattern grounding complete (o4-w2 batch 7): the existing
       scenario-identity enum + operational-context pattern is reviewed as representation, with no
-      native-semantics claim and no definition-level text parity claim.'
+      native-semantics claim; definition-level text parity was completed in
+      definition admission batch 1 (amended) via part def Scenario with normalized-exact text.'
     closure_evidence_ref: null
     semantic_text_equivalence: null
   VerificationCase:
@@ -979,16 +978,17 @@ entries:
     conditional_target: false
     disposition: retain-explicit-external-boundary
     confidence: high
-    stage: o4-w5 batch 2 (external-reference design)
+    stage: o4-w5 batch 3 (external-reference acceptance)
     note: 'o4-w5 batch-2 external-reference design delivered: the typed external-evidence reference contract
       and the API-profile entries are authored and fail-closed (case/artifact identity, exact revision,
       digest, run, tested scope; inclusion never implies pass, verification, acceptance, or approval;
       no traversal; external authority and content boundary preserved). Reviewed acceptance of the
-      schema/profile entries remains the O4 closure precondition.'
+      schema/profile entries is recorded (external-reference-acceptance-review.md,
+      engineering review evidence); the revision-bound closure binding remains the O4 closure
+      precondition.'
     unknowns: []
     required_evidence:
-    - 'reviewed external-boundary contract and typed-reference schema/profile entries approved and bound
-      (O4 closure precondition)'
+    - 'reviewed revision-bound closure binding of the accepted external-boundary contract and typed-reference schema/profile entries (O4 closure precondition; external authority retained, no traversal)'
     exact_fit_decision: 'not a native-fit change: the external boundary is retained
       (retain-explicit-external-boundary); the design delivers the typed reference contract without
       mirroring evidence content, fabricating bytes, or granting approval.'
@@ -1237,7 +1237,7 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: medium
-    stage: o4-w5 batch 1 (definitions parity)
+    stage: o4-w5 batch 3 (external-reference acceptance)
     note: 'o4-w5 batch-1 parity-reviewed: definition-level parity is closed by an explicit
       reviewed-equivalence record — the model doc carries the reviewed definition text (A
       reviewed and controlled state of model, evidence, configuration, or publication
@@ -1246,12 +1246,12 @@ entries:
       evidence). The external boundary is preserved: content authority stays with
       Git-controlled baselines and the baseline register; the model must not mirror baseline
       contents; the row/declaration name split (Baseline vs DE4SDVEvidenceBaseline) is
-      bookkeeping and no rename is performed. The reviewed model definition is ready for O2
-      admission; authority_current remains legacy-yaml until its O2 admission/retirement
-      condition is completed under O4. No authority cutover implied.'
+      bookkeeping and no rename is performed. The reviewed external-boundary acceptance is recorded
+      (external-reference-acceptance-review.md, engineering review evidence); authority_current
+      remains legacy-yaml pending the O4 closure stage. No authority cutover implied.'
     unknowns: []
     required_evidence:
-    - O2 admission / generated Semantic Projection from the reviewed model representation
+    - 'reviewed revision-bound closure binding of the accepted external-boundary contract and typed-reference schema/profile entries (O4 closure precondition; external authority retained, no traversal)'
     exact_fit_decision: 'reviewed-equivalence: definition-level parity closed (o4-w5 batch 1) — the
       model doc carries the reviewed definitional text plus the required model-resident
       non-claim boundary; the residual difference from the ontology definition is the
@@ -2097,16 +2097,16 @@ entries:
     conditional_target: false
     disposition: retain-explicit-external-boundary
     confidence: high
-    stage: o4-w5 batch 2 (external-reference design)
+    stage: o4-w5 batch 3 (external-reference acceptance)
     note: 'o4-w5 batch-2 external-reference design delivered: external-data-required is preserved; the typed
       reference contract carries identity/revision/digest/run/tested scope and machine-locks every
       pass/verification/acceptance/approval implication to false; traversal returns nothing by design
-      and no traversal is added. Reviewed acceptance of the schema/profile entries remains the O4
-      closure precondition.'
+      and no traversal is added. Reviewed acceptance of the schema/profile entries is recorded
+      (external-reference-acceptance-review.md, engineering review evidence); the revision-bound
+      closure binding remains the O4 closure precondition.'
     unknowns: []
     required_evidence:
-    - 'reviewed external-boundary contract and typed-reference schema/profile entries approved and bound
-      (O4 closure precondition)'
+    - 'reviewed revision-bound closure binding of the accepted external-boundary contract and typed-reference schema/profile entries (O4 closure precondition; external authority retained, no traversal)'
     exact_fit_decision: 'not a native-fit change: external-data-required is preserved; the typed reference
       contract adds no traversal and no pass/verification/acceptance/approval implication.'
     closure_evidence_ref: null
@@ -2448,16 +2448,17 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: medium
-    stage: o4-w5 batch 2 (external-reference design)
+    stage: o4-w5 batch 3 (external-reference acceptance)
     note: 'o4-w5 batch-2 external-reference design delivered: baseline membership is an exact external
       manifest fact (a different revision of the same artifact is never carried forward) and inclusion
       never approves evidence. The recorded O1 classification tension (move-meaning-into-model versus
       the canonical review KEEP_EXTERNAL_REFERENCE) is documented, not silently resolved. Reviewed
-      acceptance of the schema/profile entries remains the O4 closure precondition.'
+      acceptance of the schema/profile entries is recorded (external-reference-acceptance-review.md,
+      engineering review evidence); the revision-bound closure binding remains the O4 closure
+      precondition.'
     unknowns: []
     required_evidence:
-    - 'reviewed external-boundary contract and typed-reference schema/profile entries approved and bound
-      (O4 closure precondition)'
+    - 'reviewed revision-bound closure binding of the accepted external-boundary contract and typed-reference schema/profile entries (O4 closure precondition; external authority retained, no traversal)'
     exact_fit_decision: 'not a native-fit change: the baseline membership stays an external manifest fact;
       the model carries typed references only, and inclusion never approves evidence.'
     closure_evidence_ref: null

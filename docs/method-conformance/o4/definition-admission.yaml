@@ -2,10 +2,16 @@
 #
 # ADMITTED (engineering evidence). The admitted family is DERIVED, not
 # hand-picked: every retained, ungated, non-held O4 register row whose
-# reviewed stage is a definitions-parity treatment with model-side definition
-# support, whose target requires BOTH a generated Semantic Projection row and
-# an API Representation Profile entry, and which is not already admitted in
-# another generated layer (O2 chain / O2+ / W4 carriers) or frozen in O3.
+# reviewed treatment carries model-side definition parity (a definitions-parity
+# stage, or the parity completed by this admission's own model declaration),
+# whose target requires BOTH a generated Semantic Projection row and an API
+# Representation Profile entry, and which is not already admitted in another
+# generated layer (O2 chain / O2+ / W4 carriers) or frozen in O3.
+#
+# Batch-1 amendment: Scenario joined the admitted set once its definition home
+# (part def Scenario, de4sdv_operational_context.sysml) landed and its parity
+# completed normalized-exact - the forward obligation recorded by the W2
+# batch 7 bounded pattern grounding review.
 #
 # Machine-locked properties (tests, fail-closed):
 #   * admitted set == the register-derived family above (drift fails);
@@ -265,6 +271,19 @@ admitted:
   expected_documentation_observation: differs
   semantic_text_equivalence: reviewed-equivalent
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
+- identity: Scenario
+  semantic_kind: class
+  wave: W2
+  stage: o4-w2 batch 7 (bounded pattern grounding)
+  declaration:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml
+    declaration: part def Scenario
+  evidence_state: repository-evidenced
+  authority_current: legacy-yaml
+  reviewed_definition: A bounded operational, validation, test, or threat situation used to reason about behavior and evidence.
+  expected_documentation_observation: normalized-exact
+  semantic_text_equivalence: null
+  required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: SignalMappingDisposition
   semantic_kind: class
   wave: W2
@@ -307,23 +326,20 @@ admitted:
 
 # Considered and NOT admitted (recorded so nothing silently disappears).
 excluded:
-  - identity: Scenario
-    reason: >-
-      Bounded pattern grounding only (W2 batch 7): no model-side declaration
-      exists, definition-level parity stays open, and the register's own
-      treatment is the operational-context pattern - not a definition row.
   - identity: ArchitectureDecisionRecord
     reason: >-
       External-boundary row (W5). The canonical review/register require NO
       projection and NO API profile (projection_required False,
       api_profile_required False, runtime support external); content authority
-      stays external. The generic O1 residual string mentioning O2 admission
-      conflicts with the structured flags and is recorded for bounded review,
-      not silently resolved here.
+      stays external. The stale generic O1 residual string that mentioned O2
+      admission was corrected to the external-boundary retention statement;
+      the bounded note is recorded in external-reference-acceptance-review.md.
   - identity: Baseline
     reason: >-
-      Same conflict and disposition as ArchitectureDecisionRecord: structured
-      flags say external boundary with no projection/profile requirement.
+      External-boundary row (W5): covered by the accepted external-reference
+      contract and profile entries (external-reference-acceptance-review.md);
+      structured flags require no projection/profile, and baseline content
+      stays external.
   - identity: IncrementSize
     reason: >-
       Vocabulary-only W3 row; its target requires neither a projection row
