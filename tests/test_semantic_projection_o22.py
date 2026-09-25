@@ -1115,7 +1115,9 @@ class TestPreservationAndRuntimeIndependence:
 # ---------------------------------------------------------------------------
 
 # Permanent Rebind 4 squash (#299, M7); extends v1 at permanent M6.
-COMMITTED_SOURCE_REVISION = "d1c0c915ecc207e282070770ca41dbedb28f6275"
+# Definition admission batch 1 (amended): the v1.1 pair was regenerated on
+# chain commit A2 (contains the regenerated v1 pair).
+COMMITTED_SOURCE_REVISION = "c70871eaf4ef17ac5de3d9527506988783034fa8"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
