@@ -209,8 +209,11 @@ class TestCoverage:
         # Safe-set 2 added seven governed declarations (the five vocabulary
         # carriers + the two generic range bases), all classified as
         # kernel_sync exclusions with reasons.
-        assert kernel["governed_declarations"] == 117
-        assert kernel["mapped_in_directory"] == 39
+        # Definition-admission batch 1 added the Scenario definition home
+        # (part def Scenario), mapped from the ontology class: the governed
+        # equation is now 118 = 40 mapped + 78 exclusions.
+        assert kernel["governed_declarations"] == 118
+        assert kernel["mapped_in_directory"] == 40
         assert kernel["exclusions"] == 78
         assert (
             kernel["mapped_in_directory"] + kernel["exclusions"]
@@ -230,9 +233,9 @@ class TestCoverage:
 
     def test_cross_slice_accounted_separately_from_governed_equation(self, inventory):
         # The cross-slice mapping is NOT part of the governed-directory
-        # equation: 39 + 78 = 117 holds without it.
+        # equation: 40 + 78 = 118 holds without it.
         kernel = inventory["kernel_accounting"]
-        assert kernel["mapped_in_directory"] != 40
+        assert kernel["mapped_in_directory"] != 41
         counts = inventory["counts"]
         assert counts["kernel_mapped_in_dir"] == kernel["mapped_in_directory"]
         assert counts["kernel_mapped_out_of_dir"] == kernel["mapped_out_of_directory"]
