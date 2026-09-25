@@ -19,6 +19,7 @@ commit and the A2 artifact commit by design).
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -31,8 +32,26 @@ MANIFEST_PATH = "docs/method-conformance/o4/definition-admission.yaml"
 DESIGN_PATH = "docs/method-conformance/o4/definition-admission-design.md"
 MODULE_PATH = "de4sdv/semantic/definition_projection.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
+#: The two shared modules the generation path EXECUTES (proved by the
+#: executed-path audit) and therefore must bind as generation software.
+AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
+PROJECTION_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
+BOUND_PROGRAM_INPUTS = (
+    MODULE_PATH,
+    GENERATOR_PATH,
+    AUTHORITY_INVENTORY_PATH,
+    PROJECTION_O2P_PATH,
+)
 _MODEL_FILE = (
     "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+)
+#: The governed model files carrying the admitted declarations of the real
+#: manifest (all four participate in the real bound-input set).
+_MODEL_FILES = (
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
 )
 
 ADMITTED_ROWS = (
@@ -244,8 +263,8 @@ def test_generated_rows_stay_vocabulary_only_and_free_of_governance_fields():
     )
 
     outputs = build_outputs(REPO_ROOT, load_document(REPO_ROOT))
-    assert len(outputs["projection_rows"]) == 21
-    assert len(outputs["profile_entries"]) == 21
+    assert len(outputs["projection_rows"]) == 22
+    assert len(outputs["profile_entries"]) == 22
     for row in outputs["projection_rows"]:
         assert row["support"] == "vocabulary-only"
         assert row["traversal"] is False
@@ -373,6 +392,13 @@ def _fixture_repo(tmp_path: Path, *, commit: bool = True) -> Path:
     generator = root / GENERATOR_PATH
     generator.parent.mkdir(parents=True, exist_ok=True)
     generator.write_text("# bound generator stand-in\n", encoding="utf-8")
+    # Both shared modules are executed by the generation path, so the fixture
+    # carries their real repository bytes (read at fixture creation) and the
+    # same content contract applies to them as to the module/generator.
+    for relative in (AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH):
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((REPO_ROOT / relative).read_bytes())
     if commit:
         _git(root, "init", "-q")
         _git(root, "config", "user.email", "review@example.invalid")
@@ -398,11 +424,20 @@ def test_generation_binds_to_committed_inputs_and_check_passes(tmp_path):
     assert binding["source_revision"] == revision
     assert binding["artifact_commit"] is None
     assert binding["api_binding"]["status"] == "unclaimed"
-    assert set(binding["bound_inputs"]) >= {
+    # The executed shared modules are generation software and are bound.
+    assert binding["generation_software"]["program_inputs"] == list(
+        BOUND_PROGRAM_INPUTS
+    )
+    for relative in (AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH):
+        assert relative in binding["generation_software"]["program_inputs"]
+        assert relative in binding["bound_inputs"]
+    assert set(binding["bound_inputs"]) == {
         MANIFEST_PATH,
         DESIGN_PATH,
         MODULE_PATH,
         GENERATOR_PATH,
+        AUTHORITY_INVENTORY_PATH,
+        PROJECTION_O2P_PATH,
         _MODEL_FILE,
     }
     assert artifacts["projection"]["rows"][0]["traversal"] is False
@@ -427,6 +462,104 @@ def test_generation_refuses_uncommitted_inputs(tmp_path):
     model.write_text(model.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     with pytest.raises(DefinitionAdmissionError):
         build_artifact_pair(root, source_revision=_git(root, "rev-parse", "HEAD"))
+
+
+def test_module_declares_the_executed_shared_modules_as_bound_inputs():
+    """The real bound-input set is the four executed program inputs + models."""
+    from de4sdv.semantic import definition_projection
+
+    assert definition_projection.AUTHORITY_INVENTORY_PATH == AUTHORITY_INVENTORY_PATH
+    assert definition_projection.PROJECTION_O2P_PATH == PROJECTION_O2P_PATH
+    outputs = definition_projection.build_outputs(
+        REPO_ROOT, definition_projection.load_document(REPO_ROOT)
+    )
+    bound = definition_projection.collect_bound_inputs(REPO_ROOT, outputs)
+    assert set(bound) == {
+        MANIFEST_PATH,
+        DESIGN_PATH,
+        MODULE_PATH,
+        GENERATOR_PATH,
+        AUTHORITY_INVENTORY_PATH,
+        PROJECTION_O2P_PATH,
+        *_MODEL_FILES,
+    }
+    for relative in (AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH):
+        assert (REPO_ROOT / relative).is_file(), relative
+        assert bound[relative].startswith("sha256:")
+
+
+#: One unique in-body mutation per executed shared module (the executed-path
+#: audit named both of them; changing either body must break generation when
+#: the bound revision does not contain the change).
+_SHARED_MODULE_MUTATIONS = {
+    AUTHORITY_INVENTORY_PATH: (
+        '    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()',
+        '    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip() + "."',
+    ),
+    PROJECTION_O2P_PATH: (
+        '    return json.dumps(document, indent=2, sort_keys=False) + "\\n"',
+        '    return json.dumps(document, indent=2, sort_keys=True) + "\\n"',
+    ),
+}
+
+
+@pytest.mark.parametrize("relative", [AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH])
+def test_uncommitted_shared_module_edit_is_refused_naming_that_file(tmp_path, relative):
+    from de4sdv.semantic.authority_inventory import file_digest
+
+    from de4sdv.semantic.definition_projection import (
+        PROFILE_PATH,
+        PROJECTION_PATH,
+        DefinitionAdmissionError,
+        build_artifact_pair,
+        run_check_errors,
+    )
+    from de4sdv.semantic.projection_o2p import canonical_json
+
+    root = _fixture_repo(tmp_path)
+    revision = _git(root, "rev-parse", "HEAD")
+    module = root / relative
+    original = module.read_text(encoding="utf-8")
+    before, after = _SHARED_MODULE_MUTATIONS[relative]
+    assert original.count(before) == 1, relative
+    baseline_digest = file_digest(root, relative)
+
+    # (a) mutation WITHOUT committing: the recorded revision no longer
+    # contains this bound input byte-for-byte, so generation refuses and the
+    # refusal names the mutated shared module.
+    module.write_text(original.replace(before, after), encoding="utf-8")
+    assert file_digest(root, relative) != baseline_digest
+    with pytest.raises(DefinitionAdmissionError, match=re.escape(relative)):
+        build_artifact_pair(root, source_revision=revision)
+
+    # (b) commit the edit and rebind to the new revision: generation passes
+    # again and the digest moves with the mutation.
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", f"mutate {relative}")
+    new_revision = _git(root, "rev-parse", "HEAD")
+    artifacts = build_artifact_pair(root, source_revision=new_revision)
+    binding = artifacts["projection"]["binding"]
+    assert binding["bound_inputs"][relative] == file_digest(root, relative)
+    assert binding["bound_inputs"][relative] != baseline_digest
+
+    # The committed artifacts are valid at the new revision ...
+    (root / PROJECTION_PATH).write_text(
+        canonical_json(artifacts["projection"]), encoding="utf-8"
+    )
+    (root / PROFILE_PATH).write_text(
+        canonical_json(artifacts["profile"]), encoding="utf-8"
+    )
+    assert run_check_errors(root) == []
+
+    # ... and a further uncommitted edit to that same shared module makes the
+    # repository gate refuse, naming the file.
+    module.write_text(
+        module.read_text(encoding="utf-8") + "# uncommitted probe\n",
+        encoding="utf-8",
+    )
+    errors = run_check_errors(root)
+    assert errors, "an uncommitted shared-module edit must fail the gate"
+    assert any(relative in error for error in errors), errors
 
 
 def test_observation_mismatch_after_committed_edit_is_refused(tmp_path):
