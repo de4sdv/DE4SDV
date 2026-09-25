@@ -290,6 +290,22 @@ def test_accepted_ref_outside_the_acceptance_root_fails_closed():
         module.validate_profile(REPO_ROOT, mutated, register, review)
 
 
+def test_accepted_ref_parent_traversal_fails_closed():
+    # Reviewer-demonstrated fail-open: `docs/../X` escaped the acceptance root
+    # while satisfying the naive prefix check; AGENTS.md exists, so only the
+    # traversal rule can reject it.
+    module, document, register, review = _load()
+
+    for value in (
+        "docs/../AGENTS.md#hasEvidence",
+        "docs/method-conformance/../o4/external-reference-acceptance-review.md#hasEvidence",
+        "docs/../../etc/hostname#hasEvidence",
+    ):
+        mutated = _with_accepted_ref(document, "hasEvidence", value)
+        with pytest.raises(module.EvidenceReferenceError, match="parent traversal"):
+            module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
 def test_accepted_ref_to_a_missing_document_fails_closed():
     module, document, register, review = _load()
 

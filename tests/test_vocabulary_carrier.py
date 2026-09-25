@@ -345,6 +345,31 @@ def test_acceptance_reference_must_resolve_to_a_real_document(tmp_path):
         _build(root, document, _review())
 
 
+def test_acceptance_reference_parent_traversal_is_refused(tmp_path):
+    # Reviewer-demonstrated fail-open: `docs/../X` escaped the acceptance root
+    # while still satisfying the naive prefix check. The refusal is structural:
+    # the planted file EXISTS, so only the traversal rule can reject it.
+    from de4sdv.semantic.vocabulary_carrier import CarrierError
+
+    root = _model(tmp_path)
+    planted = root / "tests" / "planted.md"
+    planted.parent.mkdir(parents=True)
+    planted.write_text(
+        "Status: accepted-as-engineering-review-evidence\n| recordsGap | x |\n",
+        encoding="utf-8",
+    )
+    document = _document()
+    document["admitted"][0]["accepted_ref"] = "docs/../tests/planted.md#recordsGap"
+    with pytest.raises(CarrierError, match="parent traversal"):
+        _build(root, document, _review())
+    document = _document()
+    document["admitted"][0]["accepted_ref"] = (
+        "docs/method-conformance/o4/../../tests/planted.md#recordsGap"
+    )
+    with pytest.raises(CarrierError, match="parent traversal"):
+        _build(root, document, _review())
+
+
 def test_acceptance_document_without_marker_is_refused(tmp_path):
     from de4sdv.semantic.vocabulary_carrier import CarrierError
 
