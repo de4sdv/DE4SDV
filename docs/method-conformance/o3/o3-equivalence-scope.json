@@ -47,15 +47,15 @@
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/semantic-projection-v1.2.json",
         "schema": "de4sdv.semantic-projection.v1.2",
-        "sha256": "sha256:dec7ac0e1600bf8a634c2bf5bf980d5eaf1396f9a5ba5e8b00f30edcf584b3d2",
-        "source_revision": "61f6930d56069dd19bca1151fbb7d678aa98b085"
+        "sha256": "sha256:5474f6b982aa532cfe64cfeda5603c2ce902e707dbb4d5e2960e2c4986c0d050",
+        "source_revision": "a6516b372d7d510be9935e5fdca3386972bbc890"
       },
       {
         "api_binding": "unclaimed",
         "path": "docs/method-conformance/o2/api-representation-profile-v1.2.json",
         "schema": "de4sdv.api-representation-profile.v1.2",
-        "sha256": "sha256:739eca5e8481c30e38c8bb85fa16b43c3aab4768a999a7436efaca53cbc871ac",
-        "source_revision": "61f6930d56069dd19bca1151fbb7d678aa98b085"
+        "sha256": "sha256:ef4669893b9172ff79f97f9d3470b89280fc2aa4395252bffd1a08a9dd0222f3",
+        "source_revision": "a6516b372d7d510be9935e5fdca3386972bbc890"
       }
     ],
     "ontology": {

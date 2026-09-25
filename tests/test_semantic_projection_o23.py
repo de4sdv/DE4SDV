@@ -1740,9 +1740,8 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# TEMPORARY_STACK_BINDING: Rebind 5 review consistency; extends v1.1 at M7.
-# Rebind 6 must bind permanently to the actual Rebind 5 squash (M8).
-COMMITTED_SOURCE_REVISION = "61f6930d56069dd19bca1151fbb7d678aa98b085"
+# Permanent Rebind 5 squash (#301, M8); extends v1.1 at permanent M7.
+COMMITTED_SOURCE_REVISION = "a6516b372d7d510be9935e5fdca3386972bbc890"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
