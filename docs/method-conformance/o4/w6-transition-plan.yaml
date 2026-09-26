@@ -1,7 +1,8 @@
 # W6 rename / alias / deprecation transition plan — PREPARATION ONLY.
 # No rename is performed, no alias is emitted, no deprecation interval is
 # active, and no runtime consumer reads this file. Every entry keeps
-# authorization: null until the owner resolves decision-1 and decision-15
+# authorization: null until the owner resolves decision-1 (plus decision-2
+# for constrainedBy, decision-8 and decision-15 for the trace successor)
 # (see docs/method-conformance/o4/o4-execution-register.json).
 # Successor names are read from the per-row target.proposed_name of
 # docs/method-conformance/o4/ontology-review/integrated-review.json, except
@@ -13,8 +14,10 @@ schema: de4sdv.o4-w6-transition-plan/v1
 status: preparation
 note: >-
   Preparation only; not authorization. Awaiting owner decision-1 (five renames
-  plus alias/deprecation policy per predicate) and decision-15 (trace-chain
-  successor identity name). No entry is authorized and nothing executes.
+  plus alias/deprecation policy per predicate), decision-2 (constrainedBy),
+  and decisions decision-8 and decision-15 (trace redesign and successor name).
+  The shell inherits the target's prerequisites, not intrinsic row gates.
+  No entry is authorized and nothing executes.
   Review annotation: the integrated review records constrainedBy's successor
   verbatim as "hasRegulatorySource (proposed)"; this plan stores the
   identifier portion only (hasRegulatorySource), per the successor identifier
