@@ -5,12 +5,12 @@
   "extends": {
     "artifact": "docs/method-conformance/o2/semantic-projection-v1.json",
     "schema": "de4sdv.semantic-projection.v1",
-    "source_revision": "b92af1c275bc6745e39fa69185962cc12f8381e9",
-    "artifact_digest": "sha256:be0d7daea220a60e1bda6506573c068eeb383fbab0de8089d032c7decb42ccf0",
+    "source_revision": "f64620cb958888ea8a749bfd16945fc7c1371a33",
+    "artifact_digest": "sha256:e8e107d52f19a60c929301042f51e57fd44d7e680ab48f0357f2e68d277c986a",
     "note": "Additive extension of this immutable O2.1 baseline: the baseline remains canonical for its own content and is neither re-emitted nor re-bound here. The recorded digest pins the baseline bytes this extension was generated against; the baseline's own repository gate validates its revision binding, and the extension gate additionally requires the baseline source revision to remain an ancestor of the extension source revision."
   },
   "binding": {
-    "source_revision": "c70871eaf4ef17ac5de3d9527506988783034fa8",
+    "source_revision": "56df5249cad2c2d5fa15f6b81e21dd73a7e88c96",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -46,11 +46,11 @@
     },
     "baseline_projection": {
       "path": "docs/method-conformance/o2/semantic-projection-v1.json",
-      "digest": "sha256:be0d7daea220a60e1bda6506573c068eeb383fbab0de8089d032c7decb42ccf0"
+      "digest": "sha256:e8e107d52f19a60c929301042f51e57fd44d7e680ab48f0357f2e68d277c986a"
     },
     "baseline_profile": {
       "path": "docs/method-conformance/o2/api-representation-profile-v1.json",
-      "digest": "sha256:74949109440d5a09040e7c81fbf76630ee0d4296d9ea8b421652613a709ab3b1"
+      "digest": "sha256:7454b043ac41a98c64cb0d98cf8b7a79b55c7315a0cc7ab29e8bfcfd933dd826"
     },
     "bound_inputs": {
       "approach/framework/ontology/de4sdv-basic-ontology.yaml": "sha256:e950e0c50dfe12f2ca6b2b2ab6e59878f7b0319f448e04648fadcd6888c52b46",
@@ -58,9 +58,9 @@
       "de4sdv/semantic/kernel_contract.py": "sha256:aedbdc7452bfd6ff4d8c126e91e6e287349ffa79f895f49fd4099d554916cd01",
       "de4sdv/semantic/projection_o22.py": "sha256:0f320ad7a02781051a304760575dd9d35c15d123a4d648c9f81a0dc028dfde21",
       "de4sdv/semantic/projection_v1.py": "sha256:b568b8e93482b77f0f7bf44cda2411f6deba4d4267248b19a6608e4394c2af10",
-      "docs/method-conformance/o2/api-representation-profile-v1.json": "sha256:74949109440d5a09040e7c81fbf76630ee0d4296d9ea8b421652613a709ab3b1",
+      "docs/method-conformance/o2/api-representation-profile-v1.json": "sha256:7454b043ac41a98c64cb0d98cf8b7a79b55c7315a0cc7ab29e8bfcfd933dd826",
       "docs/method-conformance/o2/o22-admission.yaml": "sha256:80ec9affcbbc954a4f0416a8d6e0282ddbd3b4ab7055330952f332b9331955b7",
-      "docs/method-conformance/o2/semantic-projection-v1.json": "sha256:be0d7daea220a60e1bda6506573c068eeb383fbab0de8089d032c7decb42ccf0",
+      "docs/method-conformance/o2/semantic-projection-v1.json": "sha256:e8e107d52f19a60c929301042f51e57fd44d7e680ab48f0357f2e68d277c986a",
       "scripts/generate_semantic_projection_o22.py": "sha256:275c401f81aeaec3269765ca752d640667ee50355fe0f7bf70d97900528e64f4",
       "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml": "sha256:c5c2bdeb216bbd639543d00b69f6e7184bedaa708479365749c95de776c7185b",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:0657c24def99e7e3d2211ad859ddf01761f174980fc0a10096762ca9fed8697f",
