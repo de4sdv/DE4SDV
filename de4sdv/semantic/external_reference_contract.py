@@ -11,7 +11,7 @@ boundary identity). The governed semantics are the reviewed definitions:
 * the model owns the typed reference schema only — artifact bytes, artifact
   status, acceptance decisions and baseline contents stay external.
 
-The contract validates SUPPLIED records and the committed prepared profile
+The contract validates SUPPLIED records and the committed accepted profile
 artifact only:
 
 * no network fetch, no content mirroring, no artifact byte claims;
@@ -62,11 +62,10 @@ BASELINE_MANIFEST_SCHEMA = "de4sdv.baseline-manifest-reference/v1"
 ACCEPTANCE_MARKER = "accepted-as-engineering-review-evidence"
 ACCEPTANCE_ROOT = "docs/"
 
-#: ``prepared`` is the pre-acceptance state; the accepted state records
-#: engineering-review evidence. Neither state activates anything.
-PROFILE_STATUS_PREPARED = "prepared"
+#: This acceptance gate requires recorded engineering-review evidence.
+#: Historical prepared designs are not accepted profiles. No activation follows.
 PROFILE_STATUS_ACCEPTED = "accepted-engineering-review-evidence"
-PROFILE_STATUSES = (PROFILE_STATUS_PREPARED, PROFILE_STATUS_ACCEPTED)
+PROFILE_STATUSES = (PROFILE_STATUS_ACCEPTED,)
 
 VERSION_IDENTITY_FORM = "<artifact_identity>@<artifact_revision>"
 
@@ -297,7 +296,7 @@ def external_boundary_state(identity: str) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- #
-# Prepared profile artifact: fail-closed family lock + profile entry validation
+# Accepted profile artifact: fail-closed family lock + profile entry validation
 # --------------------------------------------------------------------------- #
 
 def load_profile(path: Path) -> dict[str, Any]:
@@ -318,7 +317,7 @@ def load_profile(path: Path) -> dict[str, Any]:
         or document.get("activation") != "none"
     ):
         raise EvidenceReferenceError(
-            "external-reference profile must stay prepared-or-accepted "
+            "external-reference profile must carry accepted engineering-review evidence "
             f"(status one of {sorted(PROFILE_STATUSES)}) with activation none"
         )
     return document
@@ -360,7 +359,7 @@ def derived_evidence_reference_family(register: dict[str, Any]) -> set[str]:
     """The DERIVED family: evidence-lineage external-boundary rows, no traversal.
 
     A register/review edit that adds or removes such a row changes this set, so
-    the prepared profile breaks instead of silently changing its scope. The
+    the accepted profile breaks instead of silently changing its scope. The
     discriminator keys are REQUIRED on every row: a row that loses a key fails
     generation instead of silently dropping out of the family.
     """
@@ -429,7 +428,7 @@ def _validate_schema_block(document: dict[str, Any]) -> None:
         or document.get("activation") != "none"
     ):
         raise EvidenceReferenceError(
-            "external-reference profile must stay prepared-or-accepted "
+            "external-reference profile must carry accepted engineering-review evidence "
             f"(status one of {sorted(PROFILE_STATUSES)}) with activation none"
         )
     schema = document.get("typed_reference_schema")
@@ -533,18 +532,56 @@ def _validate_accepted_ref(root: Path, identity: str, entry: dict[str, Any]) -> 
         raise EvidenceReferenceError(
             f"{identity}: accepted_ref fragment must equal the identity (got {fragment!r})"
         )
-    if not re.search(rf"^\s*\|\s*{re.escape(identity)}\s*\|", acceptance_text, re.MULTILINE):
+    table_rows = [
+        [cell.strip() for cell in line.strip().strip("|").split("|")]
+        for line in acceptance_text.splitlines() if line.strip().startswith("|")
+    ]
+    rows = [row for row in table_rows if row and row[0] == identity]
+    if not rows:
         raise EvidenceReferenceError(
             f"{identity}: acceptance document {accepted_path} does not record this "
             "identity as a table row"
         )
+    header = ["identity", "reviewed disposition", "reviewed representation"]
+    if (
+        table_rows.count(header) != 1
+        or len(rows) != 1
+        or len(rows[0]) != 3
+        or not re.fullmatch(r"KEEP_EXTERNAL_REFERENCE(?: \([^\n]*\))?", rows[0][1])
+        or rows[0][2] != entry.get("representation_class")
+    ):
+        raise EvidenceReferenceError(
+            f"{identity}: reviewed acceptance row must uniquely record "
+            "KEEP_EXTERNAL_REFERENCE and the profile representation"
+        )
     return accepted_ref
+
+
+def reviewed_profile_digest(document: dict[str, Any]) -> str:
+    """Hash reviewed content, excluding the document back-reference and progress prose.
+
+    The acceptance record stores this digest; the profile pins that record's
+    bytes. Excluding acceptance_document prevents a circular full-file hash.
+    """
+    fields = (
+        "schema", "status", "activation", "source", "expected_rows", "scope_rows",
+        "typed_reference_schema", "baseline_manifest_schema", "profile_entries",
+    )
+    missing = [key for key in fields if key not in document]
+    if missing:
+        raise EvidenceReferenceError(
+            f"reviewed profile payload fields missing: {missing}"
+        )
+    payload = {key: document.get(key) for key in fields}
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"),
+                         ensure_ascii=False).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
 def validate_profile(
     root: Path, document: dict[str, Any], register: dict[str, Any], review: dict[str, Any]
 ) -> dict[str, Any]:
-    """Machine-lock the prepared profile against the governed register and review."""
+    """Machine-lock the accepted profile against the governed register and review."""
     _validate_schema_block(document)
     acceptance_document = document.get("acceptance_document")
     if not isinstance(acceptance_document, dict) or set(acceptance_document) != {
@@ -725,11 +762,20 @@ def validate_profile(
         raise EvidenceReferenceError(
             f"scope_rows without a profile entry: {sorted(set(scope) - seen)}"
         )
+    recorded_payloads = re.findall(
+        r"^Reviewed-profile-payload: `(sha256:[0-9a-f]{64})`$",
+        acceptance_file.read_text(encoding="utf-8"), re.MULTILINE,
+    )
+    if recorded_payloads != [reviewed_profile_digest(document)]:
+        raise EvidenceReferenceError(
+            "reviewed profile payload differs from the acceptance record; "
+            "review the change and update both digest records deliberately"
+        )
     profile_rows.sort(key=lambda item: item["identity"])
     return {
         "schema": "de4sdv.o4-external-reference-profile-outputs/v1",
         "warning": (
-            "Prepared profile only. External boundary retained: no traversal, no "
+            "Accepted engineering-review profile only. External boundary retained: no traversal, no "
             "content mirroring, no baseline list, no pass/verification/acceptance/"
             "approval implication."
         ),
@@ -747,7 +793,7 @@ def validate_profile(
 
 
 def build_profile_outputs(root: Path) -> dict[str, Any]:
-    """Validate the committed prepared profile and emit its profile rows."""
+    """Validate the committed accepted profile and emit its profile rows."""
     document = load_profile(root / PROFILE_PATH)
     register = load_register(root)
     review = load_review(root)

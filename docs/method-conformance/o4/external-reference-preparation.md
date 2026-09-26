@@ -104,21 +104,20 @@ foreign-shaped records.
 | no traversal | `traversal: false` in the schema block, in every profile row and in every output; `sysml_mapping`/traversal record fields refused |
 | blocked-state surfaced | `external_boundary_state` + external/no-traversal fields on every association output |
 
-The three rows keep their reviewed external-boundary state and their "T/E
-evidence-reference design" evidence item. **No row is closed by this package.**
+The four rows retain their reviewed external-boundary state.
+**No row is closed by this package.**
 
-## Exact remaining integration changes (parent)
+## Integration and remaining closure
 
-1. Wire `de4sdv/semantic/external_reference_contract.py:run_check_errors` into
-   `scripts/check_repo.py` next to the other O4 checks (the hook is the only
-   integration point this package does not add).
-2. Regenerate the O4 execution register / O1 inventory evidence rows for
-   `EvidenceArtifact`, `hasEvidence`, `capturedInBaseline` (and `Baseline` as
-   the referenced identity) under the two-commit pattern, recording this
-   contract + profile as their evidence.
-3. Record the reviewed acceptance of the typed-reference schema/profile entries
-   (retirement precondition of the three YAML rows); this artifact is the
-   prepared design that acceptance would consume — it is not that acceptance.
-4. Row closure stays open until the reviewed evidence items resolve; any future
-   traversal/representation change for these rows goes through the normal
-   reviewed path.
+1. Delivered: `external_reference_contract.run_check_errors` is wired into
+   `scripts/check_repo.py` as a fail-closed check.
+2. Delivered: O1 review rows and the generated inventory record the acceptance
+   stage for `EvidenceArtifact`, `hasEvidence`, `capturedInBaseline` and `Baseline`.
+3. Delivered: bounded engineering acceptance is recorded in
+   `external-reference-acceptance-review.md`. The profile pins that document;
+   the document pins the reviewed profile payload without circular hashing.
+   The gate requires accepted engineering-review status; historical prepared
+   designs do not satisfy this acceptance gate. Nothing is activated.
+4. Open: row closure and authored-YAML retirement require their remaining
+   evidence and consumer-migration exits. Any future traversal or representation
+   change requires review; this preparation document is not an acceptance record.

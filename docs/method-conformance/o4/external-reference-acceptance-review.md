@@ -31,6 +31,18 @@ Definitions are read from the canonical integrated review
 time by the governed contract; this document is a review record, never a second
 source of definition text.
 
+## Reviewed profile payload binding
+
+Reviewed-profile-payload: `sha256:94c072a63caf2e8a8074d25bef5227b8d17e8994439de153d7bfad30fd06cd10`
+
+This digest pins the existing reviewed profile content, including mechanics,
+schema contracts, representations, declarations and scope. It uses Unicode JSON
+with sorted keys, compact separators and unescaped Unicode over the fields
+selected by `reviewed_profile_digest`. The acceptance-document back-reference
+and progress prose are excluded to avoid circular hashing. The profile in turn
+pins this document's complete bytes. Changes require deliberate review and
+updates to both records; matching digests do not constitute personal approval.
+
 ## Review method
 
 1. Each identity's canonical review row was required to carry exactly one

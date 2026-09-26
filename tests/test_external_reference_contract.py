@@ -177,7 +177,7 @@ def test_blocked_state_is_surfaced_for_queries():
 
 
 # --------------------------------------------------------------------------- #
-# Prepared profile artifact: family lock + profile entries
+# Accepted profile artifact: family lock + profile entries
 # --------------------------------------------------------------------------- #
 
 def _load():
@@ -408,11 +408,40 @@ def test_accepted_ref_must_reference_the_pinned_document():
 def test_unknown_status_value_fails_closed():
     module, document, register, review = _load()
 
-    for value in ("accepted", "active", "recorded"):
+    for value in ("accepted", "active", "recorded", "prepared"):
         mutated = copy.deepcopy(document)
         mutated["status"] = value
-        with pytest.raises(module.EvidenceReferenceError, match="prepared-or-accepted"):
+        with pytest.raises(module.EvidenceReferenceError, match="accepted engineering-review"):
             module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+@pytest.mark.parametrize("disposition,representation", [
+    ("WITHDRAWN", "external-reference-record"),
+    ("KEEP_EXTERNAL_REFERENCE", "model-resident-boundary-identity"),
+])
+def test_acceptance_row_content_is_checked(tmp_path, disposition, representation):
+    module, document, _, _ = _load()
+    entry = next(row for row in document["profile_entries"]
+                 if row["identity"] == "hasEvidence")
+    path = tmp_path / entry["accepted_ref"].split("#", 1)[0]
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        f"Status: **{module.ACCEPTANCE_MARKER}**\n\n"
+        "| identity | reviewed disposition | reviewed representation |\n"
+        "| --- | --- | --- |\n"
+        f"| hasEvidence | {disposition} | {representation} |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(module.EvidenceReferenceError, match="reviewed acceptance row"):
+        module._validate_accepted_ref(tmp_path, "hasEvidence", entry)
+
+
+def test_mechanics_change_requires_reviewed_payload_update():
+    module, document, register, review = _load()
+    changed = copy.deepcopy(document)
+    changed["profile_entries"][0]["mechanics"] = "Reference implies accepted evidence."
+    with pytest.raises(module.EvidenceReferenceError, match="reviewed profile payload"):
+        module.validate_profile(REPO_ROOT, changed, register, review)
 
 
 def test_profile_family_drift_fails_closed():
@@ -454,7 +483,7 @@ def test_profile_schema_block_is_machine_locked():
 
     active = copy.deepcopy(document)
     active["activation"] = "traversal"
-    with pytest.raises(module.EvidenceReferenceError, match="prepared"):
+    with pytest.raises(module.EvidenceReferenceError, match="activation none"):
         module.validate_profile(REPO_ROOT, active, register, review)
 
 

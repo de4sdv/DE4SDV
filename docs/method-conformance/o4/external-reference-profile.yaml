@@ -10,7 +10,7 @@ activation: none
 # what was accepted).
 acceptance_document:
   path: docs/method-conformance/o4/external-reference-acceptance-review.md
-  sha256: sha256:1ab147c2a8f4eade72f65499eea6a3db5b576f3881aac5bf5bb730228c216c07
+  sha256: sha256:7a2f61afb6398a932715f4c7cae1ff7e738e1d2570011ed54efb36653a61e330
 source:
   review: docs/method-conformance/o4/ontology-review/integrated-review.json
   register: docs/method-conformance/o4/o4-execution-register.json
