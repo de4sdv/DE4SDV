@@ -109,7 +109,7 @@ def test_duplicate_identity_is_refused():
 def test_any_non_null_authorization_is_refused_naming_the_decision():
     from de4sdv.semantic.rename_transition import RenameTransitionError, validate_plan
 
-    record = {"decision": "decision-1", "record": "docs/method-conformance/o4/w6-transition-preparation.md#decision-1"}
+    record = {"decisions": ["decision-1"], "record": "docs/method-conformance/o4/w6-transition-preparation.md#decision-1"}
     for authorization in (record, ["decision-1"], "decision-1"):
         with pytest.raises(RenameTransitionError, match="decision-1"):
             validate_plan(_doc(entries=[_entry("realizedBy", "allocatedToArchitecture",
@@ -125,7 +125,7 @@ def test_synthetic_authorized_plan_yields_decided_in_memory_only():
 
     document = _doc(entries=[_entry(
         "realizedBy", "allocatedToArchitecture",
-        {"decision": "decision-1",
+        {"decisions": ["decision-1"],
          "record": "docs/method-conformance/o4/o4-execution-register.json#realizedBy"})])
     plan = validate_plan(document, allow_authorized=True)
     assert transition_state("realizedBy", plan) == "decided"
@@ -135,6 +135,48 @@ def test_synthetic_authorized_plan_yields_decided_in_memory_only():
             "realizedBy", "allocatedToArchitecture",
             {"decision": "decision-99", "record": "docs/note.md#x"})]),
             allow_authorized=True)
+
+
+@pytest.mark.parametrize("identity,successor,decisions", [
+    ("constrainedBy", "hasRegulatorySource", ["decision-1"]),
+    ("IncrementTraceabilityShell", "RequiredTraceChain", ["decision-15"]),
+    ("realizedBy", "allocatedToArchitecture", ["decision-99"]),
+])
+def test_incomplete_decisions_refused_by_all_helpers(identity, successor, decisions):
+    from de4sdv.semantic import rename_transition as m
+    document = _doc(entries=[_entry(identity, successor,
+                    {"decisions": decisions, "record": "synthetic"})])
+    for check in (lambda: m.validate_plan(document, allow_authorized=True),
+                  lambda: m.transition_state(identity, document),
+                  lambda: m.authorized_entries(document)):
+        with pytest.raises(m.RenameTransitionError, match="decisions"):
+            check()
+
+
+def test_duplicate_yaml_keys_are_rejected(tmp_path):
+    from de4sdv.semantic import rename_transition as m
+    path = tmp_path / m.PLAN_PATH
+    path.parent.mkdir(parents=True)
+    path.write_text(f"schema: {m.SCHEMA}\nstatus: preparation\nentries: []\nentries: []\n")
+    with pytest.raises(m.RenameTransitionError, match="duplicate YAML key"):
+        m.load_plan(tmp_path)
+
+
+def test_required_gate_sets_match_register():
+    import json
+    from de4sdv.semantic import rename_transition as m
+    rows = {row["identity"]: row for row in json.loads((REPO_ROOT /
+            "docs/method-conformance/o4/o4-execution-register.json").read_text())["rows"]}
+    for identity, decisions in m._REQUIRED_DECISIONS.items():
+        target = "RequiredTraceChain" if identity == "IncrementTraceabilityShell" else identity
+        assert decisions == set(rows[target]["gate_decisions"])
+
+
+def test_unsupported_identity_is_refused_even_unauthorized():
+    from de4sdv.semantic.rename_transition import RenameTransitionError, validate_plan
+
+    with pytest.raises(RenameTransitionError, match="unsupported transition identity"):
+        validate_plan(_doc(entries=[_entry("someUnsupportedRow", "someSuccessor")]))
 
 
 def test_module_is_absent_from_the_runtime_import_graph():

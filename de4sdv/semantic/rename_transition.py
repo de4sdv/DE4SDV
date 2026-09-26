@@ -3,9 +3,9 @@
 The committed plan (``docs/method-conformance/o4/w6-transition-plan.yaml``) is
 preparation only: no identity is renamed, no alias is emitted, no deprecation
 interval is active, and no runtime consumer reads this module. Every entry
-stays ``authorization: null`` until the owner resolves decision-1 (the five
-renames plus alias/deprecation policy) or decision-15 (trace-chain successor
-name). Any non-null authorization in the committed plan is refused.
+stays ``authorization: null`` until the owner resolves the required decisions
+(decision-1; plus decision-2 for constrainedBy; decision-8 and decision-15 for
+the trace successor). Any non-null authorization in the committed plan is refused.
 """
 from __future__ import annotations
 
@@ -28,8 +28,19 @@ _SUCCESSOR_PROPOSED = re.compile(r"^[a-z][A-Za-z0-9]*$")
 # as-yet-undecided name), so those entries validate the successor as an
 # identifier only — never as a proposed lowercase name.
 _TRACE_IDENTITIES = frozenset({"IncrementTraceabilityShell", "RequiredTraceChain", "TraceLink"})
-_AUTHORIZATION_KEYS = {"decision", "record"}
-_RECOGNIZED_DECISIONS = {"decision-1", "decision-15"}
+_AUTHORIZATION_KEYS = {"decisions", "record"}
+_REQUIRED_DECISIONS = {
+    "realizedBy": {"decision-1"},
+    "specifiesFunction": {"decision-1"},
+    "validatedBy": {"decision-1"},
+    "deployedTo": {"decision-1"},
+    "constrainedBy": {"decision-1", "decision-2"},
+    # The shell inherits these prerequisites from its proposed merge target,
+    # not from its own (empty) register gate_decisions.
+    "IncrementTraceabilityShell": {"decision-8", "decision-15"},
+    "RequiredTraceChain": {"decision-8", "decision-15"},
+    "TraceLink": {"decision-8", "decision-15"},
+}
 
 
 class RenameTransitionError(ValueError):
@@ -37,7 +48,9 @@ class RenameTransitionError(ValueError):
 
 
 def _pending_decision(identity: str) -> str:
-    return "decision-15" if identity in _TRACE_IDENTITIES else "decision-1"
+    if identity not in _REQUIRED_DECISIONS:
+        raise RenameTransitionError(f"unknown transition identity: {identity}")
+    return ", ".join(sorted(_REQUIRED_DECISIONS[identity]))
 
 
 def validate_plan(document: dict, *, allow_authorized: bool = False) -> dict:
@@ -81,6 +94,8 @@ def validate_plan(document: dict, *, allow_authorized: bool = False) -> dict:
         if identity in seen:
             raise RenameTransitionError(f"duplicate identity {identity}")
         seen.add(identity)
+        if identity not in _REQUIRED_DECISIONS:
+            raise RenameTransitionError(f"unsupported transition identity: {identity}")
         successor = entry["proposed_successor"]
         if not isinstance(successor, str) or not _IDENTIFIER.match(successor):
             raise RenameTransitionError(f"{identity}: invalid proposed_successor {successor!r}")
@@ -103,10 +118,15 @@ def validate_plan(document: dict, *, allow_authorized: bool = False) -> dict:
         missing = sorted(_AUTHORIZATION_KEYS - set(authorization))
         if missing:
             raise RenameTransitionError(f"{identity}: missing authorization keys: {missing}")
-        if authorization["decision"] not in _RECOGNIZED_DECISIONS:
+        decisions = authorization["decisions"]
+        _pending_decision(identity)  # Unknown identities have no authorization rule.
+        if (not isinstance(decisions, list)
+                or not all(isinstance(value, str) for value in decisions)
+                or len(decisions) != len(set(decisions))
+                or set(decisions) != _REQUIRED_DECISIONS[identity]):
             raise RenameTransitionError(
-                f"{identity}: authorization decision {authorization['decision']!r} "
-                "is not a recognized owner decision")
+                f"{identity}: authorization decisions must cover exactly "
+                f"{_pending_decision(identity)}")
         record = authorization["record"]
         if not isinstance(record, str) or not record:
             raise RenameTransitionError(
@@ -114,12 +134,26 @@ def validate_plan(document: dict, *, allow_authorized: bool = False) -> dict:
     return document
 
 
+class _UniqueKeyLoader(yaml.SafeLoader):
+    def construct_mapping(self, node, deep=False):
+        keys = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            try:
+                if key in keys:
+                    raise RenameTransitionError(f"duplicate YAML key: {key}")
+                keys.add(key)
+            except TypeError as exc:
+                raise RenameTransitionError("YAML mapping keys must be scalar") from exc
+        return super().construct_mapping(node, deep=deep)
+
+
 def load_plan(root: str | Path = REPO_ROOT) -> dict:
     """Load and validate the committed transition plan. Never activates it."""
     path = Path(root) / PLAN_PATH
     if not path.is_file():
         raise RenameTransitionError(f"transition plan missing: {PLAN_PATH}")
-    return validate_plan(yaml.safe_load(path.read_text(encoding="utf-8")))
+    return validate_plan(yaml.load(path.read_text(encoding="utf-8"), Loader=_UniqueKeyLoader))
 
 
 def transition_state(identity: str, plan: dict | None = None) -> str:
@@ -129,7 +163,7 @@ def transition_state(identity: str, plan: dict | None = None) -> str:
     ``authorization: null``); it exists so the schema logic can be exercised
     against synthetic in-memory plans validated with ``allow_authorized``.
     """
-    document = load_plan() if plan is None else plan
+    document = load_plan() if plan is None else validate_plan(plan, allow_authorized=True)
     entries = document.get("entries")
     if not isinstance(entries, list):
         raise RenameTransitionError("entries must be a list")
@@ -141,6 +175,7 @@ def transition_state(identity: str, plan: dict | None = None) -> str:
 
 def authorized_entries(document: dict) -> list[dict]:
     """Entries carrying an owner authorization record. Empty for the skeleton."""
+    validate_plan(document, allow_authorized=True)
     entries = document.get("entries")
     if not isinstance(entries, list):
         raise RenameTransitionError("entries must be a list")
