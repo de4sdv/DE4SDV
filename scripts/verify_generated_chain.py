@@ -63,20 +63,10 @@ O3_SCOPE_PATH = "docs/method-conformance/o3/o3-equivalence-scope.json"
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _BARE_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
-try:  # shared lane helpers (same repository)
-    from de4sdv.semantic.authority_inventory import (  # noqa: E402
-        InventoryError,
-        _binding_errors,
-        file_digest,
-    )
-except ImportError:  # pragma: no cover - defensive; the repository ships it
-    InventoryError = Exception  # type: ignore[assignment,misc]
-    _binding_errors = None  # type: ignore[assignment]
-
-    def file_digest(root: Path, relative: str) -> str:  # type: ignore[misc]
-        import hashlib
-
-        return "sha256:" + hashlib.sha256((root / relative).read_bytes()).hexdigest()
+from de4sdv.semantic.authority_inventory import (  # noqa: E402
+    validate_source_binding,
+    file_digest,
+)
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -116,24 +106,7 @@ def _binding_problems(root: Path, binding: dict[str, Any]) -> list[str]:
     normalized = {
         str(path): _canonical_digest(value) for path, value in bound_inputs.items()
     }
-    if _binding_errors is not None:
-        return list(_binding_errors(root, source_revision, normalized))
-    # Fallback: the generation-time guard behind the same contract, split back
-    # into the individual problems it refuses with.
-    from de4sdv.semantic.authority_inventory import (  # type: ignore[import]
-        verify_source_revision_contains_inputs,
-    )
-
-    try:
-        verify_source_revision_contains_inputs(root, source_revision, normalized)
-    except InventoryError as exc:  # type: ignore[misc]
-        body = str(exc).split("byte-for-byte:", 1)[-1]
-        return [
-            chunk.strip()
-            for chunk in body.split("\n  - ")
-            if chunk.strip() and not chunk.strip().startswith("Commit the input")
-        ]
-    return []
+    return list(validate_source_binding(root, {**binding, "bound_inputs": normalized}))
 
 
 def _extends_problems(
@@ -153,6 +126,13 @@ def _extends_problems(
             "extended artifact)"
         ]
     target = root / referenced
+    if Path(referenced).is_absolute() or ".." in Path(referenced).parts or not target.resolve().is_relative_to(root.resolve()):
+        return ["extends.artifact must stay inside the repository"]
+    revision = extends.get("source_revision")
+    if not isinstance(revision, str) or not _FULL_SHA.fullmatch(revision):
+        return ["extends.source_revision must be a full commit id"]
+    if _git(root, "merge-base", "--is-ancestor", revision, "HEAD").returncode:
+        return ["extends.source_revision must exist and be an ancestor of HEAD"]
     if not target.is_file():
         return [f"extends.artifact {referenced} does not exist in the checkout"]
     try:
@@ -184,7 +164,8 @@ def _o3_scope_entry(root: Path) -> dict[str, Any] | None:
     """Validate the committed O3 equivalence scope basis when it exists."""
     path = root / O3_SCOPE_PATH
     if not path.is_file():
-        return None
+        return {"artifact": O3_SCOPE_PATH, "ok": False,
+                "errors": ["required O3 scope artifact is missing"]}
     errors: list[str] = []
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
@@ -268,6 +249,43 @@ def _o3_scope_entry(root: Path) -> dict[str, Any] | None:
     return {"artifact": O3_SCOPE_PATH, "ok": not errors, "errors": errors}
 
 
+def _expected_inputs(root: Path) -> dict[str, set[str]]:
+    """Required coverage comes from supported lanes, never artifact declarations."""
+    from de4sdv.semantic import authority_inventory as ai
+    from de4sdv.semantic import projection_v1 as v1, projection_o22 as v11
+    from de4sdv.semantic import projection_o23 as v12, projection_o2p as plus
+    from de4sdv.semantic import definition_projection as definitions
+    from de4sdv.semantic import vocabulary_carrier as carriers
+
+    contract = ai.KernelContract.load(root / ai.ONTOLOGY_PATH)
+    decisions = ai.load_reviewed_decisions(root / ai.DECISIONS_PATH)
+    expected = {
+        "docs/method-conformance/o1/semantic-authority-inventory.json":
+            set(ai.collect_bound_inputs(root, contract, decisions)),
+    }
+    for version, inputs in (
+        ("v1", v1.collect_bound_inputs(root, contract)),
+        ("v1.1", v11.collect_bound_inputs_o22(root, contract)),
+        ("v1.2", v12.collect_bound_inputs_o23(root, contract)),
+    ):
+        for prefix in ("semantic-projection", "api-representation-profile"):
+            expected[f"docs/method-conformance/o2/{prefix}-{version}.json"] = set(inputs)
+    admission = plus.load_admission_o2p(root / plus.ADMISSION_O2P_PATH)
+    inputs = set(plus.collect_bound_inputs_o2p(root, admission))
+    for prefix in ("semantic-projection", "api-representation-profile"):
+        expected[f"docs/method-conformance/o2plus/{prefix}-o2plus.json"] = inputs
+    outputs = definitions.build_outputs(root, definitions.load_document(root))
+    inputs = set(definitions.collect_bound_inputs(root, outputs))
+    for suffix in ("projection", "profile"):
+        expected[f"docs/method-conformance/o4/definition-{suffix}.json"] = inputs
+    document = carriers.load_carriers(root / carriers.CARRIERS_PATH)
+    outputs = carriers.build_carrier_outputs(root, document, carriers.load_review(root))
+    inputs = set(carriers.collect_bound_inputs(root, document, outputs))
+    for suffix in ("projection", "profile"):
+        expected[f"docs/method-conformance/o4/vocabulary-carriers-{suffix}.json"] = inputs
+    return expected
+
+
 def _chain_artifacts(root: Path) -> list[Path]:
     base = root / METHOD_CONFORMANCE_DIR
     if not base.is_dir():
@@ -324,8 +342,28 @@ def verify_generated_chain(
     """
     root = Path(root)
     entries: list[dict[str, Any]] = []
-    for path in _chain_artifacts(root):
+    try:
+        expected = _expected_inputs(root)
+    except (ValueError, OSError, KeyError, TypeError) as exc:
+        return [{"artifact": METHOD_CONFORMANCE_DIR, "ok": False,
+                 "errors": [f"cannot derive required chain inputs: {exc}"]}]
+    paths = set(_chain_artifacts(root)) | {root / path for path in expected}
+    for path in sorted(paths):
         entry = _artifact_entry(root, path)
+        relative = path.relative_to(root).as_posix()
+        if relative in expected:
+            if entry is None:
+                entry = {"artifact": relative, "ok": False,
+                         "errors": ["required generated artifact has no binding"]}
+            try:
+                document = json.loads(path.read_text(encoding="utf-8"))
+                binding = document.get("binding") if isinstance(document, dict) else None
+                inputs = binding.get("bound_inputs") if isinstance(binding, dict) else None
+                if not isinstance(inputs, dict) or set(inputs) != expected[relative]:
+                    entry["errors"].append("bound_inputs differs from generator-required input set")
+            except (OSError, ValueError):
+                pass  # _artifact_entry already reports unreadable artifacts.
+            entry["ok"] = not entry["errors"]
         if entry is not None:
             entries.append(entry)
     o3_entry = _o3_scope_entry(root)
