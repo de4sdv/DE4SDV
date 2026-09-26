@@ -18,7 +18,10 @@ recorded string never passes by reuse):
    its digest recorded in ``extends.artifact_digest`` matches the current
    bytes, and ``extends.source_revision`` equals the referenced artifact's own
    ``binding.source_revision``.
-4. ``docs/method-conformance/o3/o3-equivalence-scope.json`` (when present):
+4. A top-level ``source_revision`` claim on frozen records without a binding
+   block (the ontology-review and validation report) must be a full commit id
+   that exists and is an ancestor of the checked-out revision.
+5. ``docs/method-conformance/o3/o3-equivalence-scope.json`` (required):
    every basis digest (``o1_inventory``, ``o2_chain`` items) matches the
    current file bytes, and its ``comparison_base_revision`` exists and is an
    ancestor of the checked-out revision. The recorded old-bundle digests
@@ -107,6 +110,15 @@ def _binding_problems(root: Path, binding: dict[str, Any]) -> list[str]:
         str(path): _canonical_digest(value) for path, value in bound_inputs.items()
     }
     return list(validate_source_binding(root, {**binding, "bound_inputs": normalized}))
+
+
+def _revision_claim_problems(root: Path, revision: Any, label: str) -> list[str]:
+    """Validate a bare revision claim (frozen record top-level revisions)."""
+    if not isinstance(revision, str) or not _FULL_SHA.fullmatch(revision):
+        return [f"{label} must be a full 40-hex commit id"]
+    if _git(root, "merge-base", "--is-ancestor", revision, "HEAD").returncode:
+        return [f"{label} must exist and be an ancestor of HEAD"]
+    return []
 
 
 def _extends_problems(
@@ -322,10 +334,19 @@ def _artifact_entry(root: Path, path: Path) -> dict[str, Any] | None:
     elif "binding" in document:
         errors.append("binding block must be a mapping")
     else:
-        # No binding block: nothing in the binding lane applies, but an
-        # extends block (if any) is still chain evidence and is validated.
-        if "extends" not in document:
+        # No binding block: an extends block (if any) is still chain evidence;
+        # a top-level source_revision claim (frozen review/validation records)
+        # is validated too, never trusted as a recorded string.
+        if "extends" in document:
+            errors.extend(_extends_problems(root, document))
+            return {"artifact": relative, "ok": not errors, "errors": errors}
+        top_revision = document.get("source_revision")
+        if top_revision is None:
             return None
+        errors.extend(
+            _revision_claim_problems(root, top_revision, "top-level source_revision")
+        )
+        return {"artifact": relative, "ok": not errors, "errors": errors}
     errors.extend(_extends_problems(root, document))
     return {"artifact": relative, "ok": not errors, "errors": errors}
 
