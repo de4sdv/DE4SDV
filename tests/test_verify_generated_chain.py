@@ -110,6 +110,21 @@ def test_named_binding_metadata_is_validated(tmp_path):
     assert any("not a bound input" in error for error in _entry(root)["errors"])
 
 
+def test_frozen_record_top_level_revision_is_validated(tmp_path):
+    root, revision = _fixture(tmp_path)
+    record = root / "docs/method-conformance/o4/example-record.json"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text(json.dumps({"schema": "test/record", "source_revision": revision}))
+    _commit(root, "frozen record with valid revision")
+    assert verify_generated_chain(root) == []
+    # A malformed or non-ancestor claim refuses by name.
+    record.write_text(json.dumps({"schema": "test/record", "source_revision": "f" * 40}))
+    _commit(root, "frozen record with bad revision")
+    entry = _entry(root, "docs/method-conformance/o4/example-record.json")
+    assert not entry["ok"]
+    assert any("ancestor" in error for error in entry["errors"])
+
+
 def test_real_repo_chain_is_consistent():
     assert verify_generated_chain(REPO_ROOT) == []
 
