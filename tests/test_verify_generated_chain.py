@@ -74,6 +74,42 @@ def _entry(root: Path, artifact: str = ARTIFACT_A) -> dict:
     return next(entry for entry in failures if entry["artifact"] == artifact)
 
 
+@pytest.fixture(autouse=True)
+def synthetic_lane_registry(monkeypatch):
+    from scripts import verify_generated_chain as verifier
+    expected = verifier._expected_inputs
+    scope = verifier._o3_scope_entry
+    monkeypatch.setattr(verifier, "_expected_inputs", lambda root:
+        expected(root) if root == REPO_ROOT else {ARTIFACT_A: {INPUT_REL}})
+    monkeypatch.setattr(verifier, "_o3_scope_entry", lambda root:
+        scope(root) if root == REPO_ROOT or (root / verifier.O3_SCOPE_PATH).exists()
+        else None)
+
+
+def test_required_artifact_and_binding_cannot_disappear(tmp_path):
+    root, _ = _fixture(tmp_path)
+    _write_artifact(root / ARTIFACT_A, {"schema": "test/artifact"})
+    assert _entry(root)["errors"]
+    (root / ARTIFACT_A).unlink()
+    assert _entry(root)["errors"]
+
+
+def test_omitted_required_input_is_refused(tmp_path, monkeypatch):
+    from scripts import verify_generated_chain as verifier
+    root, _ = _fixture(tmp_path)
+    monkeypatch.setattr(verifier, "_expected_inputs", lambda root:
+                        {ARTIFACT_A: {INPUT_REL, "src/required.txt"}})
+    assert any("generator-required" in error for error in _entry(root)["errors"])
+
+
+def test_named_binding_metadata_is_validated(tmp_path):
+    root, _ = _fixture(tmp_path)
+    document = json.loads((root / ARTIFACT_A).read_text())
+    document["binding"]["reviewed_decisions"] = {"path": "unbound.yaml", "sha256": "0" * 64}
+    _write_artifact(root / ARTIFACT_A, document)
+    assert any("not a bound input" in error for error in _entry(root)["errors"])
+
+
 def test_real_repo_chain_is_consistent():
     assert verify_generated_chain(REPO_ROOT) == []
 
