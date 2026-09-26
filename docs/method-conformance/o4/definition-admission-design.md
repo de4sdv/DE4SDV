@@ -7,10 +7,14 @@ review, and the O1 reviewed decisions.
 
 ## Scope
 
-**First definition-admission stage**: exactly the 21 retained, ungated O4 rows
-whose reviewed W2 definitions-parity treatment is complete and whose target
-requires BOTH a generated Semantic Projection row and an API Representation
-Profile entry:
+**First definition-admission stage (batch 1, amended)**: the retained,
+ungated O4 rows whose reviewed W2 definitions-parity treatment is complete and
+whose target requires BOTH a generated Semantic Projection row and an API
+Representation Profile entry - 22 admitted rows after the batch-1 amendment.
+`Scenario` joined the admitted set once its definition home (`part def
+Scenario`, `de4sdv_operational_context.sysml`) landed and its parity completed
+normalized-exact, discharging the forward obligation recorded by the W2
+batch 7 bounded pattern grounding review:
 
 `Assumption`, `BlockedRealizationBranchRecord`, `DeferredProductLineScope`,
 `EngineeringIncrement`, `FeatureIncrement`, `Gap`,
@@ -18,20 +22,23 @@ Profile entry:
 `LogicalToSoftwareSignalMappingRecord`, `MemberProduct`,
 `MissingRealizationRecord`, `Need`, `NeedsRequirementsIncrement`,
 `ProblemStatement`, `ProductLine`, `ProductLineCharacteristic`,
-`RegulatoryConstraint`, `Requirement`, `SignalMappingDisposition`,
-`SystemLayer`, `SystemToSoftwareSignalMappingCandidate`.
+`RegulatoryConstraint`, `Requirement`, `Scenario`,
+`SignalMappingDisposition`, `SystemLayer`, `SystemToSoftwareSignalMappingCandidate`.
 
 The admitted family is **derived and machine-locked** (`definition-admission.yaml`
 header; tests): O4 register rows that are `o4-target`, not O3-frozen, in base
 wave W2/W5, with no gate decision and no W7 hold, requiring both a projection
-row and a profile entry, carrying a definitions-parity stage, and not already
-admitted in another generated layer (O2 chain / O2+ / W4 carriers).
+row and a profile entry, carrying model-side definition parity (a
+definitions-parity stage, or the parity completed by this admission's own
+declaration), and not already admitted in another generated layer (O2 chain /
+O2+ / W4 carriers). `Scenario`'s definition home is the only model addition of
+the amendment; it carries the reviewed definition text and no usage semantics
+(support stays vocabulary-only; no native claim surface is created).
 
 ### Considered and not admitted
 
 | identity | reason |
 | --- | --- |
-| `Scenario` | Bounded pattern grounding only; no model-side declaration; definition parity stays open. |
 | `ArchitectureDecisionRecord`, `Baseline` | External-boundary rows: the canonical review/register require no projection and no profile (flags False/False, runtime support `external`); content authority stays external. Their generic O1 residual string mentioning O2 admission conflicts with the structured flags and is recorded for bounded review — not silently resolved here. |
 | `IncrementSize` | Vocabulary-only W3 row; requires neither a projection row nor a profile entry. |
 | carrier rows | Already admitted through the W4 carrier pair. |
@@ -82,13 +89,19 @@ surface is byte-unchanged and machine-locked as not-admitted here.
 
 ## Source binding (two-commit pattern)
 
-Bound inputs: the admission manifest, the five model files carrying the
-admitted declarations, this design record, the module, and the generator.
-Audited exclusion: `de4sdv/semantic/authority_inventory.py` executes during
-generation (block/doc extraction and normalization) but is the shared parity
-machinery bound as an input of the O1 inventory artifact; it is deliberately
-not re-bound here, and the end-to-end regeneration tests exercise the
-observation semantics it provides.
+Bound inputs: the admission manifest, the model files carrying the admitted
+declarations (`de4sdv_method_context.sysml`, `de4sdv_method_process.sysml`,
+`de4sdv_product_line.sysml`, plus `de4sdv_operational_context.sysml` after the
+batch-1 amendment), this design record, the module, the generator, and the two
+shared modules the generation phase executes:
+`de4sdv/semantic/authority_inventory.py` (block/doc extraction, normalization,
+parity observation, binding containment) and `de4sdv/semantic/projection_o2p.py`
+(`canonical_json` serialization). Executed-path audit: a warmed-import
+`sys.settrace` run of the real generator plus canonical serialization
+identified both shared modules as generation-phase executed; the earlier
+exclusion of `authority_inventory.py` was hardened away in this batch, and
+mutation probes in `tests/test_definition_projection.py` observe refusal when
+either module is edited without rebinding.
 
 Procedure (the O2+/safe-set pattern — an artifact can only bind to a commit
 that already contains its inputs):

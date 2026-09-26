@@ -3,7 +3,7 @@
   "status": "generated O4 W4 vocabulary-relationship carrier projection (reviewed definitions, model-resident carriers)",
   "warning": "Generated artifact. Vocabulary-only: every row carries an admitted reviewed definition with its carrier lineage; no traversal is implemented or claimed, no support state is promoted, and the runtime does not read this artifact.",
   "binding": {
-    "source_revision": "144c0fd784b7ea06ee2dc176eb6992724f5aa974",
+    "source_revision": "6e2f393567f4b76485e1c23cd5b84a0ee0c76129",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -35,7 +35,7 @@
       "note": "No SysML API element UUID is claimed for these carriers; the profile entries state representation mechanics only."
     },
     "bound_inputs": {
-      "de4sdv/semantic/vocabulary_carrier.py": "sha256:f270aeecf11f10350166804316a004893630232598f67c8db9ef7e5d54b22160",
+      "de4sdv/semantic/vocabulary_carrier.py": "sha256:fa52b90781d389696dfbfdfd5e44d23b9b165b62d8dc971cbf73500ff5979ccd",
       "docs/method-conformance/o4/ontology-review/integrated-review.json": "sha256:0900335d822bf8660ff67e7262163907dc3041a525e08c06557b817d08c55518",
       "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md": "sha256:c9f7479e1138a74f9c29b749a6050cd292efc6e59550a93eec9e97a49f5be8ed",
       "docs/method-conformance/o4/vocabulary-carrier-design.md": "sha256:2ea0a87da81f5b1ea3fd69edf3239dbbf4e8513e6582287c7706ece17ad6065a",

@@ -187,7 +187,10 @@ class TestCoverage:
             present = [kind for kind in kinds if kind in kernel]
             assert len(present) == 1, spec
             kinds[present[0]] += 1
-        assert kinds == {"file": 40, "native": 15, "external": 4}
+        # Definition admission batch 1 (amended): Scenario's kernel mapping
+        # moved native -> file+declaration (part def Scenario): file 40->41,
+        # native 15->14.
+        assert kinds == {"file": 41, "native": 14, "external": 4}
         assert kinds == inventory["counts"]["class_mappings"]
         assert sum(kinds.values()) == len(contract.classes)
 
@@ -209,8 +212,11 @@ class TestCoverage:
         # Safe-set 2 added seven governed declarations (the five vocabulary
         # carriers + the two generic range bases), all classified as
         # kernel_sync exclusions with reasons.
-        assert kernel["governed_declarations"] == 117
-        assert kernel["mapped_in_directory"] == 39
+        # Definition-admission batch 1 added the Scenario definition home
+        # (part def Scenario), mapped from the ontology class: the governed
+        # equation is now 118 = 40 mapped + 78 exclusions.
+        assert kernel["governed_declarations"] == 118
+        assert kernel["mapped_in_directory"] == 40
         assert kernel["exclusions"] == 78
         assert (
             kernel["mapped_in_directory"] + kernel["exclusions"]
@@ -230,9 +236,9 @@ class TestCoverage:
 
     def test_cross_slice_accounted_separately_from_governed_equation(self, inventory):
         # The cross-slice mapping is NOT part of the governed-directory
-        # equation: 39 + 78 = 117 holds without it.
+        # equation: 40 + 78 = 118 holds without it.
         kernel = inventory["kernel_accounting"]
-        assert kernel["mapped_in_directory"] != 40
+        assert kernel["mapped_in_directory"] != 41
         counts = inventory["counts"]
         assert counts["kernel_mapped_in_dir"] == kernel["mapped_in_directory"]
         assert counts["kernel_mapped_out_of_dir"] == kernel["mapped_out_of_directory"]
@@ -921,9 +927,12 @@ class TestTextParity:
         # differs -> normalized-exact (19/19 -> 18/20). Scenario keeps its
         # native-grounding observation (no model-side declaration, no doc
         # observation — no count movement).
+        # Definition admission batch 1 (amended) added the Scenario
+        # definition home: one row moved to normalized-exact (20 -> 21);
+        # differs unchanged.
         assert counts == {
             "differs": 18,
-            "normalized-exact": 20,
+            "normalized-exact": 21,
             "doc-absent": 1,
             "doc-absent (bodyless declaration)": 1,
         }

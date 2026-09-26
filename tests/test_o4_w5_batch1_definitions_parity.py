@@ -55,7 +55,14 @@ ACCEPTED_DEFINITION = {
     ),
 }
 STAGE = "o4-w5 batch 1 (definitions parity)"
-OBLIGATION = "O2 admission / generated Semantic Projection from the reviewed model representation"
+# later-batch convention (W5 batch 3): Baseline moved to the acceptance stage
+# recorded by external-reference-acceptance-review.md.
+ACCEPTANCE_STAGE = "o4-w5 batch 3 (external-reference acceptance)"
+OBLIGATION = (
+    "reviewed revision-bound closure binding of the accepted external-boundary contract "
+    "and typed-reference schema/profile entries (O4 closure precondition; external "
+    "authority retained, no traversal)"
+)
 
 USAGES = {
     "scripts/check_model_sync.py": [
@@ -129,8 +136,11 @@ def test_exact_two_row_scope(register_rows):
 
 
 def test_exactly_the_batch_rows_carry_the_batch_stage(decisions):
+    # later-batch convention (W5 batch 3): the ADR row keeps its parity stage
+    # (with a bounded retention note); Baseline moved to the acceptance stage.
     staged = [name for name, row in decisions.items() if row.get("stage") == STAGE]
-    assert sorted(staged) == sorted(BATCH_ROWS)
+    assert staged == ["ArchitectureDecisionRecord"]
+    assert decisions["Baseline"]["stage"] == ACCEPTANCE_STAGE
 
 
 def test_declaration_mapping(inventory):
@@ -154,7 +164,10 @@ def test_honest_parity_state(inventory, decisions):
         assert entry["reviewed"]["semantic_text_equivalence"] == "reviewed-equivalent", identity
         row = decisions[identity]
         assert row["semantic_text_equivalence"] == "reviewed-equivalent"
-        assert row["stage"] == STAGE
+        expected_stage = (
+            ACCEPTANCE_STAGE if identity == "Baseline" else STAGE
+        )
+        assert row["stage"] == expected_stage
         assert "batch-1 parity-reviewed" in row["note"]
         assert row["exact_fit_decision"].startswith(
             "reviewed-equivalence: definition-level parity closed (o4-w5 batch 1)"

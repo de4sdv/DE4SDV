@@ -215,13 +215,13 @@ excluded:
   - identity: producesView
     reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
   - identity: EvidenceArtifact
-    reason: W5 batch 2 treated (external-reference design delivered; reviewed acceptance remains the closure precondition); not an O2+ row — external boundary retained
+    reason: W5 batch 3 treated (external-reference acceptance recorded); not an O2+ row — external boundary retained
   - identity: hasEvidence
-    reason: W5 batch 2 treated (external-reference design delivered; reviewed acceptance remains the closure precondition); not an O2+ row — external boundary retained
+    reason: W5 batch 3 treated (external-reference acceptance recorded); not an O2+ row — external boundary retained
   - identity: capturedInBaseline
-    reason: W5 batch 2 treated (external-reference design delivered; reviewed acceptance remains the closure precondition); not an O2+ row — external boundary retained
+    reason: W5 batch 3 treated (external-reference acceptance recorded); not an O2+ row — external boundary retained
   - identity: Scenario
-    reason: W2 batch 7 treated (bounded pattern grounding, no native claim); not an O2+ row — its representation belongs to the O2 admission layer, not this native/library layer
+    reason: Definition admission batch 1 treated (definitions parity completed + projection/profile generated; vocabulary-only); not an O2+ row — its representation belongs to the definition-admission layer, not this native/library layer
   - identity: CommonCapability
     reason: W2 decision-14 (Feature/CommonCapability disjointness) unresolved
   - identity: Feature
@@ -229,7 +229,7 @@ excluded:
   - identity: MethodEvaluationScope
     reason: W2 decision-7 (structural exclusions shape) unresolved
   - identity: ProductLineCharacteristic
-    reason: W2 batch 7 treated (definitions parity closed normalized-exact); not an O2+ row — its representation belongs to the O2 admission layer, not this native/library layer
+    reason: Definition admission batch 1 treated (projection/profile generated; vocabulary-only); not an O2+ row — its representation belongs to the definition-admission layer, not this native/library layer
   - identity: Stakeholder
     reason: W2 decision-11 (SAF role-def disposition) unresolved
   - identity: AssuranceClaim

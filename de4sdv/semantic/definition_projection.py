@@ -1,7 +1,8 @@
 """O4 definition-admission batch 1: governed definition projection + API profile.
 
 ONE reusable, governed representation for the admitted definition family of
-the pinned ``definition-admission.yaml`` batch (21 rows): each admitted
+the pinned ``definition-admission.yaml`` batch (22 rows after the
+batch-1 amendment): each admitted
 identity is backed by a model-resident SysML v2 definition declaration whose
 owned documentation carries — or is bounded-review-equivalent to — the
 reviewed definition:
@@ -18,6 +19,15 @@ reviewed definition:
 * **Profile side (representation mechanics only):** the declaration-form
   representation class and API metaclass echo; never a second semantic
   statement, never an API element identity or UUID claim.
+* **Bound inputs:** the four executed program inputs — this module
+  (``de4sdv/semantic/definition_projection.py``),
+  ``scripts/generate_definition_projection.py``, and the two shared modules
+  this machinery executes (``de4sdv/semantic/authority_inventory.py`` for
+  declaration/doc-scan normalization, digests and the revision containment
+  check, and ``de4sdv/semantic/projection_o2p.py`` for canonical JSON) — plus
+  the admission document, the design record, and the governed model files
+  carrying the admitted declarations. Every one is digest-bound and must be
+  contained byte-for-byte in the bound source revision.
 * **Runtime:** ``vocabulary-only``; NO traversal is implemented or claimed,
   no runtime module reads these artifacts, and admission is NOT an authority
   transition (O3 owns that), NOT authored-YAML retirement (O4 closure owns
@@ -52,6 +62,8 @@ PROJECTION_PATH = "docs/method-conformance/o4/definition-projection.json"
 PROFILE_PATH = "docs/method-conformance/o4/definition-profile.json"
 MODULE_PATH = "de4sdv/semantic/definition_projection.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
+AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
+PROJECTION_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
 DESIGN_PATH = "docs/method-conformance/o4/definition-admission-design.md"
 PROJECTION_SCHEMA = "de4sdv.o4-definition-projection/v1"
 PROFILE_SCHEMA = "de4sdv.o4-definition-profile/v1"
@@ -320,7 +332,14 @@ def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
     """Every input the generated artifacts depend on, as path -> sha256."""
     from de4sdv.semantic.authority_inventory import file_digest
 
-    paths = {ADMISSION_PATH, DESIGN_PATH, MODULE_PATH, GENERATOR_PATH}
+    paths = {
+        ADMISSION_PATH,
+        DESIGN_PATH,
+        MODULE_PATH,
+        GENERATOR_PATH,
+        AUTHORITY_INVENTORY_PATH,
+        PROJECTION_O2P_PATH,
+    }
     for row in outputs["projection_rows"]:
         paths.add(row["grounding"]["kernel_binding_contract"]["source_file"])
     bound: dict[str, str] = {}
@@ -366,10 +385,18 @@ def build_artifact_pair(root: Path, *, source_revision: str) -> dict[str, Any]:
             "they are generated; left explicitly unclaimed."
         ),
         "generation_software": {
-            "program_inputs": [MODULE_PATH, GENERATOR_PATH],
+            "program_inputs": [
+                MODULE_PATH,
+                GENERATOR_PATH,
+                AUTHORITY_INVENTORY_PATH,
+                PROJECTION_O2P_PATH,
+            ],
             "note": (
                 "Generation-software revision: the commit containing these "
-                "program inputs byte-for-byte."
+                "program inputs byte-for-byte. Both shared modules are listed "
+                "because this machinery executes them at generation time "
+                "(declaration/doc-scan normalization, digests, revision "
+                "containment, canonical JSON)."
             ),
         },
         "semantic_model_revision": {

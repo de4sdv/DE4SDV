@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `4e48309baf738f716277cac60a615177ee981e23`
+- Source revision: `b92af1c275bc6745e39fa69185962cc12f8381e9`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
-- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:9cb14ee16d69c2a1acb7139a6354b93394fa6d76c9012a93ba61cb362de85c16)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:d592c9097d5e97db33545e5f94ac67b8398e42f46dd1c25989d63debcbd61338)
+- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:e950e0c50dfe12f2ca6b2b2ab6e59878f7b0319f448e04648fadcd6888c52b46)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:49f4e5fdf52ea22027af0294c8e2993c87f473da9c07ce3f386c426ed06b1938)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
 - Bound inputs: 26 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -21,8 +21,8 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | total_entries | 93 |
 | relationship_mappings | 9 |
 | relationship_vocabulary_only | 25 |
-| kernel_declarations_governed_dir | 117 |
-| kernel_mapped_in_dir | 39 |
+| kernel_declarations_governed_dir | 118 |
+| kernel_mapped_in_dir | 40 |
 | kernel_mapped_out_of_dir | 1 |
 | kernel_exclusions | 78 |
 | governance_rules | 10 |
@@ -71,12 +71,12 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | LogicalElement | native: part def elements in logical-architecture slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | PhysicalElement | native: part def elements in physical/software realization slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | Interface | native: SysML v2 port def and connection elements | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
-| Scenario | native: Operational-context parts plus scenario-identity enums (for example MiddlewareScenarioIdentity) in verification slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w2 batch 7 (bounded pattern grounding) |  |
+| Scenario | textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml: part def Scenario | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
 | VerificationCase | native: SysML v2 verification def; see aebs and middleware verification slices | consumed (verifiedBy) | native-sysml -> native-sysml | parity-reviewed | not-applicable | prove-existing-model-authority | c2 (verification batch) |  |
 | ValidationScenario | native: Scenario parts with bounded validation outcomes (for example passBoundedValidation) | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | O2+ |  |
 | VerificationMethod | external: ODE4HERA requirements-management library verificationMethod (NRM A8) populated with the SysML standard-library VerificationMethodKind values | consumed (model attributes) | accepted-library-grounded -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding record) |  |
 | AcceptanceCriterion | textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml: requirement def MiddlewareAcceptanceCriterion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| EvidenceArtifact | external: Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records | vocabulary-only | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | o4-w5 batch 2 (external-reference design) |  |
+| EvidenceArtifact | external: Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records | vocabulary-only | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | o4-w5 batch 3 (external-reference acceptance) |  |
 | EvidenceContract | native: Requirement usages verified by SysML v2 verification cases in DE4SDV verification slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | EvidenceStatus | external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter | consumed (model attributes) | accepted-library-grounded -> accepted-library-grounded | repository-evidenced | accepted | keep-as-is | O2+ (parity) |  |
 | Assumption | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementAssumption | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
@@ -88,7 +88,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | View | native: SysML v2 view | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding + projection) |  |
 | TraceLink | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: item def TraceLink | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | RequiredTraceChain | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: part def RequiredTraceChain | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| Baseline | textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml: part def DE4SDVEvidenceBaseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w5 batch 1 (definitions parity) |  |
+| Baseline | textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml: part def DE4SDVEvidenceBaseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w5 batch 3 (external-reference acceptance) |  |
 | MethodContractObligation | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def MethodContractObligation | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
 | EvaluationSourceKind | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: enum def EvaluationSourceKind | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
 | MethodEvaluationScope | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: part def MethodEvaluationScope | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
@@ -122,7 +122,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | hasAcceptanceCriterion | VerificationCase -> AcceptanceCriterion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | validatedBy | Need -> ValidationScenario | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | O2+ |  |
 | validatesFitnessForUse | ValidationScenario -> Need | vocabulary-only | legacy-yaml -> unknown | blocked | not-applicable | defer | O2+ |  |
-| hasEvidence | VerificationCase -> EvidenceArtifact (external) | external (no traversal) | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | o4-w5 batch 2 (external-reference design) |  |
+| hasEvidence | VerificationCase -> EvidenceArtifact (external) | external (no traversal) | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | o4-w5 batch 3 (external-reference acceptance) |  |
 | hasEvidenceStatus | EvidenceArtifact -> EvidenceStatus | vocabulary-only | legacy-yaml -> accepted-library-grounded | repository-evidenced | accepted | adopt-accepted-library-relation | batched-parity (post-0a/0b) |  |
 | recordsAssumption | EngineeringIncrement -> Assumption | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
 | recordsGap | EngineeringIncrement -> Gap | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
@@ -135,7 +135,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | includesCommonCapability | FeatureConfiguration -> CommonCapability | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | variesAt | Feature -> VariationPoint | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
 | selectsVariant | FeatureConfiguration -> Variant | vocabulary-only | legacy-yaml -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | defer | PLE |  |
-| capturedInBaseline | EvidenceArtifact -> Baseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w5 batch 2 (external-reference design) |  |
+| capturedInBaseline | EvidenceArtifact -> Baseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w5 batch 3 (external-reference acceptance) |  |
 
 ## Reviewed consumer associations (Layer B) with witnessed evidence (Layer A)
 

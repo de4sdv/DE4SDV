@@ -71,18 +71,18 @@ EXCLUDED_REASON_KEYWORDS: dict[str, str] = {
     "addressesConcern": "W4 batch 1 treated",
     "selectedViewpoint": "W4 batch 1 treated",
     "producesView": "W4 batch 1 treated",
-    "EvidenceArtifact": "W5 batch 2 treated",
-    "hasEvidence": "W5 batch 2 treated",
-    "capturedInBaseline": "W5 batch 2 treated",
-    # W2 batch 7 (safe-set 2) treated these two rows after this manifest was
-    # written; the reasons were refreshed to record the treatment while the
-    # rows remain outside the O2+ admission (their representation belongs to
-    # the O2 admission layer).
-    "Scenario": "W2 batch 7 treated",
+    "EvidenceArtifact": "W5 batch 3 treated",
+    "hasEvidence": "W5 batch 3 treated",
+    "capturedInBaseline": "W5 batch 3 treated",
+    # Definition admission batch 1 treated these two rows after this manifest
+    # was written; the reasons were refreshed to record the treatment while
+    # the rows remain outside the O2+ admission (their representation belongs
+    # to the definition-admission layer).
+    "Scenario": "Definition admission batch 1 treated",
     "CommonCapability": "decision-14",
     "Feature": "decision-14",
     "MethodEvaluationScope": "decision-7",
-    "ProductLineCharacteristic": "W2 batch 7 treated",
+    "ProductLineCharacteristic": "Definition admission batch 1 treated",
     "Stakeholder": "decision-11",
     "AssuranceClaim": "decision-3",
     "ArchitectureElement": "decision-5",
@@ -168,11 +168,15 @@ def test_increment_size_residual_is_bounded_vocabulary(decisions: dict) -> None:
 
 
 def test_w5_boundary_rows_stage_unchanged_by_this_safe_set(decisions: dict) -> None:
-    # The W5 boundary-record parity carried by the same PR keeps its own stage.
+    # later-batch convention (W5 batch 3, external-reference acceptance): the
+    # ADR row keeps its parity stage with a bounded retention note; Baseline
+    # moved to the acceptance stage recorded by the acceptance review.
     assert decisions["ArchitectureDecisionRecord"]["stage"] == (
         "o4-w5 batch 1 (definitions parity)"
     )
-    assert decisions["Baseline"]["stage"] == "o4-w5 batch 1 (definitions parity)"
+    assert decisions["Baseline"]["stage"] == (
+        "o4-w5 batch 3 (external-reference acceptance)"
+    )
 
 
 # --- excluded rows ----------------------------------------------------------

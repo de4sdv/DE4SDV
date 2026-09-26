@@ -34,4 +34,8 @@ package DE4SDV_OperationalContext {
   part def DE4SDVEvidenceBaseline :> OperationalEntity {
     doc /* A reviewed and controlled state of model, evidence, configuration, or publication artifacts, referenced without implying accepted evidence. */
   }
+
+  part def Scenario {
+    doc /* A bounded operational, validation, test, or threat situation used to reason about behavior and evidence. */
+  }
 }

@@ -1,5 +1,6 @@
 """External evidence-reference contract: fail-closed validation, no claim inflation."""
 import copy
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -176,7 +177,7 @@ def test_blocked_state_is_surfaced_for_queries():
 
 
 # --------------------------------------------------------------------------- #
-# Prepared profile artifact: family lock + profile entries
+# Accepted profile artifact: family lock + profile entries
 # --------------------------------------------------------------------------- #
 
 def _load():
@@ -214,6 +215,233 @@ def test_committed_profile_family_is_derived_and_traversal_free():
     baseline = next(r for r in outputs["profile_rows"] if r["identity"] == "Baseline")
     assert baseline["representation_class"] == "model-resident-boundary-identity"
     assert baseline["declaration"]["name"] == "DE4SDVEvidenceBaseline"
+
+
+# --------------------------------------------------------------------------- #
+# Recorded acceptance: accepted_ref is machine-checked and fail-closed
+# --------------------------------------------------------------------------- #
+
+ACCEPTANCE_DOC = "docs/method-conformance/o4/external-reference-acceptance-review.md"
+
+
+def _with_accepted_ref(document, identity, value):
+    edited = copy.deepcopy(document)
+    entry = next(e for e in edited["profile_entries"] if e["identity"] == identity)
+    if value is None:
+        entry.pop("accepted_ref", None)
+    else:
+        entry["accepted_ref"] = value
+    return edited
+
+
+def test_committed_profile_records_acceptance_per_identity_and_stays_inactive():
+    module, document, register, review = _load()
+
+    assert document["status"] == module.PROFILE_STATUS_ACCEPTED
+    assert document["activation"] == "none"
+    outputs = module.validate_profile(REPO_ROOT, document, register, review)
+    assert outputs["acceptance_documents"] == [ACCEPTANCE_DOC]
+    pinned = outputs["acceptance_document"]
+    assert pinned["path"] == ACCEPTANCE_DOC
+    assert pinned["sha256"] == "sha256:" + hashlib.sha256(
+        (REPO_ROOT / ACCEPTANCE_DOC).read_bytes()
+    ).hexdigest()
+    assert (REPO_ROOT / ACCEPTANCE_DOC).is_file()
+    for row in outputs["profile_rows"]:
+        assert row["accepted_ref"] == f"{ACCEPTANCE_DOC}#{row['identity']}"
+        assert row["traversal"] is False
+        assert row["runtime_support"] == "external"
+        assert row["implies_pass"] is False
+        assert row["implies_acceptance"] is False
+
+
+def test_missing_accepted_ref_fails_closed():
+    module, document, register, review = _load()
+
+    for identity in ("EvidenceArtifact", "hasEvidence", "capturedInBaseline", "Baseline"):
+        mutated = _with_accepted_ref(document, identity, None)
+        with pytest.raises(module.EvidenceReferenceError, match="acceptance not recorded"):
+            module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+def test_empty_accepted_ref_fails_closed():
+    module, document, register, review = _load()
+
+    for value in ("", "   "):
+        mutated = _with_accepted_ref(document, "hasEvidence", value)
+        with pytest.raises(module.EvidenceReferenceError, match="acceptance not recorded"):
+            module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+def test_accepted_ref_fragment_must_equal_the_identity():
+    module, document, register, review = _load()
+
+    for value in (
+        f"{ACCEPTANCE_DOC}#EvidenceArtifactX",
+        f"{ACCEPTANCE_DOC}#hasEvidence",
+        ACCEPTANCE_DOC,
+    ):
+        mutated = _with_accepted_ref(document, "EvidenceArtifact", value)
+        with pytest.raises(module.EvidenceReferenceError, match="fragment must equal the identity"):
+            module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+def test_accepted_ref_outside_the_acceptance_root_fails_closed():
+    module, document, register, review = _load()
+
+    mutated = _with_accepted_ref(
+        document, "hasEvidence", "tests/test_external_reference_contract.py#hasEvidence"
+    )
+    with pytest.raises(module.EvidenceReferenceError, match="under docs/"):
+        module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+def test_accepted_ref_parent_traversal_fails_closed():
+    # Reviewer-demonstrated fail-open: `docs/../X` escaped the acceptance root
+    # while satisfying the naive prefix check; AGENTS.md exists, so only the
+    # traversal rule can reject it.
+    module, document, register, review = _load()
+
+    for value in (
+        "docs/../AGENTS.md#hasEvidence",
+        "docs/method-conformance/../o4/external-reference-acceptance-review.md#hasEvidence",
+        "docs/../../etc/hostname#hasEvidence",
+    ):
+        mutated = _with_accepted_ref(document, "hasEvidence", value)
+        with pytest.raises(module.EvidenceReferenceError, match="parent traversal"):
+            module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+def test_accepted_ref_to_a_missing_document_fails_closed():
+    module, document, register, review = _load()
+
+    mutated = _with_accepted_ref(
+        document,
+        "capturedInBaseline",
+        "docs/method-conformance/o4/missing-acceptance-review.md#capturedInBaseline",
+    )
+    with pytest.raises(module.EvidenceReferenceError, match="does not resolve"):
+        module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+def test_acceptance_document_without_the_marker_fails_closed():
+    module, document, register, review = _load()
+
+    marker_free = "docs/method-conformance/o4/external-reference-preparation.md"
+    text = (REPO_ROOT / marker_free).read_text(encoding="utf-8")
+    assert module.ACCEPTANCE_MARKER not in text
+    mutated = _with_accepted_ref(document, "EvidenceArtifact", f"{marker_free}#EvidenceArtifact")
+    with pytest.raises(module.EvidenceReferenceError, match="acceptance marker"):
+        module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+def test_acceptance_document_without_the_identity_row_fails_closed(tmp_path):
+    module, document, register, review = _load()
+
+    source = REPO_ROOT / ACCEPTANCE_DOC
+    target = tmp_path / ACCEPTANCE_DOC
+    target.parent.mkdir(parents=True)
+    lines = source.read_text(encoding="utf-8").splitlines()
+    kept = [line for line in lines if not line.startswith("| hasEvidence |")]
+    assert len(kept) == len(lines) - 1
+    target.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    # The acceptance document is digest-pinned: to probe the row check at all,
+    # the edit must be a deliberate digest re-recording.
+    edited = copy.deepcopy(document)
+    edited["acceptance_document"]["sha256"] = (
+        "sha256:" + hashlib.sha256(target.read_bytes()).hexdigest()
+    )
+    with pytest.raises(module.EvidenceReferenceError, match="table row"):
+        module.validate_profile(tmp_path, edited, register, review)
+
+
+# Reviewer-demonstrated gap R2: the acceptance document was revision-unbound;
+# it is now digest-pinned in the profile and re-checked at validate time.
+
+def test_acceptance_document_digest_drift_fails_closed():
+    module, document, register, review = _load()
+
+    drifted = copy.deepcopy(document)
+    drifted["acceptance_document"]["sha256"] = "sha256:" + "0" * 64
+    with pytest.raises(module.EvidenceReferenceError, match="does not match"):
+        module.validate_profile(REPO_ROOT, drifted, register, review)
+
+
+def test_acceptance_document_block_is_required():
+    module, document, register, review = _load()
+
+    missing = copy.deepcopy(document)
+    missing.pop("acceptance_document", None)
+    with pytest.raises(module.EvidenceReferenceError, match="must record exactly"):
+        module.validate_profile(REPO_ROOT, missing, register, review)
+
+    incomplete = copy.deepcopy(document)
+    incomplete["acceptance_document"].pop("sha256")
+    with pytest.raises(module.EvidenceReferenceError, match="must record exactly"):
+        module.validate_profile(REPO_ROOT, incomplete, register, review)
+
+
+def test_pinned_acceptance_document_must_exist():
+    module, document, register, review = _load()
+
+    missing = copy.deepcopy(document)
+    missing["acceptance_document"]["path"] = (
+        "docs/method-conformance/o4/missing-acceptance-review.md"
+    )
+    with pytest.raises(module.EvidenceReferenceError, match="does not resolve"):
+        module.validate_profile(REPO_ROOT, missing, register, review)
+
+
+def test_accepted_ref_must_reference_the_pinned_document():
+    module, document, register, review = _load()
+
+    # An alternative-but-valid spelling of the same document path is still not
+    # the pinned reference: the linkage is exact, not resolved-equivalent.
+    variant = (
+        "docs/method-conformance/o4/./external-reference-acceptance-review.md#hasEvidence"
+    )
+    mutated = _with_accepted_ref(document, "hasEvidence", variant)
+    with pytest.raises(module.EvidenceReferenceError, match="pinned acceptance document"):
+        module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+def test_unknown_status_value_fails_closed():
+    module, document, register, review = _load()
+
+    for value in ("accepted", "active", "recorded", "prepared"):
+        mutated = copy.deepcopy(document)
+        mutated["status"] = value
+        with pytest.raises(module.EvidenceReferenceError, match="accepted engineering-review"):
+            module.validate_profile(REPO_ROOT, mutated, register, review)
+
+
+@pytest.mark.parametrize("disposition,representation", [
+    ("WITHDRAWN", "external-reference-record"),
+    ("KEEP_EXTERNAL_REFERENCE", "model-resident-boundary-identity"),
+])
+def test_acceptance_row_content_is_checked(tmp_path, disposition, representation):
+    module, document, _, _ = _load()
+    entry = next(row for row in document["profile_entries"]
+                 if row["identity"] == "hasEvidence")
+    path = tmp_path / entry["accepted_ref"].split("#", 1)[0]
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        f"Status: **{module.ACCEPTANCE_MARKER}**\n\n"
+        "| identity | reviewed disposition | reviewed representation |\n"
+        "| --- | --- | --- |\n"
+        f"| hasEvidence | {disposition} | {representation} |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(module.EvidenceReferenceError, match="reviewed acceptance row"):
+        module._validate_accepted_ref(tmp_path, "hasEvidence", entry)
+
+
+def test_mechanics_change_requires_reviewed_payload_update():
+    module, document, register, review = _load()
+    changed = copy.deepcopy(document)
+    changed["profile_entries"][0]["mechanics"] = "Reference implies accepted evidence."
+    with pytest.raises(module.EvidenceReferenceError, match="reviewed profile payload"):
+        module.validate_profile(REPO_ROOT, changed, register, review)
 
 
 def test_profile_family_drift_fails_closed():
@@ -255,7 +483,7 @@ def test_profile_schema_block_is_machine_locked():
 
     active = copy.deepcopy(document)
     active["activation"] = "traversal"
-    with pytest.raises(module.EvidenceReferenceError, match="prepared"):
+    with pytest.raises(module.EvidenceReferenceError, match="activation none"):
         module.validate_profile(REPO_ROOT, active, register, review)
 
 

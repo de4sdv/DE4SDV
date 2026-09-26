@@ -53,11 +53,7 @@ BATCH_ROWS = ("ProductLineCharacteristic", "Scenario")
 # later-batch convention (definition admission batch 1): the parity stage is
 # superseded by the shared admission stage.
 TREATED_STAGE = "o4 definition admission batch 1 (projection + profile)"
-PATTERN_GROUNDING_STAGE = "o4-w2 batch 7 (bounded pattern grounding)"
 OBLIGATION = "runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only"
-PATTERN_OBLIGATION = (
-    "O2 admission / generated Semantic Projection from the reviewed pattern representation"
-)
 
 #: Scenario identity enums present in the governed model (representation only).
 SCENARIO_IDENTITY_ENUMS = {
@@ -144,19 +140,18 @@ def test_exactly_the_batch_rows_carry_the_batch_stages(decisions):
     staged = {
         name: row.get("stage")
         for name, row in decisions.items()
-        if row.get("stage") in (TREATED_STAGE, PATTERN_GROUNDING_STAGE)
+        if row.get("stage") == TREATED_STAGE
     }
-    # later-batch convention (definition admission batch 1): the stage label
-    # is now shared by the admitted family; this batch must be inside it and
-    # the full staged set must equal the governed admitted set plus the
-    # bounded Scenario row.
+    # later-batch convention (definition admission batch 1, amended): Scenario
+    # joined the admitted family once its definition home landed; the staged
+    # set equals the governed admitted set exactly and contains this batch.
     assert staged["ProductLineCharacteristic"] == TREATED_STAGE
-    assert staged["Scenario"] == PATTERN_GROUNDING_STAGE
+    assert staged["Scenario"] == TREATED_STAGE
     manifest = yaml.safe_load(
         (REPO_ROOT / "docs/method-conformance/o4/definition-admission.yaml").read_text()
     )
     admitted = sorted(row["identity"] for row in manifest["admitted"])
-    assert sorted(n for n in staged if n != "Scenario") == admitted
+    assert sorted(staged) == admitted
 
 
 def test_product_line_characteristic_definition_parity_is_machine_checked(
@@ -210,18 +205,22 @@ def test_scenario_row_stays_bounded_no_native_claim(decisions):
     assert row["transition_gate"] is None
     assert row["closure_evidence_ref"] is None
     assert row["semantic_text_equivalence"] is None
-    assert row["stage"] == PATTERN_GROUNDING_STAGE
+    assert row["stage"] == TREATED_STAGE
     assert "RECLASSIFIED from native-sysml" in row["note"]
     assert "Bounded pattern grounding reviewed (o4-w2 batch 7)" in row["note"]
+    assert "Definition-level parity was completed" in row["note"]
     assert row["exact_fit_decision"].startswith("not exact-fit native")
     assert "Bounded pattern grounding complete (o4-w2 batch 7)" in row["exact_fit_decision"]
+    assert "definition-level text parity was completed" in row["exact_fit_decision"]
 
 
 def test_scenario_required_evidence_is_forward_only(decisions):
     evidence = decisions["Scenario"]["required_evidence"]
-    assert evidence, "active evidence state requires non-empty required_evidence"
-    assert any("O2 admission" in item for item in evidence)
-    assert any("definition-level parity stays open" in item for item in evidence)
+    # later-batch convention (definition admission batch 1, amended): the
+    # parity and admission obligations are discharged by the generated
+    # definition projection/profile pair; the forward obligation is the
+    # runtime note (support stays vocabulary-only; no O3 transition text).
+    assert evidence == [OBLIGATION]
     assert all("O3" not in item for item in evidence)
 
 
@@ -230,16 +229,23 @@ def test_scenario_required_evidence_is_forward_only(decisions):
 # ---------------------------------------------------------------------------
 
 
-def test_scenario_has_no_model_side_declaration(inventory, ontology):
+def test_scenario_definition_home_is_model_resident(inventory, ontology):
+    # later-batch convention (definition admission batch 1, amended): the
+    # definition home landed as part def Scenario with normalized-exact text
+    # parity; the ontology class maps to that declaration (no native mapping).
     observed = _entry(inventory, "Scenario")["observed"]
-    assert observed["grounding_kind"] == "native"
-    assert "file" not in observed and "declaration" not in observed
-    assert "doc_text_observation" not in observed
-    assert observed["ref"]
+    assert observed["grounding_kind"] == "file-declaration"
+    assert observed["file"] == (
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
+    )
+    assert observed["declaration"] == "part def Scenario"
+    assert observed["doc_text_observation"] == "normalized-exact"
     kernel = ontology["classes"]["Scenario"]["kernel"]
-    assert "native" in kernel and "declaration" not in kernel
+    assert "native" not in kernel
+    assert kernel["declaration"] == "part def Scenario"
+    assert kernel["file"] == observed["file"]
     # Reviewed-equivalent is representable only for a differing doc
-    # observation; with no model-side declaration this row can never claim it.
+    # observation; this row's parity is normalized-exact (equivalence null).
     assert ai.REVIEWED_EQUIVALENT_OBSERVATIONS == frozenset({"differs"})
 
 
@@ -261,6 +267,12 @@ def test_scenario_operational_context_pattern_anchored():
     text = OPERATIONAL_CONTEXT.read_text()
     assert "part def OperationalEntity {" in text
     assert "part def SubjectVehicle :> OperationalEntity {" in text
+    # The definition home added by definition admission batch 1 (amended).
+    assert "part def Scenario {" in text
+    assert (
+        "A bounded operational, validation, test, or threat situation used to "
+        "reason about behavior and evidence."
+    ) in text
 
 
 # ---------------------------------------------------------------------------
@@ -339,7 +351,7 @@ def test_prior_batch_rows_unchanged(decisions):
         "DeferredProductLineScope": "o4 definition admission batch 1 (projection + profile)",
         "IncrementSize": "o4-w3 batch 1 (definitions parity)",
         "ArchitectureDecisionRecord": "o4-w5 batch 1 (definitions parity)",
-        "Baseline": "o4-w5 batch 1 (definitions parity)",
+        "Baseline": "o4-w5 batch 3 (external-reference acceptance)",
     }
     for identity, stage in expected_stage.items():
         assert decisions[identity]["stage"] == stage, identity
@@ -378,7 +390,8 @@ def test_inventory_artifact_reproduces_source_rows_commit_b_gate(inventory, deci
 # ---------------------------------------------------------------------------
 
 W4_CARRIER_STAGE = "o4-w4 batch 1 (carrier definitions parity)"
-W5_REFERENCE_STAGE = "o4-w5 batch 2 (external-reference design)"
+# later-batch convention (W5 batch 3): the trio moved to the acceptance stage.
+W5_REFERENCE_STAGE = "o4-w5 batch 3 (external-reference acceptance)"
 W4_ROWS = (
     "recordsGap",
     "recordsAssumption",
@@ -397,7 +410,9 @@ def test_w4_and_w5_rows_carry_the_safe_set_stages(decisions):
         name for name, row in decisions.items() if row.get("stage") == W5_REFERENCE_STAGE
     }
     assert staged_w4 == set(W4_ROWS)
-    assert staged_w5 == set(W5_ROWS)
+    # later-batch convention (W5 batch 3): Baseline shares the acceptance
+    # stage recorded by external-reference-acceptance-review.md.
+    assert staged_w5 == set(W5_ROWS) | {"Baseline"}
 
 
 def test_w4_rows_record_carrier_parity_with_forward_closure_evidence(decisions):

@@ -1,10 +1,16 @@
 schema: de4sdv.o4-external-reference-profile/v1
-status: prepared
+status: accepted-engineering-review-evidence
 activation: none
-# Prepared W5 external-reference design artifact. It records the typed-reference
-# schema and the profile entries for the evidence-lineage external-boundary
-# rows. It activates nothing: no traversal, no content mirroring, no baseline
-# list, no admission, no row closure.
+# W5 external-reference design artifact: acceptance RECORDED (bounded engineering
+# review evidence, see docs/method-conformance/o4/external-reference-acceptance-review.md).
+# It still activates nothing: no traversal, no content mirroring, no baseline
+# list, no admission, no row closure. The acceptance document is bound by
+# digest: an edit to it without re-recording acceptance_document.sha256 makes
+# the wired check refuse the profile (post-hoc edits cannot silently change
+# what was accepted).
+acceptance_document:
+  path: docs/method-conformance/o4/external-reference-acceptance-review.md
+  sha256: sha256:7a2f61afb6398a932715f4c7cae1ff7e738e1d2570011ed54efb36653a61e330
 source:
   review: docs/method-conformance/o4/ontology-review/integrated-review.json
   register: docs/method-conformance/o4/o4-execution-register.json
@@ -72,6 +78,7 @@ baseline_manifest_schema:
 profile_entries:
   - identity: EvidenceArtifact
     representation_class: external-reference-record
+    accepted_ref: docs/method-conformance/o4/external-reference-acceptance-review.md#EvidenceArtifact
     mechanics: >-
       Typed reference record only (case identity, artifact identity, exact
       revision, digest, run, tested scope). No API element identity is claimed
@@ -79,6 +86,7 @@ profile_entries:
     declaration: null
   - identity: hasEvidence
     representation_class: external-reference-record
+    accepted_ref: docs/method-conformance/o4/external-reference-acceptance-review.md#hasEvidence
     mechanics: >-
       Association is carried by the typed reference record of the verification
       case; the association exposes no verdict, no pass and no acceptance, and
@@ -87,6 +95,7 @@ profile_entries:
     declaration: null
   - identity: capturedInBaseline
     representation_class: external-reference-record
+    accepted_ref: docs/method-conformance/o4/external-reference-acceptance-review.md#capturedInBaseline
     mechanics: >-
       Membership is carried by the typed reference to the identified immutable
       external manifest; the model keeps no baseline list and inclusion never
@@ -94,6 +103,7 @@ profile_entries:
     declaration: null
   - identity: Baseline
     representation_class: model-resident-boundary-identity
+    accepted_ref: docs/method-conformance/o4/external-reference-acceptance-review.md#Baseline
     mechanics: >-
       Existing model-resident boundary identity `part def DE4SDVEvidenceBaseline`
       (parity of the reference documentation only; no rename, no second mutable
@@ -103,6 +113,6 @@ profile_entries:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml
       name: DE4SDVEvidenceBaseline
 remaining_integration:
-  - Wire `de4sdv/semantic/external_reference_contract.py:run_check_errors` into `scripts/check_repo.py` (parent integration; this package adds the check, not the hook).
-  - Regenerate the O4 execution register / O1 inventory evidence rows for the three W5 rows under the two-commit pattern; the rows stay open until their reviewed evidence items resolve.
-  - Record the reviewed acceptance of the typed-reference schema/profile entries as the retirement precondition for the three YAML rows; this artifact is a prepared design, not that acceptance.
+  - 'Delivered: the run_check_errors gate is wired into scripts/check_repo.py (fail-closed).'
+  - 'O1 reviewed rows refreshed to the acceptance stage in the same change; the O1 inventory artifact is regenerated under the two-commit pattern.'
+  - 'Reviewed acceptance of the typed-reference schema/profile entries is recorded as the retirement precondition for the four YAML rows (see docs/method-conformance/o4/external-reference-acceptance-review.md); the YAML retirement itself completes with the O4 closure stage, not by this artifact.'

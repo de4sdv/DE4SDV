@@ -243,12 +243,19 @@ def _validate_entry(
             f"{identity}: acceptance not recorded (accepted_ref required before admission)"
         )
     accepted_path = accepted_ref.split("#", 1)[0].strip()
-    if not accepted_path.startswith(ACCEPTANCE_ROOT):
+    parts = Path(accepted_path).parts
+    if not accepted_path.startswith(ACCEPTANCE_ROOT) or ".." in parts:
         raise CarrierError(
             f"{identity}: accepted_ref must name a repository governance document "
-            f"under {ACCEPTANCE_ROOT} (got {accepted_ref!r})"
+            f"under {ACCEPTANCE_ROOT} without parent traversal (got {accepted_ref!r})"
         )
-    acceptance_doc = root / accepted_path
+    acceptance_doc = (root / accepted_path).resolve()
+    acceptance_root = (root / ACCEPTANCE_ROOT).resolve()
+    if acceptance_doc != acceptance_root and acceptance_root not in acceptance_doc.parents:
+        raise CarrierError(
+            f"{identity}: accepted_ref must resolve inside {ACCEPTANCE_ROOT} "
+            f"(got {accepted_ref!r})"
+        )
     if not acceptance_doc.is_file():
         raise CarrierError(
             f"{identity}: accepted_ref does not resolve to a repository document: "
