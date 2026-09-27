@@ -3,7 +3,7 @@
   "status": "generated O2+ API Representation Profile (representation mechanics for the api_profile_required rows)",
   "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries. The runtime does not read this artifact.",
   "binding": {
-    "source_revision": "a1a875c332913c2a4e5e86844a24dd4bd47d7885",
+    "source_revision": "f64620cb958888ea8a749bfd16945fc7c1371a33",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
