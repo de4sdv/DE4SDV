@@ -58,3 +58,24 @@ them. It is not an authority transition and not a support promotion.
 Offline candidate consumption only. This loader does not migrate consumers, does
 not retire authored governance YAML, does not select a runtime authority, and
 is not wired into the repository check yet.
+
+## Provider (candidate class resolution)
+
+`de4sdv/semantic/definition_candidate_provider.py` builds on the verified
+candidate pair with one explicit, non-default resolution surface:
+`DefinitionCandidateProvider` serves the admitted identities' kernel class
+mappings from the candidate rows while every other identity delegates to the
+legacy contract. The surface mirrors the frozen authority façade (`classes`,
+`relationships`, `mapping`, `class_mapping`, `relationship_mapping`,
+`identity`) so a runtime assembly seam can consume it through the same
+interface.
+
+Explicit construction only: no production caller selects the provider, the
+runtime assembly seam is unchanged, and the frozen O3 path is untouched. The
+provider creates no traversal, no API identity claim and no authority
+activation. Two executed properties are test-locked:
+
+- **parity** — every admitted identity resolves to the same file/declaration
+  as the legacy contract today (the migration parity baseline);
+- **independence** — a mutated legacy contract changes no admitted answer,
+  while unadmitted identities still delegate (the adversarial proof).
