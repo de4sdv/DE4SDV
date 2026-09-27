@@ -79,3 +79,23 @@ activation. Two executed properties are test-locked:
   as the legacy contract today (the migration parity baseline);
 - **independence** — a mutated legacy contract changes no admitted answer,
   while unadmitted identities still delegate (the adversarial proof).
+
+## Runtime seam (explicit, non-default)
+
+The runtime assembly accepts an optional `definition_candidate_authority`
+parameter: an already-constructed provider object (never imported by runtime
+code — construction stays outside, so no governance module is loaded by the
+runtime). When provided, the assembled service resolves the admitted
+identities through the provider while every other identity delegates to the
+legacy contract, and the deployment provenance reports the candidate
+authority id with its own kind (`definition-candidate`) — never as `o3` and
+never as legacy.
+
+- production default unchanged: without the parameter, assembly behaves
+  exactly as before;
+- the explicit authority paths refuse to combine (`semantic_authority` and
+  `definition_candidate_authority` together raise);
+- an object without a non-empty `authority_id` is refused.
+
+No production caller selects this parameter; any future activation remains
+gated on closure evidence and administrator approval.

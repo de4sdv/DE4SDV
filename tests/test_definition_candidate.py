@@ -367,6 +367,13 @@ def test_tampered_committed_projection_is_refused_and_restored():
 
 
 def test_candidate_loader_is_never_referenced_by_runtime_modules():
+    """The runtime never imports or loads the candidate loader/provider.
+
+    The explicit runtime seam receives an ALREADY-CONSTRUCTED candidate
+    authority object as a parameter (``definition_candidate_authority``);
+    no runtime module may import, load or name the candidate modules
+    themselves.
+    """
     runtime_modules = (
         "de4sdv/semantic/query.py",
         "de4sdv/semantic/runtime.py",
@@ -376,7 +383,15 @@ def test_candidate_loader_is_never_referenced_by_runtime_modules():
         "de4sdv/semantic/api_binding.py",
         "de4sdv/semantic/kernel_binding_index.py",
     )
+    forbidden = (
+        "from .definition_candidate import",
+        "from de4sdv.semantic.definition_candidate import",
+        "import definition_candidate",
+        "definition_candidate import",
+        "definition_candidate_provider",
+        "definition_candidate.py",
+    )
     for relative in runtime_modules:
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
-        assert "definition_candidate" not in text, relative
-        assert "definition-candidate" not in text, relative
+        for needle in forbidden:
+            assert needle not in text, (relative, needle)

@@ -71,6 +71,7 @@ class DefinitionCandidateProvider:
                 )
             mappings[name] = KernelFileMapping(source_file, declaration)
         self._admitted_mappings = mappings
+        self.authority_id = f"definition-candidate:{candidate.source_revision}"
         self.identity = legacy.identity
         self.classes = self._merged_classes()
         self.relationships = dict(legacy.relationships)

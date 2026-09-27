@@ -606,6 +606,14 @@ entries:
     - ontology_dir_token
     - ontology_path_token
     retirement_status: not-applicable
+  tests/test_definition_candidate_seam.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
   tests/test_definition_projection.py:
     role: test-reference
     markers:

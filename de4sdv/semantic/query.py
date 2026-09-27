@@ -251,9 +251,11 @@ class SemanticQueryService:
         """Deployment provenance: which semantic authority produced answers.
 
         Always present, so a deployed service can be inspected for
-        ``legacy`` vs ``o3`` without guessing from the absence of a block.
-        The O3 block identifies the exact bundle; the bundle was verified
-        against this exact revision and revision binding at startup.
+        ``legacy`` vs ``o3`` vs an explicit candidate authority without
+        guessing from the absence of a block. The O3 block identifies the
+        exact bundle; the bundle was verified against this exact revision
+        and revision binding at startup. Any other explicit authority id is
+        reported with its own kind — never as ``o3`` and never as legacy.
         """
         if self.semantic_authority_id == LEGACY_AUTHORITY_ID:
             return {
@@ -264,16 +266,32 @@ class SemanticQueryService:
                     "unchanged behavior)"
                 ),
             }
+        if self.semantic_authority_id.startswith("o3:"):
+            return {
+                "id": self.semantic_authority_id,
+                "kind": "o3",
+                "migrated_scope": "reviewed-13-identity-subset",
+                "note": (
+                    "explicitly selected O3 authority bundle (Semantic Projection "
+                    "semantics + API Representation Profile mechanics); every "
+                    "other identity delegates to the legacy authored "
+                    "KernelContract; verified against this exact revision and "
+                    "revision binding at startup"
+                ),
+            }
         return {
             "id": self.semantic_authority_id,
-            "kind": "o3",
-            "migrated_scope": "reviewed-13-identity-subset",
+            "kind": (
+                self.semantic_authority_id.split(":", 1)[0]
+                if ":" in self.semantic_authority_id
+                else "explicit"
+            ),
             "note": (
-                "explicitly selected O3 authority bundle (Semantic Projection "
-                "semantics + API Representation Profile mechanics); every "
-                "other identity delegates to the legacy authored "
-                "KernelContract; verified against this exact revision and "
-                "revision binding at startup"
+                "explicitly selected candidate authority (non-production); "
+                "the migrated subset resolves through its verified candidate "
+                "artifacts and every other identity delegates to the legacy "
+                "authored KernelContract; verified against this exact "
+                "revision and revision binding at startup"
             ),
         }
 

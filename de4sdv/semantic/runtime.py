@@ -32,6 +32,7 @@ def build_semantic_runtime(
     method_conformance: Any = None,
     method_context_provider: Any = None,
     semantic_authority: "dict[str, Any] | str | Path | None" = None,
+    definition_candidate_authority: Any = None,
     require_activation_eligible: bool = False,
 ) -> SemanticQueryService:
     """Assemble the existing API-first semantic architecture for one revision.
@@ -64,6 +65,17 @@ def build_semantic_runtime(
       fallback between the two paths and never two providers for one
       identity.
 
+    - ``definition_candidate_authority``: an ALREADY-CONSTRUCTED explicit
+      candidate authority object (facade surface: ``identity``, ``classes``,
+      ``relationships``, ``mapping``, ``class_mapping``,
+      ``relationship_mapping``, ``authority_id``) whose admitted identities
+      resolve from verified candidate artifacts while every other identity
+      delegates to the legacy contract. Construction stays outside this
+      module (no governance module is imported here); an object without a
+      non-empty ``authority_id`` is refused, and combining this parameter
+      with ``semantic_authority`` is refused — the explicit paths are never
+      composed implicitly.
+
     Production surfaces select this explicitly through
     :mod:`de4sdv.semantic.authority_selection` (default legacy; an explicit
     O3 request fails closed instead of degrading to legacy).
@@ -82,6 +94,11 @@ def build_semantic_runtime(
     authority: Any = contract
     authority_id = LEGACY_AUTHORITY_ID
     impact_service: ImpactService
+    if semantic_authority is not None and definition_candidate_authority is not None:
+        raise ValueError(
+            "explicit authority paths cannot be combined: select the O3 "
+            "bundle or the definition-candidate authority, never both"
+        )
     if semantic_authority is not None:
         from .o3_bundle import load_o3_authority
 
@@ -98,6 +115,20 @@ def build_semantic_runtime(
         )
         authority = o3_authority.facade
         authority_id = o3_authority.authority_id
+    if definition_candidate_authority is not None:
+        candidate_authority_id = getattr(
+            definition_candidate_authority, "authority_id", None
+        )
+        if (
+            not isinstance(candidate_authority_id, str)
+            or not candidate_authority_id.strip()
+        ):
+            raise ValueError(
+                "definition-candidate authority must carry a non-empty "
+                "authority_id"
+            )
+        authority = definition_candidate_authority
+        authority_id = candidate_authority_id
     kernel_bindings = KernelBindingIndex.from_binding(binding)
     repository = SysMLRepository(ApiClient(api_url, timeout=api_timeout))
     binder = OntologyApiBinder(
@@ -108,7 +139,7 @@ def build_semantic_runtime(
         kernel_bindings=kernel_bindings,
     )
     traversal = SemanticTraversal(authority, kernel_bindings=kernel_bindings)
-    if semantic_authority is None:
+    if semantic_authority is None and definition_candidate_authority is None:
         impact_service = ImpactService(
             repository=repository,
             binding=binding,
