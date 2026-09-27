@@ -512,6 +512,12 @@ entries:
     markers:
     - kernel_contract_symbol
     retirement_status: not-applicable
+  scripts/verify_generated_chain.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
   scripts/seed_aebs_api_fixture.py:
     role: validation-consumer
     markers:
