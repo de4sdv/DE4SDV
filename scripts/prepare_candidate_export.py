@@ -31,10 +31,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from de4sdv.sysml_api.candidate import prepare_isolated_checkout  # noqa: E402
+from de4sdv.sysml_api.performance import timing  # noqa: E402
 from de4sdv.sysml_api.repository import element_id  # noqa: E402
 
 EXPORT_SCHEMA = "de4sdv-sysml-api-baseline-export/v1"
-
 
 def _utc_now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -138,13 +138,17 @@ def prepare_candidate_export(
 ) -> dict[str, object]:
     """Run one isolated candidate export transaction and record its identity."""
     if reuse_checkout:
-        checkout = _reuse_existing_checkout(worktree, git_commit)
+        with timing("candidate_checkout"):
+            checkout = _reuse_existing_checkout(worktree, git_commit)
     else:
-        checkout = prepare_isolated_checkout(repository, git_commit, worktree)
+        with timing("candidate_checkout"):
+            checkout = prepare_isolated_checkout(repository, git_commit, worktree)
     if sync_dependencies:
-        _sync_dependencies(checkout)
+        with timing("candidate_sync_dependencies"):
+            _sync_dependencies(checkout)
     output.parent.mkdir(parents=True, exist_ok=True)
-    _run_serializer(checkout, git_commit, output)
+    with timing("candidate_serializer_subprocess"):
+        _run_serializer(checkout, git_commit, output)
     if not output.is_file():
         raise RuntimeError("candidate serializer produced no export artifact")
 
@@ -165,7 +169,8 @@ def prepare_candidate_export(
     if not all(element_id(element) for element in elements):
         raise RuntimeError("candidate export contains elements without identity")
 
-    candidate_digest = _sha256_bytes(output)
+    with timing("candidate_export_sha256", export_bytes=output.stat().st_size):
+        candidate_digest = _sha256_bytes(output)
 
     def _digest_of(path: Path | None) -> str | None:
         return _sha256_bytes(path) if path is not None and path.is_file() else None
@@ -211,9 +216,10 @@ def prepare_candidate_export(
         "toolchain": _toolchain_identity(checkout),
     }
     identity_path.parent.mkdir(parents=True, exist_ok=True)
-    identity_path.write_text(
-        json.dumps(identity, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    with timing("candidate_identity_write"):
+        identity_path.write_text(
+            json.dumps(identity, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
     return identity
 
 
