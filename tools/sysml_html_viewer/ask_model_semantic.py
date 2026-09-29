@@ -33,6 +33,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -516,13 +517,18 @@ def api_method_context(service, targets: list[dict],
     return ctx
 
 
-def build_method_context_api(ref, files) -> tuple[dict, str]:
+def build_method_context_api(
+    ref, files, *, expected_viewer_git_revision: str | None = None,
+) -> tuple[dict, str]:
     """Method context for an element with an explicit derivation label.
 
     Returns (context, path). API failures fall back to regex and the
     returned path marker says exactly what served the evidence. The ask
     path NEVER blocks on the cold load: while the corpus is loading the
-    regex result is served with the "regex:warming" label.
+    regex result is served with the "regex:warming" label. When the viewer
+    supplies its immutable revision, the actual runtime binding must match
+    before corpus access, cache reuse, or API method context. Unbound/mismatched
+    revisions keep explicitly labeled source-only context.
     """
     if semantic_enabled():
         if _WARM_STATE["status"] == "error":
@@ -537,6 +543,14 @@ def build_method_context_api(ref, files) -> tuple[dict, str]:
                 _regex_fallback(ref, files),
                 f"regex:fallback:{type(exc).__name__}",
             )
+        if expected_viewer_git_revision is not None:
+            api_revision = getattr(getattr(service, "binding", None), "git_commit", None)
+            if not isinstance(api_revision, str) or not re.fullmatch(
+                r"[0-9a-f]{40}", api_revision,
+            ):
+                return _regex_fallback(ref, files), "regex:api-revision-unbound"
+            if api_revision != expected_viewer_git_revision:
+                return _regex_fallback(ref, files), "regex:revision-mismatch"
         if getattr(service, "_element_cache", None) is None:
             # cold process: warm up in the background, answer now
             start_warmup()

@@ -1527,6 +1527,15 @@ def _collect_links(html: str) -> list[str]:
     return hrefs + srcs
 
 
+def test_generated_ask_labels_do_not_claim_authority(tmp_path):
+    out = tmp_path / "site"
+    assert generate(FIXTURE, out, ["textual-notation-of-model/packages"]) == 0
+    for relative in ("index.html", "assets/viewer.js"):
+        content = (out / relative).read_text(encoding="utf-8")
+        assert "(element-grounded query)" in content
+        assert "(authoritative query)" not in content
+
+
 def test_generate_site_and_links(tmp_path):
     """Generate the site from the fixture; every relative link must resolve."""
     out = tmp_path / "site"

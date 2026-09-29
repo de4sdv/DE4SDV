@@ -309,6 +309,75 @@ def test_ask_endpoint_full_roundtrip(fixture_repo, tmp_path, monkeypatch):
         server.server_close()
 
 
+@pytest.mark.parametrize(
+    "production,requested_ref,application_revision,model_revision,expected_source",
+    [
+        (True, "", "a" * 40, "b" * 40, "regex:revision-mismatch"),
+        (False, "", "a" * 40, "a" * 40, "regex:viewer-revision-unbound"),
+        (True, "", "a" * 40, "", "regex:api-revision-unbound"),
+        (True, "", "a" * 40, "b" * 7, "regex:api-revision-unbound"),
+        (False, "feature", "a" * 40, "a" * 40,
+         "regex:viewer-revision-unbound"),
+    ],
+)
+def test_ask_refuses_api_overlay_without_same_bound_viewer_revision(
+    fixture_repo, tmp_path, monkeypatch, production, requested_ref,
+    application_revision, model_revision, expected_source,
+):
+    monkeypatch.setattr(serve_mod, "load_api_key", lambda: "synthetic-test-key")
+    calls = []
+    received = []
+
+    def foreign_api_context(*args, **kwargs):
+        calls.append(args)
+        return {"foreign_api_relation": True}, "api"
+
+    monkeypatch.setattr(serve_mod, "build_method_context_api", foreign_api_context)
+    monkeypatch.setattr(
+        serve_mod, "ask_llm",
+        lambda evidence, *args: received.append(evidence) or "source-only answer",
+    )
+    server = serve_mod.make_server(
+        fixture_repo, tmp_path / "site", roots=["textual-notation-of-model"],
+        host="127.0.0.1", port=0, prs=False, production=production,
+        application_revision=application_revision, model_revision=model_revision,
+    )
+    if requested_ref:
+        files = load_model(fixture_repo, ["textual-notation-of-model"])
+        monkeypatch.setattr(
+            server, "registry_refresh",
+            lambda: {requested_ref: serve_mod.Target(
+                requested_ref, requested_ref, requested_ref,
+            )},
+        )
+        monkeypatch.setattr(
+            server, "ask_grounding", lambda *args: (build_member_index(files), files),
+        )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{server.server_address[1]}/ask",
+            data=json.dumps({
+                "element": "observer", "question": "q", "ref": requested_ref,
+            }).encode(),
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read().decode())
+        assert calls == [], "a foreign/unbound source must never consult the API overlay"
+        assert payload["method_context_source"] == expected_source
+        assert "foreign_api_relation" not in received[0].get("method_context", {})
+        baseline = payload["baseline_context"]
+        assert baseline["api_overlay_permitted"] is False
+        assert baseline["expected_api_git_revision"] == (model_revision or None)
+        assert baseline["viewer_ref"] == requested_ref
+        assert received[0]["baseline_context"] == baseline
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def test_ask_endpoint_unknown_element_404(fixture_repo, tmp_path,
                                           monkeypatch):
     monkeypatch.setenv("NOUS_API_KEY", "test-key")

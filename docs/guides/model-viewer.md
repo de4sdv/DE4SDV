@@ -68,7 +68,16 @@ python -m tools.sysml_html_viewer.serve --repo . --port 8787
 ```
 
 Server mode includes auto-refresh and on-demand builds of any branch or pull
-request you select.
+request you select. Ask-model answers on a working tree or selected ref use
+source-only method context, labeled `regex:viewer-revision-unbound`: they do
+not borrow semantic relationships from the deployed API. A different bound
+viewer/API revision is labeled `regex:revision-mismatch`. A bound viewer with
+an absent or non-full API revision is labeled `regex:api-revision-unbound`.
+Only the immutable production root with matching full Git revisions may
+request an API overlay; the semantic runtime then checks its actual binding
+and authority separately.
+The response and LLM evidence carry `baseline_context` with this boundary.
+A generated answer is never an authoritative conformance verdict.
 
 Static build (no server, works from `file://`):
 

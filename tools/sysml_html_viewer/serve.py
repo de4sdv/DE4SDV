@@ -50,6 +50,7 @@ from .ask_model import (
     MODEL as ASK_MODEL,
     ask_llm,
     build_evidence,
+    build_method_context,
     load_api_key,
     resolve_element,
 )
@@ -619,10 +620,54 @@ class _Handler(SimpleHTTPRequestHandler):
             return
 
         evidence = build_evidence(resolved, files)
+        # A working tree/ref has source presentation, not an exact-revision
+        # API binding. Only the immutable production root may join API
+        # context, and only when both declared revisions agree. The API
+        # builder still enforces its own binding/authority startup checks.
+        viewer_revision = (
+            server.application_revision
+            if server.production and not ref else None
+        )
+        viewer_revision_bound = bool(
+            viewer_revision and re.fullmatch(r"[0-9a-f]{40}", viewer_revision)
+        )
+        revisions_bound = bool(
+            viewer_revision_bound
+            and re.fullmatch(r"[0-9a-f]{40}", server.model_revision)
+        )
+        overlay_permitted = bool(
+            revisions_bound and viewer_revision == server.model_revision
+        )
+        baseline_context = {
+            "viewer_ref": ref,
+            "viewer_git_revision": viewer_revision,
+            "expected_api_git_revision": server.model_revision or None,
+            "comparison": (
+                "same-revision" if overlay_permitted else
+                "different-revision" if revisions_bound else "unbound"
+            ),
+            "api_overlay_permitted": overlay_permitted,
+            "note": (
+                "matching deployment declarations permit API context; actual "
+                "API binding/authority checks still run separately"
+                if overlay_permitted else
+                "source-only context: no deployed API semantics are attached "
+                "to this viewer revision"
+            ),
+        }
+        evidence["baseline_context"] = baseline_context
         try:
-            method_ctx, derivation = build_method_context_api(
-                resolved, files
-            )
+            if overlay_permitted:
+                method_ctx, derivation = build_method_context_api(
+                    resolved, files, expected_viewer_git_revision=viewer_revision,
+                )
+            else:
+                method_ctx = build_method_context(resolved, files)
+                derivation = (
+                    "regex:revision-mismatch" if revisions_bound else
+                    "regex:api-revision-unbound" if viewer_revision_bound else
+                    "regex:viewer-revision-unbound"
+                )
         except Exception:
             method_ctx, derivation = {}, "regex:fallback:exception"
         if method_ctx:
@@ -660,6 +705,7 @@ class _Handler(SimpleHTTPRequestHandler):
             },
             "model": ASK_MODEL,
             "method_context_source": derivation,
+            "baseline_context": baseline_context,
             "ambiguous_alternatives": [
                 {"name": c.name, "file": c.rel_path, "line": c.line}
                 for c in candidates[1:6]

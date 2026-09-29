@@ -70,6 +70,51 @@ def test_semantic_disabled_returns_regex(fixture_repo, monkeypatch):
     assert any(s.get("id") == "N-SEM-001" for s in subs)
 
 
+@pytest.mark.parametrize("api_revision", ["b" * 40, None])
+def test_viewer_revision_guard_checks_actual_runtime_binding(
+    fixture_repo, monkeypatch, api_revision,
+):
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    monkeypatch.setattr(ams, "_WARM_STATE", {"status": "ready", "error": None})
+    service = SimpleNamespace(
+        binding=SimpleNamespace(git_commit=api_revision), _element_cache=[],
+    )
+    monkeypatch.setattr(ams, "_runtime", lambda: service)
+    monkeypatch.setattr(
+        ams, "start_warmup",
+        lambda: pytest.fail("mismatched viewer must not warm/query an API corpus"),
+    )
+    ref, files = _resolve(fixture_repo)
+    context, source = ams.build_method_context_api(
+        ref, files, expected_viewer_git_revision="a" * 40,
+    )
+    assert source == (
+        "regex:revision-mismatch" if api_revision else
+        "regex:api-revision-unbound"
+    )
+    assert context.get("requirement_subject_of"), "source-only context is retained"
+
+
+def test_matching_viewer_revision_can_reach_api_context(fixture_repo, monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    monkeypatch.setattr(ams, "_WARM_STATE", {"status": "ready", "error": None})
+    monkeypatch.setattr(
+        ams, "_runtime", lambda: SimpleNamespace(
+            binding=SimpleNamespace(git_commit="a" * 40), _element_cache=[],
+        ),
+    )
+    ref, files = _resolve(fixture_repo)
+    context, source = ams.build_method_context_api(
+        ref, files, expected_viewer_git_revision="a" * 40,
+    )
+    assert context == {}
+    assert source == "api:no-match", "matching binding retains API empty-result semantics"
+
+
 def test_semantic_off_explicit_zero_gives_regex(fixture_repo, monkeypatch):
     monkeypatch.setenv("NOUS_ASK_SEMANTIC", "0")
     ref, files = _resolve(fixture_repo)

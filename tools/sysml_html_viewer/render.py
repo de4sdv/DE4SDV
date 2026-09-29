@@ -325,7 +325,7 @@ def render_index(
         it.</li>
         <li>Right-click an element — in a diagram, on a page, or in the
         project tree — to ask about it. Two capabilities, never mixed:
-        <strong>Ask the model… (authoritative query)</strong> answers from
+        <strong>Ask the model… (element-grounded query)</strong> answers from
         the model element itself (declared elements only), while
         <strong>Ask repo assistant…</strong> opens the DE4SDV Guide, the
         generated repository/documentation assistant at the bottom right
