@@ -290,6 +290,27 @@ def test_bound_input_digest_shape_fails_closed(tmp_path):
     assert "digest" in str(excinfo.value)
 
 
+@pytest.mark.parametrize("field", ["wave", "documentation_observation"])
+@pytest.mark.parametrize("value", [[], {}])
+def test_unhashable_row_labels_use_candidate_error(tmp_path, field, value):
+    projection = _projection(["Assumption"])
+    row = projection["rows"][0]
+    target = row["definition"] if field == "documentation_observation" else row
+    target[field] = value
+    _write_pair(tmp_path, projection, _profile(["Assumption"]))
+    with pytest.raises(DefinitionCandidateError, match=field):
+        _load(tmp_path)
+
+
+@pytest.mark.parametrize("grounding", [None, [], 42, False, "invalid"])
+def test_malformed_grounding_uses_candidate_error(tmp_path, grounding):
+    projection = _projection(["Assumption"])
+    projection["rows"][0]["grounding"] = grounding
+    _write_pair(tmp_path, projection, _profile(["Assumption"]))
+    with pytest.raises(DefinitionCandidateError, match="grounding must be a mapping"):
+        _load(tmp_path)
+
+
 def test_kernel_binding_echo_mismatch_fails_closed(tmp_path):
     projection = _projection(["Assumption"])
     profile = _profile(["Assumption"], entries=[_entry("Assumption", declaration="part def Other")])

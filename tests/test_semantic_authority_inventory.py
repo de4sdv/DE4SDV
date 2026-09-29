@@ -307,7 +307,8 @@ class TestLayers:
     #: `definition_candidate_provider.py` was added by the same package
     #: (same pattern): the explicit, non-default candidate class-resolution
     #: surface built on the loader; no production caller selects it and the
-    #: runtime assembly seam is unchanged.
+    #: runtime assembly accepts only a preconstructed object without importing
+    #: either candidate construction module.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "definition_candidate.py",

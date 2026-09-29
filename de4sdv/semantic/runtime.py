@@ -72,7 +72,10 @@ def build_semantic_runtime(
       resolve from verified candidate artifacts while every other identity
       delegates to the legacy contract. Construction stays outside this
       module (no governance module is imported here); an object without a
-      non-empty ``authority_id`` is refused, and combining this parameter
+      ``definition-candidate:<source_revision>`` authority id is refused,
+      including the reserved legacy and O3 identities. This seam does not
+      verify candidate artifacts or establish exact-revision API closure;
+      the caller owns verified construction. Combining this parameter
       with ``semantic_authority`` is refused — the explicit paths are never
       composed implicitly.
 
@@ -121,11 +124,12 @@ def build_semantic_runtime(
         )
         if (
             not isinstance(candidate_authority_id, str)
-            or not candidate_authority_id.strip()
+            or not candidate_authority_id.startswith("definition-candidate:")
+            or not candidate_authority_id.split(":", 1)[1].strip()
         ):
             raise ValueError(
-                "definition-candidate authority must carry a non-empty "
-                "authority_id"
+                "definition-candidate authority_id must use the non-production "
+                "definition-candidate:<source_revision> namespace"
             )
         authority = definition_candidate_authority
         authority_id = candidate_authority_id

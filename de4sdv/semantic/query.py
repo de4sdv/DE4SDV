@@ -288,10 +288,11 @@ class SemanticQueryService:
             ),
             "note": (
                 "explicitly selected candidate authority (non-production); "
-                "the migrated subset resolves through its verified candidate "
-                "artifacts and every other identity delegates to the legacy "
-                "authored KernelContract; verified against this exact "
-                "revision and revision binding at startup"
+                "the admitted subset resolves through the preconstructed "
+                "candidate provider and every other identity delegates to the "
+                "legacy authored KernelContract; this assembly seam does not "
+                "establish candidate artifact verification, exact-revision "
+                "API closure or production activation eligibility"
             ),
         }
 

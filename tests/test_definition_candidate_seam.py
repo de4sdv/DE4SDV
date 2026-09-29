@@ -111,6 +111,21 @@ def test_candidate_authority_requires_non_empty_id(tmp_path):
         _assemble(tmp_path, definition_candidate_authority=object())
 
 
+@pytest.mark.parametrize("authority_id", ["o3:unverified-candidate", LEGACY_AUTHORITY_ID])
+def test_candidate_authority_cannot_impersonate_verified_paths(tmp_path, authority_id):
+    provider = _provider()
+    provider.authority_id = authority_id
+    with pytest.raises(ValueError, match="authority_id"):
+        _assemble(tmp_path, definition_candidate_authority=provider)
+
+
+def test_candidate_provenance_does_not_claim_runtime_closure_verification(tmp_path):
+    service = _assemble(tmp_path, definition_candidate_authority=_provider())
+    note = service._semantic_authority()["note"]
+    assert "verified against this exact revision and revision binding at startup" not in note
+    assert "does not establish" in note
+
+
 def test_provenance_labels_by_authority_kind(tmp_path):
     provider = _provider()
     service = _assemble(tmp_path, definition_candidate_authority=provider)

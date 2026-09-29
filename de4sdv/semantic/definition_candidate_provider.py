@@ -9,7 +9,7 @@ mirrors the frozen O3 authority façade (``classes`` / ``relationships`` /
 a runtime assembly seam can consume it through the same interface.
 
 Explicit construction only: no production caller selects this provider, the
-runtime assembly seam is unchanged, and the frozen O3 path is untouched. It
+runtime accepts only a preconstructed candidate, and the frozen O3 path is untouched. It
 creates no traversal, no API identity claim and no authority activation — the
 admitted rows stay vocabulary-only until their forward evidence exists.
 

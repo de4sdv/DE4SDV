@@ -197,7 +197,8 @@ def _row_errors(row: dict[str, Any]) -> list[str]:
         errors.append("projection row missing identity")
     if row.get("semantic_kind") != "class":
         errors.append(f"{label}: semantic_kind must be 'class'")
-    if row.get("wave") not in _WAVES:
+    wave = row.get("wave")
+    if not isinstance(wave, str) or wave not in _WAVES:
         errors.append(f"{label}: wave must be one of {sorted(_WAVES)}")
     if row.get("support") != _SUPPORT:
         errors.append(f"{label}: support must be {_SUPPORT!r}")
@@ -235,7 +236,7 @@ def _row_errors(row: dict[str, Any]) -> list[str]:
             if not isinstance(doc_count, int) or isinstance(doc_count, bool) or doc_count < 1:
                 errors.append(f"{label}: documentation_witness.doc_count must be a positive integer")
         observation = definition.get("documentation_observation")
-        if observation not in _OBSERVATIONS:
+        if not isinstance(observation, str) or observation not in _OBSERVATIONS:
             errors.append(
                 f"{label}: documentation_observation must be one of {sorted(_OBSERVATIONS)}"
             )
@@ -355,7 +356,10 @@ def _pair_errors(projection: dict[str, Any], profile: dict[str, Any]) -> list[st
         row = rows_by_identity.get(concept) if isinstance(concept, str) else None
         if row is None:
             continue
-        contract = row.get("grounding", {}).get("kernel_binding_contract")
+        grounding = row.get("grounding")
+        contract = (
+            grounding.get("kernel_binding_contract") if isinstance(grounding, dict) else None
+        )
         echo = entry.get("binding_contract_echo")
         if isinstance(contract, dict) and isinstance(echo, dict):
             for key in ("source_file", "declaration"):

@@ -34,7 +34,8 @@ them. It is not an authority transition and not a support promotion.
 * The pair must share one identical binding and one identical identity set in
   both directions across rows, profile entries, and `scope.admitted`; missing
   entries, duplicates, scope drift, and a per-row `profile_identity` mismatch
-  are refused.
+  are refused. Malformed nested grounding and row-label values are reported
+  as `DefinitionCandidateError`, not incidental attribute/type errors.
 * Every projection row's kernel binding contract must agree with its profile
   entry echo (source file + declaration).
 * The pair must not overlap the frozen O3 migrated identity set, imported from
@@ -71,7 +72,7 @@ legacy contract. The surface mirrors the frozen authority façade (`classes`,
 interface.
 
 Explicit construction only: no production caller selects the provider, the
-runtime assembly seam is unchanged, and the frozen O3 path is untouched. The
+runtime accepts only a preconstructed candidate, and the frozen O3 path is untouched. The
 provider creates no traversal, no API identity claim and no authority
 activation. Two executed properties are test-locked:
 
@@ -95,7 +96,13 @@ never as legacy.
   exactly as before;
 - the explicit authority paths refuse to combine (`semantic_authority` and
   `definition_candidate_authority` together raise);
-- an object without a non-empty `authority_id` is refused.
+- the candidate id must use `definition-candidate:<source_revision>` with a
+  non-empty revision suffix; legacy and O3 authority ids are refused, so a
+  candidate cannot impersonate either existing authority path;
+- construction-time artifact verification is separate from runtime assembly:
+  the loader verifies the definition pair, but the injected-object seam does
+  not repeat that verification or establish exact-revision API closure. The
+  candidate provenance explicitly preserves this limitation.
 
 No production caller selects this parameter; any future activation remains
 gated on closure evidence and administrator approval.
