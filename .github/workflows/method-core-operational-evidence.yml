@@ -1,0 +1,134 @@
+name: Method Core Operational Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact permanent main-history SHA with retained ingestion proof
+        required: true
+        type: string
+      ingestion_run:
+        description: Successful exact-SHA Privileged Full-Model API Ingestion run id
+        required: true
+        type: string
+      advisory_pr:
+        description: Optional PR number for a read-only advisory observation (no conformance or review is inferred)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SELECTED_REVISION: ${{ inputs.ref }}
+      INGESTION_RUN: ${{ inputs.ingestion_run }}
+      ADVISORY_PR: ${{ inputs.advisory_pr }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout selected exact permanent revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up intended CI Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install existing evaluator dependency
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
+
+      - name: Verify exact revision and provider-side retained-artifact origin
+        id: origin
+        run: |
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+
+          revision = os.environ['SELECTED_REVISION']
+          run_id = os.environ['INGESTION_RUN']
+          if re.fullmatch(r'[0-9a-f]{40}', revision) is None or not run_id.isdecimal():
+              raise SystemExit('refused: exact SHA and numeric ingestion run required')
+          head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          if head != revision:
+              raise SystemExit('refused: checkout identity mismatch')
+          subprocess.run(['git', 'merge-base', '--is-ancestor', revision, 'origin/main'], check=True)
+          repository = os.environ['GITHUB_REPOSITORY']
+          def api(path):
+              return json.loads(subprocess.check_output(['gh', 'api', 'repos/' + repository + path]))
+          expected_workflow = api('/actions/workflows/privileged-full-model-api-ingestion.yml')
+          run = api('/actions/runs/' + run_id)
+          if (run['head_sha'] != revision or run['status'] != 'completed'
+                  or run['conclusion'] != 'success' or run['event'] != 'workflow_dispatch'
+                  or run['workflow_id'] != expected_workflow['id']
+                  or run['repository']['full_name'] != repository):
+              raise SystemExit('refused: ingestion run is not successful exact-source proof')
+          records = api('/actions/runs/' + run_id + '/artifacts?per_page=100')
+          if records['total_count'] != len(records['artifacts']):
+              raise SystemExit('refused: artifact inventory is incomplete')
+          name = 'full-model-api-ingestion-' + revision
+          matches = [a for a in records['artifacts'] if a['name'] == name and not a['expired']]
+          if len(matches) != 1:
+              raise SystemExit('refused: one retained exact-source artifact required')
+          artifact = matches[0]
+          if artifact.get('workflow_run', {}).get('head_sha') != revision:
+              raise SystemExit('refused: artifact origin revision mismatch')
+          root = Path('core-evidence')
+          root.mkdir()
+          record = {'source_revision': revision, 'ingestion_run_id': run['id'],
+                    'ingestion_workflow_id': run['workflow_id'], 'ingestion_run_url': run['html_url'],
+                    'artifact_id': artifact['id'], 'artifact_name': name,
+                    'artifact_archive_digest': artifact.get('digest'),
+                    'runner': {key: os.environ.get(key) for key in
+                               ('RUNNER_OS', 'RUNNER_ARCH', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_SHA')}}
+          (root / 'provider-origin.json').write_text(json.dumps(record, indent=2) + '\n')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('artifact_id=' + str(artifact['id']) + '\n')
+          PY
+
+      - name: Download the verified artifact object
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ steps.origin.outputs.artifact_id }}
+          path: retained-ingestion
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.ingestion_run }}
+
+      - name: Exercise fresh-process parity, offline replay and refusal matrix
+        run: |
+          python scripts/run_core_operational_exit.py \
+            --repo . --artifacts retained-ingestion \
+            --validation-run "$INGESTION_RUN" \
+            --expected-revision "$SELECTED_REVISION" \
+            --out core-evidence/battery-receipt
+
+      - name: Observe optional PR delivery state without inventing conformance
+        if: ${{ inputs.advisory_pr != '' }}
+        run: |
+          python - <<'PY'
+          import os, subprocess
+          if not os.environ['ADVISORY_PR'].isdecimal():
+              raise SystemExit('refused: numeric PR number required')
+          subprocess.run(['python', 'scripts/run_delivery_gate.py',
+                          '--repository', os.environ['GITHUB_REPOSITORY'],
+                          '--pr', os.environ['ADVISORY_PR'],
+                          '--out', 'core-evidence/advisory.json'], check=True)
+          PY
+
+      - name: Retain actual receipts including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: method-core-operational-${{ inputs.ref }}-${{ github.run_id }}
+          path: core-evidence/
+          if-no-files-found: error
+          retention-days: 30
