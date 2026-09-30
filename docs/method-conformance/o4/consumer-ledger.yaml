@@ -90,6 +90,20 @@ entries:
     - kernel_contract_module
     - kernel_contract_symbol
     retirement_status: not-applicable
+  de4sdv/semantic/definition_migration.py:
+    role: closure-preparation-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: Verified, explicitly selected, non-production definition-migration path
+      (verified candidate load, explicit fallback provider, fail-closed activation
+      prerequisite, offline probe). Consumes the authored contract only as the
+      explicit fallback for unadmitted identities and as the probe comparison
+      oracle; never semantic authority for the admitted set. This row claims no
+      retirement.
   de4sdv/semantic/impact.py:
     role: runtime-consumer
     markers:
@@ -374,6 +388,13 @@ entries:
     - ontology_yaml_symbol
     retirement_status: not-applicable
     note: Preparation ledger + scanner; self-entry generated for scan convergence.
+  docs/method-conformance/o4/definition-migration-path.md:
+    role: documentation
+    markers:
+    - kernel_contract_symbol
+    retirement_status: not-applicable
+    note: Migration-path design record; references the authored contract as the
+      explicit fallback and probe comparison oracle. Not a consumer to retire.
   docs/method-conformance/o4/definition-admission.yaml:
     role: governance-machinery
     markers:
@@ -607,6 +628,14 @@ entries:
     - ontology_path_token
     retirement_status: not-applicable
   tests/test_definition_candidate_seam.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_definition_migration.py:
     role: test-reference
     markers:
     - kernel_contract_module
