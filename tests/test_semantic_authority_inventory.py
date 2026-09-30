@@ -299,8 +299,20 @@ class TestLayers:
     #: package (same pattern): a read-only admission/check module that
     #: reuses the verified normalization and declaration scan for
     #: normalized-exact definition parity; it supplies no runtime values.
+    #: `definition_candidate.py` was added by the O4 candidate-authority
+    #: package (same pattern): a fail-closed read-only loader for the
+    #: admitted definition pair that reuses the verified revision-binding
+    #: and regeneration validators; it supplies no runtime values and is
+    #: never imported by the runtime.
+    #: `definition_candidate_provider.py` was added by the same package
+    #: (same pattern): the explicit, non-default candidate class-resolution
+    #: surface built on the loader; no production caller selects it and the
+    #: runtime assembly accepts only a preconstructed object without importing
+    #: either candidate construction module.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
+        "definition_candidate.py",
+        "definition_candidate_provider.py",
         "definition_projection.py",
         "projection_o22.py",
         "projection_o23.py",
