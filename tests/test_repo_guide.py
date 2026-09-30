@@ -961,7 +961,7 @@ setTimeout(() => {
 
 def test_tree_context_menu_offers_both_assistants():
     """Right-clicking an element tree node must offer 'Ask repo assistant'
-    (opens the Guide prefilled) and 'Ask the model… (authoritative query)'.
+    (opens the Guide prefilled) and 'Ask the model… (element-grounded query)'.
     The identity attrs live on the .tree-node container, so askInfoFor must
     walk up from the matched anchor."""
     import re
@@ -1059,9 +1059,12 @@ const labels = items.map(i=>i.textContent);
 if (labels.length !== 2) throw new Error('expected 2 items, got ' + JSON.stringify(labels));
 const repoItem = labels.find(l => l.indexOf('Ask repo assistant') !== -1);
 const askItem = labels.find(l => l.indexOf('Ask the model') !== -1
-  && l.indexOf('(authoritative query)') !== -1);
+  && l.indexOf('(element-grounded query)') !== -1);
+if (labels.some(l => l.includes('(authoritative query)'))) {
+  throw new Error('generated answer is mislabeled as authoritative');
+}
 if (!repoItem) throw new Error('repo item missing, labels: ' + JSON.stringify(labels));
-if (!askItem) throw new Error('authoritative marker missing: ' + JSON.stringify(labels));
+if (!askItem) throw new Error('element-grounded label missing: ' + JSON.stringify(labels));
 items[0].dispatch('click');
 const panel = registry.guidePanel;
 const input = registry.guideInput;

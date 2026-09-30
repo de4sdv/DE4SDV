@@ -912,7 +912,7 @@
           askIcon.textContent = '\u2753';
           askItem.appendChild(askIcon);
           var askLabel = document.createElement('span');
-          askLabel.textContent = 'Ask the model\u2026 (authoritative query)';
+          askLabel.textContent = 'Ask the model\u2026 (element-grounded query)';
           askItem.appendChild(askLabel);
           askItem.title = 'Ask a question about ' + ask.name +
             ' — answered from the model element itself';
@@ -1054,7 +1054,7 @@
         chatSyncLayout();
         els.title.textContent = info.name;
         els.kind.textContent =
-          (info.kind || 'element') + ' (authoritative query)';
+          (info.kind || 'element') + ' (element-grounded query)';
         els.meta.textContent = info.file ? info.file + ':' + info.line : '';
         els.meta.href = info.file
           ? (window.VIEWER_PREFIX || '') + 'pages/' + info.file + '.html#src-' + info.line
