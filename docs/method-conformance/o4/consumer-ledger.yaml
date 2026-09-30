@@ -84,6 +84,12 @@ entries:
     markers:
     - kernel_contract_symbol
     retirement_status: not-applicable
+  de4sdv/semantic/definition_candidate_provider.py:
+    role: closure-preparation-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
   de4sdv/semantic/impact.py:
     role: runtime-consumer
     markers:
@@ -585,6 +591,22 @@ entries:
     - ontology_path_token
     retirement_status: not-applicable
   tests/test_derivation_runtime_consumer.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_definition_candidate_provider.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_definition_candidate_seam.py:
     role: test-reference
     markers:
     - kernel_contract_module
