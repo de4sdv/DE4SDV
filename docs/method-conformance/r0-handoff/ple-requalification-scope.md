@@ -54,3 +54,47 @@ concept-specific adequacy check.
 No PLE-S scope-alignment runs, no configurator retargeting, no YAML authority
 change, no upstream contact, no adoption decision. Those are later gated steps
 (PLE-S needs PLE-Q output; PLE-A needs authorization).
+
+## Executable observation path (draft, not qualification acceptance)
+
+`scripts/run_ple_qualification.py` uses the original frozen experiment in a
+separate read-only checkout. It does not copy its model or vendor PLEML into
+the current product model. The current executor, its library-lock digest,
+installed serializer, frozen interpreter, pinned PLEML input and historical
+export revisions are recorded independently.
+
+The `Privileged PLE Qualification` workflow checks a reviewed permanent
+executor SHA, verifies the provider-side origin of the retained Gate A
+artifact, freshly serializes the frozen inputs with the current pinned
+serializer, and imports them into an isolated loopback API. Both provider
+run identities and the exact retained artifact ID are cross-checked. UUID,
+metatype and internal-reference readback (including reference multiplicity
+and canonical reference shape) are checked before concept-specific
+observations and the historical comparison are retained. The executor's
+library lock is recorded as current context; unrelated current product-model
+libraries are not claimed to be exercised by the frozen fixture.
+
+For a diagnostic replay only:
+
+```bash
+python scripts/run_ple_qualification.py \
+  --experiment /path/to/frozen-experiment \
+  --historical-export /path/to/de4sdv-pleml-gate-a-export.json \
+  --out /path/to/new-receipt.json
+```
+
+The fresh path additionally requires `--expected-executor` and
+`--api-url http://127.0.0.1:9000`; it refuses non-loopback API writes,
+uncommitted executing sources, changed frozen inputs and overwritten receipts.
+The CI workflow retains actual export, API binding, readback, interpreter
+outcomes, pruning records and all six case observations. A disappeared or
+expired historical artifact is a refusal, not permission to invent a baseline.
+
+This path does **not** complete PLE-Q: the frozen single-binding fixture
+does not exercise multiple bindings, the specialized incompatibility
+resolver does not execute native XOR/range expressions, and the group-shape
+coverage still needs both serializer forms. Observability rows without
+concept-specific adequacy remain gaps. Differences are `review-required`
+until independently classified; all qualification/adoption/activation
+acceptance flags remain false. Licensed execution and the remaining scoped
+probes are required before any exit-criteria claim.
