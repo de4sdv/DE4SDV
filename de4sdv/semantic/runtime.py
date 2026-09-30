@@ -75,7 +75,12 @@ def build_semantic_runtime(
       ``definition-candidate:<source_revision>`` authority id is refused,
       including the reserved legacy and O3 identities. This seam does not
       verify candidate artifacts or establish exact-revision API closure;
-      the caller owns verified construction. Combining this parameter
+      the caller owns verified construction. The reviewed
+      verified-construction entry point is
+      :mod:`de4sdv.semantic.definition_migration` (verified candidate load,
+      explicit non-production selection, fresh exact-revision API-closure
+      prerequisite, fail closed until that closure exists); the production
+      default and the O3 route are untouched. Combining this parameter
       with ``semantic_authority`` is refused — the explicit paths are never
       composed implicitly.
 

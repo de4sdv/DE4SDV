@@ -309,10 +309,16 @@ class TestLayers:
     #: surface built on the loader; no production caller selects it and the
     #: runtime assembly accepts only a preconstructed object without importing
     #: either candidate construction module.
+    #: `definition_migration.py` is the explicit non-production construction
+    #: and offline comparison entry point. It verifies the candidate pair
+    #: before runtime assembly; production entry points do not import it or
+    #: consume reviewed decision datasets as runtime values. The guard below
+    #: also prohibits runtime modules from importing this construction module.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "definition_candidate.py",
         "definition_candidate_provider.py",
+        "definition_migration.py",
         "definition_projection.py",
         "projection_o22.py",
         "projection_o23.py",
