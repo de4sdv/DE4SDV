@@ -298,34 +298,21 @@ def query_api_impact(
     binding_path: Path,
     git_revision: str,
     ontology_path: Path = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+    authority: str = "legacy",
+    bundle_path: str | Path | None = None,
+    bundle_id: str | None = None,
+    composition: str | None = None,
 ) -> dict:
     """Query one exact API revision through the ontology traversal layer."""
-    from de4sdv.semantic.api_binding import OntologyApiBinder
-    from de4sdv.semantic.impact import ImpactService
-    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
-    from de4sdv.semantic.kernel_contract import KernelContract
-    from de4sdv.semantic.traversal import SemanticTraversal
-    from de4sdv.sysml_api.client import ApiClient
-    from de4sdv.sysml_api.repository import SysMLRepository
-    from de4sdv.sysml_api.revisions import RevisionBinding
+    from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
 
-    binding = RevisionBinding.load(binding_path)
-    contract = KernelContract.load(ontology_path)
-    repository = SysMLRepository(ApiClient(api_url))
-    kernel_bindings = KernelBindingIndex.from_binding(binding)
-    return ImpactService(
-        repository=repository,
-        binding=binding,
-        contract=contract,
-        binder=OntologyApiBinder(
-            contract,
-            repository,
-            project_id=binding.sysml_project_id,
-            commit_id=binding.sysml_commit_id,
-            kernel_bindings=kernel_bindings,
-        ),
-        traversal=SemanticTraversal(contract, kernel_bindings=kernel_bindings),
-    ).impact(target, git_revision=git_revision)
+    service, _ = build_explicit_semantic_runtime(
+        api_url=api_url, binding_path=binding_path,
+        expected_git_revision=git_revision, ontology_path=ontology_path,
+        authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
+        composition=composition, environ={},
+    )
+    return service.impact_service.impact(target, git_revision=git_revision)
 
 
 def current_git_revision() -> str:
@@ -456,7 +443,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         type=Path,
         default=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
     )
+    parser.add_argument("--semantic-authority", default="legacy")
+    parser.add_argument("--o3-authority-bundle")
+    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
     args = parser.parse_args(argv)
+    if args.backend != "api" and (
+        args.runtime_composition is not None or args.semantic_authority != "legacy"
+        or args.o3_authority_bundle is not None or args.o3_authority_bundle_id is not None
+    ):
+        parser.error("semantic authority arguments require --backend api")
 
     if args.list_requirements:
         names = list_requirements()
@@ -492,6 +488,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             binding_path=args.binding,
             git_revision=args.git_revision or current_git_revision(),
             ontology_path=args.ontology,
+            authority=args.semantic_authority,
+            bundle_path=args.o3_authority_bundle,
+            bundle_id=args.o3_authority_bundle_id,
+            composition=args.runtime_composition,
         )
         if args.json:
             json.dump(api_report, sys.stdout, indent=2)

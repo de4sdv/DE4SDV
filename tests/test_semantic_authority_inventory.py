@@ -314,11 +314,16 @@ class TestLayers:
     #: before runtime assembly; production entry points do not import it or
     #: consume reviewed decision datasets as runtime values. The guard below
     #: also prohibits runtime modules from importing this construction module.
+    #: `composition_construction.py` is the O4 non-production bootstrap: it
+    #: verifies authorities before assembly. Query routing and provenance live
+    #: separately in `runtime_composition.py`, which imports none of these
+    #: construction modules and never loads governance inputs at query time.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "definition_candidate.py",
         "definition_candidate_provider.py",
         "definition_migration.py",
+        "composition_construction.py",
         "definition_projection.py",
         "projection_o22.py",
         "projection_o23.py",

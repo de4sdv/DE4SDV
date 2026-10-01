@@ -90,11 +90,75 @@ The CI workflow retains actual export, API binding, readback, interpreter
 outcomes, pruning records and all six case observations. A disappeared or
 expired historical artifact is a refusal, not permission to invent a baseline.
 
-This path does **not** complete PLE-Q: the frozen single-binding fixture
-does not exercise multiple bindings, the specialized incompatibility
-resolver does not execute native XOR/range expressions, and the group-shape
-coverage still needs both serializer forms. Observability rows without
+This path does **not** complete PLE-Q. Observability rows without
 concept-specific adequacy remain gaps. Differences are `review-required`
 until independently classified; all qualification/adoption/activation
-acceptance flags remain false. Licensed execution and the remaining scoped
-probes are required before any exit-criteria claim.
+acceptance flags remain false.
+
+## Missing-scope executable probes (draft)
+
+`scripts/run_ple_scoped_execution.py` is one executable package, not another
+observation-review harness. It verifies the original read-only oracle and PLEML
+pin, generates independent small synthetic graphs and a new draft SysML source,
+then executes the frozen bounded group resolver. It does not copy the frozen
+fixture or library. `--binding-count` selects 2–8 linkage-only dependencies from
+one asset to distinct features; no AND/OR/precedence rule is supplied.
+
+```bash
+python scripts/run_ple_scoped_execution.py \
+  --experiment /path/to/frozen-experiment \
+  --binding-count 2 --out /path/outside/repository/new-probes
+```
+
+Both direct literal-bound and `..` operator graph forms execute at-least-one,
+multi-select and none scenarios (six rows). None must fail the lower bound.
+These graphs are explicitly **synthetic test doubles**, not serialized model
+outputs or API evidence. Their bounded interpreter results establish neither
+native evaluation nor disjointness. Development-only scope is not a lifecycle
+stage evaluator. Generated source remains draft pending licensed validation.
+Syntax traces: pinned PLEML `FeatureBinding` at lines 203–217 and XOR body at
+170–176; frozen group primitives at `tools/pleml_gate_a.py:918–1179`.
+
+`--native-xor` retains a failed/unsupported native requirement, source location,
+counterexample population and rerunnable command, and exits **2** rather than
+pretending that the specialized incompatibility resolver executed XOR. Without
+licensed execution, the native range/vacuity defect is **not reproduced**.
+
+The existing privileged workflow now also invokes this package with `--licensed`
+and `--expected-executor` at its reviewed permanent SHA. It serializes only the
+new generated source plus the verified original pinned library, retains actual
+elements/diagnostics, and attempts `syside.Compiler.evaluate(nativeXorProbe)`
+with a bounded step budget. This interface was source-inspected in the existing
+Syside type stubs; it documents limited function/body-expression support.
+No local ARM licensed execution is claimed. The workflow retains exit 2 and
+requires fresh serialization plus an explicit `attempted: true`; missing or
+ambiguous `ConstraintUsage` selection is an execution error, not an unsupported
+attempt. The receipt initializes `attempted: false` and records candidate count,
+UUIDs and source document URLs. A genuinely attempted compiler refusal can
+retain exit 2 without becoming qualification. No new API ingestion or
+acceptance path is added.
+
+The native call and materialization of returned value representations and
+compiler diagnostic fields occur under the target's document lock. Actual
+`CompilationReport.diagnostics` entries retain message, code, severity, source
+and UTF8 segment offset/end where available; `fatal` stays separate. Refusal
+messages come from those entries, not an opaque `str(CompilationReport)`.
+Diagnostic `source` is a producer label, not necessarily a source file; the
+target document URL supplies context. Offsets are not interpreted as line/column
+mappings. This is single-threaded orchestration, not a claim of arbitrary
+concurrent-model safety or native instance correctness.
+
+Workflow tests set `DE4SDV_PLE_ORACLE` to the separate `_ple-experiment` checkout;
+a configured missing/empty oracle fails instead of silently skipping. Local
+unconfigured tests may still skip if the optional `/tmp/de4sdv-pleml-gate-a`
+checkout is absent. Oracle identity and pins are verified by the existing
+read-only loader. Clearly labeled synthetic API fakes test selection, emitted
+receipt diagnostics, workflow predicates and lock lifetimes only: they prove
+neither Syside semantics nor licensed/native execution.
+
+Global presence of literal/operator ranges and dependency anchors is reported
+separately from per-group evaluation, binding metadata/provenance adequacy and
+Boolean instance constraint correctness; those remain explicit gaps. A returned
+compiler value is retained unqualified, not interpreted by a custom native
+solver. Receipts hash generated artifacts, the executing script and current
+library lock; existing receipts and repository-contained output are refused.

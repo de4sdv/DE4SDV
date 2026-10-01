@@ -106,7 +106,7 @@ def semantic_enabled() -> bool:
     return os.environ.get("NOUS_ASK_SEMANTIC", "").strip() not in ("", "0", "false")
 
 
-def _runtime():
+def _runtime(*, composition=None, bundle_path=None, bundle_id=None):
     """Build the semantic runtime once per process (fail-closed contract).
 
     Authority is selected explicitly through the deployment environment
@@ -118,6 +118,8 @@ def _runtime():
     """
     global _SEMANTIC_RUNTIME, _SEMANTIC_ERROR, _AUTHORITY_SELECTION
     if _SEMANTIC_RUNTIME is not None:
+        if composition is not None:
+            raise RuntimeError("explicit composition requires a fresh viewer runtime; cached authority is not replaced")
         return _SEMANTIC_RUNTIME
     if _SEMANTIC_ERROR is not None:
         raise RuntimeError(_SEMANTIC_ERROR)
@@ -143,8 +145,8 @@ def _runtime():
         )
         raise RuntimeError(_SEMANTIC_ERROR)
     try:
-        from de4sdv.semantic.authority_selection import (
-            build_selected_semantic_runtime,
+        from de4sdv.semantic.composition_construction import (
+            build_explicit_semantic_runtime as build_selected_semantic_runtime,
         )
         _SEMANTIC_RUNTIME, selection = build_selected_semantic_runtime(
             api_url=api_url,
@@ -152,6 +154,8 @@ def _runtime():
             expected_git_revision=expected,
             ontology_path=Path(ontology),
             api_timeout=float(os.environ.get("DE4SDV_API_TIMEOUT", "900")),
+            **({"composition": composition, "authority": "o3", "bundle_path": bundle_path,
+                "bundle_id": bundle_id} if composition is not None else {}),
         )
         _AUTHORITY_SELECTION = selection.provenance()
     except Exception as exc:  # noqa: BLE001 — fail-closed, error kept
