@@ -27,8 +27,8 @@ if str(ROOT) not in sys.path:
 
 from de4sdv.semantic.authority_selection import (  # noqa: E402
     AuthoritySelectionError,
-    build_selected_semantic_runtime,
 )
+from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime as build_selected_semantic_runtime
 from de4sdv.semantic.mcp_server import create_mcp_server  # noqa: E402
 from de4sdv.semantic.o3_bundle import O3BundleError  # noqa: E402
 
@@ -60,6 +60,7 @@ def main() -> int:
         "--o3-authority-bundle-id",
         help="exact accepted bundle id (o3b-...) the selection is bound to",
     )
+    parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
     args = parser.parse_args()
 
     api_url = _value(args.api_url, "DE4SDV_SYSML_API_URL")
@@ -92,6 +93,7 @@ def main() -> int:
             authority=args.semantic_authority,
             bundle_path=args.o3_authority_bundle,
             bundle_id=args.o3_authority_bundle_id,
+            **({"composition": args.runtime_composition} if args.runtime_composition is not None else {}),
         )
     except (AuthoritySelectionError, O3BundleError) as exc:
         # Fail closed: a requested-but-invalid O3 authority never degrades

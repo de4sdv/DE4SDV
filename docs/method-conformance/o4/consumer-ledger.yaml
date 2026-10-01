@@ -26,6 +26,25 @@ retirement_statuses:
 - compatibility-generated
 - not-applicable
 entries:
+  de4sdv/semantic/composition_construction.py:
+    role: closure-preparation-machinery
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: pending
+    note: Non-production bootstrap verification only; live query routing is in runtime_composition.py.
+  de4sdv/semantic/runtime_composition.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_symbol
+    retirement_status: pending
+    note: Explicit non-production disjoint O3 plus definition routing; unmigrated fallback remains.
+  tests/test_o4_runtime_composition.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
   .github/workflows/privileged-full-model-api-ingestion.yml:
     role: build
     markers:
@@ -529,8 +548,6 @@ entries:
   scripts/query_model_impact.py:
     role: runtime-consumer
     markers:
-    - kernel_contract_module
-    - kernel_contract_symbol
     - ontology_dir_token
     - ontology_path_token
     retirement_status: pending

@@ -103,6 +103,41 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.ingestion_run }}
 
+      - name: Make declared tested Git input available without changing scope
+        run: |
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          from de4sdv.semantic import method_pilot as mp
+          from de4sdv.semantic import operational_exit as oe
+
+          artifacts = oe.validate_ingestion_artifacts(Path('retained-ingestion'))
+          selected = os.environ['SELECTED_REVISION']
+          head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          if artifacts.git_commit != selected or head != selected:
+              raise SystemExit('refused: candidate Git input does not match selected executor')
+          export = json.loads((artifacts.directory / 'de4sdv-candidate-export.json').read_text())
+          scope, _, diagnostics = mp.decode_declared_tested_scope(export['elements'])
+          if scope is None or diagnostics:
+              raise SystemExit('refused: declared tested scope is unresolved')
+          _, tested = mp._member_text_value(mp._elements_by_id(export['elements']), scope, 'executionHead')
+          if not isinstance(tested, str) or re.fullmatch(r'[0-9a-f]{40}', tested) is None:
+              raise SystemExit('refused: declared tested Git input is not an exact SHA')
+          probe = ['git', 'cat-file', '-e', tested + '^{commit}']
+          fetched = subprocess.run(probe, capture_output=True).returncode != 0
+          if fetched:
+              subprocess.run(['git', 'fetch', '--no-tags', 'origin', tested], check=True)
+          if subprocess.run(probe, capture_output=True).returncode != 0:
+              raise SystemExit('refused: declared tested Git input is unavailable')
+          if subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != selected:
+              raise SystemExit('refused: executor checkout changed while fetching tested input')
+          record = {'candidate_git_commit': selected, 'tested_git_commit': tested,
+                    'repository': os.environ['GITHUB_REPOSITORY'], 'fetched': fetched,
+                    'role': 'declared-tested-execution-input',
+                    'permanent_executor_provenance': False}
+          Path('core-evidence/tested-git-input.json').write_text(json.dumps(record, indent=2) + '\n')
+          PY
+
       - name: Exercise fresh-process parity, offline replay and refusal matrix
         run: |
           python scripts/run_core_operational_exit.py \

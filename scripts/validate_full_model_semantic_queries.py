@@ -58,7 +58,9 @@ def _git_head() -> str:
 
 
 def run_queries(
-    *, api_url: str, binding_path: Path, semantic_report_path: Path
+    *, api_url: str, binding_path: Path, semantic_report_path: Path,
+    authority: str = "legacy", bundle_path: str | Path | None = None,
+    bundle_id: str | None = None, composition: str | None = None,
 ) -> dict[str, Any]:
     git_commit = _git_head()
     binding = RevisionBinding.load(binding_path)
@@ -92,20 +94,14 @@ def run_queries(
         raise RuntimeError(
             "semantic report ontology identity does not match the validated binding"
         )
-    kernel_bindings = KernelBindingIndex.from_binding(binding)
-    service = ImpactService(
-        repository=repository,
-        binding=binding,
-        contract=contract,
-        binder=OntologyApiBinder(
-            contract,
-            repository,
-            project_id=binding.sysml_project_id,
-            commit_id=binding.sysml_commit_id,
-            kernel_bindings=kernel_bindings,
-        ),
-        traversal=SemanticTraversal(contract, kernel_bindings=kernel_bindings),
+    from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
+    runtime, _ = build_explicit_semantic_runtime(
+        api_url=api_url, binding_path=binding_path, expected_git_revision=git_commit,
+        ontology_path=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
+        composition=composition, environ={},
     )
+    service = runtime.impact_service
     results: list[dict[str, Any]] = []
     allowed_strengths = {
         "allocation",
@@ -217,11 +213,17 @@ def main() -> int:
     parser.add_argument("--binding", type=Path, required=True)
     parser.add_argument("--semantic-report", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--semantic-authority", default="legacy")
+    parser.add_argument("--o3-authority-bundle")
+    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
     args = parser.parse_args()
     result = run_queries(
         api_url=args.api_url,
         binding_path=args.binding,
         semantic_report_path=args.semantic_report,
+        authority=args.semantic_authority, bundle_path=args.o3_authority_bundle,
+        bundle_id=args.o3_authority_bundle_id, composition=args.runtime_composition,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

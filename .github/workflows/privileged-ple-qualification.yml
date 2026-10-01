@@ -130,6 +130,37 @@ jobs:
             --historical-export _ple-baseline/de4sdv-pleml-gate-a-export.json \
             --out ple-evidence/historical-replay.json
 
+      - name: Execute missing scoped PLE probes
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+          DE4SDV_PLE_ORACLE: ${{ github.workspace }}/_ple-experiment
+        run: |
+          python -m pytest tests/test_ple_scoped_execution.py -q
+          set +e
+          python scripts/run_ple_scoped_execution.py \
+            --experiment _ple-experiment \
+            --expected-executor "$SELECTED_REVISION" \
+            --licensed --native-xor \
+            --out "$RUNNER_TEMP/ple-scoped-execution"
+          code=$?
+          set -e
+          mkdir -p ple-evidence/scoped
+          cp -R "$RUNNER_TEMP/ple-scoped-execution/." ple-evidence/scoped/
+          printf '%s\n' "$code" > ple-evidence/scoped/cli-exit.txt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          receipt = json.loads(Path('ple-evidence/scoped/receipt.json').read_text())
+          if receipt['execution_error'] or not receipt['fresh_serialization']:
+              raise SystemExit('scoped licensed serialization failed; diagnostics retained')
+          if receipt['native_xor'].get('attempted') is not True:
+              raise SystemExit('scoped native evaluation was not attempted; diagnostics retained')
+          if receipt['qualified'] or receipt['native_xor']['requirement_status'] != 'failed':
+              raise SystemExit('scoped requirement was silently promoted')
+          if Path('ple-evidence/scoped/cli-exit.txt').read_text().strip() != '2':
+              raise SystemExit('native requirement must retain failed/unsupported exit 2')
+          PY
+
       - name: Build existing pinned ephemeral Systems Modeling API
         run: |
           git clone --filter=blob:none \

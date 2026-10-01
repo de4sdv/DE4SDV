@@ -54,6 +54,14 @@ It downloads that exact artifact object, not a latest artifact or moving branch.
 The provider-origin record and runner context are retained beside the receipts.
 No model ingestion or privileged secrets are used by this replay workflow.
 
+The validated pilot scope may name a tested execution commit outside main's
+history. The workflow reads that exact `executionHead` from the validated
+retained export and fetches the missing Git object without switching the
+selected executor checkout. An invalid, unresolved or unavailable tested
+commit refuses replay. The retained `tested-git-input.json` labels this object
+as a declared tested execution input, **not** permanent executor provenance,
+approval or evidence carry-forward. No model value or acceptance gate changes.
+
 An optional PR number executes the existing read-only delivery observer against
 live GitHub state. It does not attach historical conformance to a different PR
 head or invent an independent cross-check. Missing conformance/review authority,
