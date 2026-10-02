@@ -62,21 +62,51 @@ class ScopedTraceTests(unittest.TestCase):
             self.assertIsNone(result.conformance_verdict)
 
     def _source_mutation(self, increment, old, new, consumer=None):
+        from unittest.mock import patch
+        from de4sdv.semantic.method_trace_adapter import FRAMINGS, repository_snapshot
+        source = ROOT / FRAMINGS[increment][0]
+        content = source.read_text()
+        pairs = zip(old, new) if isinstance(old, tuple) else [(old, new)]
+        for before, after in pairs:
+            self.assertIn(before, content)
+            content = content.replace(before, after)
+        read_text = Path.read_text
+        def overlay(path, *args, **kwargs):
+            return content if path == source else read_text(path, *args, **kwargs)
+        self.assertIsNone(consumer, "subprocess mutations require the synthetic CLI fixture")
+        with patch.object(Path, "read_text", overlay):
+            return repository_snapshot(ROOT, increment)
+
+    def _synthetic_cli_mutation(self, old, new):
+        """Small authored fixture, never a duplicate/mirror of a real model."""
         import tempfile
         import shutil
-        from de4sdv.semantic.method_trace_adapter import FRAMINGS, repository_snapshot
+        from de4sdv.semantic.method_trace_adapter import FRAMINGS
+        content = '''package DE4SDV_AEBSVisualizationFraming {
+  requirement syntheticProblem : SyntheticProblem;
+  part visualizationTraceObligations : SyntheticTrace {
+    attribute :>> scopeKind = "requirements";
+    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming,
+      MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext,
+      MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs,
+      MethodPhase::phase5_requirements);
+    attribute :>> completionClaim = TraceCompletionClaim::requirementsReady;
+    ref part :>> selectedMethod = DE4SDV_MethodTraces::approvedScopedTraceMethod;
+    ref requirement :>> problemStatement = DE4SDV_AEBSVisualizationFraming::syntheticProblem;
+  }
+}
+'''
+        pairs = zip(old, new) if isinstance(old, tuple) else [(old, new)]
+        for before, after in pairs:
+            self.assertIn(before, content)
+            content = content.replace(before, after)
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
             shutil.copyfile(ROOT / ".git", repo / ".git")
-            source = FRAMINGS[increment][0]
-            target = repo / source
+            target = repo / FRAMINGS["INC-AEBS-010"][0]
             target.parent.mkdir(parents=True)
-            content = (ROOT / source).read_text()
-            pairs = zip(old, new) if isinstance(old, tuple) else [(old, new)]
-            for before, after in pairs:
-                content = content.replace(before, after)
             target.write_text(content)
-            return (consumer or repository_snapshot)(repo, increment)
+            return self._cli(repo, "INC-AEBS-010")
 
     def test_candidate_cannot_reduce_existing_increment_to_easier_scope(self):
         with self.assertRaisesRegex(ValueError, "governed increment scope"):
@@ -169,16 +199,177 @@ class ScopedTraceTests(unittest.TestCase):
         self.assertIn("stakeholders", result.failed_ids)
         self.assertFalse([w for w in snapshot.witnesses if w.relation == "stakeholders"])
 
+    def test_reference_in_unrestricted_name_is_not_a_source_witness(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        reference = ("ref requirement :>> problemStatement = "
+                     "DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement;")
+        snapshot = self._source_mutation("INC-AEBS-010", reference,
+            "attribute '" + reference + "' : ScalarValues::String = \"not a reference\";")
+        result = evaluate_snapshot(snapshot)
+        self.assertIn("problemStatement", result.failed_ids)
+        self.assertFalse([w for w in snapshot.witnesses if w.relation == "problemStatement"])
+        self.assertEqual(result.readiness[0].readiness, "BLOCKED")
+        self.assertIsNone(result.conformance_verdict)
+
+    def test_stakeholder_in_unrestricted_name_is_not_a_source_witness(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        role = "stakeholder systemsEngineer : SystemsEngineer;"
+        snapshot = self._source_mutation("INC-AEBS-010", role,
+            "attribute '" + role + "' : ScalarValues::String = \"not a stakeholder\";")
+        result = evaluate_snapshot(snapshot)
+        self.assertIn("stakeholders", result.failed_ids)
+        self.assertFalse([w for w in snapshot.witnesses if w.relation == "stakeholders"])
+        self.assertEqual(result.readiness[0].readiness, "BLOCKED")
+        self.assertIsNone(result.conformance_verdict)
+
+    def test_quote_tokens_are_inert_to_comments_braces_and_declarations(self):
+        from de4sdv.semantic.method_trace_adapter import _clean, _structure, _owned_matches, _body
+        reference = "ref part :>> increment = Owner::increment;"
+        # Both quote forms, escaped delimiters, comment markers and unbalanced
+        # brace text must remain one inert token; active code after it survives.
+        for quote in ("'", '"'):
+            for payload in (reference, "} " + reference, "{ " + reference,
+                            "/* " + reference, "// " + reference,
+                            "escaped\\" + quote + " } /* // " + reference):
+                with self.subTest(quote=quote, payload=payload):
+                    token = quote + payload + quote
+                    source = "attribute " + token + " : String;\n" + reference
+                    clean = _clean(source)
+                    self.assertIn(token, clean)
+                    self.assertEqual(_structure(token), " " * len(token))
+                    matches = _owned_matches(clean, r"\bref\s+part\s+:>>\s+increment\s*=")
+                    self.assertEqual(len(matches), 1)
+                    self.assertEqual(matches[0].start(), clean.rindex(reference))
+                    self.assertEqual(_body("part owner : Type { " + clean + " }", "owner"),
+                                     " " + clean + " ")
+
+    def test_quoted_escape_newline_does_not_expose_declaration_text(self):
+        from de4sdv.semantic.method_trace_adapter import _clean, _structure, _owned_matches
+        for quote in ("'", '"'):
+            with self.subTest(quote=quote):
+                token = quote + "escaped\\\n} /* // ref part :>> increment = Owner::increment;" + quote
+                source = _clean("attribute " + token + " : String;")
+                self.assertEqual(_structure(token), " " * len(token))
+                self.assertFalse(_owned_matches(source, r"\bref\s+part\s+:>>\s+increment"))
+
+    def test_non_ascii_target_name_is_outside_the_bounded_identity_grammar(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        snapshot = self._source_mutation("INC-AEBS-010", "visualizationProblemStatement",
+                                        "visualizationPröblemStatement")
+        result = evaluate_snapshot(snapshot)
+        self.assertIn("problemStatement", result.unassessed_ids)
+        self.assertFalse([w for w in snapshot.witnesses if w.relation == "problemStatement"])
+
     def test_foreign_phase_namespace_is_not_the_governed_phase_declaration(self):
         with self.assertRaises(ValueError):
             self._source_mutation("INC-AEBS-010",
                 "applicablePhases = (MethodPhase::phase0_incrementFraming",
                 "applicablePhases = (ForeignMethodPhase::phase0_incrementFraming")
 
+    def test_foreign_qualified_phase_owner_is_refused(self):
+        with self.assertRaises(ValueError):
+            self._source_mutation("INC-AEBS-010", "MethodPhase::phase5_requirements",
+                "ForeignNamespace::MethodPhase::phase5_requirements")
+
+    def test_foreign_qualified_completion_owner_is_refused(self):
+        with self.assertRaises(ValueError):
+            self._source_mutation("INC-AEBS-010", "TraceCompletionClaim::requirementsReady",
+                "ForeignNamespace::TraceCompletionClaim::requirementsReady")
+
+    def test_exact_governed_enum_owners_are_accepted(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        snapshot = self._source_mutation("INC-AEBS-010",
+            ("MethodPhase::phase5_requirements", "TraceCompletionClaim::requirementsReady"),
+            ("DE4SDV_MethodProcess::MethodPhase::phase5_requirements",
+             "DE4SDV_MethodTraces::TraceCompletionClaim::requirementsReady"))
+        self.assertEqual(snapshot.declaration.phases, tuple(range(6)))
+        self.assertEqual(snapshot.declaration.completion_claim, "requirementsReady")
+        result = evaluate_snapshot(snapshot)
+        self.assertEqual(len([r for r in result.results if r.verdict == "PASS"]), 7)
+        self.assertEqual(len(result.unassessed_ids), 5)
+        self.assertEqual(result.readiness[0].readiness, "BLOCKED")
+        self.assertIsNone(result.conformance_verdict)
+
     def test_undeclared_phase_literal_is_refused_not_salvaged(self):
         with self.assertRaises(ValueError):
             self._source_mutation("INC-AEBS-010",
                 "MethodPhase::phase5_requirements", "MethodPhase::phase5_notADeclaredPhase")
+
+    def test_leading_zero_phase_literal_is_refused_without_normalization(self):
+        with self.assertRaises(ValueError):
+            self._source_mutation("INC-AEBS-010",
+                "MethodPhase::phase5_requirements", "MethodPhase::phase05_requirements")
+
+    def test_all_phase_literals_require_the_original_ascii_spelling(self):
+        from de4sdv.semantic.method_trace_adapter import parse_applicable_phases, CANONICAL_PHASE_LITERALS
+        for number, literal in CANONICAL_PHASE_LITERALS.items():
+            for prefix in ("MethodPhase::", "DE4SDV_MethodProcess::MethodPhase::"):
+                with self.subTest(number=number, prefix=prefix):
+                    self.assertEqual(parse_applicable_phases("(" + prefix + literal + ")"), (number,))
+                    for malformed in (literal.replace("phase", "phase0", 1),
+                                      literal.replace(str(number), str(number).translate(
+                                          str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")), 1)):
+                        with self.assertRaises(ValueError):
+                            parse_applicable_phases("(" + prefix + malformed + ")")
+
+    def test_duplicate_direct_stakeholder_identity_is_unassessed(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        role = "stakeholder systemsEngineer : SystemsEngineer;"
+        snapshot = self._source_mutation("INC-AEBS-010", role, role + "\n" + role)
+        result = evaluate_snapshot(snapshot)
+        self.assertIn("stakeholders", snapshot.unavailable)
+        self.assertIn("stakeholders", result.unassessed_ids)
+        self.assertNotIn("stakeholders", result.failed_ids)
+        row = next(r for r in result.results if r.unit_id == "stakeholders")
+        self.assertIsNone(row.state)
+        self.assertIsNone(row.verdict)
+        self.assertFalse(row.witnesses)
+        self.assertFalse([w for w in snapshot.witnesses if w.relation == "stakeholders"])
+        self.assertEqual(result.readiness[0].readiness, "BLOCKED")
+        self.assertIsNone(result.conformance_verdict)
+
+    def test_nested_or_quoted_stakeholder_homonym_is_not_a_direct_duplicate(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        role = "stakeholder systemsEngineer : SystemsEngineer;"
+        for extra in ("package Foreign { " + role + " }",
+                      "attribute '" + role + "' : String;"):
+            with self.subTest(extra=extra):
+                snapshot = self._source_mutation("INC-AEBS-010", role, role + "\n" + extra)
+                result = evaluate_snapshot(snapshot)
+                row = next(r for r in result.results if r.unit_id == "stakeholders")
+                self.assertEqual(row.verdict, "PASS")
+                self.assertEqual(len(row.witnesses), 1)
+                self.assertNotIn("stakeholders", snapshot.unavailable)
+
+    def test_duplicate_direct_target_identity_is_unassessed_not_failed(self):
+        """Reviewed finding: target ambiguity is unavailable, never absence."""
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        declaration = "requirement visualizationProblemStatement : ProblemStatement"
+        snapshot = self._source_mutation("INC-AEBS-010", declaration,
+                                         declaration + ";\n" + declaration)
+        result = evaluate_snapshot(snapshot)
+        for relation in ("problemStatement", "stakeholders"):
+            with self.subTest(relation=relation):
+                self.assertIn(relation, snapshot.unavailable)
+                self.assertIn(relation, result.unassessed_ids)
+                self.assertNotIn(relation, result.failed_ids)
+                row = next(r for r in result.results if r.unit_id == relation)
+                self.assertIsNone(row.state)
+                self.assertIsNone(row.verdict)
+                self.assertFalse(row.witnesses)
+        self.assertFalse([w for w in snapshot.witnesses
+                          if w.relation in {"problemStatement", "stakeholders"}])
+        self.assertEqual(result.readiness[0].readiness, "BLOCKED")
+        self.assertIsNone(result.conformance_verdict)
+
+    def test_duplicate_direct_reference_identity_is_unassessed(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        reference = ("ref requirement :>> problemStatement = "
+                     "DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement;")
+        snapshot = self._source_mutation("INC-AEBS-010", reference, reference + "\n" + reference)
+        result = evaluate_snapshot(snapshot)
+        self.assertIn("problemStatement", result.unassessed_ids)
+        self.assertFalse([w for w in snapshot.witnesses if w.relation == "problemStatement"])
 
     def test_unsupported_predicates_remain_required_without_pass(self):
         from de4sdv.semantic.method_trace_adapter import evaluate_repository_framing
@@ -232,9 +423,8 @@ class ScopedTraceTests(unittest.TestCase):
 
     def test_cli_missing_reference_is_fail_not_pass(self):
         import json
-        run = self._source_mutation("INC-AEBS-010",
-            "ref requirement :>> problemStatement = DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement;",
-            "", self._cli)
+        run = self._synthetic_cli_mutation(
+            "ref requirement :>> problemStatement = DE4SDV_AEBSVisualizationFraming::syntheticProblem;", "")
         self.assertEqual(run.returncode, 0, run.stderr)
         report = json.loads(run.stdout)["evaluation"]
         problem = next(r for r in report["results"] if r["unit_id"] == "problemStatement")
@@ -248,7 +438,7 @@ class ScopedTraceTests(unittest.TestCase):
              ( 'scopeKind = "framing"', 'TraceCompletionClaim::framingReady')),
             ("package DE4SDV_AEBSVisualizationFraming", "package ForeignNamespace"),
         ):
-            run = self._source_mutation("INC-AEBS-010", old, new, self._cli)
+            run = self._synthetic_cli_mutation(old, new)
             self.assertEqual(run.returncode, 2, run.stderr)
             self.assertIn("error", json.loads(run.stdout))
 

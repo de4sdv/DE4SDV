@@ -14,7 +14,7 @@ from .kernel_binding_index import KernelBindingIndex
 from .kernel_contract import KernelFileMapping, RelationshipMapping
 from .query import SemanticQueryService
 from .traversal import SemanticTraversal, TraversalHop
-from .model_edges import is_reference_subsetting_hop
+from .model_edges import is_reference_subsetting_hop, is_subsumption_hop, is_typing_hop
 from .relationships import build_relationship_graph
 
 
@@ -167,7 +167,10 @@ class SuccessorTraversal(SemanticTraversal):
                     if item.get("@type") == "ReferenceSubsetting"
                     and identifier in self._reference_owners(item)
                     for target in reference_ids(item.get("referencedFeature"))]
-                references = self._normalize_references(graph_references + flat_references)
+                inline_references = [
+                    dict(source=identifier, target=target, kind="referencedFeature", api_object_id=identifier)
+                    for target in reference_ids(by_id[identifier].get("referencedFeature"))]
+                references = self._normalize_references(graph_references + flat_references + inline_references)
                 if not references:
                     resolved.append(identifier)
                     break
@@ -182,10 +185,10 @@ class SuccessorTraversal(SemanticTraversal):
     def _typing_is_unresolved(endpoint, resolver, graph, by_id):
         """True when the endpoint's referenced typing evidence cannot decide.
 
-        Discrimination is unresolved when no typing is carried at all, or when
-        every referenced typing object is absent from the bound revision. A
-        typing target carrying a library URI stays externally grounded, and a
-        present-but-unrelated type is fully resolved (supported absence).
+        Every typing/specialization branch must be represented, not merely one
+        successful path to a governed root. Missing branches could supply a
+        competing meaning. An explicit library URI witnesses an external leaf;
+        fully represented unrelated lineage remains supported absence.
         """
         endpoint_id = element_id(endpoint)
         if endpoint_id is None:
@@ -194,10 +197,29 @@ class SuccessorTraversal(SemanticTraversal):
         typed |= set(resolver["typed_by_implied"].get(endpoint_id, ()))
         if not typed:
             return True
-        if any(target in by_id for target in typed):
-            return False
-        return not any(hop.target in typed and hop.target_uri
-                       for hop in graph.outgoing(endpoint_id))
+        pending, seen = [endpoint_id], set()
+        while pending:
+            identifier = pending.pop()
+            if identifier in seen:
+                continue
+            seen.add(identifier)
+            node = by_id[identifier]
+            for hop in graph.outgoing(identifier):
+                if not (is_typing_hop(hop) or is_subsumption_hop(hop)):
+                    continue
+                if hop.target in by_id:
+                    pending.append(hop.target)
+                    continue
+                # The frozen graph preserves URI on relationship objects but
+                # not inlined properties; recover only the exact target's
+                # explicit URI from its containing API object, never a name.
+                value = node.get(hop.kind)
+                external = hop.target_uri or any(
+                    isinstance(ref, dict) and element_id(ref) == hop.target and ref.get("@uri")
+                    for ref in (value if isinstance(value, list) else [value]))
+                if not external:
+                    return True
+        return False
 
     def _governed_meanings(self, relationship, left, right, resolver_for):
         """Canonical predicates this exact object carries under the profile.
@@ -262,9 +284,9 @@ class SuccessorTraversal(SemanticTraversal):
                         continue
                     if row["mechanism"] == "typed-connection":
                         carrier = resolver_for(canonical)
+                        if self._typing_is_unresolved(rel, carrier, graph, by_id):
+                            raise IdentityNotFoundError("carrier typing evidence is missing or unresolved")
                         if not self._endpoint_grounding(rel, carrier):
-                            if self._typing_is_unresolved(rel, carrier, graph, by_id):
-                                raise IdentityNotFoundError("carrier typing evidence is missing or unresolved")
                             continue
                     lr = resolver_for(row["sourceClass"])
                     rr = resolver_for(row["targetClass"])

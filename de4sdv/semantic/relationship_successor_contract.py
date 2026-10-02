@@ -8,7 +8,6 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from .authority_inventory import declaration_block
 
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
 PROGRAM_INPUTS = (
@@ -40,14 +39,53 @@ def digest(data):
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
 
+def _lexical_mask(text: str, *, mask_strings: bool) -> str:
+    """One bounded token scan: comments are inert only outside quoted tokens.
+
+    Both String literals and unrestricted-name tokens protect their contents.
+    Offsets and newlines stay stable; incomplete tokens cannot supply code.
+    This does not validate SysML types, imports or language semantics.
+    """
+    output, index = [], 0
+    while index < len(text):
+        start = index
+        if text.startswith("/*", index):
+            end = text.find("*/", index + 2)
+            if end == -1:
+                raise ValueError("unterminated successor source comment")
+            index, masked = end + 2, True
+        elif text.startswith("//", index):
+            end = text.find("\n", index + 2)
+            index, masked = (len(text) if end == -1 else end), True
+        elif text[index] in ('"', "'"):
+            quote = text[index]
+            index += 1
+            while index < len(text):
+                if text[index] == "\\":
+                    index += 2
+                elif text[index] == quote:
+                    index += 1
+                    break
+                else:
+                    index += 1
+            else:
+                raise ValueError("unterminated successor source quoted token")
+            masked = mask_strings
+        else:
+            output.append(text[index])
+            index += 1
+            continue
+        token = text[start:index]
+        output.append("".join("\n" if c == "\n" else " " for c in token) if masked else token)
+    return "".join(output)
+
+
 def _comment_free(text: str) -> str:
-    """Remove comments while preserving every offset (strings stay intact)."""
-    return re.sub(r"/\*.*?\*/|//[^\n]*", lambda match: " " * len(match.group(0)), text, flags=re.S)
+    return _lexical_mask(text, mask_strings=False)
 
 
 def _mask_strings(text: str) -> str:
-    """Mask string content without moving offsets."""
-    return re.sub(r'"(?:\\.|[^"\\])*"', lambda match: " " * len(match.group(0)), text)
+    return _lexical_mask(text, mask_strings=True)
 
 
 def _owned_matches(block: str, pattern: str):
@@ -68,17 +106,61 @@ def _owned_matches(block: str, pattern: str):
     return [match for match in re.finditer(pattern, structure) if depths[match.start()] == 1], code
 
 
+def _live_declaration(text: str, header_pattern: str) -> str | None:
+    """Locate one declaration's owned block through the bounded token scan.
+
+    Comment content and both quoted-token forms are inert while the header is
+    found and its braces are matched, so a commented decoy or an unrestricted
+    name containing ``{``, ``}`` or ``/*`` cannot move a declaration boundary.
+    Offsets are preserved, so the returned block still slices the original text
+    and quoted field values remain readable. Zero live declarations return
+    ``None``; more than one refuses, because a duplicated declaration cannot
+    supply a single construction witness. This is bounded lexical handling for
+    the supported subset, not SysML notation or type validation.
+    """
+    structure = _mask_strings(_comment_free(text))
+    matches = list(re.finditer(header_pattern, structure))
+    if not matches:
+        return None
+    if len(matches) > 1:
+        raise ValueError("ambiguous live declaration: " + header_pattern)
+    index = matches[0].end()
+    while index < len(structure) and structure[index] not in "{;":
+        index += 1
+    if index >= len(structure):
+        raise ValueError("unterminated declaration header: " + header_pattern)
+    if structure[index] == ";":
+        raise ValueError("declaration has no owned body: " + header_pattern)
+    brace = index
+    depth = 0
+    while index < len(structure):
+        char = structure[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return text[brace:index + 1]
+        index += 1
+    raise ValueError("unterminated declaration body: " + header_pattern)
+
+
+def _definition_pattern(declaration: str) -> str:
+    """Line-anchored, comment/quote-inert pattern for one ``X def Y`` header."""
+    kind, _, name = declaration.partition(" def ")
+    return (r"(?m)^[ \t]*(?:(?:public|private|protected)\s+)?(?:abstract\s+)?"
+            + re.escape(kind.strip()).replace(r"\ ", r"\s+") + r"\s+def\s+"
+            + re.escape(name.strip()) + r"\b")
+
+
 def generate_contract(root: Path) -> dict:
     text = (root / MODEL).read_text()
     code = _mask_strings(_comment_free(text))
     records = {}
     for name, kind in re.findall(r"\bpart\s+(\w+)\s*:\s*(Successor\w+Record)\s*\{", code):
-        # Reuse the comment/string-aware owned-body scanner for record usages.
-        record_text = re.sub(r"(?m)^(\s*)part\s+" + re.escape(name) +
-                             r"\s*:\s*" + re.escape(kind) + r"\b",
-                             r"\1part def " + name, text)
-        block, bodyless = declaration_block(record_text, "part def " + name)
-        if not block or bodyless:
+        block = _live_declaration(
+            text, r"(?m)^[ \t]*part\s+" + re.escape(name) + r"\s*:\s*" + re.escape(kind) + r"\b")
+        if not block:
             raise ValueError(f"missing complete record {name}")
         values = {}
         fields, field_code = _owned_matches(block, r"attribute\s+:>>\s+\w+\s*=\s*[^;]*;")
@@ -91,6 +173,15 @@ def generate_contract(root: Path) -> dict:
             if key in values:
                 raise ValueError(f"duplicate record field {name}.{key}")
             values[key] = json.loads(parsed.group(2))
+        required_fields = {
+            "SuccessorVersionRecord": {"version", "supersedes"},
+            "SuccessorClassRecord": {"identity", "sourceFile", "declaration"},
+            "SuccessorRelationRecord": {"predicate", "carrier", "mechanism", "strength", "sourceClass",
+                                        "targetClass", "sourceUsage", "targetUsage", "inverse"},
+            "SuccessorRetirementRecord": {"predicate", "reason"},
+        }
+        if kind not in required_fields or set(values) != required_fields[kind]:
+            raise ValueError(f"incomplete or unsupported successor record {name}: {kind}")
         records.setdefault(kind, []).append(values)
     versions = records.get("SuccessorVersionRecord", [])
     if len(versions) != 1 or not versions[0].get("version"):
@@ -104,8 +195,8 @@ def generate_contract(root: Path) -> dict:
         file = row["sourceFile"]
         if Path(file).is_absolute() or ".." in Path(file).parts:
             raise ValueError("unsafe model pin")
-        pin, bodyless = declaration_block((root / file).read_text(), row["declaration"])
-        if not pin or bodyless:
+        pin = _live_declaration((root / file).read_text(), _definition_pattern(row["declaration"]))
+        if not pin:
             raise ValueError(f"missing complete class declaration {name}")
         inputs.add(file)
         classes[name] = dict(file=file, declaration=row["declaration"])
@@ -115,8 +206,9 @@ def generate_contract(root: Path) -> dict:
             raise ValueError("incomplete relation profile record")
         if row["mechanism"] not in {"native-allocation", "typed-connection"}:
             raise ValueError("unsupported profile mechanism")
-        carrier, bodyless = declaration_block(text, "connection def " + row["carrier"])
-        if not carrier or bodyless:
+        carrier = _live_declaration(
+            text, r"(?m)^[ \t]*connection\s+def\s+" + re.escape(row["carrier"]) + r"\b")
+        if not carrier:
             raise ValueError("missing typed carrier")
         ends, _ = _owned_matches(carrier, r"\bend\s+(\w+)\s*:\s*([A-Za-z_][\w:]*)\s*;")
         declared_ends = {}

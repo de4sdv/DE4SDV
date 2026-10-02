@@ -187,14 +187,19 @@ def evaluate_snapshot(snapshot: TraceSnapshot) -> me.CanonicalEvaluation:
     return TraceEvaluator(snapshot).evaluate(context, requested_readiness=(
         me.ReadinessTarget("PHASE_EXIT", snapshot.increment + "/" + snapshot.declaration.completion_claim),))
 
+# One bounded lexical rule shared by comment cleaning and ownership scanning.
+# Quoted names are inert just like String literals, including escaped quotes.
+_QUOTED_TOKEN = r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'"""
+
+
 def _clean(text: str) -> str:
-    # Retain strings, remove comments (including braces in doc blocks).
-    return re.sub(r'"(?:\\.|[^"\\])*"|/\*.*?\*/|//[^\n]*',
-                  lambda m: m.group(0) if m.group(0).startswith('"') else " ", text, flags=re.S)
+    # Retain quote tokens before recognizing comments inside their payloads.
+    return re.sub(_QUOTED_TOKEN + r'|/\*.*?\*/|//[^\n]*',
+                  lambda m: m.group(0) if m.group(0)[0] in "\"'" else " ", text, flags=re.S)
 
 def _structure(text: str) -> str:
-    """Mask strings without moving offsets; comments are already removed."""
-    return re.sub(r'"(?:\\.|[^"\\])*"', lambda m: " " * len(m.group()), text)
+    """Mask both quote-token forms without moving offsets; comments removed."""
+    return re.sub(_QUOTED_TOKEN, lambda m: " " * len(m.group()), text, flags=re.S)
 
 
 def _direct_matches(text: str, pattern: str):
@@ -223,8 +228,8 @@ def _matched_body(text: str, match) -> str | None:
 def _owned_matches(body: str, pattern: str):
     """Direct-owned CODE matches inside an already comment-free body.
 
-    Matching runs on the string-masked structure, so text quoted in a String
-    attribute cannot fabricate a declaration, and depth filtering excludes
+    Matching runs on the quote-masked structure, so a String or unrestricted
+    name cannot fabricate a declaration, and depth filtering excludes
     members nested in an inner body or a foreign package — only declarations
     directly owned by ``body`` count. Masking preserves offsets, so a returned
     match addresses the original text.
@@ -243,7 +248,7 @@ def parse_applicable_phases(value: str) -> tuple[int, ...]:
     The complete canonical literal is validated, not a salvaged digit: a
     foreign enum namespace, an undeclared literal, extra expressions and
     literal-string substitutes all raise instead of becoming the canonical
-    declaration. A qualification prefix is permitted.
+    declaration. Only the exact governed owner qualification is permitted.
     """
     match = re.fullmatch(r"\s*\((?P<items>[^()]*)\)\s*", value)
     if not match:
@@ -253,11 +258,14 @@ def parse_applicable_phases(value: str) -> tuple[int, ...]:
         raise ValueError("applicablePhases contains an empty or missing phase token")
     phases = []
     for item in items:
-        token = re.fullmatch(r"(?:[A-Za-z_]\w*::)?MethodPhase::phase(\d+)_([A-Za-z_]\w*)", item)
+        token = re.fullmatch(r"(?:DE4SDV_MethodProcess::)?MethodPhase::([A-Za-z_][A-Za-z0-9_]*)", item)
         if not token:
             raise ValueError("unsupported phase token: " + item)
-        number, suffix = int(token.group(1)), token.group(2)
-        if CANONICAL_PHASE_LITERALS.get(number) != "phase%d_%s" % (number, suffix):
+        # Compare original spelling before selecting a number; never normalize
+        # leading zeros or Unicode digits into a declared ASCII enum literal.
+        number = next((n for n, literal in CANONICAL_PHASE_LITERALS.items()
+                       if literal == token.group(1)), None)
+        if number is None:
             raise ValueError("phase token is not a governed MethodPhase literal: " + item)
         phases.append(number)
     return tuple(phases)
@@ -276,15 +284,34 @@ def _namespace_body(text: str, namespace: str) -> str:
 
 
 def _body(text: str, name: str) -> str | None:
+    """Compatibility view: a body only when exactly one direct declaration."""
+    body, ambiguous = _owned_body(text, name)
+    return None if ambiguous else body
+
+
+def _owned_body(text: str, name: str) -> tuple[str | None, bool]:
+    """Return ``(body, ambiguous)`` for one directly owned declaration.
+
+    No declaration is quiet absence, which the caller resolves per relation.
+    Two or more directly owned declarations are a bounded identity ambiguity:
+    the adapter cannot know which one a reference meant, so the relation must
+    become unavailable/UNASSESSED rather than an assessed FAIL or PASS.
+    """
     matches = _direct_matches(text, r"\b(?:part|requirement|concern)\s+" + re.escape(name)
                               + r"\s*:\s*[^{};]+([;{])")
-    return _matched_body(text, matches[0]) if len(matches) == 1 else None
+    if len(matches) > 1:
+        return None, True
+    if not matches:
+        return None, False
+    return _matched_body(text, matches[0]), False
 
 def repository_snapshot(repo: Path, increment_id: str) -> TraceSnapshot:
     """Bounded source-reference extraction, NOT a SysML parser/API binding.
 
-    No evaluation of arbitrary expressions, imports, subtyping or transitive
-    relationships. Unrecognized or ambiguous declarations are unavailable.
+    Only direct-owned, simple ASCII-named declarations supply identities;
+    quote tokens are inert. No evaluation of arbitrary expressions, imports,
+    subtyping, full SysML validity or transitive relationships. Unrecognized
+    or ambiguous declarations are unavailable; native validation stays gated.
     """
     path, namespace, usage = FRAMINGS[increment_id]
     text = _namespace_body(_clean((repo / path).read_text()), namespace)
@@ -301,7 +328,7 @@ def repository_snapshot(repo: Path, increment_id: str) -> TraceSnapshot:
         raw = declared(r"attribute\s+:>>\s+" + name + r"\s*=\s*[^;]*;")
         return raw.split("=", 1)[1].rstrip().rstrip(";").strip()
 
-    claim_match = re.fullmatch(r"(?:[A-Za-z_]\w*::)?TraceCompletionClaim::([A-Za-z_]\w*)",
+    claim_match = re.fullmatch(r"(?:DE4SDV_MethodTraces::)?TraceCompletionClaim::([A-Za-z_]\w*)",
                                scalar("completionClaim"))
     if not claim_match or claim_match.group(1) not in CANONICAL_COMPLETION_CLAIMS:
         raise ValueError("completionClaim is not a governed TraceCompletionClaim literal")
@@ -328,15 +355,28 @@ def repository_snapshot(repo: Path, increment_id: str) -> TraceSnapshot:
             continue
         if not refs: continue
         target = refs[0]
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*", target):
+            unavailable.append(relation)
+            continue
         prefix = namespace + "::"
         if not target.startswith(prefix):
             unavailable.append(relation)
             continue
         names = target[len(prefix):].split("::")
-        artifact_body = _body(text, names[0])
+        artifact_body, ambiguous_target = _owned_body(text, names[0])
+        if ambiguous_target:
+            # A duplicated direct-owned target cannot supply a single witness;
+            # report it as unavailable instead of a supported absence/FAIL.
+            unavailable.append(relation)
+            continue
         if artifact_body is None: continue
         if len(names) == 2:
-            if not _owned_matches(artifact_body, r"\bstakeholder\s+" + re.escape(names[1]) + r"\s*:"):
+            stakeholders = _owned_matches(
+                artifact_body, r"\bstakeholder\s+" + re.escape(names[1]) + r"\s*:")
+            if len(stakeholders) > 1:
+                unavailable.append(relation)
+                continue
+            if not stakeholders:
                 continue
         elif len(names) != 1: continue
         kind_matches = _owned_matches(

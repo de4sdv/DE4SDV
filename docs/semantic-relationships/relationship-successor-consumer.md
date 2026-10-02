@@ -49,10 +49,22 @@ missing pins produce incomplete query status, never guessed identities. Results 
 `binding_routes` including the ingestion class and exact routed UUID. The predecessor
 index and all global authority selectors remain unchanged.
 
+Discrimination requires every reachable typing/specialization branch to be
+represented; one grounded branch cannot hide another dangling branch. An external
+leaf needs a URI on its exact reference, not on unrelated data. Graph, flat and
+inlined `referencedFeature` shapes are normalized together, with their API/property
+witness retained; conflicting targets refuse rather than becoming absence.
+
 `relationship_successor_contract.py` extracts and verifies source-derived records
 at bootstrap, through `composition_construction.py`. The live relationship service
 cannot import that source-reading extractor; queries consume the constructed
 profile and API binding only. The repository layering guard enforces this split.
+Construction masks comments and both quoted-token forms together; comment markers
+inside a literal remain literal content. Required record fields are checked before
+use. These bounded lexical checks do not replace licensed SysML validation.
+Declaration location and owned-body matching run through that same scan, so a
+commented or quoted duplicate cannot move a record boundary, and a duplicated live
+declaration refuses instead of silently supplying the first match.
 
 ## Runnable CLI and MCP
 

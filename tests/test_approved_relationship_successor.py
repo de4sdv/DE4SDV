@@ -213,6 +213,32 @@ def test_supported_graph_reference_preserves_exact_witness():
     assert report["edges"][0]["witness"]["reference_witnesses"][0]["api_object_id"] == "ref"
 
 
+@pytest.mark.parametrize("shape", ["inlined", "conflicting-flat", "equivalent-graph"])
+def test_inline_reference_is_normalized_with_other_witness_shapes(shape):
+    def mutate(elements, binding, contract):
+        elements.append({"@id": "shadow", "@type": "ReferenceUsage",
+                         "referencedFeature": {"@id": "use-Function"}})
+        if shape == "conflicting-flat":
+            elements.append({"@id": "ref", "@type": "ReferenceSubsetting",
+                "owningRelatedElement": {"@id": "shadow"}, "referencedFeature": {"@id": "use-LogicalElement"}})
+        elif shape == "equivalent-graph":
+            elements.append({"@id": "ref", "@type": "ReferenceSubsetting",
+                "subsettingFeature": {"@id": "shadow"}, "subsettedFeature": {"@id": "use-Function"}})
+        next(e for e in elements if e["@id"] == "allocation")["target"] = [{"@id": "shadow"}]
+    report = _spec_query(mutate)
+    if shape == "conflicting-flat":
+        assert report["semantic_status"] == "incomplete"
+        assert report["edges"] == []
+    else:
+        assert report["semantic_status"] == "complete"
+        assert report["edges"][0]["target"] == "use-Function"
+        witnesses = report["edges"][0]["witness"]["reference_witnesses"]
+        assert witnesses
+        if shape == "inlined":
+            assert witnesses == [{"source": "shadow", "target": "use-Function",
+                                  "kind": "referencedFeature", "api_object_id": "shadow"}]
+
+
 def test_conflicting_flat_and_graph_reference_refuses_structurally():
     def mutate(elements, binding, contract):
         elements.extend([
@@ -251,6 +277,54 @@ def test_untyped_carrier_candidate_is_incomplete_not_silent_absence():
     assert report["semantic_status"] == "incomplete"
 
 
+@pytest.mark.parametrize("mode", ["mixed-valid", "mixed-unrelated", "dangling-supertype", "mixed-carrier"])
+def test_every_discrimination_branch_must_be_resolved(mode):
+    def mutate(elements, binding, contract):
+        if mode == "mixed-carrier":
+            elements.append(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan",
+                type=[{"@id": "root-hasValidationScenario"}, {"@id": "missing-other-meaning"}]))
+        else:
+            endpoint = next(e for e in elements if e["@id"] == "use-Function")
+            if mode == "mixed-valid":
+                endpoint["type"].append({"@id": "missing-definition"})
+            elif mode == "mixed-unrelated":
+                elements.append({"@id": "unrelated", "@type": "ActionDefinition"})
+                endpoint["type"] = [{"@id": "unrelated"}, {"@id": "missing-definition"}]
+            else:
+                elements.extend([
+                    {"@id": "derived", "@type": "ActionDefinition"},
+                    {"@id": "parent", "@type": "Subclassification",
+                     "subclassifier": {"@id": "derived"}, "superclassifier": {"@id": "missing-definition"}}])
+                endpoint["type"] = [{"@id": "derived"}]
+    predicate = "hasValidationScenario" if mode == "mixed-carrier" else "allocatedTo"
+    source = "use-Need" if mode == "mixed-carrier" else "use-Requirement"
+    report = _spec_query(mutate, predicate, source)
+    assert report["semantic_status"] == "incomplete"
+    assert report["edges"] == []
+    assert any(r["predicate"] == predicate for r in report["unsupported_predicates"])
+
+
+@pytest.mark.parametrize("shape", ["inline-uri", "relationship-uri", "unrelated-uri"])
+def test_external_typing_requires_uri_on_its_exact_reference(shape):
+    def mutate(elements, binding, contract):
+        endpoint = next(e for e in elements if e["@id"] == "use-Function")
+        reference = {"@id": "external-type", "@uri": "synthetic://library/type"}
+        if shape == "relationship-uri":
+            elements.append({"@id": "typing", "@type": "FeatureTyping",
+                "typedFeature": {"@id": "use-Function"}, "type": reference})
+        else:
+            endpoint["type"].append(reference if shape == "inline-uri" else {"@id": "external-type"})
+            if shape == "unrelated-uri":
+                endpoint["unrelatedData"] = reference
+    report = _spec_query(mutate)
+    if shape == "unrelated-uri":
+        assert report["semantic_status"] == "incomplete"
+        assert report["edges"] == []
+    else:
+        assert report["semantic_status"] == "complete"
+        assert report["edges"][0]["target"] == "use-Function"
+
+
 def test_one_carrier_cannot_acquire_two_governed_meanings():
     service, elements, _, _ = fixture_service()
     next(e for e in elements if e["@id"] == "use-Need")["type"].append({"@id": "root-Requirement"})
@@ -268,15 +342,9 @@ def test_one_carrier_cannot_acquire_two_governed_meanings():
 
 @pytest.mark.parametrize("mode", ["comment_only_carrier_end", "nested_carrier_end",
                                   "comment_version_value", "nested_version_value"])
-def test_construction_requires_direct_owned_code(tmp_path, mode):
-    from de4sdv.semantic.relationship_successor_contract import generate_contract, MODEL
-    contract = generate_contract(ROOT)
-    for path in contract["bound_inputs"]:
-        destination = tmp_path / path
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes((ROOT / path).read_bytes())
-    model = tmp_path / MODEL
-    text = model.read_text()
+def test_construction_requires_direct_owned_code(mode):
+    from de4sdv.semantic.relationship_successor_contract import MODEL
+    text = (ROOT / MODEL).read_text()
     if mode == "comment_only_carrier_end":
         text = text.replace("    end source : RequirementCandidate;",
             "    end source : StakeholderNeedCandidate;\n"
@@ -292,6 +360,92 @@ def test_construction_requires_direct_owned_code(tmp_path, mode):
         text = text.replace('attribute :>> version = "de4sdv.relationship-successor/v1";',
             'part foreign { attribute version = "de4sdv.relationship-successor/v1";'
             ' /* attribute :>> version = "de4sdv.relationship-successor/v1"; */ }', 1)
-    model.write_text(text)
     with pytest.raises(ValueError):
-        generate_contract(tmp_path)
+        _contract_from_model_text(text)
+
+
+def _contract_from_model_text(text):
+    """Overlay one source read in memory; never create a real-model mirror."""
+    from unittest.mock import patch
+    from de4sdv.semantic.relationship_successor_contract import generate_contract, MODEL
+    read_text, read_bytes = Path.read_text, Path.read_bytes
+    def text_read(path, *args, **kwargs):
+        return text if path == ROOT / MODEL else read_text(path, *args, **kwargs)
+    def bytes_read(path, *args, **kwargs):
+        return text.encode() if path == ROOT / MODEL else read_bytes(path, *args, **kwargs)
+    with patch.object(Path, "read_text", text_read), patch.object(Path, "read_bytes", bytes_read):
+        return generate_contract(ROOT)
+
+
+@pytest.mark.parametrize("literal", ["synthetic://review", "synthetic:/*review*/", "synthetic://{\"quoted\"}"])
+def test_comment_tokens_inside_owned_literal_are_not_comments(literal):
+    import json
+    from de4sdv.semantic.relationship_successor_contract import MODEL
+    text = (ROOT / MODEL).read_text()
+    old = '"Function-to-LogicalElement allocatedTo signature; historical provenance constrainedBy; stronger realizedBy/deployedTo active claims"'
+    text = text.replace(old, json.dumps(literal), 1)
+    assert _contract_from_model_text(text)["supersedes"] == literal
+
+
+@pytest.mark.parametrize("field", ["supersedes", "identity", "retirement-predicate"])
+def test_missing_required_record_field_is_a_controlled_refusal(field):
+    from de4sdv.semantic.relationship_successor_contract import MODEL
+    text = (ROOT / MODEL).read_text()
+    if field == "supersedes":
+        start = text.index("    attribute :>> supersedes =")
+    elif field == "identity":
+        start = text.index('    attribute :>> identity = "Requirement";')
+    else:
+        start = text.index('    attribute :>> predicate = "realizedBy";')
+    end = text.index("\n", start)
+    with pytest.raises(ValueError):
+        _contract_from_model_text(text[:start] + text[end:])
+
+
+def _semantics(contract):
+    """Contract meaning without the digests that legitimately move with source."""
+    return {key: value for key, value in contract.items() if key not in {"id", "bound_inputs"}}
+
+
+def test_commented_duplicate_record_cannot_override_the_active_record():
+    """R2-SPEC-1: a commented decoy must not supply schema or supersedes."""
+    import json
+    from de4sdv.semantic.relationship_successor_contract import MODEL
+    text = (ROOT / MODEL).read_text()
+    anchor = "  part version : SuccessorVersionRecord {"
+    assert anchor in text
+    decoy = ("/*\n  part version : SuccessorVersionRecord {\n"
+             '    attribute :>> version = "synthetic-decoy";\n'
+             '    attribute :>> supersedes = "synthetic-decoy";\n'
+             "  }\n*/\n")
+    baseline = _semantics(_contract_from_model_text(text))
+    commented = _semantics(_contract_from_model_text(text.replace(anchor, decoy + anchor, 1)))
+    assert commented == baseline
+    assert commented["schema"] == "de4sdv.relationship-successor/v1"
+    assert "synthetic-decoy" not in json.dumps(commented)
+
+
+@pytest.mark.parametrize("noise", ["attribute 'noise }' : String;",
+                                   "attribute 'noise {' : String;",
+                                   "attribute 'noise /*' : String;",
+                                   'attribute noise : String = "} // /*";'])
+def test_quoted_nonfield_tokens_do_not_move_the_record_boundary(noise):
+    """R2-SPEC-2: an unrestricted name is one inert token at any boundary."""
+    from de4sdv.semantic.relationship_successor_contract import MODEL
+    text = (ROOT / MODEL).read_text()
+    anchor = "  part version : SuccessorVersionRecord {\n"
+    assert anchor in text
+    baseline = _semantics(_contract_from_model_text(text))
+    inserted = _semantics(_contract_from_model_text(
+        text.replace(anchor, anchor + "    " + noise + "\n", 1)))
+    assert inserted == baseline
+
+
+def test_duplicate_live_record_declaration_refuses_instead_of_first_match():
+    from de4sdv.semantic.relationship_successor_contract import MODEL
+    text = (ROOT / MODEL).read_text()
+    anchor = "  part version : SuccessorVersionRecord {\n"
+    duplicate = anchor + '    attribute :>> version = "synthetic-decoy";\n' \
+                         '    attribute :>> supersedes = "synthetic-decoy";\n  }\n'
+    with pytest.raises(ValueError):
+        _contract_from_model_text(text.replace(anchor, duplicate + anchor, 1))
