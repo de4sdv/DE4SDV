@@ -14,8 +14,11 @@ from .kernel_binding_index import KernelBindingIndex
 from .kernel_contract import KernelFileMapping, RelationshipMapping
 from .query import SemanticQueryService
 from .traversal import SemanticTraversal, TraversalHop
-from .model_edges import is_reference_subsetting_hop, is_subsumption_hop, is_typing_hop
-from .relationships import build_relationship_graph
+from .model_edges import (is_reference_subsetting_hop, is_subsumption_hop, is_typing_hop,
+                          SUBSUMPTION_FAMILIES, SUBSUMPTION_INLINE_KEYS,
+                          TYPING_FAMILIES, TYPING_INLINE_KEYS,
+                          REFERENCE_SUBSETTING_FAMILIES)
+from .relationships import build_relationship_graph, is_family
 
 
 class SuccessorAuthority:
@@ -73,6 +76,14 @@ class SuccessorAuthority:
 
 
 class SuccessorTraversal(SemanticTraversal):
+    # Mirror only serializer mechanics, not ontology meaning. Keep raw objects
+    # alongside the frozen graph so dropped members cannot prove completeness.
+    _RAW_SOURCES = ("subclassifier", "specific", "owningRelatedElement", "owner", "source",
+                    "subsettingFeature", "redefiningFeature", "typedFeature", "memberElement")
+    _RAW_TARGETS = ("superclassifier", "general", "supertype", "type", "declaredType",
+                    "subsettedFeature", "redefinedFeature", "target", "owningRelatedElement",
+                    "ownedRelatedElement")
+
     def __init__(self, contract, kernel_bindings):
         super().__init__(contract, kernel_bindings)
         self.unsupported = []
@@ -123,11 +134,108 @@ class SuccessorTraversal(SemanticTraversal):
             return []
 
     @staticmethod
-    def _reference_owners(item):
-        owners = set()
-        for key in ("owningRelatedElement", "owner", "subsettingFeature"):
-            owners.update(reference_ids(item.get(key)))
-        return owners
+    def _checked_references(item, key):
+        """Validate raw members before any lossy ID/graph projection.
+
+        Null/empty optional properties are absence; a supplied list member is
+        evidence and must carry a nonblank string identity. Never salvage an
+        unidentified member from its URI, name, metaclass or another witness.
+        """
+        value = item.get(key)
+        if value is None:
+            return []
+        members = value if isinstance(value, list) else [value]
+        for member in members:
+            if not isinstance(member, dict):
+                raise IdentityNotFoundError(f"unsupported raw {key} reference member")
+            identities = [member[k] for k in ("@id", "elementId", "id") if k in member]
+            if (not identities or any(not isinstance(i, str) or not i.strip() for i in identities)
+                    or len(set(identities)) != 1):
+                raise IdentityNotFoundError(f"missing, blank or conflicting raw {key} reference identity")
+        return members
+
+    @classmethod
+    def _checked_reference_ids(cls, item, key):
+        return [element_id(ref) for ref in cls._checked_references(item, key)]
+
+    @classmethod
+    def _raw_relationship_index(cls, elements):
+        """Route raw flat/owned witnesses without discarding their members.
+
+        ID extraction here is association only. Every associated raw field is
+        validated at use, including unidentified relationship objects that the
+        ordinary element index cannot retain. Unlocatable witnesses remain an
+        undecidable candidate rather than silently disappearing.
+        """
+        index = {}
+
+        def collect(item, parent=None):
+            if not isinstance(item, dict):
+                index.setdefault(parent, []).append(item)
+                return
+            kind = str(item.get("@type") or "")
+            if is_family(kind, TYPING_FAMILIES + SUBSUMPTION_FAMILIES + REFERENCE_SUBSETTING_FAMILIES):
+                sources = {i for key in cls._RAW_SOURCES for i in reference_ids(item.get(key))}
+                for source in sources or {parent}:
+                    index.setdefault(source, []).append(item)
+            for key in ("ownedRelationship", "ownedElement", "ownedMember"):
+                children = item.get(key)
+                if children is None:
+                    continue
+                for child in children if isinstance(children, list) else [children]:
+                    collect(child, element_id(item) or parent)
+
+        for item in elements:
+            collect(item)
+        return index
+
+    @classmethod
+    def _raw_targets(cls, identifier, node, raw_index, families, inline_keys, extra_target_keys=()):
+        references = [ref for key in inline_keys for ref in cls._checked_references(node, key)]
+        for item in raw_index.get(identifier, []) + raw_index.get(None, []):
+            if not isinstance(item, dict):
+                raise IdentityNotFoundError("unsupported raw owned relationship member")
+            if not is_family(str(item.get("@type") or ""), families):
+                continue
+            if item in raw_index.get(None, []):
+                raise IdentityNotFoundError("raw relationship source is absent or undecidable")
+            cls._checked_references({"witness": item}, "witness")
+            for key in cls._RAW_SOURCES:
+                cls._checked_references(item, key)
+            targets = [ref for key in cls._RAW_TARGETS + extra_target_keys
+                       for ref in cls._checked_references(item, key)]
+            targets = [ref for ref in targets if element_id(ref) != identifier]
+            if not targets:
+                raise IdentityNotFoundError("raw typing/specialization target is absent")
+            references.extend(targets)
+        return references
+
+    @classmethod
+    def _successor_graph(cls, elements, raw_index):
+        """Supplement frozen mechanics with validated list-valued lineage.
+
+        These are local graph projections of supplied API witnesses, not new
+        API objects or source-inferred relationships. Retain exact witness ID,
+        family, implication and target URI. Invalid witnesses stay in the raw
+        index for the candidate completeness guard, never normalized away.
+        """
+        projections = []
+        families = TYPING_FAMILIES + SUBSUMPTION_FAMILIES
+        for source, items in raw_index.items():
+            if source is None:
+                continue
+            for item in items:
+                if not isinstance(item, dict) or not is_family(str(item.get("@type") or ""), families):
+                    continue
+                try:
+                    targets = cls._raw_targets(source, {}, {source: [item]}, families, ())
+                except IdentityNotFoundError:
+                    continue
+                projections.extend({"@id": element_id(item), "@type": item["@type"],
+                    "source": {"@id": source}, "target": target,
+                    "isImplied": item.get("isImplied") is True} for target in targets)
+        return build_relationship_graph(elements + projections)
+
 
     @staticmethod
     def _normalize_references(references):
@@ -143,33 +251,39 @@ class SuccessorTraversal(SemanticTraversal):
             unique.setdefault((reference["source"], reference["target"]), reference)
         return list(unique.values())
 
-    def _endpoints(self, relationship, key, by_id, graph):
+    def _endpoints(self, relationship, key, by_id, graph, raw_index):
         resolved, witnesses = [], []
-        for identifier in reference_ids(relationship.get(key)):
+        identifiers = self._checked_reference_ids(relationship, key)
+        if not identifiers:
+            raise IdentityNotFoundError("native connection endpoint is absent")
+        for identifier in identifiers:
             seen = set()
             while True:
                 if identifier in seen or identifier not in by_id:
                     raise IdentityNotFoundError("dangling or cyclic connection endpoint")
                 seen.add(identifier)
+                # Validate all raw shapes before equivalent witnesses coalesce.
+                self._raw_targets(identifier, by_id[identifier], raw_index,
+                    REFERENCE_SUBSETTING_FAMILIES, ("referencedFeature",), ("referencedFeature",))
                 # Graph hops expose the native witness identity as ``witness_id``
                 # (the removed ``relationship_id`` never existed on Hop).
                 graph_references = [
                     dict(source=hop.source, target=hop.target, kind=hop.kind,
                          api_object_id=hop.witness_id)
                     for hop in graph.outgoing(identifier) if is_reference_subsetting_hop(hop)]
-                # The frozen graph does not collect referencedFeature on a flat
-                # ReferenceSubsetting object. Normalize this native serializer
-                # shape locally, never changing O3's shared representation code.
+                # The frozen graph can omit flat/owned/list-valued references.
+                # Normalize only the validated raw native serializer shapes.
                 flat_references = [
-                    dict(source=identifier, target=target, kind="ReferenceSubsetting",
+                    dict(source=identifier, target=target, kind=item["@type"],
                          api_object_id=element_id(item))
-                    for item in by_id.values()
-                    if item.get("@type") == "ReferenceSubsetting"
-                    and identifier in self._reference_owners(item)
-                    for target in reference_ids(item.get("referencedFeature"))]
+                    for item in raw_index.get(identifier, [])
+                    if is_family(str(item.get("@type") or ""), REFERENCE_SUBSETTING_FAMILIES)
+                    for target_key in self._RAW_TARGETS + ("referencedFeature",)
+                    for target in self._checked_reference_ids(item, target_key)
+                    if target != identifier]
                 inline_references = [
                     dict(source=identifier, target=target, kind="referencedFeature", api_object_id=identifier)
-                    for target in reference_ids(by_id[identifier].get("referencedFeature"))]
+                    for target in self._checked_reference_ids(by_id[identifier], "referencedFeature")]
                 references = self._normalize_references(graph_references + flat_references + inline_references)
                 if not references:
                     resolved.append(identifier)
@@ -179,10 +293,10 @@ class SuccessorTraversal(SemanticTraversal):
                     raise IdentityNotFoundError("ambiguous connection reference endpoint")
                 witnesses.extend(references)
                 identifier = next(iter(targets))
-        return resolved, witnesses
+        return list(dict.fromkeys(resolved)), self._normalize_references(witnesses)
 
-    @staticmethod
-    def _typing_is_unresolved(endpoint, resolver, graph, by_id):
+    @classmethod
+    def _typing_is_unresolved(cls, endpoint, graph, by_id, raw_index, *, require_typing=True):
         """True when the endpoint's referenced typing evidence cannot decide.
 
         Every typing/specialization branch must be represented, not merely one
@@ -193,9 +307,10 @@ class SuccessorTraversal(SemanticTraversal):
         endpoint_id = element_id(endpoint)
         if endpoint_id is None:
             return True
-        typed = set(resolver["typed_by"].get(endpoint_id, ()))
-        typed |= set(resolver["typed_by_implied"].get(endpoint_id, ()))
-        if not typed:
+        typed = any(is_typing_hop(hop) for hop in graph.outgoing(endpoint_id))
+        raw_typed = cls._raw_targets(endpoint_id, endpoint, raw_index, TYPING_FAMILIES,
+                                    TYPING_INLINE_KEYS)
+        if require_typing and not (typed or raw_typed):
             return True
         pending, seen = [endpoint_id], set()
         while pending:
@@ -204,6 +319,18 @@ class SuccessorTraversal(SemanticTraversal):
                 continue
             seen.add(identifier)
             node = by_id[identifier]
+            raw_targets = cls._raw_targets(identifier, node, raw_index,
+                TYPING_FAMILIES + SUBSUMPTION_FAMILIES,
+                TYPING_INLINE_KEYS + SUBSUMPTION_INLINE_KEYS)
+            external_ids = {element_id(ref) for ref in raw_targets
+                            if isinstance(ref.get("@uri"), str) and ref["@uri"].strip()}
+            for ref in raw_targets:
+                target = element_id(ref)
+                assert target is not None  # validated before projection
+                if target in by_id:
+                    pending.append(target)
+                elif target not in external_ids:
+                    return True
             for hop in graph.outgoing(identifier):
                 if not (is_typing_hop(hop) or is_subsumption_hop(hop)):
                     continue
@@ -213,11 +340,7 @@ class SuccessorTraversal(SemanticTraversal):
                 # The frozen graph preserves URI on relationship objects but
                 # not inlined properties; recover only the exact target's
                 # explicit URI from its containing API object, never a name.
-                value = node.get(hop.kind)
-                external = hop.target_uri or any(
-                    isinstance(ref, dict) and element_id(ref) == hop.target and ref.get("@uri")
-                    for ref in (value if isinstance(value, list) else [value]))
-                if not external:
+                if hop.target not in external_ids:
                     return True
         return False
 
@@ -252,7 +375,8 @@ class SuccessorTraversal(SemanticTraversal):
 
     def _successor_hops(self, predicate, canonical, rows, source, elements):
         by_id = {i: e for e in elements if (i := element_id(e)) is not None}
-        graph = build_relationship_graph(elements)
+        raw_index = self._raw_relationship_index(elements)
+        graph = self._successor_graph(elements, raw_index)
         inverse = predicate != canonical
         mechanical_type = "AllocationUsage" if rows[0]["mechanism"] == "native-allocation" else "ConnectionUsage"
         resolvers = {}
@@ -267,8 +391,9 @@ class SuccessorTraversal(SemanticTraversal):
             if rel.get("@type") != mechanical_type:
                 continue
             try:
-                sources, sw = self._endpoints(rel, "source", by_id, graph)
-                targets, tw = self._endpoints(rel, "target", by_id, graph)
+                self._checked_references({"witness": rel}, "witness")
+                sources, sw = self._endpoints(rel, "source", by_id, graph, raw_index)
+                targets, tw = self._endpoints(rel, "target", by_id, graph, raw_index)
                 if element_id(source) not in (targets if inverse else sources):
                     continue
                 if len(sources) != 1 or len(targets) != 1:
@@ -277,22 +402,23 @@ class SuccessorTraversal(SemanticTraversal):
                 if len(contexts) != 1 or contexts[0] not in by_id:
                     raise IdentityNotFoundError("native connection context is absent or dangling")
                 left, right = by_id[sources[0]], by_id[targets[0]]
+                if self._typing_is_unresolved(rel, graph, by_id, raw_index,
+                                              require_typing=mechanical_type == "ConnectionUsage"):
+                    raise IdentityNotFoundError("carrier typing evidence is missing or unresolved")
                 if len(self._governed_meanings(rel, left, right, resolver_for)) > 1:
                     raise IdentityNotFoundError("carrier grounds under overlapping governed endpoint meanings")
                 for row in rows:
                     if left.get("@type") != row["sourceUsage"] or right.get("@type") != row["targetUsage"]:
                         continue
-                    if row["mechanism"] == "typed-connection":
-                        carrier = resolver_for(canonical)
-                        if self._typing_is_unresolved(rel, carrier, graph, by_id):
-                            raise IdentityNotFoundError("carrier typing evidence is missing or unresolved")
-                        if not self._endpoint_grounding(rel, carrier):
-                            continue
+                    carrier = resolver_for(canonical) if row["mechanism"] == "typed-connection" else None
                     lr = resolver_for(row["sourceClass"])
                     rr = resolver_for(row["targetClass"])
-                    for endpoint, resolver in [(left, lr), (right, rr)]:
-                        if self._typing_is_unresolved(endpoint, resolver, graph, by_id):
+                    for endpoint in (left, right):
+                        if self._typing_is_unresolved(endpoint, graph, by_id, raw_index):
                             raise IdentityNotFoundError("usage endpoint typing evidence is missing or unresolved")
+                    if (row["mechanism"] == "typed-connection"
+                            and not self._endpoint_grounding(rel, carrier)):
+                        continue
                     lg, rg = self._endpoint_grounding(left, lr), self._endpoint_grounding(right, rr)
                     if not lg or not rg:
                         # A fully resolved unrelated lineage is supported absence;
