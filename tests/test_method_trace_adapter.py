@@ -79,8 +79,8 @@ class ScopedTraceTests(unittest.TestCase):
 
     def _synthetic_cli_mutation(self, old, new):
         """Small authored fixture, never a duplicate/mirror of a real model."""
+        import subprocess
         import tempfile
-        import shutil
         from de4sdv.semantic.method_trace_adapter import FRAMINGS
         content = '''package DE4SDV_AEBSVisualizationFraming {
   requirement syntheticProblem : SyntheticProblem;
@@ -102,7 +102,13 @@ class ScopedTraceTests(unittest.TestCase):
             content = content.replace(before, after)
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
-            shutil.copyfile(ROOT / ".git", repo / ".git")
+            # The fixture brings its own repository: ROOT/.git is a directory in a
+            # clone and a file in a linked worktree, so it must never be copied.
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "-c", "user.email=synthetic@example.invalid",
+                            "-c", "user.name=Synthetic Fixture", "commit", "-q",
+                            "--allow-empty", "-m", "synthetic fixture"],
+                           cwd=repo, check=True, capture_output=True)
             target = repo / FRAMINGS["INC-AEBS-010"][0]
             target.parent.mkdir(parents=True)
             target.write_text(content)
