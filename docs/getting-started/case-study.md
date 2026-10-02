@@ -1,54 +1,99 @@
 # DE4SDV through one case study
 
-DE4SDV helps engineers keep a vehicle's design, software choices, tests, and
-supporting evidence connected when the vehicle changes. We build an open
-engineering reference, not a production car or a certificate.
+DE4SDV helps engineers build software-defined vehicles from interchangeable
+open-source parts and keep the design, configuration choices, tests, and
+evidence connected while those parts change. We build an open engineering
+reference, not a production car or a certificate.
 
 Start with the story below. Then follow the engineering workflow or pick a
 small contribution. You do not need to know SysML or install tools to read it.
 
 ## 1. The problem, the case, and the solution
 
-### The problem: a change is bigger than a code change
+### The problem: many stacks, many combinations, one question
 
-Imagine changing the software or computing platform in a vehicle. A build can
-pass while the behavior, interfaces, or assumptions behind earlier tests have
-changed. Engineers need to answer: **what changed, which vehicle versions are
-affected, and what must be checked again?**
+A software-defined vehicle runs a layered software stack. For almost every
+layer, several open-source options exist. Picking one per layer gives many
+possible vehicles, and each change raises the same questions: **which
+combinations actually work together, which vehicle versions are affected, and
+what must be checked again?**
 
-DE4SDV's answer is to keep the intended behavior, requirements, design choices,
-implementation, and test evidence connected and under review. A missing test
-or unresolved assumption should be visible, not mistaken for proof.
+DE4SDV's answer is to model the stack and its options explicitly, choose
+between them through governed decisions, and keep requirements, design,
+implementation, and test evidence connected to each choice. A missing test or
+unresolved assumption should be visible, not mistaken for proof.
 
-### The case: emergency braking behind another vehicle
+### The case: a configurable SDV stack
 
-A vehicle is traveling in the same lane behind another vehicle. The distance
-closes and a collision becomes imminent. The intended behavior is to detect
-the risk, warn the driver when required, and request emergency braking when
-the activation conditions are met. Driver override and failure handling are
-separate paths that also need defined conditions and evidence.
+The [platform stack model](../../textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml)
+describes six layers. Each layer has a defined boundary to its neighbors, and
+most layers have several candidate implementations:
+
+| Layer | What it does | Candidates in the model |
+|---|---|---|
+| Vehicle application | Domain functions such as driver assistance (perception, planning, control) | Autoware, Openpilot, Apollo |
+| Application–middleware adapter | Translates between the application's internal messaging and the vehicle middleware | Derived from the two choices around it, never picked by hand |
+| Middleware | Vehicle-level communication, lifecycle, service discovery, diagnostics | Eclipse S-CORE, Android SDV, AUTOSAR Adaptive, or none |
+| Operating system | Scheduling, memory, drivers | Linux, Android, QNX |
+| Hypervisor | Isolates several operating systems on one chip | KVM, QNX QVM, ACRN, or none |
+| Hardware | The compute platform the stack runs on | Kept abstract |
+
+Not every combination is valid. The
+[feature catalogue](../../model-based-product-line-engineering/feature-models/sdv_product_line.yaml)
+records compatibility rules. For example, rule C001 rejects Eclipse S-CORE on
+Android because S-CORE targets Linux and QNX.
+
+### The product line: what the stack can express versus what we govern
+
+A **product line** is a family of related vehicle versions whose shared design
+is managed together. Two levels matter, and it is easy to confuse them:
+
+- **What the stack can express.** The catalogue above lists every candidate
+  so alternatives can be compared and kept in view.
+- **What DE4SDV currently governs.** A
+  [reviewed scope decision](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md)
+  admits exactly two planned reference members. Apollo, Openpilot, Eclipse
+  S-CORE, AUTOSAR Adaptive, QNX/QVM, ACRN, and similar options remain
+  reference-only or deferred until a future reviewed decision admits a member
+  that needs them.
+
+The two governed members differ in one product decision, **Vehicle Platform
+Integration Mode**, and that one decision drives several layer choices:
+
+| Layer | Standalone member | AAOS-integrated member |
+|---|---|---|
+| Vehicle application | Autoware | Autoware |
+| Middleware | none | Android SDV |
+| Operating system (platform domain) | Linux | Android¹ |
+| Hypervisor | none | KVM |
+| Adapter | none (derived) | Autoware→AAOS SDV (derived) |
+
+¹ Autoware keeps its own Linux/ROS 2 runtime; the Android Automotive OS (AAOS)
+domain is added beside it. In the AAOS member's
+[configuration](../../model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml),
+cross-domain deployment and transport remain unresolved and the evidence
+status is `planned`.
+
+Two lessons sit in this table. First, the adapter is **derived** from the
+application and middleware choices, never selected on its own. Second,
+emergency braking, Autoware, and the sensing baseline are **common** to both
+members. A characteristic is a product feature only when it distinguishes one
+member from another. Planned membership also does not mean both members have
+the same implementation or test maturity.
+
+### The capability that exercises it: emergency braking
+
+To test whether the stack and product line hold together, we follow one
+vehicle capability through them. A vehicle is traveling in the same lane
+behind another vehicle. The distance closes and a collision becomes imminent.
+The intended behavior is to detect the risk, warn the driver when required,
+and request emergency braking when the activation conditions are met. Driver
+override and failure handling are separate paths that also need defined
+conditions and evidence.
 
 This is the vehicle-target **Advanced Emergency Braking System (AEBS)** case.
 The [operational story](../../methodologies/sysmod-sysmlv2/pilots/aebs-operational-story.md)
 records the situation; it is not a report that a real vehicle passed a test.
-
-The initial product line has two planned reference members — related vehicle
-versions whose shared design is managed together:
-
-- **Standalone Autoware AEBS Reference Member** — the standalone alternative.
-- **AAOS-Integrated Autoware AEBS Reference Member** — the alternative integrated
-  with Android Automotive OS (AAOS).
-
-Both share vehicle-target AEBS and Autoware, the driving-software stack used
-by the reference. The admitted product difference is **Vehicle Platform
-Integration Mode: Standalone or AAOS Integrated**. Emergency braking is common
-to both, not an optional feature in this scope. Planned membership does not
-mean both implementations have the same test maturity. See the
-[governed scope decision](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md)
-for the boundaries; other stacks mentioned in the repository are not thereby
-selectable members of this portfolio.
-
-### The solution: an engineering thread, not just a braking demo
 
 The case tests whether we can follow one connected thread:
 
@@ -73,9 +118,9 @@ satisfaction or verification; the candidate's verification status is
 
 The
 [nominal moving-target bench](../../implementation/aebs-autoware-nominal-vehicle-target-bench/README.md)
-provides bounded, replayable evidence for a configured simulation chain.
-These are connected engineering artifacts, not proof that the candidate product
-requirement is satisfied.
+provides bounded, replayable evidence for a configured simulation chain on the
+standalone path. These are connected engineering artifacts, not proof that the
+candidate product requirement is satisfied.
 
 The vehicle versions are what we study (**System 1**). The models, tools,
 processes, and evidence workflow we build are the engineering system
@@ -85,12 +130,14 @@ defines the broader mission.
 
 ### What is demonstrated, and what is not
 
-The repository contains models, reference implementations, automated checks,
-and retained evidence with different maturity levels. The moving-target bench
-supports a narrow simulation claim; its evidence boundary excludes conscious
-driver override, false-reaction and degraded-operation matrices, pedestrian
-and bicycle behavior, and real-vehicle brake performance. Other increments
-must be judged by their own evidence, not this bench's result.
+The repository contains models, configurations, reference implementations,
+automated checks, and retained evidence with different maturity levels. The
+moving-target bench supports a narrow simulation claim; its evidence boundary
+excludes conscious driver override, false-reaction and degraded-operation
+matrices, pedestrian and bicycle behavior, and real-vehicle brake performance.
+A valid configuration proves only that the selected options satisfy the
+catalogue's rules, not that the configured stack has been built or run. Other
+increments must be judged by their own evidence.
 
 No example establishes vehicle safety, regulatory compliance, certification,
 homologation, or type approval. Check the owning artifact's status and
@@ -120,6 +167,32 @@ implementation should reflect it, not quietly define a different system.
    It does not approve the vehicle design or turn a simulation into road-test
    evidence.
 
+### Configuring a member
+
+Choosing layer options is done with files, not by editing the model by hand:
+
+1. The **feature catalogue** lists the options and compatibility rules.
+2. A **bill of features** records one member's selections, for example the
+   [standalone member's](../../model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml).
+3. The **configurator** checks the selections against the rules and derives
+   dependent choices such as the adapter.
+4. It generates a SysML **product model** for that member. Generated product
+   models are marked do-not-edit; change the selections instead.
+
+You can try the check yourself:
+
+```bash
+python tools/configure_variant.py \
+  --feature-model model-based-product-line-engineering/feature-models/sdv_product_line.yaml \
+  --bof model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml \
+  --check-only
+```
+
+Swap in `feature-configurations/fixtures/invalid-score-android.yaml` to watch
+rule C001 reject an incompatible combination. See the
+[product-line engineering guide](../../model-based-product-line-engineering/README.md)
+for the full chain and its validation boundary.
+
 ### A first look at the model
 
 **Question: which responsibilities does the vehicle-target AEBS model name?**
@@ -131,9 +204,14 @@ driver warning), and `requestBraking` (request emergency braking). This existing
 SysIDE view lists responsibilities and information items; it does not show
 their execution order or prove their implementation. Open the
 [original SVG](../../textual-notation-of-model/packages/features/aebs/diagrams/diagram-aebsFunctionalArchitectureView.svg)
-at full size, or use the
-[AEBS view index](../../textual-notation-of-model/packages/features/aebs/VIEWS.md)
-to explore structure, exchanges, and evidence separately.
+at full size.
+
+For the stack itself, open the
+[platform stack structure view](../../textual-notation-of-model/packages/architecture/diagrams/diagram-sdvPlatformStackStructureView.svg)
+(a dense reference diagram; view it at full size) and the
+[standalone member's product structure view](../../model-based-product-line-engineering/product-models/diagrams/diagram-productStructureView.svg).
+The [AEBS view index](../../textual-notation-of-model/packages/features/aebs/VIEWS.md)
+covers structure, exchanges, and evidence separately.
 
 ### CI/CD in plain language
 
@@ -158,8 +236,7 @@ and [API deployment](../../.github/workflows/deploy-public-sysml-api.yml) are
 separate, maintainer-triggered workflows bound to exact revisions. A green PR
 is not automatically the deployed public baseline.
 
-For diagrams, open the [AEBS views](../../textual-notation-of-model/packages/features/aebs/VIEWS.md)
-or the [model viewer](https://viewer.de4sdv.org), following the
+For diagrams, use the [model viewer](https://viewer.de4sdv.org), following the
 [viewer guide](../guides/model-viewer.md). Those diagrams are rendered from the
 model with SysIDE, not a parallel hand-drawn architecture.
 
@@ -175,9 +252,10 @@ that can be reviewed.
 |---|---|---|
 | Try the newcomer path (documentation) | This page and [#300](https://github.com/de4sdv/DE4SDV/issues/300) | Report confusing passages and propose one focused correction. A reader can answer the four questions below without private project context. |
 | Help a first-time GitHub contributor (community/docs) | [#37: GitHub onboarding](https://github.com/de4sdv/DE4SDV/issues/37) and [CONTRIBUTING](../../CONTRIBUTING.md) | Test or improve one step of the issue-to-PR walkthrough; record where a newcomer got stuck and verify the corrected step. Do not duplicate the existing guide proposal. |
+| Configure both reference members (product line) | The two bills of features named above and the [configurator](../../tools/configure_variant.py) | Run the check-only command for both members and the invalid fixture. Record the revision, commands, results, and the derived adapter for each member. Report any mismatch with the member table on this page. |
 | Follow one requirement (systems/traceability) | `REQ-AEBS-003` in the [requirements baseline](../../methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.md) and the example above | Review its need, design, verification-plan, and evidence links at one revision. Report a specific broken/missing link or confirm the bounded chain, keeping candidate status and open gaps visible. |
 | Check one bench's evidence boundary (verification/software) | [Moving-target bench](../../implementation/aebs-autoware-nominal-vehicle-target-bench/README.md) | Run its documented validator against retained evidence and record revision, command, result, and exclusions. Replaying retained evidence is not a new simulation or vehicle test. |
-| Reconcile one evidence-status summary (docs/QA) | [Implementation index](../../implementation/README.md) and [AAOS visualization campaign dispositions](../../implementation/aebs-aaos-sdv-visualization-bench/evidence/010/VIDEO-EVIDENCE-DISPOSITION.md) | Review the index's blanket runtime-pending wording against retained campaign records. Propose one XS correction that links the bounded observations while preserving the deferred safety outcome and non-public media limitations. |
+| Reconcile one evidence-status summary (docs/QA) | [Implementation index](../../implementation/README.md) and [AAOS visualization campaign dispositions](../../implementation/aebs-aaos-sdv-visualization-bench/evidence/010/VIDEO-EVIDENCE-DISPOSITION.md) | Review the index's blanket runtime-pending wording against retained campaign records. Propose one small correction that links the bounded observations while preserving the deferred safety outcome and non-public media limitations. |
 
 You can begin with reading and feedback; coding is not required. For a change,
 follow [CONTRIBUTING](../../CONTRIBUTING.md). The
@@ -188,8 +266,8 @@ follow [CONTRIBUTING](../../CONTRIBUTING.md). The
 After reading it, can you explain:
 
 1. What problem DE4SDV helps engineers solve?
-2. What situation the emergency-braking case examines and how its two members differ?
-3. Why passing CI or replaying a simulation does not mean a vehicle is certified?
+2. What the stack layers are, how the two governed members differ, and why the adapter is derived rather than chosen?
+3. Why a valid configuration, passing CI, or a replayed simulation does not mean a vehicle is certified?
 4. Which small task you could take, what you would produce, and how it is checked?
 
 If not, point out the missing explanation in

@@ -7,9 +7,10 @@ digital continuity, simulation interoperability, and continuous compliance
 work. It is also a workstream within the INCOSE Automotive Working Group.
 
 **Start with [DE4SDV through one case study](case-study.md)** for a
-plain-language emergency-braking example, the engineering and CI/CD workflow,
-and bounded contribution tasks. No tools or modeling background are needed
-to read it.
+plain-language tour of the configurable SDV stack and product line, the
+emergency-braking capability that exercises it, the engineering and CI/CD
+workflow, and bounded contribution tasks. No tools or modeling background are
+needed to read it.
 
 This guide then covers repository layout, model exploration, and local checks.
 If you want to contribute, read [`CONTRIBUTING`](../../CONTRIBUTING.md)

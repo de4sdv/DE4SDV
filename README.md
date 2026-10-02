@@ -18,8 +18,9 @@ regulatory approvals.
 DE4SDV is a workstream within the INCOSE Automotive Working Group.
 
 **New here? Start with [DE4SDV through one case study](docs/getting-started/case-study.md):**
-the emergency-braking story, how the engineering and CI/CD workflow fits
-together, and small tasks you can contribute without knowing the whole project.
+the configurable SDV stack and product line, the emergency-braking capability
+that exercises it, how the engineering and CI/CD workflow fits together, and
+small tasks you can contribute without knowing the whole project.
 
 ## Vision
 
