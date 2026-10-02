@@ -58,6 +58,65 @@ def runner():
     return module
 
 
+@pytest.mark.parametrize("binding_count", range(2, 9))
+@pytest.mark.parametrize("configuration", (
+    "atLeastOne", "multiSelect", "noneSelected", "xorCounterexample",
+))
+def test_fixture_configurations_type_the_tree_definition(binding_count, configuration):
+    """Lexical regression only; a typed header is not native Syside evidence."""
+    source = runner().fixture_text(binding_count)
+    assert "#featureTree occurrence def ScopedTree {" in source
+    assert source.count("#featureConfiguration occurrence ") == 4
+    assert (
+        f"#featureConfiguration occurrence {configuration} "
+        ": ScopedTree :> featureConfigurations {"
+    ) in source
+    assert ":> ScopedTree" not in source
+
+
+@pytest.mark.parametrize("binding_count", (2, 8))
+@pytest.mark.parametrize("native_xor", (False, True))
+def test_cli_emits_typed_fixture_without_promoting_native_evidence(tmp_path, binding_count, native_xor):
+    if not EXPERIMENT.is_dir():
+        pytest.skip("optional exact-pin oracle checkout unavailable")
+    output = tmp_path / "typed-fixture"
+    command = [sys.executable, "-B", str(SCRIPT), "--experiment", str(EXPERIMENT),
+               "--binding-count", str(binding_count), "--out", str(output)]
+    if native_xor:
+        command.append("--native-xor")
+    result = subprocess.run(command, capture_output=True, text=True)
+    assert result.returncode == (2 if native_xor else 0), result.stderr
+    report = json.loads((output / "receipt.json").read_text())
+    source = (output / "scoped-fixture.sysml").read_text()
+    r = runner()
+    assert source == r.fixture_text(binding_count)
+    assert report["artifact_sha256"]["scoped-fixture.sysml"] == r.digest(source.encode())
+    bodies = {}
+    for name in ("atLeastOne", "multiSelect", "noneSelected", "xorCounterexample"):
+        header = f"#featureConfiguration occurrence {name} : ScopedTree :> featureConfigurations {{"
+        bodies[name] = source.split(header, 1)[1].split("\n    }", 1)[0]
+    assert "probeGroup[1..*] = (member0);" in bodies["atLeastOne"]
+    selected = ", ".join(f"member{n}" for n in range(binding_count))
+    assert f"probeGroup[1..*] = ({selected});" in bodies["multiSelect"]
+    for n in range(binding_count):
+        assert f"#feature occurrence :>> member{n}[1];" in bodies["multiSelect"]
+        assert f"dependency binding{n} from probeAsset to ScopedTree::member{n};" in source
+    assert bodies["noneSelected"].strip() == "#feature occurrence :>> probeGroup[1..*];"
+    assert "#feature occurrence :>> member0[1];" in bodies["xorCounterexample"]
+    assert "#feature occurrence :>> owner[1];" in bodies["xorCounterexample"]
+    assert "constraint nativeXorProbe : PLEML::XORConstraint {" in source
+    assert "in occurrence :>> featureConfiguration = xorCounterexample;" in source
+    assert "in occurrence :>> owningFeature = ScopedTree::owner;" in source
+    assert "in occurrence :>> excluded = (ScopedTree::member0);" in source
+    assert report["fresh_serialization"] is False
+    assert report["representation"]["licensed_validation"] is False
+    assert report["native_expression_executed"] is False
+    assert report["native_xor"]["attempted"] is False
+    assert report["native_xor"]["defect_reproduced_natively"] is False
+    assert report["native_xor"]["requirement_status"] == "failed"
+    assert report["qualified"] is report["adoption_authorized"] is report["authority_activation_authorized"] is False
+
+
 def test_licensed_workflow_calls_scoped_package_without_native_success_claim():
     import yaml
     workflow = yaml.safe_load((ROOT / ".github/workflows/privileged-ple-qualification.yml").read_text())
