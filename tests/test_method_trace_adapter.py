@@ -30,6 +30,44 @@ class ScopedTraceTests(unittest.TestCase):
         result = evaluate_snapshot(altered)
         self.assertIn("problemStatement", result.failed_ids)
 
+    def test_snapshot_identity_conflict_is_unassessed_in_both_orders(self):
+        from dataclasses import replace
+        from de4sdv.semantic.method_trace_adapter import repository_snapshot, evaluate_snapshot
+        snapshot = repository_snapshot(ROOT, "INC-AEBS-010")
+        target_id = next(w.target for w in snapshot.witnesses if w.relation == "problemStatement")
+        target = next(a for a in snapshot.artifacts if a.identity == target_id)
+        conflict = replace(target, kind="part")
+        reports = []
+        for artifacts in ((conflict,) + snapshot.artifacts, snapshot.artifacts + (conflict,)):
+            with self.subTest(conflict_first=artifacts[0] == conflict):
+                result = evaluate_snapshot(replace(snapshot, artifacts=artifacts))
+                reports.append(result.increment_status())
+                row = next(r for r in result.results if r.unit_id == "problemStatement")
+                row.validate()
+                self.assertEqual(row.coverage, "UNASSESSED")
+                self.assertIsNone(row.state)
+                self.assertIsNone(row.verdict)
+                self.assertFalse(row.witnesses)
+                self.assertNotIn("problemStatement", result.failed_ids)
+                unaffected = next(r for r in result.results if r.unit_id == "increment")
+                self.assertEqual(unaffected.verdict, "PASS")
+                self.assertEqual(result.readiness[0].readiness, "BLOCKED")
+                self.assertIsNone(result.conformance_verdict)
+        self.assertEqual(reports[0], reports[1])
+
+    def test_agreeing_snapshot_projections_are_coalesced(self):
+        from dataclasses import replace
+        from de4sdv.semantic.method_trace_adapter import repository_snapshot, evaluate_snapshot
+        snapshot = repository_snapshot(ROOT, "INC-AEBS-010")
+        expected = evaluate_snapshot(snapshot).increment_status()
+        for artifacts in (snapshot.artifacts * 2, tuple(reversed(snapshot.artifacts * 2))):
+            with self.subTest(artifacts=artifacts):
+                result = evaluate_snapshot(replace(snapshot, artifacts=artifacts))
+                self.assertEqual(result.increment_status(), expected)
+                row = next(r for r in result.results if r.unit_id == "problemStatement")
+                self.assertEqual(row.verdict, "PASS")
+                self.assertEqual(len(row.witnesses), 1)
+
     def test_logical_scope_does_not_require_new_requirements_or_physical_artifacts(self):
         from de4sdv.semantic.method_trace_adapter import TraceDeclaration, selected_contract, METHOD_ID
         contract = selected_contract(TraceDeclaration(METHOD_ID, "logicalArchitecture", (7,), "architectureReady"))
@@ -367,6 +405,160 @@ class ScopedTraceTests(unittest.TestCase):
                           if w.relation in {"problemStatement", "stakeholders"}])
         self.assertEqual(result.readiness[0].readiness, "BLOCKED")
         self.assertIsNone(result.conformance_verdict)
+
+    def _assert_unavailable_relations(self, snapshot, relations):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        result = evaluate_snapshot(snapshot)
+        for relation in relations:
+            with self.subTest(relation=relation):
+                self.assertIn(relation, snapshot.unavailable)
+                self.assertIn(relation, result.unassessed_ids)
+                self.assertNotIn(relation, result.failed_ids)
+                row = next(r for r in result.results if r.unit_id == relation)
+                row.validate()
+                self.assertEqual(row.coverage, "UNASSESSED")
+                self.assertIsNone(row.state)
+                self.assertIsNone(row.verdict)
+                self.assertFalse(row.witnesses)
+                self.assertFalse([w for w in snapshot.witnesses if w.relation == relation])
+        self.assertEqual(result.readiness[0].readiness, "BLOCKED")
+        self.assertIsNone(result.conformance_verdict)
+
+    def test_duplicate_untyped_target_identity_is_unassessed(self):
+        declaration = "requirement visualizationProblemStatement : ProblemStatement"
+        for duplicate in ("requirement visualizationProblemStatement;",
+                          "item visualizationProblemStatement;"):
+            for first in (True, False):
+                with self.subTest(duplicate=duplicate, first=first):
+                    if first:
+                        snapshot = self._source_mutation(
+                            "INC-AEBS-010", declaration, duplicate + "\n" + declaration)
+                    else:
+                        ending = self._PROBLEM_STAKEHOLDERS + "  }"
+                        snapshot = self._source_mutation(
+                            "INC-AEBS-010", ending, ending + "\n" + duplicate)
+                    self._assert_unavailable_relations(snapshot, ("problemStatement", "stakeholders"))
+
+    def test_duplicate_untyped_stakeholder_identity_is_unassessed(self):
+        role = "stakeholder systemsEngineer : SystemsEngineer;"
+        for duplicate in ("stakeholder systemsEngineer;", "part systemsEngineer;"):
+            for first in (True, False):
+                with self.subTest(duplicate=duplicate, first=first):
+                    replacement = duplicate + "\n" + role if first else role + "\n" + duplicate
+                    snapshot = self._source_mutation("INC-AEBS-010", role, replacement)
+                    self._assert_unavailable_relations(snapshot, ("stakeholders",))
+
+    def test_present_unsupported_reference_is_unassessed_for_each_sibling(self):
+        from de4sdv.semantic.method_trace_adapter import repository_snapshot, SUPPORTED
+        original = repository_snapshot(ROOT, "INC-AEBS-010")
+        self.assertEqual({w.relation for w in original.witnesses}, set(SUPPORTED))
+        for witness in original.witnesses:
+            with self.subTest(relation=witness.relation):
+                kind = "requirement" if witness.relation in {"problemStatement", "concerns"} else "part"
+                reference = f"ref {kind} :>> {witness.relation} = {witness.target};"
+                snapshot = self._source_mutation("INC-AEBS-010", reference,
+                    f"ref {kind} :>> {witness.relation} = ({witness.target});")
+                self._assert_unavailable_relations(snapshot, (witness.relation,))
+
+    def test_present_unsupported_reference_shapes_are_not_absence(self):
+        target = "DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement"
+        reference = "ref requirement :>> problemStatement = " + target + ";"
+        for replacement in (
+            "ref requirement :>> problemStatement;",
+            "ref requirement :>> problemStatement = ;",
+            'ref requirement :>> problemStatement = "' + target + '";',
+            "ref requirement :>> problemStatement = " + target + ' "inert payload";',
+            "ref requirement :>> problemStatement = " + target + " + " + target + ";",
+            "ref requirement :>> problemStatement = " + target + "::systemsEngineer::extra;",
+            "ref requirement problemStatement : ProblemStatement;",
+        ):
+            with self.subTest(replacement=replacement):
+                snapshot = self._source_mutation("INC-AEBS-010", reference, replacement)
+                self._assert_unavailable_relations(snapshot, ("problemStatement",))
+
+    def test_supported_reference_with_unsupported_duplicate_is_unassessed(self):
+        reference = ("ref requirement :>> problemStatement = "
+                     "DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement;")
+        for duplicate in ("ref requirement :>> problemStatement;",
+                          "ref requirement :>> problemStatement = ("
+                          "DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement);"):
+            for first in (True, False):
+                with self.subTest(duplicate=duplicate, first=first):
+                    replacement = duplicate + "\n" + reference if first else reference + "\n" + duplicate
+                    snapshot = self._source_mutation("INC-AEBS-010", reference, replacement)
+                    self._assert_unavailable_relations(snapshot, ("problemStatement",))
+
+    def test_present_unsupported_target_shape_is_unassessed(self):
+        declaration = "requirement visualizationProblemStatement : ProblemStatement"
+        for replacement in (
+            "requirement visualizationProblemStatement",
+            "item visualizationProblemStatement : ProblemStatement",
+            "requirement visualizationProblemStatement : (ProblemStatement)",
+            "requirement visualizationProblemStatement : ProblemStatement[1]",
+            'requirement visualizationProblemStatement : ProblemStatement "inert payload"',
+            "requirement def visualizationProblemStatement : ProblemStatement",
+        ):
+            with self.subTest(replacement=replacement):
+                snapshot = self._source_mutation("INC-AEBS-010", declaration, replacement)
+                self._assert_unavailable_relations(snapshot, ("problemStatement", "stakeholders"))
+
+    def test_present_unsupported_stakeholder_shape_is_unassessed(self):
+        role = "stakeholder systemsEngineer : SystemsEngineer;"
+        for replacement in ("stakeholder systemsEngineer;", "part systemsEngineer : SystemsEngineer;",
+                            "stakeholder systemsEngineer : (SystemsEngineer);",
+                            "stakeholder systemsEngineer : SystemsEngineer[1];",
+                            "stakeholder systemsEngineer : SystemsEngineer 'inert payload';"):
+            with self.subTest(replacement=replacement):
+                snapshot = self._source_mutation("INC-AEBS-010", role, replacement)
+                self._assert_unavailable_relations(snapshot, ("stakeholders",))
+
+    def test_untyped_target_is_unassessed_for_each_direct_sibling(self):
+        import re
+        from de4sdv.semantic.method_trace_adapter import repository_snapshot, FRAMINGS
+        original = repository_snapshot(ROOT, "INC-AEBS-010")
+        source = (ROOT / FRAMINGS["INC-AEBS-010"][0]).read_text()
+        artifacts = {a.identity: a for a in original.artifacts}
+        relations = {w.relation for w in original.witnesses if w.relation != "stakeholders"}
+        self.assertEqual(len(relations), 6)
+        for witness in original.witnesses:
+            if witness.relation == "stakeholders":
+                continue
+            with self.subTest(relation=witness.relation):
+                artifact = artifacts[witness.target]
+                name = witness.target.rsplit("::", 1)[1]
+                prefix = artifact.kind + " " + name
+                headers = re.findall(r"\b" + re.escape(prefix)
+                                     + r"\s*:\s*[A-Za-z_][A-Za-z0-9_:]*", source)
+                self.assertEqual(len(headers), 1)
+                snapshot = self._source_mutation("INC-AEBS-010", headers[0], prefix)
+                affected = (("problemStatement", "stakeholders")
+                            if witness.relation == "problemStatement" else (witness.relation,))
+                self._assert_unavailable_relations(snapshot, affected)
+
+    def test_proven_reference_or_target_absence_is_assessed_fail(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        reference = ("ref requirement :>> problemStatement = "
+                     "DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement;")
+        for old, new, relations in (
+            (reference, "", ("problemStatement",)),
+            ("requirement visualizationProblemStatement : ProblemStatement",
+             "requirement differentProblemStatement : ProblemStatement", ("problemStatement", "stakeholders")),
+            ("stakeholder systemsEngineer : SystemsEngineer;",
+             "stakeholder differentEngineer : SystemsEngineer;", ("stakeholders",)),
+        ):
+            with self.subTest(old=old):
+                snapshot = self._source_mutation("INC-AEBS-010", old, new)
+                result = evaluate_snapshot(snapshot)
+                for relation in relations:
+                    row = next(r for r in result.results if r.unit_id == relation)
+                    row.validate()
+                    self.assertNotIn(relation, snapshot.unavailable)
+                    self.assertEqual(row.coverage, "ASSESSED")
+                    self.assertEqual(row.verdict, "FAIL")
+                    self.assertIn("REQUIRED_RELATION_MISSING", row.reason_codes)
+                    self.assertFalse(row.witnesses)
+                self.assertEqual(result.readiness[0].readiness, "BLOCKED")
+                self.assertIsNone(result.conformance_verdict)
 
     def test_duplicate_direct_reference_identity_is_unassessed(self):
         from de4sdv.semantic.method_trace_adapter import evaluate_snapshot

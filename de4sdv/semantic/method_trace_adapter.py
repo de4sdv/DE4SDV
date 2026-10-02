@@ -151,6 +151,15 @@ class TraceEvaluator(me.MethodEvaluator):
     """Adapter dispatch only; frozen result algebra and readiness are inherited."""
     def __init__(self, snapshot: TraceSnapshot):
         self.snapshot = snapshot
+        # Public snapshots need their own identity check: they need not have
+        # come from repository_snapshot. Agreeing projections coalesce; a
+        # conflicting kind never becomes authoritative by tuple order.
+        self.artifacts = {}
+        self.ambiguous_artifacts = set()
+        for artifact in snapshot.artifacts:
+            previous = self.artifacts.setdefault(artifact.identity, artifact)
+            if previous != artifact:
+                self.ambiguous_artifacts.add(artifact.identity)
         for increment_id, (_, namespace, usage) in FRAMINGS.items():
             if snapshot.increment == namespace + "::" + usage:
                 validate_increment_scope(increment_id, snapshot.declaration)
@@ -160,16 +169,18 @@ class TraceEvaluator(me.MethodEvaluator):
 
     def _evaluate_obligation(self, spec, ctx, results_by_id):
         relation = spec.predicate
-        if relation not in SUPPORTED or relation in self.snapshot.unavailable:
+        candidates = [w for w in self.snapshot.witnesses
+                      if w.source == self.snapshot.increment and w.relation == relation]
+        ambiguous = (self.snapshot.increment in self.ambiguous_artifacts
+                     or any(w.target in self.ambiguous_artifacts for w in candidates))
+        if relation not in SUPPORTED or relation in self.snapshot.unavailable or ambiguous:
             return [me.EvaluationResult(
                 unit_id=spec.obligation_id, coverage=me.COVERAGE_UNASSESSED, state=None,
                 verdict=None, reason_codes=(me.NOT_ATTEMPTED,),
                 diagnostics=(f"{relation}: no supported authoritative evaluator input; completion remains blocked",),
                 claim_boundary=spec.claim_boundary)]
-        artifacts = {a.identity: a for a in self.snapshot.artifacts}
-        matches = [w for w in self.snapshot.witnesses
-                   if w.source == self.snapshot.increment and w.relation == relation
-                   and w.target in artifacts and artifacts[w.target].kind == EXPECTED_KINDS[relation]]
+        matches = [w for w in candidates
+                   if w.target in self.artifacts and self.artifacts[w.target].kind == EXPECTED_KINDS[relation]]
         outcome = me.PredicateOutcome(
             "satisfied" if matches else "violated",
             reason_codes=() if matches else (me.REQUIRED_RELATION_MISSING,),
@@ -190,6 +201,7 @@ def evaluate_snapshot(snapshot: TraceSnapshot) -> me.CanonicalEvaluation:
 # One bounded lexical rule shared by comment cleaning and ownership scanning.
 # Quoted names are inert just like String literals, including escaped quotes.
 _QUOTED_TOKEN = r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'"""
+_QUALIFIED_NAME = r"[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*"
 
 
 def _clean(text: str) -> str:
@@ -285,25 +297,46 @@ def _namespace_body(text: str, namespace: str) -> str:
 
 def _body(text: str, name: str) -> str | None:
     """Compatibility view: a body only when exactly one direct declaration."""
-    body, ambiguous = _owned_body(text, name)
-    return None if ambiguous else body
+    body, unavailable = _owned_body(text, name)
+    return None if unavailable else body
+
+
+def _owned_records(text: str, name: str):
+    """Inventory a named direct-owned header before interpreting its shape.
+
+    Header boundaries stop at the declaration's own semicolon/opening brace;
+    nested bodies, comments (already cleaned) and quote tokens cannot count.
+    Discovery deliberately does not require an explicit type or supported kind.
+    It is a bounded identity inventory, not a general SysML parser.
+    """
+    prefix = (r"\s*(?:doc\s+)*(?:(?:public|private|protected|abstract|variation|variant|"
+              r"individual|ref|readonly|derived|in|out|inout)\s+)*"
+              r"[A-Za-z_][A-Za-z0-9_]*(?:\s+def)?\s+(?::>>\s*)?"
+              + re.escape(name) + r"(?!\w)")
+    return [record for record in _direct_matches(text, r"[^{};]*([;{])")
+            if re.match(prefix, record.group())]
 
 
 def _owned_body(text: str, name: str) -> tuple[str | None, bool]:
-    """Return ``(body, ambiguous)`` for one directly owned declaration.
+    """Return ``(body, unavailable)`` for one directly owned declaration.
 
     No declaration is quiet absence, which the caller resolves per relation.
     Two or more directly owned declarations are a bounded identity ambiguity:
     the adapter cannot know which one a reference meant, so the relation must
     become unavailable/UNASSESSED rather than an assessed FAIL or PASS.
+    A present but unsupported header is likewise unavailable, not absence.
     """
-    matches = _direct_matches(text, r"\b(?:part|requirement|concern)\s+" + re.escape(name)
-                              + r"\s*:\s*[^{};]+([;{])")
+    matches = _owned_records(text, name)
     if len(matches) > 1:
         return None, True
     if not matches:
         return None, False
-    return _matched_body(text, matches[0]), False
+    if not re.fullmatch(r"\s*(?:doc\s+)*(?:part|requirement|concern)\s+" + re.escape(name)
+                        + r"\s*:\s*" + _QUALIFIED_NAME + r"\s*[;{]",
+                        text[matches[0].start():matches[0].end()]):
+        return None, True
+    body = _matched_body(text, matches[0])
+    return body, body is None
 
 def repository_snapshot(repo: Path, increment_id: str) -> TraceSnapshot:
     """Bounded source-reference extraction, NOT a SysML parser/API binding.
@@ -348,37 +381,46 @@ def repository_snapshot(repo: Path, increment_id: str) -> TraceSnapshot:
     owner = namespace + "::" + usage
     artifacts, witnesses, unavailable = [], [], []
     for relation in SUPPORTED:
-        refs = [match.group(1) for match in _owned_matches(
-            body, r"ref\s+(?:part|requirement)\s+:>>\s+" + re.escape(relation) + r"\s*=\s*([\w:]+);")]
+        refs = _owned_records(body, relation)
         if len(refs) > 1:
             unavailable.append(relation)
             continue
         if not refs: continue
-        target = refs[0]
-        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*", target):
+        # Presence/identity is established first. Parsing only supported RHS
+        # expressions must not erase an unsupported member into missing/FAIL.
+        reference = re.fullmatch(r"\s*(?:doc\s+)*ref\s+(?:part|requirement)\s+:>>\s+"
+                                 + re.escape(relation) + r"\s*=\s*(" + _QUALIFIED_NAME + r")\s*;",
+                                 body[refs[0].start():refs[0].end()])
+        if not reference:
             unavailable.append(relation)
             continue
+        target = reference.group(1)
         prefix = namespace + "::"
         if not target.startswith(prefix):
             unavailable.append(relation)
             continue
         names = target[len(prefix):].split("::")
-        artifact_body, ambiguous_target = _owned_body(text, names[0])
-        if ambiguous_target:
-            # A duplicated direct-owned target cannot supply a single witness;
-            # report it as unavailable instead of a supported absence/FAIL.
+        if len(names) not in (1, 2):
+            unavailable.append(relation)
+            continue
+        artifact_body, unavailable_target = _owned_body(text, names[0])
+        if unavailable_target:
+            # Ambiguous or unsupported targets cannot supply a single witness.
             unavailable.append(relation)
             continue
         if artifact_body is None: continue
         if len(names) == 2:
-            stakeholders = _owned_matches(
-                artifact_body, r"\bstakeholder\s+" + re.escape(names[1]) + r"\s*:")
+            stakeholders = _owned_records(artifact_body, names[1])
             if len(stakeholders) > 1:
                 unavailable.append(relation)
                 continue
             if not stakeholders:
                 continue
-        elif len(names) != 1: continue
+            if not re.fullmatch(r"\s*(?:doc\s+)*stakeholder\s+" + re.escape(names[1])
+                                + r"\s*:\s*" + _QUALIFIED_NAME + r"\s*[;{]",
+                                artifact_body[stakeholders[0].start():stakeholders[0].end()]):
+                unavailable.append(relation)
+                continue
         kind_matches = _owned_matches(
             text, r"\b(part|requirement|concern)\s+" + re.escape(names[0]) + r"\s*:")
         if len(kind_matches) != 1: continue
