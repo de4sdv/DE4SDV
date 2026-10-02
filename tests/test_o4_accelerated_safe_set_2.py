@@ -446,5 +446,8 @@ def test_w5_rows_record_the_design_with_forward_closure_evidence(decisions):
 
 def test_has_stakeholder_stays_excluded_and_untreated(decisions):
     row = decisions["hasStakeholder"]
-    assert row["stage"] == "batched-parity (post-0a/0b)"
+    # Topic 6 reviewed the typed role-participation carrier without treating the
+    # row: the vocabulary-only HasStakeholder meaning is recorded, and the row
+    # stays excluded and untreated (authored YAML remains the active authority).
+    assert row["stage"] == "approved-topic06 typed role participation carrier"
     assert row["authority_current"] == "legacy-yaml"

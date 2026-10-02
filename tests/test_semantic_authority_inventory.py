@@ -101,16 +101,17 @@ PLEML_GATE = "PLE-R -> PLE-Q -> PLE-S -> PLE-A"
 
 #: The seven rows that passed only via normalized containment in the accepted
 #: Phase-1 draft. Under exact-equality parity they are honestly `differs`.
-CONTAINMENT_ONLY_ROWS = {
-    # W2 pilot 1 closed definition-level parity for EngineeringIncrement and
-    # NeedsRequirementsIncrement; W2 pilot 2 closed it for
-    # IncrementEngineeringQuestion, IncrementLifecycleDecision and
-    # ProblemStatement (their docs now observe normalized-exact and their
-    # equivalence is null), so they left this containment-only set.
-    # W2 batch 6 closed it for DeferredProductLineScope (normalized-exact),
-    # so it left the set as well.
-    "IncrementTraceabilityShell",
-}
+CONTAINMENT_ONLY_ROWS: set[str] = set()
+# No row remains containment-only. W2 pilot 1 closed definition-level parity
+# for EngineeringIncrement and NeedsRequirementsIncrement; W2 pilot 2 closed it
+# for IncrementEngineeringQuestion, IncrementLifecycleDecision and
+# ProblemStatement (their docs now observe normalized-exact and their
+# equivalence is null). W2 batch 6 closed it for DeferredProductLineScope
+# (normalized-exact). Topic 5 superseded the last member
+# (IncrementTraceabilityShell): its declaration and two framing consumers move
+# to the versioned selected-method reference contract, so it is retained as an
+# external compatibility identity without a model doc observation. The empty
+# set and the superseded row's current state are both asserted below.
 
 CLASS_OBSERVED_KEYS = {
     "yaml_path",
@@ -168,15 +169,18 @@ def _entry_support(entry: dict) -> str | None:
 class TestCoverage:
     def test_exact_counts_from_generated_inventory(self, inventory):
         counts = inventory["counts"]
-        assert counts["classes"] == 59
+        # Approved-directive implementation (Topics 1-6) added twelve reviewed
+        # model-authoritative rows. Counts re-derived from the regenerated
+        # inventory and the contract, never relaxed.
+        assert counts["classes"] == 71
         assert counts["relationships"] == 34
-        assert counts["total_entries"] == 93
-        assert len(inventory["entries"]) == 93
+        assert counts["total_entries"] == 105
+        assert len(inventory["entries"]) == 105
 
     def test_exact_counts_recounted_from_contract(self, contract, inventory):
-        assert len(contract.classes) == 59
+        assert len(contract.classes) == 71
         assert len(contract.relationships) == 34
-        assert len(contract.classes) + len(contract.relationships) == 93
+        assert len(contract.classes) + len(contract.relationships) == 105
         assert inventory["counts"]["classes"] == len(contract.classes)
         assert inventory["counts"]["relationships"] == len(contract.relationships)
 
@@ -190,7 +194,7 @@ class TestCoverage:
         # Definition admission batch 1 (amended): Scenario's kernel mapping
         # moved native -> file+declaration (part def Scenario): file 40->41,
         # native 15->14.
-        assert kinds == {"file": 41, "native": 14, "external": 4}
+        assert kinds == {"file": 50, "native": 14, "external": 7}
         assert kinds == inventory["counts"]["class_mappings"]
         assert sum(kinds.values()) == len(contract.classes)
 
@@ -215,9 +219,12 @@ class TestCoverage:
         # Definition-admission batch 1 added the Scenario definition home
         # (part def Scenario), mapped from the ontology class: the governed
         # equation is now 118 = 40 mapped + 78 exclusions.
-        assert kernel["governed_declarations"] == 118
-        assert kernel["mapped_in_directory"] == 40
-        assert kernel["exclusions"] == 78
+        # The approved-directive implementation added the Topic 1-6 kernel
+        # declarations (scoped assurance, method traces, relationship carriers
+        # and stakeholder vocabulary): 136 = 49 mapped + 87 exclusions.
+        assert kernel["governed_declarations"] == 136
+        assert kernel["mapped_in_directory"] == 49
+        assert kernel["exclusions"] == 87
         assert (
             kernel["mapped_in_directory"] + kernel["exclusions"]
             == kernel["governed_declarations"]
@@ -370,13 +377,13 @@ class TestLayers:
     def test_decisions_dataset_is_layer_b_only(self, decisions):
         assert decisions["schema"] == ai.DECISIONS_SCHEMA_ID
         entries = decisions["entries"]
-        assert len(entries) == 93
+        assert len(entries) == 105
         for identity, row in entries.items():
             assert set(row) == set(ai.REVIEWED_FIELDS), identity
 
     def test_observed_facts_reproducible_from_contract(self, contract, decisions):
         observed = ai.observed_entries(REPO_ROOT, contract, decisions)
-        assert len(observed) == 93
+        assert len(observed) == 105
         for identity, entry in observed.items():
             assert entry["kind"] in {"class", "relationship"}
             assert entry["observed"]["yaml_path"] in (
@@ -510,7 +517,15 @@ class TestRuntimeCompleteness:
         assert implemented == [row["strategy"] for row in rows]
 
     def test_dispatch_owned_by_single_module(self):
-        assert ai.strategy_dispatch_sources(REPO_ROOT) == [ai.TRAVERSAL_SOURCE_PATH]
+        # Reviewed extension: the relationship successor carries its own
+        # non-production dispatch surface (`mapping.strategy`) for the successor
+        # authority. The inventory's runtime strategy registry stays owned by
+        # the traversal module; both reviewed dispatch sites are named here so a
+        # third one still fails closed.
+        assert ai.strategy_dispatch_sources(REPO_ROOT) == [
+            "de4sdv/semantic/relationship_successor.py",
+            ai.TRAVERSAL_SOURCE_PATH,
+        ]
 
     def _fake_root(self, tmp_path: Path, traversal_source: str) -> Path:
         target = tmp_path / ai.TRAVERSAL_SOURCE_PATH
@@ -959,22 +974,32 @@ class TestTextParity:
         # Definition admission batch 1 (amended) added the Scenario
         # definition home: one row moved to normalized-exact (20 -> 21);
         # differs unchanged.
+        # Topic 1-6 implementation closed the remaining doc-absent row and added
+        # twelve reviewed model-authoritative file-declaration rows: 33
+        # normalized-exact / 16 differs / 1 bodyless declaration over the 50
+        # file-mapped classes. Re-derived from source, not relaxed.
         assert counts == {
-            "differs": 18,
-            "normalized-exact": 21,
-            "doc-absent": 1,
+            "differs": 16,
+            "normalized-exact": 33,
             "doc-absent (bodyless declaration)": 1,
         }
 
     def test_containment_only_rows_reclassified(self, inventory):
         entries = _entries(inventory)
-        for identity in CONTAINMENT_ONLY_ROWS:
-            entry = entries[identity]
-            assert entry["observed"]["doc_text_observation"] == "differs", identity
-            assert entry["reviewed"]["semantic_text_equivalence"] == (
-                "review-required"
-            ), identity
-            assert entry["reviewed"]["required_evidence"], identity
+        assert CONTAINMENT_ONLY_ROWS == set(), "no row remains containment-only"
+        # Topic 5 superseded the last historical content-shell identity: its
+        # declaration and its framing consumers move to the versioned
+        # selected-method reference contract, so it is retained as an external
+        # compatibility identity with no model doc observation and no
+        # containment-only equivalence review.
+        superseded = entries["IncrementTraceabilityShell"]
+        assert superseded["observed"]["grounding_kind"] == "external"
+        assert "doc_text_observation" not in superseded["observed"]
+        assert superseded["reviewed"]["semantic_text_equivalence"] is None
+        assert superseded["reviewed"]["stage"] == (
+            "approved-topic05 historical compatibility boundary"
+        )
+        assert superseded["reviewed"]["required_evidence"]
 
 
 # ---------------------------------------------------------------------------
