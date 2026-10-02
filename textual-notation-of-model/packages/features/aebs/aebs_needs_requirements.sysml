@@ -12,8 +12,10 @@ package DE4SDV_AEBSNeedsRequirements {
       package NeedsRequirements {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
+        private import DE4SDV_RelationshipSuccessor::*;
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_AEBSFunctionalArchitecture::Features::AEBS::FunctionalBehavior::*;
+        private import DE4SDV_AEBSLogicalArchitecture::functionalFlow;
         private import DE4SDV_MethodViewpoints::*;
         private import SAF_Viewpoints::*;
         private import SysideViews::**;
@@ -356,6 +358,51 @@ package DE4SDV_AEBSNeedsRequirements {
         dependency reqKeepProductLineClassificationExplicitTracedToFunctionalSliceCandidate
           from reqKeepProductLineClassificationExplicit
           to vehicleTargetAEBSFunctionalFlow;
+
+        /* Successor responsibility assignments are native AllocationUsage facts.
+         * Existing specification dependencies above retain their weaker meaning.
+         * Use the SAME logical architecture functionalFlow occurrence, not a
+         * second copy of its function: this allows witnessed R/F then F/L paths.
+         * No satisfaction, mandatory allocation chain or transitivity is asserted.
+         */
+        allocation reqDetectRiskAcquireResponsibility
+          allocate reqDetectForwardCollisionRisk
+          to DE4SDV_AEBSLogicalArchitecture::functionalFlow.acquireState;
+        allocation reqDetectRiskAssessResponsibility
+          allocate reqDetectForwardCollisionRisk
+          to DE4SDV_AEBSLogicalArchitecture::functionalFlow.assessRisk;
+        allocation reqWarningResponsibility
+          allocate reqProvideCollisionWarning
+          to DE4SDV_AEBSLogicalArchitecture::functionalFlow.requestWarning;
+        allocation reqBrakingResponsibility
+          allocate reqCommandEmergencyBraking
+          to DE4SDV_AEBSLogicalArchitecture::functionalFlow.requestBraking;
+        allocation reqOverrideResponsibility
+          allocate reqAllowDriverOverride
+          to DE4SDV_AEBSLogicalArchitecture::functionalFlow.evaluateOverride;
+        allocation reqFailureResponsibility
+          allocate reqDetectAEBSFailureCondition
+          to DE4SDV_AEBSLogicalArchitecture::functionalFlow.monitorFailure;
+        allocation reqEvidenceResponsibility
+          allocate reqTraceRequirementVVAndGaps
+          to DE4SDV_AEBSLogicalArchitecture::functionalFlow.recordEvidence;
+
+        part commonCapabilityValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-001, N-AEBS-001: planned stakeholder scenario review from aebs-needs-requirements.yaml. Do draft requirements preserve vehicle-target collision-risk mitigation intent within the operational slice? No execution, result or acceptance. */
+        }
+        connection commonCapabilityValidationPlanning : ValidationPlanningAssociation
+          connect needCommonAEBSCapability to commonCapabilityValidationPlan;
+
+        part controlledR152Revision2Source : ControlledRegulatorySource {
+          doc /* Public-safe identity from aebs-regulatory-source.yaml. Applicability and interpretation remain open; this is provenance, not a required condition or compliance evidence. */
+          attribute :>> sourceIdentifier = "E/ECE/TRANS/505/Rev.3/Add.151/Rev.2";
+          attribute :>> sourceRevision = "02 series of amendments; 2023-06-15";
+          attribute :>> sourceLocation = "https://unece.org/sites/default/files/2023-07/R152r2e.pdf";
+        }
+        connection pedestrianResponseSourceProvenance : RegulatorySourceAssociation
+          connect reqPedestrianTargetResponse to controlledR152Revision2Source;
+        connection bicycleResponseSourceProvenance : RegulatorySourceAssociation
+          connect reqBicycleTargetResponse to controlledR152Revision2Source;
 
         public import System1Product::*;
         public import System2EngineeringAssurance::*;

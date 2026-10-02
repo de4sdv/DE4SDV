@@ -83,69 +83,11 @@ package DE4SDV_MethodProcess {
     attribute phase12Domain : ScalarValues::String = "Common";
   }
 
-  /* ─── Required trace chain ─── */
-
-  item def TraceLink {
-    doc /* A traceability link in the DE4SDV required trace chain. */
-    attribute fromElement : ScalarValues::String;
-    attribute toElement : ScalarValues::String;
-    attribute status : ScalarValues::String = "draft";
-  }
-
-  part def RequiredTraceChain {
-    doc /*
-     * Every substantial increment should establish this chain, even if
-     * some links are draft:
-     *
-     * Stakeholder concern -> Need -> Requirement -> Feature or common
-     * capability -> Architecture element -> Logical-to-software signal
-     * mapping when a boundary is crossed -> Physical/software realization ->
-     * Verification case -> Acceptance criterion -> Evidence artifact ->
-     * Baseline decision.
-     *
-     * If a link is intentionally missing, record the gap.
-     */
-    part concernToNeed : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "StakeholderConcern";
-      attribute toElement redefines TraceLink::toElement = "Need";
-    }
-    part needToRequirement : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "Need";
-      attribute toElement redefines TraceLink::toElement = "Requirement";
-    }
-    part requirementToFeature : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "Requirement";
-      attribute toElement redefines TraceLink::toElement = "FeatureOrCommonCapability";
-    }
-    part featureToArchitecture : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "FeatureOrCommonCapability";
-      attribute toElement redefines TraceLink::toElement = "ArchitectureElement";
-    }
-    part architectureToSignalMapping : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "ArchitectureElementOrFunctionInterface";
-      attribute toElement redefines TraceLink::toElement = "LogicalToSoftwareSignalMapping";
-    }
-    part signalMappingToPhysicalRealization : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "LogicalToSoftwareSignalMapping";
-      attribute toElement redefines TraceLink::toElement = "PhysicalSoftwareRealization";
-    }
-    part architectureToVerification : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "PhysicalSoftwareRealization";
-      attribute toElement redefines TraceLink::toElement = "VerificationCase";
-    }
-    part verificationToAcceptance : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "VerificationCase";
-      attribute toElement redefines TraceLink::toElement = "AcceptanceCriterion";
-    }
-    part acceptanceToEvidence : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "AcceptanceCriterion";
-      attribute toElement redefines TraceLink::toElement = "EvidenceArtifact";
-    }
-    part evidenceToBaseline : TraceLink {
-      attribute fromElement redefines TraceLink::fromElement = "EvidenceArtifact";
-      attribute toElement redefines TraceLink::toElement = "BaselineDecision";
-    }
-  }
+  /* ─── Scoped trace obligations ─── */
+  /* Per-increment obligations live in DE4SDV_MethodTraces. No universal
+   * category-string chain is active. The selected approved method determines
+   * applicability from declared scope/phases/completion; source relationships
+   * and artifact identities, not populated shells, witness required traces. */
 
   /* ─── Recurring system-to-software signal mapping control ─── */
 

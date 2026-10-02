@@ -318,12 +318,18 @@ class TestLayers:
     #: verifies authorities before assembly. Query routing and provenance live
     #: separately in `runtime_composition.py`, which imports none of these
     #: construction modules and never loads governance inputs at query time.
+    #: The successor profile extractor is construction-only; its live service
+    #: consumes preconstructed records and cannot import the extractor.
+    #: scoped_assurance.py is an offline supplied-record/source-check validator,
+    #: not a runtime query provider or a reader of reviewed decision datasets.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "definition_candidate.py",
         "definition_candidate_provider.py",
         "definition_migration.py",
         "composition_construction.py",
+        "relationship_successor_contract.py",
+        "scoped_assurance.py",
         "definition_projection.py",
         "projection_o22.py",
         "projection_o23.py",

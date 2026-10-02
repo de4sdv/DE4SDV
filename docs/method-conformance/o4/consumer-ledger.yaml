@@ -26,6 +26,33 @@ retirement_statuses:
 - compatibility-generated
 - not-applicable
 entries:
+  de4sdv/semantic/relationship_successor.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    retirement_status: pending
+    note: Explicit non-production successor; the predecessor authored-authority consumer is not retired.
+  de4sdv/semantic/relationship_successor_contract.py:
+    role: governance-machinery
+    markers:
+    - kernel_contract_module
+    retirement_status: not-applicable
+    note: Model-derived profile extraction and construction verification, not query-time source parsing.
+  scripts/relationship_successor.py:
+    role: runtime-consumer
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+    note: Supplied-API CLI/MCP path requires explicit non-production and predecessor arguments; activation always refuses.
+  tests/test_approved_relationship_successor.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
   de4sdv/semantic/composition_construction.py:
     role: closure-preparation-machinery
     markers:
@@ -853,6 +880,13 @@ entries:
     markers:
     - ontology_dir_token
     - ontology_path_token
+    retirement_status: not-applicable
+  tests/test_approved_semantic_extensions.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - legacy_yaml_authority
     retirement_status: not-applicable
   tests/test_semantic_authority_inventory.py:
     role: test-reference

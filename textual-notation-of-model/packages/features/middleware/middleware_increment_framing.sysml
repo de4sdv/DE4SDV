@@ -2,7 +2,7 @@
  * DE4SDV middleware increment framing model slice.
  *
  * INC-MW-002 frames the middleware integration increment only. It establishes
- * the question, scope shell, traceability shell, and assurance view for the
+ * the question, scoped trace obligations, and assurance view for the
  * middleware integration story. It does not commit to AAOS SDV, Eclipse
  * S-CORE, AUTOSAR Adaptive, adapter realization, or any physical/software
  * implementation choice.
@@ -15,6 +15,8 @@ package DE4SDV_MiddlewareIncrementFraming {
         private import Views::*;
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
+        private import DE4SDV_MethodTraces::*;
+        private import DE4SDV_MethodProcess::*;
         private import SAF_Viewpoints::*;
 
         part def MiddlewareIncrement :> EngineeringIncrement;
@@ -46,11 +48,22 @@ package DE4SDV_MiddlewareIncrementFraming {
            */
         }
 
-        part traceabilityShellMW002 : IncrementTraceabilityShell {
-          doc /*
-           * Traceability shell: increment framing -> concerns/views ->
-           * operational context -> operational story -> assumptions/gaps.
-           */
+        connection middlewareStakeholderParticipation : HasStakeholder
+          connect incMW002 to middlewareIntegrationProblemStatement.systemsEngineer;
+
+        part traceObligationsMW002 : IncrementTraceObligations {
+          doc /* Identified source references; no completion or downstream execution claim. */
+          ref part :>> selectedMethod = DE4SDV_MethodTraces::approvedScopedTraceMethod;
+          attribute :>> scopeKind = "framing";
+          attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext);
+          attribute :>> completionClaim = TraceCompletionClaim::framingReady;
+          ref part :>> increment = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::incMW002;
+          ref part :>> declaredScope = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::scopeMW002;
+          ref requirement :>> problemStatement = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement;
+          ref part :>> engineeringQuestion = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::engineeringQuestionMW002;
+          ref part :>> lifecycleDecision = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::lifecycleDecisionMW002;
+          ref requirement :>> concerns = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIncrementAssuranceConcern;
+          ref part :>> stakeholders = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement::systemsEngineer;
         }
 
         part engineeringQuestionMW002 : IncrementEngineeringQuestion {

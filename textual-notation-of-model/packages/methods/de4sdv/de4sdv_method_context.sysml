@@ -14,6 +14,7 @@
 
 package DE4SDV_MethodContext {
   private import DE4SDV_SYSMODAdapter::*;
+  private import DE4SDV_Stakeholders::*;
   /* Requirement derivation discriminator: DE4SDV application connection
    * definition. A requirement usage connected as derivedRequirement
    * originates from the stakeholder need connected as need. The typed ends
@@ -43,6 +44,16 @@ package DE4SDV_MethodContext {
 
   part def EngineeringIncrement {
     doc /* A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
+  }
+
+  connection def HasStakeholder {
+    doc /* An engineering increment identifies a stakeholder role participating
+         * in or affected by it. Domain EngineeringIncrement; range Stakeholder.
+         * Vocabulary-only typed carrier during migration, not executable
+         * traversal proof, native StakeholderMembership equivalence, real-person
+         * assignment, approval authority, competence or safety acceptance. */
+    end increment : EngineeringIncrement;
+    end stakeholderRole : Stakeholder;
   }
 
   part def FeatureIncrement :> EngineeringIncrement {
@@ -172,10 +183,6 @@ package DE4SDV_MethodContext {
 
   part def IncrementScope {
     doc /* Scope boundary for an engineering increment. */
-  }
-
-  part def IncrementTraceabilityShell {
-    doc /* Traceability structure connecting an increment to its sources and downstream artifacts. */
   }
 
   part def IncrementEngineeringQuestion {

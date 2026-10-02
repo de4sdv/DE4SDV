@@ -64,8 +64,19 @@ kernel_sync:
       part def IncrementScope: framing helper
       part def SourceContributionRecord: realization-evidence helper
       part def SystemContext: SYSMOD problem-statement pattern element consumed by feature slices
+      connection def HasStakeholder: typed carrier of existing hasStakeholder relationship; not an additional ontology class or assignment authority
     textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:
       part def SAFDomainMapping: method-process assurance helper
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml:
+      enum def TraceCompletionClaim: scoped method completion discriminator; not a V&V result or acceptance status
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml:
+      connection def RequirementFunctionAssignment: successor native-allocation profile end-pair descriptor; native AllocationUsage supplies the witness, not this definition or an additional ontology class
+      connection def FunctionLogicalAssignment: successor native-allocation profile end-pair descriptor; not a redundant relevance dependency or additional ontology class
+      connection def LogicalPhysicalAssignment: successor native-allocation profile end-pair descriptor; not a deployment or observed-execution relationship
+      part def SuccessorClassRecord: construction-only exact declaration routing record; not a second domain ontology or runtime UUID locator
+      part def SuccessorRelationRecord: construction-only versioned predicate signature record; not an additional engineering relationship
+      part def SuccessorRetirementRecord: construction-only retirement boundary record preserving unsupported stronger claims
+      part def SuccessorVersionRecord: construction-only successor version and supersession record; not production selection or acceptance
     textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml:
       connection def RecordsGap: vocabulary-only definition carrier for the reviewed relationship recordsGap; the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces definition parity; no separate ontology class identity is introduced
       connection def RecordsAssumption: vocabulary-only definition carrier for the reviewed relationship recordsAssumption; the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces definition parity; no separate ontology class identity is introduced
@@ -143,8 +154,7 @@ classes:
   IncrementTraceabilityShell:
     definition: The traceability structure connecting an increment to its sources and downstream artifacts.
     kernel:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
-      declaration: part def IncrementTraceabilityShell
+      external: Historical pre-Topic-5 string-shell vocabulary; retained as a compatibility identity, not a successor obligation or engineering witness
   MethodPhase:
     definition: One of the 13 phases of the DE4SDV increment workflow.
     kernel:
@@ -295,6 +305,45 @@ classes:
     subClassOf: ArchitectureElement
     kernel:
       native: part def elements in physical/software realization slices
+  AllocatableFunction:
+    definition: Functional responsibility identity for this versioned allocation profile.
+    subClassOf: Function
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: action def AllocatableFunction
+  LogicalAllocationElement:
+    definition: Technology-neutral logical responsibility grouping.
+    subClassOf: LogicalElement
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: part def LogicalAllocationElement
+  PhysicalAllocationElement:
+    definition: Concrete software, hardware or platform realization element; allocation is not deployment.
+    subClassOf: PhysicalElement
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: part def PhysicalAllocationElement
+  ValidationPlanningScenario:
+    definition: Stakeholder fitness-for-use validation planning only; not a native verification case, execution, result or acceptance.
+    subClassOf: ValidationScenario
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: part def ValidationPlanningScenario
+  RegulatorySource:
+    definition: Controlled external origin reference that informed requirement engineering. Interpretation, applicability, obligations, required conditions, evidence and authorized compliance assessment are separate.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: part def ControlledRegulatorySource
+  ValidationPlanningAssociation:
+    definition: One validation planning association. Inverse navigation is the same fact, not execution or a fitness-for-use verdict.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: connection def ValidationPlanningAssociation
+  RegulatorySourceAssociation:
+    definition: Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: connection def RegulatorySourceAssociation
   Interface:
     definition: A boundary or interaction point through which items, signals, services, or information are exchanged.
     subClassOf: ArchitectureElement
@@ -351,6 +400,49 @@ classes:
       slice-local enums such as MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition.
     kernel:
       external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter
+  EvidenceSupportCitation:
+    definition: >-
+      supportedByEvidence cites one identified artifact as support for an
+      exact scoped claim, with rationale and known limitations. Neither this
+      citation nor hasEvidence (case-to-artifact association) asserts adequacy,
+      satisfaction, a passing result, or acceptance. Evidence bytes and artifact
+      maturity remain external. Scope identifiers must match without inference.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+      declaration: item def EvidenceSupportCitation
+  ScopedVVActivityRecord:
+    definition: >-
+      One explicitly scoped verification OR validation activity. Applicable
+      across needs, requirements, designs, production outputs, system elements,
+      integrated systems and artifacts without inheriting requirement attributes.
+      Native need/requirement verificationStatus attachments remain unchanged.
+      Results and evidence are references to retained external records, not a
+      second result/evidence store; native VerdictKind execution values remain
+      distinct from this activity's status. Artifact maturity is not this status.
+      Completed includes necessary result approval, but never infers PASS or
+      designated-authority acceptance. CompletedUnsuccessful could not complete;
+      CompletedFailed completed with technical failure; CompletedPassed completed
+      successfully against the activity basis only, not a broader scoped claim.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+      declaration: item def ScopedVVActivityRecord
+  ScopedEvidenceAdequacyAssessment:
+    definition: >-
+      Proportionate evidence-SET assessment for this exact claim, subject,
+      configuration, conditions and agreed criteria. Required before presenting
+      a claim as established or seeking acceptance; not a universal sufficiency
+      verdict on each artifact. Reuse cases, criteria, executions, evidence and
+      gap identities. Coverage, confidence and rigor bases, contrary results,
+      discrepancies, unresolved gaps, assessor, conclusion and reasoning must
+      remain explicit. An adequate set can establish a negative conclusion.
+      supportsClaim records the assessor's scoped conclusion, not checker truth.
+      Accepted exceptions stay visible; neither assessment nor acceptance turns
+      exceptions or generic Completed status into unqualified satisfaction.
+      AcceptanceAttestationReference remains a separate designated-authority
+      decision reference, not the assessor's conclusion or result approval.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+      declaration: item def ScopedEvidenceAdequacyAssessment
   Assumption:
     definition: A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.
     kernel:
@@ -389,8 +481,7 @@ classes:
   TraceLink:
     definition: A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.
     kernel:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
-      declaration: item def TraceLink
+      external: Historical pre-Topic-5 string-endpoint record; successor source-reference witnesses require identified owning references, not category strings
   RequiredTraceChain:
     definition: >-
       The ordered trace chain every substantial increment should establish,
@@ -400,8 +491,26 @@ classes:
       verification case, acceptance criterion, evidence artifact, baseline
       decision. Intentionally missing links are recorded as gaps.
     kernel:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml
-      declaration: part def RequiredTraceChain
+      external: Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor completion policy
+  ApprovedTraceMethod:
+    definition: >-
+      Selected approved method identity. Selecting this reference does not
+      establish conformance, approval of a candidate, or an engineering trace.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+      declaration: part def ApprovedTraceMethod
+  IncrementTraceObligations:
+    definition: >-
+      Required traces derive from the selected approved method, not from
+      candidate-selected easy checks. References identify existing artifacts;
+      populating this declaration is not completion evidence. Reuse prior
+      artifacts, preserve R/F/L/P, and do not invent realization or execution
+      for early framing. Missing required traces block the corresponding claim
+      unless an authorized visible disposition permits it. Unsupported or
+      unavailable evaluation stays UNASSESSED, never synthetic PASS.
+    kernel:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+      declaration: part def IncrementTraceObligations
   Baseline:
     definition: A reviewed and controlled state of model, evidence, configuration, or publication artifacts.
     kernel:

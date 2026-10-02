@@ -19,6 +19,7 @@ package DE4SDV_AEBSFunctionalArchitecture {
     package AEBS {
       package FunctionalBehavior {
         private import DE4SDV_MethodContext::*;
+        private import DE4SDV_RelationshipSuccessor::*;
         private import DE4SDV_ProductLine::*;
         private import COVESA_VSS::**;
         private import DE4SDV_VSS_Extensions::**;
@@ -89,40 +90,40 @@ package DE4SDV_AEBSFunctionalArchitecture {
           attribute evidenceEventRecorded : Vehicle_ADAS_AEBS_EvidenceEvent_IsRecorded;
         }
 
-        action def AcquireVehicleAndTargetState {
+        action def AcquireVehicleAndTargetState :> AllocatableFunction {
           out vehicleMotionState : VehicleMotionState;
           out forwardTargetState : ForwardTargetState;
         }
 
-        action def AssessForwardCollisionRisk {
+        action def AssessForwardCollisionRisk :> AllocatableFunction {
           in vehicleMotionState : VehicleMotionState;
           in forwardTargetState : ForwardTargetState;
           out collisionRiskAssessment : CollisionRiskAssessment;
         }
 
-        action def RequestDriverWarning {
+        action def RequestDriverWarning :> AllocatableFunction {
           in collisionRiskAssessment : CollisionRiskAssessment;
           out driverWarningRequest : DriverWarningRequest;
         }
 
-        action def EvaluateDriverOverride {
+        action def EvaluateDriverOverride :> AllocatableFunction {
           in driverOverrideInput : DriverOverrideInput;
           in collisionRiskAssessment : CollisionRiskAssessment;
           out driverOverrideDecision : DriverOverrideDecision;
         }
 
-        action def RequestEmergencyBraking {
+        action def RequestEmergencyBraking :> AllocatableFunction {
           in collisionRiskAssessment : CollisionRiskAssessment;
           in driverOverrideDecision : DriverOverrideDecision;
           out emergencyBrakingCommand : EmergencyBrakingCommand;
         }
 
-        action def MonitorAEBSFailureStatus {
+        action def MonitorAEBSFailureStatus :> AllocatableFunction {
           in aebsFailureStatus : AEBSFailureStatus;
           out failureIndicationRequest : FailureIndicationRequest;
         }
 
-        action def RecordAEBSEvidenceEvent {
+        action def RecordAEBSEvidenceEvent :> AllocatableFunction {
           in collisionRiskAssessment : CollisionRiskAssessment;
           in driverWarningRequest : DriverWarningRequest;
           in emergencyBrakingCommand : EmergencyBrakingCommand;
@@ -130,7 +131,7 @@ package DE4SDV_AEBSFunctionalArchitecture {
           out aebsEvidenceEvent : AEBSEvidenceEvent;
         }
 
-        action def VehicleTargetAEBSFunctionalFlow {
+        action def VehicleTargetAEBSFunctionalFlow :> AllocatableFunction {
           in item driverOverrideInput : DriverOverrideInput;
           in item aebsFailureStatus : AEBSFailureStatus;
           out item driverWarningRequest : DriverWarningRequest;

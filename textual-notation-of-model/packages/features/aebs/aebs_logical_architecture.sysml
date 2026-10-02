@@ -21,6 +21,7 @@
 package DE4SDV_AEBSLogicalArchitecture {
   private import DE4SDV_AEBSFunctionalArchitecture::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
+  private import DE4SDV_RelationshipSuccessor::*;
   private import DE4SDV_Stakeholders::*;
   private import SysideViews::**;
   private import Views::*;
@@ -217,7 +218,7 @@ package DE4SDV_AEBSLogicalArchitecture {
    * Conceptual component definitions
    * ────────────────────────────────────────── */
 
-  part def StateAcquisitionAndNormalization {
+  part def StateAcquisitionAndNormalization :> LogicalAllocationElement {
     doc /*
      * Validates and normalizes vehicle-motion and target observations without
      * selecting a concrete sensor, service provider, or middleware.
@@ -229,20 +230,20 @@ package DE4SDV_AEBSLogicalArchitecture {
     port observationHealthOut : ObservationHealthOutput;
   }
 
-  part def EgoPathPrediction {
+  part def EgoPathPrediction :> LogicalAllocationElement {
     doc /* Produces a technology-neutral predicted ego path from normalized vehicle motion. */
     port vehicleMotionIn : VehicleMotionInput;
     port predictedEgoPathOut : PredictedEgoPathOutput;
   }
 
-  part def TargetProcessing {
+  part def TargetProcessing :> LogicalAllocationElement {
     doc /* Selects and characterizes targets relevant to the predicted ego path. */
     port targetStateIn : ForwardTargetInput;
     port predictedEgoPathIn : PredictedEgoPathInput;
     port relevantTargetStateOut : ForwardTargetOutput;
   }
 
-  part def CollisionRiskEvaluation {
+  part def CollisionRiskEvaluation :> LogicalAllocationElement {
     doc /*
      * Assesses forward collision risk from vehicle state, relevant target
      * state, predicted path, and explicitly open braking assumptions.
@@ -253,7 +254,7 @@ package DE4SDV_AEBSLogicalArchitecture {
     port collisionRiskOut : CollisionRiskOutput;
   }
 
-  part def InterventionDecisionAndArbitration {
+  part def InterventionDecisionAndArbitration :> LogicalAllocationElement {
     doc /*
      * Decides emergency-intervention intent while considering intervention
      * eligibility/inhibition context, driver override, degradation, and other
@@ -271,7 +272,7 @@ package DE4SDV_AEBSLogicalArchitecture {
     }
   }
 
-  part def DriverWarningManagement {
+  part def DriverWarningManagement :> LogicalAllocationElement {
     doc /* Produces a conceptual driver-warning request without prescribing HMI technology. */
     port collisionRiskIn : CollisionRiskInput;
     port driverWarningRequestOut : DriverWarningRequestOutput;
@@ -283,7 +284,7 @@ package DE4SDV_AEBSLogicalArchitecture {
     }
   }
 
-  part def EmergencyInterventionCoordination {
+  part def EmergencyInterventionCoordination :> LogicalAllocationElement {
     doc /*
      * Issues and retains a conceptual emergency-intervention request only from an
      * affirmative arbitrated decision. Physical emergency supervision, command
@@ -303,7 +304,7 @@ package DE4SDV_AEBSLogicalArchitecture {
     }
   }
 
-  part def HealthAndDegradationSupervision {
+  part def HealthAndDegradationSupervision :> LogicalAllocationElement {
     doc /*
      * Sole conceptual owner of valid, degraded, and unavailable AEBS operation;
      * reconciles input and subsystem health and requests failure indication.
@@ -320,7 +321,7 @@ package DE4SDV_AEBSLogicalArchitecture {
     }
   }
 
-  part def EvidenceRecording {
+  part def EvidenceRecording :> LogicalAllocationElement {
     doc /*
      * Observes risk, decision, degradation, warning, intervention, and failure
      * events and emits a conceptual evidence event. Storage technology, retention,
@@ -339,7 +340,7 @@ package DE4SDV_AEBSLogicalArchitecture {
    * Conceptual system composition and exchanges
    * ────────────────────────────────────────── */
 
-  part def VehicleTargetAEBSSystem {
+  part def VehicleTargetAEBSSystem :> LogicalAllocationElement {
     doc /*
      * Technology-neutral conceptual realization of the vehicle-target AEBS
      * functional baseline. Conceptual elements own responsibilities and exchange

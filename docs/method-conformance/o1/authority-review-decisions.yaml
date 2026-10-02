@@ -159,15 +159,18 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: approved-topic05 historical compatibility boundary
+    note: >-
+      Historical string-shell identity is retained in this inventory, but its
+      model declaration and two framing consumers are superseded by the
+      versioned selected-method reference contract. External compatibility
+      mapping is not model parity, safe YAML retirement, or runtime activation.
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    - exact-head native validation and whole-consumer migration before retiring historical YAML vocabulary
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   MethodPhase:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -546,14 +549,16 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Roles source-backed from the GfSE SAF stakeholder library (re-declared as part defs; Apache-2.0;
-      see saf-source.yaml); adoption/publication disposition for that source is not recorded - flagged.
-    unknowns:
-    - Adoption/publication disposition of the GfSE SAF stakeholder source (upstream-involvement question).
+    stage: approved-topic06 adapted reusable roles
+    note: >-
+      Topic 6 accepts eight attributed SAF-originated local adaptations as
+      non-individual reusable roles and retains seven DE4SDV-originated roles.
+      This is not unchanged upstream adoption, maintainer endorsement, contact
+      authorization, native validation, or production authority activation.
+      Persons and organizations may play roles; role typing grants no rights.
+    unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
-    - GfSE SAF source adoption disposition
+    - exact-head native validation and bounded adaptation/source review before generated-authority admission
     exact_fit_decision: null
     closure_evidence_ref: null
     semantic_text_equivalence: review-required
@@ -810,6 +815,132 @@ entries:
     exact_fit_decision: null
     closure_evidence_ref: null
     semantic_text_equivalence: null
+  AllocatableFunction:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged validation, API readback and reviewed successor consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 1-2 relationship successor; non-production
+    note: Explicit action lineage root for versioned responsibility allocation; the predecessor Function native category is unchanged. Source wiring and synthetic API tests do not prove licensed closure or fulfillment.
+    unknowns: []
+    required_evidence:
+    - exact-head privileged validation and API binding/readback of the integrated successor
+    - independent successor SPEC and QUALITY review
+    exact_fit_decision: Versioned responsibility-profile specialization of Function, not a universal replacement
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  LogicalAllocationElement:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged validation, API readback and reviewed successor consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 1-2 relationship successor; non-production
+    note: Explicit logical responsibility lineage root. Original LogicalElement mapping remains unchanged; allocations do not prove execution or create a mandatory transitive chain.
+    unknowns: []
+    required_evidence:
+    - exact-head privileged validation and API binding/readback of the integrated successor
+    - independent successor SPEC and QUALITY review
+    exact_fit_decision: Versioned logical responsibility-profile specialization, separate from deployment
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  PhysicalAllocationElement:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged validation, API readback and reviewed successor consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 1-2 relationship successor; non-production
+    note: Physical includes concrete software and platform elements. This lineage makes responsibility allocation queryable only with native witnesses; it cannot establish deployment or observed operation.
+    unknowns: []
+    required_evidence:
+    - exact-head privileged validation and API binding/readback of the integrated successor
+    - independent successor SPEC and QUALITY review
+    exact_fit_decision: Versioned physical responsibility-profile specialization preserving original PhysicalElement
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  ValidationPlanningScenario:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged validation, API readback and reviewed successor consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 1-2 relationship successor; non-production
+    note: A planned stakeholder fitness-for-use scenario, not a native verification case or retained validation outcome; preserves original ValidationScenario category and all actual execution/result gates.
+    unknowns: []
+    required_evidence:
+    - exact-head privileged validation and API binding/readback of the integrated successor
+    - independent successor SPEC and QUALITY review
+    exact_fit_decision: Explicit planning specialization, without execution or acceptance inference
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  RegulatorySource:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged validation, API readback and reviewed successor consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 1-2 relationship successor; non-production
+    note: Controlled origin identity is distinct from interpreted obligations and required satisfaction conditions. Existing RegulatoryConstraint and constrainedBy history remain unchanged; no applicability or compliance claim follows.
+    unknowns: []
+    required_evidence:
+    - exact-head privileged validation and API binding/readback of the integrated successor
+    - independent successor SPEC and QUALITY review
+    exact_fit_decision: Controlled regulatory-origin reference, not native requirement framing or authorized assessment
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  ValidationPlanningAssociation:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged validation, API readback and reviewed successor consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 1-2 relationship successor; non-production
+    note: Reified typed planning carrier identity is mapped so ingestion can validate its UUID and endpoint lineage. It adds no new public predicate; inverse navigation retains the same planning fact.
+    unknowns: []
+    required_evidence:
+    - exact-head privileged validation and API binding/readback of the integrated successor
+    - independent successor SPEC and QUALITY review
+    exact_fit_decision: Typed carrier definition for hasValidationScenario planning, not a completed validation
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  RegulatorySourceAssociation:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged validation, API readback and reviewed successor consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 1-2 relationship successor; non-production
+    note: Reified typed provenance carrier identity is mapped for exact ingestion pinning, not a new verdict predicate. The successor hasRegulatorySource fact never establishes a required condition or compliance.
+    unknowns: []
+    required_evidence:
+    - exact-head privileged validation and API binding/readback of the integrated successor
+    - independent successor SPEC and QUALITY review
+    exact_fit_decision: Typed carrier definition for controlled regulatory provenance, not fulfillment
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
   Interface:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1030,6 +1161,63 @@ entries:
     exact_fit_decision: null
     closure_evidence_ref: null
     semantic_text_equivalence: null
+  EvidenceSupportCitation:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged native validation and reviewed consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 3-4 implementation extension; not an activated O4 identity
+    note: Model-defined cited-support record with rationale and limits; supplied-record structural checks do not establish adequacy, truth, pass, acceptance or activation. The historical 93-row O4 review population is unchanged.
+    unknowns:
+    - Exact-head native validation and actual API consumer closure remain unproved.
+    required_evidence:
+    - Exact-head privileged Syside validation of the integrated method kernel
+    - Supplied-record SPEC and QUALITY checks with explicit no-claim boundaries
+    exact_fit_decision: DE4SDV scoped support-record application semantics; not a new native SysML relation
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  ScopedVVActivityRecord:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged native validation and reviewed consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 3-4 implementation extension; not an activated O4 identity
+    note: Model-defined scoped verification OR validation activity record reusing adopted VVStatus. Existing need and requirement attachments and external results remain distinct; no universal status enum or new library adoption.
+    unknowns:
+    - Exact-head native validation and actual API consumer closure remain unproved.
+    required_evidence:
+    - Exact-head privileged Syside validation of the integrated method kernel
+    - Scoped status, comparison-basis, result and evidence-reference consistency checks
+    exact_fit_decision: DE4SDV lifecycle-wide activity record; status remains adopted library vocabulary
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  ScopedEvidenceAdequacyAssessment:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged native validation and reviewed consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved Topics 3-4 implementation extension; not an activated O4 identity
+    note: Model-defined evidence-set assessment record for a role-aware scoped claim; retains assessed-activity evidence and applicable limitations. Structural eligibility does not authenticate the assessor or establish substantive adequacy or acceptance.
+    unknowns:
+    - Exact-head native validation and actual API consumer closure remain unproved.
+    required_evidence:
+    - Exact-head privileged Syside validation of the integrated method kernel
+    - Adversarial evidence-set closure, limitation-preservation and scope-role tests
+    exact_fit_decision: Proportionate scoped evidence-set application semantics, separate from authority acceptance
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
   Assumption:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1201,15 +1389,18 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Declaration + doc model-resident; reviewed definition text still YAML-established; parity not
-      yet reviewed.
+    stage: approved-topic05 historical compatibility boundary
+    note: >-
+      Historical string-endpoint record remains a compatibility identity only;
+      its removed model declaration is not treated as parity-reviewed. The
+      successor source-reference adapter witnesses exact artifact references
+      and does not promote category strings into engineering relationships.
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    - exact-head native validation and whole-consumer migration before retiring historical YAML vocabulary
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   RequiredTraceChain:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1219,15 +1410,52 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: Chain vocabulary used in review; no executable chain validation. Declaration + doc model-resident;
-      reviewed definition text still YAML-established; parity not yet reviewed.
+    stage: approved-topic05 historical compatibility boundary
+    note: >-
+      Topic 5 replaces the universal category chain with selected-method,
+      per-increment scope/phase/completion obligations. This historical identity
+      is retained for compatibility accounting only; it cannot select the new
+      adapter's contract, establish completeness, or close runtime retirement.
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    - exact-head native validation and whole-consumer migration before retiring historical YAML vocabulary
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
+  ApprovedTraceMethod:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged native validation and reviewed consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved-topic05 scoped trace successor
+    note: Selected-method identity is model-resident; source inspection is opt-in and cannot establish native or runtime conformance.
+    unknowns: []
+    required_evidence:
+    - exact-head native validation and reviewed API binding before production consumer migration
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
+  IncrementTraceObligations:
+    authority_current: model-authoritative
+    authority_target: model-authoritative
+    evidence_state: proposed
+    adoption_status: not-applicable
+    transition_gate: exact-head privileged native validation and reviewed consumer migration
+    conditional_target: false
+    disposition: prove-existing-model-authority
+    confidence: medium
+    stage: approved-topic05 scoped trace successor
+    note: Existing framing consumers use actual references; later required predicates and native validation remain UNASSESSED and readiness stays BLOCKED.
+    unknowns: []
+    required_evidence:
+    - exact-head native validation and reviewed API binding before production consumer migration
+    exact_fit_decision: null
+    closure_evidence_ref: null
+    semantic_text_equivalence: null
   Baseline:
     authority_current: legacy-yaml
     authority_target: model-authoritative
@@ -1534,11 +1762,15 @@ entries:
     conditional_target: false
     disposition: move-meaning-into-model
     confidence: high
-    stage: batched-parity (post-0a/0b)
-    note: domain/range authored in YAML; no executable mapping; definition moves into the model.
+    stage: approved-topic06 typed role participation carrier
+    note: >-
+      HasStakeholder carries EngineeringIncrement-to-Stakeholder role
+      participation or impact, not assignment, approval, reviewer rights, or
+      authority. It is an existing relationship carrier, excluded from class
+      accounting; no runtime traversal or authority activation is claimed.
     unknowns: []
     required_evidence:
-    - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
+    - exact-head native validation and reviewed role-participation carrier before generated-authority admission
     exact_fit_decision: null
     closure_evidence_ref: null
     semantic_text_equivalence: null

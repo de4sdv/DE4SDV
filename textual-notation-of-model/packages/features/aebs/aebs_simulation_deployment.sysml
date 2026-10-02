@@ -19,6 +19,7 @@ package DE4SDV_AEBSSimulationDeployment {
   // functional-package import is needed in this deployment model.
   private import DE4SDV_AEBSLogicalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
+  private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;
   private import DE4SDV_ROS2Types::*;
   private import DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment;
   private import SAF_Viewpoints::*;
@@ -201,7 +202,7 @@ package DE4SDV_AEBSSimulationDeployment {
   }
 
   /* System 1 candidate deployment roles. */
-  part def DeployedAEBNode {
+  part def DeployedAEBNode :> PhysicalAllocationElement {
     doc /* Selected inputs are point cloud, velocity, IMU, /autoware/state, and TF/vehicle info; no AEB odometry input exists. */
     port pointCloudIn : PointCloudInput;
     port autowareStateIn : AutowareStateInput;
@@ -210,16 +211,16 @@ package DE4SDV_AEBSSimulationDeployment {
     port tfAndVehicleInfoIn : TfAndVehicleInfoIn;
     port diagnosticsOut : DiagnosticOut;
   }
-  part def DiagnosticGraphAggregatorNode {
+  part def DiagnosticGraphAggregatorNode :> PhysicalAllocationElement {
     port diagnosticsIn : DiagnosticIn;
     port commandAvailabilityOut : CommandAvailabilityOut;
   }
-  part def CommandModeToOperationModeAvailabilityConverterNode {
+  part def CommandModeToOperationModeAvailabilityConverterNode :> PhysicalAllocationElement {
     doc /* Converts availability schemas only; it does not provide current operation mode. */
     port commandAvailabilityIn : CommandAvailabilityIn;
     port operationAvailabilityOut : OperationAvailabilityOut;
   }
-  part def MrmHandlerNode {
+  part def MrmHandlerNode :> PhysicalAllocationElement {
     port operationAvailabilityIn : OperationAvailabilityIn {
       doc /* /system/operation_mode/availability. */
     }
@@ -244,7 +245,7 @@ package DE4SDV_AEBSSimulationDeployment {
       doc /* /system/emergency/gear_cmd. */
     }
   }
-  part def EmergencyStopOperatorNode {
+  part def EmergencyStopOperatorNode :> PhysicalAllocationElement {
     port operateMrmIn : OperateMrmIn;
     port initialControlCommandIn : ControlCommandIn {
       doc /* /control/command/control_cmd provides the inspected initial command feedback. */
@@ -254,7 +255,7 @@ package DE4SDV_AEBSSimulationDeployment {
     }
     port operatorStatusOut : EmergencyStopOperatorStatusOut;
   }
-  part def LegacyVehicleCommandGateNode {
+  part def LegacyVehicleCommandGateNode :> PhysicalAllocationElement {
     port kinematicStateIn : OdometryFeedbackIn {
       doc /* /localization/kinematic_state. */
     }
