@@ -54,6 +54,9 @@ represented; one grounded branch cannot hide another dangling branch. An externa
 leaf needs a URI on its exact reference, not on unrelated data. Graph, flat and
 inlined `referencedFeature` shapes are normalized together, with their API/property
 witness retained; conflicting targets refuse rather than becoming absence.
+Every supplied reference member must first have an interpretable identity. A
+missing or blank endpoint, typing or specialization identity is incomplete
+evidence, not a member that may be discarded before cardinality or lineage checks.
 
 `relationship_successor_contract.py` extracts and verifies source-derived records
 at bootstrap, through `composition_construction.py`. The live relationship service
@@ -65,6 +68,10 @@ use. These bounded lexical checks do not replace licensed SysML validation.
 Declaration location and owned-body matching run through that same scan, so a
 commented or quoted duplicate cannot move a record boundary, and a duplicated live
 declaration refuses instead of silently supplying the first match.
+Records and carriers must themselves belong directly to the governed package;
+correct fields inside a foreign owner's block do not establish authority. Carrier
+end qualifications must identify the pinned declaration in its exact source file
+and owning namespace. A same-named foreign or unresolved type cannot satisfy a pin.
 
 ## Runnable CLI and MCP
 

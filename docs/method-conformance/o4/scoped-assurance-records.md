@@ -84,6 +84,12 @@ pinned enum declaration with the model's status references. Neither command
 fetches, adopts or modifies a library, or invokes a SysML semantic validator.
 Both report `native_semantic_validation` false.
 
+Status and activity-kind admission uses the intended directly owned executable
+constraints, not a whole-file search for vocabulary mentions. Comments, quoted
+text and constraints nested under foreign owners cannot add values. The existing
+adopted `VVStatus` identity and population remain the vocabulary seam; optional
+archive verification is separate from this mandatory supplied-record guard.
+
 New kernel declarations must be classified by the existing ontology-kernel
 contract. Aggregate inventories and revision bindings must be regenerated after
 the source checkpoint; until then the repository gate is expected to refuse the
