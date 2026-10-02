@@ -1,6 +1,7 @@
 """Synthetic record fixtures; no real engineering pass/acceptance is asserted."""
 import copy
 import json
+import re
 import subprocess
 import sys
 
@@ -8,6 +9,17 @@ import pytest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def overlay_source(monkeypatch, relative, text):
+    """Read overlay only: never duplicate or mutate an authoritative model."""
+    read_text = Path.read_text
+    target = ROOT / relative
+
+    def read(path, *args, **kwargs):
+        return text if path == target else read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read)
 
 
 def fixture():
@@ -65,6 +77,46 @@ def test_status_retains_distinct_upstream_meanings(status, verdict, completed):
     assert report["claims_established"] is False
 
 
+def test_comment_does_not_add_native_status(monkeypatch):
+    from de4sdv.semantic import scoped_assurance as sa
+    data = activity_fixture(status="Accepted")
+    with pytest.raises(sa.ScopedAssuranceError, match="unknown native status"):
+        sa.validate_records(data)
+    baseline = sa.verify_native_sources()
+    text = (ROOT / sa.MODEL_PATH).read_text(encoding="utf-8")
+    # Exact R2 review mutation: neither the enum nor its live constraint changes.
+    overlay_source(monkeypatch, sa.MODEL_PATH,
+                   text + "\n/* Historical note only: VVStatus::Accepted */\n")
+    with pytest.raises(sa.ScopedAssuranceError, match="unknown native status"):
+        sa.validate_records(data)
+    assert sa.verify_native_sources() == baseline
+
+
+@pytest.mark.parametrize("decoy", [
+    '// VVStatus::Accepted; activityKind == "acceptance"\n',
+    '/* VVStatus::Accepted; activityKind == "acceptance" */',
+    'attribute syntheticNote : String = "VVStatus::Accepted; activityKind == \\\"acceptance\\\"";',
+    "part 'VVStatus::Accepted; activityKind == \"acceptance\"';",
+    'part def ForeignOwner { assert constraint adoptedStatusVocabulary { status == VVStatus::Accepted } '
+    'assert constraint activityKindVocabulary { activityKind == "acceptance" } }',
+])
+@pytest.mark.parametrize("placement", ["package", "activity"])
+@pytest.mark.parametrize("field,value", [("status", "Accepted"), ("kind", "acceptance")])
+def test_inert_or_foreign_vocabulary_does_not_expand_admission(monkeypatch, decoy, placement, field, value):
+    from de4sdv.semantic import scoped_assurance as sa
+    baseline = sa.verify_native_sources()
+    text = (ROOT / sa.MODEL_PATH).read_text(encoding="utf-8")
+    # Use a note-bearing part for the activity so field parity is unchanged.
+    if placement == "activity" and decoy.startswith("attribute syntheticNote"):
+        decoy = 'part syntheticNote { ' + decoy + ' }'
+    marker = "  item def ScopedVVActivityRecord {" if placement == "activity" else "package DE4SDV_ScopedAssurance {"
+    assert text.count(marker) == 1
+    overlay_source(monkeypatch, sa.MODEL_PATH, text.replace(marker, marker + "\n" + decoy + "\n"))
+    with pytest.raises(sa.ScopedAssuranceError, match="unknown native status"):
+        sa.validate_records(activity_fixture(**{field: value}))
+    assert sa.verify_native_sources() == baseline
+
+
 @pytest.mark.parametrize("mutation", [
     lambda d: d["activities"][0].update(status="accepted"),
     lambda d: d["activities"][0].update(status="CompletedFailed"),
@@ -86,6 +138,156 @@ def test_activity_result_mismatch_fails_closed(mutation):
     with pytest.raises(ScopedAssuranceError):
         validate_records(data)
 
+
+
+@pytest.mark.parametrize("removed", [None, "NotStarted", "InProgress", "Completed",
+                                    "CompletedUnsuccessful", "CompletedFailed", "CompletedPassed"])
+@pytest.mark.parametrize("consumer", ["records", "source-check"])
+def test_live_status_constraint_requires_exact_adopted_population(monkeypatch, removed, consumer):
+    from de4sdv.semantic import scoped_assurance as sa
+    text = (ROOT / sa.MODEL_PATH).read_text(encoding="utf-8")
+    match = re.search(r"(assert constraint adoptedStatusVocabulary\s*\{)([^{}]*)(\})", text)
+    assert match is not None
+    terms = re.findall(r"status == VVStatus::[A-Za-z]+", match.group(2))
+    assert len(terms) == 6
+    if removed is None:
+        terms.append("status == VVStatus::Accepted")
+    else:
+        terms.remove("status == VVStatus::" + removed)
+    overlay_source(monkeypatch, sa.MODEL_PATH,
+                   text[:match.start(2)] + " or ".join(terms) + text[match.end(2):])
+    # Both consumers require parity without optional archive verification.
+    with pytest.raises(sa.ScopedAssuranceError):
+        if consumer == "records":
+            sa.validate_records(activity_fixture())
+        else:
+            sa.verify_native_sources()
+
+
+@pytest.mark.parametrize("seam", ["model-import", "adapter-import", "status-type", "local-enum"])
+@pytest.mark.parametrize("consumer", ["records", "source-check"])
+def test_adopted_status_identity_is_mandatory_without_archive(monkeypatch, seam, consumer):
+    from de4sdv.semantic import scoped_assurance as sa
+    relative = sa.MODEL_PATH
+    if seam == "adapter-import":
+        relative = str(Path(relative).with_name("de4sdv_sysmod_adapter.sysml"))
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    old, new = {
+        "model-import": ("private import DE4SDV_SYSMODAdapter::VVStatus;", "private import Foreign::VVStatus;"),
+        "adapter-import": ("public import RequirementsManagement::VVStatus;", "public import Foreign::VVStatus;"),
+        "status-type": ("attribute status : VVStatus;", "attribute status : Foreign::VVStatus;"),
+        "local-enum": ("package DE4SDV_ScopedAssurance {", "package DE4SDV_ScopedAssurance { enum def VVStatus { Accepted; }"),
+    }[seam]
+    assert text.count(old) == 1
+    overlay_source(monkeypatch, relative, text.replace(old, new))
+    with pytest.raises(sa.ScopedAssuranceError):
+        if consumer == "records":
+            sa.validate_records(activity_fixture())
+        else:
+            sa.verify_native_sources()
+
+
+@pytest.mark.parametrize("header", ["package DE4SDV_ScopedAssurance", "item def ScopedVVActivityRecord",
+                                  "assert constraint adoptedStatusVocabulary", "assert constraint activityKindVocabulary"])
+@pytest.mark.parametrize("consumer", ["records", "source-check"])
+def test_bodiless_duplicate_cannot_borrow_live_vocabulary_authority(monkeypatch, header, consumer):
+    from de4sdv.semantic import scoped_assurance as sa
+    text = (ROOT / sa.MODEL_PATH).read_text(encoding="utf-8")
+    assert text.count(header + " {") == 1
+    overlay_source(monkeypatch, sa.MODEL_PATH, text.replace(header + " {", header + ";\n" + header + " {"))
+    with pytest.raises(sa.ScopedAssuranceError):
+        if consumer == "records":
+            sa.validate_records(activity_fixture())
+        else:
+            sa.verify_native_sources()
+
+
+@pytest.mark.parametrize("name", ["adoptedStatusVocabulary", "activityKindVocabulary"])
+@pytest.mark.parametrize("replacement", ["comment", "string", "quoted-name", "foreign", "other-name", "bodyless", "duplicate"])
+def test_vocabulary_requires_intended_executable_direct_owner(monkeypatch, name, replacement):
+    from de4sdv.semantic import scoped_assurance as sa
+    text = (ROOT / sa.MODEL_PATH).read_text(encoding="utf-8")
+    matches = list(re.finditer(r"assert constraint " + name + r"\s*\{[^{}]*\}", text))
+    assert len(matches) == 1
+    match = matches[0]
+    original = match.group()
+    substitutes = {
+        "comment": "/* " + original + " */",
+        "string": "attribute syntheticNote : String = " + json.dumps(original) + ";",
+        "quoted-name": "part '" + original + "';",
+        "foreign": "part def ForeignOwner { " + original + " }",
+        "other-name": original.replace(name, "foreignVocabulary"),
+        "bodyless": "assert constraint " + name + ";",
+        "duplicate": original + "\n" + original,
+    }
+    overlay_source(monkeypatch, sa.MODEL_PATH, text[:match.start()] + substitutes[replacement] + text[match.end():])
+    with pytest.raises(sa.ScopedAssuranceError):
+        sa.validate_records(activity_fixture())
+
+
+def test_adopted_enum_bodiless_duplicate_is_ambiguous(monkeypatch):
+    from de4sdv.semantic import scoped_assurance as sa
+    relative = ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml"
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    assert text.count("enum def VVStatus {") == 1
+    overlay_source(monkeypatch, relative, text.replace("enum def VVStatus {", "enum def VVStatus;\nenum def VVStatus {"))
+    with pytest.raises(sa.ScopedAssuranceError):
+        sa.validate_records(activity_fixture())
+
+
+@pytest.mark.parametrize("mutation", ["compact-duplicate", "foreign-header"])
+def test_adopted_enum_literal_identity_is_not_a_header_substring(monkeypatch, mutation):
+    from de4sdv.semantic import scoped_assurance as sa
+    relative = ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml"
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    if mutation == "compact-duplicate":
+        old, new = "enum def VVStatus {", "enum def VVStatus { NotStarted {}"
+    else:
+        old, new = "        NotStarted {", "        part def\n        NotStarted {"
+    assert text.count(old) == 1
+    overlay_source(monkeypatch, relative, text.replace(old, new))
+    with pytest.raises(sa.ScopedAssuranceError):
+        sa.validate_records(activity_fixture())
+
+
+@pytest.mark.parametrize("quote", ['"', "'"])
+def test_inert_quoted_delimiters_do_not_move_vocabulary_owner(monkeypatch, quote):
+    from de4sdv.semantic import scoped_assurance as sa
+    baseline = sa.verify_native_sources()
+    text = (ROOT / sa.MODEL_PATH).read_text(encoding="utf-8")
+    payload = 'escaped ' + quote + ' } /* status == VVStatus::Accepted; activityKind == "acceptance" {'
+    quoted = quote + payload.replace("\\", "\\\\").replace(quote, "\\" + quote) + quote
+    decoy = ('part syntheticNote { attribute note : String = ' + quoted + '; }' if quote == '"'
+             else 'part ' + quoted + ';')
+    marker = "item def ScopedVVActivityRecord {"
+    assert text.count(marker) == 1
+    overlay_source(monkeypatch, sa.MODEL_PATH, text.replace(marker, marker + "\n" + decoy + "\n"))
+    assert sa.verify_native_sources() == baseline
+    assert sa.validate_records(activity_fixture())["structurally_valid"] is True
+    with pytest.raises(sa.ScopedAssuranceError, match="unknown native status"):
+        sa.validate_records(activity_fixture(status="Accepted"))
+
+
+@pytest.mark.parametrize("corruption", ["version", "checksum", "missing-path", "missing-source"])
+def test_mandatory_adopted_source_guard_refuses_unavailable_or_wrong_pin(monkeypatch, corruption):
+    from de4sdv.semantic import scoped_assurance as sa
+    import tomllib
+    relative = ".sysand/env.toml"
+    env = tomllib.loads((ROOT / relative).read_text(encoding="utf-8"))
+    project = next(p for p in env["project"] if "pkg:sysand/ode4hera/requirements-management" in p.get("identifiers", []))
+    if corruption == "version":
+        project["version"] = "synthetic-wrong-version"
+    elif corruption == "checksum":
+        project["kpar_cksum"] = "0" * 64
+    elif corruption == "missing-path":
+        del project["path"]
+    else:
+        project["path"] = "lib/synthetic-unavailable-library"
+    # Minimal synthetic installation metadata; no authoritative dependency copy.
+    text = "[[project]]\n" + "\n".join(key + " = " + json.dumps(value) for key, value in project.items())
+    overlay_source(monkeypatch, relative, text)
+    with pytest.raises(sa.ScopedAssuranceError):
+        sa.validate_records(activity_fixture())
 
 
 def assessment_fixture(*, adequate=True, supports_claim=True, unqualified=False):

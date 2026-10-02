@@ -95,50 +95,155 @@ def _external_scope(record: dict) -> set[str]:
     return {subject, configuration, *conditions}
 
 
+def _owned_native_block(owner: str, header: str) -> str:
+    """One direct-owned body in the supported offline source-check subset."""
+    from .relationship_successor_contract import _mask_strings, _owned_matches
+
+    # Inventory the identity before admitting the supported header/body shape:
+    # a bodiless or unsupported duplicate must not borrow a live sibling body.
+    matches, code = _owned_matches(owner, header + r"[^;{}]*[;{]")
+    if (len(matches) != 1 or not re.fullmatch(header + r"\s*\{",
+            code[matches[0].start():matches[0].end()])):
+        raise ScopedAssuranceError("native source missing or ambiguous owned declaration: " + header)
+    start = matches[0].end() - 1
+    structure = _mask_strings(code)
+    depth = 0
+    for index in range(start, len(structure)):
+        depth += (structure[index] == "{") - (structure[index] == "}")
+        if depth == 0:
+            return code[start:index + 1]
+    raise ScopedAssuranceError("native source unterminated owned declaration: " + header)
+
+
+def _native_package(root: Path) -> str:
+    text = (root / MODEL_PATH).read_text(encoding="utf-8")
+    return _owned_native_block("{" + text + "}", r"\bpackage\s+DE4SDV_ScopedAssurance\b")
+
+
+def _constraint_vocabulary(activity: str, name: str, comparison: str) -> set[str]:
+    block = _owned_native_block(activity, r"\bassert\s+constraint\s+" + re.escape(name) + r"\b")
+    expression = block[1:-1].strip()
+    # Consume the entire disjunction: quoted decoys, extra expressions and
+    # descendants cannot supply an executable vocabulary comparison.
+    if not re.fullmatch(comparison + r"(?:\s+or\s+" + comparison + r")*", expression):
+        raise ScopedAssuranceError("native unsupported vocabulary constraint: " + name)
+    values = re.findall(comparison, expression)
+    if len(values) != len(set(values)):
+        raise ScopedAssuranceError("native duplicate vocabulary literal: " + name)
+    return set(values)
+
+
+def _require_status_import(owner: str, path: str, visibility: str) -> None:
+    from .relationship_successor_contract import _owned_matches
+
+    matches, code = _owned_matches(owner, r"\b(?:(?:public|private|protected)\s+)?import\s+[^;{}]*;")
+    imports = [code[m.start():m.end()] for m in matches
+               if re.search(r"\bVVStatus\s*;", code[m.start():m.end()])]
+    expected = visibility + r"\s+import\s+" + re.escape(path) + r"\s*;"
+    shadows, _ = _owned_matches(owner, r"\b(?:def|alias)\s+VVStatus\b")
+    if len(imports) != 1 or not re.fullmatch(expected, imports[0]) or shadows:
+        raise ScopedAssuranceError("native activity must reuse exact adopted VVStatus import: " + path)
+
+
+def _adopted_library_pin(root: Path) -> tuple[dict, dict]:
+    lock = tomllib.loads((root / "sysand-lock.toml").read_text(encoding="utf-8"))
+    projects = [p for p in lock.get("project", [])
+                if "pkg:sysand/ode4hera/requirements-management" in p.get("identifiers", [])]
+    if len(projects) != 1 or len(projects[0].get("sources", [])) != 1:
+        raise ScopedAssuranceError("adopted status library requires one exact archive pin")
+    return projects[0], projects[0]["sources"][0]
+
+
+def _adopted_enum_population(upstream: str) -> set[str]:
+    from .relationship_successor_contract import _owned_matches
+
+    package = _owned_native_block("{" + upstream + "}", r"\b(?:library\s+)?package\s+RequirementsManagement\b")
+    enum = _owned_native_block(package, r"\benum\s+def\s+VVStatus\b")
+    matches, code = _owned_matches(enum, r"\b([A-Za-z]\w*)\b")
+    literals = []
+    for match in matches:
+        name = match.group(1)
+        if name == "doc":
+            continue
+        # Every direct code identifier must be a literal header, not a name
+        # substring inside another declaration; compact duplicates also count.
+        if not re.match(r"\s*[{;]", code[match.end():]):
+            raise ScopedAssuranceError("unsupported adopted VVStatus enum member")
+        literals.append(name)
+    if not literals or len(literals) != len(set(literals)):
+        raise ScopedAssuranceError("adopted VVStatus enum population missing or ambiguous")
+    return set(literals)
+
+
+def _installed_adopted_statuses(root: Path) -> set[str]:
+    """Inspect already-synced adopted source; archive byte verification is separate."""
+    project, pin = _adopted_library_pin(root)
+    try:
+        env = tomllib.loads((root / ".sysand/env.toml").read_text(encoding="utf-8"))
+        installed = [p for p in env.get("project", [])
+                     if "pkg:sysand/ode4hera/requirements-management" in p.get("identifiers", [])]
+        if (len(installed) != 1 or installed[0].get("version") != project["version"]
+                or installed[0].get("kpar_cksum") != pin["kpar_digest"]):
+            raise ScopedAssuranceError("synced adopted status library does not match lock identity")
+        path = installed[0].get("path")
+        if not isinstance(path, str) or not path.strip():
+            raise ScopedAssuranceError("synced adopted status library source path missing")
+        source = root / ".sysand" / path / "RequirementsManagement.sysml"
+        return _adopted_enum_population(source.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise ScopedAssuranceError("already-synced adopted VVStatus source required; no fetching") from exc
+
+
 def _native_vocabulary() -> tuple[set[str], set[str]]:
-    # Native model declarations constrain this adapter, not a parallel Python enum.
-    text = (Path(__file__).resolve().parents[2] / MODEL_PATH).read_text(encoding="utf-8")
-    statuses = set(re.findall(r"VVStatus::([A-Za-z]+)", text))
-    kinds = set(re.findall(r'activityKind == "([a-z]+)"', text))
-    if not statuses or not kinds:
-        raise ScopedAssuranceError("native scoped activity vocabulary missing")
+    # Offline supplied-record admission, not production runtime semantic authority.
+    root = Path(__file__).resolve().parents[2]
+    from .relationship_successor_contract import _owned_matches
+
+    package = _native_package(root)
+    activity = _owned_native_block(package, r"\bitem\s+def\s+ScopedVVActivityRecord\b")
+    _require_status_import(package, "DE4SDV_SYSMODAdapter::VVStatus", "private")
+    adapter = (root / MODEL_PATH).with_name("de4sdv_sysmod_adapter.sysml").read_text(encoding="utf-8")
+    seam = _owned_native_block("{" + adapter + "}", r"\bpackage\s+DE4SDV_SYSMODAdapter\b")
+    _require_status_import(seam, "RequirementsManagement::VVStatus", "public")
+    declarations, code = _owned_matches(activity, r"\battribute\s+status\b[^;{}]*;")
+    shadows, _ = _owned_matches(activity, r"\b(?:def|alias)\s+VVStatus\b")
+    if (len(declarations) != 1 or shadows or not re.fullmatch(r"attribute\s+status\s*:\s*VVStatus\s*;",
+            code[declarations[0].start():declarations[0].end()])):
+        raise ScopedAssuranceError("native activity must reuse imported VVStatus")
+    statuses = _constraint_vocabulary(activity, "adoptedStatusVocabulary",
+                                      r"status\s*==\s*VVStatus::([A-Za-z]\w*)")
+    kinds = _constraint_vocabulary(activity, "activityKindVocabulary",
+                                   r'activityKind\s*==\s*"([a-z]+)"')
+    if statuses != _installed_adopted_statuses(root):
+        raise ScopedAssuranceError("native status references differ from adopted enum declaration")
     return statuses, kinds
 
 
 def verify_native_sources(archive_path: Path | None = None) -> dict[str, Any]:
     """Offline lexical parity and optional archive pin check, not SysML validation.
 
-    Reuse the repository's declaration extractor; do not build a second SysML
-    parser or silently fetch a library. No archive supplied means its bytes and
-    enum declaration remain unverified by this invocation.
+    Reuse the repository's bounded lexical ownership scan, not a SysML validator.
+    The mandatory guard checks directly owned constraints against already-synced
+    adopted enum source. Only an explicit archive verifies upstream archive bytes;
+    no library is fetched and no native semantic validation is claimed.
     """
-    from .authority_inventory import declaration_block
+    from .relationship_successor_contract import _owned_matches
 
     root = Path(__file__).resolve().parents[2]
-    source = (root / MODEL_PATH).read_text(encoding="utf-8")
+    source = _native_package(root)
     # The admitted field-check subset is lexical; Syside owns full semantics.
-    source = re.sub(r"/\*.*?\*/|//[^\n]*", "", source, flags=re.DOTALL)
-    declarations = re.findall(r"(?m)^\s*item\s+def\s+([A-Za-z]\w*)", source)
+    matches, _ = _owned_matches(source, r"\bitem\s+def\s+([A-Za-z]\w*)")
+    declarations = [match.group(1) for match in matches]
     if declarations != list(_MODEL_ATTRIBUTES):
         raise ScopedAssuranceError("native model declaration population mismatch")
     for name, expected in _MODEL_ATTRIBUTES.items():
-        block, bodyless = declaration_block(source, f"item def {name}")
-        attributes = re.findall(r"\battribute\s+([A-Za-z]\w*)\s*:", block)
-        if bodyless or len(attributes) != len(set(attributes)) or set(attributes) != expected:
+        block = _owned_native_block(source, r"\bitem\s+def\s+" + re.escape(name) + r"\b")
+        matches, _ = _owned_matches(block, r"\battribute\s+([A-Za-z]\w*)\s*:")
+        attributes = [match.group(1) for match in matches]
+        if len(attributes) != len(set(attributes)) or set(attributes) != expected:
             raise ScopedAssuranceError(f"native {name}: adapter field parity mismatch")
-    activity, _ = declaration_block(source, "item def ScopedVVActivityRecord")
-    if not re.search(r"\battribute\s+status\s*:\s*VVStatus\s*;", activity):
-        raise ScopedAssuranceError("native activity must reuse imported VVStatus")
-    adapter = (root / MODEL_PATH).parent / "de4sdv_sysmod_adapter.sysml"
-    if "public import RequirementsManagement::VVStatus;" not in adapter.read_text(encoding="utf-8"):
-        raise ScopedAssuranceError("adopted VVStatus adapter seam missing")
     statuses, kinds = _native_vocabulary()
-    lock = tomllib.loads((root / "sysand-lock.toml").read_text(encoding="utf-8"))
-    projects = [p for p in lock.get("project", [])
-                if "pkg:sysand/ode4hera/requirements-management" in p.get("identifiers", [])]
-    if len(projects) != 1 or len(projects[0].get("sources", [])) != 1:
-        raise ScopedAssuranceError("adopted status library requires one exact archive pin")
-    pin = projects[0]["sources"][0]
+    _, pin = _adopted_library_pin(root)
     verified = False
     if archive_path is not None:
         archive_path = Path(archive_path)
@@ -149,10 +254,7 @@ def verify_native_sources(archive_path: Path | None = None) -> dict[str, Any]:
             raise ScopedAssuranceError("upstream archive size mismatch")
         with zipfile.ZipFile(archive_path) as archive:
             upstream = archive.read("RequirementsManagement.sysml").decode("utf-8")
-        enum, bodyless = declaration_block(upstream, "enum def VVStatus")
-        enum = re.sub(r"/\*.*?\*/|//[^\n]*", "", enum, flags=re.DOTALL)
-        declared = set(re.findall(r"(?m)^\s*([A-Za-z]\w*)\s*\{", enum))
-        if bodyless or declared != statuses:
+        if _adopted_enum_population(upstream) != statuses:
             raise ScopedAssuranceError("native status references differ from pinned enum declaration")
         verified = True
     return {
