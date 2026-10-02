@@ -1,0 +1,82 @@
+schema: de4sdv.owner-semantic-approvals/v1
+inspection_basis: 23d48abc54fc76fbee1726aa163c34197d899251
+scope: reviewed-semantic-direction-only
+runtime_authority: false
+production_activation: false
+whole_consumer_retirement: false
+ple_adoption: false
+upstream_contact: false
+note: >-
+  These owner approvals supersede the historical advisory alternatives only
+  within their recorded topics. They authorize reviewable implementation,
+  not execution evidence, authority activation or operational acceptance.
+  Runtime consumers must not read this governance record as semantic authority.
+topics:
+  topic1:
+    decisions: [decision-1]
+    accepted_at: '2026-10-02T01:13:19+02:00'
+    approval: >-
+      ok, i accept this proposal as a decision. how should we continue? is it
+      better if you directly implement it or shall we first decide the remaining topics?
+    disposition: >-
+      Use one canonical allocatedTo over native allocations with governed
+      requirement-to-function, function-to-logical and logical-to-physical usage
+      endpoints through an explicit versioned migration. Do not introduce
+      hasRelevantFunction or mandate redundant dependencies. Preserve genuine
+      specification/change-impact dependencies with their actual weaker meaning.
+      Retire misleading realizedBy/deployedTo active names; allocation does not
+      prove satisfaction, execution, deployment or transitivity. hasValidationScenario
+      records planning, not completed validation or stakeholder acceptance.
+  topic2:
+    decisions: [decision-2]
+    accepted_at: '2026-10-02T01:25:58+02:00'
+    approval: ok accepted and decided. lets continue
+    disposition: >-
+      hasRegulatorySource records controlled requirement-source provenance only.
+      Applicability, interpretation, binding requirements/required conditions,
+      fulfillment evidence and authorized compliance assessment remain distinct.
+      Provenance neither makes applicable obligations optional nor proves compliance.
+  topic3:
+    decisions: [decision-3]
+    accepted_at: '2026-10-02T01:42:55+02:00'
+    approval: ok i approve, lets continue
+    disposition: >-
+      supportedByEvidence cites support for a scoped claim with rationale and
+      limits; hasEvidence is artifact association. Require proportionate scoped
+      evidence-set adequacy before treating a claim as established or seeking
+      acceptance. Reuse cases, criteria, results, references and gaps. Keep the
+      designated authority's scoped acceptance and visible exceptions separate.
+  topic4:
+    decisions: [decision-4]
+    accepted_at: '2026-10-02T09:49:26+02:00'
+    approval: ok, i agree to this decision. lets proceed with the remaining stuff
+    disposition: >-
+      Reuse unchanged VVStatus for scoped verification and validation activities
+      across the lifecycle. Identify subject/configuration, activity, comparison
+      basis and results/evidence. Preserve native need/requirement attachments
+      and verdict meanings. Completed is not automatically passed or accepted;
+      CompletedUnsuccessful means unable to complete. Keep maturity, adequacy and
+      authority acceptance separate, without another universal status enum.
+  topic5:
+    decisions: [decision-8, decision-15]
+    accepted_at: '2026-10-02T10:19:48+02:00'
+    approval: ok i approve, lets move on
+    disposition: >-
+      Replace the universal category-string trace chain and migrate its framing
+      usages together. Trace obligations come from the selected approved method
+      for declared scope, phases and completion claim, with actual relationships
+      and identified artifacts. Preserve RFLP distinctions and reuse prior assets.
+      Missing required traces block completion without authorized disposition;
+      unavailable evaluation stays unassessed. Names and wiring are engineering.
+  topic6:
+    decisions: [decision-11]
+    accepted_at: '2026-10-02T10:36:13+02:00'
+    approval: ok approved this topic as you proposed, lets proceed
+    disposition: >-
+      Retain eight attributed locally adapted SAF-derived stakeholder-role
+      definitions and separately originated local roles. Reusable roles stay
+      non-individual part definitions specializing Stakeholder; individual denotes
+      a uniquely identified entity, not a better role classifier, and item typing
+      is not inherently forbidden. hasStakeholder identifies an increment's
+      participating or affected role, vocabulary-only during migration. Names
+      confer no person assignment, approval authority or safety acceptance.
