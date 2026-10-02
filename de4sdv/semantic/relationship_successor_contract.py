@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+PACKAGE = "DE4SDV_RelationshipSuccessor"
 PROGRAM_INPUTS = (
     "de4sdv/semantic/relationship_successor_contract.py",
     "de4sdv/semantic/relationship_successor.py",
@@ -106,7 +107,7 @@ def _owned_matches(block: str, pattern: str):
     return [match for match in re.finditer(pattern, structure) if depths[match.start()] == 1], code
 
 
-def _live_declaration(text: str, header_pattern: str) -> str | None:
+def _live_declaration(text: str, header_pattern: str, *, direct_depth: int | None = None) -> str | None:
     """Locate one declaration's owned block through the bounded token scan.
 
     Comment content and both quoted-token forms are inert while the header is
@@ -124,6 +125,10 @@ def _live_declaration(text: str, header_pattern: str) -> str | None:
         return None
     if len(matches) > 1:
         raise ValueError("ambiguous live declaration: " + header_pattern)
+    if direct_depth is not None:
+        prefix = structure[:matches[0].start()]
+        if prefix.count("{") - prefix.count("}") != direct_depth:
+            raise ValueError("declaration is not directly owned: " + header_pattern)
     index = matches[0].end()
     while index < len(structure) and structure[index] not in "{;":
         index += 1
@@ -153,13 +158,50 @@ def _definition_pattern(declaration: str) -> str:
             + re.escape(name.strip()) + r"\b")
 
 
+def _definition_owner(text: str, declaration: str) -> str:
+    """Prove a pin's direct top-level package owner in the supported subset.
+
+    Arbitrary nested definitions are not package namespace identities. The
+    constructor accepts direct package members only, not a general SysML
+    name/import resolver. Live homonyms still refuse before ownership checks.
+    """
+    pattern = _definition_pattern(declaration)
+    if not _live_declaration(text, pattern, direct_depth=1):
+        raise ValueError("missing complete class declaration: " + declaration)
+    structure = _mask_strings(_comment_free(text))
+    match = re.search(pattern, structure)
+    assert match is not None  # The unique complete declaration was checked above.
+    openings = []
+    for index, char in enumerate(structure[:match.start()]):
+        if char == "{":
+            openings.append(index)
+        elif char == "}":
+            openings.pop()
+    packages = list(re.finditer(r"\bpackage\s+([A-Za-z_]\w*)\s*\{", structure))
+    owners = [package for package in packages if package.end() - 1 == openings[0]]
+    if len(owners) != 1:
+        raise ValueError("class declaration has no direct package owner: " + declaration)
+    owner = owners[0].group(1)
+    _live_declaration(text, r"\bpackage\s+" + re.escape(owner) + r"(?=\s*\{)", direct_depth=0)
+    return owner
+
+
 def generate_contract(root: Path) -> dict:
     text = (root / MODEL).read_text()
-    code = _mask_strings(_comment_free(text))
+    package = _live_declaration(text, r"\bpackage\s+" + PACKAGE + r"(?=\s*\{)", direct_depth=0)
+    if not package:
+        raise ValueError("missing governed successor package")
+    import_matches, _ = _owned_matches(
+        package, r"\bimport\s+([A-Za-z_]\w*(?:::(?:[A-Za-z_]\w*|\*))+)\s*;")
+    imports = {match.group(1) for match in import_matches}
     records = {}
-    for name, kind in re.findall(r"\bpart\s+(\w+)\s*:\s*(Successor\w+Record)\s*\{", code):
+    record_pattern = r"\bpart\s+(\w+)\s*:\s*(Successor\w+Record)\s*\{"
+    owned_records, _ = _owned_matches(package, record_pattern)
+    for record in owned_records:
+        name, kind = record.groups()
         block = _live_declaration(
-            text, r"(?m)^[ \t]*part\s+" + re.escape(name) + r"\s*:\s*" + re.escape(kind) + r"\b")
+            text, r"(?m)^[ \t]*part\s+" + re.escape(name) + r"\s*:\s*" + re.escape(kind) + r"\b",
+            direct_depth=1)
         if not block:
             raise ValueError(f"missing complete record {name}")
         values = {}
@@ -186,7 +228,7 @@ def generate_contract(root: Path) -> dict:
     versions = records.get("SuccessorVersionRecord", [])
     if len(versions) != 1 or not versions[0].get("version"):
         raise ValueError("one explicit successor version required")
-    classes = {}
+    classes, class_types = {}, {}
     inputs = {MODEL, *PROGRAM_INPUTS}
     for row in records.get("SuccessorClassRecord", []):
         name = row["identity"]
@@ -195,11 +237,12 @@ def generate_contract(root: Path) -> dict:
         file = row["sourceFile"]
         if Path(file).is_absolute() or ".." in Path(file).parts:
             raise ValueError("unsafe model pin")
-        pin = _live_declaration((root / file).read_text(), _definition_pattern(row["declaration"]))
-        if not pin:
-            raise ValueError(f"missing complete class declaration {name}")
+        owner = _definition_owner((root / file).read_text(), row["declaration"])
+        if file == MODEL and owner != PACKAGE:
+            raise ValueError(f"class pin outside governed successor package: {name}")
         inputs.add(file)
         classes[name] = dict(file=file, declaration=row["declaration"])
+        class_types[name] = (owner, row["declaration"].split()[-1])
     relations, carriers = {}, {}
     for row in records.get("SuccessorRelationRecord", []):
         if set(row) != {"predicate", "carrier", "mechanism", "strength", "sourceClass", "targetClass", "sourceUsage", "targetUsage", "inverse"}:
@@ -207,9 +250,12 @@ def generate_contract(root: Path) -> dict:
         if row["mechanism"] not in {"native-allocation", "typed-connection"}:
             raise ValueError("unsupported profile mechanism")
         carrier = _live_declaration(
-            text, r"(?m)^[ \t]*connection\s+def\s+" + re.escape(row["carrier"]) + r"\b")
+            text, r"(?m)^[ \t]*connection\s+def\s+" + re.escape(row["carrier"]) + r"\b",
+            direct_depth=1)
         if not carrier:
             raise ValueError("missing typed carrier")
+        if _definition_owner(text, "connection def " + row["carrier"]) != PACKAGE:
+            raise ValueError("carrier outside governed successor package")
         ends, _ = _owned_matches(carrier, r"\bend\s+(\w+)\s*:\s*([A-Za-z_][\w:]*)\s*;")
         declared_ends = {}
         for end in ends:
@@ -217,8 +263,16 @@ def generate_contract(root: Path) -> dict:
                 raise ValueError(f"duplicate carrier end: {row['carrier']}.{end.group(1)}")
             declared_ends[end.group(1)] = end.group(2)
         for end, class_key in [("source", "sourceClass"), ("target", "targetClass")]:
-            expected = classes[row[class_key]]["declaration"].split()[-1]
-            if declared_ends.get(end, "").split("::")[-1] != expected:
+            if row[class_key] not in class_types:
+                raise ValueError("missing endpoint class pin: " + row[class_key])
+            owner, expected = class_types[row[class_key]]
+            canonical = owner + "::" + expected
+            admitted_types = {canonical}
+            pin = classes[row[class_key]]
+            local_definitions, _ = _owned_matches(package, r"\bdef\s+" + re.escape(expected) + r"\b")
+            if pin["file"] == MODEL or (not local_definitions and {canonical, owner + "::*"} & imports):
+                admitted_types.add(expected)
+            if declared_ends.get(end, "") not in admitted_types:
                 raise ValueError(f"carrier endpoint pin mismatch: {row['carrier']}.{end}")
         name = row["predicate"]
         if name in relations and any(relations[name][0][k] != row[k] for k in ("mechanism", "strength", "inverse")):

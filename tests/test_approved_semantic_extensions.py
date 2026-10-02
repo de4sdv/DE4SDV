@@ -178,3 +178,131 @@ def test_reusable_stakeholder_roles_and_relationship_carrier_are_not_authority_g
     assert "sysml_mapping" not in contract.relationships["hasStakeholder"]
     kernel = ai.kernel_accounting(ROOT, contract)
     assert kernel.governed_declarations == kernel.mapped_in_directory + kernel.exclusions
+
+
+def _constructor_record(name, kind, **values):
+    """Small synthetic construction input, never a real-model fixture."""
+    fields = "\n".join(f"    attribute :>> {key} = {json.dumps(value)};"
+                       for key, value in values.items())
+    return f"  part {name} : {kind} {{\n{fields}\n  }}\n"
+
+
+@pytest.fixture
+def successor_constructor_parts():
+    return {
+        "source": "  part def LeftRoot {}\n",
+        "target": "  part def RightRoot {}\n",
+        "carrier": ("  connection def SyntheticCarrier {\n"
+                    "    end source : LeftRoot;\n    end target : RightRoot;\n  }\n"),
+        "version": _constructor_record("version", "SuccessorVersionRecord",
+            version="synthetic/v1", supersedes="synthetic/previous"),
+        "source_record": _constructor_record("leftPin", "SuccessorClassRecord",
+            identity="Left", sourceFile=RELATIONSHIP_MODEL, declaration="part def LeftRoot"),
+        "target_record": _constructor_record("rightPin", "SuccessorClassRecord",
+            identity="Right", sourceFile=RELATIONSHIP_MODEL, declaration="part def RightRoot"),
+        "relation": _constructor_record("relationship", "SuccessorRelationRecord",
+            predicate="syntheticRelation", carrier="SyntheticCarrier", mechanism="typed-connection",
+            strength="planning", sourceClass="Left", targetClass="Right",
+            sourceUsage="PartUsage", targetUsage="PartUsage", inverse=""),
+    }
+
+
+def _constructor_model(parts):
+    return "package DE4SDV_RelationshipSuccessor {\n" + "".join(parts.values()) + "}\n"
+
+
+def _synthetic_constructor(monkeypatch, sources):
+    """Overlay synthetic sources; unrelated program digests are not under test."""
+    from de4sdv.semantic import relationship_successor_contract as construction
+    original_text, original_bytes = Path.read_text, Path.read_bytes
+    overlays = {ROOT / path: text for path, text in sources.items()}
+
+    def read_text(path, *args, **kwargs):
+        return overlays[path] if path in overlays else original_text(path, *args, **kwargs)
+
+    def read_bytes(path, *args, **kwargs):
+        return overlays[path].encode() if path in overlays else original_bytes(path, *args, **kwargs)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(construction, "PROGRAM_INPUTS", ())
+        scoped.setattr(Path, "read_text", read_text)
+        scoped.setattr(Path, "read_bytes", read_bytes)
+        return construction.generate_contract(ROOT)
+
+
+@pytest.mark.parametrize("fragment", ["version", "carrier", "source", "target"])
+def test_successor_constructor_rejects_foreign_owner(monkeypatch, successor_constructor_parts, fragment):
+    parts = successor_constructor_parts
+    baseline = _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: _constructor_model(parts)})
+    assert baseline["schema"] == "synthetic/v1"
+    assert baseline["carriers"]["syntheticRelation"]["declaration"] == "connection def SyntheticCarrier"
+    parts[fragment] = "  part def ForeignOwner {\n" + parts[fragment] + "  }\n"
+    with pytest.raises(ValueError):
+        _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: _constructor_model(parts)})
+
+
+def test_successor_constructor_package_prefix_is_not_governed_identity(monkeypatch, successor_constructor_parts):
+    parts = {"version": successor_constructor_parts["version"]}
+    model = _constructor_model(parts)
+    assert _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: model})["schema"] == "synthetic/v1"
+    model = model.replace("package DE4SDV_RelationshipSuccessor {",
+                          "package DE4SDV_RelationshipSuccessor::Foreign {")
+    with pytest.raises(ValueError, match="missing governed successor package"):
+        _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: model})
+
+
+@pytest.fixture
+def successor_qualified_sources(successor_constructor_parts):
+    parts = successor_constructor_parts
+    parts["source"] = parts["target"] = ""
+    parts["source_record"] = _constructor_record("leftPin", "SuccessorClassRecord",
+        identity="Left", sourceFile="pins/source.sysml", declaration="part def SourceRoot")
+    parts["target_record"] = _constructor_record("rightPin", "SuccessorClassRecord",
+        identity="Right", sourceFile="pins/target.sysml", declaration="part def TargetRoot")
+    parts["carrier"] = ("  connection def SyntheticCarrier {\n"
+        "    end source : CanonicalSource::SourceRoot;\n"
+        "    end target : CanonicalTarget::TargetRoot;\n  }\n")
+    return {
+        RELATIONSHIP_MODEL: _constructor_model(parts),
+        "pins/source.sysml": "package CanonicalSource {\n  part def SourceRoot {}\n}\n",
+        "pins/target.sysml": "package CanonicalTarget {\n  part def TargetRoot {}\n}\n",
+        "pins/foreign.sysml": "package Foreign {\n  part def TargetRoot {}\n}\n",
+    }
+
+
+@pytest.mark.parametrize("target_type", ["Foreign::TargetRoot", "Missing::TargetRoot"])
+def test_successor_constructor_rejects_foreign_qualified_pin(monkeypatch, successor_qualified_sources, target_type):
+    sources = successor_qualified_sources
+    baseline = _synthetic_constructor(monkeypatch, sources)
+    assert baseline["classes"]["Right"] == {
+        "file": "pins/target.sysml", "declaration": "part def TargetRoot"}
+    assert "pins/foreign.sysml" not in baseline["bound_inputs"]
+    sources[RELATIONSHIP_MODEL] = sources[RELATIONSHIP_MODEL].replace(
+        "CanonicalTarget::TargetRoot", target_type)
+    with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
+        _synthetic_constructor(monkeypatch, sources)
+
+
+@pytest.mark.parametrize("fragment", ["version", "carrier"])
+def test_successor_constructor_refuses_live_duplicate_outside_package(monkeypatch, successor_constructor_parts, fragment):
+    parts = successor_constructor_parts
+    model = _constructor_model(parts) + "package Foreign {\n" + parts[fragment] + "}\n"
+    with pytest.raises(ValueError, match="ambiguous live declaration"):
+        _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: model})
+
+
+@pytest.mark.parametrize("mode", ["no_import", "comment_import", "nested_import", "local_shadow"])
+def test_successor_constructor_bare_type_requires_canonical_scope(monkeypatch, successor_qualified_sources, mode):
+    sources = successor_qualified_sources
+    model = sources[RELATIONSHIP_MODEL].replace("CanonicalTarget::TargetRoot", "TargetRoot")
+    imported = model.replace("{\n", "{\n  private import CanonicalTarget::*;\n", 1)
+    assert _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: imported})["classes"]["Right"]["file"] == "pins/target.sysml"
+    if mode == "comment_import":
+        model = model.replace("{\n", "{\n  /* private import CanonicalTarget::*; */\n", 1)
+    elif mode == "nested_import":
+        model = model.replace("{\n", "{\n  part def ForeignOwner { private import CanonicalTarget::*; }\n", 1)
+    elif mode == "local_shadow":
+        model = imported.replace("{\n", "{\n  part def TargetRoot {}\n", 1)
+    sources[RELATIONSHIP_MODEL] = model
+    with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
+        _synthetic_constructor(monkeypatch, sources)
