@@ -164,6 +164,21 @@ jobs:
             --expected-git-revision "$(git rev-parse HEAD)" \
             --output /tmp/de4sdv-semantic-mcp-validation.json
 
+      - name: Probe O4 definition closure against fresh full-model binding
+        # Read-only observation, not selection or activation. Exit 0 means a
+        # report was produced; inspect closure.closed and its prerequisite.
+        # Use the full-model import/read-back binding, never an O3 bundle or
+        # either isolated serialization transaction's candidate binding.
+        run: |
+          mkdir -p /tmp/o4
+          python scripts/probe_definition_migration.py \
+            --root "$(pwd)" \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --export /tmp/de4sdv-full-model-export.json \
+            --expected-git-revision "$(git rev-parse HEAD)" \
+            > /tmp/o4/de4sdv-o4-definition-migration-probe.json \
+            2> /tmp/o4/de4sdv-o4-definition-migration-probe.stderr.log
+
       - name: Produce isolated committed-candidate export (transaction 1)
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
@@ -292,6 +307,8 @@ jobs:
             /tmp/o3/de4sdv-o3-api-closure-attestation.json
             /tmp/o3/de4sdv-o3-verification-case-grounding.json
             /tmp/o3/de4sdv-o3-runtime-equivalence-report.json
+            /tmp/o4/de4sdv-o4-definition-migration-probe.json
+            /tmp/o4/de4sdv-o4-definition-migration-probe.stderr.log
             /tmp/de4sdv-product-line-scope-validation.json
             /tmp/de4sdv-semantic-mcp-validation.json
             /tmp/de4sdv-full-model-export.json

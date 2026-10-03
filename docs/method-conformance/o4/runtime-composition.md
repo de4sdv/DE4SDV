@@ -15,7 +15,9 @@ Routing is disjoint: frozen O3 identities use O3, admitted definition classes
 use the verified definition pair, and unmigrated identities use the explicit
 remaining authored fallback. A failed migrated request never retries the
 fallback. Vocabulary-only admissions add no relationships or traversal.
-`hasStakeholder` is not admitted; decision 11 remains outstanding.
+`hasStakeholder` is not admitted to this runtime. The approved stakeholder-role
+design remains vocabulary-only during migration; it grants no person assignment,
+approval authority or safety acceptance.
 
 ## Explicit consumers
 
@@ -45,6 +47,18 @@ composition itself. Closed but ineligible O3 bundles may be compared only in
 the explicit non-production path; incomplete definition closure is refused.
 
 ## Evidence boundary
+
+The privileged full-model ingestion workflow now runs the existing read-only
+`scripts/probe_definition_migration.py` after full-model import/read-back and
+semantic validations, before isolated candidate transactions. It passes that
+run's full-model binding/export and the checked-out full Git SHA, retaining
+`o4/de4sdv-o4-definition-migration-probe.json` and its `.stderr.log` alongside
+the binding/export in the ingestion artifact. Refusal remains a failed step;
+exit 0 means report produced, not closure proven: inspect `closure.closed`,
+missing/mismatched identities and `activation_prerequisite`. Export matches
+remain declaration-form evidence only. A generated source-ancestry refusal
+must be repaired separately, never bypassed. This wiring supplies no current
+API evidence, consumer retirement, production selection or O4/Core closure.
 
 Synthetic fixture tests exercise real constructors and entrypoints, with only
 API transport/stdio serving replaced. They do not prove privileged closure.
