@@ -535,21 +535,23 @@ class _NativeFraming:
     def _concerns(self):
         witnesses = []
         for view in _headers(self.text):
-            if not re.match(r"\s*view\s+(?!def\b)", view.group()):
+            # Inventory every direct view header (any prefix) before admitting the
+            # supported shape: a modified or duplicate view is present input.
+            if not re.search(r"\bview\b(?!\s+def\b)", view.group()):
                 continue
             declared = re.fullmatch(r"\s*view\s+(" + _NAME + r")\s*(?::\s*" + _QUALIFIED_NAME
                                     + r"\s*)?([;{])", view.group())
-            if not declared:
+            if not declared or not self._unique_identity(declared.group(1)):
                 return _UNAVAILABLE
             body = "" if declared.group(2) == ";" else _matched_body(self.text, view)
             if body is None:
                 return _UNAVAILABLE
             for viewpoint in _headers(body):
-                if not re.match(r"\s*viewpoint\s+", viewpoint.group()):
+                if not re.search(r"\bviewpoint\b", viewpoint.group()):
                     continue
                 selected = re.fullmatch(r"\s*viewpoint\s+(" + _NAME + r")\s*(?::\s*"
                                         + _QUALIFIED_NAME + r"\s*)?([;{])", viewpoint.group())
-                if not selected:
+                if not selected or len(_owned_records(body, selected.group(1))) != 1:
                     return _UNAVAILABLE
                 frames = [] if selected.group(2) == ";" else self._frames(
                     _matched_body(body, viewpoint) or "")

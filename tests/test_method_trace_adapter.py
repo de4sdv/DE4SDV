@@ -202,7 +202,16 @@ class ScopedTraceTests(unittest.TestCase):
                     self._assert_unavailable(snapshot, ("declaredScope",))
 
     def test_unsupported_native_shapes_are_unassessed(self):
+        view = "view aebsVisualizationFramingView {"
+        viewpoint = "viewpoint selectedFramingViewpoint : IncrementFramingViewpoint {"
         cases = (
+            # SPEC review: duplicate or modifier-prefixed view/viewpoint headers are
+            # present input; they must not PASS nor be silently ignored into FAIL.
+            (view, "view aebsVisualizationFramingView;\n  " + view, ("concerns",)),
+            (viewpoint, "viewpoint selectedFramingViewpoint;\n    " + viewpoint, ("concerns",)),
+            (view, "private " + view, ("concerns",)),
+            (viewpoint, "private " + viewpoint, ("concerns",)),
+            (view, "view <probe> aebsVisualizationFramingView {", ("concerns",)),
             (SCOPE_HEADER, "part visualizationScope : IncrementScope[1]", ("declaredScope",)),
             (SCOPE_HEADER, "part visualizationScope : (IncrementScope)", ("declaredScope",)),
             (PROBLEM_HEADER, "requirement visualizationProblemStatement : ProblemStatement[1]",
