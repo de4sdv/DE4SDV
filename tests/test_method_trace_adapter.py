@@ -227,6 +227,42 @@ class ScopedTraceTests(unittest.TestCase):
             with self.subTest(new=new.strip()[:70]):
                 self._assert_unavailable(self._snapshot_mutation(old, new), relations)
 
+    def test_local_kernel_homonym_cannot_witness_increment_or_typed_artifacts(self):
+        """SPEC re-review F1: a local EngineeringIncrement/IncrementScope homonym
+        hides the kernel identity; unqualified references must not PASS."""
+        shadow = INCREMENT_DEFINITION + "\n  part def EngineeringIncrement :> IncrementAssumption;"
+        snapshot = self._snapshot_mutation(INCREMENT_DEFINITION, shadow)
+        self._assert_unavailable(snapshot, ("increment", "problemStatement", "stakeholders"))
+        direct = self._snapshot_mutation(
+            (INCREMENT_DEFINITION, "part incAEBS010 : VisualizationIncrement {"),
+            (INCREMENT_DEFINITION + "\n  part def EngineeringIncrement :> IncrementAssumption;",
+             "part incAEBS010 : EngineeringIncrement {"))
+        self._assert_unavailable(direct, ("increment",))
+        for type_name, relation in (("IncrementScope", "declaredScope"),
+                                    ("ProblemStatement", "problemStatement"),
+                                    ("HasStakeholder", "stakeholders")):
+            with self.subTest(type_name=type_name):
+                snapshot = self._snapshot_mutation(
+                    INCREMENT_DEFINITION, INCREMENT_DEFINITION + "\n  part def " + type_name + ";")
+                self._assert_unavailable(snapshot, (relation,))
+
+    def test_qualified_kernel_parent_still_identifies_the_increment(self):
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        snapshot = self._snapshot_mutation(
+            INCREMENT_DEFINITION,
+            "part def VisualizationIncrement :> DE4SDV_MethodContext::EngineeringIncrement;")
+        result = evaluate_snapshot(snapshot)
+        self.assertEqual(len([r for r in result.results if r.verdict == "PASS"]), 7)
+
+    def test_stakeholder_owner_must_be_a_requirement(self):
+        """SPEC re-review F2: a stakeholder member inside a part is not admitted."""
+        owner = ("part asmStakeholderHost : IncrementAssumption {\n"
+                 "    stakeholder systemsEngineer : SystemsEngineer;\n  }\n  ")
+        snapshot = self._snapshot_mutation(
+            (INCREMENT_DEFINITION, "connect incAEBS010 to visualizationProblemStatement.systemsEngineer;"),
+            (owner + INCREMENT_DEFINITION, "connect incAEBS010 to asmStakeholderHost.systemsEngineer;"))
+        self._assert_unavailable(snapshot, ("stakeholders",))
+
     def test_nested_or_quoted_homonym_is_not_a_direct_duplicate(self):
         for extra in ("package Foreign { " + SCOPE_HEADER + "; }",
                       "attribute '" + SCOPE_HEADER + "' : String;"):

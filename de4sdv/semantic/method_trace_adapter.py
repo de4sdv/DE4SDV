@@ -394,6 +394,15 @@ class _NativeFraming:
     def _unique_identity(self, name: str) -> bool:
         return len(_owned_records(self.text, name)) == 1
 
+    def _shadowed(self, *type_names: str) -> bool:
+        """A direct local declaration hides the kernel identity of that name.
+
+        Unqualified kernel type names are admitted only without a same-named
+        direct member; otherwise the reference cannot be resolved by this
+        bounded reader and stays unavailable (never PASS on a homonym).
+        """
+        return any(_owned_records(self.text, name) for name in type_names)
+
     def _mentions(self, type_name: str):
         pattern = r"(?<![\w:])(?:" + _NAME + r"::)*" + re.escape(type_name) + r"(?!\w)"
         return [header for header in _headers(self.text) if re.search(pattern, header.group())]
@@ -421,6 +430,8 @@ class _NativeFraming:
         if not typed:
             return _UNAVAILABLE
         definition = typed.group(1)
+        if self._shadowed(*_INCREMENT_DEFINITIONS) and definition in _INCREMENT_DEFINITIONS:
+            return _UNAVAILABLE
         if definition not in _INCREMENT_DEFINITIONS:
             local = _owned_records(self.text, definition)
             if len(local) != 1:
@@ -429,12 +440,17 @@ class _NativeFraming:
                                     + r"\s*(?::>\s*(" + _QUALIFIED_NAME + r"))?\s*[;{]", local[0].group())
             if not declared:
                 return _UNAVAILABLE
-            general = (declared.group(1) or "").removeprefix(_KERNEL_CONTEXT + "::")
+            raw_general = declared.group(1) or ""
+            general = raw_general.removeprefix(_KERNEL_CONTEXT + "::")
+            if general in _INCREMENT_DEFINITIONS and raw_general == general and self._shadowed(general):
+                return _UNAVAILABLE  # unqualified parent hidden by a local homonym
             if general not in _INCREMENT_DEFINITIONS:
                 return []  # a supported local definition that is not an increment
         return name, definition
 
     def _single_typed(self, type_name: str):
+        if self._shadowed(type_name):
+            return _UNAVAILABLE
         found = []
         for header in self._mentions(type_name):
             typed = re.fullmatch(r"\s*(?:doc\s+)*part\s+(" + _NAME + r")\s*:\s*"
@@ -447,6 +463,8 @@ class _NativeFraming:
         return [(self.prefix + name + " : " + type_name, self.prefix + name, "part") for name in found]
 
     def _problem_statement(self, definition: str):
+        if self._shadowed("ProblemStatement"):
+            return _UNAVAILABLE
         found = []
         for header in self._mentions("ProblemStatement"):
             typed = re.fullmatch(r"\s*(?:doc\s+)*requirement\s+(" + _NAME + r")\s*:\s*"
@@ -490,6 +508,10 @@ class _NativeFraming:
             return _UNAVAILABLE
         if owner_body is None:
             return []
+        # Stakeholder membership is a requirement feature: the owner must be
+        # one directly owned requirement usage, not a part or concern.
+        if not re.match(r"\s*(?:doc\s+)*requirement\s", _owned_records(self.text, owner)[0].group()):
+            return _UNAVAILABLE
         roles = _owned_records(owner_body, member)
         if len(roles) > 1:
             return _UNAVAILABLE
@@ -504,6 +526,8 @@ class _NativeFraming:
         return self.prefix + owner + "::" + member
 
     def _stakeholders(self, increment: str):
+        if self._shadowed("HasStakeholder"):
+            return _UNAVAILABLE
         witnesses = []
         for header in self._mentions("HasStakeholder"):
             connection = re.fullmatch(
