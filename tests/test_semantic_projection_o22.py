@@ -1114,13 +1114,11 @@ class TestPreservationAndRuntimeIndependence:
 # 7. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# Permanent Rebind 4 squash (#299, M7); extends v1 at permanent M6.
-# Definition admission batch 1 (amended): the v1.1 pair was regenerated on
-# chain commit A2 (contains the regenerated v1 pair).
-# TEMPORARY STACK BINDING: this names the chain commit that contains every
-# bound input (the regenerated v1 pair). The post-squash rebind to the permanent
-# main commit is a separate standing obligation.
-COMMITTED_SOURCE_REVISION = "b4aad193f682460564473b29e3f9e0569112bc5f"
+# PR319 recovery: v1 is permanently bound to the PR319 squash revision.
+# TEMPORARY STACK BINDING: v1.1 binds the feature commit containing that
+# refreshed v1 pair. After this recovery PR is squashed, v1.1 must be
+# regenerated against its permanent merge revision before recovery closes.
+COMMITTED_SOURCE_REVISION = "cbbc988178f2bd900569c6ca10daad80f1471b97"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
