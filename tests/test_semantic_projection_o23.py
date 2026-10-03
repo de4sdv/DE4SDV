@@ -1740,13 +1740,11 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# Permanent Rebind 5 squash (#301, M8); extends v1.1 at permanent M7.
-# Definition admission batch 1 (amended): the v1.2 pair was regenerated on
-# chain commit A3 (contains the regenerated v1.1 pair).
-# TEMPORARY STACK BINDING: this names the chain commit that contains every
-# bound input (the regenerated v1.1 pair). The post-squash rebind to the
-# permanent main commit is a separate standing obligation.
-COMMITTED_SOURCE_REVISION = "5567bc500dee1a64518e4703123f73cb5f9fd9c7"
+# PR319 recovery: v1.2 extends the refreshed temporary v1.1 pair.
+# TEMPORARY STACK BINDING: this feature commit contains those baseline bytes.
+# After v1.1 has a permanent recovery revision, regenerate v1.2 against it;
+# this green review-head binding is not permanent recovery closure.
+COMMITTED_SOURCE_REVISION = "fc519257585f2403219d230d4f29753cd06dbb70"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
