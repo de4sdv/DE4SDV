@@ -1114,11 +1114,10 @@ class TestPreservationAndRuntimeIndependence:
 # 7. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# PR319 recovery: v1 is permanently bound to the PR319 squash revision.
-# TEMPORARY STACK BINDING: v1.1 binds the feature commit containing that
-# refreshed v1 pair. After this recovery PR is squashed, v1.1 must be
-# regenerated against its permanent merge revision before recovery closes.
-COMMITTED_SOURCE_REVISION = "cbbc988178f2bd900569c6ca10daad80f1471b97"
+# Permanent PR320 squash contains the recovered v1 baseline pair.
+# v1.1 now binds that permanent revision; the baseline stays at PR319.
+# Only the downstream v1.2 pair still needs its permanent checkpoint.
+COMMITTED_SOURCE_REVISION = "18fa5e1e478fd2c2cf34529d5861c31d60e69d79"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
