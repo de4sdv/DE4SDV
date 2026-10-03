@@ -1120,7 +1120,7 @@ class TestPreservationAndRuntimeIndependence:
 # TEMPORARY STACK BINDING: this names the chain commit that contains every
 # bound input (the regenerated v1 pair). The post-squash rebind to the permanent
 # main commit is a separate standing obligation.
-COMMITTED_SOURCE_REVISION = "5aeb186aed45df95d5d6ecbdc00ac0714f7980c5"
+COMMITTED_SOURCE_REVISION = "b4aad193f682460564473b29e3f9e0569112bc5f"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:

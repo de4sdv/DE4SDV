@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # TEMPORARY STACK BINDING: this names the feature commit that contains every
 # bound input (the approved-directive implementation). The post-squash rebind
 # to the permanent main commit is a separate standing obligation.
-COMMITTED_SOURCE_REVISION = "ff52e0d323dcfea84e1ea98107326d6855c48a33"
+COMMITTED_SOURCE_REVISION = "cfdae9199625c8c7eae97e891ed3efa43987e99c"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {

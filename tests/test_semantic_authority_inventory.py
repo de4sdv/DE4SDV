@@ -222,9 +222,11 @@ class TestCoverage:
         # The approved-directive implementation added the Topic 1-6 kernel
         # declarations (scoped assurance, method traces, relationship carriers
         # and stakeholder vocabulary): 136 = 49 mapped + 87 exclusions.
-        assert kernel["governed_declarations"] == 136
+        # Review R2 removed the construction-only SuccessorClassRecord
+        # (class pins now come from ontology kernel mappings): 135 = 49 + 86.
+        assert kernel["governed_declarations"] == 135
         assert kernel["mapped_in_directory"] == 49
-        assert kernel["exclusions"] == 87
+        assert kernel["exclusions"] == 86
         assert (
             kernel["mapped_in_directory"] + kernel["exclusions"]
             == kernel["governed_declarations"]
