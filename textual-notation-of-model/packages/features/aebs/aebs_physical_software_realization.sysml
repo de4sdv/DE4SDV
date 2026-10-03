@@ -26,6 +26,7 @@
 
 package DE4SDV_AEBSPhysicalSoftwareRealization {
   private import DE4SDV_AEBSLogicalArchitecture::*;
+  private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
@@ -164,7 +165,7 @@ package DE4SDV_AEBSPhysicalSoftwareRealization {
      */
   }
 
-  part def AutowareAutonomousEmergencyBrakingNode {
+  part def AutowareAutonomousEmergencyBrakingNode :> PhysicalAllocationElement {
     doc /*
      * Concrete rclcpp node class AEB from include/autoware/
      * autonomous_emergency_braking/node.hpp and src/node.cpp.

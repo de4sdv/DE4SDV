@@ -1,17 +1,26 @@
 /*
  * Reusable DE4SDV stakeholder role definitions.
  *
- * SysML v2 requirement stakeholder parameters are declared with the
- * `stakeholder` keyword, but those parameters are still part usages typed by
- * part definitions. This package keeps reusable stakeholder role definitions
- * out of feature-specific model slices.
+ * Native `stakeholder` parameters are PartUsages. Explicit item definitions
+ * are not forbidden as their types (OMG SysML v2 Part 1, 7.11.2). Local roles
+ * remain reusable non-individual part definitions specializing Stakeholder;
+ * `individual` identifies one unique real or perceived entity, not a reusable
+ * role. This package keeps role vocabulary out of feature-specific slices.
  *
- * Several roles below are source-backed from the GfSE SAF SysML v2 stakeholder
- * library (https://github.com/GfSE/SAF-SysMLV2, Apache-2.0). The GfSE
- * definitions use `individual item def` with string-quoted names; DE4SDV
- * re-declares them as `part def` specializations of its own Stakeholder base
- * with identifier names. See methodologies/sysmod-sysmlv2/pilots/saf-source.yaml
- * for source provenance.
+ * Eight roles below are locally adapted from GfSE/SAF-SysMLV2, Apache-2.0,
+ * revision c57bd42db60a00c51168f6aba8e2229ba0165b6c,
+ * Stakeholders/stakeholders_library.sysml. Attribution: GfSE SAF contributors.
+ * Upstream `individual item def` declarations specializing Stakeholders are
+ * structurally modified into reusable local `part def` specializations of
+ * Stakeholder, with local risk/effort/contact/categories. HardwareDeveloper's
+ * description is narrowed to hardware; Supplier's description is shortened.
+ * Descriptions below express role responsibilities, not achieved obligations.
+ * These are adaptations, not unchanged imports, full SAF adoption or upstream
+ * endorsement. Retain the Apache-2.0 terms in the repository LICENSE. The
+ * pinned upstream tree has no NOTICE-named file; this is provenance, not legal
+ * clearance. See methodologies/sysmod-sysmlv2/pilots/saf-source.yaml.
+ * Role typing assigns no real person, competence, approval authority or safety
+ * acceptance; ComplianceEngineer is not an external regulatory authority.
  */
 
 package DE4SDV_Stakeholders {
@@ -31,6 +40,8 @@ package DE4SDV_Stakeholders {
   }
 
   part def Stakeholder {
+    doc /* Reusable role of a party participating in or affected by engineering.
+         * Not one identified individual or a grant of acceptance authority. */
     attribute risk : PriorityKind;
     attribute effort : PriorityKind;
     attribute contact : ScalarValues::String;
@@ -47,8 +58,8 @@ package DE4SDV_Stakeholders {
   part def VerificationEngineer :> Stakeholder;
   part def OpenSourceReviewer :> Stakeholder;
 
-  // ─── Roles adopted from GfSE SAF stakeholder library ───
-  // Source: https://github.com/GfSE/SAF-SysMLV2/blob/main/Stakeholders/stakeholders_library.sysml
+  // ─── Eight locally adapted GfSE SAF roles (separate from local roles) ───
+  // Source: https://github.com/GfSE/SAF-SysMLV2/blob/c57bd42db60a00c51168f6aba8e2229ba0165b6c/Stakeholders/stakeholders_library.sysml
   // License: Apache-2.0
 
   part def SafetyExpert :> Stakeholder {

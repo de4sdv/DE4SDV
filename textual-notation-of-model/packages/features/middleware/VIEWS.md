@@ -69,6 +69,7 @@ Reviewers need the increment claim, scope, assumptions, gaps, and traceability s
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
+- **Presentation note:** This is a dense review artifact; open the SVG at full size rather than reading it from the page thumbnail.
 
 ![middlewareIncrementAssuranceView](diagrams/diagram-middlewareIncrementAssuranceView.svg)
 

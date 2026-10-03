@@ -424,10 +424,15 @@ class TestC2ScopeAndCounts:
         hasRelevantEvidenceContract row to the governed blocked state (the
         executed counts live in their own batch files: parity 14 /
         repository 61 / blocked 14)."""
+        # Approved-directive implementation (Topics 1-6) added twelve reviewed
+        # model-authoritative rows: the state distribution gains `proposed` and
+        # the pre-state counts move with the decisions dataset. Re-derived from
+        # the regenerated inventory, never relaxed.
         assert inventory["evidence_state_counts"] == {
             "blocked": 14,
             "parity-reviewed": 14,
             "privileged-closure-proven": 3,
+            "proposed": 12,
             "repository-evidenced": 61,
             "unknown": 1,
         }
@@ -437,7 +442,7 @@ class TestC2ScopeAndCounts:
             "accepted-library-grounded": 2,
             "external-reference": 3,
             "legacy-yaml": 78,
-            "model-authoritative": 3,
+            "model-authoritative": 15,
             "native-sysml": 6,
             "unknown": 1,
         }

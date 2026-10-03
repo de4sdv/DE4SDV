@@ -4,37 +4,37 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `f64620cb958888ea8a749bfd16945fc7c1371a33`
+- Source revision: `cfdae9199625c8c7eae97e891ed3efa43987e99c`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
-- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:e950e0c50dfe12f2ca6b2b2ab6e59878f7b0319f448e04648fadcd6888c52b46)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:49f4e5fdf52ea22027af0294c8e2993c87f473da9c07ce3f386c426ed06b1938)
+- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:147a94e8da69668d25c5f9a06ddfd87b58a7de45ef868624cc1086fc10e56b8c)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:2001812976c153e23c786c5b18e7e312189b300300c9d70280d9159e66c39238)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
-- Bound inputs: 26 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
+- Bound inputs: 29 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
 
 ## Coverage
 
 | Metric | Count |
 |---|---|
-| classes | 59 |
+| classes | 71 |
 | relationships | 34 |
-| total_entries | 93 |
+| total_entries | 105 |
 | relationship_mappings | 9 |
 | relationship_vocabulary_only | 25 |
-| kernel_declarations_governed_dir | 118 |
-| kernel_mapped_in_dir | 40 |
+| kernel_declarations_governed_dir | 135 |
+| kernel_mapped_in_dir | 49 |
 | kernel_mapped_out_of_dir | 1 |
-| kernel_exclusions | 78 |
+| kernel_exclusions | 86 |
 | governance_rules | 10 |
 | runtime_strategies_implemented | 8 |
 | runtime_strategies_unassociated | 2 |
-| authority_current_counts | accepted-library-grounded: 2, external-reference: 3, legacy-yaml: 78, model-authoritative: 3, native-sysml: 6, unknown: 1 |
-| authority_target_counts | accepted-library-grounded: 10, de4sdv-application-semantic: 5, external-reference: 2, model-authoritative: 61, native-sysml: 8, retired: 1, unknown: 6 |
+| authority_current_counts | accepted-library-grounded: 2, external-reference: 3, legacy-yaml: 78, model-authoritative: 15, native-sysml: 6, unknown: 1 |
+| authority_target_counts | accepted-library-grounded: 10, de4sdv-application-semantic: 5, external-reference: 2, model-authoritative: 73, native-sysml: 8, retired: 1, unknown: 6 |
 | authority_target_conditional_counts | accepted-library-grounded: 8 |
-| evidence_state_counts | blocked: 14, parity-reviewed: 14, privileged-closure-proven: 3, repository-evidenced: 61, unknown: 1 |
-| adoption_status_counts | accepted: 2, candidate: 1, not-applicable: 79, pinned-not-adopted: 8, rejected: 3 |
+| evidence_state_counts | blocked: 14, parity-reviewed: 14, privileged-closure-proven: 3, proposed: 12, repository-evidenced: 61, unknown: 1 |
+| adoption_status_counts | accepted: 2, candidate: 1, not-applicable: 91, pinned-not-adopted: 8, rejected: 3 |
 
-## Classes (59)
+## Classes (71)
 
 | id | grounding | runtime support | authority (current -> target) | evidence | adoption | disposition | stage | closure |
 |---|---|---|---|---|---|---|---|---|
@@ -43,7 +43,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | NeedsRequirementsIncrement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def NeedsRequirementsIncrement | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
 | IncrementEngineeringQuestion | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementEngineeringQuestion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
 | IncrementLifecycleDecision | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementLifecycleDecision | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
-| IncrementTraceabilityShell | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementTraceabilityShell | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| IncrementTraceabilityShell | external: Historical pre-Topic-5 string-shell vocabulary; retained as a compatibility identity, not a successor obligation or engineering witness | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | approved-topic05 historical compatibility boundary |  |
 | MethodPhase | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def MethodPhase | consumed by method-conformance data | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
 | SignalMappingDisposition | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: enum def SignalMappingDisposition | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
 | LogicalToSoftwareSignalMappingRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: item def LogicalToSoftwareSignalMappingRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
@@ -59,7 +59,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | VariationPoint | native: SysML v2 variation definition/usage | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding + projection) |  |
 | Variant | native: SysML v2 variant usage | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding + projection) |  |
 | FeatureConfiguration | external: Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/ | vocabulary-only | external-reference -> accepted-library-grounded [cond] | blocked | pinned-not-adopted | retain-explicit-external-boundary | PLE |  |
-| Stakeholder | textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml: part def Stakeholder | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | candidate | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| Stakeholder | textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml: part def Stakeholder | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | candidate | move-meaning-into-model | approved-topic06 adapted reusable roles |  |
 | Concern | native: SysML v2 concern def and concern usage; kernel examples in DE4SDV_MethodViewpoints | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding + projection) |  |
 | Need | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def StakeholderNeedCandidate | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
 | Requirement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def RequirementCandidate | consumed (identity/lineage) | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
@@ -70,6 +70,13 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | Function | native: SysML v2 action/state/behavior definitions in functional-architecture slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | LogicalElement | native: part def elements in logical-architecture slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | PhysicalElement | native: part def elements in physical/software realization slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
+| AllocatableFunction | textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml: action def AllocatableFunction | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 1-2 relationship successor; non-production |  |
+| LogicalAllocationElement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml: part def LogicalAllocationElement | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 1-2 relationship successor; non-production |  |
+| PhysicalAllocationElement | textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml: part def PhysicalAllocationElement | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 1-2 relationship successor; non-production |  |
+| ValidationPlanningScenario | textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml: part def ValidationPlanningScenario | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 1-2 relationship successor; non-production |  |
+| RegulatorySource | textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml: part def ControlledRegulatorySource | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 1-2 relationship successor; non-production |  |
+| ValidationPlanningAssociation | textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml: connection def ValidationPlanningAssociation | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 1-2 relationship successor; non-production |  |
+| RegulatorySourceAssociation | textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml: connection def RegulatorySourceAssociation | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 1-2 relationship successor; non-production |  |
 | Interface | native: SysML v2 port def and connection elements | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | defer | O2+ (design decision) |  |
 | Scenario | textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml: part def Scenario | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
 | VerificationCase | native: SysML v2 verification def; see aebs and middleware verification slices | consumed (verifiedBy) | native-sysml -> native-sysml | parity-reviewed | not-applicable | prove-existing-model-authority | c2 (verification batch) |  |
@@ -79,6 +86,9 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | EvidenceArtifact | external: Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records | vocabulary-only | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | o4-w5 batch 3 (external-reference acceptance) |  |
 | EvidenceContract | native: Requirement usages verified by SysML v2 verification cases in DE4SDV verification slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | EvidenceStatus | external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter | consumed (model attributes) | accepted-library-grounded -> accepted-library-grounded | repository-evidenced | accepted | keep-as-is | O2+ (parity) |  |
+| EvidenceSupportCitation | textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml: item def EvidenceSupportCitation | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 3-4 implementation extension; not an activated O4 identity |  |
+| ScopedVVActivityRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml: item def ScopedVVActivityRecord | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 3-4 implementation extension; not an activated O4 identity |  |
+| ScopedEvidenceAdequacyAssessment | textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml: item def ScopedEvidenceAdequacyAssessment | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 3-4 implementation extension; not an activated O4 identity |  |
 | Assumption | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementAssumption | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
 | Gap | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def IncrementGap | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
 | MissingRealizationRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: part def MissingRealizationRecord | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4 definition admission batch 1 (projection + profile) |  |
@@ -86,8 +96,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | AssuranceClaim | native: Claim usages framed by the argumentation-assurance viewpoint | vocabulary-only | unknown -> unknown | unknown | not-applicable | defer | O2+ |  |
 | Viewpoint | native: SysML v2 viewpoint def; kernel selections in DE4SDV_MethodViewpoints and SAF_Viewpoints | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding + projection) |  |
 | View | native: SysML v2 view | vocabulary-only | native-sysml -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding + projection) |  |
-| TraceLink | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: item def TraceLink | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
-| RequiredTraceChain | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml: part def RequiredTraceChain | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| TraceLink | external: Historical pre-Topic-5 string-endpoint record; successor source-reference witnesses require identified owning references, not category strings | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | approved-topic05 historical compatibility boundary |  |
+| RequiredTraceChain | external: Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor completion policy | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | approved-topic05 historical compatibility boundary |  |
+| ApprovedTraceMethod | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml: part def ApprovedTraceMethod | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved-topic05 scoped trace successor |  |
+| IncrementTraceObligations | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml: part def IncrementTraceObligations | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved-topic05 scoped trace successor |  |
 | Baseline | textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml: part def DE4SDVEvidenceBaseline | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w5 batch 3 (external-reference acceptance) |  |
 | MethodContractObligation | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: item def MethodContractObligation | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
 | EvaluationSourceKind | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml: enum def EvaluationSourceKind | consumed by method-conformance (Lane C/D) | legacy-yaml -> model-authoritative | parity-reviewed | not-applicable | move-meaning-into-model | c1 (conformance batch) |  |
@@ -103,7 +115,7 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | id | grounding | runtime support | authority (current -> target) | evidence | adoption | disposition | stage | closure |
 |---|---|---|---|---|---|---|---|---|
 | addressesConcern | EngineeringIncrement -> Concern | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
-| hasStakeholder | EngineeringIncrement -> Stakeholder | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| hasStakeholder | EngineeringIncrement -> Stakeholder | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | approved-topic06 typed role participation carrier |  |
 | selectedViewpoint | EngineeringIncrement -> Viewpoint | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
 | producesView | EngineeringIncrement -> View | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | o4-w4 batch 1 (carrier definitions parity) |  |
 | derivesNeedFromConcern | Need -> Concern | vocabulary-only | legacy-yaml -> retired | parity-reviewed | not-applicable | retire-without-replacement | c4 (concern-need disposition review) |  |

@@ -1,56 +1,60 @@
-# W6 rename-transition preparation (inert scaffolding)
+# W6 approved semantic implementation boundary
 
 ## Purpose and scope
 
-Prepare a machine-checked place for future decisions without activating them.
-The plan `w6-transition-plan.yaml` carries five proposed predicate renames and
-one proposed shell merge. It does not cover all nine W6 register rows.
-`RequiredTraceChain`, `TraceLink`, `hasEvidenceStatus` and `supportedByEvidence`
-are not separate entries in this six-entry preparation plan.
+The owner has approved all six semantic directions. Implementation must no
+longer treat the historical advisory alternatives as unanswered questions.
+`approved-semantic-decisions.yaml` records those scoped approvals;
+`w6-transition-plan.yaml` version 2 reconciles the eight relationship/trace
+transition entries against them. Assurance and V&V approval scopes are recorded
+in the same owner record, but their implementation is not a rename entry.
 
-The module `de4sdv/semantic/rename_transition.py` is build-time only, with no
-runtime consumers. Every committed authorization remains null. No rename,
-alias, deprecation interval, semantic admission or migration is performed.
+`de4sdv/semantic/rename_transition.py` is build-time governance only, with no
+runtime consumers. Its `approved` state means direction approved, not deployed,
+accepted or retired. No automatic compatibility aliases are authorized.
 
-## Required decisions
+## Accepted decisions and engineering obligations
 
-The canonical source is `o4-execution-register.json`; tests compare its gate
-sets against the validator's supported identity rules.
+The historical review/register retain their inspection-time gate identities.
+Tests compare those prerequisite sets against the validator; scoped owner
+records resolve them. Historical gate text is not a new approval request.
 
 - `realizedBy`, `specifiesFunction`, `validatedBy`, `deployedTo`: decision-1.
-- `constrainedBy`: decision-1 plus decision-2 (provenance versus normative meaning).
+- `constrainedBy`: decision-1 plus decision-2, resolved as provenance only.
 - `RequiredTraceChain` and `TraceLink`: decision-8 plus decision-15.
 - `IncrementTraceabilityShell`: its own register gate set is empty; its proposed
   merge into `RequiredTraceChain` inherits that target's decision-8 and
   decision-15 prerequisites. This is not a new intrinsic gate on the shell.
 
-Successors remain proposals from `ontology-review/integrated-review.json`.
-`hasRegulatorySource (proposed)` retains its annotation in the plan note, while
-its identifier is `hasRegulatorySource`. `RequiredTraceChain` is a working
-successor name, not an approved trace redesign.
+The old `allocatedToArchitecture`, `hasRelevantFunction` and
+`logicalAllocatedToPhysical` advisory alternatives are superseded. The successor
+uses one versioned `allocatedTo`; genuine weaker dependencies are preserved,
+not automatically converted. `hasValidationScenario` is planning and
+`hasRegulatorySource` is controlled provenance. Trace successor names and wiring
+are ordinary engineering decisions, not another owner gate.
 
 ## Fail-closed contract
 
-Only `schema`, `status`, `note`, `entries` are allowed at top level. Entries
-carry exactly `identity`, `proposed_successor`, `authorization`. Unknown keys,
-duplicate identities, malformed identifiers and duplicate YAML keys are refused.
-Proposed names are lowercase-initial except trace successor identifiers.
+Version 2 requires the fixed repository approval-record path, explicit false
+activation/automatic-alias flags, exact accounting of all eight identities,
+accepted treatment, and complete applicable decision sets. Each authorization
+must resolve to the exact topic fragments covering that set. Missing records,
+unknown/duplicate keys or identities, incomplete approvals, contradictory flags
+and superseded advisory treatments refuse. The owner record must retain all six
+topics and cannot authorize production activation, whole-consumer retirement,
+PLE adoption or upstream contact.
 
-Loading the committed plan refuses every non-null authorization. The
-`allow_authorized=True` mode exists for synthetic schema exercises only:
-`authorization` must contain exactly `decisions` (a unique list equal to the
-complete applicable gate set) and `record` (a non-empty reference). Unknown
-identities have no authorization rule. Both public state helpers validate
-explicitly supplied documents before interpreting them.
+Historical version 1 preparation inputs remain supported. Its synthetic
+`decided` state proves schema consistency only; it never becomes actual approval.
+`allow_authorized=True` cannot bypass version 2 record resolution. Repository
+record validation is not independent authentication of the owner's identity.
 
-A synthetic `decided` result proves schema consistency only, not that an owner
-actually approved anything. A reference is not independent approval evidence.
-The default load path remains inert regardless of synthetic test results.
+## Delivery and operational boundary
 
-## Later migration
-
-Resolve every applicable owner decision, then propose a separately reviewed
-change that reconciles successor names, evidence, alias/deprecation policy and
-migration tests. This scaffold cannot authorize that change. RequiredTraceChain
-and TraceLink redesign, evidence-status work, and assurance work remain outside
-this prepared implementation's scope.
+Deliver this reconciliation with substantive model and consumer implementation,
+not a preparation-only PR. Runtime meaning comes from model-derived versioned
+contracts and API witness/identity evidence, never these governance strings.
+Preserve frozen O3 inputs/meanings and historical evidence; rebind changed
+generation inputs. Exact-head checks and independent review remain required.
+Production activation, actual consumer retirement and operational acceptance
+retain their own evidence and authorization gates.

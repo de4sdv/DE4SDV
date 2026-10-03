@@ -388,10 +388,13 @@ class TestC4ScopeAndCounts:
         repository 65 -> 61) and its correction moved the
         hasRelevantEvidenceContract row to the governed blocked state
         (blocked 13 -> 14)."""
+        # Approved-directive implementation (Topics 1-6) added twelve reviewed
+        # model-authoritative rows; the state distribution gains `proposed`.
         assert inventory["evidence_state_counts"] == {
             "blocked": 14,
             "parity-reviewed": 14,
             "privileged-closure-proven": 3,
+            "proposed": 12,
             "repository-evidenced": 61,
             "unknown": 1,
         }
@@ -409,7 +412,7 @@ class TestC4ScopeAndCounts:
             "accepted-library-grounded": 10,
             "de4sdv-application-semantic": 5,
             "external-reference": 2,
-            "model-authoritative": 61,
+            "model-authoritative": 73,
             "native-sysml": 8,
             "retired": 1,
             "unknown": 6,
@@ -418,7 +421,7 @@ class TestC4ScopeAndCounts:
             "accepted-library-grounded": 2,
             "external-reference": 3,
             "legacy-yaml": 78,
-            "model-authoritative": 3,
+            "model-authoritative": 15,
             "native-sysml": 6,
             "unknown": 1,
         }

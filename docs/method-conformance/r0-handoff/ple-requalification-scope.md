@@ -162,3 +162,47 @@ Boolean instance constraint correctness; those remain explicit gaps. A returned
 compiler value is retained unqualified, not interpreted by a custom native
 solver. Receipts hash generated artifacts, the executing script and current
 library lock; existing receipts and repository-contained output are refused.
+
+### Scoped fixture typing repair (draft; native validation pending)
+
+Retained privileged run **36853224284**, executor
+`23d48abc54fc76fbee1726aa163c34197d899251`, failed scoped serialization with
+**17 reference errors**. Four configuration usages incorrectly subset the
+`ScopedTree` occurrence **definition** as though it were a Feature. The other
+errors are unresolved inherited group/member names. Its receipt records
+`executor_source_dirty: true`, `fresh_serialization: false`, and XOR
+`attempted: false`; the later API observation step was skipped. This is a
+fixture-typing failure, not evidence of native XOR evaluation or its suspected
+range/vacuity defect. Preserve the original failed receipt, generated source,
+serializer diagnostics and workflow log unchanged; do not relabel that run.
+
+All four generated usages (`atLeastOne`, `multiSelect`, `noneSelected`, and
+`xorCounterexample`) now use `: ScopedTree :> featureConfigurations`: typing
+targets the definition, while subsetting still targets the pinned library's
+configuration **usage**. At the unchanged PLEML pin, `PLEML/PLEML.sysml:55–72`
+declares `FeatureConfiguration` and `featureConfigurations`, and lines 187–201
+define tree/configuration metadata. The pinned drone example
+`Examples/MBPLE-Example-DroneProductLine-PLEML-SysMLv2-FeatureModel.sysml:28,61–81`
+subsets `droneProductLineFeatureTree`, an occurrence **usage**, not a definition;
+that form cannot be copied unchanged onto `ScopedTree`.
+
+The common builder feeds both ordinary diagnostic emission and the licensed
+serializer's `scoped-fixture.sysml` input, including the empty-group diagnostic
+and XOR negative fixture. Lexical regressions cover every supported binding
+count (2–8) and all four headers. CLI regressions cover ordinary and
+`--native-xor` emission, group selections, the single excluded feature, binding
+endpoints, artifact digest and unchanged false acceptance flags. These tests
+do **not** parse or validate SysML with Syside and do not evaluate native XOR.
+
+**Requested gate after source review/delivery:** maintainer-run validation on
+the delivered exact commit SHA, using Syside **0.10.3** and the unchanged
+verified PLEML pin. No licensed dispatch or API activation is authorized by
+this repair. Retain a new, separate receipt and diagnostics: first require
+error-free scoped loading/serialization, then exactly one `nativeXorProbe`
+target and a real bounded Compiler attempt (`attempted: true`). Any additional
+type/reference errors remain draft failures; typed parse progress alone is
+not XOR/solver evidence. Keep the native requirement failed/unqualified,
+exit 2, and all qualification/adoption/authority-activation flags false even
+if serialization succeeds. Local aarch64 tests cannot discharge this gate.
+The vendor/oracle, library/toolchain pins, catalogue/configurator authority,
+semantic agents and workflow are unchanged.

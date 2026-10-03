@@ -33,7 +33,10 @@ ROOT = Path(__file__).resolve().parents[1]
 # Permanent safe-set 2 squash (#298, M6); Rebind 4 preserves its semantics.
 # Definition admission batch 1 (amended): the O2+ pair was regenerated on
 # this PR's source commit A1 (bound to the chain sources).
-COMMITTED_SOURCE_REVISION = "f64620cb958888ea8a749bfd16945fc7c1371a33"
+# TEMPORARY STACK BINDING: this names the feature commit that contains every
+# bound input (the approved-directive implementation). The post-squash rebind
+# to the permanent main commit is a separate standing obligation.
+COMMITTED_SOURCE_REVISION = "cfdae9199625c8c7eae97e891ed3efa43987e99c"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {

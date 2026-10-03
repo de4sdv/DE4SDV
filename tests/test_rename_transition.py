@@ -1,4 +1,4 @@
-"""W6 rename-transition scaffolding: fail-closed preparation, no activation."""
+"""W6 scoped approvals and historical v1 compatibility; no activation."""
 import ast
 from pathlib import Path
 
@@ -7,12 +7,14 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 COMMITTED = {
-    "realizedBy": "allocatedToArchitecture",
-    "specifiesFunction": "hasRelevantFunction",
+    "realizedBy": "allocatedTo",
+    "specifiesFunction": None,
     "validatedBy": "hasValidationScenario",
     "constrainedBy": "hasRegulatorySource",
-    "deployedTo": "logicalAllocatedToPhysical",
-    "IncrementTraceabilityShell": "RequiredTraceChain",
+    "deployedTo": "allocatedTo",
+    "IncrementTraceabilityShell": None,
+    "RequiredTraceChain": None,
+    "TraceLink": None,
 }
 
 
@@ -32,22 +34,24 @@ def _doc(**overrides) -> dict:
     return document
 
 
-def test_committed_skeleton_loads_and_every_state_is_pending():
+def test_committed_approved_plan_has_no_automatic_activation():
     from de4sdv.semantic.rename_transition import load_plan, transition_state
 
     plan = load_plan(REPO_ROOT)
-    assert plan["status"] == "preparation"
-    assert {e["identity"]: e["proposed_successor"] for e in plan["entries"]} == COMMITTED
-    assert all(e["authorization"] is None for e in plan["entries"])
+    assert plan["status"] == "approved-implementation"
+    assert {e["identity"]: e["successor"] for e in plan["entries"]} == COMMITTED
+    assert plan["runtime_activation"] is False
+    assert plan["automatic_aliases"] is False
     for identity in COMMITTED:
-        assert transition_state(identity, plan) == "pending"
-        assert transition_state(identity) == "pending"  # committed plan by default
+        assert transition_state(identity, plan) == "approved"
+        assert transition_state(identity) == "approved"
 
 
-def test_committed_plan_has_no_authorized_entries():
-    from de4sdv.semantic.rename_transition import authorized_entries, load_plan
+def test_historical_preparation_is_not_reinterpreted_as_owner_approval():
+    from de4sdv.semantic.rename_transition import authorized_entries, transition_state
 
-    assert authorized_entries(load_plan(REPO_ROOT)) == []
+    assert authorized_entries(_doc()) == []
+    assert transition_state("realizedBy", _doc()) == "pending"
 
 
 def test_unknown_top_level_key_is_refused():
@@ -58,7 +62,7 @@ def test_unknown_top_level_key_is_refused():
     with pytest.raises(RenameTransitionError, match="status"):
         validate_plan(_doc(status="active"))
     with pytest.raises(RenameTransitionError, match="schema"):
-        validate_plan(_doc(schema="de4sdv.o4-w6-transition-plan/v2"))
+        validate_plan(_doc(schema="de4sdv.o4-w6-transition-plan/v999"))
 
 
 def test_unknown_entry_keys_are_refused():

@@ -136,18 +136,18 @@ package DE4SDV_ScopedPLEExecution {{
             }}
         }}
     }}
-    #featureConfiguration occurrence atLeastOne :> ScopedTree, featureConfigurations {{
+    #featureConfiguration occurrence atLeastOne : ScopedTree :> featureConfigurations {{
         #feature occurrence :>> probeGroup[1..*] = (member0);
         #feature occurrence :>> member0[1];
     }}
-    #featureConfiguration occurrence multiSelect :> ScopedTree, featureConfigurations {{
+    #featureConfiguration occurrence multiSelect : ScopedTree :> featureConfigurations {{
         #feature occurrence :>> probeGroup[1..*] = ({selected});
 {selections}
     }}
-    #featureConfiguration occurrence noneSelected :> ScopedTree, featureConfigurations {{
+    #featureConfiguration occurrence noneSelected : ScopedTree :> featureConfigurations {{
         #feature occurrence :>> probeGroup[1..*];
     }}
-    #featureConfiguration occurrence xorCounterexample :> ScopedTree, featureConfigurations {{
+    #featureConfiguration occurrence xorCounterexample : ScopedTree :> featureConfigurations {{
         #feature occurrence :>> probeGroup[1..*] = (member0);
         #feature occurrence :>> member0[1];
         #feature occurrence :>> owner[1];

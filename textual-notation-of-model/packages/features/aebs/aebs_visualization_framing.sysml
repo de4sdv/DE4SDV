@@ -15,6 +15,8 @@
 
 package DE4SDV_AEBSVisualizationFraming {
   private import DE4SDV_MethodContext::*;
+  private import DE4SDV_MethodTraces::*;
+  private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_ProductLine::*;
@@ -76,12 +78,16 @@ package DE4SDV_AEBSVisualizationFraming {
      */
   }
 
-  part visualizationTraceabilityShell : IncrementTraceabilityShell {
-    doc /*
-     * Traceability shell: INC-MW-010 successor decision -> framing ->
-     * concerns/views -> operational scenarios -> classification -> needs ->
-     * System 2 requirement candidates -> gaps.
-     */
+  connection visualizationStakeholderParticipation : HasStakeholder
+    connect incAEBS010 to visualizationProblemStatement.systemsEngineer;
+
+  part visualizationTraceObligations : IncrementTraceObligations {
+    doc /* Scope declaration only; traces are the native relationships of this package. */
+    ref part :>> selectedMethod = DE4SDV_MethodTraces::approvedScopedTraceMethod;
+    attribute :>> scopeKind = "requirements";
+    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements);
+    attribute :>> completionClaim = TraceCompletionClaim::requirementsReady;
+    ref part :>> increment = DE4SDV_AEBSVisualizationFraming::incAEBS010;
   }
 
   /* Dependency to the mandated predecessor decision (qualified reference,
@@ -91,8 +97,8 @@ package DE4SDV_AEBSVisualizationFraming {
 
   dependency framingToProblemStatement
     from visualizationEngineeringQuestion to visualizationProblemStatement;
-  dependency scopeToTraceabilityShell
-    from visualizationScope to visualizationTraceabilityShell;
+  dependency scopeToTraceObligations
+    from visualizationScope to visualizationTraceObligations;
 
   part system1ConfiguredAEBSSDVMember : System1SDVProductLine {
     doc /*

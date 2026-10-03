@@ -111,6 +111,47 @@ def build_composed_semantic_runtime(*, api_url: str, binding_path: Path,
     return service, authority
 
 
+def build_successor_service(*, base_contract, contract, binding, repository,
+                            expected_git_revision, root, production=False):
+    """Verify source inputs once at bootstrap, before live service assembly."""
+    if production:
+        raise AuthoritySelectionError("relationship successor is non-production; activation refused")
+    from .relationship_successor_contract import verify_contract
+    from .relationship_successor import assemble_successor_service
+    verify_contract(contract, root)
+    return assemble_successor_service(base_contract=base_contract, contract=contract,
+        binding=binding, repository=repository,
+        expected_git_revision=expected_git_revision)
+
+
+def build_relationship_successor_runtime(*, contract, production=False,
+        require_activation_eligible=False, root=ROOT, predecessor="o3+definitions", **kwargs):
+    """Argument-only successor; predecessor choice never reads environment.
+
+    The legacy path is an explicit non-production supplied-API consumer, not a
+    fallback when an O3 composition fails. Both paths keep global defaults intact.
+    """
+    if production or require_activation_eligible:
+        raise AuthoritySelectionError("relationship successor is non-production; activation refused")
+    if predecessor == "o3+definitions":
+        prior, authority = build_composed_semantic_runtime(root=root, **kwargs)
+        binding, model_repository = prior.binding, prior.repository
+        expected = prior.expected_git_revision
+    elif predecessor == "legacy":
+        from de4sdv.sysml_api.revisions import RevisionBinding
+        binding = RevisionBinding.load(Path(kwargs["binding_path"]))
+        authority = KernelContract.load(kwargs["ontology_path"])
+        expected = kwargs["expected_git_revision"]
+        model_repository = repository.SysMLRepository(client.ApiClient(
+            kwargs["api_url"], timeout=kwargs.get("api_timeout", 600.0)))
+    else:
+        raise AuthoritySelectionError(f"unknown successor predecessor: {predecessor!r}")
+    service = build_successor_service(base_contract=authority, contract=contract,
+        binding=binding, repository=model_repository,
+        expected_git_revision=expected, root=root)
+    return service, service.contract
+
+
 def build_explicit_semantic_runtime(*, composition: str | None = None, **kwargs) -> tuple[Any, Any]:
     """Shared bootstrap contract; never a production environment choice."""
     if composition is None:

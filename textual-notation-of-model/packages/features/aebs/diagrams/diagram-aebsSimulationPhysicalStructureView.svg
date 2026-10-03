@@ -269,6 +269,10 @@
   <path d="M 2590,320 H 2796 A 6,6 0 0 1 2802,326 V 350 A 6,6 0 0 1 2796,356 H 2590 A 6,6 0 0 1 2584,350 V 326 A 6,6 0 0 1 2590,320 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2151,172 H 2234 A 6,6 0 0 1 2240,178 V 202 A 6,6 0 0 1 2234,208 H 2151 A 6,6 0 0 1 2145,202 V 178 A 6,6 0 0 1 2151,172 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2306,166 H 2464 A 6,6 0 0 1 2470,172 V 196 A 6,6 0 0 1 2464,202 H 2306 A 6,6 0 0 1 2300,196 V 172 A 6,6 0 0 1 2306,166 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 821,695 H 1228 A 6,6 0 0 1 1234,701 V 725 A 6,6 0 0 1 1228,731 H 821 A 6,6 0 0 1 815,725 V 701 A 6,6 0 0 1 821,695 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1205,606 H 1569 A 6,6 0 0 1 1575,612 V 636 A 6,6 0 0 1 1569,642 H 1205 A 6,6 0 0 1 1199,636 V 612 A 6,6 0 0 1 1205,606 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 2600,550 H 2917 A 6,6 0 0 1 2923,556 V 580 A 6,6 0 0 1 2917,586 H 2600 A 6,6 0 0 1 2594,580 V 556 A 6,6 0 0 1 2600,550 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 2271,550 H 2568 A 6,6 0 0 1 2574,556 V 580 A 6,6 0 0 1 2568,586 H 2271 A 6,6 0 0 1 2265,580 V 556 A 6,6 0 0 1 2271,550 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1077,1678 H 1410 A 6,6 0 0 1 1416,1684 V 1802 A 6,6 0 0 1 1410,1808 H 1077 A 6,6 0 0 1 1071,1802 V 1684 A 6,6 0 0 1 1077,1678 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1830,1678 H 2163 A 6,6 0 0 1 2169,1684 V 1802 A 6,6 0 0 1 2163,1808 H 1830 A 6,6 0 0 1 1824,1802 V 1684 A 6,6 0 0 1 1830,1678 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1573,2053 H 1924 A 6,6 0 0 1 1930,2059 V 2177 A 6,6 0 0 1 1924,2183 H 1573 A 6,6 0 0 1 1567,2177 V 2059 A 6,6 0 0 1 1573,2053 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -276,10 +280,6 @@
   <path d="M 2216,606 H 2616 A 6,6 0 0 1 2622,612 V 636 A 6,6 0 0 1 2616,642 H 2216 A 6,6 0 0 1 2210,636 V 612 A 6,6 0 0 1 2216,606 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 821,606 H 1174 A 6,6 0 0 1 1180,612 V 636 A 6,6 0 0 1 1174,642 H 821 A 6,6 0 0 1 815,636 V 612 A 6,6 0 0 1 821,606 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1815,606 H 2185 A 6,6 0 0 1 2191,612 V 636 A 6,6 0 0 1 2185,642 H 1815 A 6,6 0 0 1 1809,636 V 612 A 6,6 0 0 1 1815,606 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 821,695 H 1228 A 6,6 0 0 1 1234,701 V 725 A 6,6 0 0 1 1228,731 H 821 A 6,6 0 0 1 815,725 V 701 A 6,6 0 0 1 821,695 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1205,606 H 1569 A 6,6 0 0 1 1575,612 V 636 A 6,6 0 0 1 1569,642 H 1205 A 6,6 0 0 1 1199,636 V 612 A 6,6 0 0 1 1205,606 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 2600,550 H 2917 A 6,6 0 0 1 2923,556 V 580 A 6,6 0 0 1 2917,586 H 2600 A 6,6 0 0 1 2594,580 V 556 A 6,6 0 0 1 2600,550 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 2271,550 H 2568 A 6,6 0 0 1 2574,556 V 580 A 6,6 0 0 1 2568,586 H 2271 A 6,6 0 0 1 2265,580 V 556 A 6,6 0 0 1 2271,550 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1705,550 H 1944 A 6,6 0 0 1 1950,556 V 580 A 6,6 0 0 1 1944,586 H 1705 A 6,6 0 0 1 1699,580 V 556 A 6,6 0 0 1 1705,550 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1827,1143 H 1957 A 6,6 0 0 1 1963,1149 V 1179 H 1821 V 1149 A 6,6 0 0 1 1827,1143 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2750,1143 H 2966 A 6,6 0 0 1 2972,1149 V 1179 H 2744 V 1149 A 6,6 0 0 1 2750,1143 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -415,6 +415,10 @@
   <path d="M 2590,320 H 2796 A 6,6 0 0 1 2802,326 V 350 A 6,6 0 0 1 2796,356 H 2590 A 6,6 0 0 1 2584,350 V 326 A 6,6 0 0 1 2590,320 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2151,172 H 2234 A 6,6 0 0 1 2240,178 V 202 A 6,6 0 0 1 2234,208 H 2151 A 6,6 0 0 1 2145,202 V 178 A 6,6 0 0 1 2151,172 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2306,166 H 2464 A 6,6 0 0 1 2470,172 V 196 A 6,6 0 0 1 2464,202 H 2306 A 6,6 0 0 1 2300,196 V 172 A 6,6 0 0 1 2306,166 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 821,695 H 1228 A 6,6 0 0 1 1234,701 V 725 A 6,6 0 0 1 1228,731 H 821 A 6,6 0 0 1 815,725 V 701 A 6,6 0 0 1 821,695 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1205,606 H 1569 A 6,6 0 0 1 1575,612 V 636 A 6,6 0 0 1 1569,642 H 1205 A 6,6 0 0 1 1199,636 V 612 A 6,6 0 0 1 1205,606 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 2600,550 H 2917 A 6,6 0 0 1 2923,556 V 580 A 6,6 0 0 1 2917,586 H 2600 A 6,6 0 0 1 2594,580 V 556 A 6,6 0 0 1 2600,550 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 2271,550 H 2568 A 6,6 0 0 1 2574,556 V 580 A 6,6 0 0 1 2568,586 H 2271 A 6,6 0 0 1 2265,580 V 556 A 6,6 0 0 1 2271,550 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1077,1678 H 1410 A 6,6 0 0 1 1416,1684 V 1714 H 1071 V 1684 A 6,6 0 0 1 1077,1678 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1830,1678 H 2163 A 6,6 0 0 1 2169,1684 V 1714 H 1824 V 1684 A 6,6 0 0 1 1830,1678 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1573,2053 H 1924 A 6,6 0 0 1 1930,2059 V 2089 H 1567 V 2059 A 6,6 0 0 1 1573,2053 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -422,10 +426,6 @@
   <path d="M 2216,606 H 2616 A 6,6 0 0 1 2622,612 V 636 A 6,6 0 0 1 2616,642 H 2216 A 6,6 0 0 1 2210,636 V 612 A 6,6 0 0 1 2216,606 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 821,606 H 1174 A 6,6 0 0 1 1180,612 V 636 A 6,6 0 0 1 1174,642 H 821 A 6,6 0 0 1 815,636 V 612 A 6,6 0 0 1 821,606 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1815,606 H 2185 A 6,6 0 0 1 2191,612 V 636 A 6,6 0 0 1 2185,642 H 1815 A 6,6 0 0 1 1809,636 V 612 A 6,6 0 0 1 1815,606 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 821,695 H 1228 A 6,6 0 0 1 1234,701 V 725 A 6,6 0 0 1 1228,731 H 821 A 6,6 0 0 1 815,725 V 701 A 6,6 0 0 1 821,695 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1205,606 H 1569 A 6,6 0 0 1 1575,612 V 636 A 6,6 0 0 1 1569,642 H 1205 A 6,6 0 0 1 1199,636 V 612 A 6,6 0 0 1 1205,606 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 2600,550 H 2917 A 6,6 0 0 1 2923,556 V 580 A 6,6 0 0 1 2917,586 H 2600 A 6,6 0 0 1 2594,580 V 556 A 6,6 0 0 1 2600,550 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 2271,550 H 2568 A 6,6 0 0 1 2574,556 V 580 A 6,6 0 0 1 2568,586 H 2271 A 6,6 0 0 1 2265,580 V 556 A 6,6 0 0 1 2271,550 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1705,550 H 1944 A 6,6 0 0 1 1950,556 V 580 A 6,6 0 0 1 1944,586 H 1705 A 6,6 0 0 1 1699,580 V 556 A 6,6 0 0 1 1705,550 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1821,1179 1963,1179" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1821,1273 1963,1273" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -619,6 +619,10 @@
   <path d="M 2590,320 H 2796 A 6,6 0 0 1 2802,326 V 350 A 6,6 0 0 1 2796,356 H 2590 A 6,6 0 0 1 2584,350 V 326 A 6,6 0 0 1 2590,320 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 2151,172 H 2234 A 6,6 0 0 1 2240,178 V 202 A 6,6 0 0 1 2234,208 H 2151 A 6,6 0 0 1 2145,202 V 178 A 6,6 0 0 1 2151,172 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 2306,166 H 2464 A 6,6 0 0 1 2470,172 V 196 A 6,6 0 0 1 2464,202 H 2306 A 6,6 0 0 1 2300,196 V 172 A 6,6 0 0 1 2306,166 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 821,695 H 1228 A 6,6 0 0 1 1234,701 V 725 A 6,6 0 0 1 1228,731 H 821 A 6,6 0 0 1 815,725 V 701 A 6,6 0 0 1 821,695 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1205,606 H 1569 A 6,6 0 0 1 1575,612 V 636 A 6,6 0 0 1 1569,642 H 1205 A 6,6 0 0 1 1199,636 V 612 A 6,6 0 0 1 1205,606 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 2600,550 H 2917 A 6,6 0 0 1 2923,556 V 580 A 6,6 0 0 1 2917,586 H 2600 A 6,6 0 0 1 2594,580 V 556 A 6,6 0 0 1 2600,550 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 2271,550 H 2568 A 6,6 0 0 1 2574,556 V 580 A 6,6 0 0 1 2568,586 H 2271 A 6,6 0 0 1 2265,580 V 556 A 6,6 0 0 1 2271,550 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1071,1714 1416,1714" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1077,1678 H 1410 A 6,6 0 0 1 1416,1684 V 1802 A 6,6 0 0 1 1410,1808 H 1077 A 6,6 0 0 1 1071,1802 V 1684 A 6,6 0 0 1 1077,1678 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1824,1714 2169,1714" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -630,10 +634,6 @@
   <path d="M 2216,606 H 2616 A 6,6 0 0 1 2622,612 V 636 A 6,6 0 0 1 2616,642 H 2216 A 6,6 0 0 1 2210,636 V 612 A 6,6 0 0 1 2216,606 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 821,606 H 1174 A 6,6 0 0 1 1180,612 V 636 A 6,6 0 0 1 1174,642 H 821 A 6,6 0 0 1 815,636 V 612 A 6,6 0 0 1 821,606 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1815,606 H 2185 A 6,6 0 0 1 2191,612 V 636 A 6,6 0 0 1 2185,642 H 1815 A 6,6 0 0 1 1809,636 V 612 A 6,6 0 0 1 1815,606 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 821,695 H 1228 A 6,6 0 0 1 1234,701 V 725 A 6,6 0 0 1 1228,731 H 821 A 6,6 0 0 1 815,725 V 701 A 6,6 0 0 1 821,695 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1205,606 H 1569 A 6,6 0 0 1 1575,612 V 636 A 6,6 0 0 1 1569,642 H 1205 A 6,6 0 0 1 1199,636 V 612 A 6,6 0 0 1 1205,606 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 2600,550 H 2917 A 6,6 0 0 1 2923,556 V 580 A 6,6 0 0 1 2917,586 H 2600 A 6,6 0 0 1 2594,580 V 556 A 6,6 0 0 1 2600,550 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 2271,550 H 2568 A 6,6 0 0 1 2574,556 V 580 A 6,6 0 0 1 2568,586 H 2271 A 6,6 0 0 1 2265,580 V 556 A 6,6 0 0 1 2271,550 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1436,1682 H 1793 L 1805,1694 V 1802 H 1436 V 1682 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 1793,1682 L 1793,1694 L 1805,1694 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
   <path d="M 2189,1682 H 2546 L 2558,1694 V 1802 H 2189 V 1682 Z" fill="#FFFDE7" fill-opacity="1.000"/>
@@ -1634,6 +1634,14 @@
   <text x="2192.5" y="200" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">::&gt; pointCloudOut</tspan></text>
   <text x="2385" y="178" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«end»</tspan></text>
   <text x="2385" y="194" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">::&gt; readinessInputs.pointCloudOut</tspan></text>
+  <text x="1024.5" y="707" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
+  <text x="1024.5" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">emergencyCoordinationToAvailabilityConverter : SimulationLogicalToPhysicalRealization</tspan></text>
+  <text x="1387" y="618" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
+  <text x="1387" y="634" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">emergencyCoordinationToAggregator : SimulationLogicalToPhysicalRealization</tspan></text>
+  <text x="2758.5" y="562" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
+  <text x="2758.5" y="578" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">interventionDecisionToAEB : SimulationLogicalToPhysicalRealization</tspan></text>
+  <text x="2419.5" y="562" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
+  <text x="2419.5" y="578" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">stateAcquisitionToAEB : SimulationLogicalToPhysicalRealization</tspan></text>
   <text x="1243.5" y="1690" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
   <text x="1243.5" y="1706" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">vehicleMotionToKinematicFeedback : LogicalToPhysicalItemRealization</tspan></text>
   <text x="1243.5" y="1724.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -1704,12 +1712,4 @@
   <text x="997.5" y="634" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">emergencyCoordinationToOperator : SimulationLogicalToPhysicalRealization</tspan></text>
   <text x="2000" y="618" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
   <text x="2000" y="634" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">emergencyCoordinationToMrmHandler : SimulationLogicalToPhysicalRealization</tspan></text>
-  <text x="1024.5" y="707" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
-  <text x="1024.5" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">emergencyCoordinationToAvailabilityConverter : SimulationLogicalToPhysicalRealization</tspan></text>
-  <text x="1387" y="618" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
-  <text x="1387" y="634" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">emergencyCoordinationToAggregator : SimulationLogicalToPhysicalRealization</tspan></text>
-  <text x="2758.5" y="562" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
-  <text x="2758.5" y="578" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">interventionDecisionToAEB : SimulationLogicalToPhysicalRealization</tspan></text>
-  <text x="2419.5" y="562" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«allocate»</tspan></text>
-  <text x="2419.5" y="578" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">stateAcquisitionToAEB : SimulationLogicalToPhysicalRealization</tspan></text>
 </svg>
