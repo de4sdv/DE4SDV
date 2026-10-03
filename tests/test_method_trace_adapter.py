@@ -427,7 +427,10 @@ class ScopedTraceTests(unittest.TestCase):
     def test_duplicate_untyped_target_identity_is_unassessed(self):
         declaration = "requirement visualizationProblemStatement : ProblemStatement"
         for duplicate in ("requirement visualizationProblemStatement;",
-                          "item visualizationProblemStatement;"):
+                          "item visualizationProblemStatement;",
+                          "requirement <probe> visualizationProblemStatement;",
+                          "requirement < probe > visualizationProblemStatement;",
+                          "requirement <'probe'> visualizationProblemStatement;"):
             for first in (True, False):
                 with self.subTest(duplicate=duplicate, first=first):
                     if first:
@@ -441,7 +444,10 @@ class ScopedTraceTests(unittest.TestCase):
 
     def test_duplicate_untyped_stakeholder_identity_is_unassessed(self):
         role = "stakeholder systemsEngineer : SystemsEngineer;"
-        for duplicate in ("stakeholder systemsEngineer;", "part systemsEngineer;"):
+        for duplicate in ("stakeholder systemsEngineer;", "part systemsEngineer;",
+                          "stakeholder <probe> systemsEngineer;",
+                          "stakeholder < probe > systemsEngineer;",
+                          "stakeholder <'probe'> systemsEngineer;"):
             for first in (True, False):
                 with self.subTest(duplicate=duplicate, first=first):
                     replacement = duplicate + "\n" + role if first else role + "\n" + duplicate
@@ -459,6 +465,19 @@ class ScopedTraceTests(unittest.TestCase):
                 snapshot = self._source_mutation("INC-AEBS-010", reference,
                     f"ref {kind} :>> {witness.relation} = ({witness.target});")
                 self._assert_unavailable_relations(snapshot, (witness.relation,))
+
+    def test_short_name_reference_header_is_present_but_unavailable_for_each_sibling(self):
+        from de4sdv.semantic.method_trace_adapter import repository_snapshot, SUPPORTED
+        original = repository_snapshot(ROOT, "INC-AEBS-010")
+        self.assertEqual({w.relation for w in original.witnesses}, set(SUPPORTED))
+        for witness in original.witnesses:
+            for short_name in ("<probe>", "< probe >", "<'probe'>"):
+                with self.subTest(relation=witness.relation, short_name=short_name):
+                    kind = "requirement" if witness.relation in {"problemStatement", "concerns"} else "part"
+                    reference = f"ref {kind} :>> {witness.relation} = {witness.target};"
+                    replacement = f"ref {kind} {short_name} {witness.relation} = {witness.target};"
+                    snapshot = self._source_mutation("INC-AEBS-010", reference, replacement)
+                    self._assert_unavailable_relations(snapshot, (witness.relation,))
 
     def test_present_unsupported_reference_shapes_are_not_absence(self):
         target = "DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement"

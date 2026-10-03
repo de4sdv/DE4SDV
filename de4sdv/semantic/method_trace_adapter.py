@@ -307,11 +307,13 @@ def _owned_records(text: str, name: str):
     Header boundaries stop at the declaration's own semicolon/opening brace;
     nested bodies, comments (already cleaned) and quote tokens cannot count.
     Discovery deliberately does not require an explicit type or supported kind.
+    A bounded optional short-name token also establishes header presence, but
+    never expands the supported witness grammar below.
     It is a bounded identity inventory, not a general SysML parser.
     """
     prefix = (r"\s*(?:doc\s+)*(?:(?:public|private|protected|abstract|variation|variant|"
               r"individual|ref|readonly|derived|in|out|inout)\s+)*"
-              r"[A-Za-z_][A-Za-z0-9_]*(?:\s+def)?\s+(?::>>\s*)?"
+              r"[A-Za-z_][A-Za-z0-9_]*(?:\s+def)?\s+(?:<[^<>;{}]*>\s*)?(?::>>\s*)?"
               + re.escape(name) + r"(?!\w)")
     return [record for record in _direct_matches(text, r"[^{};]*([;{])")
             if re.match(prefix, record.group())]
