@@ -187,6 +187,55 @@ def test_adopted_status_identity_is_mandatory_without_archive(monkeypatch, seam,
             sa.verify_native_sources()
 
 
+@pytest.mark.parametrize("seam", ["model-enum", "model-alias", "activity-enum", "activity-alias",
+                                  "adapter-enum", "adapter-alias"])
+@pytest.mark.parametrize("consumer", ["records", "source-check"])
+def test_short_name_same_identity_shadow_is_refused(monkeypatch, seam, consumer):
+    from de4sdv.semantic import scoped_assurance as sa
+    relative = sa.MODEL_PATH
+    if seam.startswith("adapter"):
+        relative = str(Path(relative).with_name("de4sdv_sysmod_adapter.sysml"))
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    if seam.endswith("enum"):
+        # Exact R2 review mutation: a bounded short-name token hides the name.
+        shadow = "enum def <localStatus> VVStatus { Accepted; }"
+    else:
+        shadow = "alias <localStatus> VVStatus for RequirementsManagement::VVStatus;"
+    marker = ("item def ScopedVVActivityRecord {" if seam.startswith("activity")
+              else "package " + ("DE4SDV_SYSMODAdapter" if seam.startswith("adapter")
+                                 else "DE4SDV_ScopedAssurance") + " {")
+    assert text.count(marker) == 1
+    overlay_source(monkeypatch, relative, text.replace(marker, marker + "\n  " + shadow))
+    # A direct-owned same-identity shadow must refuse in both consumers, with
+    # no archive and regardless of the still-unchanged supported vocabulary.
+    with pytest.raises(sa.ScopedAssuranceError):
+        if consumer == "records":
+            sa.validate_records(activity_fixture())
+        else:
+            sa.verify_native_sources()
+
+
+@pytest.mark.parametrize("decoy", [
+    "// enum def <localStatus> VVStatus { Accepted; }",
+    "/* alias <localStatus> VVStatus for RequirementsManagement::VVStatus; */",
+    'attribute syntheticNote : String = "enum def <localStatus> VVStatus { Accepted; }";',
+    "part def ForeignOwner { enum def <localStatus> VVStatus { Accepted; } }",
+])
+def test_short_name_shadow_decoys_remain_inert(monkeypatch, decoy):
+    from de4sdv.semantic import scoped_assurance as sa
+    baseline = sa.verify_native_sources()
+    text = (ROOT / sa.MODEL_PATH).read_text(encoding="utf-8")
+    marker = "package DE4SDV_ScopedAssurance {"
+    assert text.count(marker) == 1
+    overlay_source(monkeypatch, sa.MODEL_PATH, text.replace(marker, marker + "\n" + decoy))
+    # Comment, string and nested-foreign short-name forms are not direct code:
+    # they must neither refuse the supported source nor expand admission.
+    assert sa.verify_native_sources() == baseline
+    assert sa.validate_records(activity_fixture())["structurally_valid"] is True
+    with pytest.raises(sa.ScopedAssuranceError, match="unknown native status"):
+        sa.validate_records(activity_fixture(status="Accepted"))
+
+
 @pytest.mark.parametrize("header", ["package DE4SDV_ScopedAssurance", "item def ScopedVVActivityRecord",
                                   "assert constraint adoptedStatusVocabulary", "assert constraint activityKindVocabulary"])
 @pytest.mark.parametrize("consumer", ["records", "source-check"])

@@ -133,15 +133,33 @@ def _constraint_vocabulary(activity: str, name: str, comparison: str) -> set[str
     return set(values)
 
 
+# Bounded direct-owned same-identity inventory: a definition/alias header may
+# carry one optional short-name token before the declared name. This is not a
+# general SysML name resolver; it only refuses a direct same-name shadow of the
+# adopted VVStatus identity before the supported import/header grammar applies.
+_STATUS_SHADOW = r"\b(?:def|alias)\s+(?:<[^<>{};\n]*>\s+)?VVStatus\b"
+
+
+def _status_shadows(owner: str) -> list:
+    """Direct-owned VVStatus definition/alias headers, short-name form included."""
+    from .relationship_successor_contract import _owned_matches
+
+    return _owned_matches(owner, _STATUS_SHADOW)[0]
+
+
 def _require_status_import(owner: str, path: str, visibility: str) -> None:
     from .relationship_successor_contract import _owned_matches
 
+    # Inventory the direct-owned same identity before admitting the supported
+    # import header: a short-name or otherwise unsupported shadow declaration
+    # must refuse, not borrow the adopted identity.
+    if _status_shadows(owner):
+        raise ScopedAssuranceError("native direct-owned VVStatus declaration shadows adopted import: " + path)
     matches, code = _owned_matches(owner, r"\b(?:(?:public|private|protected)\s+)?import\s+[^;{}]*;")
     imports = [code[m.start():m.end()] for m in matches
                if re.search(r"\bVVStatus\s*;", code[m.start():m.end()])]
     expected = visibility + r"\s+import\s+" + re.escape(path) + r"\s*;"
-    shadows, _ = _owned_matches(owner, r"\b(?:def|alias)\s+VVStatus\b")
-    if len(imports) != 1 or not re.fullmatch(expected, imports[0]) or shadows:
+    if len(imports) != 1 or not re.fullmatch(expected, imports[0]):
         raise ScopedAssuranceError("native activity must reuse exact adopted VVStatus import: " + path)
 
 
@@ -205,9 +223,10 @@ def _native_vocabulary() -> tuple[set[str], set[str]]:
     adapter = (root / MODEL_PATH).with_name("de4sdv_sysmod_adapter.sysml").read_text(encoding="utf-8")
     seam = _owned_native_block("{" + adapter + "}", r"\bpackage\s+DE4SDV_SYSMODAdapter\b")
     _require_status_import(seam, "RequirementsManagement::VVStatus", "public")
+    if _status_shadows(activity):
+        raise ScopedAssuranceError("native direct-owned VVStatus declaration shadows adopted status type")
     declarations, code = _owned_matches(activity, r"\battribute\s+status\b[^;{}]*;")
-    shadows, _ = _owned_matches(activity, r"\b(?:def|alias)\s+VVStatus\b")
-    if (len(declarations) != 1 or shadows or not re.fullmatch(r"attribute\s+status\s*:\s*VVStatus\s*;",
+    if (len(declarations) != 1 or not re.fullmatch(r"attribute\s+status\s*:\s*VVStatus\s*;",
             code[declarations[0].start():declarations[0].end()])):
         raise ScopedAssuranceError("native activity must reuse imported VVStatus")
     statuses = _constraint_vocabulary(activity, "adoptedStatusVocabulary",
