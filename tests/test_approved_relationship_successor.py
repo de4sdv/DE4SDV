@@ -433,6 +433,54 @@ def test_missing_or_ambiguous_ontology_class_pin_refuses(mutation):
             generate_contract(ROOT)
 
 
+@pytest.mark.parametrize("declaration", ["", None, "part def", "  part def X", 123])
+def test_malformed_ontology_pin_is_a_controlled_refusal(declaration):
+    """QUALITY P2: blank/null/malformed pins raise ValueError, never a raw error."""
+    from unittest.mock import patch
+    import yaml
+    from de4sdv.semantic.relationship_successor_contract import ONTOLOGY, generate_contract
+    document = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    document["classes"]["Requirement"]["kernel"]["declaration"] = declaration
+    overlay = yaml.safe_dump(document)
+    read_text = Path.read_text
+
+    def text_read(path, *args, **kwargs):
+        return overlay if path == ROOT / ONTOLOGY else read_text(path, *args, **kwargs)
+    with patch.object(Path, "read_text", text_read):
+        with pytest.raises(ValueError, match="malformed ontology kernel pin"):
+            generate_contract(ROOT)
+
+
+def test_malformed_ontology_pin_exits_two_through_the_real_cli():
+    """QUALITY P2 repro through the actual successor CLI main: exit 2, no traceback.
+
+    The subprocess overlays only the ontology read in memory; no model or code
+    is copied into a fixture tree.
+    """
+    import subprocess
+    import sys
+    program = (
+        "import sys, yaml\n"
+        "from pathlib import Path\n"
+        "from de4sdv.semantic.relationship_successor_contract import ONTOLOGY\n"
+        "root = Path.cwd()\n"
+        "doc = yaml.safe_load((root / ONTOLOGY).read_text())\n"
+        "doc['classes']['Requirement']['kernel']['declaration'] = ''\n"
+        "overlay, original = yaml.safe_dump(doc), Path.read_text\n"
+        "Path.read_text = lambda self, *a, **k: overlay if self == root / ONTOLOGY else original(self, *a, **k)\n"
+        "sys.argv = ['relationship_successor.py', '--non-production', '--predecessor', 'legacy',\n"
+        "            '--api-url', 'http://127.0.0.1:9', '--binding', 'missing-binding.json',\n"
+        "            '--expected-git-revision', 'a' * 40, 'model-status']\n"
+        "sys.path.insert(0, 'scripts')\n"
+        "import relationship_successor\n"
+        "sys.exit(relationship_successor.main())\n")
+    run = subprocess.run([sys.executable, "-B", "-c", program], cwd=ROOT,
+                         text=True, capture_output=True, timeout=60)
+    assert run.returncode == 2, (run.returncode, run.stderr[-800:])
+    assert "malformed ontology kernel pin" in run.stderr
+    assert "Traceback" not in run.stderr
+
+
 def test_unbalanced_or_unreadable_pin_is_a_controlled_refusal():
     """QUALITY S2: malformed source raises ValueError, never IndexError."""
     from de4sdv.semantic.relationship_successor_contract import _definition_owner

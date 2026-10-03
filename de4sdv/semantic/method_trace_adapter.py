@@ -216,12 +216,42 @@ def _structure(text: str) -> str:
 
 def _direct_matches(text: str, pattern: str):
     structure = _structure(text)
+    if pattern == _HEADER_PATTERN:
+        # Linear header scan: the unanchored ``[^{};]*([;{])`` search is
+        # quadratic on long unterminated runs. Same match spans/groups.
+        return _direct_headers(structure)
     depth = 0
     depths = []
     for char in structure:
         depths.append(depth)
         depth += (char == "{") - (char == "}")
     return [m for m in re.finditer(pattern, structure) if depths[m.start()] == 0]
+
+
+_HEADER_PATTERN = r"[^{};]*([;{])"
+_HEADER_SEGMENT = re.compile(_HEADER_PATTERN)
+
+
+def _direct_headers(structure: str):
+    """Depth-0 header segments, each ending at its own ``;`` or ``{``.
+
+    Equivalent to ``re.finditer(r"[^{};]*([;{])")`` filtered to depth-0 starts,
+    in one left-to-right pass. Each returned object is a real ``re.Match`` of
+    the header pattern at its exact span, so ``.group()``, ``.group(1)``,
+    ``.start()`` and ``.end()`` behave exactly as before.
+    """
+    matches, depth, start = [], 0, 0
+    for index, char in enumerate(structure):
+        if char in "{};":
+            if char != "}":
+                if depth == 0:
+                    matches.append(_HEADER_SEGMENT.fullmatch(structure, start, index + 1))
+                if char == "{":
+                    depth += 1
+            else:
+                depth -= 1
+            start = index + 1
+    return matches
 
 
 def _matched_body(text: str, match) -> str | None:

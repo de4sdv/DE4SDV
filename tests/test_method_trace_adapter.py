@@ -441,6 +441,37 @@ class ScopedTraceTests(unittest.TestCase):
                     self.assertEqual(_body("part owner : Type { " + clean + " }", "owner"),
                                      " " + clean + " ")
 
+    def test_header_scan_is_linear_and_equivalent(self):
+        """QUALITY follow-up: long unterminated input must not backtrack quadratically."""
+        import random
+        import re
+        import time
+        from de4sdv.semantic.method_trace_adapter import (
+            _HEADER_PATTERN, _NativeFraming, _clean, _direct_matches, _structure)
+
+        def regex_scan(text):
+            structure, depth, depths = _structure(text), 0, []
+            for char in structure:
+                depths.append(depth)
+                depth += (char == "{") - (char == "}")
+            return [(m.start(), m.end(), m.group(1)) for m in re.finditer(_HEADER_PATTERN, structure)
+                    if depths[m.start()] == 0]
+
+        def linear_scan(text):
+            return [(m.start(), m.end(), m.group(1)) for m in _direct_matches(text, _HEADER_PATTERN)]
+        for path in sorted((ROOT / "textual-notation-of-model").rglob("*.sysml")):
+            text = _clean(path.read_text())
+            self.assertEqual(linear_scan(text), regex_scan(text), path.name)
+        generator = random.Random(7)
+        for _ in range(2000):
+            text = "".join(generator.choice("ab {};\n:") for _ in range(generator.randint(0, 50)))
+            self.assertEqual(linear_scan(text), regex_scan(text), text)
+        namespace = AEBS_NS[:-2]
+        started = time.perf_counter()
+        _NativeFraming("a" * 20000, namespace,
+                       "ref part :>> increment = " + AEBS_NS + "inc;").evaluate()
+        self.assertLess(time.perf_counter() - started, 2.0)
+
     def test_quoted_escape_newline_does_not_expose_declaration_text(self):
         from de4sdv.semantic.method_trace_adapter import _clean, _structure, _owned_matches
         for quote in ("'", '"'):

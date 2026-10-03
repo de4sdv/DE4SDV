@@ -216,7 +216,13 @@ def _ontology_class_pins(root: Path) -> dict[str, dict[str, str]]:
     def file_pin(row):
         kernel = row.get("kernel") if isinstance(row, dict) else None
         if isinstance(kernel, dict) and set(kernel) == {"file", "declaration"}:
-            return {"file": kernel["file"], "declaration": kernel["declaration"]}
+            file, declaration = kernel["file"], kernel["declaration"]
+            # Malformed pins are a controlled refusal, never a raw exception.
+            if (not isinstance(file, str) or not file.strip() or file != file.strip()
+                    or not isinstance(declaration, str)
+                    or not re.fullmatch(r"[a-z]+(?: [a-z]+)* def [A-Za-z_]\w*", declaration)):
+                raise ValueError(f"malformed ontology kernel pin: {kernel!r}")
+            return {"file": file, "declaration": declaration}
         return None
 
     pins = {}
