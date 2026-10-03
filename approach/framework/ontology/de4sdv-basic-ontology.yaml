@@ -73,7 +73,6 @@ kernel_sync:
       connection def RequirementFunctionAssignment: successor native-allocation profile end-pair descriptor; native AllocationUsage supplies the witness, not this definition or an additional ontology class
       connection def FunctionLogicalAssignment: successor native-allocation profile end-pair descriptor; not a redundant relevance dependency or additional ontology class
       connection def LogicalPhysicalAssignment: successor native-allocation profile end-pair descriptor; not a deployment or observed-execution relationship
-      part def SuccessorClassRecord: construction-only exact declaration routing record; not a second domain ontology or runtime UUID locator
       part def SuccessorRelationRecord: construction-only versioned predicate signature record; not an additional engineering relationship
       part def SuccessorRetirementRecord: construction-only retirement boundary record preserving unsupported stronger claims
       part def SuccessorVersionRecord: construction-only successor version and supersession record; not production selection or acceptance
@@ -501,13 +500,19 @@ classes:
       declaration: part def ApprovedTraceMethod
   IncrementTraceObligations:
     definition: >-
-      Required traces derive from the selected approved method, not from
-      candidate-selected easy checks. References identify existing artifacts;
-      populating this declaration is not completion evidence. Reuse prior
-      artifacts, preserve R/F/L/P, and do not invent realization or execution
-      for early framing. Missing required traces block the corresponding claim
-      unless an authorized visible disposition permits it. Unsupported or
-      unavailable evaluation stays UNASSESSED, never synthetic PASS.
+      Scope declaration of an increment's trace obligations: the selected
+      approved method, the increment, its declared scope kind, applicable
+      phases and completion claim. Required traces derive from the selected
+      approved method, not from candidate-selected easy checks. The traces
+      themselves are the increment's native model relationships (owning
+      membership, typing, requirement subject and stakeholder membership,
+      HasStakeholder connections, framed concerns), never parallel reference
+      slots in this declaration. Populating this declaration is not
+      completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do
+      not invent realization or execution for early framing. Missing
+      required traces block the corresponding claim unless an authorized
+      visible disposition permits it. Unsupported or unavailable evaluation
+      stays UNASSESSED, never synthetic PASS.
     kernel:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
       declaration: part def IncrementTraceObligations

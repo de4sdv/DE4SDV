@@ -24,17 +24,12 @@ package DE4SDV_MethodTraces {
          * No universal concern-to-baseline chain or implicit transitive claim.
          *
          * Concrete migrated consumers:
-         * INC-AEBS-010: requirements scope, phases 0 through 5, requirementsReady.
-         * Its visualizationTraceObligations references incAEBS010,
-         * visualizationScope, visualizationProblemStatement,
-         * visualizationEngineeringQuestion, visualizationLifecycleDecision,
-         * visualizationBoundaryConcern and the problem statement's systemsEngineer.
-         * INC-MW-002: framing scope, phases 0 through 2, framingReady.
-         * Its traceObligationsMW002 references incMW002, scopeMW002,
-         * middlewareIntegrationProblemStatement, engineeringQuestionMW002,
-         * lifecycleDecisionMW002, middlewareIncrementAssuranceConcern and the
-         * problem statement's systemsEngineer. Fully qualified identities live
-         * in the owning feature files, not category-name endpoints. Neither
+         * INC-AEBS-010: requirements scope, phases 0 through 5, requirementsReady,
+         * declared by visualizationTraceObligations.
+         * INC-MW-002: framing scope, phases 0 through 2, framingReady, declared
+         * by traceObligationsMW002. Each declaration names only its increment;
+         * the traced artifacts are found through that increment package's
+         * native relationships, not copied into the declaration. Neither
          * existing increment may select a narrower scope to claim completion.
          *
          * Governed phase obligations: phase 0 requires increment, declaredScope,
@@ -53,12 +48,18 @@ package DE4SDV_MethodTraces {
          * obligations, never remove the governed minimum. Reuse prior artifacts
          * without requiring every architecture increment to create requirements.
          *
-         * The opt-in SOURCE-reference adapter checks only identified phase 0/1
-         * references in these two files. Missing supported references yield FAIL;
-         * ambiguous/unsupported inputs remain UNASSESSED. Later phase predicates
+         * The opt-in source adapter evaluates only phase 0/1 obligations of
+         * these two increments, from native relationships in the increment's
+         * own package: the increment usage and its EngineeringIncrement typing;
+         * single parts typed IncrementScope, IncrementEngineeringQuestion and
+         * IncrementLifecycleDecision; the ProblemStatement whose subject is
+         * typed by the increment definition; HasStakeholder connections from
+         * the increment to a stakeholder member; and concerns framed by a
+         * viewpoint of a view. Assessed absence yields FAIL; ambiguous or
+         * unsupported inputs remain UNASSESSED. Later phase predicates
          * and native-validation stay required and UNASSESSED; both current
          * completion claims remain BLOCKED. HasStakeholder connections are typed
-         * vocabulary witnesses only, not evaluated traversal or assignment rights.
+         * vocabulary witnesses only, not assignment rights.
          * This is not production semantic runtime parsing, API identity binding,
          * native SysML validation, acceptance, certification or SAF adoption.
          *
@@ -74,24 +75,23 @@ package DE4SDV_MethodTraces {
   }
 
   part def IncrementTraceObligations {
-    doc /* Required traces derive from the selected approved method, not from
-         * candidate-selected easy checks. References identify existing artifacts;
-         * populating this declaration is not completion evidence. Reuse prior
-         * artifacts, preserve R/F/L/P, and do not invent realization or execution
-         * for early framing. Missing required traces block the corresponding claim
-         * unless an authorized visible disposition permits it. Unsupported or
-         * unavailable evaluation stays UNASSESSED, never synthetic PASS. */
+    doc /* Scope declaration of an increment's trace obligations: the selected
+         * approved method, the increment, its declared scope kind, applicable
+         * phases and completion claim. Required traces derive from the selected
+         * approved method, not from candidate-selected easy checks. The traces
+         * themselves are the increment's native model relationships (owning
+         * membership, typing, requirement subject and stakeholder membership,
+         * HasStakeholder connections, framed concerns), never parallel reference
+         * slots in this declaration. Populating this declaration is not
+         * completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do
+         * not invent realization or execution for early framing. Missing
+         * required traces block the corresponding claim unless an authorized
+         * visible disposition permits it. Unsupported or unavailable evaluation
+         * stays UNASSESSED, never synthetic PASS. */
     ref part increment : EngineeringIncrement;
-    ref part declaredScope : IncrementScope;
     ref part selectedMethod : ApprovedTraceMethod;
     attribute scopeKind : ScalarValues::String;
     attribute applicablePhases[*] : MethodPhase;
     attribute completionClaim : TraceCompletionClaim;
-    ref requirement problemStatement[0..1] : ProblemStatement;
-    ref part engineeringQuestion[0..1] : IncrementEngineeringQuestion;
-    ref part lifecycleDecision[0..1] : IncrementLifecycleDecision;
-    ref part stakeholders[*] : Stakeholder;
-    ref requirement concerns[*];
-    ref part gaps[*] : IncrementGap;
   }
 }

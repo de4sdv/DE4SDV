@@ -52,18 +52,12 @@ package DE4SDV_MiddlewareIncrementFraming {
           connect incMW002 to middlewareIntegrationProblemStatement.systemsEngineer;
 
         part traceObligationsMW002 : IncrementTraceObligations {
-          doc /* Identified source references; no completion or downstream execution claim. */
+          doc /* Scope declaration only; traces are the native relationships of this package. */
           ref part :>> selectedMethod = DE4SDV_MethodTraces::approvedScopedTraceMethod;
           attribute :>> scopeKind = "framing";
           attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext);
           attribute :>> completionClaim = TraceCompletionClaim::framingReady;
           ref part :>> increment = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::incMW002;
-          ref part :>> declaredScope = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::scopeMW002;
-          ref requirement :>> problemStatement = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement;
-          ref part :>> engineeringQuestion = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::engineeringQuestionMW002;
-          ref part :>> lifecycleDecision = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::lifecycleDecisionMW002;
-          ref requirement :>> concerns = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIncrementAssuranceConcern;
-          ref part :>> stakeholders = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement::systemsEngineer;
         }
 
         part engineeringQuestionMW002 : IncrementEngineeringQuestion {

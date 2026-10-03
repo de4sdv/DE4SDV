@@ -1,8 +1,10 @@
 /* Explicit relationship successor, non-production. Frozen O3 is unchanged.
  * Profile records below are construction inputs, never query-time source text.
- * Each class/carrier pin routes from an ingestion-validated exact source-file
- * and declaration tuple, even when the authored ontology names the extension
- * separately from its native category. Runtime never derives UUIDs by name.
+ * Relation and retirement records carry engineering semantics only (predicate,
+ * carrier, mechanism, strength, endpoint classes, inverse). Endpoint class
+ * pins come from the authored ontology's kernel mappings, not from file paths
+ * in this model. Each class/carrier pin routes from an ingestion-validated
+ * exact source-file and declaration tuple. Runtime never derives UUIDs by name.
  * Allocations retain responsibility assignment only; no satisfaction,
  * transitivity, execution, fulfillment, deployment or compliance is asserted.
  */
@@ -56,11 +58,6 @@ package DE4SDV_RelationshipSuccessor {
     doc /* Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint. */
   }
 
-  part def SuccessorClassRecord {
-    attribute identity : String;
-    attribute sourceFile : String;
-    attribute declaration : String;
-  }
   part def SuccessorRelationRecord {
     attribute predicate : String;
     attribute carrier : String;
@@ -83,42 +80,6 @@ package DE4SDV_RelationshipSuccessor {
   part version : SuccessorVersionRecord {
     attribute :>> version = "de4sdv.relationship-successor/v1";
     attribute :>> supersedes = "Function-to-LogicalElement allocatedTo signature; historical provenance constrainedBy; stronger realizedBy/deployedTo active claims";
-  }
-
-  part requirementIdentity : SuccessorClassRecord {
-    attribute :>> identity = "Requirement";
-    attribute :>> sourceFile = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml";
-    attribute :>> declaration = "requirement def RequirementCandidate";
-  }
-  part needIdentity : SuccessorClassRecord {
-    attribute :>> identity = "Need";
-    attribute :>> sourceFile = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml";
-    attribute :>> declaration = "requirement def StakeholderNeedCandidate";
-  }
-  part functionIdentity : SuccessorClassRecord {
-    attribute :>> identity = "Function";
-    attribute :>> sourceFile = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml";
-    attribute :>> declaration = "action def AllocatableFunction";
-  }
-  part logicalIdentity : SuccessorClassRecord {
-    attribute :>> identity = "LogicalElement";
-    attribute :>> sourceFile = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml";
-    attribute :>> declaration = "part def LogicalAllocationElement";
-  }
-  part physicalIdentity : SuccessorClassRecord {
-    attribute :>> identity = "PhysicalElement";
-    attribute :>> sourceFile = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml";
-    attribute :>> declaration = "part def PhysicalAllocationElement";
-  }
-  part validationIdentity : SuccessorClassRecord {
-    attribute :>> identity = "ValidationScenario";
-    attribute :>> sourceFile = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml";
-    attribute :>> declaration = "part def ValidationPlanningScenario";
-  }
-  part sourceIdentity : SuccessorClassRecord {
-    attribute :>> identity = "RegulatorySource";
-    attribute :>> sourceFile = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml";
-    attribute :>> declaration = "part def ControlledRegulatorySource";
   }
 
   part requirementAllocation : SuccessorRelationRecord {

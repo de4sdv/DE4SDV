@@ -137,7 +137,8 @@ def _constraint_vocabulary(activity: str, name: str, comparison: str) -> set[str
 # carry one optional short-name token before the declared name. This is not a
 # general SysML name resolver; it only refuses a direct same-name shadow of the
 # adopted VVStatus identity before the supported import/header grammar applies.
-_STATUS_SHADOW = r"\b(?:def|alias)\s+(?:<[^<>{};\n]*>\s+)?VVStatus\b"
+# Whitespace, including newlines, may appear inside the short-name token.
+_STATUS_SHADOW = r"\b(?:def|alias)\s+(?:<[^<>{};]*>\s+)?VVStatus\b"
 
 
 def _status_shadows(owner: str) -> list:

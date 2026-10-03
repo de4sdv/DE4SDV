@@ -12,6 +12,11 @@ must not restrict verification or validation to requirements alone.
 
 ## Minimal records
 
+Current maturity: these are reusable definitions plus an offline checker for
+supplied JSON records. No feature or product model instantiates them yet, so no
+increment currently carries a scoped V&V activity, citation or adequacy record in
+the model. Treat them as available infrastructure, not as working assurance.
+
 The method kernel provides three reusable record definitions:
 
 - `EvidenceSupportCitation`: identify the scoped claim, exact subject and

@@ -36,8 +36,10 @@ entries:
     role: governance-machinery
     markers:
     - kernel_contract_module
+    - ontology_dir_token
+    - ontology_path_token
     retirement_status: not-applicable
-    note: Model-derived profile extraction and construction verification, not query-time source parsing.
+    note: Model-derived profile extraction and construction verification, not query-time source parsing. Endpoint class pins are read from the authored ontology kernel mappings at construction only.
   scripts/relationship_successor.py:
     role: runtime-consumer
     markers:

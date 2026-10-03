@@ -387,19 +387,59 @@ def test_comment_tokens_inside_owned_literal_are_not_comments(literal):
     assert _contract_from_model_text(text)["supersedes"] == literal
 
 
-@pytest.mark.parametrize("field", ["supersedes", "identity", "retirement-predicate"])
+@pytest.mark.parametrize("field", ["supersedes", "retirement-predicate"])
 def test_missing_required_record_field_is_a_controlled_refusal(field):
     from de4sdv.semantic.relationship_successor_contract import MODEL
     text = (ROOT / MODEL).read_text()
     if field == "supersedes":
         start = text.index("    attribute :>> supersedes =")
-    elif field == "identity":
-        start = text.index('    attribute :>> identity = "Requirement";')
     else:
         start = text.index('    attribute :>> predicate = "realizedBy";')
     end = text.index("\n", start)
     with pytest.raises(ValueError):
         _contract_from_model_text(text[:start] + text[end:])
+
+
+def test_class_pins_come_from_ontology_not_model_records():
+    """Review R2: the model carries no file-path class records."""
+    from de4sdv.semantic.relationship_successor_contract import MODEL, ONTOLOGY, generate_contract
+    text = (ROOT / MODEL).read_text()
+    assert "SuccessorClassRecord" not in text
+    assert "sourceFile" not in text
+    contract = generate_contract(ROOT)
+    assert ONTOLOGY in contract["bound_inputs"]
+    assert contract["classes"]["Function"] == {"file": MODEL, "declaration": "action def AllocatableFunction"}
+    assert contract["classes"]["Requirement"]["declaration"] == "requirement def RequirementCandidate"
+
+
+@pytest.mark.parametrize("mutation", ["remove-mapping", "ambiguous-specialization"])
+def test_missing_or_ambiguous_ontology_class_pin_refuses(mutation):
+    from unittest.mock import patch
+    import yaml
+    from de4sdv.semantic.relationship_successor_contract import ONTOLOGY, generate_contract
+    document = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    if mutation == "remove-mapping":
+        del document["classes"]["AllocatableFunction"]
+    else:
+        document["classes"]["SecondAllocatableFunction"] = {
+            "subClassOf": "Function", "kernel": {"file": "x.sysml", "declaration": "action def Other"}}
+    overlay = yaml.safe_dump(document)
+    read_text = Path.read_text
+
+    def text_read(path, *args, **kwargs):
+        return overlay if path == ROOT / ONTOLOGY else read_text(path, *args, **kwargs)
+    with patch.object(Path, "read_text", text_read):
+        with pytest.raises(ValueError, match="missing endpoint class pin: Function"):
+            generate_contract(ROOT)
+
+
+def test_unbalanced_or_unreadable_pin_is_a_controlled_refusal():
+    """QUALITY S2: malformed source raises ValueError, never IndexError."""
+    from de4sdv.semantic.relationship_successor_contract import _definition_owner
+    with pytest.raises(ValueError, match="unbalanced braces"):
+        _definition_owner("}\n{ {\npart def X {}\n", "part def X")
+    with pytest.raises(ValueError, match="not directly owned"):
+        _definition_owner("part def X {}\n", "part def X")
 
 
 def _semantics(contract):

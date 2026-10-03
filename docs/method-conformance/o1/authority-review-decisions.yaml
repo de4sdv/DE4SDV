@@ -1449,7 +1449,7 @@ entries:
     disposition: prove-existing-model-authority
     confidence: medium
     stage: approved-topic05 scoped trace successor
-    note: Existing framing consumers use actual references; later required predicates and native validation remain UNASSESSED and readiness stays BLOCKED.
+    note: Scope-only declaration (method, increment, scope, phases, completion claim); framing traces are evaluated from the increment package's native relationships, not reference slots. Later required predicates and native validation remain UNASSESSED and readiness stays BLOCKED.
     unknowns: []
     required_evidence:
     - exact-head native validation and reviewed API binding before production consumer migration

@@ -11,6 +11,10 @@ from pathlib import Path
 
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
 PACKAGE = "DE4SDV_RelationshipSuccessor"
+# Class identities are pinned by the authored ontology's kernel mappings, not by
+# file-path records inside the SysML model: the model carries engineering
+# semantics, the ontology carries the class-to-declaration mapping.
+ONTOLOGY = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 PROGRAM_INPUTS = (
     "de4sdv/semantic/relationship_successor_contract.py",
     "de4sdv/semantic/relationship_successor.py",
@@ -176,7 +180,11 @@ def _definition_owner(text: str, declaration: str) -> str:
         if char == "{":
             openings.append(index)
         elif char == "}":
+            if not openings:
+                raise ValueError("unbalanced braces before class declaration: " + declaration)
             openings.pop()
+    if not openings:
+        raise ValueError("class declaration has no direct package owner: " + declaration)
     packages = list(re.finditer(r"\bpackage\s+([A-Za-z_]\w*)\s*\{", structure))
     owners = [package for package in packages if package.end() - 1 == openings[0]]
     if len(owners) != 1:
@@ -184,6 +192,45 @@ def _definition_owner(text: str, declaration: str) -> str:
     owner = owners[0].group(1)
     _live_declaration(text, r"\bpackage\s+" + re.escape(owner) + r"(?=\s*\{)", direct_depth=0)
     return owner
+
+
+def _ontology_class_pins(root: Path) -> dict[str, dict[str, str]]:
+    """Exact file/declaration pin per ontology class, from kernel mappings only.
+
+    A class with its own ``kernel: {file, declaration}`` mapping pins that
+    declaration. A natively represented class (e.g. ``Function``) is pinned by
+    its unique directly specializing ontology class that has a file mapping
+    (e.g. ``AllocatableFunction``). Two such specializations are ambiguous and
+    pin nothing. No name lookup in model source; no record inside the model.
+    """
+    import yaml
+
+    try:
+        document = yaml.safe_load((root / ONTOLOGY).read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as error:
+        raise ValueError("unreadable ontology for successor class pins") from error
+    classes = document.get("classes") if isinstance(document, dict) else None
+    if not isinstance(classes, dict):
+        raise ValueError("ontology classes mapping missing")
+
+    def file_pin(row):
+        kernel = row.get("kernel") if isinstance(row, dict) else None
+        if isinstance(kernel, dict) and set(kernel) == {"file", "declaration"}:
+            return {"file": kernel["file"], "declaration": kernel["declaration"]}
+        return None
+
+    pins = {}
+    for name, row in classes.items():
+        own = file_pin(row)
+        if own:
+            pins[name] = own
+            continue
+        specializations = [file_pin(child) for child in classes.values()
+                           if isinstance(child, dict) and child.get("subClassOf") == name
+                           and file_pin(child)]
+        if len(specializations) == 1:
+            pins[name] = specializations[0]
+    return pins
 
 
 def _competing_known_homonyms(class_types: dict[str, tuple[str, str]], classes: dict,
@@ -239,7 +286,6 @@ def generate_contract(root: Path) -> dict:
             values[key] = json.loads(parsed.group(2))
         required_fields = {
             "SuccessorVersionRecord": {"version", "supersedes"},
-            "SuccessorClassRecord": {"identity", "sourceFile", "declaration"},
             "SuccessorRelationRecord": {"predicate", "carrier", "mechanism", "strength", "sourceClass",
                                         "targetClass", "sourceUsage", "targetUsage", "inverse"},
             "SuccessorRetirementRecord": {"predicate", "reason"},
@@ -251,20 +297,36 @@ def generate_contract(root: Path) -> dict:
     if len(versions) != 1 or not versions[0].get("version"):
         raise ValueError("one explicit successor version required")
     classes, class_types = {}, {}
-    inputs = {MODEL, *PROGRAM_INPUTS}
-    for row in records.get("SuccessorClassRecord", []):
-        name = row["identity"]
-        if not name or name in classes:
-            raise ValueError("duplicate or blank class identity")
-        file = row["sourceFile"]
+    inputs = {MODEL, ONTOLOGY, *PROGRAM_INPUTS}
+    ontology_pins = _ontology_class_pins(root)
+    profile_classes = sorted({row[key] for row in records.get("SuccessorRelationRecord", [])
+                              for key in ("sourceClass", "targetClass")})
+    missing = [name for name in profile_classes if name not in ontology_pins]
+    if missing:
+        raise ValueError("missing endpoint class pin: " + ", ".join(missing))
+    # Known pinned identities: the profile classes plus every ontology pin that
+    # declares the same short name (bounded homonym competition, no resolver).
+    wanted = {ontology_pins[name]["declaration"].split()[-1] for name in profile_classes}
+    known = {name: pin for name, pin in ontology_pins.items()
+             if name in profile_classes or pin["declaration"].split()[-1] in wanted}
+    known_pins, known_types = {}, {}
+    for name in sorted(known):
+        pin = known[name]
+        file = pin["file"]
         if Path(file).is_absolute() or ".." in Path(file).parts:
             raise ValueError("unsafe model pin")
-        owner = _definition_owner((root / file).read_text(), row["declaration"])
+        try:
+            source = (root / file).read_text()
+        except OSError as error:
+            raise ValueError(f"unreadable model pin for {name}: {file}") from error
+        owner = _definition_owner(source, pin["declaration"])
         if file == MODEL and owner != PACKAGE:
             raise ValueError(f"class pin outside governed successor package: {name}")
         inputs.add(file)
-        classes[name] = dict(file=file, declaration=row["declaration"])
-        class_types[name] = (owner, row["declaration"].split()[-1])
+        known_pins[name] = dict(file=file, declaration=pin["declaration"])
+        known_types[name] = (owner, pin["declaration"].split()[-1])
+    classes = {name: known_pins[name] for name in profile_classes}
+    class_types = {name: known_types[name] for name in profile_classes}
     relations, carriers = {}, {}
     for row in records.get("SuccessorRelationRecord", []):
         if set(row) != {"predicate", "carrier", "mechanism", "strength", "sourceClass", "targetClass", "sourceUsage", "targetUsage", "inverse"}:
@@ -291,7 +353,7 @@ def generate_contract(root: Path) -> dict:
             canonical = owner + "::" + expected
             pin = classes[row[class_key]]
             local_definitions, _ = _owned_matches(package, r"\bdef\s+" + re.escape(expected) + r"\b")
-            homonyms = _competing_known_homonyms(class_types, classes, imports,
+            homonyms = _competing_known_homonyms(known_types, known_pins, imports,
                                                 row[class_key], expected, canonical)
             admitted_types = {canonical} if canonical not in homonyms else set()
             if canonical not in homonyms and (pin["file"] == MODEL or

@@ -40,7 +40,11 @@ remain reasoned kernel exclusions; they are not extra predicates or native facts
 Normal licensed ingestion validates those mappings using serializer source-document
 provenance and persists `kernel_bindings` with source file, declaration and API UUID.
 
-At successor construction, `route_successor_bindings` matches each profile slot's
+At successor construction, each profile endpoint class (e.g. `Function`) is pinned
+from the authored ontology's kernel mapping: the class's own `file` + `declaration`,
+or, for a natively represented class, its unique file-mapped specialization (e.g.
+`AllocatableFunction`). The SysML model carries no file-path records.
+`route_successor_bindings` then matches each profile slot's
 **exact file + declaration** against those already validated tuples. The matching
 UUID is installed in a successor-only binding index under the slot (e.g. `Function`).
 This is not UUID discovery by name, a source-text runtime parser, or rewriting the

@@ -340,13 +340,264 @@ def _owned_body(text: str, name: str) -> tuple[str | None, bool]:
     body = _matched_body(text, matches[0])
     return body, body is None
 
-def repository_snapshot(repo: Path, increment_id: str) -> TraceSnapshot:
-    """Bounded source-reference extraction, NOT a SysML parser/API binding.
 
-    Only direct-owned, simple ASCII-named declarations supply identities;
-    quote tokens are inert. No evaluation of arbitrary expressions, imports,
-    subtyping, full SysML validity or transitive relationships. Unrecognized
-    or ambiguous declarations are unavailable; native validation stays gated.
+_NAME = r"[A-Za-z_][A-Za-z0-9_]*"
+_KERNEL_CONTEXT = "DE4SDV_MethodContext"
+_INCREMENT_DEFINITIONS = frozenset({"EngineeringIncrement", "FeatureIncrement",
+                                    "NeedsRequirementsIncrement"})
+_UNAVAILABLE = None  # present but duplicate, unsupported or unresolvable input
+
+
+def _headers(text: str):
+    """Every direct-owned declaration/relationship header of ``text``."""
+    return _direct_matches(text, r"[^{};]*([;{])")
+
+
+class _NativeFraming:
+    """Phase 0/1 trace witnesses from native relationships of the increment.
+
+    The trace declaration names the increment; everything else is found in the
+    increment's own governed package through native SysML relationships:
+
+    - ``increment``: the declared increment is a directly owned part typed by a
+      local ``EngineeringIncrement`` specialization (owning membership + typing).
+    - ``declaredScope``, ``engineeringQuestion``, ``lifecycleDecision``: exactly
+      one directly owned part typed by ``IncrementScope``,
+      ``IncrementEngineeringQuestion`` or ``IncrementLifecycleDecision``.
+    - ``problemStatement``: exactly one directly owned ``ProblemStatement``
+      requirement whose native ``subject`` is typed by the increment's definition.
+    - ``stakeholders``: ``HasStakeholder`` connections from the increment to a
+      native stakeholder member of a directly owned requirement.
+    - ``concerns``: directly owned concerns framed by a viewpoint of a directly
+      owned view (native framed-concern membership).
+
+    Complete supported input without a qualifying witness is assessed absence
+    (``[]``). Duplicate, unsupported or locally unresolvable present input is
+    unavailable (``None``) and stays UNASSESSED. Bounded lexical extraction of
+    the supported subset only; not a SysML resolver or native validation.
+    """
+
+    TYPED = {
+        "declaredScope": "IncrementScope",
+        "engineeringQuestion": "IncrementEngineeringQuestion",
+        "lifecycleDecision": "IncrementLifecycleDecision",
+    }
+
+    def __init__(self, text: str, namespace: str, declaration_body: str):
+        self.text = text
+        self.prefix = namespace + "::"
+        self.declaration_body = declaration_body
+
+    def _kernel_type(self, type_name: str) -> str:
+        return r"(?:" + _KERNEL_CONTEXT + r"::)?" + re.escape(type_name)
+
+    def _unique_identity(self, name: str) -> bool:
+        return len(_owned_records(self.text, name)) == 1
+
+    def _mentions(self, type_name: str):
+        pattern = r"(?<![\w:])(?:" + _NAME + r"::)*" + re.escape(type_name) + r"(?!\w)"
+        return [header for header in _headers(self.text) if re.search(pattern, header.group())]
+
+    def _increment(self):
+        references = _owned_records(self.declaration_body, "increment")
+        if len(references) > 1:
+            return _UNAVAILABLE
+        if not references:
+            return []
+        reference = re.fullmatch(r"\s*(?:doc\s+)*ref\s+part\s+:>>\s+increment\s*=\s*("
+                                 + _QUALIFIED_NAME + r")\s*;", references[0].group())
+        if not reference or not reference.group(1).startswith(self.prefix):
+            return _UNAVAILABLE
+        name = reference.group(1)[len(self.prefix):]
+        if "::" in name:
+            return _UNAVAILABLE
+        usages = _owned_records(self.text, name)
+        if len(usages) > 1:
+            return _UNAVAILABLE
+        if not usages:
+            return []
+        typed = re.fullmatch(r"\s*(?:doc\s+)*part\s+" + re.escape(name) + r"\s*:\s*("
+                             + _NAME + r")\s*[;{]", usages[0].group())
+        if not typed:
+            return _UNAVAILABLE
+        definition = typed.group(1)
+        if definition not in _INCREMENT_DEFINITIONS:
+            local = _owned_records(self.text, definition)
+            if len(local) != 1:
+                return _UNAVAILABLE
+            declared = re.fullmatch(r"\s*part\s+def\s+" + re.escape(definition)
+                                    + r"\s*(?::>\s*(" + _QUALIFIED_NAME + r"))?\s*[;{]", local[0].group())
+            if not declared:
+                return _UNAVAILABLE
+            general = (declared.group(1) or "").removeprefix(_KERNEL_CONTEXT + "::")
+            if general not in _INCREMENT_DEFINITIONS:
+                return []  # a supported local definition that is not an increment
+        return name, definition
+
+    def _single_typed(self, type_name: str):
+        found = []
+        for header in self._mentions(type_name):
+            typed = re.fullmatch(r"\s*(?:doc\s+)*part\s+(" + _NAME + r")\s*:\s*"
+                                 + self._kernel_type(type_name) + r"\s*[;{]", header.group())
+            if not typed:
+                return _UNAVAILABLE
+            found.append(typed.group(1))
+        if len(found) > 1 or (found and not self._unique_identity(found[0])):
+            return _UNAVAILABLE
+        return [(self.prefix + name + " : " + type_name, self.prefix + name, "part") for name in found]
+
+    def _problem_statement(self, definition: str):
+        found = []
+        for header in self._mentions("ProblemStatement"):
+            typed = re.fullmatch(r"\s*(?:doc\s+)*requirement\s+(" + _NAME + r")\s*:\s*"
+                                 + self._kernel_type("ProblemStatement") + r"\s*([;{])", header.group())
+            if not typed:
+                return _UNAVAILABLE
+            if typed.group(2) == ";":
+                continue
+            body = _matched_body(self.text, header)
+            if body is None:
+                return _UNAVAILABLE
+            subjects = [member for member in _headers(body) if re.search(r"\bsubject\b", member.group())]
+            if len(subjects) > 1:
+                return _UNAVAILABLE
+            if not subjects:
+                continue
+            subject = re.fullmatch(r"\s*(?:doc\s+)*subject\s+" + _NAME + r"\s*:\s*("
+                                   + _QUALIFIED_NAME + r")\s*;", subjects[0].group())
+            if not subject:
+                return _UNAVAILABLE
+            if subject.group(1) in (definition, self.prefix + definition):
+                found.append(typed.group(1))
+        if len(found) > 1 or (found and not self._unique_identity(found[0])):
+            return _UNAVAILABLE
+        return [(self.prefix + name + "::subject", self.prefix + name, "requirement") for name in found]
+
+    def _stakeholder_role(self, end: str):
+        """Resolve ``owner.member`` to a native stakeholder member.
+
+        Returns the role identity, ``[]`` for assessed non-witness (owner or
+        member absent, or a supported member that is not a stakeholder), or
+        ``None`` when present input is ambiguous or unsupported.
+        """
+        if end.startswith(self.prefix):
+            end = end[len(self.prefix):]
+        owner, _, member = end.partition(".")
+        if "::" in end or not member or "." in member:
+            return _UNAVAILABLE
+        owner_body, unavailable = _owned_body(self.text, owner)
+        if unavailable:
+            return _UNAVAILABLE
+        if owner_body is None:
+            return []
+        roles = _owned_records(owner_body, member)
+        if len(roles) > 1:
+            return _UNAVAILABLE
+        if not roles:
+            return []
+        shape = re.fullmatch(r"\s*(?:doc\s+)*(" + _NAME + r")\s+" + re.escape(member) + r"\s*:\s*"
+                             + _QUALIFIED_NAME + r"\s*[;{]", roles[0].group())
+        if not shape:
+            return _UNAVAILABLE
+        if shape.group(1) != "stakeholder":
+            return []
+        return self.prefix + owner + "::" + member
+
+    def _stakeholders(self, increment: str):
+        witnesses = []
+        for header in self._mentions("HasStakeholder"):
+            connection = re.fullmatch(
+                r"\s*connection\s+(" + _NAME + r")\s*:\s*" + self._kernel_type("HasStakeholder")
+                + r"\s+connect\s+(" + _QUALIFIED_NAME + r")\s+to\s+("
+                + _QUALIFIED_NAME + r"(?:\." + _NAME + r")?)\s*;", header.group())
+            if not connection or not self._unique_identity(connection.group(1)):
+                return _UNAVAILABLE
+            if connection.group(2) not in (increment, self.prefix + increment):
+                continue
+            role = self._stakeholder_role(connection.group(3))
+            if role is None:
+                return _UNAVAILABLE
+            if role:
+                witnesses.append((self.prefix + connection.group(1), role, "stakeholder"))
+        return witnesses
+
+    def _frames(self, viewpoint_body: str):
+        names = []
+        for member in _headers(viewpoint_body):
+            if not re.search(r"\bframe\b", member.group()):
+                continue
+            frame = re.fullmatch(r"\s*frame\s+(" + _NAME + r")\s*;", member.group())
+            if not frame:
+                return _UNAVAILABLE
+            names.append(frame.group(1))
+        return names
+
+    def _concerns(self):
+        witnesses = []
+        for view in _headers(self.text):
+            if not re.match(r"\s*view\s+(?!def\b)", view.group()):
+                continue
+            declared = re.fullmatch(r"\s*view\s+(" + _NAME + r")\s*(?::\s*" + _QUALIFIED_NAME
+                                    + r"\s*)?([;{])", view.group())
+            if not declared:
+                return _UNAVAILABLE
+            body = "" if declared.group(2) == ";" else _matched_body(self.text, view)
+            if body is None:
+                return _UNAVAILABLE
+            for viewpoint in _headers(body):
+                if not re.match(r"\s*viewpoint\s+", viewpoint.group()):
+                    continue
+                selected = re.fullmatch(r"\s*viewpoint\s+(" + _NAME + r")\s*(?::\s*"
+                                        + _QUALIFIED_NAME + r"\s*)?([;{])", viewpoint.group())
+                if not selected:
+                    return _UNAVAILABLE
+                frames = [] if selected.group(2) == ";" else self._frames(
+                    _matched_body(body, viewpoint) or "")
+                if frames is None:
+                    return _UNAVAILABLE
+                for name in frames:
+                    concerns = _owned_records(self.text, name)
+                    if len(concerns) > 1:
+                        return _UNAVAILABLE
+                    if not concerns:
+                        continue  # a frame of a concern owned elsewhere is not this increment's
+                    if not re.fullmatch(r"\s*(?:doc\s+)*concern\s+" + re.escape(name)
+                                        + r"\s*(?::\s*" + _QUALIFIED_NAME + r"\s*)?[;{]",
+                                        concerns[0].group()):
+                        return _UNAVAILABLE
+                    witnesses.append((self.prefix + declared.group(1) + "::" + selected.group(1)
+                                      + "::frame::" + name, self.prefix + name, "concern"))
+        return witnesses
+
+    def evaluate(self) -> dict:
+        increment = self._increment()
+        outcome = {}
+        if isinstance(increment, tuple):
+            name, definition = increment
+            outcome["increment"] = [(self.prefix + name + " : " + definition, self.prefix + name, "part")]
+            outcome["problemStatement"] = self._problem_statement(definition)
+            outcome["stakeholders"] = self._stakeholders(name)
+        else:
+            # Without one identified increment nothing can be about it: an
+            # absent declaration reference fails ``increment`` only, and the
+            # increment-dependent relations cannot be assessed.
+            outcome["increment"] = increment
+            outcome["problemStatement"] = outcome["stakeholders"] = _UNAVAILABLE
+        for relation, type_name in self.TYPED.items():
+            outcome[relation] = self._single_typed(type_name)
+        outcome["concerns"] = self._concerns()
+        return {relation: outcome[relation] for relation in sorted(SUPPORTED)}
+def repository_snapshot(repo: Path, increment_id: str) -> TraceSnapshot:
+    """Bounded native-relationship extraction, NOT a SysML parser/API binding.
+
+    The trace declaration only selects the method, scope, phases, completion
+    claim and increment. Phase 0/1 witnesses come from the increment's own
+    native model relationships (see ``_NativeFraming``), never from parallel
+    reference slots. Only direct-owned, simple ASCII-named declarations supply
+    identities; quote tokens are inert. No evaluation of arbitrary
+    expressions, imports, subtyping, full SysML validity or transitive
+    relationships. Unrecognized or ambiguous declarations are unavailable;
+    native validation stays gated.
     """
     path, namespace, usage = FRAMINGS[increment_id]
     text = _namespace_body(_clean((repo / path).read_text()), namespace)
@@ -382,53 +633,13 @@ def repository_snapshot(repo: Path, increment_id: str) -> TraceSnapshot:
     validate_increment_scope(increment_id, declaration)
     owner = namespace + "::" + usage
     artifacts, witnesses, unavailable = [], [], []
-    for relation in SUPPORTED:
-        refs = _owned_records(body, relation)
-        if len(refs) > 1:
+    for relation, outcome in _NativeFraming(text, namespace, body).evaluate().items():
+        if outcome is None:
             unavailable.append(relation)
             continue
-        if not refs: continue
-        # Presence/identity is established first. Parsing only supported RHS
-        # expressions must not erase an unsupported member into missing/FAIL.
-        reference = re.fullmatch(r"\s*(?:doc\s+)*ref\s+(?:part|requirement)\s+:>>\s+"
-                                 + re.escape(relation) + r"\s*=\s*(" + _QUALIFIED_NAME + r")\s*;",
-                                 body[refs[0].start():refs[0].end()])
-        if not reference:
-            unavailable.append(relation)
-            continue
-        target = reference.group(1)
-        prefix = namespace + "::"
-        if not target.startswith(prefix):
-            unavailable.append(relation)
-            continue
-        names = target[len(prefix):].split("::")
-        if len(names) not in (1, 2):
-            unavailable.append(relation)
-            continue
-        artifact_body, unavailable_target = _owned_body(text, names[0])
-        if unavailable_target:
-            # Ambiguous or unsupported targets cannot supply a single witness.
-            unavailable.append(relation)
-            continue
-        if artifact_body is None: continue
-        if len(names) == 2:
-            stakeholders = _owned_records(artifact_body, names[1])
-            if len(stakeholders) > 1:
-                unavailable.append(relation)
-                continue
-            if not stakeholders:
-                continue
-            if not re.fullmatch(r"\s*(?:doc\s+)*stakeholder\s+" + re.escape(names[1])
-                                + r"\s*:\s*" + _QUALIFIED_NAME + r"\s*[;{]",
-                                artifact_body[stakeholders[0].start():stakeholders[0].end()]):
-                unavailable.append(relation)
-                continue
-        kind_matches = _owned_matches(
-            text, r"\b(part|requirement|concern)\s+" + re.escape(names[0]) + r"\s*:")
-        if len(kind_matches) != 1: continue
-        kind = "stakeholder" if len(names) == 2 else kind_matches[0].group(1)
-        artifacts.append(IdentifiedArtifact(target, kind))
-        witnesses.append(TraceWitness(owner + "::" + relation, owner, relation, target))
+        for identity, target, kind in outcome:
+            artifacts.append(IdentifiedArtifact(target, kind))
+            witnesses.append(TraceWitness(identity, owner, relation, target))
     commit = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
     # Deliberately distinguish working-tree source inspection from native API
     # or exact committed candidate evidence. No API provenance is invented.

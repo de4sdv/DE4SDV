@@ -82,18 +82,12 @@ package DE4SDV_AEBSVisualizationFraming {
     connect incAEBS010 to visualizationProblemStatement.systemsEngineer;
 
   part visualizationTraceObligations : IncrementTraceObligations {
-    doc /* Identified source references; no completion or downstream execution claim. */
+    doc /* Scope declaration only; traces are the native relationships of this package. */
     ref part :>> selectedMethod = DE4SDV_MethodTraces::approvedScopedTraceMethod;
     attribute :>> scopeKind = "requirements";
     attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements);
     attribute :>> completionClaim = TraceCompletionClaim::requirementsReady;
     ref part :>> increment = DE4SDV_AEBSVisualizationFraming::incAEBS010;
-    ref part :>> declaredScope = DE4SDV_AEBSVisualizationFraming::visualizationScope;
-    ref requirement :>> problemStatement = DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement;
-    ref part :>> engineeringQuestion = DE4SDV_AEBSVisualizationFraming::visualizationEngineeringQuestion;
-    ref part :>> lifecycleDecision = DE4SDV_AEBSVisualizationFraming::visualizationLifecycleDecision;
-    ref requirement :>> concerns = DE4SDV_AEBSVisualizationFraming::visualizationBoundaryConcern;
-    ref part :>> stakeholders = DE4SDV_AEBSVisualizationFraming::visualizationProblemStatement::systemsEngineer;
   }
 
   /* Dependency to the mandated predecessor decision (qualified reference,

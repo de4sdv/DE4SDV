@@ -187,20 +187,22 @@ def test_adopted_status_identity_is_mandatory_without_archive(monkeypatch, seam,
             sa.verify_native_sources()
 
 
+@pytest.mark.parametrize("short_name", ["<localStatus>", "<local\nStatus>", "<\nlocalStatus\n>"])
 @pytest.mark.parametrize("seam", ["model-enum", "model-alias", "activity-enum", "activity-alias",
                                   "adapter-enum", "adapter-alias"])
 @pytest.mark.parametrize("consumer", ["records", "source-check"])
-def test_short_name_same_identity_shadow_is_refused(monkeypatch, seam, consumer):
+def test_short_name_same_identity_shadow_is_refused(monkeypatch, seam, consumer, short_name):
     from de4sdv.semantic import scoped_assurance as sa
     relative = sa.MODEL_PATH
     if seam.startswith("adapter"):
         relative = str(Path(relative).with_name("de4sdv_sysmod_adapter.sysml"))
     text = (ROOT / relative).read_text(encoding="utf-8")
     if seam.endswith("enum"):
-        # Exact R2 review mutation: a bounded short-name token hides the name.
-        shadow = "enum def <localStatus> VVStatus { Accepted; }"
+        # Exact R2 review mutation (plus QUALITY S1 multi-line short names):
+        # a bounded short-name token hides the name.
+        shadow = "enum def " + short_name + " VVStatus { Accepted; }"
     else:
-        shadow = "alias <localStatus> VVStatus for RequirementsManagement::VVStatus;"
+        shadow = "alias " + short_name + " VVStatus for RequirementsManagement::VVStatus;"
     marker = ("item def ScopedVVActivityRecord {" if seam.startswith("activity")
               else "package " + ("DE4SDV_SYSMODAdapter" if seam.startswith("adapter")
                                  else "DE4SDV_ScopedAssurance") + " {")
