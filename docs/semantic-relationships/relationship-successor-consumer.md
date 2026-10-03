@@ -72,6 +72,10 @@ Records and carriers must themselves belong directly to the governed package;
 correct fields inside a foreign owner's block do not establish authority. Carrier
 end qualifications must identify the pinned declaration in its exact source file
 and owning namespace. A same-named foreign or unresolved type cannot satisfy a pin.
+Bare cross-file end names also require a uniquely visible known pinned identity;
+competing directly imported homonyms require canonical qualification, not a guess.
+If known pins repeat the same qualified declaration in distinct files, even the
+qualified spelling cannot choose a file and construction refuses.
 
 ## Runnable CLI and MCP
 

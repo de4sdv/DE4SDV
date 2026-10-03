@@ -89,6 +89,9 @@ constraints, not a whole-file search for vocabulary mentions. Comments, quoted
 text and constraints nested under foreign owners cannot add values. The existing
 adopted `VVStatus` identity and population remain the vocabulary seam; optional
 archive verification is separate from this mandatory supplied-record guard.
+Direct same-identity definitions or aliases, including short-name headers, refuse
+in the model package, activity owner and adapter seam. Inert or foreign-owned
+lookalikes cannot shadow the adopted identity.
 
 New kernel declarations must be classified by the existing ontology-kernel
 contract. Aggregate inventories and revision bindings must be regenerated after
