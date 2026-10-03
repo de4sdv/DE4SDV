@@ -460,7 +460,7 @@ class _NativeFraming:
         if not typed:
             return _UNAVAILABLE
         definition = typed.group(1)
-        if self._shadowed(*_INCREMENT_DEFINITIONS) and definition in _INCREMENT_DEFINITIONS:
+        if definition in _INCREMENT_DEFINITIONS and self._shadowed(definition):
             return _UNAVAILABLE
         if definition not in _INCREMENT_DEFINITIONS:
             local = _owned_records(self.text, definition)

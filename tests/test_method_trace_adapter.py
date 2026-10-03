@@ -246,6 +246,25 @@ class ScopedTraceTests(unittest.TestCase):
                     INCREMENT_DEFINITION, INCREMENT_DEFINITION + "\n  part def " + type_name + ";")
                 self._assert_unavailable(snapshot, (relation,))
 
+    def test_unrelated_local_kernel_name_does_not_shadow_a_different_reference(self):
+        """Final SPEC: only a same-name local declaration shadows; a different
+        kernel name declared locally must not over-refuse direct typing."""
+        from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
+        for extra in ("part def Foo;", "part def FeatureIncrement :> IncrementAssumption;"):
+            with self.subTest(extra=extra):
+                snapshot = self._snapshot_mutation(
+                    (INCREMENT_DEFINITION, "part incAEBS010 : VisualizationIncrement {",
+                     "subject increment : VisualizationIncrement;"),
+                    (INCREMENT_DEFINITION + "\n  " + extra, "part incAEBS010 : EngineeringIncrement {",
+                     "subject increment : EngineeringIncrement;"))
+                result = evaluate_snapshot(snapshot)
+                self.assertEqual(len([r for r in result.results if r.verdict == "PASS"]), 7)
+        same = self._snapshot_mutation(
+            (INCREMENT_DEFINITION, "part incAEBS010 : VisualizationIncrement {"),
+            (INCREMENT_DEFINITION + "\n  part def EngineeringIncrement;",
+             "part incAEBS010 : EngineeringIncrement {"))
+        self._assert_unavailable(same, ("increment",))
+
     def test_qualified_kernel_parent_still_identifies_the_increment(self):
         from de4sdv.semantic.method_trace_adapter import evaluate_snapshot
         snapshot = self._snapshot_mutation(
