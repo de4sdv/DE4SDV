@@ -4,10 +4,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `ff52e0d323dcfea84e1ea98107326d6855c48a33`
+- Source revision: `cfdae9199625c8c7eae97e891ed3efa43987e99c`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
-- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:dd1417aff9b4ade64725f306fd0384f3c54a8f171e656a8a17582a6bfa9b3baa)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:d4108e71da1829e9d719eca1512f5e5799560da06b8d67bc4a511e9be870b10b)
+- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:147a94e8da69668d25c5f9a06ddfd87b58a7de45ef868624cc1086fc10e56b8c)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:2001812976c153e23c786c5b18e7e312189b300300c9d70280d9159e66c39238)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
 - Bound inputs: 29 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
@@ -21,10 +21,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | total_entries | 105 |
 | relationship_mappings | 9 |
 | relationship_vocabulary_only | 25 |
-| kernel_declarations_governed_dir | 136 |
+| kernel_declarations_governed_dir | 135 |
 | kernel_mapped_in_dir | 49 |
 | kernel_mapped_out_of_dir | 1 |
-| kernel_exclusions | 87 |
+| kernel_exclusions | 86 |
 | governance_rules | 10 |
 | runtime_strategies_implemented | 8 |
 | runtime_strategies_unassociated | 2 |
