@@ -306,3 +306,69 @@ def test_successor_constructor_bare_type_requires_canonical_scope(monkeypatch, s
     sources[RELATIONSHIP_MODEL] = model
     with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
         _synthetic_constructor(monkeypatch, sources)
+
+
+def test_successor_constructor_refuses_competing_known_imported_homonym(monkeypatch, successor_qualified_sources):
+    """R4-adj: two known pinned homonyms in direct import scope make a bare end ambiguous."""
+    sources = successor_qualified_sources
+    foreign_pin = _constructor_record("foreignPin", "SuccessorClassRecord",
+        identity="ForeignRight", sourceFile="pins/foreign.sysml", declaration="part def TargetRoot")
+    competing = sources[RELATIONSHIP_MODEL].replace(
+        "{\n", "{\n  private import CanonicalTarget::*;\n  private import Foreign::*;\n" + foreign_pin, 1)
+    # Both pinned definitions are known and imported; the qualified spelling still admits.
+    qualified = _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: competing})
+    assert qualified["classes"]["Right"] == {
+        "file": "pins/target.sysml", "declaration": "part def TargetRoot"}
+    assert qualified["classes"]["ForeignRight"] == {
+        "file": "pins/foreign.sysml", "declaration": "part def TargetRoot"}
+    # The supported bare spelling cannot uniquely identify the canonical pin: refuse it.
+    bare = competing.replace("CanonicalTarget::TargetRoot", "TargetRoot")
+    with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
+        _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: bare})
+
+
+def test_successor_constructor_bare_type_uniqueness_is_bounded_to_known_imports(
+        monkeypatch, successor_qualified_sources):
+    """R4-adj boundary: only known pins visible by direct import can compete."""
+    sources = successor_qualified_sources
+    foreign_pin = _constructor_record("foreignPin", "SuccessorClassRecord",
+        identity="ForeignRight", sourceFile="pins/foreign.sysml", declaration="part def TargetRoot")
+    # The competing pin is known but its package is not imported: the bare end stays canonical.
+    model = sources[RELATIONSHIP_MODEL].replace(
+        "{\n", "{\n  private import CanonicalTarget::*;\n" + foreign_pin, 1)
+    model = model.replace("CanonicalTarget::TargetRoot", "TargetRoot")
+    assert _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: model})["classes"]["Right"] == {
+        "file": "pins/target.sysml", "declaration": "part def TargetRoot"}
+    # The competing package is imported but no competing pin is known: bounded, no resolver.
+    model = sources[RELATIONSHIP_MODEL].replace(
+        "{\n", "{\n  private import CanonicalTarget::*;\n  private import Foreign::*;\n", 1)
+    model = model.replace("CanonicalTarget::TargetRoot", "TargetRoot")
+    assert _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: model})["classes"]["Right"] == {
+        "file": "pins/target.sysml", "declaration": "part def TargetRoot"}
+
+
+@pytest.mark.parametrize("qualified", [True, False])
+def test_successor_constructor_known_qualified_identity_cannot_choose_between_files(
+        monkeypatch, successor_qualified_sources, qualified):
+    sources = successor_qualified_sources
+    sources["pins/foreign.sysml"] = sources["pins/target.sysml"]
+    competing_pin = _constructor_record("foreignPin", "SuccessorClassRecord",
+        identity="ForeignRight", sourceFile="pins/foreign.sysml", declaration="part def TargetRoot")
+    model = sources[RELATIONSHIP_MODEL].replace(
+        "{\n", "{\n  private import CanonicalTarget::*;\n" + competing_pin, 1)
+    if not qualified:
+        model = model.replace("CanonicalTarget::TargetRoot", "TargetRoot")
+    with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
+        _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: model})
+
+
+def test_successor_constructor_local_bare_identity_cannot_choose_between_files(
+        monkeypatch, successor_constructor_parts):
+    model = _constructor_model(successor_constructor_parts)
+    competing_pin = _constructor_record("foreignPin", "SuccessorClassRecord",
+        identity="ForeignLeft", sourceFile="pins/foreign.sysml", declaration="part def LeftRoot")
+    model = model.replace("{\n", "{\n" + competing_pin, 1)
+    sources = {RELATIONSHIP_MODEL: model,
+               "pins/foreign.sysml": "package DE4SDV_RelationshipSuccessor {\n  part def LeftRoot {}\n}"}
+    with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
+        _synthetic_constructor(monkeypatch, sources)

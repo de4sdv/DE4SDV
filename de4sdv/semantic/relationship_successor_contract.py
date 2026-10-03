@@ -186,6 +186,28 @@ def _definition_owner(text: str, declaration: str) -> str:
     return owner
 
 
+def _competing_known_homonyms(class_types: dict[str, tuple[str, str]], classes: dict,
+                              imports: set[str], identity: str, expected: str,
+                              canonical: str) -> set[str]:
+    """Known same-name definitions exposed by the supported direct import scope.
+
+    A bare carrier-end type may be admitted only when the class pins and direct
+    imports identify exactly the pinned canonical definition. Another pinned
+    definition with the same name competes when its exact qualified name or its
+    package wildcard is directly imported. Equal qualification in distinct
+    pinned files is also ambiguous; aliases of one exact file/declaration are
+    not. This bounded uniqueness check reads no imported package and is not a
+    general SysML name resolver.
+    """
+    return {
+        other_owner + "::" + other_name
+        for other, (other_owner, other_name) in class_types.items()
+        if other_name == expected and classes[other] != classes[identity]
+        and (other_owner + "::" + other_name == canonical
+             or {other_owner + "::" + other_name, other_owner + "::*"} & imports)
+    }
+
+
 def generate_contract(root: Path) -> dict:
     text = (root / MODEL).read_text()
     package = _live_declaration(text, r"\bpackage\s+" + PACKAGE + r"(?=\s*\{)", direct_depth=0)
@@ -267,10 +289,13 @@ def generate_contract(root: Path) -> dict:
                 raise ValueError("missing endpoint class pin: " + row[class_key])
             owner, expected = class_types[row[class_key]]
             canonical = owner + "::" + expected
-            admitted_types = {canonical}
             pin = classes[row[class_key]]
             local_definitions, _ = _owned_matches(package, r"\bdef\s+" + re.escape(expected) + r"\b")
-            if pin["file"] == MODEL or (not local_definitions and {canonical, owner + "::*"} & imports):
+            homonyms = _competing_known_homonyms(class_types, classes, imports,
+                                                row[class_key], expected, canonical)
+            admitted_types = {canonical} if canonical not in homonyms else set()
+            if canonical not in homonyms and (pin["file"] == MODEL or
+                    (not local_definitions and not homonyms and {canonical, owner + "::*"} & imports)):
                 admitted_types.add(expected)
             if declared_ends.get(end, "") not in admitted_types:
                 raise ValueError(f"carrier endpoint pin mismatch: {row['carrier']}.{end}")
