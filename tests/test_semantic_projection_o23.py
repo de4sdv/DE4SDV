@@ -1740,11 +1740,11 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# PR319 recovery: v1.2 extends the refreshed temporary v1.1 pair.
-# TEMPORARY STACK BINDING: this feature commit contains those baseline bytes.
-# After v1.1 has a permanent recovery revision, regenerate v1.2 against it;
-# this green review-head binding is not permanent recovery closure.
-COMMITTED_SOURCE_REVISION = "fc519257585f2403219d230d4f29753cd06dbb70"
+# PR319 recovery: v1.1 now has a permanent source revision.
+# TEMPORARY STACK BINDING: this feature commit contains the refreshed v1.1
+# baseline bytes. After this checkpoint is squashed, bind v1.2 to that
+# actual permanent merge revision to finish downstream recovery.
+COMMITTED_SOURCE_REVISION = "1d1df754d9d1bc667d04d332a384d92c07702bb6"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
