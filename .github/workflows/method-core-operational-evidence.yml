@@ -46,6 +46,11 @@ jobs:
       - name: Install existing evaluator dependency
         run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
 
+      - name: Keep evidence outside the executor checkout
+        run: |
+          printf 'RETAINED_ARTIFACT_DIR=%s\n' "$RUNNER_TEMP/method-core-retained-ingestion" >> "$GITHUB_ENV"
+          printf 'CORE_EVIDENCE_DIR=%s\n' "$RUNNER_TEMP/method-core-evidence" >> "$GITHUB_ENV"
+
       - name: Verify exact revision and provider-side retained-artifact origin
         id: origin
         run: |
@@ -81,7 +86,7 @@ jobs:
           artifact = matches[0]
           if artifact.get('workflow_run', {}).get('head_sha') != revision:
               raise SystemExit('refused: artifact origin revision mismatch')
-          root = Path('core-evidence')
+          root = Path(os.environ['CORE_EVIDENCE_DIR'])
           root.mkdir()
           record = {'source_revision': revision, 'ingestion_run_id': run['id'],
                     'ingestion_workflow_id': run['workflow_id'], 'ingestion_run_url': run['html_url'],
@@ -98,7 +103,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           artifact-ids: ${{ steps.origin.outputs.artifact_id }}
-          path: retained-ingestion
+          path: ${{ env.RETAINED_ARTIFACT_DIR }}
           merge-multiple: true
           github-token: ${{ github.token }}
           run-id: ${{ inputs.ingestion_run }}
@@ -111,7 +116,7 @@ jobs:
           from de4sdv.semantic import method_pilot as mp
           from de4sdv.semantic import operational_exit as oe
 
-          artifacts = oe.validate_ingestion_artifacts(Path('retained-ingestion'))
+          artifacts = oe.validate_ingestion_artifacts(Path(os.environ['RETAINED_ARTIFACT_DIR']))
           selected = os.environ['SELECTED_REVISION']
           head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
           if artifacts.git_commit != selected or head != selected:
@@ -135,35 +140,36 @@ jobs:
                     'repository': os.environ['GITHUB_REPOSITORY'], 'fetched': fetched,
                     'role': 'declared-tested-execution-input',
                     'permanent_executor_provenance': False}
-          Path('core-evidence/tested-git-input.json').write_text(json.dumps(record, indent=2) + '\n')
+          (Path(os.environ['CORE_EVIDENCE_DIR']) / 'tested-git-input.json').write_text(json.dumps(record, indent=2) + '\n')
           PY
 
       - name: Exercise fresh-process parity, offline replay and refusal matrix
         run: |
           python scripts/run_core_operational_exit.py \
-            --repo . --artifacts retained-ingestion \
+            --repo . --artifacts "$RETAINED_ARTIFACT_DIR" \
             --validation-run "$INGESTION_RUN" \
             --expected-revision "$SELECTED_REVISION" \
-            --out core-evidence/battery-receipt
+            --out "$CORE_EVIDENCE_DIR/battery-receipt"
 
       - name: Observe optional PR delivery state without inventing conformance
         if: ${{ inputs.advisory_pr != '' }}
         run: |
           python - <<'PY'
           import os, subprocess
+          from pathlib import Path
           if not os.environ['ADVISORY_PR'].isdecimal():
               raise SystemExit('refused: numeric PR number required')
           subprocess.run(['python', 'scripts/run_delivery_gate.py',
                           '--repository', os.environ['GITHUB_REPOSITORY'],
                           '--pr', os.environ['ADVISORY_PR'],
-                          '--out', 'core-evidence/advisory.json'], check=True)
+                          '--out', str(Path(os.environ['CORE_EVIDENCE_DIR']) / 'advisory.json')], check=True)
           PY
 
       - name: Retain actual receipts including failures
-        if: always()
+        if: always() && env.CORE_EVIDENCE_DIR != ''
         uses: actions/upload-artifact@v4
         with:
           name: method-core-operational-${{ inputs.ref }}-${{ github.run_id }}
-          path: core-evidence/
+          path: ${{ env.CORE_EVIDENCE_DIR }}/
           if-no-files-found: error
           retention-days: 30
