@@ -56,26 +56,33 @@ def test_main_only_clone_fetches_exact_declared_tested_object(tmp_path, monkeypa
         capture_output=True,
     )
     assert probe.returncode != 0, "fixture must reproduce CI's absent tested Git object"
-    retained = clone / "retained-ingestion"
-    retained.mkdir()
+    retained = tmp_path / "runner temp" / "retained-ingestion"
+    retained.mkdir(parents=True)
     (retained / "de4sdv-candidate-export.json").write_text(json.dumps({"elements": []}))
-    (clone / "core-evidence").mkdir()
+    evidence = tmp_path / "runner temp" / "core-evidence"
+    evidence.mkdir()
     monkeypatch.chdir(clone)
     monkeypatch.setenv("SELECTED_REVISION", candidate)
     monkeypatch.setenv("GITHUB_REPOSITORY", "fixture/repository")
-    monkeypatch.setattr(oe, "validate_ingestion_artifacts", lambda path: SimpleNamespace(
-        directory=retained, git_commit=candidate,
-    ))
+    monkeypatch.setenv("RETAINED_ARTIFACT_DIR", str(retained))
+    monkeypatch.setenv("CORE_EVIDENCE_DIR", str(evidence))
+
+    def validate_artifacts(path):
+        assert path == retained
+        return SimpleNamespace(directory=retained, git_commit=candidate)
+
+    monkeypatch.setattr(oe, "validate_ingestion_artifacts", validate_artifacts)
     monkeypatch.setattr(mp, "decode_declared_tested_scope", lambda elements: ({"@id": "scope"}, [], []))
     monkeypatch.setattr(mp, "_member_text_value", lambda *args: (None, tested))
     exec(compile(script, "<Core declared-tested prerequisite>", "exec"), {})
     assert _git(clone, "rev-parse", "HEAD") == candidate
     _git(clone, "cat-file", "-e", tested + "^{commit}")
-    record = json.loads((clone / "core-evidence/tested-git-input.json").read_text())
+    record = json.loads((evidence / "tested-git-input.json").read_text())
     assert record["candidate_git_commit"] == candidate
     assert record["tested_git_commit"] == tested
     assert record["role"] == "declared-tested-execution-input"
     assert record["permanent_executor_provenance"] is False
+    assert _git(clone, "status", "--porcelain") == ""
 
 
 @pytest.mark.parametrize("tested", [None, "", "B" * 40, "b" * 39, "b" * 41,
@@ -88,6 +95,7 @@ def test_invalid_declared_sha_refuses_before_git_fetch(tmp_path, monkeypatch, te
     (retained / "de4sdv-candidate-export.json").write_text(json.dumps({"elements": []}))
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("SELECTED_REVISION", candidate)
+    monkeypatch.setenv("RETAINED_ARTIFACT_DIR", str(retained))
     monkeypatch.setattr(oe, "validate_ingestion_artifacts", lambda path: SimpleNamespace(
         directory=retained, git_commit=candidate,
     ))

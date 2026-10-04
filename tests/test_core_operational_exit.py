@@ -708,3 +708,154 @@ def test_cli_different_executor_revision_is_never_current(tmp_path, monkeypatch)
     assert receipt["scope"]["current_exact_revision_verified"] is False
     assert any(executor_head in reason for reason in receipt["scope"]["reasons"])
     assert receipt["method_decision"]["core_accepted"] is False
+
+
+def test_workflow_evidence_stays_outside_clean_executor_checkout(tmp_path: Path) -> None:
+    """Execute origin/CLI wiring with real Git and a synthetic provider transport."""
+    import os
+    import subprocess
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    job = yaml.safe_load((root / ".github/workflows/method-core-operational-evidence.yml").read_text())["jobs"]["observe"]
+    checkout = tmp_path / "checkout"
+    runner_temp = tmp_path / "runner temp with spaces"
+    runner_temp.mkdir()
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    subprocess.run(["git", "-C", str(checkout), "-c", "user.name=Synthetic Test",
+                    "-c", "user.email=synthetic@example.invalid", "commit", "-q",
+                    "--allow-empty", "-m", "synthetic executor"], check=True)
+    revision = subprocess.check_output(["git", "-C", str(checkout), "rev-parse", "HEAD"], text=True).strip()
+    subprocess.run(["git", "-C", str(checkout), "update-ref", "refs/remotes/origin/main", revision], check=True)
+    prefix = "repos/fixture/synthetic"
+    responses = {
+        prefix + "/actions/workflows/privileged-full-model-api-ingestion.yml": {"id": 17},
+        prefix + "/actions/runs/123": {
+            "id": 123, "head_sha": revision, "status": "completed", "conclusion": "success",
+            "event": "workflow_dispatch", "workflow_id": 17,
+            "repository": {"full_name": "fixture/synthetic"},
+            "html_url": "https://example.invalid/synthetic-run",
+        },
+        prefix + "/actions/runs/123/artifacts?per_page=100": {
+            "total_count": 1, "artifacts": [{"id": 29, "expired": False,
+                "name": "full-model-api-ingestion-" + revision,
+                "digest": "sha256:" + "f" * 64, "workflow_run": {"head_sha": revision}}],
+        },
+    }
+    binary_dir = tmp_path / "bin"
+    binary_dir.mkdir()
+    gh = binary_dir / "gh"
+    gh.write_text("#!" + sys.executable + "\nimport json, os, sys\n"
+                  "assert sys.argv[1] == 'api' and len(sys.argv) == 3\n"
+                  "print(json.dumps(json.loads(os.environ['SYNTHETIC_PROVIDER'])[sys.argv[2]]))\n")
+    gh.chmod(0o755)
+    environment = dict(os.environ, PATH=str(binary_dir) + os.pathsep + os.environ.get("PATH", ""),
+                       SELECTED_REVISION=revision, INGESTION_RUN="123", ADVISORY_PR="",
+                       GITHUB_REPOSITORY="fixture/synthetic", GITHUB_SHA=revision,
+                       GITHUB_RUN_ID="456", GITHUB_RUN_ATTEMPT="1", RUNNER_OS="Linux",
+                       RUNNER_ARCH="X64", RUNNER_TEMP=str(runner_temp),
+                       GITHUB_OUTPUT=str(runner_temp / "step-output"),
+                       SYNTHETIC_PROVIDER=json.dumps(responses))
+    steps = {step["name"]: step for step in job["steps"]}
+    environment_file = runner_temp / "step-environment"
+    environment["GITHUB_ENV"] = str(environment_file)
+    subprocess.run(["bash", "-eu", "-c", steps["Keep evidence outside the executor checkout"]["run"]],
+                   cwd=checkout, env=environment, check=True)
+    environment.update(dict(line.split("=", 1) for line in environment_file.read_text().splitlines()))
+    origin = steps["Verify exact revision and provider-side retained-artifact origin"]["run"]
+    subprocess.run(["bash", "-eu", "-c", origin], cwd=checkout, env=environment, check=True)
+    status = subprocess.check_output(["git", "-C", str(checkout), "status", "--porcelain"], text=True)
+    assert status == "", f"workflow-generated origin record dirtied executor: {status}"
+    records = list(runner_temp.rglob("provider-origin.json"))
+    assert len(records) == 1
+    evidence = records[0].parent
+
+    def action_path(value: str) -> Path:
+        for name, resolved in environment.items():
+            value = value.replace("${{ env." + name + " }}", resolved)
+        assert "${{" not in value, "unresolved workflow path"
+        return (checkout / value).resolve()
+
+    retained = action_path(steps["Download the verified artifact object"]["with"]["path"])
+    assert retained.is_relative_to(runner_temp) and not retained.is_relative_to(checkout)
+    retained.mkdir(parents=True)
+    _write(retained / "synthetic-input.json", {"synthetic": True})
+    python = binary_dir / "python"
+    python.write_text("#!" + sys.executable + "\nimport json, os, sys\nfrom pathlib import Path\n"
+                      "Path(os.environ['SYNTHETIC_ARGV']).write_text(json.dumps(sys.argv[1:]))\n"
+                      "out = Path(sys.argv[sys.argv.index('--out') + 1])\n"
+                      "out.mkdir(parents=True)\n(out / 'synthetic-receipt.json').write_text('{}')\n")
+    python.chmod(0o755)
+    argv_path = runner_temp / "argv.json"
+    environment["SYNTHETIC_ARGV"] = str(argv_path)
+    battery = steps["Exercise fresh-process parity, offline replay and refusal matrix"]["run"]
+    subprocess.run(["bash", "-eu", "-c", battery], cwd=checkout, env=environment, check=True)
+    argv = json.loads(argv_path.read_text())
+    assert Path(argv[argv.index("--artifacts") + 1]) == retained
+    assert Path(argv[argv.index("--out") + 1]) == evidence / "battery-receipt"
+    assert argv[argv.index("--expected-revision") + 1] == revision
+    upload = steps["Retain actual receipts including failures"]
+    assert upload["if"] == "always() && env.CORE_EVIDENCE_DIR != ''"
+    assert action_path(upload["with"]["path"]) == evidence
+    assert subprocess.check_output(["git", "-C", str(checkout), "status", "--porcelain"], text=True) == ""
+
+
+@pytest.mark.parametrize("initialized,job_failed", [(False, False), (False, True), (True, False), (True, True)])
+def test_workflow_upload_requires_initialized_evidence_path(
+    tmp_path: Path, initialized: bool, job_failed: bool
+) -> None:
+    """A skipped bootstrap must not turn failure retention into a root upload."""
+    import os
+    import subprocess
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    job = yaml.safe_load((root / ".github/workflows/method-core-operational-evidence.yml").read_text())["jobs"]["observe"]
+    steps = {step["name"]: step for step in job["steps"]}
+    upload = steps["Retain actual receipts including failures"]
+    assert upload["if"] == "always() && env.CORE_EVIDENCE_DIR != ''"
+    runner_temp = tmp_path / "runner temp with spaces"
+    runner_temp.mkdir()
+    environment_file = runner_temp / "step-environment"
+    initialized_environment = {}
+    if initialized:
+        subprocess.run(["bash", "-eu", "-c", steps["Keep evidence outside the executor checkout"]["run"]],
+                       check=True, env=dict(os.environ, RUNNER_TEMP=str(runner_temp),
+                                            GITHUB_ENV=str(environment_file)))
+        initialized_environment = dict(line.split("=", 1) for line in environment_file.read_text().splitlines())
+    evidence = initialized_environment.get("CORE_EVIDENCE_DIR", "")
+    rendered_path = upload["with"]["path"].replace("${{ env.CORE_EVIDENCE_DIR }}", evidence)
+    # The asserted Actions expression uses always(), so job failure must not
+    # suppress initialized receipts; its second operand blocks an absent path.
+    should_upload = bool(evidence)
+    assert should_upload == initialized, f"wrong retention after job_failed={job_failed}"
+    if should_upload:
+        assert Path(rendered_path) == runner_temp / "method-core-evidence"
+        assert Path(rendered_path).is_relative_to(runner_temp)
+    else:
+        assert rendered_path == "/"  # Unsafe expansion is never selected.
+
+
+def test_workflow_initializes_runner_paths_after_scheduling(tmp_path: Path) -> None:
+    """runner is available to steps, not jobs.<job_id>.env in Actions."""
+    import os
+    import subprocess
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    job = yaml.safe_load((root / ".github/workflows/method-core-operational-evidence.yml").read_text())["jobs"]["observe"]
+    assert all("${{ runner." not in value for value in job["env"].values())
+    runner_temp = tmp_path / "runner temp with spaces"
+    runner_temp.mkdir()
+    environment_file = runner_temp / "step-environment"
+    steps = job["steps"]
+    setup = next(step for step in steps if step["name"] == "Keep evidence outside the executor checkout")
+    origin = next(step for step in steps if step.get("id") == "origin")
+    assert steps.index(setup) < steps.index(origin)
+    subprocess.run(["bash", "-eu", "-c", setup["run"]], check=True,
+                   env=dict(os.environ, RUNNER_TEMP=str(runner_temp), GITHUB_ENV=str(environment_file)))
+    initialized = dict(line.split("=", 1) for line in environment_file.read_text().splitlines())
+    assert initialized == {
+        "RETAINED_ARTIFACT_DIR": str(runner_temp / "method-core-retained-ingestion"),
+        "CORE_EVIDENCE_DIR": str(runner_temp / "method-core-evidence"),
+    }

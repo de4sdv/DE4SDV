@@ -54,6 +54,16 @@ It downloads that exact artifact object, not a latest artifact or moving branch.
 The provider-origin record and runner context are retained beside the receipts.
 No model ingestion or privileged secrets are used by this replay workflow.
 
+Downloaded inputs and all generated origin, tested-input, battery and advisory
+receipts stay under the runner's temporary directory, outside the selected Git
+checkout. This preserves honest `executor_source_dirty` reporting: generated
+evidence must not contaminate its own executor or be hidden by an ignore-rule
+exception. A green run with a dirty executor is not clean-executor evidence;
+repair workspace isolation and replay the same verified ingestion artifact.
+Failure receipts remain uploadable after path initialization. If setup fails
+before that initialization, upload is skipped rather than expanding an unset
+evidence-directory context to the filesystem root.
+
 The validated pilot scope may name a tested execution commit outside main's
 history. The workflow reads that exact `executionHead` from the validated
 retained export and fetches the missing Git object without switching the
