@@ -23,12 +23,29 @@ approval authority or safety acceptance.
 
 MCP and API impact CLIs accept `--runtime-composition o3+definitions` together
 with `--semantic-authority o3`, `--o3-authority-bundle` and
-`--o3-authority-bundle-id`. The full-model semantic-query validation CLI uses
-the same arguments and constructor. The viewer's `_runtime` accepts explicit
-composition/bundle arguments for non-production construction; the deployed
+`--o3-authority-bundle-id`. The full-model semantic-query and MCP proof
+validation CLIs use the same arguments and explicit constructor. The viewer's
+`_runtime` accepts explicit composition/bundle arguments for non-production construction; the deployed
 viewer request handler does not select this path. Existing default legacy and
 production O3 environment choices remain unchanged. No composition selector
 is read from the environment.
+
+The MCP proof validator builds one explicitly selected runtime with an empty
+selector environment. Proof B reuses its repository, validated binding and
+traversal for native-subject selection; Proof A's server receives the exact
+authority, bundle and composition arguments with the same binding and expected
+Git revision. Validation refuses a server authority identity that differs from
+the selector runtime. Its report retains the selection provenance, including
+the composite components, authored fallback and activation-blocked state.
+Binding, ontology and bundle paths resolve against the caller's working
+directory before the server starts. The server receives those absolute paths,
+so changing its working directory does not select different input files.
+The full-model query validator checks ontology compatibility against the
+constructed runtime contract instead of loading a second authored contract.
+Report/binding identity, current-revision and multi-document guards remain.
+Both proof validators require a supplied bundle ID to be the exact
+`o3b-<32 lowercase hex>` token. Whitespace-padded or otherwise malformed IDs
+are refused at their boundary, not normalized by the frozen selector.
 
 The composite identity covers the O3 bundle, complete definition content and
 binding inputs, exact API binding bytes, and a separate current implementation
@@ -70,8 +87,10 @@ inputs are not modified. Historical O3 bundle verification is not weakened;
 any later change to a recorded runtime-build input requires fresh bundle and
 post-merge evidence at the actual revision.
 
-Whole-consumer retirement remains pending. The MCP proof-side native-subject
-construction, ingestion validators and other remaining consumers still need
-shared-contract wiring and exact-revision verification. Independent review,
+Whole-consumer retirement remains pending. These validators share explicit
+runtime construction but still consume authored semantics for unmigrated
+identities; their ledger entries remain pending. Other ingestion validators
+and remaining consumers still need shared-contract wiring and exact-revision
+verification. Independent review,
 current permanent-revision evidence and separately authorized activation are
 not supplied by this package.
