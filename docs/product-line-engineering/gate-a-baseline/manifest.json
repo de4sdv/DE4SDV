@@ -1,0 +1,15 @@
+{
+  "schema": "de4sdv.retained-ple-baseline/v1",
+  "file": "de4sdv-pleml-gate-a-export.json.xz",
+  "compressed_sha256": "8df340d8a645521b542a44a0adce3ec628e23fb0b21f819dd459bb30dee30f8a",
+  "export_sha256": "cf129d6884dc38555a0a725ad516d06fa6cf1ff2d11d6cda0bb1d5bc1ae51b7d",
+  "export_size": 960515,
+  "frozen_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
+  "historical_run": 33543909037,
+  "historical_workflow": ".github/workflows/privileged-pleml-gate-a.yml",
+  "historical_artifact_id": 9814891861,
+  "historical_artifact_name": "pleml-gate-a-6a99626b4af7cd01108f27dac88bf5b55bba207a",
+  "historical_artifact_archive_sha256": "73412dba3df50c07c9ca21c183cddaf880ed342535bf32a0ed37064604222bc5",
+  "historical_artifact_expired_at": "2026-10-01T18:35:08Z",
+  "qualification": false
+}
