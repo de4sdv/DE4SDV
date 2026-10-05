@@ -91,6 +91,19 @@ package DE4SDV_MethodConformance {
     doc /* Owning increment identifier, e.g. an INC-<SUBJECT>-<SEQ> record identity. */
     attribute subjectType : String;
     doc /* Eligible subject API metaclass for this scope; subjects of other types are rejected. */
+    item exclusions : MethodEvaluationExclusion[*];
+    /* Empty by default: existing scope declarations and memberships remain
+     * unchanged. Each owned exclusion identifies what is excluded and why;
+     * no inferred impact, parallel membership list or silent exclusion. */
+  }
+
+  item def MethodEvaluationExclusion {
+    doc /* One explicit evaluation-scope exclusion with a referenced element
+         * and its rationale. This scope-internal record is not an ontology
+         * class, contribution membership or evidence of conformance. */
+    ref excludedElement : Base::Anything;
+    attribute rationale : String;
+    assert constraint nonEmptyRationale { rationale != "" }
   }
 
   /* Explicit membership of one subject in an evaluation scope: the

@@ -1091,15 +1091,16 @@ entries:
     disposition: move-meaning-into-model
     confidence: medium
     stage: batched-parity (post-0a/0b)
-    note: Kernel mapping points at MiddlewareAcceptanceCriterion in a feature slice (cross-slice mapping);
-      decide kernel promotion vs retained slice mapping.
-    unknowns:
-    - Should the reusable declaration move to the method kernel, or remain a governed cross-slice mapping?
+    note: Owner decision D2 (2026-10-05) promoted the reusable declaration to the method kernel
+      (requirement def AcceptanceCriterion in de4sdv_method_context.sysml); the middleware slice
+      criterion specializes it. A test-verdict criterion, distinct from acceptance decisions under
+      de4sdv.acceptance.maintainer-decision.v1.
+    unknowns: []
     required_evidence:
     - model-side definition parity (normalized-exact text or explicit reviewed equivalence record)
     exact_fit_decision: null
     closure_evidence_ref: null
-    semantic_text_equivalence: review-required
+    semantic_text_equivalence: null
   EvidenceArtifact:
     authority_current: external-reference
     authority_target: external-reference

@@ -7,6 +7,12 @@
  */
 
 package DE4SDV_OperationalContext {
+  doc ValidationScenario /* A scenario used to assess stakeholder fitness for intended use. */
+  comment about ValidationScenario /* Native Scenario parts and bounded validation outcomes remain the representation.
+   * ValidationPlanningScenario is planning only; no native validation-case keyword or
+   * fitness-for-use verdict is invented. */
+
+
   part def OperationalEntity {
     doc /* Reusable entity participating in an operational context or scenario. */
   }
@@ -32,6 +38,8 @@ package DE4SDV_OperationalContext {
   }
 
   part def DE4SDVEvidenceBaseline :> OperationalEntity {
+    doc ontologyDefinition /* A reviewed and controlled state of model, evidence, configuration, or publication
+     * artifacts. */
     doc /* A reviewed and controlled state of model, evidence, configuration, or publication artifacts, referenced without implying accepted evidence. */
   }
 

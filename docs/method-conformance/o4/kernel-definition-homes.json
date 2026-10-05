@@ -1,0 +1,977 @@
+{
+  "schema": "de4sdv.o4-kernel-definition-homes/v1",
+  "status": "draft-pending-privileged-syside-and-generated-rebind",
+  "scope": "Documentation-location inventory, not semantic copies, runtime admission, authored-YAML retirement or API identity evidence.",
+  "definitions": [
+    {
+      "identity": "AcceptanceAttestationReference",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+      "declaration": "item def AcceptanceAttestationReference",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "AcceptanceCriterion",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def AcceptanceCriterion",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "AllocatableFunction",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+      "declaration": "action def AllocatableFunction",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "ApprovedTraceMethod",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+      "declaration": "part def ApprovedTraceMethod",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "ArchitectureDecisionRecord",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def ArchitectureDecisionRecord",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "ArchitectureElement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "ArchitectureElement",
+      "documentation_index": 0
+    },
+    {
+      "identity": "Assumption",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def IncrementAssumption",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "AssuranceClaim",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+      "declaration": "package DE4SDV_ScopedAssurance",
+      "documentation_name": "AssuranceClaim",
+      "documentation_index": 0
+    },
+    {
+      "identity": "Baseline",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+      "declaration": "part def DE4SDVEvidenceBaseline",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "BlockedRealizationBranchRecord",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def BlockedRealizationBranchRecord",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "CommonCapability",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def CommonProductLineCapability",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "Concern",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+      "declaration": "package DE4SDV_MethodViewpoints",
+      "documentation_name": "Concern",
+      "documentation_index": 0
+    },
+    {
+      "identity": "DeferredProductLineScope",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def DeferredProductLineScope",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "DerivesFromNeed",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "connection def DerivesFromNeed",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "EngineeringIncrement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def EngineeringIncrement",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "EvaluationScopeMembership",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+      "declaration": "item def EvaluationScopeMembership",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "EvaluationSourceKind",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+      "declaration": "enum def EvaluationSourceKind",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "EvidenceArtifact",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+      "declaration": "package DE4SDV_ScopedAssurance",
+      "documentation_name": "EvidenceArtifact",
+      "documentation_index": 0
+    },
+    {
+      "identity": "EvidenceContract",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def EvidenceContract",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "EvidenceStatus",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+      "declaration": "package DE4SDV_ScopedAssurance",
+      "documentation_name": "EvidenceStatus",
+      "documentation_index": 0
+    },
+    {
+      "identity": "EvidenceSupportCitation",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+      "declaration": "item def EvidenceSupportCitation",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "Feature",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def ProductLineFeatureCandidate",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "FeatureConfiguration",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "package DE4SDV_ProductLine",
+      "documentation_name": "FeatureConfiguration",
+      "documentation_index": 0
+    },
+    {
+      "identity": "FeatureIncrement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def FeatureIncrement",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "Function",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "Function",
+      "documentation_index": 0
+    },
+    {
+      "identity": "Gap",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def IncrementGap",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "IncrementEngineeringQuestion",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def IncrementEngineeringQuestion",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "IncrementLifecycleDecision",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def IncrementLifecycleDecision",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "IncrementSize",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+      "declaration": "enum def IncrementSize",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "IncrementTraceObligations",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+      "declaration": "part def IncrementTraceObligations",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "IncrementTraceabilityShell",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+      "declaration": "package DE4SDV_MethodTraces",
+      "documentation_name": "IncrementTraceabilityShell",
+      "documentation_index": 0
+    },
+    {
+      "identity": "Interface",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "Interface",
+      "documentation_index": 0
+    },
+    {
+      "identity": "LogicalAllocationElement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+      "declaration": "part def LogicalAllocationElement",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "LogicalElement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "LogicalElement",
+      "documentation_index": 0
+    },
+    {
+      "identity": "LogicalToSoftwareSignalMappingRecord",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+      "declaration": "item def LogicalToSoftwareSignalMappingRecord",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "MemberProduct",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def ProductLineMemberProduct",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "MethodContractObligation",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+      "declaration": "item def MethodContractObligation",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "MethodEvaluationScope",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+      "declaration": "part def MethodEvaluationScope",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "MethodPhase",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+      "declaration": "enum def MethodPhase",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "MissingRealizationRecord",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def MissingRealizationRecord",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "Need",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def StakeholderNeedCandidate",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "NeedsRequirementsIncrement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def NeedsRequirementsIncrement",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "PhysicalAllocationElement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+      "declaration": "part def PhysicalAllocationElement",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "PhysicalElement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "PhysicalElement",
+      "documentation_index": 0
+    },
+    {
+      "identity": "ProblemStatement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def ProblemStatement",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "ProductLine",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def ProductLine",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "ProductLineCharacteristic",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def ProductLineCharacteristic",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "RegulatoryConstraint",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def RegulatoryConstraintCandidate",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "RegulatorySource",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+      "declaration": "part def ControlledRegulatorySource",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "RegulatorySourceAssociation",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+      "declaration": "connection def RegulatorySourceAssociation",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "RequiredTraceChain",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+      "declaration": "package DE4SDV_MethodTraces",
+      "documentation_name": "RequiredTraceChain",
+      "documentation_index": 0
+    },
+    {
+      "identity": "Requirement",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def RequirementCandidate",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "RetainedExecutionRecordReference",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+      "declaration": "item def RetainedExecutionRecordReference",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "Scenario",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+      "declaration": "part def Scenario",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "ScopedEvidenceAdequacyAssessment",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+      "declaration": "item def ScopedEvidenceAdequacyAssessment",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "ScopedVVActivityRecord",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+      "declaration": "item def ScopedVVActivityRecord",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "SignalMappingDisposition",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+      "declaration": "enum def SignalMappingDisposition",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "Stakeholder",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml",
+      "declaration": "part def Stakeholder",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "SystemLayer",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def SystemLayer",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "SystemToSoftwareSignalMappingCandidate",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+      "declaration": "allocation def SystemToSoftwareSignalMappingCandidate",
+      "documentation_name": "ontologyDefinition",
+      "documentation_index": 0
+    },
+    {
+      "identity": "TestedScopeDeclaration",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+      "declaration": "item def TestedScopeDeclaration",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "TraceLink",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+      "declaration": "package DE4SDV_MethodTraces",
+      "documentation_name": "TraceLink",
+      "documentation_index": 0
+    },
+    {
+      "identity": "ValidationPlanningAssociation",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+      "declaration": "connection def ValidationPlanningAssociation",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "ValidationPlanningScenario",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+      "declaration": "part def ValidationPlanningScenario",
+      "documentation_name": null,
+      "documentation_index": 0
+    },
+    {
+      "identity": "ValidationScenario",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+      "declaration": "package DE4SDV_OperationalContext",
+      "documentation_name": "ValidationScenario",
+      "documentation_index": 0
+    },
+    {
+      "identity": "Variant",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "package DE4SDV_ProductLine",
+      "documentation_name": "Variant",
+      "documentation_index": 0
+    },
+    {
+      "identity": "VariationPoint",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "package DE4SDV_ProductLine",
+      "documentation_name": "VariationPoint",
+      "documentation_index": 0
+    },
+    {
+      "identity": "VerificationCase",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "VerificationCase",
+      "documentation_index": 0
+    },
+    {
+      "identity": "VerificationMethod",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "VerificationMethod",
+      "documentation_index": 0
+    },
+    {
+      "identity": "View",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+      "declaration": "package DE4SDV_MethodViewpoints",
+      "documentation_name": "View",
+      "documentation_index": 0
+    },
+    {
+      "identity": "Viewpoint",
+      "kind": "classes",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+      "declaration": "package DE4SDV_MethodViewpoints",
+      "documentation_name": "Viewpoint",
+      "documentation_index": 0
+    },
+    {
+      "identity": "derivedRequirementsOfNeed",
+      "kind": "relationships",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "derivedRequirementsOfNeed",
+      "documentation_index": 0
+    },
+    {
+      "identity": "derivesRequirementFromNeed",
+      "kind": "relationships",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "derivesRequirementFromNeed",
+      "documentation_index": 0
+    },
+    {
+      "identity": "hasRelevantArchitecture",
+      "kind": "relationships",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "hasRelevantArchitecture",
+      "documentation_index": 0
+    },
+    {
+      "identity": "instantiatesCanonicalArchitecture",
+      "kind": "relationships",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "package DE4SDV_ProductLine",
+      "documentation_name": "instantiatesCanonicalArchitecture",
+      "documentation_index": 0
+    },
+    {
+      "identity": "specifiesFunction",
+      "kind": "relationships",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "documentation_name": "specifiesFunction",
+      "documentation_index": 0
+    }
+  ],
+  "register_targets": [
+    {
+      "identity": "EngineeringIncrement",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def EngineeringIncrement",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "FeatureIncrement",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def FeatureIncrement",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "NeedsRequirementsIncrement",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def NeedsRequirementsIncrement",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "IncrementEngineeringQuestion",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def IncrementEngineeringQuestion",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "IncrementLifecycleDecision",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def IncrementLifecycleDecision",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "SignalMappingDisposition",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+      "declaration": "enum def SignalMappingDisposition",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "LogicalToSoftwareSignalMappingRecord",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+      "declaration": "item def LogicalToSoftwareSignalMappingRecord",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "SystemToSoftwareSignalMappingCandidate",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+      "declaration": "allocation def SystemToSoftwareSignalMappingCandidate",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "SystemLayer",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def SystemLayer",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "ProductLine",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def ProductLine",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "MemberProduct",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def ProductLineMemberProduct",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "Feature",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def ProductLineFeatureCandidate",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "ProductLineCharacteristic",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def ProductLineCharacteristic",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "CommonCapability",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def CommonProductLineCapability",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "DeferredProductLineScope",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+      "declaration": "part def DeferredProductLineScope",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "Stakeholder",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml",
+      "declaration": "part def Stakeholder",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "Need",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def StakeholderNeedCandidate",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "Requirement",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def RequirementCandidate",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "ProblemStatement",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def ProblemStatement",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "RegulatoryConstraint",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def RegulatoryConstraintCandidate",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "ArchitectureElement",
+      "base_wave": "W2",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "Function",
+      "base_wave": "W2",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "LogicalElement",
+      "base_wave": "W2",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "PhysicalElement",
+      "base_wave": "W2",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "package DE4SDV_MethodContext",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "Scenario",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+      "declaration": "part def Scenario",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "ValidationScenario",
+      "base_wave": "W4",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+      "declaration": "package DE4SDV_OperationalContext",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "AcceptanceCriterion",
+      "base_wave": "W2",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def AcceptanceCriterion",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "Assumption",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def IncrementAssumption",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "Gap",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def IncrementGap",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "MissingRealizationRecord",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def MissingRealizationRecord",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "BlockedRealizationBranchRecord",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def BlockedRealizationBranchRecord",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "AssuranceClaim",
+      "base_wave": "W2",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+      "declaration": "package DE4SDV_ScopedAssurance",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "MethodEvaluationScope",
+      "base_wave": "W2",
+      "migration_class": "MODEL_AUTHORITY_PARITY",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+      "declaration": "part def MethodEvaluationScope",
+      "parity": "normalized-exact owned model documentation",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "addressesConcern",
+      "base_wave": "W4",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+      "declaration": "connection def AddressesConcern",
+      "parity": "no authored definition; model vocabulary role documented",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "hasStakeholder",
+      "base_wave": "W4",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "part def EngineeringIncrement",
+      "parity": "no authored definition; model vocabulary role documented",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "selectedViewpoint",
+      "base_wave": "W4",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+      "declaration": "connection def SelectedViewpoint",
+      "parity": "no authored definition; model vocabulary role documented",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "producesView",
+      "base_wave": "W4",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+      "declaration": "connection def ProducesView",
+      "parity": "no authored definition; model vocabulary role documented",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "hasAcceptanceCriterion",
+      "base_wave": "W2",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+      "declaration": "requirement def AcceptanceCriterion",
+      "parity": "no authored definition; model vocabulary role documented",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "recordsAssumption",
+      "base_wave": "W4",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+      "declaration": "connection def RecordsAssumption",
+      "parity": "no authored definition; model vocabulary role documented",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    },
+    {
+      "identity": "recordsGap",
+      "base_wave": "W4",
+      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+      "declaration": "connection def RecordsGap",
+      "parity": "no authored definition; model vocabulary role documented",
+      "claim": "definition-home-only; no runtime admission or row-lifecycle closure"
+    }
+  ]
+}

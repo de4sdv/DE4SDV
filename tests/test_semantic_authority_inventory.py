@@ -193,8 +193,10 @@ class TestCoverage:
             kinds[present[0]] += 1
         # Definition admission batch 1 (amended): Scenario's kernel mapping
         # moved native -> file+declaration (part def Scenario): file 40->41,
-        # native 15->14.
-        assert kinds == {"file": 50, "native": 14, "external": 7}
+        # native 15->14. Owner decision D4 (2026-10-05): EvidenceContract
+        # moved native -> file+declaration (requirement def EvidenceContract):
+        # file 50->51, native 14->13.
+        assert kinds == {"file": 51, "native": 13, "external": 7}
         assert kinds == inventory["counts"]["class_mappings"]
         assert sum(kinds.values()) == len(contract.classes)
 

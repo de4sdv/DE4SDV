@@ -18,6 +18,22 @@
  */
 
 package DE4SDV_MethodViewpoints {
+  doc View /* A representation produced according to a viewpoint for stakeholder review. */
+  comment about View /* Native SysML view remains the representation; documentation is not a publication,
+   * renderer or conformance result. */
+
+
+  doc Viewpoint /* A specification of stakeholder concerns, conventions, and expected view content. */
+  comment about Viewpoint /* Native SysML viewpoint definitions remain the representation; existing DE4SDV/SAF
+   * selections and their provenance remain unchanged. */
+
+
+  doc Concern /* An interest or issue that matters to a stakeholder and motivates views, needs,
+   * requirements, or evidence. */
+  comment about Concern /* Native SysML concern definitions/usages remain the representation; no local generic
+   * Concern type or additional satisfaction claim. */
+
+
   private import Views::*;
 
   concern def ProductLineCapabilityClassificationConcern {

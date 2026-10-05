@@ -1,0 +1,236 @@
+"""O4 definition homes: source/typing checks, not licensed Syside evidence."""
+from pathlib import Path
+import re
+
+import yaml
+
+from de4sdv.semantic.authority_inventory import declaration_block, normalize_text
+
+ROOT = Path(__file__).resolve().parents[1]
+KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
+CONTEXT = KERNEL + "de4sdv_method_context.sysml"
+MIDDLEWARE = "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml"
+ONTOLOGY = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+
+
+def test_acceptance_criterion_has_kernel_home_and_middleware_specialization():
+    text = (ROOT / CONTEXT).read_text()
+    block, bodyless = declaration_block(text, "requirement def AcceptanceCriterion")
+    assert block and not bodyless, "D2 requires a kernel requirement definition"
+    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    assert ontology["classes"]["AcceptanceCriterion"]["kernel"] == {
+        "file": CONTEXT, "declaration": "requirement def AcceptanceCriterion"
+    }
+    assert normalize_text(ontology["classes"]["AcceptanceCriterion"]["definition"]) in normalize_text(block)
+    assert "de4sdv.acceptance.maintainer-decision.v1" in block
+    middleware = re.sub(r"/\*.*?\*/|//[^\n]*", "", (ROOT / MIDDLEWARE).read_text(), flags=re.S)
+    header = re.search(r"requirement\s+def\s+MiddlewareAcceptanceCriterion\s*:>\s*([^;{]+)", middleware)
+    assert header and "AcceptanceCriterion" in {s.strip() for s in header[1].split(",")}
+
+
+def test_evidence_contract_is_a_planning_requirement_and_slices_are_typed():
+    text = (ROOT / CONTEXT).read_text()
+    block, bodyless = declaration_block(text, "requirement def EvidenceContract")
+    assert block and not bodyless, "D4 requires a kernel requirement definition"
+    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    assert ontology["classes"]["EvidenceContract"]["kernel"] == {
+        "file": CONTEXT, "declaration": "requirement def EvidenceContract"
+    }
+    assert normalize_text(ontology["classes"]["EvidenceContract"]["definition"]) in normalize_text(block)
+    for path, declaration in (
+        ("textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml", "OverrideEvidenceContract"),
+        (MIDDLEWARE, "MiddlewareAcceptanceCriterion"),
+    ):
+        source = re.sub(r"/\*.*?\*/|//[^\n]*", "", (ROOT / path).read_text(), flags=re.S)
+        header = re.search(r"requirement\s+def\s+" + declaration + r"\s*:>\s*([^;{]+)", source)
+        assert header and "EvidenceContract" in {s.strip() for s in header[1].split(",")}
+    # Claims/arguments/counterclaims do not become evidence contracts by name.
+    for declaration in ("MiddlewareClaim", "MiddlewareAssuranceArgument", "MiddlewareCounterClaim"):
+        header = re.search(r"requirement\s+def\s+" + declaration + r"\s*:>\s*([^;{]+)", source)
+        assert header and "EvidenceContract" not in {s.strip() for s in header[1].split(",")}
+
+
+def test_evaluation_scope_structurally_owns_exclusions_with_reference_and_rationale():
+    path = KERNEL + "de4sdv_method_conformance.sysml"
+    text = (ROOT / path).read_text()
+    block, _ = declaration_block(text, "part def MethodEvaluationScope")
+    active = re.sub(r"/\*.*?\*/|//[^\n]*", "", block, flags=re.S)
+    assert re.search(r"item\s+exclusions\s*:\s*MethodEvaluationExclusion\s*\[\*\]\s*;", active)
+    record, _ = declaration_block(text, "item def MethodEvaluationExclusion")
+    active = re.sub(r"/\*.*?\*/|//[^\n]*", "", record, flags=re.S)
+    assert re.search(r"ref\s+excludedElement\s*:\s*Base::Anything\s*;", active)
+    assert re.search(r"attribute\s+rationale\s*:\s*String\s*;", active)
+    assert 'rationale != ""' in active
+    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    assert ontology["kernel_sync"]["exclusions"][path]["item def MethodEvaluationExclusion"].strip()
+    # Existing Python value representation remains compatible; no consumer rewiring.
+    from de4sdv.semantic.method_contract import MethodEvaluationScope
+    scope = MethodEvaluationScope("INC-SYNTHETIC", frozenset(), frozenset(), frozenset(), {}, {"excluded-id": "outside this slice"})
+    assert scope.exclusions == {"excluded-id": "outside this slice"}
+
+
+def _disjoint_typing_violations(text):
+    """Bounded static probe of explicit disjoining + part typing/lineage.
+
+    This is not a SysML compiler or a production query-time source parser.
+    """
+    active = re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S)
+    pairs = [tuple(m.groups()) for m in re.finditer(
+        r"\bdisjoint\s+(\w+)\s+from\s+(\w+)\s*;", active
+    )]
+    parents = {m[1]: {s.strip() for s in m[2].split(",")} for m in re.finditer(
+        r"\bpart\s+def\s+(\w+)\s*:>\s*([^;{]+)", active
+    )}
+    violations = []
+    for usage in re.finditer(r"\bpart\s+(?!def\b)(\w+)\s*:\s*([^;{]+)", active):
+        types = {s.strip() for s in usage[2].split(",")}
+        pending = list(types)
+        while pending:
+            for parent in parents.get(pending.pop(), set()) - types:
+                types.add(parent)
+                pending.append(parent)
+        for a, b in pairs:
+            if {a, b} <= types:
+                violations.append((usage[1], a, b))
+    return violations
+
+
+def test_native_common_capability_feature_disjoining_identifies_dual_typed_usage():
+    source = (ROOT / (KERNEL + "de4sdv_product_line.sysml")).read_text()
+    marker = ("disjoining commonCapabilityFeatureDisjointness disjoint "
+              "CommonProductLineCapability from ProductLineFeatureCandidate;")
+    active = re.sub(r"/\*.*?\*/|//[^\n]*", "", source, flags=re.S)
+    assert marker in " ".join(active.split()), "Decision 7 requires a native disjoining"
+    assert _disjoint_typing_violations(source) == []
+    prefix, suffix = source.rsplit("}", 1)
+    # Keep the synthetic members in the actual declaring package, so this
+    # negative does not depend on unresolved root-level short-name typing.
+    def with_members(members):
+        return prefix + "\n" + members + "\n}" + suffix
+
+    negative = with_members("part impossible : CommonProductLineCapability, ProductLineFeatureCandidate;")
+    expected = [("impossible", "CommonProductLineCapability", "ProductLineFeatureCandidate")]
+    assert _disjoint_typing_violations(negative) == expected
+    assert _disjoint_typing_violations(with_members("/* part impossible : CommonProductLineCapability, ProductLineFeatureCandidate; */")) == []
+    assert _disjoint_typing_violations(negative.replace(marker, "/* " + marker + " */")) == []
+    inherited = with_members("part def Common :> CommonProductLineCapability;"
+                             "\npart def Feature :> ProductLineFeatureCandidate;"
+                             "\npart impossible : Common, Feature;")
+    assert _disjoint_typing_violations(inherited) == expected
+    assert _disjoint_typing_violations(with_members("part valid : CommonProductLineCapability;")) == []
+
+
+def _direct_documentation(block):
+    """Return directly owned named/anonymous Documentation, not nested text."""
+    depth = -1
+    docs = []
+    for token in re.finditer(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"|[{}]', block, re.S):
+        value = token[0]
+        if value == "{":
+            depth += 1
+        elif value == "}":
+            depth -= 1
+        elif value.startswith("/*") and depth == 0:
+            prefix = re.search(r"\bdoc(?:\s+(\w+))?\s*$", block[:token.start()])
+            if prefix:
+                docs.append((prefix[1], value[2:-2]))
+    return docs
+
+
+def _home_docs(row):
+    text = (ROOT / row["file"]).read_text()
+    declaration = row["declaration"]
+    if declaration.startswith("package "):
+        package = re.search(r"\b" + re.escape(declaration) + r"\s*\{", text)
+        assert package, declaration
+        block = text[package.end() - 1:]
+    else:
+        block, bodyless = declaration_block(text, declaration)
+        assert block and not bodyless, declaration
+    return _direct_documentation(block)
+
+
+def test_all_yaml_definitions_have_exact_owned_model_documentation_homes():
+    import json
+    document = json.loads((ROOT / "docs/method-conformance/o4/kernel-definition-homes.json").read_text())
+    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    required = {(kind, name) for kind in ("classes", "relationships")
+                for name, row in ontology[kind].items() if row.get("definition")}
+    entries = document["definitions"]
+    assert len(entries) == len(required) == 76
+    assert {(row["kind"], row["identity"]) for row in entries} == required
+    for row in entries:
+        candidates = [body for name, body in _home_docs(row) if name == row["documentation_name"]]
+        assert len(candidates) > row["documentation_index"], row["identity"]
+        assert normalize_text(candidates[row["documentation_index"]]) == normalize_text(
+            ontology[row["kind"]][row["identity"]]["definition"]
+        ), row["identity"]
+
+
+def test_definition_home_inventory_covers_all_requested_register_targets():
+    import json
+    homes = json.loads((ROOT / "docs/method-conformance/o4/kernel-definition-homes.json").read_text())
+    register = json.loads((ROOT / "docs/method-conformance/o4/o4-execution-register.json").read_text())
+    expected = {row["identity"]: row for row in register["rows"]
+                if row["base_wave"] in {"W2", "W4"}
+                and row["migration_class"] in {"MODEL_AUTHORITY_PARITY", "NEW_APPLICATION_SEMANTICS"}}
+    assert "register_targets" in homes, "List the requested W2/W4 rows without rewriting generated closure state"
+    rows = homes["register_targets"]
+    assert len(rows) == len(expected) == 40
+    assert {row["identity"] for row in rows} == set(expected)
+    definitions = {row["identity"]: row for row in homes["definitions"]}
+    for row in rows:
+        assert row["base_wave"] == expected[row["identity"]]["base_wave"]
+        assert row["migration_class"] == expected[row["identity"]]["migration_class"]
+        assert row["claim"] == "definition-home-only; no runtime admission or row-lifecycle closure"
+        assert (ROOT / row["file"]).is_file()
+        if row["identity"] in definitions:
+            home = definitions[row["identity"]]
+            assert row["file"] == home["file"]
+            assert row["declaration"] == home["declaration"]
+            assert row["parity"] == "normalized-exact owned model documentation"
+        else:
+            # These seven YAML rows declare only domain/range, not definition
+            # prose; do not fabricate a text-parity claim for them.
+            assert row["parity"] == "no authored definition; model vocabulary role documented"
+            existing_homes = {
+                "addressesConcern": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def AddressesConcern"),
+                "selectedViewpoint": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def SelectedViewpoint"),
+                "producesView": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def ProducesView"),
+                "recordsAssumption": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def RecordsAssumption"),
+                "recordsGap": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def RecordsGap"),
+                "hasStakeholder": (CONTEXT, "part def EngineeringIncrement"),
+                "hasAcceptanceCriterion": (CONTEXT, "requirement def AcceptanceCriterion"),
+            }
+            assert (row["file"], row["declaration"]) == existing_homes[row["identity"]]
+            if row["identity"] == "hasStakeholder":
+                assert "comment hasStakeholder about EngineeringIncrement, Stakeholder" in (ROOT / CONTEXT).read_text()
+            elif row["identity"] != "hasAcceptanceCriterion":
+                assert _home_docs(row), row["identity"]
+
+
+def test_named_docs_do_not_borrow_nested_or_comment_only_homes():
+    assert _direct_documentation('{ doc D /* exact */ part p { doc D /* wrong */ } }') == [("D", " exact ")]
+    assert _direct_documentation('{ /* doc D / * fake * / */ doc D /* exact */ }') == [("D", " exact ")]
+    assert _direct_documentation('{ doc /* outer */ part p; doc D /* second */ }') == [(None, " outer "), ("D", " second ")]
+
+
+def test_architecture_umbrellas_document_native_kinds_without_parallel_taxonomy():
+    text = (ROOT / CONTEXT).read_text()
+    docs = dict(_direct_documentation(text[text.index("package DE4SDV_MethodContext"):]))
+    for name in ("ArchitectureElement", "Function", "LogicalElement", "PhysicalElement"):
+        assert name in docs, name
+        assert not re.search(r"\bdef\s+" + name + r"\b", re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S))
+        annotation = re.search(r"comment\s+about\s+" + name + r"\s*/\*(.*?)\*/", text, re.S)
+        assert annotation, name
+        expected = ("ActionDefinition", "ActionUsage") if name == "Function" else ("PartDefinition", "PartUsage")
+        for native_kind in expected:
+            assert native_kind in annotation[1], (name, native_kind)
+
+
+def test_canonical_architecture_remains_non_queryable_documentation_only():
+    text = (ROOT / (KERNEL + "de4sdv_product_line.sysml")).read_text()
+    annotation = re.search(r"comment\s+about\s+instantiatesCanonicalArchitecture\s*/\*(.*?)\*/", text, re.S)
+    assert annotation and "not queryable; no product-to-canonical reachability claimed" in " ".join(annotation[1].split())
+    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    assert "sysml_mapping" not in ontology["relationships"]["instantiatesCanonicalArchitecture"]

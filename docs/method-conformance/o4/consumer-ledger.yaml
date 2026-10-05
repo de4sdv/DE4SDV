@@ -816,6 +816,14 @@ entries:
     - ontology_dir_token
     - ontology_path_token
     retirement_status: not-applicable
+  tests/test_o4_kernel_definition_homes.py:
+    role: test-reference
+    markers:
+    - kernel_sync_key
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: Definition-home parity and bounded source/typing probes only; no runtime retirement or licensed Syside evidence.
   tests/test_o4_preparation_accounting.py:
     role: test-reference
     markers:

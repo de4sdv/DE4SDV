@@ -40,6 +40,8 @@ package DE4SDV_Stakeholders {
   }
 
   part def Stakeholder {
+    doc ontologyDefinition /* A role, person, organization, or community with concerns about the system or
+     * increment. */
     doc /* Reusable role of a party participating in or affected by engineering.
          * Not one identified individual or a grant of acceptance authority. */
     attribute risk : PriorityKind;

@@ -12,6 +12,43 @@
  */
 
 package DE4SDV_ProductLine {
+  doc instantiatesCanonicalArchitecture /* Explicit binding from a composite member product's contained architecture instances
+   * (its logical-system and software usages) to the canonical architecture usages whose
+   * allocation and evidence records govern them. The modeled dependencies originate from
+   * the contained usages, not from the member-product root; the executable mapping must
+   * therefore define which elements carry this relationship and how a query walks it before
+   * any product-level query reachability is claimed. Vocabulary only for now: no
+   * sysml_mapping is declared because a generic dependency traversal cannot distinguish
+   * canonical-architecture bindings from ordinary part-to-part dependencies without
+   * inventing a naming heuristic. Declaring an executable mapping requires an explicit
+   * canonical-usage selector (for example an API-side allowlist of canonical packages), not
+   * a name-based filter. The binding does not restate allocations at product level and does
+   * not make a composite projection a resolved configured product. */
+  comment about instantiatesCanonicalArchitecture /* not queryable; no product-to-canonical reachability claimed. Vocabulary only; no
+   * executable mapping and no canonical-package selector are introduced. The selector
+   * discussion in the retained definition is a future prerequisite, not implementation in
+   * this package. */
+
+
+  doc FeatureConfiguration /* A selection of features, common capabilities, and variation choices for a member
+   * product or scenario. */
+  comment about FeatureConfiguration /* Definition text is model-resident; Bill-of-Features contents and catalogue/configurator
+   * authority remain external. No PLEML adoption, selection algebra or consumer wiring
+   * changes. */
+
+
+  doc Variant /* A native SysML v2 variant usage owned by a variation point and representing one allowed
+   * choice for that variation. */
+  comment about Variant /* Native SysML variant usage owned by a variation remains the representation; no new
+   * reusable variant class or selection authority. */
+
+
+  doc VariationPoint /* A native SysML v2 variation definition or usage that identifies an element whose
+   * allowed instances vary across product-line configurations. */
+  comment about VariationPoint /* Native SysML variation definition/usage remains the representation, not a generic
+   * variation-point part taxonomy or configurator adoption. */
+
+
   part def ProductLine {
     doc /* A family of related member products managed through shared assets and variability. */
   }
@@ -29,12 +66,22 @@ package DE4SDV_ProductLine {
   }
 
   part def CommonProductLineCapability :> ProductLineCharacteristic {
+    doc ontologyDefinition /* A capability or characteristic present in all relevant member products; not a feature
+     * unless it distinguishes variants. */
     doc /* Capability required across member products; not a feature unless it distinguishes member products. */
   }
 
   part def ProductLineFeatureCandidate :> ProductLineCharacteristic {
+    doc ontologyDefinition /* A distinguishing characteristic expressing variability among member products. In the
+     * kernel a feature is a candidate until member-product variability is shown; it must
+     * not be accepted as a feature before that. */
     doc /* Candidate distinguishing characteristic; must not be accepted as a feature until member-product variability is shown. */
   }
+
+  /* Native KerML disjoining (SysML's underlying type relationship).
+   * Grammar-backed standalone form; do not invent a `part def ... disjoint
+   * from ...` header. Exact-head privileged Syside acceptance is pending. */
+  disjoining commonCapabilityFeatureDisjointness disjoint CommonProductLineCapability from ProductLineFeatureCandidate;
 
   part def DeferredProductLineScope :> ProductLineCharacteristic {
     doc /* Product-line scope deliberately deferred from the current increment, including recorded gaps. */
