@@ -226,24 +226,21 @@ class TestCoverage:
         # and stakeholder vocabulary): 136 = 49 mapped + 87 exclusions.
         # Review R2 removed the construction-only SuccessorClassRecord
         # (class pins now come from ontology kernel mappings): 135 = 49 + 86.
-        assert kernel["governed_declarations"] == 135
-        assert kernel["mapped_in_directory"] == 49
-        assert kernel["exclusions"] == 86
+        # Owner decisions D2-D4 (2026-10-05) added three governed kernel
+        # declarations: AcceptanceCriterion and EvidenceContract (mapped from
+        # the ontology classes) and MethodEvaluationExclusion (scope-internal
+        # exclusion record): 138 = 51 mapped + 87 exclusions. AcceptanceCriterion
+        # moved from its cross-slice middleware mapping into the kernel, so no
+        # cross-slice mapping remains.
+        assert kernel["governed_declarations"] == 138
+        assert kernel["mapped_in_directory"] == 51
+        assert kernel["exclusions"] == 87
         assert (
             kernel["mapped_in_directory"] + kernel["exclusions"]
             == kernel["governed_declarations"]
         )
-        assert kernel["mapped_out_of_directory"] == 1
-        assert kernel["cross_slice_mappings"] == [
-            {
-                "identity": "AcceptanceCriterion",
-                "file": (
-                    "textual-notation-of-model/packages/features/middleware/"
-                    "middleware_verification_evidence.sysml"
-                ),
-                "declaration": "requirement def MiddlewareAcceptanceCriterion",
-            }
-        ]
+        assert kernel["mapped_out_of_directory"] == 0
+        assert kernel["cross_slice_mappings"] == []
 
     def test_cross_slice_accounted_separately_from_governed_equation(self, inventory):
         # The cross-slice mapping is NOT part of the governed-directory
@@ -982,10 +979,13 @@ class TestTextParity:
         # twelve reviewed model-authoritative file-declaration rows: 33
         # normalized-exact / 16 differs / 1 bodyless declaration over the 50
         # file-mapped classes. Re-derived from source, not relaxed.
+        # Owner decisions D2/D4 (2026-10-05) gave AcceptanceCriterion and
+        # EvidenceContract kernel declarations with exact definition text:
+        # the bodyless row and the newly file-mapped EvidenceContract row are
+        # normalized-exact (35 / 16 over 51 file-mapped classes).
         assert counts == {
             "differs": 16,
-            "normalized-exact": 33,
-            "doc-absent (bodyless declaration)": 1,
+            "normalized-exact": 35,
         }
 
     def test_containment_only_rows_reclassified(self, inventory):

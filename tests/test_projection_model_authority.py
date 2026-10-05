@@ -300,6 +300,18 @@ def test_profile_direction_echo_follows_model_order() -> None:
 
 def test_kernel_source_no_longer_describes_the_standard_library_relation() -> None:
     text = KERNEL_FILE.read_text(encoding="utf-8")
+    # Owner decision 6 (2026-10-05) retires the authored ontology YAML, so the
+    # reviewed NON-adoption record moves into DerivesFromNeed's model-resident
+    # ontologyDefinition doc. Only that one doc may name the standard library,
+    # and only to record that it remains pinned but unadopted; the rest of the
+    # kernel file must not describe the standard relation.
+    start = text.index("connection def DerivesFromNeed")
+    doc_start = text.index("doc ontologyDefinition /*", start)
+    doc_end = text.index("*/", doc_start) + 2
+    non_adoption = text[doc_start:doc_end]
+    assert "remains pinned" in non_adoption and "but unadopted" in non_adoption
+    assert "adoption gate still applies" in non_adoption
+    text = text[:doc_start] + text[doc_end:]
     for stale in (
         "DerivationConnections",
         "originalImpliesDerived",
