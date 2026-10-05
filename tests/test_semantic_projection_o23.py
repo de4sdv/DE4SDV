@@ -1743,7 +1743,7 @@ class TestPreservationAndRuntimeIndependence:
 # PR319 recovery closure: v1.2 binds the permanent PR321 squash, which contains
 # the refreshed v1.1 baseline pair (v1.1 itself is permanently bound to the
 # PR320 squash 18fa5e1e). This is the final downstream checkpoint.
-COMMITTED_SOURCE_REVISION = "d30ff21080409f24aa950a694b1e66b56e696d65"
+COMMITTED_SOURCE_REVISION = "097be97a5f982226bd2746d0d4f9d8b77fd39f1b"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
