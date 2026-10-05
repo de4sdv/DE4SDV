@@ -41,14 +41,13 @@ Delivery remains **ADVISORY**; no required check or branch protection is changed
 O4 and PLE remain outstanding: the unified plan is incomplete. No safety,
 certification, compliance, homologation or product acceptance is claimed.
 
-The present uncommitted closure is **not a ready delivery head**: its evaluator
-and pilot-policy data change inputs bound by the committed O1 inventory.
-Repository/generated-chain gates correctly report stale source-revision/content
-bindings. Regeneration needs a real reviewed commit containing the input bytes
-and a governed downstream recovery; staging is not a commit. The native model,
-O2/O3 artifacts and pins are unchanged; a gratuitous model-status text edit is
-not needed to activate its externally referenced policy. No artifact,
-source-revision pin or gate is rewritten/bypassed to conceal the O1 red state.
+The closure changes evaluator and pilot-policy inputs bound by the O1
+inventory, so the inventory and the O3 scope digest are regenerated with the
+repository generators in a separate commit on the closure branch. That
+binding names the closure's feature commit and is temporary by design: after
+the squash merge, a content-only rebind binds them to the permanent merge
+commit. No pin or gate is rewritten or bypassed. The native model, the O2
+artifacts and the frozen O3 runtime files are unchanged.
 This does not change the historical delivered-checker milestone above.
 
 ## Executable path

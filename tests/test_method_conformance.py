@@ -1027,6 +1027,41 @@ def test_mc16_invalid_attribution_is_error_in_every_record_format(
     assert field in " ".join(outcome.diagnostics)
 
 
+@pytest.mark.parametrize("suffix", ["yaml", "json"])
+@pytest.mark.parametrize("field,value,needle", [
+    ("supersedes", "DEC-OLD", "supersedes"),
+    ("supersedes", [""], "supersedes"),
+    ("supersedes", [7], "supersedes"),
+    ("covered_profiles", "p1", "covered_profiles"),
+    ("covered_profiles", ["p1", "p1"], "covered_profiles"),
+    ("covered_profiles", ["p1", 3], "covered_profiles"),
+    ("reason", "  ", "reason"),
+    ("reason", ["not", "text"], "reason"),
+])
+def test_mc16_malformed_record_shapes_are_error_not_reinterpreted(
+    tmp_path: Path, suffix: str, field: str, value: object, needle: str
+) -> None:
+    """A malformed record may be the missing decision: it must ERROR, never be
+    silently reinterpreted (e.g. a string ``supersedes`` iterated per character)."""
+    ctx = _record_context(tmp_path)
+    registry = tmp_path / "workspace" / mp.REGISTRY_PATH
+    _decision_file(registry, "DEC-SHAPE", "accepted", campaign_scope=_decision_scope(ctx))
+    import yaml
+
+    path = registry / "DEC-SHAPE.yaml"
+    body = yaml.safe_load(path.read_text())
+    body[field] = value
+    path.unlink()
+    target = registry / f"DEC-SHAPE.{suffix}"
+    target.write_text(json.dumps(body) if suffix == "json" else yaml.safe_dump(body))
+    ctx.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
+    assert ctx.registry_scan.state == "invalid-record"
+    outcome = unit(evaluate(_acceptance_specs(), ctx), "OB-ACC")
+    assert outcome.state == "ERROR" and outcome.verdict is None
+    assert outcome.reason_codes == ("BINDING_MISMATCH",)
+    assert needle in " ".join(outcome.diagnostics)
+
+
 def test_mc16_rejected_decision_fails_with_retained_reason(tmp_path: Path) -> None:
     ctx = _record_context(tmp_path)
     registry = tmp_path / "workspace" / mp.REGISTRY_PATH

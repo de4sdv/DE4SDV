@@ -819,6 +819,22 @@ def _validate_decision(value: object) -> tuple[Mapping[str, Any] | None, str | N
         return None, f"unknown decision schema {value.get('schema')!r}"
     if str(value.get("outcome")) not in {"accepted", "rejected"}:
         return None, f"invalid decision outcome {value.get('outcome')!r}"
+    # Shape checks: a malformed record could be the missing decision, so it
+    # must surface as a schema-invalid record, never be silently reinterpreted
+    # (a string ``supersedes`` would otherwise be iterated character by character).
+    profiles = value.get("covered_profiles")
+    if (not isinstance(profiles, list) or not profiles
+            or not all(isinstance(item, str) and item.strip() for item in profiles)):
+        return None, "covered_profiles must be a non-empty list of profile identities"
+    if len(set(profiles)) != len(profiles):
+        return None, "covered_profiles must not repeat a profile identity"
+    supersedes = value.get("supersedes")
+    if supersedes is not None and (
+            not isinstance(supersedes, list)
+            or not all(isinstance(item, str) and item.strip() for item in supersedes)):
+        return None, "supersedes must be a list of decision identities"
+    if "reason" in value and not (isinstance(value.get("reason"), str) and value["reason"].strip()):
+        return None, "reason must be a non-empty string"
     if (value.get("policy_id") == "de4sdv.acceptance.maintainer-decision.v1"
             and value.get("decider") != "Orkun Yilmaz"):
         return None, "decision decider is not the named maintainer authorized by the policy"
