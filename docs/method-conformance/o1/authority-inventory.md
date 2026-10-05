@@ -4,13 +4,13 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 
 ## Binding
 
-- Source revision: `e59e652d5bb35da258a445f511a0bdc7c71f7fe9`
+- Source revision: `8d2a25104736f46d36c06d0f5021816b8339bffe`
 - Artifact commit: unclaimed (cannot be known when the artifact is generated)
-- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:147a94e8da69668d25c5f9a06ddfd87b58a7de45ef868624cc1086fc10e56b8c)
-- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:2001812976c153e23c786c5b18e7e312189b300300c9d70280d9159e66c39238)
+- ontology_contract: `approach/framework/ontology/de4sdv-basic-ontology.yaml` (sha256:a0b309ef3a49f938144c3362fd1e396d3fc7f0e5a306ea50fe1f6465915ddb3e)
+- reviewed_decisions: `docs/method-conformance/o1/authority-review-decisions.yaml` (sha256:429ab8375077dfad9c66d802adb1518ec0f84a9a2bced60ba8ec3fc7ab95662c)
 - closure_evidence: `docs/method-conformance/o1/closure-evidence.json` (sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171)
 - runtime_strategy_source: `de4sdv/semantic/traversal.py` (sha256:40a173dbe213a8f0814d85dcafad1c2b2373cc4811b6705572a18e4ac67dc758)
-- Bound inputs: 29 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
+- Bound inputs: 28 files (content-addressed; see the canonical JSON `binding.bound_inputs`)
 
 ## Coverage
 
@@ -21,10 +21,10 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | total_entries | 105 |
 | relationship_mappings | 9 |
 | relationship_vocabulary_only | 25 |
-| kernel_declarations_governed_dir | 135 |
-| kernel_mapped_in_dir | 49 |
-| kernel_mapped_out_of_dir | 1 |
-| kernel_exclusions | 86 |
+| kernel_declarations_governed_dir | 138 |
+| kernel_mapped_in_dir | 51 |
+| kernel_mapped_out_of_dir | 0 |
+| kernel_exclusions | 87 |
 | governance_rules | 10 |
 | runtime_strategies_implemented | 8 |
 | runtime_strategies_unassociated | 2 |
@@ -82,9 +82,9 @@ Generated from the canonical inventory data by `scripts/generate_semantic_author
 | VerificationCase | native: SysML v2 verification def; see aebs and middleware verification slices | consumed (verifiedBy) | native-sysml -> native-sysml | parity-reviewed | not-applicable | prove-existing-model-authority | c2 (verification batch) |  |
 | ValidationScenario | native: Scenario parts with bounded validation outcomes (for example passBoundedValidation) | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | O2+ |  |
 | VerificationMethod | external: ODE4HERA requirements-management library verificationMethod (NRM A8) populated with the SysML standard-library VerificationMethodKind values | consumed (model attributes) | accepted-library-grounded -> native-sysml | repository-evidenced | not-applicable | keep-as-is | o2+ safe-set 1 (grounding record) |  |
-| AcceptanceCriterion | textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml: requirement def MiddlewareAcceptanceCriterion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| AcceptanceCriterion | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def AcceptanceCriterion | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | EvidenceArtifact | external: Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records | vocabulary-only | external-reference -> external-reference | repository-evidenced | not-applicable | retain-explicit-external-boundary | o4-w5 batch 3 (external-reference acceptance) |  |
-| EvidenceContract | native: Requirement usages verified by SysML v2 verification cases in DE4SDV verification slices | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
+| EvidenceContract | textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml: requirement def EvidenceContract | vocabulary-only | legacy-yaml -> model-authoritative | repository-evidenced | not-applicable | move-meaning-into-model | batched-parity (post-0a/0b) |  |
 | EvidenceStatus | external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter | consumed (model attributes) | accepted-library-grounded -> accepted-library-grounded | repository-evidenced | accepted | keep-as-is | O2+ (parity) |  |
 | EvidenceSupportCitation | textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml: item def EvidenceSupportCitation | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 3-4 implementation extension; not an activated O4 identity |  |
 | ScopedVVActivityRecord | textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml: item def ScopedVVActivityRecord | vocabulary-only | model-authoritative -> model-authoritative | proposed | not-applicable | prove-existing-model-authority | approved Topics 3-4 implementation extension; not an activated O4 identity |  |
