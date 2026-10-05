@@ -1,14 +1,14 @@
-# Proposed Authorization Policy: `de4sdv.acceptance.maintainer-decision.v1`
+# Active Authorization Policy: `de4sdv.acceptance.maintainer-decision.v1`
 
-**Status: Proposed** (this document; ADR 0019 amendment). Not activated; no
-campaign acceptance exists or is created by this document. Activation and any
-actual decision under it belong to the DE4SDV maintainer.
+**Status: Active** — activated as written by Orkun Yilmaz, 2026-10-05
+(ADR 0019 policy-status amendment). No campaign acceptance exists or is created
+by this activation; actual decisions under it belong to the DE4SDV maintainer.
 
 ## Identity
 
 ```text
 policy_id: de4sdv.acceptance.maintainer-decision.v1
-status: Proposed
+status: Active
 applies_to: acceptance obligations of deterministic method-conformance
             contracts (attestation_policy_ref references)
 ```

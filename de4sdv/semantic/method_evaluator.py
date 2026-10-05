@@ -1362,6 +1362,20 @@ def _predicate_scope_equality(
     )
 
 
+def acceptance_scope_reference(manifest: Mapping[str, Any]) -> dict[str, str]:
+    """Reference the exact campaign, including its digest-pinned record population.
+
+    The manifest's canonical digest transitively pins each record's provenance;
+    a profile name or execution head alone is never scope-fingerprint equality.
+    """
+    encoded = json.dumps(manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    return {
+        "increment_id": str(manifest.get("increment_id") or ""),
+        "execution_head": str(manifest.get("execution_head") or ""),
+        "scope_fingerprint": f"sha256:{hashlib.sha256(encoded).hexdigest()}",
+    }
+
+
 def _predicate_acceptance_record_match(
     ctx: EvaluationContext, spec: ObligationSpec, subject_id: str
 ) -> PredicateOutcome:
@@ -1410,17 +1424,33 @@ def _predicate_acceptance_record_match(
             diagnostics=tuple(scan.diagnostics)
             or ("a registry record fails schema validation",),
         )
-    # scanned-clean: evaluate coverage of the closed profile universe
-    covering = [
-        decision
-        for decision in scan.decisions
-        if profile in {str(item) for item in decision.get("covered_profiles") or ()}
-    ]
+    # scanned-clean: coverage needs BOTH enumerated profile and exact campaign.
+    expected_scope = acceptance_scope_reference(ctx.campaign_manifest or {})
+    covering = []
+    scope_diagnostics = []
+    for decision in scan.decisions:
+        if profile not in {str(item) for item in decision.get("covered_profiles") or ()}:
+            continue
+        if (decision.get("policy_id") != policy_ref
+                or decision.get("campaign_scope") != expected_scope
+                or expected_scope["increment_id"] != ctx.scope.increment_id):
+            scope_diagnostics.append(
+                f"{EVIDENCE_SCOPE_MISMATCH}: decision {decision.get('decision_id')!r} "
+                f"does not cover the evaluated campaign scope {expected_scope!r}"
+            )
+            continue
+        covering.append(decision)
+    # The registry scanner retains all validated records and rules out cycles.
+    # An edge only supersedes coverage where BOTH records match this campaign
+    # and profile; a partial/foreign decision cannot erase other coverage.
+    superseded = {str(target) for decision in covering
+                  for target in decision.get("supersedes") or ()}
+    covering = [d for d in covering if str(d.get("decision_id")) not in superseded]
     accepted = [d for d in covering if str(d.get("outcome")) == "accepted"]
     rejected = [d for d in covering if str(d.get("outcome")) == "rejected"]
     if accepted and rejected:
-        # supersession handling happens at assembly time (conflict resolution
-        # is typed data); if both survive here the conflict is unresolved.
+        # Both outcomes survive per-profile supersession: unresolved conflict.
+        # Timestamps never choose a winner.
         return PredicateOutcome(
             status="indeterminate",
             reason_codes=(ACCEPTANCE_AUTHORITY_MISSING,),
@@ -1452,7 +1482,8 @@ def _predicate_acceptance_record_match(
             reason_codes=(ACCEPTANCE_AUTHORITY_MISSING,),
             diagnostics=(
                 f"decision {decision.get('decision_id')!r} rejects profile {profile!r} "
-                "(retained decision, not an absence)",
+                "(retained decision, not an absence); "
+                f"reason: {decision.get('reason') or '(not supplied)'}",
             ),
         )
     return PredicateOutcome(
@@ -1461,6 +1492,7 @@ def _predicate_acceptance_record_match(
         diagnostics=(
             f"registry {scan.path!r} scanned completely; no decision covers "
             f"profile {profile!r}",
+            *scope_diagnostics,
         ),
     )
 

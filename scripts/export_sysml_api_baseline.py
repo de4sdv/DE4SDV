@@ -71,6 +71,48 @@ def _resolve_library_anchors(model) -> dict[str, str]:
     return anchors
 
 
+def _verification_method_library_closure(model) -> list[dict[str, object]]:
+    """Retain the native enum value subtree from the SAME licensed load.
+
+    User-document-only export leaves VerificationMethod.kind expressions open:
+    their Membership.memberElement points into VerificationCases.sysml. Do not
+    infer literal names from UUIDs, URIs, source text or expected test outcomes.
+    Include only the serializer's actual enum and its owned subtree, before
+    normalizing references for API import; all unrelated library data stays out.
+    """
+    import syside  # type: ignore[import-not-found]
+
+    for document in model.all_docs:
+        with document.lock() as locked:
+            if not unquote(str(getattr(locked, "url", ""))).endswith(_VERIFICATION_CASES_DOCUMENT):
+                continue
+            elements = json.loads(syside.json.dumps(locked.root_node, _serialization_options()))
+        by_id = {str(e["@id"]): e for e in elements if e.get("@id")}
+        roots = [e for e in elements if e.get("@type") == "EnumerationDefinition"
+                 and e.get("declaredName") == "VerificationMethodKind"]
+        if len(roots) != 1:
+            raise RuntimeError("VerificationMethodKind library definition missing or ambiguous")
+        pending = [str(roots[0]["@id"])]
+        selected = set()
+        while pending:
+            element_id = pending.pop()
+            if element_id in selected or element_id not in by_id:
+                continue
+            selected.add(element_id)
+            element = by_id[element_id]
+            for field in ("ownedRelationship", "ownedRelatedElement", "ownedMemberElement", "memberElement"):
+                value = element.get(field) or []
+                references = value if isinstance(value, list) else [value]
+                pending.extend(str(ref["@id"]) for ref in references
+                               if isinstance(ref, dict) and ref.get("@id"))
+        literals = {str(by_id[eid].get("declaredName")) for eid in selected
+                    if by_id[eid].get("@type") == "EnumerationUsage"}
+        if literals != {"inspect", "demo", "test", "analyze"}:
+            raise RuntimeError(f"VerificationMethodKind library literal closure incomplete: {sorted(literals)}")
+        return [by_id[eid] for eid in sorted(selected)]
+    raise RuntimeError("VerificationMethodKind library document unavailable in licensed load")
+
+
 def _relative_document_path(url: object) -> str:
     raw = str(url)
     parsed = urlparse(raw)
@@ -136,6 +178,10 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
             f"missing={sorted(expected_paths - actual_paths)}, "
             f"unexpected={sorted(actual_paths - expected_paths)}"
         )
+    # Built-in library values are not authored baseline sources or new pins.
+    # Keep their origin explicit; the reviewed-source manifest stays unchanged.
+    method_library = _verification_method_library_closure(model)
+    source_documents[f"@library/{_VERIFICATION_CASES_DOCUMENT}"] = method_library
     bundle = build_export_bundle(
         git_commit=git_commit,
         source_documents=source_documents,

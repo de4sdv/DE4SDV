@@ -559,7 +559,7 @@ def test_mc13_changed_scope_or_config_changes_identity() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _record_context(tmp_path: Path, *, record_mutator=None, **overrides):
+def _record_context(tmp_path: Path, *, record_mutator=None, profiles=("p1",), **overrides):
     """Build an evidence-branch context with a digest-consistent record file.
 
     ``record_mutator`` mutates the record BEFORE it is written, so the file
@@ -575,17 +575,20 @@ def _record_context(tmp_path: Path, *, record_mutator=None, **overrides):
     import hashlib
 
     workspace = tmp_path / "workspace"
-    record_path = workspace / mp.BENCH_ROOT / "evidence" / "p1.json"
-    record_path.parent.mkdir(parents=True, exist_ok=True)
-    record_path.write_text(json.dumps(record))
-    digest = hashlib.sha256(record_path.read_bytes()).hexdigest()
-    record_manifest = manifest(profiles=("p1",))
-    record_manifest["profiles"]["p1"]["sha256"] = digest
+    record_manifest = manifest(profiles=profiles)
+    records = {}
+    for profile in profiles:
+        profile_record = {**record, "profile": profile}
+        record_path = workspace / mp.BENCH_ROOT / "evidence" / f"{profile}.json"
+        record_path.parent.mkdir(parents=True, exist_ok=True)
+        record_path.write_text(json.dumps(profile_record))
+        record_manifest["profiles"][profile]["sha256"] = hashlib.sha256(record_path.read_bytes()).hexdigest()
+        records[profile] = profile_record
     values = dict(
         campaign_manifest=record_manifest,
-        scope=make_scope(profiles=("p1",)),
-        records={"p1": record},
-        expected_dispositions={"p1": "expected_disposition"},
+        scope=make_scope(profiles=profiles),
+        records=records,
+        expected_dispositions={profile: "expected_disposition" for profile in profiles},
         artifact_source=mp.DirectoryFileSource(workspace),
         bench_root=mp.BENCH_ROOT,
     )
@@ -666,6 +669,12 @@ def test_mc15_failed_execution_does_not_block_acceptance_observation(tmp_path: P
             ),
         )
     )
+    assert ctx.registry_scan is not None
+    ctx.registry_scan = me.RegistryScan(
+        path=ctx.registry_scan.path, state="scanned-clean",
+        decisions=tuple({**d, "policy_id": "de4sdv.acceptance.maintainer-decision.v1",
+                         "campaign_scope": _decision_scope(ctx)} for d in ctx.registry_scan.decisions),
+    )
     evaluation = evaluate([record_spec, outcome_spec, acceptance_spec], ctx)
     assert unit(evaluation, "OB-OUT").verdict == "FAIL"
     assert unit(evaluation, "OB-ACC").verdict == "PASS"  # acceptance evaluated
@@ -692,12 +701,12 @@ def test_mc16_accepted_without_decision_never_passes(tmp_path: Path) -> None:
         depends_on=("OB-REC",),
         attestation_policy_ref="de4sdv.acceptance.maintainer-decision.v1",
     )
-    ctx = _record_context(
-        tmp_path,
-        registry_scan=me.RegistryScan(
-            path="docs/acceptance-decisions", state="scanned-clean", decisions=()
-        )
-    )
+    ctx = _record_context(tmp_path)
+    registry = tmp_path / "workspace" / mp.REGISTRY_PATH
+    registry.mkdir(parents=True)
+    (registry / "README.md").write_text("Fixture README is not a decision.\n")
+    ctx.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
+    assert ctx.registry_scan.state == "scanned-clean" and ctx.registry_scan.decisions == ()
     evaluation = evaluate([record_spec, acceptance_spec], ctx)
     outcome = unit(evaluation, "OB-ACC")
     assert outcome.verdict == "FAIL"
@@ -881,23 +890,41 @@ def _decision_file(
     outcome: str,
     covered=("p1",),
     supersedes=(),
+    reason="Synthetic fixture decision",
+    campaign_scope=None,
 ) -> None:
     directory.mkdir(parents=True, exist_ok=True)
     body = {
         "schema": "de4sdv.acceptance-decision.v1",
         "policy_id": "de4sdv.acceptance.maintainer-decision.v1",
         "decision_id": decision_id,
-        "campaign_scope": "INC-X @ " + "b" * 40,
+        "campaign_scope": campaign_scope or "INC-X @ " + "b" * 40,
         "covered_profiles": list(covered),
         "outcome": outcome,
-        "decider": "maintainer",
+        # Synthetic fixture attribution only; never a real decision record.
+        "decider": "Orkun Yilmaz",
         "decision_date": "2026-09-01",
+        "reason": reason,
     }
     if supersedes:
         body["supersedes"] = list(supersedes)
     import yaml
 
     (directory / f"{decision_id}.yaml").write_text(yaml.safe_dump(body, sort_keys=True))
+
+
+def _decision_scope(ctx) -> dict:
+    # Independent encoding of the record-digest-pinned manifest reference.
+    import hashlib
+
+    fingerprint = hashlib.sha256(json.dumps(
+        ctx.campaign_manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode()).hexdigest()
+    return {
+        "increment_id": ctx.scope.increment_id,
+        "execution_head": ctx.campaign_manifest["execution_head"],
+        "scope_fingerprint": f"sha256:{fingerprint}",
+    }
 
 
 def _acceptance_specs():
@@ -919,11 +946,106 @@ def _acceptance_specs():
     return [record_spec, acceptance_spec]
 
 
+@pytest.mark.parametrize("mismatched_field", ["increment_id", "execution_head", "scope_fingerprint"])
+def test_mc16_other_campaign_or_fingerprint_never_covers_profile(
+    tmp_path: Path, mismatched_field: str
+) -> None:
+    ctx = _record_context(tmp_path)
+    scope = _decision_scope(ctx)
+    scope[mismatched_field] = "different-known-scope"
+    _decision_file(tmp_path / "workspace" / mp.REGISTRY_PATH, "DEC-OTHER", "accepted", campaign_scope=scope)
+    ctx.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
+    assert ctx.registry_scan.state == "scanned-clean"
+    outcome = unit(evaluate(_acceptance_specs(), ctx), "OB-ACC")
+    assert outcome.state == "COMPLETE" and outcome.verdict == "FAIL"
+    assert outcome.reason_codes == ("ACCEPTANCE_AUTHORITY_MISSING",)
+    assert "EVIDENCE_SCOPE_MISMATCH" in " ".join(outcome.diagnostics)
+    assert "DEC-OTHER" in " ".join(outcome.diagnostics)
+
+
+def test_mc16_partial_decision_covers_only_enumerated_profiles(tmp_path: Path) -> None:
+    ctx = _record_context(tmp_path, profiles=("p1", "p2", "p3"))
+    _decision_file(tmp_path / "workspace" / mp.REGISTRY_PATH, "DEC-PARTIAL", "accepted", covered=("p1",), campaign_scope=_decision_scope(ctx))
+    ctx.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
+    results = {r.subject_id: r for r in child(evaluate(_acceptance_specs(), ctx), "OB-ACC")}
+    assert results["run-p1"].verdict == "PASS"
+    for profile in ("p2", "p3"):
+        assert results[f"run-{profile}"].state == "COMPLETE"
+        assert results[f"run-{profile}"].verdict == "FAIL"
+        assert results[f"run-{profile}"].reason_codes == ("ACCEPTANCE_AUTHORITY_MISSING",)
+
+
+@pytest.mark.parametrize("suffix", ["yaml", "yml", "json"])
+@pytest.mark.parametrize("missing_field", ["decider", "decision_date"])
+def test_mc16_missing_attribution_is_error_in_every_record_format(
+    tmp_path: Path, suffix: str, missing_field: str
+) -> None:
+    ctx = _record_context(tmp_path)
+    registry = tmp_path / "workspace" / mp.REGISTRY_PATH
+    _decision_file(registry, "DEC-INVALID", "accepted", campaign_scope=_decision_scope(ctx))
+    import yaml
+
+    path = registry / "DEC-INVALID.yaml"
+    body = yaml.safe_load(path.read_text())
+    del body[missing_field]
+    path.unlink()
+    target = registry / f"DEC-INVALID.{suffix}"
+    target.write_text(json.dumps(body) if suffix == "json" else yaml.safe_dump(body))
+    ctx.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
+    assert ctx.registry_scan.state == "invalid-record"
+    outcome = unit(evaluate(_acceptance_specs(), ctx), "OB-ACC")
+    assert outcome.state == "ERROR" and outcome.verdict is None
+    assert outcome.reason_codes == ("BINDING_MISMATCH",)
+    assert target.name in " ".join(outcome.diagnostics)
+    assert missing_field in " ".join(outcome.diagnostics)
+
+
+@pytest.mark.parametrize("suffix", ["yaml", "yml", "json"])
+@pytest.mark.parametrize("field,value", [
+    ("decider", "Not the deciding maintainer"),
+    ("decision_date", "not-an-ISO-date"),
+])
+def test_mc16_invalid_attribution_is_error_in_every_record_format(
+    tmp_path: Path, suffix: str, field: str, value: str
+) -> None:
+    ctx = _record_context(tmp_path)
+    registry = tmp_path / "workspace" / mp.REGISTRY_PATH
+    _decision_file(registry, "DEC-ATTRIBUTION", "accepted", campaign_scope=_decision_scope(ctx))
+    import yaml
+
+    path = registry / "DEC-ATTRIBUTION.yaml"
+    body = yaml.safe_load(path.read_text())
+    body[field] = value
+    path.unlink()
+    target = registry / f"DEC-ATTRIBUTION.{suffix}"
+    target.write_text(json.dumps(body) if suffix == "json" else yaml.safe_dump(body))
+    ctx.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
+    assert ctx.registry_scan.state == "invalid-record"
+    outcome = unit(evaluate(_acceptance_specs(), ctx), "OB-ACC")
+    assert outcome.state == "ERROR" and outcome.verdict is None
+    assert outcome.reason_codes == ("BINDING_MISMATCH",)
+    assert field in " ".join(outcome.diagnostics)
+
+
+def test_mc16_rejected_decision_fails_with_retained_reason(tmp_path: Path) -> None:
+    ctx = _record_context(tmp_path)
+    registry = tmp_path / "workspace" / mp.REGISTRY_PATH
+    reason = "Fixture evidence does not meet the declared acceptance scope"
+    _decision_file(registry, "DEC-REJECT", "rejected", reason=reason, campaign_scope=_decision_scope(ctx))
+    ctx.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
+    assert ctx.registry_scan.state == "scanned-clean"
+    outcome = unit(evaluate(_acceptance_specs(), ctx), "OB-ACC")
+    assert outcome.state == "COMPLETE" and outcome.verdict == "FAIL"
+    assert outcome.reason_codes == ("ACCEPTANCE_AUTHORITY_MISSING",)
+    assert "DEC-REJECT" in " ".join(outcome.diagnostics)
+    assert reason in " ".join(outcome.diagnostics)
+
+
 def test_mc20_conflicting_decisions_unresolved_without_timestamp_winner(tmp_path: Path) -> None:
     ctx = _record_context(tmp_path)
     registry = tmp_path / "workspace" / mp.REGISTRY_PATH
-    _decision_file(registry, "DEC-A", "accepted")
-    _decision_file(registry, "DEC-B", "rejected")
+    _decision_file(registry, "DEC-A", "accepted", campaign_scope=_decision_scope(ctx))
+    _decision_file(registry, "DEC-B", "rejected", campaign_scope=_decision_scope(ctx))
     ctx.registry_scan = mp.scan_acceptance_registry(
         mp.DirectoryFileSource(tmp_path / "workspace")
     )
@@ -932,13 +1054,14 @@ def test_mc20_conflicting_decisions_unresolved_without_timestamp_winner(tmp_path
     assert outcome.state == "INDETERMINATE"
     assert outcome.reason_codes == ("ACCEPTANCE_AUTHORITY_MISSING",)
     assert "DEC-A" in " ".join(outcome.diagnostics)
+    assert "DEC-B" in " ".join(outcome.diagnostics)
 
 
 def test_mc20_supersession_resolves_conflict(tmp_path: Path) -> None:
     ctx = _record_context(tmp_path)
     registry = tmp_path / "workspace" / mp.REGISTRY_PATH
-    _decision_file(registry, "DEC-A", "accepted")
-    _decision_file(registry, "DEC-B", "rejected", supersedes=("DEC-A",))
+    _decision_file(registry, "DEC-A", "accepted", campaign_scope=_decision_scope(ctx))
+    _decision_file(registry, "DEC-B", "rejected", supersedes=("DEC-A",), campaign_scope=_decision_scope(ctx))
     scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
     assert scan.state == "scanned-clean"
     ctx.registry_scan = scan
@@ -948,19 +1071,32 @@ def test_mc20_supersession_resolves_conflict(tmp_path: Path) -> None:
     workspace2 = tmp_path / "workspace2"
     ctx2 = _record_context(workspace2)
     registry2 = workspace2 / mp.REGISTRY_PATH
-    _decision_file(registry2, "DEC-A", "accepted", supersedes=("DEC-B",))
-    _decision_file(registry2, "DEC-B", "rejected")
+    _decision_file(registry2, "DEC-A", "accepted", supersedes=("DEC-B",), campaign_scope=_decision_scope(ctx2))
+    _decision_file(registry2, "DEC-B", "rejected", campaign_scope=_decision_scope(ctx2))
     ctx2.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(workspace2))
     evaluation2 = evaluate(_acceptance_specs(), ctx2)
     assert unit(evaluation2, "OB-ACC").verdict == "PASS"
+
+
+def test_mc20_partial_supersession_preserves_other_profile_coverage(tmp_path: Path) -> None:
+    ctx = _record_context(tmp_path, profiles=("p1", "p2"))
+    registry = tmp_path / "workspace" / mp.REGISTRY_PATH
+    scope = _decision_scope(ctx)
+    _decision_file(registry, "DEC-OLD", "accepted", covered=("p1", "p2"), campaign_scope=scope)
+    _decision_file(registry, "DEC-NEW", "rejected", covered=("p1",), supersedes=("DEC-OLD",), campaign_scope=scope)
+    ctx.registry_scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(tmp_path / "workspace"))
+    outcomes = {r.subject_id: r for r in child(evaluate(_acceptance_specs(), ctx), "OB-ACC")}
+    assert outcomes["run-p1"].verdict == "FAIL"
+    assert "DEC-NEW" in " ".join(outcomes["run-p1"].diagnostics)
+    assert outcomes["run-p2"].verdict == "PASS"
 
 
 def test_mc20_supersession_cycle_is_error(tmp_path: Path) -> None:
     workspace = tmp_path / "workspace"
     ctx = _record_context(workspace)
     registry = workspace / mp.REGISTRY_PATH
-    _decision_file(registry, "DEC-A", "accepted", supersedes=("DEC-B",))
-    _decision_file(registry, "DEC-B", "rejected", supersedes=("DEC-A",))
+    _decision_file(registry, "DEC-A", "accepted", supersedes=("DEC-B",), campaign_scope=_decision_scope(ctx))
+    _decision_file(registry, "DEC-B", "rejected", supersedes=("DEC-A",), campaign_scope=_decision_scope(ctx))
     scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(workspace))
     assert scan.state == "invalid-record"
     assert any("cycle" in d for d in scan.diagnostics)

@@ -795,6 +795,11 @@ def _decode_decision(blob: bytes) -> tuple[Mapping[str, Any] | None, str | None]
         value = yaml.safe_load(blob)
     except yaml.YAMLError as error:  # pragma: no cover - defensive
         return None, f"unparseable decision record: {error}"
+    return _validate_decision(value)
+
+
+def _validate_decision(value: object) -> tuple[Mapping[str, Any] | None, str | None]:
+    """Apply the same policy schema to every supported record format."""
     if not isinstance(value, Mapping):
         return None, "decision record is not a mapping"
     required = (
@@ -814,6 +819,18 @@ def _decode_decision(blob: bytes) -> tuple[Mapping[str, Any] | None, str | None]
         return None, f"unknown decision schema {value.get('schema')!r}"
     if str(value.get("outcome")) not in {"accepted", "rejected"}:
         return None, f"invalid decision outcome {value.get('outcome')!r}"
+    if (value.get("policy_id") == "de4sdv.acceptance.maintainer-decision.v1"
+            and value.get("decider") != "Orkun Yilmaz"):
+        return None, "decision decider is not the named maintainer authorized by the policy"
+    from datetime import date
+
+    date_text = str(value.get("decision_date"))
+    try:
+        decision_date = date.fromisoformat(date_text)
+    except ValueError:
+        return None, f"invalid decision_date (expected ISO date): {date_text!r}"
+    if decision_date.isoformat() != date_text:
+        return None, f"invalid decision_date (expected YYYY-MM-DD): {date_text!r}"
     return value, None
 
 
@@ -858,7 +875,7 @@ def scan_acceptance_registry(source: FileSource) -> RegistryScan:
                     state="invalid-record",
                     diagnostics=(f"registry entry {relative!r} is invalid: {error}",),
                 )
-            record, error = (record, None) if isinstance(record, Mapping) else (None, "not a mapping")
+            record, error = _validate_decision(record)
             if error:
                 return RegistryScan(
                     path=REGISTRY_PATH,
@@ -876,13 +893,9 @@ def scan_acceptance_registry(source: FileSource) -> RegistryScan:
         record = dict(record or {})
         record["_path"] = relative
         decisions.append(record)
-    # Supersession resolution: cycles are a policy-integrity violation.
+    # Cycles are a policy-integrity violation. Coverage/supersession is
+    # resolved per matching campaign and profile, never globally at scan time.
     by_id = {str(d.get("decision_id")): d for d in decisions}
-    superseded: set[str] = set()
-    for decision in decisions:
-        for target in decision.get("supersedes") or ():
-            if str(target) in by_id:
-                superseded.add(str(target))
     # cycle detection over supersession edges
     colour: dict[str, int] = {}
     cycle_found: list[str] | None = None
@@ -918,14 +931,12 @@ def scan_acceptance_registry(source: FileSource) -> RegistryScan:
                 "supersession cycle: " + " -> ".join(cycle_found),
             ),
         )
-    effective = [
-        decision for decision in decisions if str(decision.get("decision_id")) not in superseded
-    ]
     return RegistryScan(
         path=REGISTRY_PATH,
         state="scanned-clean",
-        decisions=tuple(effective),
-        diagnostics=(f"registry scanned completely; {len(effective)} effective decision(s)",),
+        decisions=tuple(decisions),
+        diagnostics=(f"registry scanned completely; {len(decisions)} decision(s); "
+                     "supersession resolved per matching campaign and profile",),
     )
 
 
