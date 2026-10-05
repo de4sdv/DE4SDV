@@ -1,0 +1,168 @@
+{
+  "digests": {
+    "export_content": [
+      "7187e029c1c5e785b0917493dda68e4c122c4c06b62bf18de58805fee3ad4a10"
+    ],
+    "first_fetch_content": [
+      "7187e029c1c5e785b0917493dda68e4c122c4c06b62bf18de58805fee3ad4a10"
+    ],
+    "first_fetch_identity": [
+      "ddab77c1515bca49b1f5e9105be00e70a41fe999bfc8b46c91ac1494894292c2"
+    ],
+    "first_fetch_references": [
+      "5507a4e588d1320904bfcbc1e9220ecebe1893d5a357aeb5a10b60e92f1f9c25"
+    ],
+    "ontology_result": [
+      "3d9c4249ba987c507465926398d5862745db4669209292d55c47ab84778fa3f1"
+    ],
+    "used_content": [
+      "7187e029c1c5e785b0917493dda68e4c122c4c06b62bf18de58805fee3ad4a10"
+    ],
+    "used_identity": [
+      "ddab77c1515bca49b1f5e9105be00e70a41fe999bfc8b46c91ac1494894292c2"
+    ],
+    "used_references": [
+      "5507a4e588d1320904bfcbc1e9220ecebe1893d5a357aeb5a10b60e92f1f9c25"
+    ]
+  },
+  "fixture": {
+    "default_page_size": 100,
+    "injected_delay_s": 0.0,
+    "second_fetch_page_size": 1000,
+    "version": "de4sdv-synthetic-transport-replay/1"
+  },
+  "host": "Linux aarch64; Python 3.11.15",
+  "input": {
+    "element_count": 82102,
+    "export_bytes": 67061549,
+    "export_git_commit": "020d1d20e5c03542f67f38b1cc716f4332478538",
+    "export_path": "full-model-api-ingestion-020d1d20e5c03542f67f38b1cc716f4332478538/de4sdv-full-model-export.json",
+    "export_sha256": "6de3e8f544ac2fa110a48c2efd01928c84e1dc928a569de7d922eb689c47b22c",
+    "internal_reference_count": 291704
+  },
+  "label": "synthetic-transport-replay",
+  "measurement_scope": "Loopback HTTP replay, no production database; wall includes parity hashing; fresh processes; corrected baseline object lifetime. Not privileged speedup evidence.",
+  "modes": {
+    "after": {
+      "get_body_bytes": {
+        "max": 34581568.0,
+        "mean": 34581568.0,
+        "min": 34581568.0
+      },
+      "import_baseline_s": {
+        "max": 6.618525990750641,
+        "mean": 6.475076996566107,
+        "min": 6.339347383007407
+      },
+      "ontology_validation_s": {
+        "max": 0.7056317990645766,
+        "mean": 0.6472160530587038,
+        "min": 0.5919651719741523
+      },
+      "pages_first_fetch": {
+        "max": 822.0,
+        "mean": 822.0,
+        "min": 822.0
+      },
+      "pages_second_fetch": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0
+      },
+      "pages_total": {
+        "max": 822.0,
+        "mean": 822.0,
+        "min": 822.0
+      },
+      "post_request_bytes": {
+        "max": 42627910.0,
+        "mean": 42627910.0,
+        "min": 42627910.0
+      },
+      "rss_peak_kb": {
+        "max": 492740.0,
+        "mean": 492352.0,
+        "min": 491924.0
+      },
+      "runs": 3,
+      "second_fetch_s": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0
+      },
+      "wall_s": {
+        "max": 16.739476578775793,
+        "mean": 16.363325728413958,
+        "min": 15.828641147352755
+      }
+    },
+    "before": {
+      "get_body_bytes": {
+        "max": 69163136.0,
+        "mean": 69163136.0,
+        "min": 69163136.0
+      },
+      "import_baseline_s": {
+        "max": 6.845185590907931,
+        "mean": 6.611667136972149,
+        "min": 6.382633648812771
+      },
+      "ontology_validation_s": {
+        "max": 0.6323182727210224,
+        "mean": 0.5913041409415504,
+        "min": 0.5387661480344832
+      },
+      "pages_first_fetch": {
+        "max": 822.0,
+        "mean": 822.0,
+        "min": 822.0
+      },
+      "pages_second_fetch": {
+        "max": 83.0,
+        "mean": 83.0,
+        "min": 83.0
+      },
+      "pages_total": {
+        "max": 905.0,
+        "mean": 905.0,
+        "min": 905.0
+      },
+      "post_request_bytes": {
+        "max": 42627910.0,
+        "mean": 42627910.0,
+        "min": 42627910.0
+      },
+      "rss_peak_kb": {
+        "max": 492588.0,
+        "mean": 492497.3333333333,
+        "min": 492448.0
+      },
+      "runs": 3,
+      "second_fetch_s": {
+        "max": 1.960623727645725,
+        "mean": 1.7353018995684881,
+        "min": 1.5318229496479034
+      },
+      "wall_s": {
+        "max": 18.43288445379585,
+        "mean": 17.792962530938286,
+        "min": 17.173334781080484
+      }
+    }
+  },
+  "parity_checks": {
+    "element_count_equal_all_runs": true,
+    "export_sha256_matches_input": true,
+    "internal_reference_count_equal_all_runs": true,
+    "ontology_passed_all_runs": true,
+    "ontology_result_digest_equal_all_runs": true,
+    "ontology_summary_equal_all_runs": true,
+    "used_content_digest_equal_before_after": true,
+    "used_content_matches_export": true,
+    "used_identity_digest_equal_before_after": true,
+    "used_references_digest_equal_before_after": true,
+    "within_mode_first_vs_second_fetch_equal": true
+  },
+  "parity_pass": true,
+  "repeat": 3
+}

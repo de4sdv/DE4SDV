@@ -12,6 +12,7 @@ import argparse
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -20,7 +21,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from de4sdv.sysml_api.baseline import BaselineManifest, build_export_bundle
-
+from de4sdv.sysml_api.performance import timing
 
 def _git_head() -> str:
     return subprocess.check_output(
@@ -96,12 +97,14 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
         )
     manifest = BaselineManifest.discover(ROOT)
     paths = [ROOT / source.path for source in manifest.sources]
-    model, diagnostics = syside.try_load_model(paths)
+    with timing("model_load", documents=len(paths)):
+        model, diagnostics = syside.try_load_model(paths)
     if diagnostics.contains_errors(warnings_as_errors=False):
         raise RuntimeError(f"Syside rejected the reviewed baseline:\n{diagnostics}")
 
     serialization_options = _serialization_options()
-    library_anchors = _resolve_library_anchors(model)
+    with timing("resolve_anchors"):
+        library_anchors = _resolve_library_anchors(model)
     missing_anchors = sorted(
         f"VerificationCases::{name}"
         for name in _LIBRARY_ANCHOR_NAMES
@@ -114,20 +117,36 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
         )
 
     source_documents: dict[str, list[dict[str, object]]] = {}
-    for document in model.user_docs:
-        with document.lock() as locked:
-            source_path = _relative_document_path(locked.url)
-            serialized = syside.json.dumps(
-                locked.root_node,
-                serialization_options,
-            )
-        elements = json.loads(serialized)
-        if not isinstance(elements, list) or not all(
-            isinstance(element, dict) for element in elements
-        ):
-            raise RuntimeError(f"Syside JSON for {source_path} is not an element array")
-        source_documents[source_path] = elements
-
+    serialize_seconds = 0.0
+    normalize_seconds = 0.0
+    slowest_document = (0.0, "")
+    with timing("serialize_documents") as serialize_metrics:
+        for document in model.user_docs:
+            with document.lock() as locked:
+                source_path = _relative_document_path(locked.url)
+                serialize_start = time.monotonic()
+                serialized = syside.json.dumps(
+                    locked.root_node,
+                    serialization_options,
+                )
+                serialize_elapsed = time.monotonic() - serialize_start
+            serialize_seconds += serialize_elapsed
+            if serialize_elapsed > slowest_document[0]:
+                slowest_document = (serialize_elapsed, source_path)
+            normalize_start = time.monotonic()
+            elements = json.loads(serialized)
+            if not isinstance(elements, list) or not all(
+                isinstance(element, dict) for element in elements
+            ):
+                raise RuntimeError(
+                    f"Syside JSON for {source_path} is not an element array"
+                )
+            normalize_seconds += time.monotonic() - normalize_start
+            source_documents[source_path] = elements
+        serialize_metrics["documents"] = len(source_documents)
+        serialize_metrics["aggregate_serialize_seconds"] = serialize_seconds
+        serialize_metrics["aggregate_normalize_seconds"] = normalize_seconds
+        serialize_metrics["slowest_document_seconds"] = slowest_document[0]
     expected_paths = {source.path for source in manifest.sources}
     actual_paths = set(source_documents)
     if expected_paths != actual_paths:
@@ -136,17 +155,21 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
             f"missing={sorted(expected_paths - actual_paths)}, "
             f"unexpected={sorted(actual_paths - expected_paths)}"
         )
-    bundle = build_export_bundle(
-        git_commit=git_commit,
-        source_documents=source_documents,
-    )
+    with timing("build_bundle"):
+        bundle = build_export_bundle(
+            git_commit=git_commit,
+            source_documents=source_documents,
+        )
     artifact = bundle.to_dict()
     artifact["source_manifest"] = list(manifest.to_dicts())
     artifact["library_anchors"] = dict(library_anchors)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(
-        json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    with timing("write_artifact") as write_metrics:
+        output.write_text(
+            json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        artifact_bytes = output.stat().st_size
+        write_metrics["bytes"] = artifact_bytes
     return {
         "git_commit": git_commit,
         "document_count": len(source_documents),
