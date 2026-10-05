@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -15,13 +16,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.api_binding import OntologyApiBinder
-from de4sdv.semantic.impact import ImpactService
-from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
-from de4sdv.semantic.kernel_contract import KernelContract
-from de4sdv.semantic.traversal import SemanticTraversal
-from de4sdv.sysml_api.client import ApiClient
-from de4sdv.sysml_api.repository import SysMLRepository, reference_ids, element_id
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 
@@ -62,6 +56,11 @@ def run_queries(
     authority: str = "legacy", bundle_path: str | Path | None = None,
     bundle_id: str | None = None, composition: str | None = None,
 ) -> dict[str, Any]:
+    if bundle_id is not None and (
+        not isinstance(bundle_id, str)
+        or re.fullmatch(r"o3b-[0-9a-f]{32}", bundle_id) is None
+    ):
+        raise ValueError("O3 bundle ID must be a literal o3b-<32 lowercase hex> token")
     git_commit = _git_head()
     binding = RevisionBinding.load(binding_path)
     binding.require_current(git_commit)
@@ -85,11 +84,6 @@ def run_queries(
     if int(semantic_report.get("source_document_count", 0)) < 3:
         raise RuntimeError("semantic report does not prove a multi-document full baseline")
 
-    repository = SysMLRepository(ApiClient(api_url, timeout=600.0))
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
-    binding.require_ontology(contract.identity)
     if semantic_report.get("ontology_identity") != binding.ontology.to_dict():
         raise RuntimeError(
             "semantic report ontology identity does not match the validated binding"
@@ -101,6 +95,7 @@ def run_queries(
         authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
         composition=composition, environ={},
     )
+    binding.require_ontology(runtime.contract.identity)
     service = runtime.impact_service
     results: list[dict[str, Any]] = []
     allowed_strengths = {

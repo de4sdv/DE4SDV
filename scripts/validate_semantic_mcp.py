@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Iterable
@@ -58,12 +59,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
-from de4sdv.semantic.kernel_contract import KernelContract
-from de4sdv.semantic.traversal import SemanticTraversal
-from de4sdv.sysml_api.client import ApiClient
-from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_ids
-from de4sdv.sysml_api.revisions import RevisionBinding
+from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
+from de4sdv.sysml_api.repository import element_id, reference_ids
 
 #: The seven full-model semantic proof tools this validator exercises. The
 #: exposed surface may be larger (strictly read-only additions are allowed);
@@ -587,9 +584,30 @@ async def run_mcp_validation(
     binding_path: Path,
     expected_git_revision: str,
     ontology_path: Path,
+    authority: str = "legacy",
+    bundle_path: str | Path | None = None,
+    bundle_id: str | None = None,
+    composition: str | None = None,
 ) -> dict[str, Any]:
-    binding = RevisionBinding.load(binding_path)
+    if bundle_id is not None and (
+        not isinstance(bundle_id, str)
+        or re.fullmatch(r"o3b-[0-9a-f]{32}", bundle_id) is None
+    ):
+        raise ValueError("O3 bundle ID must be a literal o3b-<32 lowercase hex> token")
+    # The stdio server changes cwd; both processes must read the caller's files.
+    binding_path = binding_path.resolve()
+    ontology_path = ontology_path.resolve()
+    if bundle_path is not None:
+        bundle_path = Path(bundle_path).resolve()
+    runtime, selection = build_explicit_semantic_runtime(
+        api_url=api_url, binding_path=binding_path,
+        expected_git_revision=expected_git_revision, ontology_path=ontology_path,
+        authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
+        composition=composition, environ={},
+    )
+    binding = runtime.binding
     binding.require_current(expected_git_revision)
+    binding.require_ontology(runtime.contract.identity)
     if binding.scope != "full-model":
         raise RuntimeError(f"MCP proof requires full-model scope, got {binding.scope}")
     expected_revision = {
@@ -612,6 +630,11 @@ async def run_mcp_validation(
             expected_git_revision,
             "--ontology",
             str(ontology_path),
+            "--semantic-authority",
+            authority,
+            *(["--o3-authority-bundle", str(bundle_path)] if bundle_path is not None else []),
+            *(["--o3-authority-bundle-id", bundle_id] if bundle_id is not None else []),
+            *(["--runtime-composition", composition] if composition is not None else []),
         ],
         cwd=ROOT,
     )
@@ -666,16 +689,10 @@ async def run_mcp_validation(
             # heuristic participates; the same selection runs in tests. The
             # subject may differ from the Proof-A root; impact, coverage, and
             # trace are all evaluated on THIS subject.
-            contract = KernelContract.load(ontology_path)
-            repository = SysMLRepository(ApiClient(api_url, timeout=600.0))
-            elements = repository.list_elements(
+            elements = runtime.repository.list_elements(
                 binding.sysml_project_id, binding.sysml_commit_id
             )
-            traversal = SemanticTraversal(
-                contract,
-                kernel_bindings=KernelBindingIndex.from_binding(binding),
-            )
-            subject = _select_native_verification_subject(elements, traversal)
+            subject = _select_native_verification_subject(elements, runtime.traversal)
             subject_id = subject["element_id"]
             results["native_verification_subject"] = (
                 _native_verification_subject_record(subject)
@@ -724,6 +741,14 @@ async def run_mcp_validation(
                 "trace": proof_b_trace,
             }
 
+    server_authority_id = (
+        results["model_status"].get("semantic_authority") or {}
+    ).get("id")
+    if server_authority_id != runtime.semantic_authority_id:
+        raise RuntimeError(
+            "MCP server/Proof-B runtime authority mismatch: "
+            f"{server_authority_id!r} != {runtime.semantic_authority_id!r}"
+        )
     validate_semantic_results(
         results,
         expected_revision=expected_revision,
@@ -741,6 +766,7 @@ async def run_mcp_validation(
         "schema": "de4sdv-semantic-mcp-validation/v2",
         "read_only": True,
         "revision": expected_revision,
+        "semantic_authority": selection.provenance(),
         "proof_a_blocked_evidence_contract": True,
         "proof_b_native_verification": True,
         "proof_a_root": proof_a_root_id,
@@ -771,6 +797,10 @@ def main() -> int:
         default=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--semantic-authority", default="legacy")
+    parser.add_argument("--o3-authority-bundle")
+    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
     args = parser.parse_args()
     result = anyio.run(
         lambda: run_mcp_validation(
@@ -778,6 +808,10 @@ def main() -> int:
             binding_path=args.binding,
             expected_git_revision=args.expected_git_revision,
             ontology_path=args.ontology,
+            authority=args.semantic_authority,
+            bundle_path=args.o3_authority_bundle,
+            bundle_id=args.o3_authority_bundle_id,
+            composition=args.runtime_composition,
         )
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
