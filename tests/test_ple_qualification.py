@@ -186,12 +186,9 @@ def test_internal_reference_list_order_is_not_semantic_drift():
     assert runner().verify_readback(bundle, actual) == actual
 
 
-@pytest.mark.parametrize("artifact_id", [9814891861, 123456789])
-@pytest.mark.parametrize("run_ids", [(33543909037, 33543909037),
-                                    (123456789, 33543909037),
-                                    (33543909037, 123456789)])
-def test_workflow_origin_refuses_same_name_different_artifact_id(tmp_path, monkeypatch, artifact_id, run_ids):
+def _run_origin_step(tmp_path, monkeypatch, *, run_id=33543909037, tamper=None):
     import json
+    import shutil
     import subprocess
     from pathlib import Path
     import yaml
@@ -202,17 +199,20 @@ def test_workflow_origin_refuses_same_name_different_artifact_id(tmp_path, monke
     code = step["run"].split("python - <<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
     revision, frozen = "1" * 40, "6a99626b4af7cd01108f27dac88bf5b55bba207a"
     repository = "de4sdv/DE4SDV"
-    run = {"id": run_ids[0], "head_sha": frozen, "status": "completed", "conclusion": "success",
+    run = {"id": run_id, "head_sha": frozen, "status": "completed", "conclusion": "success",
            "event": "pull_request", "path": ".github/workflows/privileged-pleml-gate-a.yml",
            "repository": {"full_name": repository}}
-    artifact = {"id": artifact_id, "name": "pleml-gate-a-" + frozen, "expired": False,
-                "workflow_run": {"id": run_ids[1], "head_sha": frozen}}
+    base = tmp_path / "docs/product-line-engineering/gate-a-baseline"
+    shutil.copytree(root / "docs/product-line-engineering/gate-a-baseline", base)
+    if tamper:
+        tamper(base)
+    calls = []
 
     def output(command, **kwargs):
+        calls.append(command)
         if command[0] == "git":
             return revision + "\n"
-        value = {"total_count": 1, "artifacts": [artifact]} if "/artifacts?" in command[-1] else run
-        return json.dumps(value).encode()
+        return json.dumps(run).encode()
 
     monkeypatch.setattr(subprocess, "check_output", output)
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
@@ -220,13 +220,85 @@ def test_workflow_origin_refuses_same_name_different_artifact_id(tmp_path, monke
     monkeypatch.setenv("SELECTED_REVISION", revision)
     monkeypatch.setenv("GITHUB_REPOSITORY", repository)
     monkeypatch.setenv("GITHUB_OUTPUT", str(tmp_path / "outputs"))
-    if artifact_id != 9814891861 or run_ids != (33543909037, 33543909037):
-        with pytest.raises(SystemExit, match="historical"):
-            exec(compile(code, "workflow-origin", "exec"), {})
-        assert not (tmp_path / "ple-evidence/provider-origin.json").exists()
-    else:
-        exec(compile(code, "workflow-origin", "exec"), {})
-        assert (tmp_path / "outputs").read_text() == "artifact_id=9814891861\n"
+    exec(compile(code, "workflow-origin", "exec"), {})
+    return calls
+
+
+def test_workflow_origin_materializes_exact_retained_baseline(tmp_path, monkeypatch):
+    import hashlib
+    import json
+
+    calls = _run_origin_step(tmp_path, monkeypatch)
+    export = (tmp_path / "_ple-baseline/de4sdv-pleml-gate-a-export.json").read_bytes()
+    assert hashlib.sha256(export).hexdigest() == (
+        "cf129d6884dc38555a0a725ad516d06fa6cf1ff2d11d6cda0bb1d5bc1ae51b7d")
+    assert (tmp_path / "outputs").read_text() == "artifact_id=9814891861\n"
+    origin = json.loads((tmp_path / "ple-evidence/provider-origin.json").read_text())
+    assert origin["historical_artifact"]["id"] == 9814891861
+    assert origin["historical_artifact"]["export_sha256"].startswith("cf129d68")
+    # The expired provider artifact inventory is no longer consulted.
+    assert not any("/artifacts" in str(command[-1]) for command in calls if command[0] == "gh")
+
+
+@pytest.mark.parametrize("run_id", [123456789])
+def test_workflow_origin_refuses_foreign_historical_run(tmp_path, monkeypatch, run_id):
+    with pytest.raises(SystemExit, match="historical origin mismatch"):
+        _run_origin_step(tmp_path, monkeypatch, run_id=run_id)
+    assert not (tmp_path / "ple-evidence/provider-origin.json").exists()
+    assert not (tmp_path / "_ple-baseline").exists()
+
+
+def _flip_byte(base):
+    path = base / "de4sdv-pleml-gate-a-export.json.xz"
+    data = bytearray(path.read_bytes())
+    data[len(data) // 2] ^= 0x01
+    path.write_bytes(bytes(data))
+
+
+def _edit_manifest(field, value):
+    def tamper(base):
+        import json
+        manifest = json.loads((base / "manifest.json").read_text())
+        manifest[field] = value
+        (base / "manifest.json").write_text(json.dumps(manifest))
+    return tamper
+
+
+def _replace_export(base):
+    import json
+    import lzma
+    import hashlib
+    forged = json.dumps({"git_commit": "0" * 40, "elements": []}).encode()
+    compressed = lzma.compress(forged)
+    (base / "de4sdv-pleml-gate-a-export.json.xz").write_bytes(compressed)
+    manifest = json.loads((base / "manifest.json").read_text())
+    manifest["compressed_sha256"] = hashlib.sha256(compressed).hexdigest()
+    (base / "manifest.json").write_text(json.dumps(manifest))
+
+
+@pytest.mark.parametrize("tamper,message", [
+    (_flip_byte, "digest mismatch"),
+    (_edit_manifest("historical_artifact_id", 123456789), "manifest mismatch"),
+    (_edit_manifest("historical_run", 123456789), "manifest mismatch"),
+    (_edit_manifest("frozen_revision", "0" * 40), "manifest mismatch"),
+    (_edit_manifest("export_sha256", "0" * 64), "manifest mismatch"),
+    (_replace_export, "manifest mismatch"),
+])
+def test_workflow_origin_refuses_tampered_retained_baseline(tmp_path, monkeypatch, tamper, message):
+    with pytest.raises(SystemExit, match=message):
+        _run_origin_step(tmp_path, monkeypatch, tamper=tamper)
+    assert not (tmp_path / "ple-evidence/provider-origin.json").exists()
+    assert not (tmp_path / "_ple-baseline").exists()
+
+
+def test_workflow_no_longer_downloads_expired_provider_artifact():
+    from pathlib import Path
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    workflow = yaml.safe_load((root / ".github/workflows/privileged-ple-qualification.yml").read_text())
+    steps = workflow["jobs"]["qualify"]["steps"]
+    assert not any("download-artifact" in str(item.get("uses", "")) for item in steps)
 
 
 @pytest.mark.parametrize("payload", [{"extra": {"@id": "missing"}},

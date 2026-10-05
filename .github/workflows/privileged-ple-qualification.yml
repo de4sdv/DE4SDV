@@ -40,7 +40,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Verify exact permanent executor and historical artifact origin
+      - name: Verify exact permanent executor and retained historical baseline
         id: origin
         run: |
           python - <<'PY'
@@ -63,23 +63,41 @@ jobs:
                   or run['path'] != '.github/workflows/privileged-pleml-gate-a.yml'
                   or run['repository']['full_name'] != repository):
               raise SystemExit('refused: historical origin mismatch')
-          inventory = api('/actions/runs/33543909037/artifacts?per_page=100')
-          if inventory['total_count'] != len(inventory['artifacts']):
-              raise SystemExit('refused: incomplete historical artifact inventory')
-          matches = [item for item in inventory['artifacts']
-                     if item['name'] == 'pleml-gate-a-' + frozen and not item['expired']]
-          if (len(matches) != 1 or matches[0]['id'] != 9814891861
-                  or matches[0].get('workflow_run', {}).get('id') != 33543909037
-                  or matches[0].get('workflow_run', {}).get('head_sha') != frozen):
-              raise SystemExit('refused: exact live historical artifact 9814891861 required')
+          import hashlib, lzma
+          base = Path('docs/product-line-engineering/gate-a-baseline')
+          manifest = json.loads((base / 'manifest.json').read_text())
+          if (manifest.get('schema') != 'de4sdv.retained-ple-baseline/v1'
+                  or manifest.get('historical_run') != 33543909037
+                  or manifest.get('historical_artifact_id') != 9814891861
+                  or manifest.get('frozen_revision') != frozen
+                  or manifest.get('file') != 'de4sdv-pleml-gate-a-export.json.xz'
+                  or manifest.get('compressed_sha256') != '8df340d8a645521b542a44a0adce3ec628e23fb0b21f819dd459bb30dee30f8a'
+                  or manifest.get('export_sha256') != 'cf129d6884dc38555a0a725ad516d06fa6cf1ff2d11d6cda0bb1d5bc1ae51b7d'):
+              raise SystemExit('refused: retained historical baseline manifest mismatch')
+          compressed = (base / manifest['file']).read_bytes()
+          if hashlib.sha256(compressed).hexdigest() != manifest['compressed_sha256']:
+              raise SystemExit('refused: retained historical baseline digest mismatch')
+          export = lzma.decompress(compressed)
+          if (hashlib.sha256(export).hexdigest() != manifest['export_sha256']
+                  or len(export) != manifest['export_size']
+                  or json.loads(export).get('git_commit') != frozen):
+              raise SystemExit('refused: retained historical export identity mismatch')
+          Path('_ple-baseline').mkdir()
+          Path('_ple-baseline/de4sdv-pleml-gate-a-export.json').write_bytes(export)
           Path('ple-evidence').mkdir()
           Path('ple-evidence/provider-origin.json').write_text(json.dumps({
               'executor_revision': revision, 'historical_run': run['id'],
-              'historical_revision': frozen, 'historical_artifact': matches[0],
+              'historical_revision': frozen,
+              'historical_artifact': {'id': manifest['historical_artifact_id'],
+                                      'name': manifest['historical_artifact_name'],
+                                      'provider_expired_at': manifest['historical_artifact_expired_at'],
+                                      'retained_copy': str(base / manifest['file']),
+                                      'compressed_sha256': manifest['compressed_sha256'],
+                                      'export_sha256': manifest['export_sha256']},
               'runner_os': os.environ.get('RUNNER_OS'),
               'runner_arch': os.environ.get('RUNNER_ARCH')}, indent=2) + '\n')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write('artifact_id=' + str(matches[0]['id']) + '\n')
+              output.write('artifact_id=' + str(manifest['historical_artifact_id']) + '\n')
           PY
 
       - name: Checkout frozen experiment read-only as a separate input
@@ -89,15 +107,6 @@ jobs:
           path: _ple-experiment
           submodules: recursive
           persist-credentials: false
-
-      - name: Download the verified historical baseline
-        uses: actions/download-artifact@v4
-        with:
-          artifact-ids: ${{ steps.origin.outputs.artifact_id }}
-          path: _ple-baseline
-          merge-multiple: true
-          github-token: ${{ github.token }}
-          run-id: 33543909037
 
       - uses: actions/setup-python@v5
         with:
