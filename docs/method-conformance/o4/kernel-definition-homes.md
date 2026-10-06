@@ -1,8 +1,10 @@
 # O4 kernel definition homes
 
-**Draft — licensed Syside validation is pending.** Generated artifacts are
-regenerated with the repository generators and bound to this branch's commits
-(temporary binding); a content-only rebind follows the squash merge.
+**Draft — under review.** Licensed Syside validation runs automatically on
+every pull-request head; the pull request carries the exact-head evidence.
+Generated artifacts are regenerated with the repository generators and bound
+to this branch's commits (temporary binding); a content-only rebind follows
+the squash merge.
 
 The remaining authored definitions need durable model homes before O4 can
 retire its YAML authority. This package supplies those homes; it does not
@@ -100,7 +102,7 @@ consumer retirement and whole-row closure are separate obligations.
 | `recordsAssumption` | W4 | NEW_APPLICATION_SEMANTICS | `de4sdv_method_vocabulary_carriers.sysml` / `connection def RecordsAssumption` |
 | `recordsGap` | W4 | NEW_APPLICATION_SEMANTICS | `de4sdv_method_vocabulary_carriers.sysml` / `connection def RecordsGap` |
 
-## Validation request and source grammar
+## Licensed validation findings
 
 The first exact-head licensed run (run 37411981652) rejected two constructs:
 
@@ -114,23 +116,21 @@ The first exact-head licensed run (run 37411981652) rejected two constructs:
   `<Term>OntologyDefinition` form, so no Documentation name equals a model,
   library or predicate name.
 
-Request maintainer-visible **Privileged Syside Validation** on the exact
-reviewed revision for both model roots. This host is aarch64; no local
-licensed result is claimed.
-
-Grammar sources (inspection only; no toolchain pin change):
-
-- [KerML textual BNF, SysML-v2-Release fb97b754](https://github.com/Systems-Modeling/SysML-v2-Release/blob/fb97b754f29588b8e9c7a35f370880cd15eb29e7/bnf/KerML-textual-bnf.kebnf)
-- [SysML pilot grammar, 2026-08](https://github.com/Systems-Modeling/SysML-v2-Pilot-Implementation/blob/2026-08/org.omg.sysml.xtext/src/org/omg/sysml/xtext/SysML.xtext)
+After both repairs the licensed check reports no model errors. The model
+changes alter four published renders: the three AEBS product-line views show
+the new checked constraint, and the method process view shows the new
+definition text. The committed renders are the licensed run's own output, and
+the method `VIEWS.md` is regenerated from them with
+`scripts/generate_view_index.py`. This host is aarch64, so no local licensed
+result is claimed.
 
 ## Generated artifacts and frozen runtime
 
 Generated outputs are not hand-edited or rebound to a commit that lacks the
-input bytes. The documented generators require the input commit first, then
-artifact generation bound to that real revision (the two-commit pattern;
-squash delivery additionally needs permanent revision recovery). This package
-is staged/uncommitted by instruction, so revision-bound regeneration is blocked.
-Keep generated-chain failures visible; no gate bypass or fake ingestion.
+input bytes. Each lane is regenerated with its repository generator and bound
+to the branch commit that contains its inputs, in chain order: direct lanes,
+then v1.1, then v1.2 and the O3 scope. After the squash merge, a content-only
+rebind binds each level to its permanent merge commit. No gate is bypassed.
 
 O3's 13 frozen identities, the runtime build files and composition sidecar
 sources are preserved byte-for-byte against the package base. Only definition
