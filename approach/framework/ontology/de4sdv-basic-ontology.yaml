@@ -24,6 +24,8 @@ kernel_sync:
   gate: scripts/check_model_sync.py (ontology-kernel contract)
   governed_directory: textual-notation-of-model/packages/methods/de4sdv
   exclusions:
+    textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:
+      item def MethodEvaluationExclusion: scope-internal structured exclusion record (excluded element reference plus rationale), owned by MethodEvaluationScope; not an additional ontology class or contribution membership
     textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:
       concern def ProductLineCapabilityClassificationConcern: method-specific concern type
       concern def RegulatoryScopeWithoutComplianceClaimConcern: method-specific concern type
@@ -373,8 +375,8 @@ classes:
   AcceptanceCriterion:
     definition: A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.
     kernel:
-      file: textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml
-      declaration: requirement def MiddlewareAcceptanceCriterion
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def AcceptanceCriterion
   EvidenceArtifact:
     definition: A reviewable artifact that supports a verification, validation, assurance, or release decision.
     kernel:
@@ -390,7 +392,8 @@ classes:
       requirement is verified.
     subClassOf: Requirement
     kernel:
-      native: Requirement usages verified by SysML v2 verification cases in DE4SDV verification slices
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def EvidenceContract
   EvidenceStatus:
     definition: >-
       Lifecycle status for evidence and verification results. DE4SDV does not

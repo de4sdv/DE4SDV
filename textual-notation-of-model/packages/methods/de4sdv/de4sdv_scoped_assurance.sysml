@@ -5,6 +5,30 @@
  * External evidence/reference contract remains de4sdv.evidence-reference/v1.
  */
 package DE4SDV_ScopedAssurance {
+  doc AssuranceClaimOntologyDefinition /* A claim about safety, security, compliance alignment, release readiness, or fitness-
+   * for-use that requires argument and evidence before acceptance. Claims are bounded and
+   * never imply certification or homologation. */
+  comment about AssuranceClaimOntologyDefinition /* Bounded claim vocabulary only; no claim/argument/counterclaim taxonomy or generic
+   * adequacy/acceptance result is introduced. Existing scoped-assurance records and their
+   * boundaries stay intact. */
+
+
+  doc EvidenceStatusOntologyDefinition /* Lifecycle status for evidence and verification results. DE4SDV does not define its own
+   * status vocabulary: requirement verification status uses the upstream VVStatus enum, and
+   * bounded evidence outcomes/dispositions use slice-local enums such as
+   * MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition. */
+  comment about EvidenceStatusOntologyDefinition /* The upstream VVStatus enum and slice-local bounded outcomes/dispositions remain
+   * distinct authorities. No status copy, new enum, lifecycle-result collapse or policy
+   * acceptance is introduced. */
+
+
+  doc EvidenceArtifactOntologyDefinition /* A reviewable artifact that supports a verification, validation, assurance, or release
+   * decision. */
+  comment about EvidenceArtifactOntologyDefinition /* Artifact contents remain in evidence registers, retained files and typed references,
+   * not in this documentation. Definition residence does not establish artifact
+   * availability, maturity, adequacy or acceptance. */
+
+
   private import ScalarValues::*;
   private import DE4SDV_SYSMODAdapter::VVStatus;
   private import DE4SDV_MethodConformance::*;

@@ -13,6 +13,94 @@
  */
 
 package DE4SDV_MethodContext {
+  doc hasRelevantArchitectureOntologyDefinition /* Reverse relevance: an incoming dependency from an architecture element (part, action,
+   * or their definitions) that is derived from or traces to the requirement. Sources
+   * grounded in the MemberProduct kernel lineage (resolved through the governed kernel
+   * mapping, never by bare name) are excluded — configured-product traces are product-line
+   * relationships, not architecture relevance. */
+  comment about hasRelevantArchitectureOntologyDefinition /* Existing frozen O3 incoming-dependency mapping stays
+   * PartUsage/PartDefinition/ActionUsage/ActionDefinition with MemberProduct-lineage
+   * exclusions. No Interface widening, stronger relation or consumer rewiring. */
+
+
+  doc specifiesFunctionOntologyDefinition /* Requirement-to-function relevance: a dependency from a draft requirement candidate to
+   * the functional action or flow responsibility that addresses it. Relevance only — not
+   * satisfaction, allocation, or verification. */
+  comment about specifiesFunctionOntologyDefinition /* Existing requirement-to-function dependency/relevance signature and target filter
+   * remain unchanged. No allocation, satisfaction or verification claim is introduced. */
+
+
+  doc derivedRequirementsOfNeedOntologyDefinition /* Inverse navigation of derivesRequirementFromNeed over the SAME discriminator witness:
+   * the need N is the design-input origin of the derived requirement R. This predicate
+   * declares no new model fact; it reuses the identical DerivesFromNeed connection
+   * traversed in the reverse direction, with the same lineage grounding and fail-closed
+   * closure semantics. */
+  comment about derivedRequirementsOfNeedOntologyDefinition /* Existing frozen O3 inverse navigation over the identical DerivesFromNeed witness
+   * remains unchanged; no additional model fact or executable mapping. */
+
+
+  doc derivesRequirementFromNeedOntologyDefinition /* Requirement R is derived from stakeholder need N. Design-input derivation; direction R
+   * -> N. No satisfaction, allocation, verification, evidence, or acceptance claim.
+   * Grounded in the DE4SDV application connection definition DerivesFromNeed: the Need
+   * grounds the `need` end, the derived design requirement grounds the `derivedRequirement`
+   * end. DE4SDV's Requirement -> Need query is inverse navigation over that native witness. */
+  comment about derivesRequirementFromNeedOntologyDefinition /* Existing frozen O3 predicate signature, native DerivesFromNeed witness and inverse
+   * query direction remain unchanged; documentation only. */
+
+
+  doc VerificationMethodOntologyDefinition /* A method used to check requirement satisfaction. Carried natively by VerificationMethod
+   * metadata with the standard method-kind vocabulary (inspect, demo, test, analyze), per
+   * the ADR 0009 amendment. */
+  comment about VerificationMethodOntologyDefinition /* ODE4HERA requirements-management verificationMethod and standard VerificationMethodKind
+   * remain the accepted external/library authority; no library copy or new method-kind
+   * vocabulary. */
+
+
+  doc VerificationCaseOntologyDefinition /* A planned or executed check that evaluates whether a requirement or model claim is
+   * satisfied. */
+  comment about VerificationCaseOntologyDefinition /* Native SysML VerificationCaseDefinition/VerificationCaseUsage (verification
+   * def/verification) remain the representation. This documentation changes no frozen O3
+   * traversal signature, objective, execution, result or acceptance. */
+
+
+  doc InterfaceOntologyDefinition /* A boundary or interaction point through which items, signals, services, or information
+   * are exchanged. */
+  comment about InterfaceOntologyDefinition /* Native SysML kinds remain PortDefinition/PortUsage and connection elements. This
+   * documentation preserves the existing Interface meaning and does not widen
+   * hasRelevantArchitecture. */
+
+
+  doc PhysicalElementOntologyDefinition /* A physical, software, hardware, deployment, or platform element that realizes
+   * conceptual elements or functions. */
+  comment about PhysicalElementOntologyDefinition /* Native SysML kinds: PartDefinition/PartUsage in physical/software realization slices,
+   * describing concrete software, hardware, deployment or platform roles. No additional
+   * PhysicalElement specialization taxonomy is introduced; typing does not prove deployment
+   * or execution. */
+
+
+  doc LogicalElementOntologyDefinition /* A logical service, component, or responsibility grouping that realizes functions. */
+  comment about LogicalElementOntologyDefinition /* Native SysML kinds: PartDefinition/PartUsage in logical-architecture slices, describing
+   * technology-neutral service/component responsibilities. No additional LogicalElement
+   * specialization taxonomy is introduced. */
+
+
+  doc FunctionOntologyDefinition /* A behavior or transformation expected from the system or product-line architecture. */
+  comment about FunctionOntologyDefinition /* Native SysML kinds: ActionDefinition/ActionUsage (action defs/usages), with
+   * StateDefinition/StateUsage and behavior definitions where appropriate. No existing
+   * functional element must specialize a new Function type; this is a documentation
+   * umbrella. */
+
+
+  doc ArchitectureElementOntologyDefinition /* Any model element used to describe system context, function, logical realization,
+   * physical/software realization, interface, or behavior. */
+  comment about ArchitectureElementOntologyDefinition /* Native SysML kinds: PartDefinition/PartUsage for structural constituents;
+   * ActionDefinition/ActionUsage and StateDefinition/StateUsage for behavior;
+   * PortDefinition/PortUsage and ConnectionDefinition/ConnectionUsage for interfaces. This
+   * is a documentation umbrella, not a parallel type taxonomy. hasRelevantArchitecture
+   * remains restricted to PartUsage, PartDefinition, ActionUsage and ActionDefinition;
+   * Interface is not added to that executable filter. */
+
+
   private import DE4SDV_SYSMODAdapter::*;
   private import DE4SDV_Stakeholders::*;
   /* Requirement derivation discriminator: DE4SDV application connection
@@ -24,6 +112,15 @@ package DE4SDV_MethodContext {
    * verification, evidence, or acceptance claim. */
 
   connection def DerivesFromNeed {
+    private doc ontologyDefinition /* DE4SDV application connection definition for design-input derivation: the
+     * derivedRequirement originates from the stakeholder need. Provenance/traceability
+     * semantics only - neither satisfaction nor logical implication between the connected
+     * usages is claimed. The typed connection ends (need : StakeholderNeedCandidate,
+     * derivedRequirement : RequirementCandidate) carry the predicate's domain and range in
+     * the model itself. The standard Requirement Derivation Domain Library remains pinned
+     * but unadopted: its originalImpliesDerived semantics change the claim (upstream
+     * adoption gate still applies; no floating upgrade, no upstream contact without
+     * authorization). */
     end need : StakeholderNeedCandidate;
     end derivedRequirement : RequirementCandidate;
     doc /* Design-input provenance: the derivedRequirement originates from
@@ -41,6 +138,11 @@ package DE4SDV_MethodContext {
    * verificationStatus = VVStatus::...` (ADR 0009 amendment) without
    * importing the adapter directly. */
   public import VVStatus;
+
+  comment hasStakeholderVocabularyRole about EngineeringIncrement, Stakeholder /* Vocabulary
+   * role: EngineeringIncrement -> Stakeholder. Existing native stakeholder
+   * membership is preserved; this comment introduces no additional trace
+   * slot, executable mapping, participation requirement or acceptance. */
 
   part def EngineeringIncrement {
     doc /* A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
@@ -107,6 +209,9 @@ package DE4SDV_MethodContext {
   }
 
   requirement def StakeholderNeedCandidate :> RequirementsManagementAttributeBase {
+    private doc ontologyDefinition /* Stakeholder-expressed problem-space intent, before conversion into design input
+     * requirements. The kernel models needs as requirement usages of
+     * StakeholderNeedCandidate specializations carrying the ADR 0009 attribute set. */
     doc /* Stakeholder-expressed problem-space intent, before conversion into design-input requirements. Inherits the NRM Chapter 15 attribute set adopted via ADR 0009. */
   }
 
@@ -134,6 +239,9 @@ package DE4SDV_MethodContext {
   }
 
   requirement def RequirementCandidate :> SYSMODRequirementBase, RequirementsManagementAttributeBase {
+    private doc ontologyDefinition /* A verifiable design input obligation or constraint derived from needs, standards, or
+     * architecture decisions. The kernel models requirement candidates on the SYSMOD
+     * requirement seam with ADR 0009 attributes. */
     doc /* A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions.
          * Generic base for design-input requirement candidates before acceptance.
          * Specializes the SYSMOD requirement seam, inheriting obligation,
@@ -161,15 +269,46 @@ package DE4SDV_MethodContext {
     doc /* Candidate requirement for traceability and V&V planning constraints. */
   }
 
+  comment hasAcceptanceCriterionVocabularyRole about AcceptanceCriterion /* The criterion
+   * role in a native verification objective is distinguished by
+   * AcceptanceCriterion typing/specialization, not a criterion name. This
+   * is a test-verdict criterion, not acceptance under
+   * de4sdv.acceptance.maintainer-decision.v1. No cardinality or executable
+   * predicate mapping is introduced here. */
+
+  requirement def AcceptanceCriterion {
+    doc /* A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose. */
+    /* Test-verdict criterion, not an authorized acceptance decision under
+     * de4sdv.acceptance.maintainer-decision.v1. Typing supplies no result,
+     * approval or acceptance; policy decisions remain separate records. */
+  }
+
+  requirement def EvidenceContract :> RequirementCandidate {
+    doc /* A requirement usage that defines the bounded observations, acceptance
+         * boundary, and retained-evidence obligations for a verification case. An
+         * evidence contract is planning vocabulary, not proof that a product
+         * requirement is verified. */
+    /* Specialized today only by OverrideEvidenceContract (AEBS) and
+     * MiddlewareAcceptanceCriterion. The other AEBS evidence-contract
+     * definitions do not specialize it yet, so this type's specialization
+     * closure is not the evidence-contract population and must not be used
+     * to discriminate hasRelevantEvidenceContract. The existing runtime
+     * dependency mapping is unchanged. */
+  }
+
   requirement def EvidenceContractTraceabilityRequirementCandidate :> RequirementCandidate {
     doc /* Candidate requirement for evidence-contract traceability to controlled boundaries. */
   }
 
   requirement def RegulatoryConstraintCandidate :> RequirementsManagementAttributeBase {
+    private doc ontologyDefinition /* A constraint or reference derived from a standard, regulation, or homologation-
+     * relevant source, with controlled source identity and no compliance claim. */
     doc /* A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim. Grounds the ontology RegulatoryConstraint class and R003 derivation targets. */
   }
 
   part def ArchitectureDecisionRecord {
+    private doc ontologyDefinition /* A reviewed architecture or method decision recorded as an ADR in Git that can serve
+     * as the semantic origin of a design-input requirement. */
     doc /* A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement. Grounds the ontology ArchitectureDecisionRecord class and R003 derivation targets. */
   }
 

@@ -144,7 +144,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
   }
 
   requirement def MiddlewareAcceptanceCriterion
-    :> EvidenceContractTraceabilityRequirementCandidate;
+    :> EvidenceContractTraceabilityRequirementCandidate, AcceptanceCriterion, EvidenceContract;
 
   requirement acceptanceCriterion010SignalTranslation : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-01; bounded verification of the selected Vehicle.Speed slice. */

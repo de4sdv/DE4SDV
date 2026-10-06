@@ -2,6 +2,7 @@
 package DE4SDV_AEBSOverrideVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
+  private import DE4SDV_MethodContext::EvidenceContract;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
 
   enum def OverrideScenarioIdentity {
@@ -35,7 +36,7 @@ package DE4SDV_AEBSOverrideVerification {
   part def OverrideMatrixBench {
     attribute scenario : OverrideScenarioIdentity;
   }
-  requirement def OverrideEvidenceContract;
+  requirement def OverrideEvidenceContract :> EvidenceContract;
   requirement <'EC-009D-01'>evidenceContractClosedOverrideScenario : OverrideEvidenceContract {
     subject bench : OverrideMatrixBench;
     require constraint statement { language "English" /* The bench shall bind exactly one closed override scenario identity. */ }

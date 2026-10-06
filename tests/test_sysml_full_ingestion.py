@@ -286,12 +286,12 @@ def test_ontology_validation_reports_all_binding_categories_explicitly() -> None
         {
             "@type": "RequirementDefinition",
             "@id": acceptance_a,
-            "declaredName": "MiddlewareAcceptanceCriterion",
+            "declaredName": "AcceptanceCriterion",
         },
         {
             "@type": "RequirementDefinition",
             "@id": acceptance_b,
-            "declaredName": "MiddlewareAcceptanceCriterion",
+            "declaredName": "AcceptanceCriterion",
         },
     ]
     sources = {
@@ -299,13 +299,16 @@ def test_ontology_validation_reports_all_binding_categories_explicitly() -> None
             "textual-notation-of-model/packages/methods/de4sdv/"
             "de4sdv_method_context.sysml"
         ),
+        # D2 moved the reusable criterion root to the method kernel. The two
+        # grounded synthetic roots must still be refused as ambiguous; local
+        # middleware specializations must not stand in for that root identity.
         acceptance_a: (
-            "textual-notation-of-model/packages/features/middleware/"
-            "middleware_verification_evidence.sysml"
+            "textual-notation-of-model/packages/methods/de4sdv/"
+            "de4sdv_method_context.sysml"
         ),
         acceptance_b: (
-            "textual-notation-of-model/packages/features/middleware/"
-            "middleware_verification_evidence.sysml"
+            "textual-notation-of-model/packages/methods/de4sdv/"
+            "de4sdv_method_context.sysml"
         ),
     }
 

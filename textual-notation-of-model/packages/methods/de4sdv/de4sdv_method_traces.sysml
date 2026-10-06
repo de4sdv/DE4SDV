@@ -1,5 +1,28 @@
 /* Approved Topics 5/6 successor vocabulary. Not production activation. */
 package DE4SDV_MethodTraces {
+  doc RequiredTraceChainOntologyDefinition /* The ordered trace chain every substantial increment should establish, even if some
+   * links are draft: stakeholder concern, need, requirement, feature or common capability,
+   * architecture element, logical-to-software signal mapping when a boundary is crossed,
+   * physical/software realization, verification case, acceptance criterion, evidence
+   * artifact, baseline decision. Intentionally missing links are recorded as gaps. */
+  comment about RequiredTraceChainOntologyDefinition /* Historical compatibility vocabulary only. This definition does not reactivate a
+   * universal completion policy; the selected approved method and per-increment native
+   * traces govern the successor. */
+
+
+  doc TraceLinkOntologyDefinition /* A relationship connecting source, rationale, requirement, model, evidence, or baseline
+   * artifacts. */
+  comment about TraceLinkOntologyDefinition /* Historical compatibility vocabulary only. This definition is retained as documentation,
+   * not a reintroduced string-endpoint record or a successor completion witness. */
+
+
+  doc IncrementTraceabilityShellOntologyDefinition /* The traceability structure connecting an increment to its sources and downstream
+   * artifacts. */
+  comment about IncrementTraceabilityShellOntologyDefinition /* Historical compatibility vocabulary only. No active string-shell witness is
+   * reintroduced; IncrementTraceObligations and native relationships remain the successor
+   * representation. */
+
+
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_Stakeholders::*;

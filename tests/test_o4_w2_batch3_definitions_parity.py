@@ -274,8 +274,14 @@ def test_candidate_boundaries_hold() -> None:
     block = _declaration_block(
         file_text, "allocation def SystemToSoftwareSignalMappingCandidate"
     )
-    inner = [line for line in block[1:-1] if line.strip()]
-    assert all(line.strip().startswith(("doc /*", "*")) for line in inner)
+    inner = "\n".join(block[1:-1])
+    # Named Documentation is still documentation, not implemented endpoints or
+    # allocations. Strip only complete doc statements (including a visibility
+    # prefix such as ``private doc``), then reject all code.
+    doc_statement = r"(?:\b(?:public|private|protected)\s+)?\bdoc(?:\s+[A-Za-z_]\w*)?\s*/\*.*?\*/"
+    assert not re.sub(doc_statement, "", inner, flags=re.S).strip()
+    for code in ("end source : Anything;", "attribute implemented : Boolean;"):
+        assert re.sub(doc_statement, "", inner + "\n" + code, flags=re.S).strip()
     joined = _flat(" ".join(block))
     assert "never proves field identity or runtime interoperability" in joined
     assert "allocatedToArchitecture" not in file_text
