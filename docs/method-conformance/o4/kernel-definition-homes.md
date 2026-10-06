@@ -1,6 +1,8 @@
 # O4 kernel definition homes
 
-**Draft — licensed Syside and generated-chain rebinding are pending.**
+**Draft — licensed Syside validation is pending.** Generated artifacts are
+regenerated with the repository generators and bound to this branch's commits
+(temporary binding); a content-only rebind follows the squash merge.
 
 The remaining authored definitions need durable model homes before O4 can
 retire its YAML authority. This package supplies those homes; it does not
