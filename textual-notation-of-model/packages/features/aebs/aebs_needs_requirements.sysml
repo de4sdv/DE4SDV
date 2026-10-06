@@ -392,6 +392,46 @@ package DE4SDV_AEBSNeedsRequirements {
         }
         connection commonCapabilityValidationPlanning : ValidationPlanningAssociation
           connect needCommonAEBSCapability to commonCapabilityValidationPlan;
+        part operationalBoundaryValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-002, N-AEBS-002: planned inspection from aebs-needs-requirements.yaml, which keeps the review question. No execution, result or acceptance. */
+        }
+        connection operationalBoundaryValidationPlanning : ValidationPlanningAssociation
+          connect needExplicitOperationalBoundary to operationalBoundaryValidationPlan;
+        part productLineClassificationValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-003, N-AEBS-003: planned inspection from aebs-needs-requirements.yaml, which keeps the review question. No execution, result or acceptance. */
+        }
+        connection productLineClassificationValidationPlanning : ValidationPlanningAssociation
+          connect needProductLineClassification to productLineClassificationValidationPlan;
+        part regulatoryAssumptionValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-004, N-AEBS-004: planned inspection from aebs-needs-requirements.yaml, which keeps the review question. No execution, result or acceptance. */
+        }
+        connection regulatoryAssumptionValidationPlanning : ValidationPlanningAssociation
+          connect needVisibleRegulatoryAssumptions to regulatoryAssumptionValidationPlan;
+        part requirementVVPlanningValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-005, N-AEBS-005: planned inspection from aebs-needs-requirements.yaml, which keeps the review question. No execution, result or acceptance. */
+        }
+        connection requirementVVPlanningValidationPlanning : ValidationPlanningAssociation
+          connect needRequirementVVPlanning to requirementVVPlanningValidationPlan;
+        part pedestrianCandidateValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-006, N-AEBS-006: planned pedestrian stakeholder and applicability review from aebs-needs-requirements.yaml, which keeps the review question. No execution, result or acceptance. */
+        }
+        connection pedestrianCandidateValidationPlanning : ValidationPlanningAssociation
+          connect needPedestrianCollisionRiskReduction to pedestrianCandidateValidationPlan;
+        part bicycleCandidateValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-007, N-AEBS-007: planned cyclist stakeholder and applicability review from aebs-needs-requirements.yaml, which keeps the review question. No execution, result or acceptance. */
+        }
+        connection bicycleCandidateValidationPlanning : ValidationPlanningAssociation
+          connect needBicycleCollisionRiskReduction to bicycleCandidateValidationPlan;
+        part degradedStateValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-008, N-AEBS-008: planned road-user and vehicle-occupant safety/availability review from aebs-needs-requirements.yaml, which keeps the review question. No execution, result or acceptance. */
+        }
+        connection degradedStateValidationPlanning : ValidationPlanningAssociation
+          connect needBoundedDegradationAndAvailability to degradedStateValidationPlan;
+        part falseReactionValidationPlan : ValidationPlanningScenario {
+          doc /* VAL-AEBS-014, N-AEBS-014: planned road-user and vehicle-occupant false-reaction review from aebs-needs-requirements.yaml, which keeps the review question. No execution, result or acceptance. */
+        }
+        connection falseReactionValidationPlanning : ValidationPlanningAssociation
+          connect needTrustworthyInterventionDecisions to falseReactionValidationPlan;
 
         part controlledR152Revision2Source : ControlledRegulatorySource {
           doc /* Public-safe identity from aebs-regulatory-source.yaml. Applicability and interpretation remain open; this is provenance, not a required condition or compliance evidence. */

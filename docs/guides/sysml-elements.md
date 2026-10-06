@@ -49,7 +49,12 @@ part incMW007 : FeatureIncrement {
 - `doc /* ... */` blocks carry the rationale and identifier (INC-…), which
   is how the model keeps traceability to the increment workflow.
 - Framing files additionally use `ProblemStatement`, `IncrementScope`,
-  `IncrementTraceabilityShell`, and `IncrementEngineeringQuestion` parts.
+  `IncrementEngineeringQuestion`, and `IncrementLifecycleDecision` parts.
+  Trace obligations are declared with an `IncrementTraceObligations` part
+  (selected approved method, increment, scope kind, phases, completion
+  claim); the traces themselves are the slice's native relationships. The
+  former `IncrementTraceabilityShell` string shell is retired (see
+  [W6 transition record](../method-conformance/o4/w6-transition-record.md)).
 
 **Why:** every slice answers one engineering question and says so in the
 model itself — the file is self-describing for reviewers and for the viewer.

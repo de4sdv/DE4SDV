@@ -17,6 +17,7 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
   private import DE4SDV_AEBSVisualizationFraming::*;
   private import DE4SDV_AEBSVisualizationFunctionalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
+  private import DE4SDV_RelationshipSuccessor::LogicalAllocationElement;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;
@@ -84,7 +85,7 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
    * Logical roles
    * ────────────────────────────────────────── */
 
-  part def NativeAEBSourceRole {
+  part def NativeAEBSourceRole :> LogicalAllocationElement {
     doc /*
      * Logical role of the pinned native Autoware AEB component as a read-only
      * visualization source. It publishes; the visualization never publishes
@@ -95,7 +96,7 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
     port diagnosticsOut : DiagnosticPublication;
   }
 
-  part def De4sdvCoordinatorSourceRole {
+  part def De4sdvCoordinatorSourceRole :> LogicalAllocationElement {
     doc /*
      * Logical role of the existing DE4SDV AEBS coordinator as a read-only
      * visualization source of warning, braking, and lifecycle state.
@@ -105,7 +106,7 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
     port lifecycleStateOut;
   }
 
-  part def VisualizationSourceAdapterRole {
+  part def VisualizationSourceAdapterRole :> LogicalAllocationElement {
     doc /*
      * Read-only source adapter. Subscribes to native AEB and DE4SDV sources,
      * assembles the versioned frame with per-field provenance, validates,
@@ -120,13 +121,13 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
     port frameOut : VisualizationFrameOutput;
   }
 
-  part def ReverseFrameTransportRole {
+  part def ReverseFrameTransportRole :> LogicalAllocationElement {
     doc /* Carries accepted frames from the source side to the display side. */
     port frameIn : VisualizationFrameOutput;
     port frameOut : VisualizationFrameInput;
   }
 
-  part def DisplayIngressRole {
+  part def DisplayIngressRole :> LogicalAllocationElement {
     doc /*
      * Display-side ingress: validates received frames and publishes them to
      * the display service. Rejects invalid input without display.
@@ -135,13 +136,13 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
     port frameOut : VisualizationPublicationOutput;
   }
 
-  part def DisplayServiceRole {
+  part def DisplayServiceRole :> LogicalAllocationElement {
     doc /* Display-side subscription service between ingress and application. */
     port publishedIn : VisualizationPublicationOutput;
     port subscriptionOut : VisualizationSubscriptionInput;
   }
 
-  part def VisualizationApplicationRole {
+  part def VisualizationApplicationRole :> LogicalAllocationElement {
     doc /*
      * Display application role: subscribes, supervises presentation state,
      * renders AEBS state with provenance, and emits evidence.
@@ -150,12 +151,12 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
     port renderedOut : RenderedStateOutput;
   }
 
-  part def VisualizationEvidenceRole {
+  part def VisualizationEvidenceRole :> LogicalAllocationElement {
     doc /* Records joinable source/bridge/service/display correlation records. */
     port renderedIn : RenderedStateOutput;
   }
 
-  part def VisualizationHealthSupervisorRole {
+  part def VisualizationHealthSupervisorRole :> LogicalAllocationElement {
     doc /*
      * Owns freshness, availability, invalid, and restored dispositions for
      * the visualization presentation. Separate from any System 1 AEBS health
