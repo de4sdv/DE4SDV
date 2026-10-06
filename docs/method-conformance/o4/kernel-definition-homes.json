@@ -48,7 +48,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "ArchitectureElement",
+      "documentation_name": "ArchitectureElementOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -64,7 +64,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
       "declaration": "package DE4SDV_ScopedAssurance",
-      "documentation_name": "AssuranceClaim",
+      "documentation_name": "AssuranceClaimOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -96,7 +96,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
       "declaration": "package DE4SDV_MethodViewpoints",
-      "documentation_name": "Concern",
+      "documentation_name": "ConcernOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -144,7 +144,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
       "declaration": "package DE4SDV_ScopedAssurance",
-      "documentation_name": "EvidenceArtifact",
+      "documentation_name": "EvidenceArtifactOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -160,7 +160,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
       "declaration": "package DE4SDV_ScopedAssurance",
-      "documentation_name": "EvidenceStatus",
+      "documentation_name": "EvidenceStatusOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -184,7 +184,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
       "declaration": "package DE4SDV_ProductLine",
-      "documentation_name": "FeatureConfiguration",
+      "documentation_name": "FeatureConfigurationOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -200,7 +200,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "Function",
+      "documentation_name": "FunctionOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -248,7 +248,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
       "declaration": "package DE4SDV_MethodTraces",
-      "documentation_name": "IncrementTraceabilityShell",
+      "documentation_name": "IncrementTraceabilityShellOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -256,7 +256,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "Interface",
+      "documentation_name": "InterfaceOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -272,7 +272,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "LogicalElement",
+      "documentation_name": "LogicalElementOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -352,7 +352,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "PhysicalElement",
+      "documentation_name": "PhysicalElementOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -408,7 +408,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
       "declaration": "package DE4SDV_MethodTraces",
-      "documentation_name": "RequiredTraceChain",
+      "documentation_name": "RequiredTraceChainOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -496,7 +496,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
       "declaration": "package DE4SDV_MethodTraces",
-      "documentation_name": "TraceLink",
+      "documentation_name": "TraceLinkOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -520,7 +520,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
       "declaration": "package DE4SDV_OperationalContext",
-      "documentation_name": "ValidationScenario",
+      "documentation_name": "ValidationScenarioOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -528,7 +528,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
       "declaration": "package DE4SDV_ProductLine",
-      "documentation_name": "Variant",
+      "documentation_name": "VariantOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -536,7 +536,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
       "declaration": "package DE4SDV_ProductLine",
-      "documentation_name": "VariationPoint",
+      "documentation_name": "VariationPointOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -544,7 +544,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "VerificationCase",
+      "documentation_name": "VerificationCaseOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -552,7 +552,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "VerificationMethod",
+      "documentation_name": "VerificationMethodOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -560,7 +560,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
       "declaration": "package DE4SDV_MethodViewpoints",
-      "documentation_name": "View",
+      "documentation_name": "ViewOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -568,7 +568,7 @@
       "kind": "classes",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
       "declaration": "package DE4SDV_MethodViewpoints",
-      "documentation_name": "Viewpoint",
+      "documentation_name": "ViewpointOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -576,7 +576,7 @@
       "kind": "relationships",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "derivedRequirementsOfNeed",
+      "documentation_name": "derivedRequirementsOfNeedOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -584,7 +584,7 @@
       "kind": "relationships",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "derivesRequirementFromNeed",
+      "documentation_name": "derivesRequirementFromNeedOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -592,7 +592,7 @@
       "kind": "relationships",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "hasRelevantArchitecture",
+      "documentation_name": "hasRelevantArchitectureOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -600,7 +600,7 @@
       "kind": "relationships",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
       "declaration": "package DE4SDV_ProductLine",
-      "documentation_name": "instantiatesCanonicalArchitecture",
+      "documentation_name": "instantiatesCanonicalArchitectureOntologyDefinition",
       "documentation_index": 0
     },
     {
@@ -608,7 +608,7 @@
       "kind": "relationships",
       "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
       "declaration": "package DE4SDV_MethodContext",
-      "documentation_name": "specifiesFunction",
+      "documentation_name": "specifiesFunctionOntologyDefinition",
       "documentation_index": 0
     }
   ],

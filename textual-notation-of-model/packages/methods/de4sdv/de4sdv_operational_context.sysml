@@ -7,8 +7,8 @@
  */
 
 package DE4SDV_OperationalContext {
-  doc ValidationScenario /* A scenario used to assess stakeholder fitness for intended use. */
-  comment about ValidationScenario /* Native Scenario parts and bounded validation outcomes remain the representation.
+  doc ValidationScenarioOntologyDefinition /* A scenario used to assess stakeholder fitness for intended use. */
+  comment about ValidationScenarioOntologyDefinition /* Native Scenario parts and bounded validation outcomes remain the representation.
    * ValidationPlanningScenario is planning only; no native validation-case keyword or
    * fitness-for-use verdict is invented. */
 

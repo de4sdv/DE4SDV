@@ -25,10 +25,13 @@ retire the authority, rewire consumers, admit predicates or close O4.
   middleware and AEBS override evidence requirements specialize it.
   `hasRelevantEvidenceContract` can be discriminated by type and specialization
   closure, not names. Its current dependency mapping is unchanged.
-- **7:** standalone native KerML `disjoining` relates
-  `CommonProductLineCapability` and `ProductLineFeatureCandidate`. The bounded
-  static negative probe detects direct and inherited dual typing; it is not a
-  compiler, general source parser or licensed semantic-validation verdict.
+- **7:** licensed Syside (PR #328, run 37411981652) rejected the standalone
+  KerML `disjoining` inside a SysML package as a syntax error. Per the
+  decision's fallback, the axiom is a symmetric **checked constraint**:
+  `CommonProductLineCapability` asserts `not (that istype
+  ProductLineFeatureCandidate)` and vice versa. The bounded static negative
+  probe detects direct and inherited dual typing; it is not a compiler,
+  general source parser or licensed semantic-validation verdict.
 - **8:** the complete `instantiatesCanonicalArchitecture` definition is owned
   by `DE4SDV_ProductLine`, with **not queryable; no product-to-canonical
   reachability claimed**. No executable mapping or canonical-package selector.
@@ -99,19 +102,21 @@ consumer retirement and whole-row closure are separate obligations.
 
 ## Validation request and source grammar
 
-The standalone form is defined by KerML 8.2.4.1.4 (`Disjoining`):
-`('disjoining' Identification)? 'disjoint' Type 'from' Type RelationshipBody`.
-SysML documentation allows `doc Identification? /* body */`; named
-Documentation avoids inventing semantic types for umbrella terms.
-Grammar inspection is not evidence of the pinned licensed parser accepting
-mixed SysML/KerML syntax. Request maintainer-run **Privileged Syside Validation**
-for the eventual exact reviewed revision, validating both model roots,
-new documentation/comment references, exclusion reference/constraint typing,
-multiple requirement inheritance and native disjoining. The licensed check must
-also reject a separate synthetic dual-typed usage. If that toolchain rejects
-native disjoining, use the owner-authorized checked-constraint fallback and
-report the change. This host is aarch64; no local licensed result is claimed.
-No workflow is dispatched by this package.
+The first exact-head licensed run (run 37411981652) rejected two constructs:
+
+- standalone KerML `disjoining … disjoint A from B;` in a SysML package
+  (`syntax-error`). Replaced by the decision-7 checked-constraint fallback.
+- named Documentation whose name equals a referenced type
+  (`doc VerificationMethod /* … */` in `DE4SDV_MethodContext`) shadowed the
+  library metadata `VerificationMethod` for every importer (`Expected Type
+  element but found Documentation`, 52 middleware and AEBS usages). All
+  umbrella and predicate documentation names now use the
+  `<Term>OntologyDefinition` form, so no Documentation name equals a model,
+  library or predicate name.
+
+Request maintainer-visible **Privileged Syside Validation** on the exact
+reviewed revision for both model roots. This host is aarch64; no local
+licensed result is claimed.
 
 Grammar sources (inspection only; no toolchain pin change):
 

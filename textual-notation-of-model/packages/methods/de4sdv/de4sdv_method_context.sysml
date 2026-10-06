@@ -13,87 +13,87 @@
  */
 
 package DE4SDV_MethodContext {
-  doc hasRelevantArchitecture /* Reverse relevance: an incoming dependency from an architecture element (part, action,
+  doc hasRelevantArchitectureOntologyDefinition /* Reverse relevance: an incoming dependency from an architecture element (part, action,
    * or their definitions) that is derived from or traces to the requirement. Sources
    * grounded in the MemberProduct kernel lineage (resolved through the governed kernel
    * mapping, never by bare name) are excluded — configured-product traces are product-line
    * relationships, not architecture relevance. */
-  comment about hasRelevantArchitecture /* Existing frozen O3 incoming-dependency mapping stays
+  comment about hasRelevantArchitectureOntologyDefinition /* Existing frozen O3 incoming-dependency mapping stays
    * PartUsage/PartDefinition/ActionUsage/ActionDefinition with MemberProduct-lineage
    * exclusions. No Interface widening, stronger relation or consumer rewiring. */
 
 
-  doc specifiesFunction /* Requirement-to-function relevance: a dependency from a draft requirement candidate to
+  doc specifiesFunctionOntologyDefinition /* Requirement-to-function relevance: a dependency from a draft requirement candidate to
    * the functional action or flow responsibility that addresses it. Relevance only — not
    * satisfaction, allocation, or verification. */
-  comment about specifiesFunction /* Existing requirement-to-function dependency/relevance signature and target filter
+  comment about specifiesFunctionOntologyDefinition /* Existing requirement-to-function dependency/relevance signature and target filter
    * remain unchanged. No allocation, satisfaction or verification claim is introduced. */
 
 
-  doc derivedRequirementsOfNeed /* Inverse navigation of derivesRequirementFromNeed over the SAME discriminator witness:
+  doc derivedRequirementsOfNeedOntologyDefinition /* Inverse navigation of derivesRequirementFromNeed over the SAME discriminator witness:
    * the need N is the design-input origin of the derived requirement R. This predicate
    * declares no new model fact; it reuses the identical DerivesFromNeed connection
    * traversed in the reverse direction, with the same lineage grounding and fail-closed
    * closure semantics. */
-  comment about derivedRequirementsOfNeed /* Existing frozen O3 inverse navigation over the identical DerivesFromNeed witness
+  comment about derivedRequirementsOfNeedOntologyDefinition /* Existing frozen O3 inverse navigation over the identical DerivesFromNeed witness
    * remains unchanged; no additional model fact or executable mapping. */
 
 
-  doc derivesRequirementFromNeed /* Requirement R is derived from stakeholder need N. Design-input derivation; direction R
+  doc derivesRequirementFromNeedOntologyDefinition /* Requirement R is derived from stakeholder need N. Design-input derivation; direction R
    * -> N. No satisfaction, allocation, verification, evidence, or acceptance claim.
    * Grounded in the DE4SDV application connection definition DerivesFromNeed: the Need
    * grounds the `need` end, the derived design requirement grounds the `derivedRequirement`
    * end. DE4SDV's Requirement -> Need query is inverse navigation over that native witness. */
-  comment about derivesRequirementFromNeed /* Existing frozen O3 predicate signature, native DerivesFromNeed witness and inverse
+  comment about derivesRequirementFromNeedOntologyDefinition /* Existing frozen O3 predicate signature, native DerivesFromNeed witness and inverse
    * query direction remain unchanged; documentation only. */
 
 
-  doc VerificationMethod /* A method used to check requirement satisfaction. Carried natively by VerificationMethod
+  doc VerificationMethodOntologyDefinition /* A method used to check requirement satisfaction. Carried natively by VerificationMethod
    * metadata with the standard method-kind vocabulary (inspect, demo, test, analyze), per
    * the ADR 0009 amendment. */
-  comment about VerificationMethod /* ODE4HERA requirements-management verificationMethod and standard VerificationMethodKind
+  comment about VerificationMethodOntologyDefinition /* ODE4HERA requirements-management verificationMethod and standard VerificationMethodKind
    * remain the accepted external/library authority; no library copy or new method-kind
    * vocabulary. */
 
 
-  doc VerificationCase /* A planned or executed check that evaluates whether a requirement or model claim is
+  doc VerificationCaseOntologyDefinition /* A planned or executed check that evaluates whether a requirement or model claim is
    * satisfied. */
-  comment about VerificationCase /* Native SysML VerificationCaseDefinition/VerificationCaseUsage (verification
+  comment about VerificationCaseOntologyDefinition /* Native SysML VerificationCaseDefinition/VerificationCaseUsage (verification
    * def/verification) remain the representation. This documentation changes no frozen O3
    * traversal signature, objective, execution, result or acceptance. */
 
 
-  doc Interface /* A boundary or interaction point through which items, signals, services, or information
+  doc InterfaceOntologyDefinition /* A boundary or interaction point through which items, signals, services, or information
    * are exchanged. */
-  comment about Interface /* Native SysML kinds remain PortDefinition/PortUsage and connection elements. This
+  comment about InterfaceOntologyDefinition /* Native SysML kinds remain PortDefinition/PortUsage and connection elements. This
    * documentation preserves the existing Interface meaning and does not widen
    * hasRelevantArchitecture. */
 
 
-  doc PhysicalElement /* A physical, software, hardware, deployment, or platform element that realizes
+  doc PhysicalElementOntologyDefinition /* A physical, software, hardware, deployment, or platform element that realizes
    * conceptual elements or functions. */
-  comment about PhysicalElement /* Native SysML kinds: PartDefinition/PartUsage in physical/software realization slices,
+  comment about PhysicalElementOntologyDefinition /* Native SysML kinds: PartDefinition/PartUsage in physical/software realization slices,
    * describing concrete software, hardware, deployment or platform roles. No additional
    * PhysicalElement specialization taxonomy is introduced; typing does not prove deployment
    * or execution. */
 
 
-  doc LogicalElement /* A logical service, component, or responsibility grouping that realizes functions. */
-  comment about LogicalElement /* Native SysML kinds: PartDefinition/PartUsage in logical-architecture slices, describing
+  doc LogicalElementOntologyDefinition /* A logical service, component, or responsibility grouping that realizes functions. */
+  comment about LogicalElementOntologyDefinition /* Native SysML kinds: PartDefinition/PartUsage in logical-architecture slices, describing
    * technology-neutral service/component responsibilities. No additional LogicalElement
    * specialization taxonomy is introduced. */
 
 
-  doc Function /* A behavior or transformation expected from the system or product-line architecture. */
-  comment about Function /* Native SysML kinds: ActionDefinition/ActionUsage (action defs/usages), with
+  doc FunctionOntologyDefinition /* A behavior or transformation expected from the system or product-line architecture. */
+  comment about FunctionOntologyDefinition /* Native SysML kinds: ActionDefinition/ActionUsage (action defs/usages), with
    * StateDefinition/StateUsage and behavior definitions where appropriate. No existing
    * functional element must specialize a new Function type; this is a documentation
    * umbrella. */
 
 
-  doc ArchitectureElement /* Any model element used to describe system context, function, logical realization,
+  doc ArchitectureElementOntologyDefinition /* Any model element used to describe system context, function, logical realization,
    * physical/software realization, interface, or behavior. */
-  comment about ArchitectureElement /* Native SysML kinds: PartDefinition/PartUsage for structural constituents;
+  comment about ArchitectureElementOntologyDefinition /* Native SysML kinds: PartDefinition/PartUsage for structural constituents;
    * ActionDefinition/ActionUsage and StateDefinition/StateUsage for behavior;
    * PortDefinition/PortUsage and ConnectionDefinition/ConnectionUsage for interfaces. This
    * is a documentation umbrella, not a parallel type taxonomy. hasRelevantArchitecture

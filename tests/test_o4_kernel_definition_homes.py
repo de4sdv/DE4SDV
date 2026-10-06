@@ -69,15 +69,30 @@ def test_evaluation_scope_structurally_owns_exclusions_with_reference_and_ration
     assert scope.exclusions == {"excluded-id": "outside this slice"}
 
 
+def _disjoint_pairs(active):
+    """Checked-constraint disjointness pairs: ``part def A`` asserting
+    ``not (that istype B)`` in its own body."""
+    pairs = []
+    for match in re.finditer(r"\bpart\s+def\s+(\w+)[^;{]*\{", active):
+        depth, end = 1, match.end()
+        while depth and end < len(active):
+            depth += {"{": 1, "}": -1}.get(active[end], 0)
+            end += 1
+        body = active[match.end():end - 1]
+        for other in re.findall(
+            r"\bassert\s+constraint\s+\w+\s*\{\s*not\s*\(\s*that\s+istype\s+(\w+)\s*\)\s*\}", body
+        ):
+            pairs.append((match[1], other))
+    return pairs
+
+
 def _disjoint_typing_violations(text):
-    """Bounded static probe of explicit disjoining + part typing/lineage.
+    """Bounded static probe of checked disjointness + part typing/lineage.
 
     This is not a SysML compiler or a production query-time source parser.
     """
     active = re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S)
-    pairs = [tuple(m.groups()) for m in re.finditer(
-        r"\bdisjoint\s+(\w+)\s+from\s+(\w+)\s*;", active
-    )]
+    pairs = _disjoint_pairs(active)
     parents = {m[1]: {s.strip() for s in m[2].split(",")} for m in re.finditer(
         r"\bpart\s+def\s+(\w+)\s*:>\s*([^;{]+)", active
     )}
@@ -90,17 +105,21 @@ def _disjoint_typing_violations(text):
                 types.add(parent)
                 pending.append(parent)
         for a, b in pairs:
-            if {a, b} <= types:
-                violations.append((usage[1], a, b))
+            if {a, b} <= types and (usage[1], *sorted((a, b))) not in violations:
+                violations.append((usage[1], *sorted((a, b))))
     return violations
 
 
-def test_native_common_capability_feature_disjoining_identifies_dual_typed_usage():
+def test_common_capability_feature_disjointness_is_checked_on_both_definitions():
+    """Owner decision 7 fallback: licensed Syside rejected the standalone KerML
+    ``disjoining`` in a SysML package, so the axiom is a checked constraint."""
     source = (ROOT / (KERNEL + "de4sdv_product_line.sysml")).read_text()
-    marker = ("disjoining commonCapabilityFeatureDisjointness disjoint "
-              "CommonProductLineCapability from ProductLineFeatureCandidate;")
     active = re.sub(r"/\*.*?\*/|//[^\n]*", "", source, flags=re.S)
-    assert marker in " ".join(active.split()), "Decision 7 requires a native disjoining"
+    assert "disjoining" not in active
+    assert set(_disjoint_pairs(active)) == {
+        ("CommonProductLineCapability", "ProductLineFeatureCandidate"),
+        ("ProductLineFeatureCandidate", "CommonProductLineCapability"),
+    }, "Decision 7 requires the symmetric checked constraint"
     assert _disjoint_typing_violations(source) == []
     prefix, suffix = source.rsplit("}", 1)
     # Keep the synthetic members in the actual declaring package, so this
@@ -112,7 +131,9 @@ def test_native_common_capability_feature_disjoining_identifies_dual_typed_usage
     expected = [("impossible", "CommonProductLineCapability", "ProductLineFeatureCandidate")]
     assert _disjoint_typing_violations(negative) == expected
     assert _disjoint_typing_violations(with_members("/* part impossible : CommonProductLineCapability, ProductLineFeatureCandidate; */")) == []
-    assert _disjoint_typing_violations(negative.replace(marker, "/* " + marker + " */")) == []
+    unchecked = negative.replace("assert constraint notAFeatureCandidate", "/* x */ constraint notAFeatureCandidate")
+    unchecked = unchecked.replace("assert constraint notACommonCapability", "/* x */ constraint notACommonCapability")
+    assert _disjoint_typing_violations(unchecked) == []
     inherited = with_members("part def Common :> CommonProductLineCapability;"
                              "\npart def Feature :> ProductLineFeatureCandidate;"
                              "\npart impossible : Common, Feature;")
@@ -209,6 +230,15 @@ def test_definition_home_inventory_covers_all_requested_register_targets():
                 assert _home_docs(row), row["identity"]
 
 
+def test_no_documentation_name_shadows_a_model_or_library_name():
+    """Licensed Syside run 37411981652: ``doc VerificationMethod`` shadowed the
+    library metadata for every importer. Kernel Documentation names must be
+    unique ``ontologyDefinition`` or ``<Term>OntologyDefinition`` forms."""
+    for path in sorted((ROOT / KERNEL).glob("*.sysml")):
+        for name in re.findall(r"\bdoc\s+(\w+)\s*/\*", path.read_text()):
+            assert name == "ontologyDefinition" or name.endswith("OntologyDefinition"), (path.name, name)
+
+
 def test_named_docs_do_not_borrow_nested_or_comment_only_homes():
     assert _direct_documentation('{ doc D /* exact */ part p { doc D /* wrong */ } }') == [("D", " exact ")]
     assert _direct_documentation('{ /* doc D / * fake * / */ doc D /* exact */ }') == [("D", " exact ")]
@@ -219,9 +249,12 @@ def test_architecture_umbrellas_document_native_kinds_without_parallel_taxonomy(
     text = (ROOT / CONTEXT).read_text()
     docs = dict(_direct_documentation(text[text.index("package DE4SDV_MethodContext"):]))
     for name in ("ArchitectureElement", "Function", "LogicalElement", "PhysicalElement"):
-        assert name in docs, name
+        # Documentation names must not equal any model/library name: licensed
+        # Syside resolves a same-named Documentation before an imported type.
+        doc_name = name + "OntologyDefinition"
+        assert doc_name in docs and name not in docs, name
         assert not re.search(r"\bdef\s+" + name + r"\b", re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S))
-        annotation = re.search(r"comment\s+about\s+" + name + r"\s*/\*(.*?)\*/", text, re.S)
+        annotation = re.search(r"comment\s+about\s+" + doc_name + r"\s*/\*(.*?)\*/", text, re.S)
         assert annotation, name
         expected = ("ActionDefinition", "ActionUsage") if name == "Function" else ("PartDefinition", "PartUsage")
         for native_kind in expected:
@@ -230,7 +263,7 @@ def test_architecture_umbrellas_document_native_kinds_without_parallel_taxonomy(
 
 def test_canonical_architecture_remains_non_queryable_documentation_only():
     text = (ROOT / (KERNEL + "de4sdv_product_line.sysml")).read_text()
-    annotation = re.search(r"comment\s+about\s+instantiatesCanonicalArchitecture\s*/\*(.*?)\*/", text, re.S)
+    annotation = re.search(r"comment\s+about\s+instantiatesCanonicalArchitectureOntologyDefinition\s*/\*(.*?)\*/", text, re.S)
     assert annotation and "not queryable; no product-to-canonical reachability claimed" in " ".join(annotation[1].split())
     ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
     assert "sysml_mapping" not in ontology["relationships"]["instantiatesCanonicalArchitecture"]
