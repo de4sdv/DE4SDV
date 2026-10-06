@@ -375,6 +375,44 @@ def test_pilot_selectors_declare_pinned_subject_sets() -> None:
         )
 
 
+def test_acceptance_policy_is_active_without_creating_decisions() -> None:
+    """Owner activation is separate from any campaign acceptance decision."""
+    from de4sdv.semantic import method_pilot as mp
+
+    root = Path(__file__).resolve().parents[1]
+    policy = (DOCS / "acceptance-policy.md").read_text(encoding="utf-8")
+    assert policy.splitlines()[0].startswith("# Active Authorization Policy:")
+    assert "**Status: Active**" in policy
+    assert "status: Active" in policy
+    assert _load_pilot_yaml()["attestation_policy_status"] == "Active"
+    adr = (root / "docs/architecture-decisions/0019-specify-deterministic-method-conformance-subsystem.md").read_text(encoding="utf-8")
+    assert adr.split("## Status\n\n", 1)[1].splitlines()[0] == "Proposed"
+    assert "Active authorization policy:" in adr
+    assert "Orkun Yilmaz, 2026-10-05" in policy
+    registry = root / mp.REGISTRY_PATH
+    assert registry.is_dir()
+    assert sorted(p.name for p in registry.iterdir()) == ["README.md"]
+    scan = mp.scan_acceptance_registry(mp.DirectoryFileSource(root))
+    assert scan.state == "scanned-clean"
+    assert scan.decisions == ()
+    assert "0 decision(s)" in " ".join(scan.diagnostics)
+
+
+def test_v1_core_delivery_is_distinct_from_campaign_acceptance() -> None:
+    readme = (DOCS / "README.md").read_text(encoding="utf-8")
+    evidence = (DOCS / "core-operational-evidence.md").read_text(encoding="utf-8")
+    assert "V1 Core (A–D) delivered" in readme
+    assert "2026-10-05" in readme and "MC-30" in readme
+    assert "37209640874" in evidence and "11306160460" in evidence
+    assert "11 obligations" in evidence and "51 children" in evidence
+    assert "7 PASS / 1 FAIL / 3 INDETERMINATE" in evidence
+    assert "not-yet-accepted campaign" in evidence
+    assert "O4" in readme and "PLE" in readme and "incomplete" in readme
+    assert "ADVISORY" in readme
+    # Policy identity is unchanged in the native model. Status belongs to the
+    # external policy definition; do not require a gratuitous model text edit.
+
+
 def test_acceptance_policy_registry_completeness_is_independent() -> None:
     """Registry completeness (scan provenance) must be defined separately from
     profile completeness (enumeration), and a FAIL must require a proven
