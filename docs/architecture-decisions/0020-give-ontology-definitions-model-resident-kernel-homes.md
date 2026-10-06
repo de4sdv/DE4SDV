@@ -57,6 +57,13 @@ taken while building PR #328; the owner accepted them on 2026-10-06.
    `AcceptanceCriterion` only. The `EvidenceContract` specialization closure is
    exactly the eight AEBS contracts and is documented in the kernel as the
    `hasRelevantEvidenceContract` range discriminator (vocabulary only).
+   Consequence, accepted by the owner on 2026-10-06: the 27 requirement
+   usages typed by the seven newly specialized definitions now belong to the
+   kernel `Requirement` lineage. The O3 identity `verifiedBy` therefore grounds
+   the 28 native `verify` statements that target them, and they become
+   eligible impact roots and Requirement-coverage population. Runtime files
+   and the 13 O3 identity records are unchanged; the live delta is measured
+   by an exact-SHA privileged ingestion in Wave B.
 7. **Decision 8 — canonical architecture.**
    `instantiatesCanonicalArchitecture` is vocabulary only: not queryable; no
    product-to-canonical reachability claimed. There is no executable mapping

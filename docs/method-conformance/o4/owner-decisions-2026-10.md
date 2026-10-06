@@ -38,6 +38,7 @@ Decisions for Wave A:
 |---|---|
 | ADR 0020 implementation decisions I1–I4 | Accepted. I4 is superseded by the D4 follow-up in Wave A. |
 | `MiddlewareAcceptanceCriterion` and `EvidenceContract` | Drop the `EvidenceContract` specialization. The evidence-contract population is exactly the eight AEBS evidence contracts. |
+| Requirement population delta from the D4 follow-up | Accepted. The 27 usages of the seven newly specialized AEBS contracts join the `Requirement` lineage, so `verifiedBy` (an O3 identity) grounds 28 more `verify` statements and impact/coverage grow. Disclose it; Wave B measures the live delta with an exact-SHA privileged ingestion. |
 | Decision 9 — product-line configurator authority | Keep the external catalogue authority (ADR 0006). `FeatureConfiguration` and the selection predicates become model-resident vocabulary only, with no configurator authority. Revisit after the PLE migration. |
 | Last edit to the authored YAML | One final mechanical `kernel_sync` edit (mappings and exclusions only) is allowed in Wave A. |
 | YAML `validation_rules` R001–R010 | Get model homes in Wave A. |

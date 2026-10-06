@@ -38,6 +38,14 @@ The decisions and their consequences are recorded in
   The kernel comment `hasRelevantEvidenceContractVocabularyRole` states it as
   the model-resident discriminator of the `hasRelevantEvidenceContract` range
   (type lineage resolved through the governed kernel mapping, never by name).
+  **Population delta (owner-accepted 2026-10-06):** the 27 requirement usages
+  typed by the seven newly specialized definitions now belong to the kernel
+  `Requirement` lineage, so the O3 identity `verifiedBy` grounds the 28 native
+  `verify` statements that target them, and they become impact roots and
+  Requirement-coverage population. `check_model_sync` R003 (file-scoped) and
+  `hasRelevantEvidenceContract` (fail-closed) are unaffected. Wave B
+  obligation: exact-SHA privileged ingestion reporting the live
+  `verifiedBy`/impact/coverage delta.
   This is vocabulary only: the runtime predicate keeps its existing dependency
   mapping until a reviewed consumer change (Wave B) adopts the discriminator.
   A test pins the population at eight. This supersedes the narrowed I4
