@@ -3,7 +3,7 @@
   "status": "admitted",
   "warning": "vocabulary-only, no traversal, no runtime read, no authority retirement",
   "binding": {
-    "source_revision": "a660ae03770bed426073af9316e833b5525a04ab",
+    "source_revision": "dfbc2eb8f444d16e0665b302b61de592c47b97eb",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
     "artifact_commit": null,
     "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
@@ -44,10 +44,10 @@
       "docs/method-conformance/o4/definition-admission-design.md": "sha256:bb03d067470dda6c8bd784196d054f7f80853e8eb1a5ee9501859219aae82ba8",
       "docs/method-conformance/o4/definition-admission.yaml": "sha256:94822c3054031563735153c7620bb03a8c723ec6cc0cd647c9c543176f142697",
       "scripts/generate_definition_projection.py": "sha256:1703a05ea82bbedadc4cdc0fb4a10df3aae2e31b2759b95cae5efb099b4ba2a9",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:02e8a0eb949d0e4af0e23a716693fe3d87b03573ceeb0dd5d6db938760baaf50",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:63c1a3efc36f77027fff2e22aa071ebc3ecdaddf4d23976e8662bcb45fc02654",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": "sha256:0db2f91dcda080d6bfedf0a5795b84261388326ff73faa411b49fdd91cec2108",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9372096b06029fdae6582cd81ae886f73ccb5fd4edad5fdefaf0c5f0065397cc",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:bdcc942e1be73134471a8dbab5d0c19662525c41973312d7acd698efe5b3afa6"
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9a566d02964af2b2af5d6508601d7623d7c5b06235630dcf1413fa774cba9edb",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:3d669f980fd985c5c0e40682c9ea347b140dbf331b526869101ab73f39aed1ef"
     }
   },
   "scope": {
