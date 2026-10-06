@@ -30,10 +30,9 @@ from de4sdv.semantic.authority_inventory import validate_source_binding
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# TEMPORARY_STACK_BINDING (PR #328): the O2+ pair preserves the reviewed
-# payload and binds the PR #328 branch commit that contains its inputs. Stage 1
-# of the post-squash rebind replaces it with the permanent PR #328 squash.
-COMMITTED_SOURCE_REVISION = "4427520aead4f9621e1203554ef502a69ad17198"
+# Permanent PR #328 squash a660ae0: the O2+ pair preserves the reviewed payload
+# and binds every input to this permanent main-history revision.
+COMMITTED_SOURCE_REVISION = "a660ae03770bed426073af9316e833b5525a04ab"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {
