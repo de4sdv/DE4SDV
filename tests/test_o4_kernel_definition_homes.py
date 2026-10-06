@@ -86,28 +86,93 @@ def _disjoint_pairs(active):
     return pairs
 
 
-def _disjoint_typing_violations(text):
-    """Bounded static probe of checked disjointness + part typing/lineage.
+MODEL_ROOTS = (
+    "textual-notation-of-model",
+    "model-based-product-line-engineering/product-models",
+    "model-based-product-line-engineering/scoping",
+)
+_TYPING_END = re.compile(r":>>?|::>|\bsubsets\b|\bredefines\b|\breferences\b|\bdefault\b|:=")
+_PART_USAGE = re.compile(
+    r"\bpart\s+(?!def\b)(?:(?::>>|\bredefines\b)\s*)?(\w+)?\s*(?:\[[^\]]*\]\s*)?"
+    r"(?::(?![>:])|\bdefined\s+by\b)\s*([^;{=]+)"
+)
 
-    This is not a SysML compiler or a production query-time source parser.
+
+def _active(text):
+    """Source text without comments; documentation bodies are comments too."""
+    return re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S)
+
+
+def _type_names(declared):
+    """Short type names from a typing or specialization list.
+
+    Qualified names, multiplicities, ``ordered``/``nonunique`` and anything
+    after the typing list (subsetting, redefinition, values) are removed.
     """
-    active = re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S)
-    pairs = _disjoint_pairs(active)
-    parents = {m[1]: {s.strip() for s in m[2].split(",")} for m in re.finditer(
-        r"\bpart\s+def\s+(\w+)\s*:>\s*([^;{]+)", active
-    )}
-    violations = []
-    for usage in re.finditer(r"\bpart\s+(?!def\b)(\w+)\s*:\s*([^;{]+)", active):
-        types = {s.strip() for s in usage[2].split(",")}
+    names = set()
+    for item in _TYPING_END.split(declared, maxsplit=1)[0].split(","):
+        item = re.sub(r"\[[^\]]*\]|\bordered\b|\bnonunique\b", "", item).strip()
+        if item:
+            names.add(item.split("::")[-1].strip())
+    return names
+
+
+def _part_def_parents(active):
+    parents = {}
+    for match in re.finditer(r"\bpart\s+def\s+(\w+)\s*(?::>|\bspecializes\b)\s*([^;{]+)", active):
+        parents.setdefault(match[1], set()).update(_type_names(match[2]))
+    return parents
+
+
+def _typed_part_usages(active, parents):
+    """(usage name, transitive type closure) for each typed part usage."""
+    for usage in _PART_USAGE.finditer(active):
+        types = _type_names(usage[2])
         pending = list(types)
         while pending:
             for parent in parents.get(pending.pop(), set()) - types:
                 types.add(parent)
                 pending.append(parent)
-        for a, b in pairs:
-            if {a, b} <= types and (usage[1], *sorted((a, b))) not in violations:
-                violations.append((usage[1], *sorted((a, b))))
+        yield usage[1] or "<anonymous>", types
+
+
+def _disjoint_typing_violations(*texts):
+    """Bounded static probe of checked disjointness + part typing/lineage.
+
+    Disjoint pairs and specialization chains are collected across all given
+    sources, so a chain declared in one file is resolved for usages in
+    another. Typing through subsetting or redefinition of another usage is
+    not followed. This is not a SysML compiler or a production query-time
+    source parser.
+    """
+    actives = [_active(text) for text in texts]
+    joined = "\n".join(actives)
+    pairs = _disjoint_pairs(joined)
+    parents = _part_def_parents(joined)
+    violations = []
+    for active in actives:
+        for name, types in _typed_part_usages(active, parents):
+            for a, b in pairs:
+                entry = (name, *sorted((a, b)))
+                if {a, b} <= types and entry not in violations:
+                    violations.append(entry)
     return violations
+
+
+def _usages_typed_by(type_name, *texts):
+    joined = "\n".join(_active(text) for text in texts)
+    parents = _part_def_parents(joined)
+    return [name for name, types in _typed_part_usages(joined, parents) if type_name in types]
+
+
+def _model_texts():
+    """Every .sysml file in the roots that licensed validation checks."""
+    texts = []
+    for root in MODEL_ROOTS:
+        files = sorted((ROOT / root).rglob("*.sysml"))
+        assert files, f"no .sysml files under {root}"
+        texts.extend(path.read_text(encoding="utf-8") for path in files)
+    return texts
 
 
 def test_common_capability_feature_disjointness_is_checked_on_both_definitions():
@@ -139,6 +204,41 @@ def test_common_capability_feature_disjointness_is_checked_on_both_definitions()
                              "\npart impossible : Common, Feature;")
     assert _disjoint_typing_violations(inherited) == expected
     assert _disjoint_typing_violations(with_members("part valid : CommonProductLineCapability;")) == []
+
+
+def test_no_model_usage_is_typed_as_both_common_capability_and_feature_candidate():
+    """Decision 7 across every model root the licensed check validates.
+
+    Licensed Syside accepts the checked constraints; whether it evaluates them
+    against usages is not established, so this probe guards the whole model.
+    """
+    kernel = (ROOT / (KERNEL + "de4sdv_product_line.sysml")).read_text()
+    texts = _model_texts()
+    assert len(texts) >= 50, "model scan unexpectedly small"
+    # Non-vacuity: real product-line usages are classified on both sides,
+    # through specialization chains declared in other files.
+    common = _usages_typed_by("CommonProductLineCapability", *texts)
+    features = _usages_typed_by("ProductLineFeatureCandidate", *texts)
+    assert len(common) >= 10 and len(features) >= 2, (common, features)
+    assert _disjoint_typing_violations(*texts) == []
+    # A dual-typed usage in another file, reached through specializations
+    # declared in yet another file, is still reported.
+    chain = "package Chain { part def Shared :> CommonProductLineCapability; part def Choice :> ProductLineFeatureCandidate; }"
+    usage = "package Use { part bad : Chain::Shared, Chain::Choice[1]; }"
+    assert _disjoint_typing_violations(kernel, chain, usage) == [
+        ("bad", "CommonProductLineCapability", "ProductLineFeatureCandidate")
+    ]
+    # Redefining and anonymous typed usages are covered as well.
+    assert _disjoint_typing_violations(
+        kernel, chain, "package Use { part :>> slot : Shared, Choice; part : Shared, Choice; }"
+    ) == [
+        ("slot", "CommonProductLineCapability", "ProductLineFeatureCandidate"),
+        ("<anonymous>", "CommonProductLineCapability", "ProductLineFeatureCandidate"),
+    ]
+    # Subsetting after the typing list is not mistaken for a second type.
+    assert _disjoint_typing_violations(
+        kernel, chain, "package Use { part ok : Shared :> Choice; }"
+    ) == []
 
 
 def _direct_documentation(block):
