@@ -22,13 +22,12 @@ recorded, how feature/common-capability disjointness is stated, and whether
 `instantiatesCanonicalArchitecture` is queryable.
 
 This ADR separates two kinds of decision. Orkun Yilmaz made the owner
-decisions on 2026-10-05. The implementation decisions were taken while
-building PR #328, and they need the owner's acceptance before this ADR is
-`Accepted`.
+decisions on 2026-10-05 and 2026-10-06. The implementation decisions were
+taken while building PR #328; the owner accepted them on 2026-10-06.
 
 ## Decision
 
-### Owner decisions (2026-10-05)
+### Owner decisions (2026-10-05, 2026-10-06)
 
 1. **D1 — architecture umbrella terms.** `DE4SDV_MethodContext` documents
    `ArchitectureElement`, `Function`, `LogicalElement`, `PhysicalElement` and
@@ -63,7 +62,7 @@ building PR #328, and they need the owner's acceptance before this ADR is
    product-to-canonical reachability claimed. There is no executable mapping
    or canonical-package selector.
 
-### Implementation decisions taken in PR #328 (pending owner acceptance)
+### Implementation decisions taken in PR #328 (accepted 2026-10-06)
 
 1. **I1 — where the definition text lives.** Every authored definition has
    normalized-exact model documentation:
