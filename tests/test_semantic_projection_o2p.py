@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # Permanent PR319 squash: the O2+ pair preserves the reviewed payload and
 # binds every input to this permanent main-history implementation revision.
-COMMITTED_SOURCE_REVISION = "fe6acda12c3a179ef9fcc8d63bdd91431f801e75"
+COMMITTED_SOURCE_REVISION = "4427520aead4f9621e1203554ef502a69ad17198"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {
