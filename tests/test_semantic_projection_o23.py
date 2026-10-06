@@ -1740,10 +1740,9 @@ class TestPreservationAndRuntimeIndependence:
 # 10. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# TEMPORARY_STACK_BINDING (PR #328): v1.2 binds the PR #328 v1.1 commit, which
-# contains the regenerated v1.1 baseline pair. Stage 3 of the post-squash rebind
-# replaces it with the permanent stage-2 squash and refreshes the O3 scope.
-COMMITTED_SOURCE_REVISION = "4c0e9df867e1697d1c98d65ef93ec71f0aeca19c"
+# PR #328 recovery closure: v1.2 binds the permanent #331 squash 9dd9309, which
+# contains the rebound v1.1 baseline pair. This is the final downstream checkpoint.
+COMMITTED_SOURCE_REVISION = "9dd93090344ec4f8e68f67240a8e5e488e5f593e"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
