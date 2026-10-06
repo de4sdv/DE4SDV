@@ -124,9 +124,9 @@ correction. Repairs, all bounded to the A contract and its guards:
 ## Links
 
 - Frozen baseline: `docs/method-conformance/conformance-baseline.md`
-- Proposed authorization policy: `docs/method-conformance/acceptance-policy.md`
-  (`de4sdv.acceptance.maintainer-decision.v1`, Proposed — activation is the
-  maintainer's)
+- Active authorization policy: `docs/method-conformance/acceptance-policy.md`
+  (`de4sdv.acceptance.maintainer-decision.v1`, activated as written by
+  Orkun Yilmaz, 2026-10-05; no campaign acceptance decision)
 - Unified plan: DE4SDV_Unified_Semantic_Engineering_Plan_Final.md (§13, §16)
 - ADR 0017 (engineering authority separation), ADR 0010 (revision-bound
   semantic reads), ADR 0014 (admitted product scope)

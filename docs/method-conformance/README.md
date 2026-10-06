@@ -5,6 +5,22 @@ method-conformance subsystem: the frozen planning baseline, the normative
 result-algebra spelling, the extracted MC acceptance matrix, and the declared
 Phase-10 pilot.
 
+## Status — 2026-10-05
+
+**V1 Core (A–D) delivered** under Orkun Yilmaz's definition: the checker is
+proven by an honest real INC-AEBS-009D disposition and independent MC-30
+agreement. This is checker delivery, not acceptance of the 009D campaign.
+The campaign evidence is **not yet accepted**; its readiness remains BLOCKED.
+The retained hosted run and independent agreement are identified in
+[core-operational-evidence.md](core-operational-evidence.md).
+
+The acceptance policy is Active as written; the README-only decision registry
+contains zero decisions. The delivery gate remains **ADVISORY**: required-check
+activation is a later owner decision, with no branch-protection change here.
+The unified semantic engineering plan remains **incomplete**: O4 ontology
+migration and PLE qualification/adoption work are outstanding. No certification,
+compliance, product acceptance or new production-authority activation is claimed.
+
 | Document | Role |
 |---|---|
 | [conformance-baseline.md](conformance-baseline.md) | FROZEN planning baseline (digest `427410f3...`); the conformance specification. Unchanged copy; changes require a reviewed amendment. |

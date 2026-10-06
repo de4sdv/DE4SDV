@@ -1,9 +1,54 @@
 # Method Core operational evidence
 
-Core's implementation tests do not close its operational acceptance. The missing
-proof is reproducible evaluation of verified inputs, actual intended-runner
-measurements, independent pilot agreement, and an exact-head delivery observation.
-A blocked pilot is a legitimate engine result; it must not be rewritten as acceptance.
+Implementation tests alone do not establish operational acceptance. A blocked
+pilot is a legitimate engine result; it must not be rewritten as acceptance.
+
+## Delivered checker status — 2026-10-05
+
+Orkun Yilmaz defines **V1 Core (A–D) delivered** as checker proof by honest real
+009D disposition plus independent MC-30 agreement, separate from later 009D
+campaign acceptance. The retained evidence meets that delivery definition:
+
+- Permanent-main hosted workflow delivery:
+  [Core run 37209640874](https://github.com/de4sdv/DE4SDV/actions/runs/37209640874),
+  artifact `11306160460` (archive digest
+  `001cde66883659707d3a6e1aeeb0805b5c8a7fcfb1545bef79257b5deba9ed86`).
+  Workflow source is permanent-main squash `b4346bcf36368cf8e300a8fb15d462458e47dd4b`;
+  the verified executor/model input remains
+  `4d2f3ae0144e414a97a3602d98ea105ec038d552`, from ingestion `37144085070`.
+  This proves hosted workflow delivery, not ingestion of the later squash or
+  of the present closure changes.
+- Independent MC-30 agreement: **11 obligations / 51 children** all agree;
+  pilot **7 PASS / 1 FAIL / 3 INDETERMINATE**, readiness **BLOCKED**. The
+  independent derivation is retained in
+  `/home/mrk/.hermes/outputs/ingestion-37144085070/independent-pilot-review/`
+  (`derived-facts.json`, `expected-table.json`, `comparison.json`), with the
+  separate review binding at
+  `/home/mrk/.hermes/outputs/post-pr324/mc30-review-binding/independent-review-record.json`.
+  Agreement binds evaluation key
+  `94a96fd8fc339e3a41f1fc9fd51e5c5fef598d5f24c14c712c7a1bda0a93d57e`
+  at the verified input revision above. It does not rewrite the hosted
+  receipt's missing independent-review field or auto-acceptance flags.
+
+This is a **not-yet-accepted campaign**. These historical dispositions stay
+unchanged; they are not current-candidate evidence. Policy activation now makes
+an actually complete empty-registry scan FAIL with `ACCEPTANCE_AUTHORITY_MISSING`,
+not INDETERMINATE. The metadata export repair still needs licensed exact-head
+export/import and readback; scope equality still requires a fresh bench campaign.
+See [pilot-scope.md](pilot-scope.md#closure-diagnosis--2026-10-05).
+
+Delivery remains **ADVISORY**; no required check or branch protection is changed.
+O4 and PLE remain outstanding: the unified plan is incomplete. No safety,
+certification, compliance, homologation or product acceptance is claimed.
+
+The closure changes evaluator and pilot-policy inputs bound by the O1
+inventory, so the inventory and the O3 scope digest are regenerated with the
+repository generators in a separate commit on the closure branch. That
+binding names the closure's feature commit and is temporary by design: after
+the squash merge, a content-only rebind binds them to the permanent merge
+commit. No pin or gate is rewritten or bypassed. The native model, the O2
+artifacts and the frozen O3 runtime files are unchanged.
+This does not change the historical delivered-checker milestone above.
 
 ## Executable path
 
@@ -91,8 +136,8 @@ observation. A green replay workflow does not close delivery acceptance.
   workflow/provider record supplies a separate origin boundary.
 - Historical replay, changed executor sources and an unsigned review file do
   not establish current permanent-revision acceptance.
-- MC-30 still requires independent manual pilot agreement, with actual reviewer
-  authority and a disposition bound to the evaluated inputs. The receipt never
-  sets `mc30_accepted` or `core_accepted` true.
+- The retained independent MC-30 agreement above establishes checker delivery
+  for those evaluated inputs only. New evaluated inputs require a new independent
+  comparison; the receipt never sets `mc30_accepted` or `core_accepted` true.
 - Existing branch protection and required reviews remain authoritative. No
   semantic-authority selection, O3 scope or authored-YAML retirement changes.

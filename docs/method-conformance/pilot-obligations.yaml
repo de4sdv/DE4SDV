@@ -16,7 +16,7 @@ expected_dispositions:
   future_stamped: error_future_source
 attestation_policy: de4sdv.acceptance.maintainer-decision.v1
 attestation_policy_definition: docs/method-conformance/acceptance-policy.md
-attestation_policy_status: Proposed
+attestation_policy_status: Active
 dependency_graph:
   PC-009D-SCOPE-POPULATION: []
   PC-009D-VC-BINDING:

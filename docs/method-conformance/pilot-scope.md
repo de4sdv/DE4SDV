@@ -97,7 +97,7 @@ per-obligation results stay individually visible).
 | 8 | `PC-009D-EXECUTION-RECORD` | 10 | each profile in the declared tested scope (obligation 7) | (no applicability condition) | min 1 per profile | external evidence-reference match: profile → its one canonical record declared by `campaign-manifest.json` | record integrity: `sha256` of `scenario-evidence.json` matches the manifest entry | `[1..1]` canonical record per profile | required | pinned repository artifact | COMPLETE/PASS; COMPLETE/FAIL (`REQUIRED_RELATION_MISSING`) when no canonical record; ERROR (`BINDING_MISMATCH`) on digest mismatch; INDETERMINATE (`INPUT_UNAVAILABLE`) when the record is unreadable/absent from retained storage |
 | 9 | `PC-009D-EXECUTION-OUTCOME` | 10 | each profile's canonical record (obligation 8) | (no applicability condition) | min 1 per profile | execution-outcome observation: record `evaluation.passed == true` AND `evaluation.disposition` equals the pinned per-profile expected value (fresh_false_control→`control_clear`; fresh_true_conscious_override→`conscious_override`; stale→`degraded_stale_source`; missing→`inconclusive_missing_source`; malformed→`error_malformed_source`; future_stamped→`error_future_source`) | disposition from the pinned `OverrideDisposition` vocabulary; unknown disposition literal ⇒ ERROR (`INVALID_CONTRACT`) | `[1..1]` outcome per record | required | pinned repository artifact | COMPLETE/PASS (all six retained records currently satisfy this); COMPLETE/FAIL (`EXECUTION_FAILED`) otherwise |
 | 10 | `PC-009D-SCOPE-EQUALITY` | 10 | each profile's canonical record (obligation 8) | (no applicability condition) | min 1 per profile | conservative equality: record `provenance` fields (`repository_head`, `override_matrix_sha256`, `override_execution_manifest_sha256`, `execution_manifest_sha256`, `runtime_lock_sha256` incl. `inherited_009a`, `image_digest`, `map_digest`, `host_arch`) equal the candidate's declared tested-scope manifest values for that profile | all pinned fields compared; no field may be skipped | `[1..1]` comparison per record | required | pinned repository artifact + candidate-declared manifest | COMPLETE/PASS at the evidence's own execution head; COMPLETE/FAIL (`EVIDENCE_SCOPE_MISMATCH`) on any known mismatch; INDETERMINATE (`INPUT_UNAVAILABLE`) when any required field is missing from either side — matching profiles alone never proves scope equality |
-| 11 | `PC-009D-ACCEPTANCE-AUTHORITY` | 10 | each profile's canonical record (obligation 8) | (no applicability condition) | min 1 per profile | acceptance-record match under the proposed policy `de4sdv.acceptance.maintainer-decision.v1` ([acceptance-policy.md](acceptance-policy.md)): an attributable, authorized decision record referencing the campaign scope and enumerating covered profiles | decision-population completeness over the closed six-profile universe (policy §Decision-population completeness); conflicts without supersession ⇒ INDETERMINATE | `[1..1]` applicable decision per profile | required | pinned repository artifact | discriminator per result-algebra.md (evidence availability): currently expected COMPLETE/FAIL (`ACCEPTANCE_AUTHORITY_MISSING`) — records and STATUS are retained and complete, the authorized decision is absent |
+| 11 | `PC-009D-ACCEPTANCE-AUTHORITY` | 10 | each profile's canonical record (obligation 8) | (no applicability condition) | min 1 per profile | acceptance-record match under the active policy `de4sdv.acceptance.maintainer-decision.v1` ([acceptance-policy.md](acceptance-policy.md)): an attributable, authorized decision record referencing the campaign scope and enumerating covered profiles | decision-population completeness over the closed six-profile universe (policy §Decision-population completeness); conflicts without supersession ⇒ INDETERMINATE | `[1..1]` applicable decision per profile | required | pinned repository artifact | discriminator per result-algebra.md (evidence availability): currently expected COMPLETE/FAIL (`ACCEPTANCE_AUTHORITY_MISSING`) — records and STATUS are retained and complete, the authorized decision is absent |
 
 ### Expected aggregate outcomes (declared, derived from the dependency graph)
 
@@ -194,6 +194,108 @@ compares the **declared tested scope** recorded by the retained evidence
 - Scope comparison is conservative equality at V1 against the pinned
   fingerprint fields; a known mismatch fails obligation 10 rather than
   carrying evidence forward (frozen baseline §10 V1 validity limits).
+
+## Closure diagnosis — 2026-10-05
+
+The retained export and independent derivation for ingestion `37144085070`
+(evaluated input `4d2f3ae0144e414a97a3602d98ea105ec038d552`) were inspected
+without rewriting them. Their historical 7 PASS / 1 FAIL / 3 INDETERMINATE,
+BLOCKED result is not evidence for the present closure candidate. Read-only
+worktree diagnostics are retained at
+`/home/mrk/.hermes/outputs/two-plan-finish/core-closure/diagnosis.json`.
+
+### Usage and definition method metadata: export closure, not model omissions
+
+- `PC-009D-USAGE-METHOD-METADATA`: all six usages already declare native
+  `@VerificationMethod { kind = (test, analyze); }`.
+- `PC-009D-DEFINITION-METHOD-METADATA`: `collectData` already declares `test`;
+  `processData` and `evaluateData` already declare `analyze`.
+- All nine metadata witnesses/value-expression chains are retained. Their
+  literal targets in the licensed built-in `VerificationCases.sysml` are
+  outside the user-document-only export, leaving both obligations honestly
+  INDETERMINATE (`INPUT_UNAVAILABLE`). This is not missing ODE4HERA attribute
+  authoring: do not duplicate metadata or create local enums/kernel vocabulary.
+- The official exporter now retains the actual `VerificationMethodKind`
+  definition and its owned literal subtree from the **same licensed load**,
+  before reference normalization. Unrelated library elements stay excluded;
+  no UUID/URI/source-text inference or historical-export patching is used.
+  Synthetic serializer fixtures prove that path, not licensed operation.
+
+**Remaining requirement:** after review, request maintainer-run **Privileged
+Syside Validation** at the future exact committed head, covering both model
+roots (including `aebs_override_verification.sysml`). Run official serializer
+export/import and API readback at that same head; re-evaluate Core and obtain
+new independent MC-30 agreement. Readback must establish all six usage value
+sets and all three action values. Local `python -B scripts/validate_sysml.py`
+returned **126** (`Exec format error`, x86-64 Syside on aarch64). The native
+model is unchanged: its method annotations and policy identity are already
+correct; Active status is governed by the external policy definition. Licensed
+export/readback proof is still required for the exporter repair. No dispatch
+or upstream contact is performed here.
+
+### Scope equality: real tested-boundary drift, new campaign required
+
+`PC-009D-SCOPE-EQUALITY` is a real FAIL (`EVIDENCE_SCOPE_MISMATCH`), not a
+checker false negative. Records bind execution head
+`01d9f586865bf7fb4bc0b3f76be2b5a916451da4`. Against closure base
+`754a6991e576a9f765c42b0a4e6e569f2463b16c`, 16 of its 46 identity inputs differ:
+12 changed and 4 removed (the override runner/evidence wrappers). Both
+`execution_manifest_sha256` and `override_execution_manifest_sha256` mismatch
+for all six profiles; retained image/map/runtime/inherited pins remain intact.
+The frozen comparison rule, its source-blob pin, and retained evidence are not
+weakened or repinned to turn this into PASS.
+
+**Exact remaining execution requirement:**
+
+1. Establish reviewed execution revision `H` with an operational 009D
+   conscious-override matrix runner/collector. The former
+   `run_override_matrix.sh`, `run_override_profile.sh`, `override_evidence.py`
+   and `validate_override_evidence.py` are absent at the current base; a rerun
+   of the historical checkout does **not** qualify the current candidate.
+   The current identity implementation includes additional scenario/config
+   inputs. A new tested-input rule and execution-head binding require a
+   separately reviewed contract amendment; leave today's `TESTED_INPUT_RULE`
+   and its source-blob pin unchanged in this closure.
+2. On the actual intended aarch64 Autoware closed-scenario bench, execute
+   `fresh_false_control`, `fresh_true_conscious_override`, `stale`, `missing`,
+   `malformed`, `future_stamped` under the reviewed 009D scenario/matrix.
+   Retain fresh source observations, independently evaluated verdicts,
+   commands, UTC times and real command exits. Expected dispositions stay
+   `control_clear`, `conscious_override`, `degraded_stale_source`,
+   `inconclusive_missing_source`, `error_malformed_source`, `error_future_source`
+   respectively; actual differences stay failures, not amended expectations.
+3. Produce one canonical `scenario-evidence.json` per profile with all pinned
+   provenance fields, real intended image/map digests, runtime/inherited-009A
+   locks, and base plus profile-specific identity digests over the reviewed
+   input population at `H`. Retain earlier evidence as historical/superseded.
+   The separately reviewed campaign update must bind `H`, enumerate exactly
+   those six profiles, and pin each actual record's SHA-256 and run id.
+4. Reproduce both identity digests at `H`, perform full conservative comparison
+   against the candidate boundary, then licensed exact-head export/import/API
+   readback, Core re-evaluation and a new independent MC-30 comparison. No
+   bench execution or evidence repinning occurs in this closure; FAIL remains
+   honest. Campaign acceptance is a later separate maintainer decision.
+
+### Acceptance: active policy, complete empty registry, no decision
+
+The README-only registry contains **zero decisions** and scans `scanned-clean`;
+README is not a decision format. Uncovered profile acceptance therefore becomes
+COMPLETE/FAIL `ACCEPTANCE_AUTHORITY_MISSING`, not missing-registry INDETERMINATE.
+No campaign decision is fabricated or implied by V1 Core checker delivery.
+
+The engine realizes the existing policy's increment + tested-fingerprint
+reference as a `campaign_scope` mapping with `increment_id`, `execution_head`,
+and `scope_fingerprint`. `acceptance_scope_reference(manifest)` returns
+`sha256:` plus the SHA-256 of canonical JSON of the entire campaign
+manifest encoded as `utf-8` (`sort_keys=True`, compact separators, `ensure_ascii=False`). This
+transitively binds the exact record digests/run ids, not just profile names.
+A decision for a different increment/head/fingerprint gives no coverage, with
+an `EVIDENCE_SCOPE_MISMATCH` diagnostic. Missing/invalid attribution yields
+ERROR `BINDING_MISMATCH` across YAML, YML and JSON; records must name the
+policy's deciding maintainer and an ISO date. Supersession resolves only
+matching campaign/profile coverage, preserving a partially superseded record's
+other profile coverage; cycles remain ERROR and unresolved conflicts remain
+INDETERMINATE with both decision ids.
 
 ## Scope separation (per frozen baseline §16)
 
