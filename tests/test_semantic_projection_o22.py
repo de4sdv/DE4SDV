@@ -1117,7 +1117,7 @@ class TestPreservationAndRuntimeIndependence:
 # Permanent PR320 squash contains the recovered v1 baseline pair.
 # v1.1 now binds that permanent revision; the baseline stays at PR319.
 # Only the downstream v1.2 pair still needs its permanent checkpoint.
-COMMITTED_SOURCE_REVISION = "9f41c4b8804a44a3251380b05486cf4e28ccbe26"
+COMMITTED_SOURCE_REVISION = "eb8cd1ea205994f18ee72cd6964cc920576a1a89"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
