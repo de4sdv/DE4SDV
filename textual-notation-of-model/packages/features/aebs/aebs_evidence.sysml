@@ -13,6 +13,7 @@
 package DE4SDV_AEBSNominalEvidence {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
+  private import DE4SDV_MethodContext::EvidenceContract;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -189,7 +190,7 @@ package DE4SDV_AEBSNominalEvidence {
     }
   }
 
-  requirement def NominalEvidenceContractRequirement;
+  requirement def NominalEvidenceContractRequirement :> EvidenceContract;
 
   requirement evidenceContractWarningLead : NominalEvidenceContractRequirement {
     doc /* EC-AEBS-009B-01; System 2 evidence contract; method: retained evaluator replay. */

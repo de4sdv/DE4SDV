@@ -883,6 +883,13 @@ entries:
     markers:
     - legacy_yaml_authority
     retirement_status: not-applicable
+  tests/test_o4_wave_a_evidence_vocabulary.py:
+    role: test-reference
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: Lexical guards for model-resident evidence/assurance vocabulary roles only; no runtime retirement or licensed Syside evidence.
   tests/test_ontology_kernel_contract.py:
     role: test-reference
     markers:

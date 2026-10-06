@@ -2,6 +2,7 @@
 package DE4SDV_AEBSBicycleVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
+  private import DE4SDV_MethodContext::EvidenceContract;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -28,7 +29,7 @@ package DE4SDV_AEBSBicycleVerification {
   }
 
   part def BicycleTargetBench;
-  requirement def BicycleEvidenceContract;
+  requirement def BicycleEvidenceContract :> EvidenceContract;
   requirement evidenceContractConfiguredBicycleTarget : BicycleEvidenceContract {
     subject bench : BicycleTargetBench;
     require constraint statement { language "English" /* The bench shall bind the configured bicycle trajectory, geometry, timing, and exact bench identity: crossing speed 4.0 m/s, a closed observation window of 2.0 s, and map-frame source observations no older than 0.5 s. */ }

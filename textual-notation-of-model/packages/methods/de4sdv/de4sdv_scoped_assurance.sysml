@@ -33,6 +33,49 @@ package DE4SDV_ScopedAssurance {
   private import DE4SDV_SYSMODAdapter::VVStatus;
   private import DE4SDV_MethodConformance::*;
 
+  comment EvidenceArtifactVocabularyRole about EvidenceArtifactOntologyDefinition /* External
+   * boundary: evidence-artifact content is external; the model has no authority
+   * over it. The model owns only the typed reference role: the accepted
+   * de4sdv.evidence-reference/v1 schema (case identity, artifact identity, exact
+   * revision, digest, run, tested scope) and the model-resident reference
+   * records RetainedExecutionRecordReference and EvidenceSupportCitation
+   * evidenceRef. No artifact bytes, status, maturity, verdict or acceptance are
+   * mirrored, and no API element identity is claimed for an artifact. */
+
+  comment hasEvidenceVocabularyRole /* External boundary for hasEvidence
+   * (VerificationCase to EvidenceArtifact): artifact association only, carried
+   * by the case's typed de4sdv.evidence-reference/v1 record; content external, no
+   * authority. The association exposes no verdict, pass, approval or acceptance
+   * and implements no traversal: external data is required and an absent record
+   * is never reported as an empty hop. It is not supportedByEvidence. */
+
+  comment supportedByEvidenceVocabularyRole about EvidenceSupportCitation, ScopedEvidenceAdequacyAssessment /* The
+   * supportedByEvidence relation (AssuranceClaim to EvidenceArtifact) is
+   * represented by one EvidenceSupportCitation per cited artifact: the exact
+   * scoped claim (claim, subject, configuration, conditions), the versioned
+   * evidence reference, the rationale and the known limits. This is cited
+   * support, distinct from hasEvidence artifact association. A claim is
+   * treated as established, or acceptance is sought, only after a
+   * ScopedEvidenceAdequacyAssessment of the evidence set for the same exact
+   * scope, which reuses the cases, criteria, results, references and gaps it
+   * assesses. The designated authority's scoped acceptance stays a separate
+   * AcceptanceAttestationReference, with exceptions kept visible. Citation,
+   * adequacy and acceptance never imply each other. Vocabulary only at this
+   * revision: no runtime traversal is implemented here. */
+
+  comment hasEvidenceStatusVocabularyRole about ScopedVVActivityRecord /* Successor
+   * for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus)
+   * predicate. Scoped verification and validation activity status is the
+   * unchanged adopted VVStatus on ScopedVVActivityRecord status, identified
+   * with its subject, configuration, activity, comparison basis and result or
+   * evidence references; EvidenceStatus resolves to that pinned VVStatus and
+   * to slice-local bounded outcome/disposition enums. No new universal status
+   * enum is introduced. Artifact maturity, evidence-set adequacy and authority
+   * acceptance stay separate, and Completed never means passed or accepted.
+   * Retirement: hasEvidenceStatus takes no new model usage; consumers move to
+   * this successor in a reviewed runtime change, and the legacy predicate is
+   * then removed with the authored ontology. */
+
   item def EvidenceSupportCitation {
     doc /* supportedByEvidence cites one identified artifact as support for an
      * exact scoped claim, with rationale and known limitations. Neither this
@@ -126,6 +169,7 @@ package DE4SDV_ScopedAssurance {
     attribute conclusion : String;
     attribute reasoning : String;
     ref item activities : ScopedVVActivityRecord[*];
+    ref item citations : EvidenceSupportCitation[*];
     ref item retainedExecutions : RetainedExecutionRecordReference[*];
     ref item acceptanceReferences : AcceptanceAttestationReference[*];
   }

@@ -38,6 +38,31 @@ means the activity could not complete; `CompletedFailed` and `CompletedPassed`
 retain completed unsuccessful/successful activity meanings. Required result
 approval is distinct from the designated authority's acceptance decision.
 
+## Predicate vocabulary roles (O4 Wave A)
+
+Named kernel comments record how the legacy predicates map onto these records.
+They are vocabulary only; no runtime consumer, traversal or projection changes.
+
+- `supportedByEvidenceVocabularyRole`: `supportedByEvidence` is represented by
+  one `EvidenceSupportCitation` per cited artifact. It is distinct from
+  `hasEvidence`. A claim counts as established, or acceptance is sought, only
+  after a `ScopedEvidenceAdequacyAssessment` for the same scope.
+  The assessment types the citations it assesses (`ref item citations`).
+  Acceptance stays a separate `AcceptanceAttestationReference`.
+- `hasEvidenceStatusVocabularyRole`: the successor of `hasEvidenceStatus` is
+  the unchanged `VVStatus` on `ScopedVVActivityRecord`. `EvidenceStatus`
+  resolves to that pinned library enum. No universal status enum is added.
+  Retirement path: no new model usage of `hasEvidenceStatus`. Consumers move
+  to the successor in a reviewed runtime change (Wave B). The legacy name stays
+  in the authored ontology until it is retired (Wave C).
+- `EvidenceArtifactVocabularyRole`, `hasEvidenceVocabularyRole`,
+  `BaselineVocabularyRole`, `capturedInBaselineVocabularyRole` and
+  `ArchitectureDecisionRecordVocabularyRole` state the external boundary:
+  content is external and the model has no authority over it. The model owns
+  only the typed reference roles under the accepted
+  `de4sdv.evidence-reference/v1` and `de4sdv.baseline-manifest-reference/v1`
+  schemas.
+
 ## Supplied-record validation
 
 The read-only CLI accepts `de4sdv.scoped-assurance-records/v1` JSON packages:

@@ -43,6 +43,21 @@ package DE4SDV_OperationalContext {
     doc /* A reviewed and controlled state of model, evidence, configuration, or publication artifacts, referenced without implying accepted evidence. */
   }
 
+  comment BaselineVocabularyRole about DE4SDVEvidenceBaseline /* External
+   * boundary: baseline content is external (Git revisions and the identified
+   * baseline manifest); the model has no authority over it and keeps no second
+   * mutable baseline list. DE4SDVEvidenceBaseline is only the model-resident
+   * reference identity and its claim boundary: it describes what is referenced,
+   * not who grants approval, and no rename is implied. */
+
+  comment capturedInBaselineVocabularyRole about DE4SDVEvidenceBaseline /* External
+   * boundary for capturedInBaseline (EvidenceArtifact to Baseline): membership
+   * is exact inclusion of the artifact version identity in the identified
+   * immutable manifest under de4sdv.baseline-manifest-reference/v1; content
+   * external, no authority. A different revision of the same artifact is not
+   * included, inclusion never approves evidence, and no traversal is
+   * implemented. */
+
   part def Scenario {
     doc /* A bounded operational, validation, test, or threat situation used to reason about behavior and evidence. */
   }
