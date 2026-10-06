@@ -1,0 +1,17 @@
+# Pilot traceability questions of the DE4SDV basic ontology, moved to a test
+# fixture (owner decision 2026-10-06). Copied verbatim from the `pilot_queries`
+# block of approach/framework/ontology/de4sdv-basic-ontology.yaml.
+#
+# tests/test_o4_wave_a_vocabulary_roles.py asserts this list equals the YAML
+# block while the block still exists, so a later change can delete the YAML
+# block safely. These are review questions, not executable queries; the
+# parenthetical names the review or tool that answers each one today.
+pilot_queries:
+  - Which selected features lack requirements? (feature catalogue/configuration review)
+  - Which selected features lack verification cases, validation scenarios, acceptance criteria, or evidence artifacts? (V&V planning review)
+  - Which requirements are constrained by a regulation or standard source? (regulatory-scope review)
+  - Which member products are affected when a variation point or selected variant changes? (feature catalogue plus configurator impact)
+  - Which views were produced for each selected SAF viewpoint? (view index)
+  - Which evidence artifacts are still draft, planned, or gaps? (evidence registers)
+  - Which assurance claims are unsupported by accepted evidence? (assurance review)
+  - If I change requirement X, what is affected? (scripts/query_model_impact.py)

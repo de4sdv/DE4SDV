@@ -34,6 +34,23 @@ package DE4SDV_MethodViewpoints {
    * Concern type or additional satisfaction claim. */
 
 
+  /* Native grounding records (O4 W3, KEEP_NATIVE): the normative SysML Systems
+   * Library carries these concepts; DE4SDV copies no library type. */
+  comment about ViewOntologyDefinition /* Grounding: Systems Library Views package, abstract view def
+   * View (every view definition specializes it; view usages expose model content and
+   * are checked through viewpointSatisfactions). Concrete DE4SDV/SAF view usages are the
+   * model representation; the producesView carrier types its view end by the library
+   * View. */
+  comment about ViewpointOntologyDefinition /* Grounding: Systems Library Views package, abstract
+   * viewpoint def ViewpointCheck (base of every viewpoint definition; viewpointChecks is
+   * the base feature of viewpoint usages). DE4SDV method viewpoints in this package and
+   * SAF_Viewpoints specialize it natively; no generic DE4SDV Viewpoint type exists. */
+  comment about ConcernOntologyDefinition /* Grounding: Systems Library Requirements package, concern
+   * def ConcernCheck (base of every concern definition; concernChecks is the base feature
+   * of concern usages; viewpoints frame concerns natively). DE4SDV method concerns in this
+   * package specialize it natively; no generic DE4SDV Concern type exists. */
+
+
   private import Views::*;
 
   concern def ProductLineCapabilityClassificationConcern {
