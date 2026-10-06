@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed
+Accepted
+
+The owner accepted implementation decisions I1–I4 on 2026-10-06. I4 is
+superseded by the D4 follow-up in O4 Wave A; see
+[owner decisions](../method-conformance/o4/owner-decisions-2026-10.md).
 
 ## Context
 
