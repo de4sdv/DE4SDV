@@ -329,6 +329,13 @@ package DE4SDV_MethodContext {
     doc /* A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement. Grounds the ontology ArchitectureDecisionRecord class and R003 derivation targets. */
   }
 
+  comment ArchitectureDecisionRecordVocabularyRole about ArchitectureDecisionRecord /* External
+   * boundary: ADR content is external (the Git documents under
+   * docs/architecture-decisions/); the model has no authority over it and does
+   * not mirror it. ArchitectureDecisionRecord is only the model-resident
+   * reference identity and typing role for R003 derivation origins. Referencing
+   * an ADR does not make its decision accepted or its status current. */
+
   part def IncrementAssumption {
     doc /* A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record. */
   }
