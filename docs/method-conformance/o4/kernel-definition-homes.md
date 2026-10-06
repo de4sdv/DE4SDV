@@ -32,7 +32,8 @@ The decisions and their consequences are recorded in
   definitions do not specialize it yet, so its specialization closure is not
   the evidence-contract population and does not discriminate
   `hasRelevantEvidenceContract`. Its current dependency mapping is unchanged.
-  A test pins the population.
+  A test pins the population. This falls short of D4's aim and is recorded
+  as implementation decision I4 in ADR 0020.
 - **7:** licensed Syside (PR #328, run 37411981652) rejected the standalone
   KerML `disjoining` inside a SysML package as a syntax error. Per the
   decision's fallback, the axiom is a symmetric **checked constraint**:
@@ -56,10 +57,12 @@ changing their reviewed meaning.
 Where the text lives:
 
 - 51 definitions own it directly: 40 as an anonymous `doc`, 11 as
-  `private doc ontologyDefinition`. The 11 are private so specializations do
-  not inherit the text. Where a definition has both, the `ontologyDefinition`
-  text is the authored definition and replaces the YAML text at deletion; the
-  anonymous doc stays as explanatory documentation. O1's text-parity observer
+  `private doc ontologyDefinition`. The 11 are private so the name
+  `ontologyDefinition` is not an inherited, resolvable member of
+  specializations. Where a definition has both, the `ontologyDefinition` text
+  is the authored definition and replaces the YAML text at deletion; the
+  anonymous doc stays as explanatory documentation. These are implementation
+  decisions pending owner acceptance (ADR 0020, I1–I3). O1's text-parity observer
   reads anonymous docs only, which is why those rows still show `differs`.
 - 25 concepts without their own definition use a package-owned
   `doc <Term>OntologyDefinition`. The name is the only link to the concept; a

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Proposed
 
 ## Context
 
@@ -17,10 +17,14 @@ acceptance criteria and evidence contracts live, how evaluation exclusions are
 recorded, how feature/common-capability disjointness is stated, and whether
 `instantiatesCanonicalArchitecture` is queryable.
 
-Orkun Yilmaz decided D1–D4, 7 and 8 on 2026-10-05. This ADR records those
-decisions and the consequences found while implementing them.
+This ADR separates two kinds of decision. Orkun Yilmaz made the owner
+decisions on 2026-10-05. The implementation decisions were taken while
+building PR #328, and they need the owner's acceptance before this ADR is
+`Accepted`.
 
 ## Decision
+
+### Owner decisions (2026-10-05)
 
 1. **D1 — architecture umbrella terms.** `DE4SDV_MethodContext` documents
    `ArchitectureElement`, `Function`, `LogicalElement`, `PhysicalElement` and
@@ -34,56 +38,74 @@ decisions and the consequences found while implementing them.
    `MethodEvaluationExclusion[*]` records: the excluded element plus a
    required, non-empty rationale.
 4. **D4 — evidence contract.** The kernel owns
-   `requirement def EvidenceContract :> RequirementCandidate`. Today it is
-   specialized only by `OverrideEvidenceContract` (AEBS) and
-   `MiddlewareAcceptanceCriterion`. The other seven AEBS evidence-contract
-   definitions do not specialize it yet, so its specialization closure is not
-   the evidence-contract population and is not used to discriminate
-   `hasRelevantEvidenceContract`. The runtime dependency mapping is unchanged.
+   `requirement def EvidenceContract :> RequirementCandidate`, so that typed
+   specialization can unblock `hasRelevantEvidenceContract`. See
+   implementation decision I4 for what this PR delivers against that aim.
 5. **Decision 7 — feature/common-capability disjointness.** The rule is kept
-   and made model-resident. The preferred native form, a standalone
-   `disjoining … disjoint A from B;`, was rejected by the licensed toolchain
-   inside a SysML package (run 37411981652). The decision's fallback applies:
-   a symmetric checked constraint. `CommonProductLineCapability` asserts
+   and made model-resident through native `disjoint from`, with a checked
+   constraint as the fallback if the toolchain does not support it. The
+   licensed toolchain rejected a standalone `disjoining … disjoint A from B;`
+   inside a SysML package (run 37411981652), so the fallback applies:
+   `CommonProductLineCapability` asserts
    `not (that istype ProductLineFeatureCandidate)`, and the reverse.
-6. **Decision 8 — canonical architecture.** `instantiatesCanonicalArchitecture`
-   is vocabulary only: not queryable; no product-to-canonical reachability
-   claimed. There is no executable mapping or canonical-package selector.
-7. **Definition text.** Every authored definition has normalized-exact model
-   documentation:
-   - 51 definitions own it directly: 40 as an anonymous `doc`, 11 as
-     `private doc ontologyDefinition`. These 11 are private so that
-     specializations do not inherit the text as their own.
+6. **Decision 8 — canonical architecture.**
+   `instantiatesCanonicalArchitecture` is vocabulary only: not queryable; no
+   product-to-canonical reachability claimed. There is no executable mapping
+   or canonical-package selector.
+
+### Implementation decisions taken in PR #328 (pending owner acceptance)
+
+1. **I1 — where the definition text lives.** Every authored definition has
+   normalized-exact model documentation:
+   - 51 definitions own it directly: 40 as an anonymous `doc`, 11 as a named
+     `doc ontologyDefinition`.
    - 25 concepts without a definition of their own (umbrella, native/library,
      historical and external terms) use a package-owned
-     `doc <Term>OntologyDefinition`. The name is the only link to the concept,
-     and a test pins it to the inventory row.
+     `doc <Term>OntologyDefinition`. The name is the only link to the
+     concept, and a test pins every name to its inventory row in both
+     directions.
 
    Where a definition carries both an anonymous doc and the exact
    `ontologyDefinition`, the `ontologyDefinition` text is the authored
    definition and replaces the YAML text when the YAML is deleted. The
    anonymous doc stays as explanatory model documentation.
+2. **I2 — private definition docs.** The 11 `doc ontologyDefinition` members
+   are `private`, so the name `ontologyDefinition` is not an inherited,
+   resolvable member of specializations.
+3. **I3 — non-shadowing names.** Named docs and named comments are package
+   members and are re-exported by wildcard imports. Run 37411981652 showed
+   that `doc VerificationMethod` hid the library metadata `VerificationMethod`
+   from every importer. Kernel doc names use the `ontologyDefinition` or
+   `<Term>OntologyDefinition` form; named comments use a
+   `<Term>VocabularyRole` form (`hasStakeholderVocabularyRole`,
+   `hasAcceptanceCriterionVocabularyRole`); neither may reuse a class,
+   predicate or definition name. A repository test enforces this.
+4. **I4 — D4 delivered as vocabulary only.** Today only
+   `OverrideEvidenceContract` (AEBS) and `MiddlewareAcceptanceCriterion`
+   specialize `EvidenceContract`. The other seven AEBS evidence-contract
+   definitions do not, so the type's specialization closure is not yet the
+   evidence-contract population and is not used to discriminate
+   `hasRelevantEvidenceContract`. This falls short of D4's aim. Specializing
+   the seven definitions changes which requirements count as evidence
+   contracts and is left to a separate change. A repository test pins the
+   current closure.
 
 ## Consequences
 
 - O4 can delete the YAML once all consumers read model authority. This ADR
   supplies the homes only; it does not delete the YAML, rewire consumers,
   replace the YAML-based `check_model_sync` contract or close O4.
-- Named documentation and named comments are package members and are
-  re-exported by wildcard imports. Run 37411981652 showed that
-  `doc VerificationMethod` hid the library metadata `VerificationMethod` from
-  every importer. Kernel doc names must therefore use the `ontologyDefinition`
-  or `<Term>OntologyDefinition` form, named comments must use a
-  `<Term>VocabularyRole` form, and neither may reuse a class, predicate or
-  definition name. A repository test enforces this.
 - The licensed check validates the constraint declarations but has not been
   shown to evaluate them against usages. A bounded repository probe guards the
   disjointness rule across all three validated model roots; it is not a SysML
   evaluator.
-- Specializing the remaining seven AEBS evidence-contract definitions is a
-  separate change: it changes which requirements count as evidence contracts
-  and needs its own review. A repository test pins the current population, so
-  any new specialization must update D4, this ADR and that test together.
+- Until the seven AEBS definitions specialize `EvidenceContract`,
+  `hasRelevantEvidenceContract` keeps its existing dependency mapping. Any new
+  specialization must update D4/I4, this ADR and the population test
+  together.
+- `MiddlewareAcceptanceCriterion` specializes both `AcceptanceCriterion` and
+  `EvidenceContract`, so all 15 middleware acceptance criteria are typed as
+  both. That dual typing predates this ADR and is not decided here.
 - O1's text-parity observer reads anonymous definition docs only, so the
   definitions that also carry `ontologyDefinition` still show `differs`
   there. Their review records are unchanged.
@@ -91,6 +113,8 @@ decisions and the consequences found while implementing them.
 ## Non-decisions
 
 - Deleting the YAML, rewiring consumers or retiring O4 rows.
+- Specializing the seven remaining AEBS evidence-contract definitions.
+- Whether middleware acceptance criteria should also be evidence contracts.
 - Activating or adopting PLEML semantics, or changing any dependency pin.
 - Creating any acceptance record.
 - Making the delivery gate required.

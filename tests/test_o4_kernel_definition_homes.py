@@ -360,19 +360,26 @@ def test_no_documentation_name_shadows_a_model_or_library_name():
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
         declared |= set(re.findall(r"\bdef\s+(\w+)", active))
-    named = 0
+    named_docs = named_comments = 0
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
-        text = path.read_text()
+        text = _blank_comment_bodies(path.read_text())
         for name in re.findall(r"\bdoc\s+(\w+)\s*/\*", text):
-            named += 1
+            named_docs += 1
             assert name == "ontologyDefinition" or name.endswith("OntologyDefinition"), (path.name, name)
         # Named comments are package members too (re-exported by wildcard
-        # imports), so they must not reuse a predicate, class or definition name.
-        for name in re.findall(r"\bcomment\s+(?!about\b)(\w+)\s+about\b", text):
-            named += 1
+        # imports), with or without an ``about`` clause, so they must not reuse
+        # a predicate, class or definition name.
+        for name in re.findall(r"\bcomment\s+(?!about\b)(\w+)\b(?=\s*(?:about\b|/\*|;))", text):
+            named_comments += 1
             assert name.endswith("VocabularyRole"), (path.name, name)
             assert name not in vocabulary | declared, (path.name, name)
-    assert named >= 38, "the scan must see the kernel's named docs and comments"
+    assert named_docs >= 36 and named_comments >= 2, "the scan must see the kernel's named docs and comments"
+
+
+def _blank_comment_bodies(text):
+    """Keep ``/*``/``*/`` tokens but drop comment interiors and line comments,
+    so prose inside comments is never scanned as declarations."""
+    return re.sub(r"/\*.*?\*/", "/**/", re.sub(r"//[^\n]*", "", text), flags=re.S)
 
 
 def test_definition_owned_ontology_docs_are_private_and_package_homes_are_named():
@@ -397,19 +404,33 @@ def test_definition_owned_ontology_docs_are_private_and_package_homes_are_named(
             if "private" not in match[1].split():
                 public.append(path.name)
     assert total == 11 and public == [], public
+    # Model -> inventory: no orphan <Term>OntologyDefinition carrier.
+    carriers = set()
+    for path in sorted((ROOT / KERNEL).glob("*.sysml")):
+        carriers |= set(re.findall(r"\bdoc\s+(\w+OntologyDefinition)\s*/\*", _blank_comment_bodies(path.read_text())))
+    assert carriers == {row["documentation_name"] for row in package_rows}, carriers ^ {
+        row["documentation_name"] for row in package_rows}
 
 
 def test_kernel_evidence_contract_specializations_are_exactly_the_claimed_population():
     """D4 is narrowed: the kernel type is specialized by the AEBS override
     contract and the middleware acceptance criterion only. Any other
     specialization must update the D4 wording, ADR 0020 and this pin."""
-    found = set()
+    supers = {}
     for root in ("textual-notation-of-model", "model-based-product-line-engineering/product-models"):
         for path in sorted((ROOT / root).rglob("*.sysml")):
             source = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
-            for name, supers in re.findall(r"requirement\s+def\s+(\w+)\s*:>\s*([^;{]+)", source):
-                if "EvidenceContract" in {s.strip().split("::")[-1] for s in supers.split(",")}:
-                    found.add(name)
+            for name, parents in re.findall(
+                r"requirement\s+def\s+(\w+)\s*(?::>|\bspecializes\b)\s*([^;{]+)", source
+            ):
+                supers.setdefault(name, set()).update(
+                    s.strip().split("::")[-1] for s in parents.split(",") if s.strip()
+                )
+    # Transitive specialization closure of the kernel EvidenceContract.
+    found, frontier = set(), {"EvidenceContract"}
+    while frontier:
+        frontier = {name for name, parents in supers.items() if parents & frontier} - found
+        found |= frontier
     assert found == {"OverrideEvidenceContract", "MiddlewareAcceptanceCriterion"}, found
 
 

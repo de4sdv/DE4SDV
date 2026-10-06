@@ -1114,9 +1114,9 @@ class TestPreservationAndRuntimeIndependence:
 # 7. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# Permanent PR320 squash contains the recovered v1 baseline pair.
-# v1.1 now binds that permanent revision; the baseline stays at PR319.
-# Only the downstream v1.2 pair still needs its permanent checkpoint.
+# TEMPORARY_STACK_BINDING (PR #328): v1.1 binds the PR #328 direct-lane commit,
+# which contains the regenerated v1 baseline pair. Stage 2 of the post-squash
+# rebind replaces it with the permanent stage-1 squash.
 COMMITTED_SOURCE_REVISION = "eb8cd1ea205994f18ee72cd6964cc920576a1a89"
 
 
