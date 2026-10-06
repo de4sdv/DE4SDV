@@ -186,3 +186,72 @@ def test_pilot_query_fixture_equals_the_ontology_block():
     # Holds while the YAML block exists; after its deletion the fixture is the home.
     if "pilot_queries" in ontology:
         assert fixture["pilot_queries"] == ontology["pilot_queries"]
+
+
+MODEL_ROOTS = ("textual-notation-of-model", "model-based-product-line-engineering")
+
+
+def _model_files():
+    for root in MODEL_ROOTS:
+        yield from sorted((ROOT / root).rglob("*.sysml"))
+
+
+def _blank_comment_bodies(text):
+    """Keep comment delimiters, drop comment interiors and line comments."""
+    return re.sub(r"/\*.*?\*/", "/**/", re.sub(r"//[^\n]*", "", text), flags=re.S)
+
+
+def test_vocabulary_role_names_are_unique_and_kernel_resident():
+    """A homonym role (same name in a second file or twice in one file) would
+    let a dict-based reader silently pick either body."""
+    homes = {}
+    for path in _model_files():
+        for name in re.findall(r"\bcomment\s+(?!about\b)(\w+VocabularyRole)\b", _blank_comment_bodies(path.read_text())):
+            homes.setdefault(name, []).append(path.relative_to(ROOT).as_posix())
+    assert len(homes) >= 23, "the scan must see the kernel's vocabulary roles"
+    duplicated = {name: files for name, files in homes.items() if len(files) != 1}
+    assert not duplicated, duplicated
+    assert all(files[0].startswith(KERNEL) for files in homes.values()), homes
+
+
+def test_rule_homes_are_declared_once_and_never_asserted_anywhere():
+    """Every ``ontologyRule*`` token in every model file, the rules file
+    included, is exactly its one bare constraint declaration."""
+    occurrences = []
+    for path in _model_files():
+        active = _active(path.read_text())
+        for match in re.finditer(r"ontologyRule\w*", active):
+            line_start = active.rfind("\n", 0, match.start()) + 1
+            occurrences.append((path, active[line_start:match.end() + 2].strip(), match[0]))
+    declarations = [(path, name) for path, line, name in occurrences
+                    if re.fullmatch(r"constraint\s+" + name + r"\s*\{", line)]
+    assert len(declarations) == len(occurrences) == 10, [o[1] for o in occurrences]
+    assert {path for path, _ in declarations} == {ROOT / RULES}
+    assert len({name for _, name in declarations}) == 10
+    active = _active(_text(RULES))
+    for keyword in ("assert", "satisfy", "require", "assume", "part", "ref", ":>", "subsets", "redefines"):
+        assert not re.search(r"(?<![\w:])" + re.escape(keyword) + r"(?![\w>])", active), keyword
+
+
+PRODUCT_LINE_DEFINITIONS = {
+    "ProductLine", "SDVProductLine", "ProductLineMemberProduct", "ProductLineCharacteristic",
+    "CommonProductLineCapability", "ProductLineFeatureCandidate", "DeferredProductLineScope",
+    "ProductLineVariantChoice", "DeferredVariantChoice", "DeferredProductLineVariation",
+}
+PLE_SELECTABLES = ("ProductLineFeatureCandidate", "CommonProductLineCapability", "ProductLineMemberProduct",
+                   "ProductLineVariantChoice", "DeferredVariantChoice", "ProductLineCharacteristic")
+
+
+def test_kernel_holds_no_configuration_selection_under_any_name():
+    """ADR 0006: selection authority is external. The kernel product-line
+    definitions are pinned, and no kernel feature is typed by a selectable
+    product-line class (a selection record under another name)."""
+    active = _active(_text(PRODUCT_LINE))
+    assert set(re.findall(r"\bdef\s+(\w+)", active)) == PRODUCT_LINE_DEFINITIONS
+    # No reference feature at all in the product-line kernel: selections are external.
+    assert not re.search(r"\bref\b", active), "reference feature in the product-line kernel"
+    typed = re.compile(r":\s*(?:[\w:]*::)?(" + "|".join(PLE_SELECTABLES) + r")\b")
+    for path in sorted((ROOT / KERNEL).glob("*.sysml")):
+        active = _active(path.read_text())
+        hit = typed.search(active)
+        assert not hit, (path.name, hit and hit[0])

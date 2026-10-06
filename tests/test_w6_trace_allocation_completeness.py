@@ -29,6 +29,10 @@ MW_F = FEATURES / "middleware/middleware_functional_architecture.sysml"
 MW_L = FEATURES / "middleware/middleware_logical_architecture.sysml"
 MW_P = FEATURES / "middleware/middleware_physical_software_realization.sysml"
 AEBS_P = FEATURES / "aebs/aebs_physical_software_realization.sysml"
+AEBS_F = FEATURES / "aebs/aebs_functional_architecture.sysml"
+AEBS_L = FEATURES / "aebs/aebs_logical_architecture.sysml"
+AEBS_SIM = FEATURES / "aebs/aebs_simulation_deployment.sysml"
+MODEL_ROOTS = (ROOT / "textual-notation-of-model", ROOT / "model-based-product-line-engineering")
 AEBS_NEEDS = FEATURES / "aebs/aebs_needs_requirements.sysml"
 AEBS_YAML = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml"
 
@@ -72,18 +76,45 @@ PAIRS = {
     "LogicalRoleToPhysicalRealization": (LOGICAL, PHYSICAL),
     "FunctionalToSystemResponsibility": (FUNCTION, LOGICAL),
     "LogicalToPhysicalSoftwareCandidate": (LOGICAL, PHYSICAL),
+    # AEBS core slices (pre-existing allocations, now pinned too).
+    "AvailableLogicalToPhysicalSoftwareRealization": (LOGICAL, PHYSICAL),
+    "PartialLogicalToPhysicalSoftwareRealization": (LOGICAL, PHYSICAL),
+    "SimulationLogicalToPhysicalRealization": (LOGICAL, PHYSICAL),
 }
-EXCLUDED_ALLOCATION_DEFS = {"SystemToSoftwareSignalMappingCandidate"}
-# Allocation file -> (files searched for endpoint heads, expected counts by pair).
+EXCLUDED_ALLOCATION_DEFS = {"SystemToSoftwareSignalMappingCandidate", "LogicalToPhysicalItemRealization"}
+# Allocation file -> (files searched for endpoint heads, expected counts by pair,
+# expected excluded-definition counts, end pair of untyped allocations or None).
+# This table must name EVERY model file that contains a native allocation:
+# test_every_model_allocation_file_is_governed derives the file set.
 ALLOCATION_FILES = {
-    VIS_F: ((VIS_F, VIS_N), {(REQUIREMENT, FUNCTION): 10}),
-    VIS_L: ((VIS_L, VIS_F), {(FUNCTION, LOGICAL): 8}),
-    VIS_P: ((VIS_P, VIS_L), {(LOGICAL, PHYSICAL): 9}),
-    MW_L: ((MW_L, MW_F), {(FUNCTION, LOGICAL): 7}),
-    MW_P: ((MW_P, MW_L), {(LOGICAL, PHYSICAL): 6}),
+    VIS_F: ((VIS_F, VIS_N), {(REQUIREMENT, FUNCTION): 10}, {}, None),
+    VIS_L: ((VIS_L, VIS_F), {(FUNCTION, LOGICAL): 8}, {}, None),
+    VIS_P: ((VIS_P, VIS_L), {(LOGICAL, PHYSICAL): 9}, {}, None),
+    MW_L: ((MW_L, MW_F), {(FUNCTION, LOGICAL): 7}, {}, None),
+    MW_P: ((MW_P, MW_L), {(LOGICAL, PHYSICAL): 6}, {"SystemToSoftwareSignalMappingCandidate": 1}, None),
+    AEBS_NEEDS: ((AEBS_NEEDS, AEBS_L, AEBS_F), {(REQUIREMENT, FUNCTION): 7}, {}, (REQUIREMENT, FUNCTION)),
+    AEBS_L: ((AEBS_L, AEBS_F), {(FUNCTION, LOGICAL): 10}, {}, None),
+    AEBS_P: ((AEBS_P, AEBS_L), {(LOGICAL, PHYSICAL): 7}, {}, None),
+    AEBS_SIM: ((AEBS_SIM, AEBS_L), {(LOGICAL, PHYSICAL): 7}, {"LogicalToPhysicalItemRealization": 4}, None),
 }
-LINEAGE_FILES = (VIS_F, VIS_L, VIS_P, VIS_N, MW_F, MW_L, MW_P, AEBS_P,
+LINEAGE_FILES = (VIS_F, VIS_L, VIS_P, VIS_N, MW_F, MW_L, MW_P, AEBS_P, AEBS_F, AEBS_L, AEBS_SIM, AEBS_NEEDS,
                  KERNEL / "de4sdv_method_context.sysml")
+# AEBS core endpoint lineage, pinned exactly. The two composites are a
+# recorded pre-existing deviation (w6-transition-record.md), not a pattern.
+AEBS_CORE_LINEAGE = {
+    AEBS_F: (FUNCTION, {"AcquireVehicleAndTargetState", "AssessForwardCollisionRisk", "RequestDriverWarning",
+                        "EvaluateDriverOverride", "RequestEmergencyBraking", "MonitorAEBSFailureStatus",
+                        "RecordAEBSEvidenceEvent", "VehicleTargetAEBSFunctionalFlow"}),
+    AEBS_L: (LOGICAL, {"StateAcquisitionAndNormalization", "EgoPathPrediction", "TargetProcessing",
+                       "CollisionRiskEvaluation", "InterventionDecisionAndArbitration", "DriverWarningManagement",
+                       "EmergencyInterventionCoordination", "HealthAndDegradationSupervision", "EvidenceRecording",
+                       "VehicleTargetAEBSSystem"}),
+    AEBS_P: (PHYSICAL, {"AutowareAutonomousEmergencyBrakingNode"}),
+    AEBS_SIM: (PHYSICAL, {"DeployedAEBNode", "DiagnosticGraphAggregatorNode",
+                          "CommandModeToOperationModeAvailabilityConverterNode", "MrmHandlerNode",
+                          "EmergencyStopOperatorNode", "LegacyVehicleCommandGateNode"}),
+}
+AEBS_CORE_COMPOSITE_DEVIATIONS = {"VehicleTargetAEBSFunctionalFlow", "VehicleTargetAEBSSystem"}
 
 
 def code_of(path: Path) -> str:
@@ -177,10 +208,23 @@ def resolve(path: str, files) -> str:
     return current
 
 
+def no_strings(code):
+    return re.sub(r'"(?:[^"\\]|\\.)*"', '""', code)
+
+
 def allocations(code):
-    rows = re.findall(r"\ballocation\s+(\w+)\s*:\s*(\w+)\s+allocate\s+(\S+)\s+to\s+([^\s;]+)\s*;", code)
+    """Every native allocation usage as (name, definition or "", source, target).
+    Any ``allocate`` or ``allocation`` usage outside this one form fails."""
+    code = no_strings(code)
+    rows = re.findall(r"\ballocation\s+(\w+)(?:\s*:\s*(\w+))?\s+allocate\s+(\S+)\s+to\s+([^\s;]+)\s*;", code)
     assert len(rows) == len(re.findall(r"\ballocate\b", code)), "unrecognized allocation form"
+    assert len(rows) == len(re.findall(r"\ballocation\b(?!\s+def\b)", code)), "unrecognized allocation usage"
     return rows
+
+
+def model_files():
+    for root in MODEL_ROOTS:
+        yield from sorted(root.rglob("*.sysml"))
 
 
 @pytest.mark.parametrize("path", sorted(GOVERNED, key=str), ids=lambda p: p.stem)
@@ -205,14 +249,19 @@ def test_exact_endpoint_definitions_carry_one_direct_governed_lineage(path):
 
 @pytest.mark.parametrize("path", sorted(ALLOCATION_FILES, key=str), ids=lambda p: p.stem)
 def test_every_native_allocation_grounds_one_governed_end_pair(path):
-    files, expected = ALLOCATION_FILES[path]
+    files, expected, expected_excluded, untyped = ALLOCATION_FILES[path]
     codes = [code_of(f) for f in LINEAGE_FILES]
-    counts = {}
+    counts, excluded = {}, {}
     for name, kind, source, target in allocations(code_of(path)):
         if kind in EXCLUDED_ALLOCATION_DEFS:
+            excluded[kind] = excluded.get(kind, 0) + 1
             continue
-        assert kind in PAIRS, (name, kind, "allocation definition outside the governed profile")
-        pair = PAIRS[kind]
+        if not kind:
+            assert untyped, (name, "untyped allocation outside a file with a governed untyped end pair")
+            pair = untyped
+        else:
+            assert kind in PAIRS, (name, kind, "allocation definition outside the governed profile")
+            pair = PAIRS[kind]
         left, right = resolve(source, files), resolve(target, files)
         for endpoint, base in ((left, pair[0]), (right, pair[1])):
             ancestors = lineage(codes, endpoint)
@@ -220,6 +269,61 @@ def test_every_native_allocation_grounds_one_governed_end_pair(path):
             assert not ({FUNCTION, LOGICAL, PHYSICAL} - {base}) & ancestors, (name, endpoint, "overlapping layers")
         counts[pair] = counts.get(pair, 0) + 1
     assert counts == expected
+    assert excluded == expected_excluded
+
+
+def test_every_model_allocation_file_is_governed():
+    """Derive the allocation file set from every model root; a new native
+    allocation in an unlisted file (or a listed file losing all) fails."""
+    found = set()
+    for path in model_files():
+        code = no_strings(code_of(path))
+        if re.search(r"\ballocate\b|\ballocation\b(?!\s+def\b)", code):
+            found.add(path)
+    assert found == set(ALLOCATION_FILES), sorted(str(p.relative_to(ROOT)) for p in found ^ set(ALLOCATION_FILES))
+
+
+def test_aebs_core_pre_existing_counts_match_the_transition_record():
+    """Pins the AEBS core counts the record states (needs 7 R->F, logical 10
+    F->L, software 7 L->P, simulation 7 L->P plus 4 item realizations)."""
+    totals = {}
+    for path in (AEBS_NEEDS, AEBS_L, AEBS_P, AEBS_SIM):
+        for pair, count in ALLOCATION_FILES[path][1].items():
+            totals[pair] = totals.get(pair, 0) + count
+    assert totals == {(REQUIREMENT, FUNCTION): 7, (FUNCTION, LOGICAL): 10, (LOGICAL, PHYSICAL): 14}
+    witnesses = {}
+    for path, (_, counts, _, _) in ALLOCATION_FILES.items():
+        for pair, count in counts.items():
+            witnesses[pair] = witnesses.get(pair, 0) + count
+    assert witnesses == {(REQUIREMENT, FUNCTION): 17, (FUNCTION, LOGICAL): 25, (LOGICAL, PHYSICAL): 29}
+    record = " ".join(RECORD.read_text(encoding="utf-8").split())
+    for phrase in ("17 requirement-to-function (AEBS needs 7, INC-AEBS-010 10)",
+                   "25 function-to-logical (AEBS 10, INC-AEBS-010 8, middleware 7)",
+                   "29 logical-to-physical (AEBS software 7, AEBS simulation 7, INC-AEBS-010 9, middleware 6)"):
+        assert phrase in record, phrase
+
+
+def test_recorded_composite_deviations_are_never_allocation_endpoints():
+    ends = set()
+    for path, (files, _, _, _) in ALLOCATION_FILES.items():
+        for _, kind, source, target in allocations(code_of(path)):
+            if kind not in EXCLUDED_ALLOCATION_DEFS:
+                ends |= {resolve(source, files), resolve(target, files)}
+    assert len(ends) >= 60, "the scan must resolve the allocation endpoints"
+    assert not ends & AEBS_CORE_COMPOSITE_DEVIATIONS
+
+
+@pytest.mark.parametrize("path", sorted(AEBS_CORE_LINEAGE, key=str), ids=lambda p: p.stem)
+def test_aebs_core_endpoint_lineage_is_pinned_with_named_composite_deviations(path):
+    code = code_of(path)
+    base, names = AEBS_CORE_LINEAGE[path]
+    actual = set(re.findall(rf"\b(?:part|action)\s+def\s+(\w+)\s*:>\s*{base}\b", code))
+    assert actual == names
+    others = {FUNCTION, LOGICAL, PHYSICAL} - {base}
+    assert not any(re.search(rf":>\s*[^{{;]*\b{other}\b", code) for other in others), "second layer meaning"
+    record = " ".join(RECORD.read_text(encoding="utf-8").split())
+    for name in names & AEBS_CORE_COMPOSITE_DEVIATIONS:
+        assert f"`{name}`" in record, (name, "composite lineage must stay a recorded deviation")
 
 
 def test_signal_mapping_allocation_stays_outside_the_allocated_to_pairs():
@@ -273,6 +377,50 @@ def _carriers_code():
     return CARRIERS.read_text(encoding="utf-8")
 
 
+# Exact non-claim wording of each successor definition (topic 1/2/5 boundaries).
+ROLE_NON_CLAIMS = {
+    "allocatedTo": ("never from usage or allocation names",
+                    "Allocation proves no satisfaction, execution, deployment, fulfillment or transitivity",
+                    "it is not a composed requirement-to-architecture realization"),
+    "hasValidationScenario": ("It records planning only: no execution, result, fitness-for-use verdict, "
+                              "completed validation or stakeholder acceptance",),
+    "hasRegulatorySource": ("recorded as requirement-source provenance only",
+                            "Applicability, interpretation, binding requirements or required conditions, "
+                            "fulfillment evidence and authorized compliance assessment remain distinct",
+                            "provenance neither makes an applicable obligation optional nor proves compliance"),
+}
+
+
+def _role_bodies():
+    text = re.sub(r"//[^\n]*", "", _carriers_code())
+    return {m[1]: " ".join(m[2].replace("*", " ").split())
+            for m in re.finditer(r"\bcomment\s+(\w+)VocabularyRole\s+about\s+[\w\s,]+?\s*/\*(.*?)\*/", text, re.S)}
+
+
+def test_successor_vocabulary_roles_keep_their_exact_non_claims():
+    bodies = _role_bodies()
+    assert set(bodies) == set(ROLE_NON_CLAIMS)
+    for predicate, phrases in ROLE_NON_CLAIMS.items():
+        for phrase in phrases:
+            assert phrase in bodies[predicate], (predicate, phrase)
+
+
+def test_carrier_file_declares_exactly_the_contract_carriers_classes_and_records():
+    """No orphan carrier: every connection def is a contract carrier, and the
+    file's definitions are exactly the contract's carriers, endpoint classes
+    and record definitions."""
+    from de4sdv.semantic.relationship_successor_contract import generate_contract
+    contract = generate_contract(ROOT)
+    code = no_strings(code_of(CARRIERS))
+    carriers = {row["carrier"] for rows in contract["relations"].values() for row in rows}
+    assert set(re.findall(r"\bconnection\s+def\s+(\w+)", code)) == carriers
+    classes = {entry["declaration"].split()[-1] for entry in contract["classes"].values()
+               if entry["file"].endswith(CARRIERS.name)}
+    records = {"SuccessorRelationRecord", "SuccessorRetirementRecord", "SuccessorVersionRecord"}
+    assert set(re.findall(r"\bdef\s+(\w+)", code)) == carriers | classes | records
+    assert not re.search(r"\b(?:connection|allocation|interface|flow)\s+(?!def\b)\w+", code), "carrier usage in kernel"
+
+
 def test_each_successor_predicate_owns_one_vocabulary_role_definition():
     from de4sdv.semantic.relationship_successor_contract import generate_contract
     contract = generate_contract(ROOT)
@@ -299,7 +447,19 @@ def test_transition_record_accounts_for_every_w6_identity_against_the_plan():
         if len(cells) == 6 and cells[0].startswith("`"):
             rows[re.match(r"`(\w+)`", cells[0])[1]] = cells
     identities = {entry["identity"] for entry in plan["entries"]}
-    assert set(rows) == identities | {"allocatedTo", "validatesFitnessForUse"}
+    assert set(rows) == identities | {"allocatedTo", "validatesFitnessForUse", "hasEvidenceStatus", "supportedByEvidence"}
+    # The two W6 evidence predicates point at their A1 successors and model homes.
+    for identity, successors, role in (
+            ("hasEvidenceStatus", ("`VVStatus`", "`ScopedVVActivityRecord`"), "`hasEvidenceStatusVocabularyRole`"),
+            ("supportedByEvidence", ("`EvidenceSupportCitation`", "`ScopedEvidenceAdequacyAssessment`"),
+             "`supportedByEvidenceVocabularyRole`")):
+        cells = rows[identity]
+        assert "redesign" in cells[1], identity
+        assert all(name in cells[2] for name in successors), identity
+        assert role in cells[3] and "de4sdv_scoped_assurance.sysml" in cells[3], identity
+        assert cells[5].strip(), identity
+        assured = (KERNEL / "de4sdv_scoped_assurance.sysml").read_text(encoding="utf-8")
+        assert re.search(rf"\bcomment\s+{role.strip('`')}\s+about\b", assured), identity
     for entry in plan["entries"]:
         cells = rows[entry["identity"]]
         assert entry["disposition"].replace("-", " ").split()[0] in cells[1], entry["identity"]

@@ -458,6 +458,62 @@ def test_kernel_evidence_contract_specializations_are_exactly_the_claimed_popula
         assert [p.relative_to(ROOT).as_posix() for p in owners] == [path], declaration
 
 
+# Usages typed by each closure member, per owning slice. The pin covers the
+# usage population, not only the definition closure (R2/K5).
+AEBS_EVIDENCE_CONTRACT_USAGES = {
+    "OverrideEvidenceContract": 3, "DegradedInputEvidenceContract": 4, "BicycleEvidenceContract": 3,
+    "NominalEvidenceContractRequirement": 5, "RegulatoryCriterionEvidenceContract": 6,
+    "NonActivationEvidenceContract": 3, "PedestrianEvidenceContract": 3, "PartialInterventionEvidenceContract": 3,
+}
+
+
+def test_evidence_contract_usage_population_is_exactly_the_slice_usages():
+    """Every reference to EvidenceContract or a closure member, in every model
+    root, is one of: its definition header, the kernel specialization, the
+    direct kernel import, the discriminator comment, or a requirement usage
+    typed by a closure member inside that member's own slice. A usage typed
+    directly by EvidenceContract, a usage elsewhere, or a feature subsetting
+    or redefining a contract usage fails."""
+    closure = {"EvidenceContract"} | set(AEBS_EVIDENCE_CONTRACTS.values())
+    home = {name: path for path, name in AEBS_EVIDENCE_CONTRACTS.items()}
+    token = re.compile(r"(?<![\w'])(?:[\w]+::)*(" + "|".join(sorted(closure)) + r")\b")
+    usage = re.compile(r"\brequirement\s+(?:<'[^']*'>\s*)?(\w+)\s*:\s*(\w+)\s*\{")
+    counts, usage_names = {}, set()
+    for root in ("textual-notation-of-model", "model-based-product-line-engineering"):
+        for path in sorted((ROOT / root).rglob("*.sysml")):
+            rel = path.relative_to(ROOT).as_posix()
+            source = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
+            allowed = set()
+            for match in usage.finditer(source):
+                if match[2] in closure:
+                    assert match[2] != "EvidenceContract", (rel, match[1], "usage typed directly by the kernel type")
+                    assert home[match[2]] == rel, (rel, match[1], "closure usage outside its slice")
+                    counts[match[2]] = counts.get(match[2], 0) + 1
+                    usage_names.add(match[1])
+                    allowed.add(match.start(2))
+            for match in re.finditer(r"\brequirement\s+def\s+(\w+)(?:\s*:>\s*([\w:]+))?", source):
+                if match[1] in closure:
+                    allowed.add(match.start(1))
+                    if match[2]:
+                        allowed.add(match.start(2) + len(match[2]) - len(match[2].split("::")[-1]))
+            for match in re.finditer(r"\bprivate\s+import\s+DE4SDV_MethodContext::(EvidenceContract)\s*;", source):
+                allowed.add(match.start(1))
+            if rel == CONTEXT:
+                for match in re.finditer(r"\bcomment\s+hasRelevantEvidenceContractVocabularyRole\s+about\s+(EvidenceContract)\b", source):
+                    allowed.add(match.start(1))
+            for match in token.finditer(source):
+                assert match.start(1) in allowed, (rel, source[max(0, match.start() - 60):match.end() + 10])
+    assert counts == AEBS_EVIDENCE_CONTRACT_USAGES, counts
+    assert len(usage_names) == 28 and sum(counts.values()) == 30
+    # No feature anywhere subsets or redefines a contract usage.
+    reuse = re.compile(r"(?::>>?|\bsubsets\b|\bredefines\b|\breferences\b|::>)\s*(?:[\w]+(?:::|\.))*(" +
+                       "|".join(sorted(usage_names)) + r")\b")
+    for root in ("textual-notation-of-model", "model-based-product-line-engineering"):
+        for path in sorted((ROOT / root).rglob("*.sysml")):
+            source = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
+            assert not reuse.search(source), (path.name, reuse.search(source)[0])
+
+
 def test_has_relevant_evidence_contract_discriminator_is_model_resident_vocabulary():
     """hasRelevantEvidenceContract is discriminated by EvidenceContract type
     lineage, stated in the kernel as vocabulary; the runtime mapping is not
