@@ -15,6 +15,8 @@
 | Feature model | A model of common and variable product capabilities. |
 | Feature | A distinguishing characteristic that expresses variability among member products in a product line; in DE4SDV a characteristic stays a feature candidate until member-product variability is shown. |
 | Common capability | A capability present in all relevant member products; never modeled as a feature unless it distinguishes member products. |
+| Acceptance criterion | A test-verdict criterion that a verification objective is judged against; kernel `requirement def AcceptanceCriterion`. Not an acceptance decision: accepting a result is a separate maintainer record. See [ADR 0020](../architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md). |
+| Evidence contract | A requirement that defines the bounded observations, acceptance boundary and retained-evidence obligations for a verification case; kernel `requirement def EvidenceContract`. Planning vocabulary, not proof that a requirement is verified. See [ADR 0020](../architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md). |
 | Feature configuration | A selected set of features and variation choices defining a product variant; in DE4SDV recorded as a Bill-of-Features under `model-based-product-line-engineering/feature-configurations/`. |
 | Shared asset | Reusable engineering artifact used across product variants. |
 | Product model | Variant-specific system model assembled from shared assets and configuration decisions. |

@@ -12,6 +12,9 @@ retire the authority, rewire consumers, admit predicates or close O4.
 
 ## Owner decisions (2026-10-05)
 
+The decisions and their consequences are recorded in
+[ADR 0020](../../architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md).
+
 - **D1:** `DE4SDV_MethodContext` owns named documentation for
   `ArchitectureElement`, `Function`, `LogicalElement`, `PhysicalElement` and
   the unchanged `Interface` meaning. Comments name their native SysML kinds;
@@ -23,10 +26,13 @@ retire the authority, rewire consumers, admit predicates or close O4.
   with `ref excludedElement : Base::Anything` and a required, non-empty
   rationale. The record is kernel-internal and reasoned in the sync exclusions.
   Existing scope memberships and the Python exclusion dictionary stay intact.
-- **D4:** kernel `requirement def EvidenceContract :> RequirementCandidate`;
-  middleware and AEBS override evidence requirements specialize it.
-  `hasRelevantEvidenceContract` can be discriminated by type and specialization
-  closure, not names. Its current dependency mapping is unchanged.
+- **D4:** kernel `requirement def EvidenceContract :> RequirementCandidate`,
+  specialized today only by `OverrideEvidenceContract` (AEBS) and
+  `MiddlewareAcceptanceCriterion`. The other seven AEBS evidence-contract
+  definitions do not specialize it yet, so its specialization closure is not
+  the evidence-contract population and does not discriminate
+  `hasRelevantEvidenceContract`. Its current dependency mapping is unchanged.
+  A test pins the population.
 - **7:** licensed Syside (PR #328, run 37411981652) rejected the standalone
   KerML `disjoining` inside a SysML package as a syntax error. Per the
   decision's fallback, the axiom is a symmetric **checked constraint**:
@@ -45,15 +51,29 @@ location inventory, not a second meaning authority: it contains paths,
 declarations and owned Documentation locators, never copies of definition
 text. The model owns normalized-exact text for all 76 authored class/predicate
 definitions. Exact named docs supplement existing explanatory docs without
-changing their reviewed meaning. Native/library, historical and external
+changing their reviewed meaning.
+
+Where the text lives:
+
+- 51 definitions own it directly: 40 as an anonymous `doc`, 11 as
+  `private doc ontologyDefinition`. The 11 are private so specializations do
+  not inherit the text. Where a definition has both, the `ontologyDefinition`
+  text is the authored definition and replaces the YAML text at deletion; the
+  anonymous doc stays as explanatory documentation. O1's text-parity observer
+  reads anonymous docs only, which is why those rows still show `differs`.
+- 25 concepts without their own definition use a package-owned
+  `doc <Term>OntologyDefinition`. The name is the only link to the concept; a
+  test pins every name to its inventory row. Native/library, historical and external
 concepts use package-owned documentation, not copied library types, resurrected
 trace shells, new assurance taxonomies or PLE configurator authority.
 
 The requested W2/W4 target rows are listed below. **33/40 have exact definition
 text. The seven relationship rows have no authored definition field: five use
 their existing reviewed, typed vocabulary carriers; `hasStakeholder` and
-`hasAcceptanceCriterion` have explicit vocabulary-role comments on the relevant
-kernel definitions.** These are definition-home observations,
+`hasAcceptanceCriterion` have explicit vocabulary-role comments
+(`hasStakeholderVocabularyRole`, `hasAcceptanceCriterionVocabularyRole`) next
+to the relevant kernel definitions. The comments do not reuse the predicate
+names, because named comments are re-exported by wildcard imports.** These are definition-home observations,
 not runtime-admission or row-lifecycle closure. The generated execution register
 is untouched: it requires revision-bound regeneration and still records its
 pre-package blockers. Projection/API admission, remaining cardinality decisions,

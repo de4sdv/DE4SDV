@@ -112,7 +112,7 @@ package DE4SDV_MethodContext {
    * verification, evidence, or acceptance claim. */
 
   connection def DerivesFromNeed {
-    doc ontologyDefinition /* DE4SDV application connection definition for design-input derivation: the
+    private doc ontologyDefinition /* DE4SDV application connection definition for design-input derivation: the
      * derivedRequirement originates from the stakeholder need. Provenance/traceability
      * semantics only - neither satisfaction nor logical implication between the connected
      * usages is claimed. The typed connection ends (need : StakeholderNeedCandidate,
@@ -139,7 +139,7 @@ package DE4SDV_MethodContext {
    * importing the adapter directly. */
   public import VVStatus;
 
-  comment hasStakeholder about EngineeringIncrement, Stakeholder /* Vocabulary
+  comment hasStakeholderVocabularyRole about EngineeringIncrement, Stakeholder /* Vocabulary
    * role: EngineeringIncrement -> Stakeholder. Existing native stakeholder
    * membership is preserved; this comment introduces no additional trace
    * slot, executable mapping, participation requirement or acceptance. */
@@ -209,7 +209,7 @@ package DE4SDV_MethodContext {
   }
 
   requirement def StakeholderNeedCandidate :> RequirementsManagementAttributeBase {
-    doc ontologyDefinition /* Stakeholder-expressed problem-space intent, before conversion into design input
+    private doc ontologyDefinition /* Stakeholder-expressed problem-space intent, before conversion into design input
      * requirements. The kernel models needs as requirement usages of
      * StakeholderNeedCandidate specializations carrying the ADR 0009 attribute set. */
     doc /* Stakeholder-expressed problem-space intent, before conversion into design-input requirements. Inherits the NRM Chapter 15 attribute set adopted via ADR 0009. */
@@ -239,7 +239,7 @@ package DE4SDV_MethodContext {
   }
 
   requirement def RequirementCandidate :> SYSMODRequirementBase, RequirementsManagementAttributeBase {
-    doc ontologyDefinition /* A verifiable design input obligation or constraint derived from needs, standards, or
+    private doc ontologyDefinition /* A verifiable design input obligation or constraint derived from needs, standards, or
      * architecture decisions. The kernel models requirement candidates on the SYSMOD
      * requirement seam with ADR 0009 attributes. */
     doc /* A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions.
@@ -269,7 +269,7 @@ package DE4SDV_MethodContext {
     doc /* Candidate requirement for traceability and V&V planning constraints. */
   }
 
-  comment hasAcceptanceCriterion about AcceptanceCriterion /* The criterion
+  comment hasAcceptanceCriterionVocabularyRole about AcceptanceCriterion /* The criterion
    * role in a native verification objective is distinguished by
    * AcceptanceCriterion typing/specialization, not a criterion name. This
    * is a test-verdict criterion, not acceptance under
@@ -288,9 +288,12 @@ package DE4SDV_MethodContext {
          * boundary, and retained-evidence obligations for a verification case. An
          * evidence contract is planning vocabulary, not proof that a product
          * requirement is verified. */
-    /* hasRelevantEvidenceContract can be discriminated by this type and its
-     * specialization closure, not by an evidenceContract name prefix. This
-     * package does not change the existing runtime dependency mapping. */
+    /* Specialized today only by OverrideEvidenceContract (AEBS) and
+     * MiddlewareAcceptanceCriterion. The other AEBS evidence-contract
+     * definitions do not specialize it yet, so this type's specialization
+     * closure is not the evidence-contract population and must not be used
+     * to discriminate hasRelevantEvidenceContract. The existing runtime
+     * dependency mapping is unchanged. */
   }
 
   requirement def EvidenceContractTraceabilityRequirementCandidate :> RequirementCandidate {
@@ -298,13 +301,13 @@ package DE4SDV_MethodContext {
   }
 
   requirement def RegulatoryConstraintCandidate :> RequirementsManagementAttributeBase {
-    doc ontologyDefinition /* A constraint or reference derived from a standard, regulation, or homologation-
+    private doc ontologyDefinition /* A constraint or reference derived from a standard, regulation, or homologation-
      * relevant source, with controlled source identity and no compliance claim. */
     doc /* A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim. Grounds the ontology RegulatoryConstraint class and R003 derivation targets. */
   }
 
   part def ArchitectureDecisionRecord {
-    doc ontologyDefinition /* A reviewed architecture or method decision recorded as an ADR in Git that can serve
+    private doc ontologyDefinition /* A reviewed architecture or method decision recorded as an ADR in Git that can serve
      * as the semantic origin of a design-input requirement. */
     doc /* A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement. Grounds the ontology ArchitectureDecisionRecord class and R003 derivation targets. */
   }

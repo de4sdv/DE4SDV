@@ -66,7 +66,7 @@ package DE4SDV_ProductLine {
   }
 
   part def CommonProductLineCapability :> ProductLineCharacteristic {
-    doc ontologyDefinition /* A capability or characteristic present in all relevant member products; not a feature
+    private doc ontologyDefinition /* A capability or characteristic present in all relevant member products; not a feature
      * unless it distinguishes variants. */
     doc /* Capability required across member products; not a feature unless it distinguishes member products. */
     /* Feature/common-capability disjointness (owner decision 7, checked-constraint
@@ -76,7 +76,7 @@ package DE4SDV_ProductLine {
   }
 
   part def ProductLineFeatureCandidate :> ProductLineCharacteristic {
-    doc ontologyDefinition /* A distinguishing characteristic expressing variability among member products. In the
+    private doc ontologyDefinition /* A distinguishing characteristic expressing variability among member products. In the
      * kernel a feature is a candidate until member-product variability is shown; it must
      * not be accepted as a feature before that. */
     doc /* Candidate distinguishing characteristic; must not be accepted as a feature until member-product variability is shown. */

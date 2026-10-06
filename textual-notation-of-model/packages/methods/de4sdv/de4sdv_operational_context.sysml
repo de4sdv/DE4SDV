@@ -38,7 +38,7 @@ package DE4SDV_OperationalContext {
   }
 
   part def DE4SDVEvidenceBaseline :> OperationalEntity {
-    doc ontologyDefinition /* A reviewed and controlled state of model, evidence, configuration, or publication
+    private doc ontologyDefinition /* A reviewed and controlled state of model, evidence, configuration, or publication
      * artifacts. */
     doc /* A reviewed and controlled state of model, evidence, configuration, or publication artifacts, referenced without implying accepted evidence. */
   }

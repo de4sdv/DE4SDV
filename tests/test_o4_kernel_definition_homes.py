@@ -258,13 +258,33 @@ def _direct_documentation(block):
     return docs
 
 
+def _braced_block(text, start):
+    """Return text[start:] up to the brace that closes text[start] == "{"."""
+    assert text[start] == "{"
+    depth = 0
+    for token in re.finditer(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"|[{}]', text[start:], re.S):
+        if token[0] == "{":
+            depth += 1
+        elif token[0] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:start + token.end()]
+    raise AssertionError("unbalanced braces")
+
+
+def test_braced_block_stops_at_the_matching_brace():
+    text = 'package P { part p { doc /* } */ } } doc late /* after */'
+    assert _braced_block(text, text.index("{")) == 'package P { part p { doc /* } */ } }'[10:]
+    assert _direct_documentation(_braced_block(text, text.index("{"))) == []
+
+
 def _home_docs(row):
     text = (ROOT / row["file"]).read_text()
     declaration = row["declaration"]
     if declaration.startswith("package "):
         package = re.search(r"\b" + re.escape(declaration) + r"\s*\{", text)
         assert package, declaration
-        block = text[package.end() - 1:]
+        block = _braced_block(text, package.end() - 1)
     else:
         block, bodyless = declaration_block(text, declaration)
         assert block and not bodyless, declaration
@@ -325,7 +345,7 @@ def test_definition_home_inventory_covers_all_requested_register_targets():
             }
             assert (row["file"], row["declaration"]) == existing_homes[row["identity"]]
             if row["identity"] == "hasStakeholder":
-                assert "comment hasStakeholder about EngineeringIncrement, Stakeholder" in (ROOT / CONTEXT).read_text()
+                assert "comment hasStakeholderVocabularyRole about EngineeringIncrement, Stakeholder" in (ROOT / CONTEXT).read_text()
             elif row["identity"] != "hasAcceptanceCriterion":
                 assert _home_docs(row), row["identity"]
 
@@ -334,9 +354,63 @@ def test_no_documentation_name_shadows_a_model_or_library_name():
     """Licensed Syside run 37411981652: ``doc VerificationMethod`` shadowed the
     library metadata for every importer. Kernel Documentation names must be
     unique ``ontologyDefinition`` or ``<Term>OntologyDefinition`` forms."""
+    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    vocabulary = set(ontology["classes"]) | set(ontology["relationships"])
+    declared = set()
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
-        for name in re.findall(r"\bdoc\s+(\w+)\s*/\*", path.read_text()):
+        active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
+        declared |= set(re.findall(r"\bdef\s+(\w+)", active))
+    named = 0
+    for path in sorted((ROOT / KERNEL).glob("*.sysml")):
+        text = path.read_text()
+        for name in re.findall(r"\bdoc\s+(\w+)\s*/\*", text):
+            named += 1
             assert name == "ontologyDefinition" or name.endswith("OntologyDefinition"), (path.name, name)
+        # Named comments are package members too (re-exported by wildcard
+        # imports), so they must not reuse a predicate, class or definition name.
+        for name in re.findall(r"\bcomment\s+(?!about\b)(\w+)\s+about\b", text):
+            named += 1
+            assert name.endswith("VocabularyRole"), (path.name, name)
+            assert name not in vocabulary | declared, (path.name, name)
+    assert named >= 38, "the scan must see the kernel's named docs and comments"
+
+
+def test_definition_owned_ontology_docs_are_private_and_package_homes_are_named():
+    """Definition-owned exact docs are private so specializations do not
+    inherit them; package-owned homes link to their concept only by the
+    ``<Term>OntologyDefinition`` name, which must match the inventory row."""
+    import json
+    rows = json.loads((ROOT / "docs/method-conformance/o4/kernel-definition-homes.json").read_text())["definitions"]
+    package_rows = [row for row in rows if row["declaration"].startswith("package ")]
+    definition_rows = [row for row in rows if not row["declaration"].startswith("package ")]
+    assert (len(package_rows), len(definition_rows)) == (25, 51)
+    for row in package_rows:
+        assert row["documentation_name"] == row["identity"] + "OntologyDefinition", row["identity"]
+    named_definition_rows = [row for row in definition_rows if row["documentation_name"]]
+    assert len(named_definition_rows) == 11
+    assert {row["documentation_name"] for row in named_definition_rows} == {"ontologyDefinition"}
+    public = []
+    total = 0
+    for path in sorted((ROOT / KERNEL).glob("*.sysml")):
+        for match in re.finditer(r"(?m)^[ \t]*((?:\w+\s+)*)doc\s+ontologyDefinition\b", path.read_text()):
+            total += 1
+            if "private" not in match[1].split():
+                public.append(path.name)
+    assert total == 11 and public == [], public
+
+
+def test_kernel_evidence_contract_specializations_are_exactly_the_claimed_population():
+    """D4 is narrowed: the kernel type is specialized by the AEBS override
+    contract and the middleware acceptance criterion only. Any other
+    specialization must update the D4 wording, ADR 0020 and this pin."""
+    found = set()
+    for root in ("textual-notation-of-model", "model-based-product-line-engineering/product-models"):
+        for path in sorted((ROOT / root).rglob("*.sysml")):
+            source = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
+            for name, supers in re.findall(r"requirement\s+def\s+(\w+)\s*:>\s*([^;{]+)", source):
+                if "EvidenceContract" in {s.strip().split("::")[-1] for s in supers.split(",")}:
+                    found.add(name)
+    assert found == {"OverrideEvidenceContract", "MiddlewareAcceptanceCriterion"}, found
 
 
 def test_named_docs_do_not_borrow_nested_or_comment_only_homes():

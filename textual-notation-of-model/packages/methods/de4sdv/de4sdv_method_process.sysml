@@ -108,7 +108,7 @@ package DE4SDV_MethodProcess {
   }
 
   item def LogicalToSoftwareSignalMappingRecord {
-    doc ontologyDefinition /* A control record for a logical or semantic information item crossing into a software,
+    private doc ontologyDefinition /* A control record for a logical or semantic information item crossing into a software,
      * service, topic, API, or physical boundary; preserves trace and review obligations
      * without claiming runtime interoperability. */
     doc /*
@@ -135,7 +135,7 @@ package DE4SDV_MethodProcess {
   }
 
   allocation def SystemToSoftwareSignalMappingCandidate {
-    doc ontologyDefinition /* A reusable non-claiming allocation relationship from a logical/function signal
+    private doc ontologyDefinition /* A reusable non-claiming allocation relationship from a logical/function signal
      * responsibility to a concrete software or adapter signal endpoint; the allocation
      * alone never proves field identity or runtime interoperability. */
     doc /*
