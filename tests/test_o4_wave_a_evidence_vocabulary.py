@@ -24,8 +24,9 @@ ROLES = {
     "EvidenceArtifactVocabularyRole": (
         ASSURANCE, "EvidenceArtifactOntologyDefinition",
         ("content is external", "no authority", "de4sdv.evidence-reference/v1", "No artifact bytes")),
+    # Annotates the EvidenceArtifact home, not the whole package (PR #328 escape class).
     "hasEvidenceVocabularyRole": (
-        ASSURANCE, None,
+        ASSURANCE, "EvidenceArtifactOntologyDefinition",
         ("artifact association only", "content external, no authority", "no traversal",
          "not supportedByEvidence")),
     "supportedByEvidenceVocabularyRole": (
@@ -59,21 +60,40 @@ def _role(path, name):
 @pytest.mark.parametrize("name", sorted(ROLES))
 def test_evidence_vocabulary_role_is_unique_and_states_its_boundary(name):
     path, about, phrases = ROLES[name]
+    assert about, (name, "every role must name its annotated element")
     homes = [p for p in sorted((ROOT / KERNEL).glob("*.sysml")) if re.search(r"\bcomment\s+" + name + r"\b", p.read_text())]
     assert [p.relative_to(ROOT).as_posix() for p in homes] == [path], name
     found = _role(path, name)
     assert len(found) == 1, name
     target, body = found[0]
-    assert normalize_text(target or "") == normalize_text(about or ""), (name, target)
+    assert target and normalize_text(target) == normalize_text(about), (name, target)
     body = normalize_text(body.replace("*", " "))
     for phrase in phrases:
         assert normalize_text(phrase) in body, (name, phrase)
 
 
+def _direct_body(text, header):
+    """Direct members of the one ``header {`` block: nested bodies are blanked."""
+    starts = [m.end() - 1 for m in re.finditer(header + r"\s*\{", text)]
+    assert len(starts) == 1, header
+    out, depth = [], 0
+    for char in text[starts[0]:]:
+        if char == "}":
+            depth -= 1
+            if depth == 0:
+                return "".join(out)
+        out.append(char if depth <= 1 else " ")
+        if char == "{":
+            depth += 1
+    raise AssertionError("unclosed block")
+
+
 def test_supported_by_evidence_adequacy_reuses_typed_citations():
-    text = re.sub(r"/\*.*?\*/", " ", (ROOT / ASSURANCE).read_text(), flags=re.S)
-    block = re.search(r"item\s+def\s+ScopedEvidenceAdequacyAssessment\s*\{(.*?)\n  \}", text, re.S)
-    assert block and re.search(r"\bref\s+item\s+citations\s*:\s*EvidenceSupportCitation\[\*\]\s*;", block[1])
+    text = re.sub(r"/\*.*?\*/|//[^\n]*", " ", (ROOT / ASSURANCE).read_text(), flags=re.S)
+    direct = _direct_body(text, r"\bitem\s+def\s+ScopedEvidenceAdequacyAssessment\b")
+    # Directly owned by the assessment, exactly once; never nested or relocated.
+    assert len(re.findall(r"\bref\s+item\s+citations\s*:\s*EvidenceSupportCitation\[\*\]\s*;", direct)) == 1
+    assert len(re.findall(r"\bcitations\b", text)) == 1, "citations must have exactly one owner"
 
 
 def test_status_successor_adds_no_universal_status_enum_and_keeps_legacy_name():
@@ -84,6 +104,11 @@ def test_status_successor_adds_no_universal_status_enum_and_keeps_legacy_name():
         enums |= set(re.findall(r"\benum\s+def\s+(\w+)", active))
     assert enums == {"MethodPhase", "SignalMappingDisposition", "IncrementSize", "EvaluationSourceKind",
                      "TraceCompletionClaim", "PriorityKind", "StakeholderCategoryKind"}, enums
+    # No status vocabulary under another definition kind or name either.
+    for path in sorted((ROOT / KERNEL).glob("*.sysml")):
+        active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
+        assert not re.search(r"\bdef\s+\w*(?:Status|Verdict)\w*", active), path.name
+        assert not re.search(r"\battribute\s+def\b", active), (path.name, "attribute def outside the pinned kernel")
     active = re.sub(r"/\*.*?\*/", " ", (ROOT / ASSURANCE).read_text(), flags=re.S)
     assert re.search(r"attribute\s+status\s*:\s*VVStatus\s*;", active)
     ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())

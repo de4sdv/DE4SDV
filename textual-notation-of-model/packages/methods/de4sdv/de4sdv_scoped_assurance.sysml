@@ -42,7 +42,7 @@ package DE4SDV_ScopedAssurance {
    * evidenceRef. No artifact bytes, status, maturity, verdict or acceptance are
    * mirrored, and no API element identity is claimed for an artifact. */
 
-  comment hasEvidenceVocabularyRole /* External boundary for hasEvidence
+  comment hasEvidenceVocabularyRole about EvidenceArtifactOntologyDefinition /* External boundary for hasEvidence
    * (VerificationCase to EvidenceArtifact): artifact association only, carried
    * by the case's typed de4sdv.evidence-reference/v1 record; content external, no
    * authority. The association exposes no verdict, pass, approval or acceptance
