@@ -286,6 +286,12 @@ entries:
     markers:
     - kernel_contract_symbol
     retirement_status: not-applicable
+  docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md:
+    role: documentation
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
   docs/method-conformance/conformance-baseline.md:
     role: documentation
     markers:
