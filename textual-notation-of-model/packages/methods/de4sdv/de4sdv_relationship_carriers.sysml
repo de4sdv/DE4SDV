@@ -58,6 +58,34 @@ package DE4SDV_RelationshipSuccessor {
     doc /* Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint. */
   }
 
+  comment allocatedToVocabularyRole about RequirementFunctionAssignment, FunctionLogicalAssignment, LogicalPhysicalAssignment /* Successor
+   * definition: one canonical allocatedTo predicate. A native AllocationUsage
+   * assigns responsibility from its source usage to its target usage for
+   * exactly one governed end pair: requirement to function, function to
+   * logical element, or logical element to physical element. Endpoint
+   * classes come from the ontology kernel mappings of the endpoint lineage,
+   * never from usage or allocation names. Allocation proves no satisfaction,
+   * execution, deployment, fulfillment or transitivity; it is not a
+   * composed requirement-to-architecture realization. The superseded names
+   * are realizedBy and deployedTo, and the former Function-to-LogicalElement
+   * signature is the second end pair of this version. */
+
+  comment hasValidationScenarioVocabularyRole about ValidationPlanningAssociation /* Successor
+   * definition: a stakeholder need has a planned validation scenario. One
+   * typed ValidationPlanningAssociation records the planning fact;
+   * validationScenarioFor is inverse navigation over the same fact. It
+   * records planning only: no execution, result, fitness-for-use verdict,
+   * completed validation or stakeholder acceptance. Supersedes validatedBy
+   * and merges validatesFitnessForUse. */
+
+  comment hasRegulatorySourceVocabularyRole about RegulatorySourceAssociation /* Successor
+   * definition: a requirement has a controlled regulatory source, recorded
+   * as requirement-source provenance only. Applicability, interpretation,
+   * binding requirements or required conditions, fulfillment evidence and
+   * authorized compliance assessment remain distinct; provenance neither
+   * makes an applicable obligation optional nor proves compliance.
+   * Supersedes constrainedBy. */
+
   part def SuccessorRelationRecord {
     attribute predicate : String;
     attribute carrier : String;

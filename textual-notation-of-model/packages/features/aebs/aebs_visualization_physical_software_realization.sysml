@@ -29,6 +29,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
   private import DE4SDV_AEBSVisualizationLogicalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
+  private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;
@@ -46,7 +47,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
      */
   }
 
-  part def De4sdv009bCoordinatorExecution {
+  part def De4sdv009bCoordinatorExecution :> PhysicalAllocationElement {
     doc /*
      * The existing 009B coordinator run unchanged in its bench. Selected as
      * the DE4SDV-originated source of warning request, braking request, and
@@ -57,7 +58,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     port lifecycleStateOut;
   }
 
-  part def Ros2VisualizationSourceAdapter {
+  part def Ros2VisualizationSourceAdapter :> PhysicalAllocationElement {
     doc /*
      * Python ROS 2 adapter node with subscriptions only. Assembles the
      * versioned visualization frame and enforces per-field provenance.
@@ -72,7 +73,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     port frameOut : VisualizationFrameOutput;
   }
 
-  part def BoundedLengthDelimitedTransport {
+  part def BoundedLengthDelimitedTransport :> PhysicalAllocationElement {
     doc /*
      * Bounded length-delimited frame stream on a NEW allocated port. The
      * historical INC-MW-010 transport port is not reused and carries no
@@ -91,7 +92,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
      */
   }
 
-  part def SdvGatewayIngressService {
+  part def SdvGatewayIngressService :> PhysicalAllocationElement {
     doc /*
      * Native ingress service in the IVI guest using libsdvgatewayclient:
      * validates incoming frames and publishes via the SDV Gateway Data
@@ -101,7 +102,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     port frameOut : VisualizationFrameOutput;
   }
 
-  part def SdvGatewayDataTunnelService {
+  part def SdvGatewayDataTunnelService :> PhysicalAllocationElement {
     doc /*
      * The supported AAOS SDV Gateway Data Tunnel publication/subscription
      * path between ingress service and application. No vendored or modified
@@ -111,7 +112,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     port subscriptionOut : VisualizationSubscriptionInput;
   }
 
-  part def JavaCenterDisplayApplication {
+  part def JavaCenterDisplayApplication :> PhysicalAllocationElement {
     doc /*
      * Java privileged/system AAOS application subscribing via the documented
      * SDV Gateway Java client and rendering the AEBS threat/intervention
@@ -122,7 +123,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     port renderedOut : RenderedStateOutput;
   }
 
-  part def VisualizationEvidenceRecorder {
+  part def VisualizationEvidenceRecorder :> PhysicalAllocationElement {
     port renderedIn : RenderedStateOutput;
     doc /* Deterministic campaign recorder and independent replay validator host. */
   }
