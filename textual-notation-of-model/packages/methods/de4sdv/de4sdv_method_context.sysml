@@ -54,6 +54,23 @@ package DE4SDV_MethodContext {
   comment about VerificationMethodOntologyDefinition /* ODE4HERA requirements-management verificationMethod and standard VerificationMethodKind
    * remain the accepted external/library authority; no library copy or new method-kind
    * vocabulary. */
+  comment about VerificationMethodOntologyDefinition /* Grounding record (O4 W3, native library adoption).
+   * Two distinct carriers, never merged: (1) metadata — the Systems Library
+   * VerificationCases package declares metadata def VerificationMethod with
+   * attribute kind : VerificationMethodKind[1..*] (inspect, analyze, demo, test);
+   * models annotate verification-case steps with it, for example
+   * @VerificationMethod{ kind = test; }; (2) attribute mapping — the ODE4HERA
+   * requirements-management attribute verificationMethod set on requirement usages
+   * records the planned method for a requirement. The metadata annotates how a
+   * verification case checks; the attribute records requirement planning data. Neither
+   * is a verification result, evidence status or acceptance. No library type is copied. */
+  comment usesVerificationMethodVocabularyRole about VerificationMethodOntologyDefinition /* Vocabulary
+   * role of the reviewed relationship usesVerificationMethod: domain VerificationCase,
+   * range VerificationMethod. Native grounding: the normative SysML VerificationCases
+   * library, where the VerificationMethod metadata annotating a verification case (or
+   * its steps) carries the method kind. This comment records the model-resident home
+   * only: no DE4SDV relationship definition, no sysml_mapping, no runtime traversal and
+   * no change to the frozen VerificationCase or verifiedBy semantics. */
 
 
   doc VerificationCaseOntologyDefinition /* A planned or executed check that evaluates whether a requirement or model claim is

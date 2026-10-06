@@ -125,6 +125,47 @@ consumer retirement and whole-row closure are separate obligations.
 | `recordsAssumption` | W4 | NEW_APPLICATION_SEMANTICS | `de4sdv_method_vocabulary_carriers.sysml` / `connection def RecordsAssumption` |
 | `recordsGap` | W4 | NEW_APPLICATION_SEMANTICS | `de4sdv_method_vocabulary_carriers.sysml` / `connection def RecordsGap` |
 
+## Wave A vocabulary roles, grounding records and rule homes (2026-10-06)
+
+**Draft — not yet validated by licensed Syside.** These additions are
+documentation and rule declarations only. They add no kernel declaration, no
+`sysml_mapping`, no runtime traversal and no consumer wiring.
+
+- **Relationships with no authored definition** get a named
+  `<predicate>VocabularyRole` comment that states the reviewed domain and
+  range and the claim boundary. It does not add a meaning:
+  `specifiesFeature`, `specifiesCommonCapability` and `variesAt` (in
+  `de4sdv_product_line.sysml`), and `usesVerificationMethod` (in
+  `de4sdv_method_context.sysml`).
+- **PLE configuration rows** (owner decision 2026-10-06 on decision-9, which
+  keeps the ADR 0006 external configurator authority): `FeatureConfiguration`,
+  `appliesToMemberProduct`, `selectsFeature`, `includesCommonCapability` and
+  `selectsVariant` are vocabulary-only. Each has a `VocabularyRole` comment
+  about `FeatureConfigurationOntologyDefinition` stating: *no configurator
+  authority; selection authority stays with the external catalogue
+  (ADR 0006)*. The Feature Catalogue, Bill-of-Features YAML and configurator
+  are unchanged.
+- **Native rows** `Concern`, `Viewpoint`, `View` and `VerificationMethod`
+  have grounding comments that name the Systems Library element
+  (`ConcernCheck`, `ViewpointCheck`, `View`, `metadata def
+  VerificationMethod`). They copy no library type. The `VerificationMethod`
+  record keeps the native metadata annotation separate from the ODE4HERA
+  `verificationMethod` requirement attribute.
+- **`IncrementSize`** has an `IncrementSizeVocabularyRole` comment: these are
+  guidance labels only and never become semantic authority.
+- **Validation rules** `DE4SDV-ONT-R001`–`R010` each get a home in
+  `de4sdv_ontology_validation_rules.sysml` (package
+  `DE4SDV_OntologyValidationRules`): one constraint usage per rule
+  (`ontologyRuleR001`…). Its first doc is the statement and its second is the
+  enforcement note, both normalized-exact to the YAML. These are declarations
+  only: no expression, no assertion. `scripts/check_model_sync.py` still reads
+  the R003 `origin_groundings` from the YAML.
+- **Pilot queries** are copied to `tests/fixtures/ontology/pilot_queries.yaml`.
+  A test checks that the copy equals the YAML block for as long as the block
+  exists. The YAML `validation_rules` and `pilot_queries` blocks are unchanged.
+
+Checks: `tests/test_o4_wave_a_vocabulary_roles.py`.
+
 ## Licensed validation findings
 
 The first exact-head licensed run (run 37411981652) rejected two constructs:
