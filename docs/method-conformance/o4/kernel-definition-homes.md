@@ -135,8 +135,11 @@ consumer retirement and whole-row closure are separate obligations.
 
 ## Wave A vocabulary roles, grounding records and rule homes (2026-10-06)
 
-**Draft — not yet validated by licensed Syside.** These additions are
-documentation and rule declarations only. They add no kernel declaration, no
+**Draft.** Licensed Syside validation passed on the Wave A integration head
+`8432c81` (privileged run 37536280145: `All checks passed!`, committed views
+match 5/5). Later commits need their own exact-head run. The semantic label
+stays draft: the licensed check proves parsing and validation, not meaning.
+These additions are documentation and rule declarations only. They add no kernel declaration, no
 `sysml_mapping`, no runtime traversal and no consumer wiring.
 
 - **Relationships with no authored definition** get a named
@@ -172,7 +175,34 @@ documentation and rule declarations only. They add no kernel declaration, no
   A test checks that the copy equals the YAML block for as long as the block
   exists. The YAML `validation_rules` and `pilot_queries` blocks are unchanged.
 
+- **`variesAt` stays vocabulary-only and is not runtime-queryable.** The
+  register row's desired target is "model-authoritative through native
+  variation structure" with a runtime-queryable support target. Its evidence
+  gate is native variant membership: a feature usage that participates in a
+  variation's variant membership. No such usage exists at this revision, so
+  the target is unmet. It is an open Wave B item, not a closure. Native
+  realizations of `specifiesFeature` and `specifiesCommonCapability` are
+  deferred in the same way.
+
 Checks: `tests/test_o4_wave_a_vocabulary_roles.py`.
+
+### Wave B obligations recorded by the Wave A review
+
+- **Stale runtime EvidenceContract text.** `de4sdv/` is frozen for Wave A, so
+  `de4sdv/semantic/traversal.py` is unchanged. Two texts there no longer
+  match the kernel:
+  - the exact-identity resolution docstring (lines 488-494) says the eight
+    per-slice evidence-contract definitions carry no specialization lineage
+    and that the authored class has no file/declaration kernel mapping. Both
+    are false at this revision: all eight specialize `EvidenceContract`, and
+    the ontology maps `requirement def EvidenceContract`;
+  - `EVIDENCE_CONTRACT_BLOCKED_REASON` (lines 43-48) still reports the range
+    as not machine-resolvable.
+
+  The runtime stays fail-closed, so its behaviour is unchanged. Wave B must
+  either adopt the type-lineage discriminator in a reviewed consumer change,
+  or restate why it stays blocked, and correct both texts. Until then the
+  kernel discriminator is model vocabulary only.
 
 ## Licensed validation findings
 

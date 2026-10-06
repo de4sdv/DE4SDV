@@ -47,7 +47,10 @@ They are vocabulary only; no runtime consumer, traversal or projection changes.
   one `EvidenceSupportCitation` per cited artifact. It is distinct from
   `hasEvidence`. A claim counts as established, or acceptance is sought, only
   after a `ScopedEvidenceAdequacyAssessment` for the same scope.
-  The assessment types the citations it assesses (`ref item citations`).
+  The model declares `ref item citations` on the assessment. This is a
+  model-structure declaration only: supplied records and the read-only adapter
+  do not carry citation references yet (assessments carry `activity_refs`).
+  The record and adapter field is Wave B work.
   Acceptance stays a separate `AcceptanceAttestationReference`.
 - `hasEvidenceStatusVocabularyRole`: the successor of `hasEvidenceStatus` is
   the unchanged `VVStatus` on `ScopedVVActivityRecord`. `EvidenceStatus`
