@@ -2,6 +2,7 @@
 package DE4SDV_AEBSNonActivationVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
+  private import DE4SDV_MethodContext::EvidenceContract;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -37,7 +38,7 @@ package DE4SDV_AEBSNonActivationVerification {
   part def FalseReactionMatrixBench {
     attribute scenario : NonActivationScenarioIdentity;
   }
-  requirement def NonActivationEvidenceContract;
+  requirement def NonActivationEvidenceContract :> EvidenceContract;
   requirement evidenceContractClosedNonActivationScenario : NonActivationEvidenceContract {
     subject bench : FalseReactionMatrixBench;
     require constraint statement { language "English" /* The bench shall bind one closed scenario identity and a complete observation window: at least 4.0 s duration with no sample gap above 0.75 s and every required input no older than 0.5 s at window close. */ }

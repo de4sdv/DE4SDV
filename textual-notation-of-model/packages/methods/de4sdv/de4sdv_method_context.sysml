@@ -288,13 +288,30 @@ package DE4SDV_MethodContext {
          * boundary, and retained-evidence obligations for a verification case. An
          * evidence contract is planning vocabulary, not proof that a product
          * requirement is verified. */
-    /* Specialized today only by OverrideEvidenceContract (AEBS) and
-     * MiddlewareAcceptanceCriterion. The other AEBS evidence-contract
-     * definitions do not specialize it yet, so this type's specialization
-     * closure is not the evidence-contract population and must not be used
-     * to discriminate hasRelevantEvidenceContract. The existing runtime
-     * dependency mapping is unchanged. */
+    /* Specialized by exactly the eight AEBS evidence-contract definitions:
+     * OverrideEvidenceContract, DegradedInputEvidenceContract,
+     * BicycleEvidenceContract, NominalEvidenceContractRequirement,
+     * RegulatoryCriterionEvidenceContract, NonActivationEvidenceContract,
+     * PedestrianEvidenceContract and PartialInterventionEvidenceContract.
+     * MiddlewareAcceptanceCriterion is an AcceptanceCriterion only (owner
+     * decision 2026-10-06), so acceptance-criterion typing never makes a
+     * requirement an evidence contract. This specialization closure is the
+     * evidence-contract population; any change must update D4 and its
+     * population test together. The existing runtime dependency mapping is
+     * unchanged. */
   }
+
+  comment hasRelevantEvidenceContractVocabularyRole about EvidenceContract /* The
+   * hasRelevantEvidenceContract range is discriminated by type lineage: a
+   * target requirement usage is an evidence contract if and only if its
+   * definition is in the specialization closure of this kernel
+   * EvidenceContract, resolved through the governed kernel mapping, never by
+   * a name, prefix or verification-membership heuristic. AcceptanceCriterion
+   * typing, native verify memberships and EvidenceContractTraceability
+   * candidates do not qualify. Relevance only: no verification, satisfaction,
+   * evidence adequacy or acceptance. Vocabulary only at this revision; the
+   * runtime predicate keeps its existing dependency mapping until a reviewed
+   * consumer change adopts this discriminator. */
 
   requirement def EvidenceContractTraceabilityRequirementCandidate :> RequirementCandidate {
     doc /* Candidate requirement for evidence-contract traceability to controlled boundaries. */

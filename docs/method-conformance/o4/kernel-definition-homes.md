@@ -27,13 +27,21 @@ The decisions and their consequences are recorded in
   rationale. The record is kernel-internal and reasoned in the sync exclusions.
   Existing scope memberships and the Python exclusion dictionary stay intact.
 - **D4:** kernel `requirement def EvidenceContract :> RequirementCandidate`,
-  specialized today only by `OverrideEvidenceContract` (AEBS) and
-  `MiddlewareAcceptanceCriterion`. The other seven AEBS evidence-contract
-  definitions do not specialize it yet, so its specialization closure is not
-  the evidence-contract population and does not discriminate
-  `hasRelevantEvidenceContract`. Its current dependency mapping is unchanged.
-  A test pins the population. This falls short of D4's aim and is recorded
-  as implementation decision I4 in ADR 0020.
+  specialized by exactly the eight AEBS evidence-contract definitions:
+  `OverrideEvidenceContract`, `DegradedInputEvidenceContract`,
+  `BicycleEvidenceContract`, `NominalEvidenceContractRequirement`,
+  `RegulatoryCriterionEvidenceContract`, `NonActivationEvidenceContract`,
+  `PedestrianEvidenceContract` and `PartialInterventionEvidenceContract`.
+  Owner decision 2026-10-06: `MiddlewareAcceptanceCriterion` drops the
+  `EvidenceContract` specialization and stays an `AcceptanceCriterion` only.
+  The specialization closure is therefore the evidence-contract population.
+  The kernel comment `hasRelevantEvidenceContractVocabularyRole` states it as
+  the model-resident discriminator of the `hasRelevantEvidenceContract` range
+  (type lineage resolved through the governed kernel mapping, never by name).
+  This is vocabulary only: the runtime predicate keeps its existing dependency
+  mapping until a reviewed consumer change (Wave B) adopts the discriminator.
+  A test pins the population at eight. This supersedes the narrowed I4
+  delivery recorded in ADR 0020.
 - **7:** licensed Syside (PR #328, run 37411981652) rejected the standalone
   KerML `disjoining` inside a SysML package as a syntax error. Per the
   decision's fallback, the axiom is a symmetric **checked constraint**:
