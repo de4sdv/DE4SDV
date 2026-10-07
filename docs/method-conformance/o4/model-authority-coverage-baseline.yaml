@@ -1,0 +1,73 @@
+# Model-authority coverage baseline (shadow ratchet; no binding block).
+schema: de4sdv.model-authority-coverage-baseline/v1
+mode: shadow
+note: Reviewed shadow ratchet for the model-authority coverage gate. Not revision-bound evidence; no binding
+  block. Regenerate with scripts/check_model_projection_coverage.py --write-baseline after a reviewed
+  projection change. Wave C makes an empty residual blocking.
+routing_digest: sha256:467c82b1e5f41c13bf6b2df0fc677576cd8e48dce22eec0532b4cc3b996abac8
+layer_digests:
+  definition: sha256:4eada4d5e81f06a07dfe6a80c90625efd83b5b08a9a8f209fdfe69f48aecb07a
+  o2plus: sha256:64cf7bbdecc1bd65ffd37989a0646ffd22de8bd3a2dcb6bff83c1055c118981d
+  vocabulary-carrier: sha256:235380371f9d63918bb6c2b918142db6ea08d89a436a3ae8b74e7cf163f47390
+  o3: sha256:eb6ec9b6a2d7d0f71f594a5e1046381c363ac3847dbfb41558fca90bf2918b8f
+  successor-contract: sha256:af460355c0bdaefa405ebb20a90315cb46d478a43f046c5df40524e4dd5dd246
+residual:
+- AcceptanceCriterion
+- AllocatableFunction
+- ApprovedTraceMethod
+- ArchitectureDecisionRecord
+- ArchitectureElement
+- AssuranceClaim
+- Baseline
+- CommonCapability
+- DerivesFromNeed
+- EvidenceArtifact
+- EvidenceContract
+- EvidenceStatus
+- EvidenceSupportCitation
+- Feature
+- FeatureConfiguration
+- IncrementTraceObligations
+- Interface
+- LogicalAllocationElement
+- MethodEvaluationScope
+- PhysicalAllocationElement
+- RegulatorySourceAssociation
+- RequiredTraceChain
+- ScopedEvidenceAdequacyAssessment
+- ScopedVVActivityRecord
+- Stakeholder
+- TraceLink
+- ValidationPlanningAssociation
+- ValidationPlanningScenario
+- appliesToMemberProduct
+- capturedInBaseline
+- hasAcceptanceCriterion
+- hasEvidence
+- hasEvidenceStatus
+- hasRelevantEvidenceContract
+- hasStakeholder
+- includesCommonCapability
+- instantiatesCanonicalArchitecture
+- selectsFeature
+- selectsVariant
+- specifiesCommonCapability
+- specifiesFeature
+- specifiesFunction
+- supportedByEvidence
+- variesAt
+residual_declarations:
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml::part def MethodEvaluationScope
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml::connection def DerivesFromNeed
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml::part def ArchitectureDecisionRecord
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml::requirement def AcceptanceCriterion
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml::requirement def EvidenceContract
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml::part def ApprovedTraceMethod
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml::part def IncrementTraceObligations
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml::part def DE4SDVEvidenceBaseline
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml::part def CommonProductLineCapability
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml::part def ProductLineFeatureCandidate
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml::item def EvidenceSupportCitation
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml::item def ScopedEvidenceAdequacyAssessment
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml::item def ScopedVVActivityRecord
+- textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml::part def Stakeholder

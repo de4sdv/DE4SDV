@@ -208,6 +208,7 @@ def main() -> int:
         definition_projection,
         definition_projection_batch2,
         external_reference_contract,
+        model_projection_coverage,
         o4_consumers,
         vocabulary_carrier,
     )
@@ -218,6 +219,8 @@ def main() -> int:
     )
     definition_admission_errors = definition_projection.run_check_errors(root)
     definition_batch2_errors = definition_projection_batch2.run_check_errors(root)
+    # Shadow ratchet: drift/duplicates/digest mismatch fail; residual is reported.
+    model_coverage_errors = model_projection_coverage.run_check_errors(root)
     try:
         consumer_ledger_errors = o4_consumers.load_and_check(root)
     except o4_consumers.ConsumerScanError as exc:
@@ -305,6 +308,11 @@ def main() -> int:
         for error in definition_batch2_errors:
             print(f"- {error}")
 
+    if model_coverage_errors:
+        print("Repository check failed. Model-authority projection coverage errors (shadow ratchet):")
+        for error in model_coverage_errors:
+            print(f"- {error}")
+
     if consumer_ledger_errors:
         print("Repository check failed. O4 consumer-ledger errors:")
         for error in consumer_ledger_errors:
@@ -333,6 +341,7 @@ def main() -> int:
         or preparation_errors
         or definition_admission_errors
         or definition_batch2_errors
+        or model_coverage_errors
         or consumer_ledger_errors
     ):
         return 1
