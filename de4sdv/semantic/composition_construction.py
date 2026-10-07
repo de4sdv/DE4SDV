@@ -152,9 +152,41 @@ def build_relationship_successor_runtime(*, contract, production=False,
     return service, service.contract
 
 
+_MODEL_KEYS = ("model_bundle_path", "model_bundle_id", "production", "require_activation_eligible",
+               "validation_artifacts")
+
+
 def build_explicit_semantic_runtime(*, composition: str | None = None, **kwargs) -> tuple[Any, Any]:
-    """Shared bootstrap contract; never a production environment choice."""
+    """Shared bootstrap contract for every semantic consumer.
+
+    Without a composition, ``authority``/``DE4SDV_SEMANTIC_AUTHORITY`` =
+    ``model`` routes to the model-authority bundle
+    (:mod:`model_authority_runtime`). Every other selection reaches the frozen
+    ``authority_selection`` path with exactly the arguments it received
+    before, so legacy and o3 (the rollback path) stay byte-identical.
+    Model-only arguments are refused outside a model selection. The explicit
+    ``o3+definitions`` composition path is unchanged.
+    """
     if composition is None:
+        from . import model_authority_runtime as model
+
+        requested = model.requested_authority(kwargs.get("authority"), kwargs.get("environ"))
+        if requested == model.MODEL_AUTHORITY:
+            if kwargs.get("bundle_path") is not None or kwargs.get("bundle_id") is not None:
+                raise AuthoritySelectionError(
+                    "model authority takes model_bundle_path/model_bundle_id, not O3 bundle arguments")
+            runtime_args = {key: value for key, value in kwargs.items()
+                            if key not in {"authority", "bundle_path", "bundle_id",
+                                           "model_bundle_path", "model_bundle_id"}}
+            service = model.build_model_authority_runtime(
+                runtime_args.pop("root", model.ROOT), kwargs.get("model_bundle_path"),
+                kwargs.get("model_bundle_id"), **runtime_args)
+            return service, service.selection
+        supplied = sorted(key for key in _MODEL_KEYS if kwargs.get(key) not in (None, False))
+        if supplied:
+            raise AuthoritySelectionError(
+                f"model-authority arguments require authority='model': {supplied}")
+        kwargs = {key: value for key, value in kwargs.items() if key not in _MODEL_KEYS}
         return build_selected_semantic_runtime(**kwargs)
     if composition != COMPOSITION:
         raise AuthoritySelectionError(f"unknown explicit runtime composition: {composition!r}")

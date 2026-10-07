@@ -55,6 +55,15 @@ entries:
     - ontology_dir_token
     - ontology_path_token
     retirement_status: not-applicable
+  de4sdv/semantic/model_authority_runtime.py:
+    role: runtime-consumer
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+    note: Model-authority bundle runtime (Wave B); the listed residual still uses the authored YAML and the ontology stays the ingestion compatibility identity.
   de4sdv/semantic/composition_construction.py:
     role: closure-preparation-machinery
     markers:
