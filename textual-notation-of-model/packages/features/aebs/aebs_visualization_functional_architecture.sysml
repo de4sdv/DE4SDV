@@ -17,6 +17,7 @@ package DE4SDV_AEBSVisualizationFunctionalArchitecture {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_AEBSVisualizationFraming::*;
   private import DE4SDV_AEBSVisualizationNeedsRequirements::*;
+  private import DE4SDV_RelationshipSuccessor::AllocatableFunction;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;
@@ -89,52 +90,52 @@ package DE4SDV_AEBSVisualizationFunctionalArchitecture {
    * Functional actions
    * ────────────────────────────────────────── */
 
-  action def ObserveAEBSSources {
+  action def ObserveAEBSSources :> AllocatableFunction {
     doc /* Subscribe read-only to native AEB metrics/intervention and DE4SDV AEBS state. */
     out observedFrame : AEBSVisualizationFrame;
   }
 
-  action def AssembleVisualizationFrame {
+  action def AssembleVisualizationFrame :> AllocatableFunction {
     doc /* Correlate source observations into one versioned frame with per-field provenance. */
     in observedFrame : AEBSVisualizationFrame;
     out assembledFrame : AEBSVisualizationFrame;
   }
 
-  action def ValidateFrame {
+  action def ValidateFrame :> AllocatableFunction {
     doc /* Enforce schema, range, finiteness, timestamp, and monotonic sequence. */
     in assembledFrame : AEBSVisualizationFrame;
     out validFrame : AEBSVisualizationFrame;
     out rejected : ScalarValues::Boolean;
   }
 
-  action def SuperviseHealth {
+  action def SuperviseHealth :> AllocatableFunction {
     doc /* Own freshness/availability/invalid/restored disposition. */
     in validFrame : AEBSVisualizationFrame;
     in frameRejected : ScalarValues::Boolean;
     out health : VisualizationHealthKind;
   }
 
-  action def TransportFrame {
+  action def TransportFrame :> AllocatableFunction {
     doc /* Carry an accepted frame across the reverse boundary toward the display. */
     in validFrame : AEBSVisualizationFrame;
     out transportedFrame : AEBSVisualizationFrame;
   }
 
-  action def PublishToDisplayService {
+  action def PublishToDisplayService :> AllocatableFunction {
     doc /* Offer the frame to the display-side subscription service. */
     in transportedFrame : AEBSVisualizationFrame;
     in health : VisualizationHealthKind;
     out publishedFrame : AEBSVisualizationFrame;
   }
 
-  action def RenderAEBSState {
+  action def RenderAEBSState :> AllocatableFunction {
     doc /* Render the current AEBS threat/intervention presentation from published data. */
     in publishedFrame : AEBSVisualizationFrame;
     in health : VisualizationHealthKind;
     out rendered : RenderedAEBSState;
   }
 
-  action def RecordVisualizationEvidence {
+  action def RecordVisualizationEvidence :> AllocatableFunction {
     doc /* Retain correlation records across source, bridge, service, and display. */
     in observedFrame : AEBSVisualizationFrame;
     in rendered : RenderedAEBSState;

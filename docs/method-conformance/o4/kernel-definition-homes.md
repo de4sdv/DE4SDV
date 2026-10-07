@@ -27,13 +27,29 @@ The decisions and their consequences are recorded in
   rationale. The record is kernel-internal and reasoned in the sync exclusions.
   Existing scope memberships and the Python exclusion dictionary stay intact.
 - **D4:** kernel `requirement def EvidenceContract :> RequirementCandidate`,
-  specialized today only by `OverrideEvidenceContract` (AEBS) and
-  `MiddlewareAcceptanceCriterion`. The other seven AEBS evidence-contract
-  definitions do not specialize it yet, so its specialization closure is not
-  the evidence-contract population and does not discriminate
-  `hasRelevantEvidenceContract`. Its current dependency mapping is unchanged.
-  A test pins the population. This falls short of D4's aim and is recorded
-  as implementation decision I4 in ADR 0020.
+  specialized by exactly the eight AEBS evidence-contract definitions:
+  `OverrideEvidenceContract`, `DegradedInputEvidenceContract`,
+  `BicycleEvidenceContract`, `NominalEvidenceContractRequirement`,
+  `RegulatoryCriterionEvidenceContract`, `NonActivationEvidenceContract`,
+  `PedestrianEvidenceContract` and `PartialInterventionEvidenceContract`.
+  Owner decision 2026-10-06: `MiddlewareAcceptanceCriterion` drops the
+  `EvidenceContract` specialization and stays an `AcceptanceCriterion` only.
+  The specialization closure is therefore the evidence-contract population.
+  The kernel comment `hasRelevantEvidenceContractVocabularyRole` states it as
+  the model-resident discriminator of the `hasRelevantEvidenceContract` range
+  (type lineage resolved through the governed kernel mapping, never by name).
+  **Population delta (owner-accepted 2026-10-06):** the 27 requirement usages
+  typed by the seven newly specialized definitions now belong to the kernel
+  `Requirement` lineage, so the O3 identity `verifiedBy` grounds the 28 native
+  `verify` statements that target them, and they become impact roots and
+  Requirement-coverage population. `check_model_sync` R003 (file-scoped) and
+  `hasRelevantEvidenceContract` (fail-closed) are unaffected. Wave B
+  obligation: exact-SHA privileged ingestion reporting the live
+  `verifiedBy`/impact/coverage delta.
+  This is vocabulary only: the runtime predicate keeps its existing dependency
+  mapping until a reviewed consumer change (Wave B) adopts the discriminator.
+  A test pins the population at eight. This supersedes the narrowed I4
+  delivery recorded in ADR 0020.
 - **7:** licensed Syside (PR #328, run 37411981652) rejected the standalone
   KerML `disjoining` inside a SysML package as a syntax error. Per the
   decision's fallback, the axiom is a symmetric **checked constraint**:
@@ -124,6 +140,77 @@ consumer retirement and whole-row closure are separate obligations.
 | `hasAcceptanceCriterion` | W2 | NEW_APPLICATION_SEMANTICS | `de4sdv_method_context.sysml` / `requirement def AcceptanceCriterion` |
 | `recordsAssumption` | W4 | NEW_APPLICATION_SEMANTICS | `de4sdv_method_vocabulary_carriers.sysml` / `connection def RecordsAssumption` |
 | `recordsGap` | W4 | NEW_APPLICATION_SEMANTICS | `de4sdv_method_vocabulary_carriers.sysml` / `connection def RecordsGap` |
+
+## Wave A vocabulary roles, grounding records and rule homes (2026-10-06)
+
+**Draft.** Licensed Syside validation passed on the Wave A integration head
+`8432c81` (privileged run 37536280145: `All checks passed!`, committed views
+match 5/5). Later commits need their own exact-head run. The semantic label
+stays draft: the licensed check proves parsing and validation, not meaning.
+These additions are documentation and rule declarations only. They add no kernel declaration, no
+`sysml_mapping`, no runtime traversal and no consumer wiring.
+
+- **Relationships with no authored definition** get a named
+  `<predicate>VocabularyRole` comment that states the reviewed domain and
+  range and the claim boundary. It does not add a meaning:
+  `specifiesFeature`, `specifiesCommonCapability` and `variesAt` (in
+  `de4sdv_product_line.sysml`), and `usesVerificationMethod` (in
+  `de4sdv_method_context.sysml`).
+- **PLE configuration rows** (owner decision 2026-10-06 on decision-9, which
+  keeps the ADR 0006 external configurator authority): `FeatureConfiguration`,
+  `appliesToMemberProduct`, `selectsFeature`, `includesCommonCapability` and
+  `selectsVariant` are vocabulary-only. Each has a `VocabularyRole` comment
+  about `FeatureConfigurationOntologyDefinition` stating: *no configurator
+  authority; selection authority stays with the external catalogue
+  (ADR 0006)*. The Feature Catalogue, Bill-of-Features YAML and configurator
+  are unchanged.
+- **Native rows** `Concern`, `Viewpoint`, `View` and `VerificationMethod`
+  have grounding comments that name the Systems Library element
+  (`ConcernCheck`, `ViewpointCheck`, `View`, `metadata def
+  VerificationMethod`). They copy no library type. The `VerificationMethod`
+  record keeps the native metadata annotation separate from the ODE4HERA
+  `verificationMethod` requirement attribute.
+- **`IncrementSize`** has an `IncrementSizeVocabularyRole` comment: these are
+  guidance labels only and never become semantic authority.
+- **Validation rules** `DE4SDV-ONT-R001`–`R010` each get a home in
+  `de4sdv_ontology_validation_rules.sysml` (package
+  `DE4SDV_OntologyValidationRules`): one constraint usage per rule
+  (`ontologyRuleR001`…). Its first doc is the statement and its second is the
+  enforcement note, both normalized-exact to the YAML. These are declarations
+  only: no expression, no assertion. `scripts/check_model_sync.py` still reads
+  the R003 `origin_groundings` from the YAML.
+- **Pilot queries** are copied to `tests/fixtures/ontology/pilot_queries.yaml`.
+  A test checks that the copy equals the YAML block for as long as the block
+  exists. The YAML `validation_rules` and `pilot_queries` blocks are unchanged.
+
+- **`variesAt` stays vocabulary-only and is not runtime-queryable.** The
+  register row's desired target is "model-authoritative through native
+  variation structure" with a runtime-queryable support target. Its evidence
+  gate is native variant membership: a feature usage that participates in a
+  variation's variant membership. No such usage exists at this revision, so
+  the target is unmet. It is an open Wave B item, not a closure. Native
+  realizations of `specifiesFeature` and `specifiesCommonCapability` are
+  deferred in the same way.
+
+Checks: `tests/test_o4_wave_a_vocabulary_roles.py`.
+
+### Wave B obligations recorded by the Wave A review
+
+- **Stale runtime EvidenceContract text.** `de4sdv/` is frozen for Wave A, so
+  `de4sdv/semantic/traversal.py` is unchanged. Two texts there no longer
+  match the kernel:
+  - the exact-identity resolution docstring (lines 488-494) says the eight
+    per-slice evidence-contract definitions carry no specialization lineage
+    and that the authored class has no file/declaration kernel mapping. Both
+    are false at this revision: all eight specialize `EvidenceContract`, and
+    the ontology maps `requirement def EvidenceContract`;
+  - `EVIDENCE_CONTRACT_BLOCKED_REASON` (lines 43-48) still reports the range
+    as not machine-resolvable.
+
+  The runtime stays fail-closed, so its behaviour is unchanged. Wave B must
+  either adopt the type-lineage discriminator in a reviewed consumer change,
+  or restate why it stays blocked, and correct both texts. Until then the
+  kernel discriminator is model vocabulary only.
 
 ## Licensed validation findings
 

@@ -27,6 +27,7 @@ package DE4SDV_MiddlewarePhysicalSoftwareRealization {
   private import DE4SDV_AAOSSDVMiddlewareBoundary::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
+  private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;
   private import COVESA_VSS::**;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
@@ -231,32 +232,32 @@ package DE4SDV_MiddlewarePhysicalSoftwareRealization {
      */
   }
 
-  part def SignalAccessClient {
+  part def SignalAccessClient :> PhysicalAllocationElement {
     doc /* Candidate generic physical/software client for vehicle signal access through the selected adapter and platform boundary. Concrete signal slices specialize the adapter endpoint and retain their own mapping records. */
     port vehicleSignal : VehicleSignalAccessPort;
   }
 
-  part def DiagnosticAccessClient {
+  part def DiagnosticAccessClient :> PhysicalAllocationElement {
     doc /* Candidate physical/software client for diagnostic access through the selected adapter and platform boundary. */
     port diagnostics : DiagnosticAccessPort;
   }
 
-  part def LifecycleClient {
+  part def LifecycleClient :> PhysicalAllocationElement {
     doc /* Candidate physical/software client for lifecycle coordination. */
     port lifecycle : LifecycleCoordinationPort;
   }
 
-  part def HealthClient {
+  part def HealthClient :> PhysicalAllocationElement {
     doc /* Candidate physical/software client for health status observation and forwarding. */
     port health : HealthStatusPort;
   }
 
-  part def UpdateClient {
+  part def UpdateClient :> PhysicalAllocationElement {
     doc /* Candidate physical/software client for update coordination. */
     port update : UpdateCoordinationPort;
   }
 
-  part def ServiceDiscoveryClient {
+  part def ServiceDiscoveryClient :> PhysicalAllocationElement {
     doc /* Candidate physical/software client for service discovery and authorization boundary handling. */
     port discovery : ServiceDiscoveryPort;
   }

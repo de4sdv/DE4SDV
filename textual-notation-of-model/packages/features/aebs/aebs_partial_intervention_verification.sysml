@@ -2,6 +2,7 @@
 package DE4SDV_AEBSPartialInterventionVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
+  private import DE4SDV_MethodContext::EvidenceContract;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -27,7 +28,7 @@ package DE4SDV_AEBSPartialInterventionVerification {
   }
 
   part def NativeInterventionBench;
-  requirement def PartialInterventionEvidenceContract;
+  requirement def PartialInterventionEvidenceContract :> EvidenceContract;
   requirement evidenceContractExactNativeDiagnostic : PartialInterventionEvidenceContract {
     subject bench : NativeInterventionBench;
     require constraint statement { language "English" /* Replay shall observe the exact configured native AEB intervention diagnostic tuple. */ }

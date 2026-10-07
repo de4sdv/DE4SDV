@@ -11,6 +11,18 @@ KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
 CONTEXT = KERNEL + "de4sdv_method_context.sysml"
 MIDDLEWARE = "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml"
 ONTOLOGY = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+AEBS = "textual-notation-of-model/packages/features/aebs/"
+# D4 population (owner decision 2026-10-06): exactly these eight AEBS definitions.
+AEBS_EVIDENCE_CONTRACTS = {
+    AEBS + "aebs_override_verification.sysml": "OverrideEvidenceContract",
+    AEBS + "aebs_degraded_input_verification.sysml": "DegradedInputEvidenceContract",
+    AEBS + "aebs_bicycle_verification.sysml": "BicycleEvidenceContract",
+    AEBS + "aebs_evidence.sysml": "NominalEvidenceContractRequirement",
+    AEBS + "aebs_regulatory_criterion_verification.sysml": "RegulatoryCriterionEvidenceContract",
+    AEBS + "aebs_non_activation_verification.sysml": "NonActivationEvidenceContract",
+    AEBS + "aebs_pedestrian_verification.sysml": "PedestrianEvidenceContract",
+    AEBS + "aebs_partial_intervention_verification.sysml": "PartialInterventionEvidenceContract",
+}
 
 
 def test_acceptance_criterion_has_kernel_home_and_middleware_specialization():
@@ -37,13 +49,18 @@ def test_evidence_contract_is_a_planning_requirement_and_slices_are_typed():
         "file": CONTEXT, "declaration": "requirement def EvidenceContract"
     }
     assert normalize_text(ontology["classes"]["EvidenceContract"]["definition"]) in normalize_text(block)
-    for path, declaration in (
-        ("textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml", "OverrideEvidenceContract"),
-        (MIDDLEWARE, "MiddlewareAcceptanceCriterion"),
-    ):
+    for path, declaration in AEBS_EVIDENCE_CONTRACTS.items():
         source = re.sub(r"/\*.*?\*/|//[^\n]*", "", (ROOT / path).read_text(), flags=re.S)
         header = re.search(r"requirement\s+def\s+" + declaration + r"\s*:>\s*([^;{]+)", source)
-        assert header and "EvidenceContract" in {s.strip() for s in header[1].split(",")}
+        assert header and "EvidenceContract" in {s.strip() for s in header[1].split(",")}, declaration
+        # Direct import of the owning kernel member (accepted form), no name borrowing.
+        assert re.search(r"private\s+import\s+DE4SDV_MethodContext::(?:EvidenceContract|\*)\s*;", source), path
+    # Owner decision 2026-10-06: the middleware acceptance criterion is an
+    # AcceptanceCriterion only, never an evidence contract.
+    source = re.sub(r"/\*.*?\*/|//[^\n]*", "", (ROOT / MIDDLEWARE).read_text(), flags=re.S)
+    header = re.search(r"requirement\s+def\s+MiddlewareAcceptanceCriterion\s*:>\s*([^;{]+)", source)
+    assert header and "EvidenceContract" not in {s.strip() for s in header[1].split(",")}
+    assert "AcceptanceCriterion" in {s.strip() for s in header[1].split(",")}
     # Claims/arguments/counterclaims do not become evidence contracts by name.
     for declaration in ("MiddlewareClaim", "MiddlewareAssuranceArgument", "MiddlewareCounterClaim"):
         header = re.search(r"requirement\s+def\s+" + declaration + r"\s*:>\s*([^;{]+)", source)
@@ -413,8 +430,9 @@ def test_definition_owned_ontology_docs_are_private_and_package_homes_are_named(
 
 
 def test_kernel_evidence_contract_specializations_are_exactly_the_claimed_population():
-    """D4 is narrowed: the kernel type is specialized by the AEBS override
-    contract and the middleware acceptance criterion only. Any other
+    """D4 (owner decision 2026-10-06): the kernel type is specialized by
+    exactly the eight AEBS evidence-contract definitions; the middleware
+    acceptance criterion is not an evidence contract. Any other
     specialization must update the D4 wording, ADR 0020 and this pin."""
     supers = {}
     for root in ("textual-notation-of-model", "model-based-product-line-engineering/product-models"):
@@ -431,7 +449,85 @@ def test_kernel_evidence_contract_specializations_are_exactly_the_claimed_popula
     while frontier:
         frontier = {name for name, parents in supers.items() if parents & frontier} - found
         found |= frontier
-    assert found == {"OverrideEvidenceContract", "MiddlewareAcceptanceCriterion"}, found
+    assert found == set(AEBS_EVIDENCE_CONTRACTS.values()), found
+    # Every member is declared exactly once, in its AEBS slice.
+    for path, declaration in AEBS_EVIDENCE_CONTRACTS.items():
+        owners = [p for p in (ROOT / "textual-notation-of-model").rglob("*.sysml")
+                  if re.search(r"requirement\s+def\s+" + declaration + r"\b",
+                               re.sub(r"/\*.*?\*/|//[^\n]*", " ", p.read_text(), flags=re.S))]
+        assert [p.relative_to(ROOT).as_posix() for p in owners] == [path], declaration
+
+
+# Usages typed by each closure member, per owning slice. The pin covers the
+# usage population, not only the definition closure (R2/K5).
+AEBS_EVIDENCE_CONTRACT_USAGES = {
+    "OverrideEvidenceContract": 3, "DegradedInputEvidenceContract": 4, "BicycleEvidenceContract": 3,
+    "NominalEvidenceContractRequirement": 5, "RegulatoryCriterionEvidenceContract": 6,
+    "NonActivationEvidenceContract": 3, "PedestrianEvidenceContract": 3, "PartialInterventionEvidenceContract": 3,
+}
+
+
+def test_evidence_contract_usage_population_is_exactly_the_slice_usages():
+    """Every reference to EvidenceContract or a closure member, in every model
+    root, is one of: its definition header, the kernel specialization, the
+    direct kernel import, the discriminator comment, or a requirement usage
+    typed by a closure member inside that member's own slice. A usage typed
+    directly by EvidenceContract, a usage elsewhere, or a feature subsetting
+    or redefining a contract usage fails."""
+    closure = {"EvidenceContract"} | set(AEBS_EVIDENCE_CONTRACTS.values())
+    home = {name: path for path, name in AEBS_EVIDENCE_CONTRACTS.items()}
+    token = re.compile(r"(?<![\w'])(?:[\w]+::)*(" + "|".join(sorted(closure)) + r")\b")
+    usage = re.compile(r"\brequirement\s+(?:<'[^']*'>\s*)?(\w+)\s*:\s*(\w+)\s*\{")
+    counts, usage_names = {}, set()
+    for root in ("textual-notation-of-model", "model-based-product-line-engineering"):
+        for path in sorted((ROOT / root).rglob("*.sysml")):
+            rel = path.relative_to(ROOT).as_posix()
+            source = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
+            allowed = set()
+            for match in usage.finditer(source):
+                if match[2] in closure:
+                    assert match[2] != "EvidenceContract", (rel, match[1], "usage typed directly by the kernel type")
+                    assert home[match[2]] == rel, (rel, match[1], "closure usage outside its slice")
+                    counts[match[2]] = counts.get(match[2], 0) + 1
+                    usage_names.add(match[1])
+                    allowed.add(match.start(2))
+            for match in re.finditer(r"\brequirement\s+def\s+(\w+)(?:\s*:>\s*([\w:]+))?", source):
+                if match[1] in closure:
+                    allowed.add(match.start(1))
+                    if match[2]:
+                        allowed.add(match.start(2) + len(match[2]) - len(match[2].split("::")[-1]))
+            for match in re.finditer(r"\bprivate\s+import\s+DE4SDV_MethodContext::(EvidenceContract)\s*;", source):
+                allowed.add(match.start(1))
+            if rel == CONTEXT:
+                for match in re.finditer(r"\bcomment\s+hasRelevantEvidenceContractVocabularyRole\s+about\s+(EvidenceContract)\b", source):
+                    allowed.add(match.start(1))
+            for match in token.finditer(source):
+                assert match.start(1) in allowed, (rel, source[max(0, match.start() - 60):match.end() + 10])
+    assert counts == AEBS_EVIDENCE_CONTRACT_USAGES, counts
+    assert len(usage_names) == 28 and sum(counts.values()) == 30
+    # No feature anywhere subsets or redefines a contract usage.
+    reuse = re.compile(r"(?::>>?|\bsubsets\b|\bredefines\b|\breferences\b|::>)\s*(?:[\w]+(?:::|\.))*(" +
+                       "|".join(sorted(usage_names)) + r")\b")
+    for root in ("textual-notation-of-model", "model-based-product-line-engineering"):
+        for path in sorted((ROOT / root).rglob("*.sysml")):
+            source = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
+            assert not reuse.search(source), (path.name, reuse.search(source)[0])
+
+
+def test_has_relevant_evidence_contract_discriminator_is_model_resident_vocabulary():
+    """hasRelevantEvidenceContract is discriminated by EvidenceContract type
+    lineage, stated in the kernel as vocabulary; the runtime mapping is not
+    changed by this documentation."""
+    text = (ROOT / CONTEXT).read_text()
+    match = re.search(
+        r"comment\s+hasRelevantEvidenceContractVocabularyRole\s+about\s+EvidenceContract\s*/\*(.*?)\*/", text, re.S)
+    assert match, "discriminator vocabulary role must annotate the kernel EvidenceContract"
+    body = normalize_text(match[1].replace("*", " "))
+    for phrase in ("specialization closure", "governed kernel mapping", "never by a name",
+                   "AcceptanceCriterion typing", "Vocabulary only", "existing dependency mapping"):
+        assert normalize_text(phrase) in body, phrase
+    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+    assert ontology["relationships"]["hasRelevantEvidenceContract"]["sysml_mapping"]["strategy"] == "dependency"
 
 
 def test_named_docs_do_not_borrow_nested_or_comment_only_homes():

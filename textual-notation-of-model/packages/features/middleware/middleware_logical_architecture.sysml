@@ -17,6 +17,7 @@ package DE4SDV_MiddlewareLogicalArchitecture {
   private import DE4SDV_MiddlewareRequirements::Features::Middleware::Requirements::*;
   private import DE4SDV_AEBSLogicalArchitecture::*;
   private import DE4SDV_Stakeholders::*;
+  private import DE4SDV_RelationshipSuccessor::LogicalAllocationElement;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;
@@ -70,22 +71,22 @@ package DE4SDV_MiddlewareLogicalArchitecture {
     out item safetyPathStatus : SafetyPathProtectionStatus;
   }
 
-  part def SignalTranslator {
+  part def SignalTranslator :> LogicalAllocationElement {
     doc /* Conceptual responsibility for translating and exposing vehicle-signal access without selecting a signal schema or transport. */
     port application : SignalAccessApplicationPort;
   }
 
-  part def DiagnosticProxy {
+  part def DiagnosticProxy :> LogicalAllocationElement {
     doc /* Conceptual responsibility for proxying diagnostic requests and responses across the middleware boundary. */
     port application : DiagnosticApplicationPort;
   }
 
-  part def LifecycleBridge {
+  part def LifecycleBridge :> LogicalAllocationElement {
     doc /* Conceptual responsibility for coordinating application-visible lifecycle state with middleware lifecycle state. */
     port application : LifecycleApplicationPort;
   }
 
-  part def HealthProxy {
+  part def HealthProxy :> LogicalAllocationElement {
     doc /* Conceptual responsibility for forwarding service health and availability status. */
     port application : HealthApplicationPort;
     port safetyObservation : SafetyPathObservationPort;
@@ -96,12 +97,12 @@ package DE4SDV_MiddlewareLogicalArchitecture {
     }
   }
 
-  part def UpdateCoordinator {
+  part def UpdateCoordinator :> LogicalAllocationElement {
     doc /* Conceptual responsibility for coordinating integration updates without selecting an update mechanism. */
     port application : UpdateApplicationPort;
   }
 
-  part def ServiceBindingManager {
+  part def ServiceBindingManager :> LogicalAllocationElement {
     doc /* Conceptual responsibility for service discovery, authentication boundary handling, and service binding. */
     port application : ServiceBindingApplicationPort;
   }

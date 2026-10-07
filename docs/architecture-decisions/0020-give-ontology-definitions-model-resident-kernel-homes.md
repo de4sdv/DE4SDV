@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed
+Accepted
+
+The owner accepted implementation decisions I1–I4 on 2026-10-06. I4 is
+superseded by the D4 follow-up in O4 Wave A; see
+[owner decisions](../method-conformance/o4/owner-decisions-2026-10.md).
 
 ## Context
 
@@ -18,13 +22,12 @@ recorded, how feature/common-capability disjointness is stated, and whether
 `instantiatesCanonicalArchitecture` is queryable.
 
 This ADR separates two kinds of decision. Orkun Yilmaz made the owner
-decisions on 2026-10-05. The implementation decisions were taken while
-building PR #328, and they need the owner's acceptance before this ADR is
-`Accepted`.
+decisions on 2026-10-05 and 2026-10-06. The implementation decisions were
+taken while building PR #328; the owner accepted them on 2026-10-06.
 
 ## Decision
 
-### Owner decisions (2026-10-05)
+### Owner decisions (2026-10-05, 2026-10-06)
 
 1. **D1 — architecture umbrella terms.** `DE4SDV_MethodContext` documents
    `ArchitectureElement`, `Function`, `LogicalElement`, `PhysicalElement` and
@@ -48,12 +51,25 @@ building PR #328, and they need the owner's acceptance before this ADR is
    inside a SysML package (run 37411981652), so the fallback applies:
    `CommonProductLineCapability` asserts
    `not (that istype ProductLineFeatureCandidate)`, and the reverse.
-6. **Decision 8 — canonical architecture.**
+6. **D4 follow-up (2026-10-06).** The seven remaining AEBS
+   evidence-contract definitions specialize `EvidenceContract`, and
+   `MiddlewareAcceptanceCriterion` drops that specialization; it stays an
+   `AcceptanceCriterion` only. The `EvidenceContract` specialization closure is
+   exactly the eight AEBS contracts and is documented in the kernel as the
+   `hasRelevantEvidenceContract` range discriminator (vocabulary only).
+   Consequence, accepted by the owner on 2026-10-06: the 27 requirement
+   usages typed by the seven newly specialized definitions now belong to the
+   kernel `Requirement` lineage. The O3 identity `verifiedBy` therefore grounds
+   the 28 native `verify` statements that target them, and they become
+   eligible impact roots and Requirement-coverage population. Runtime files
+   and the 13 O3 identity records are unchanged; the live delta is measured
+   by an exact-SHA privileged ingestion in Wave B.
+7. **Decision 8 — canonical architecture.**
    `instantiatesCanonicalArchitecture` is vocabulary only: not queryable; no
    product-to-canonical reachability claimed. There is no executable mapping
    or canonical-package selector.
 
-### Implementation decisions taken in PR #328 (pending owner acceptance)
+### Implementation decisions taken in PR #328 (accepted 2026-10-06)
 
 1. **I1 — where the definition text lives.** Every authored definition has
    normalized-exact model documentation:
@@ -80,7 +96,8 @@ building PR #328, and they need the owner's acceptance before this ADR is
    `<Term>VocabularyRole` form (`hasStakeholderVocabularyRole`,
    `hasAcceptanceCriterionVocabularyRole`); neither may reuse a class,
    predicate or definition name. A repository test enforces this.
-4. **I4 — D4 delivered as vocabulary only.** Today only
+4. **I4 — D4 delivered as vocabulary only (superseded by the D4 follow-up
+   above).** At PR #328 only
    `OverrideEvidenceContract` (AEBS) and `MiddlewareAcceptanceCriterion`
    specialize `EvidenceContract`. The other seven AEBS evidence-contract
    definitions do not, so the type's specialization closure is not yet the
@@ -99,13 +116,13 @@ building PR #328, and they need the owner's acceptance before this ADR is
   shown to evaluate them against usages. A bounded repository probe guards the
   disjointness rule across all three validated model roots; it is not a SysML
   evaluator.
-- Until the seven AEBS definitions specialize `EvidenceContract`,
-  `hasRelevantEvidenceContract` keeps its existing dependency mapping. Any new
-  specialization must update D4/I4, this ADR and the population test
-  together.
-- `MiddlewareAcceptanceCriterion` specializes both `AcceptanceCriterion` and
-  `EvidenceContract`, so all 15 middleware acceptance criteria are typed as
-  both. That dual typing predates this ADR and is not decided here.
+- All eight AEBS evidence-contract definitions specialize `EvidenceContract`
+  (D4 follow-up). `hasRelevantEvidenceContract` still keeps its existing
+  dependency mapping at runtime; adopting the type-lineage discriminator is a
+  separate reviewed consumer change. Any new specialization must update D4,
+  this ADR and the population test together.
+- `MiddlewareAcceptanceCriterion` is an `AcceptanceCriterion` only; the 15
+  middleware acceptance criteria are no longer typed as evidence contracts.
 - O1's text-parity observer reads anonymous definition docs only, so the
   definitions that also carry `ontologyDefinition` still show `differs`
   there. Their review records are unchanged.
@@ -113,8 +130,6 @@ building PR #328, and they need the owner's acceptance before this ADR is
 ## Non-decisions
 
 - Deleting the YAML, rewiring consumers or retiring O4 rows.
-- Specializing the seven remaining AEBS evidence-contract definitions.
-- Whether middleware acceptance criteria should also be evidence contracts.
 - Activating or adopting PLEML semantics, or changing any dependency pin.
 - Creating any acceptance record.
 - Making the delivery gate required.

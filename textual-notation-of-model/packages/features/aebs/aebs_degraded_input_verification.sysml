@@ -2,6 +2,7 @@
 package DE4SDV_AEBSDegradedInputVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
+  private import DE4SDV_MethodContext::EvidenceContract;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -38,7 +39,7 @@ package DE4SDV_AEBSDegradedInputVerification {
   part def DegradedInputMatrixBench {
     attribute scenario : DegradedInputScenarioIdentity;
   }
-  requirement def DegradedInputEvidenceContract;
+  requirement def DegradedInputEvidenceContract :> EvidenceContract;
   requirement evidenceContractClosedInputHealthScenario : DegradedInputEvidenceContract {
     subject bench : DegradedInputMatrixBench;
     require constraint statement { language "English" /* The bench shall inject exactly one closed stale, missing, malformed, inconsistent, or unavailable input condition after any required healthy baseline. A degraded state is accepted only while its observation age stays within 0.2 s, detection is closed within a 0.25 s window, and runtime-graph sampling gaps stay at or below 0.2 s. */ }

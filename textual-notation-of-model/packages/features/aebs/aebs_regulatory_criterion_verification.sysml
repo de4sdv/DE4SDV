@@ -2,6 +2,7 @@
 package DE4SDV_AEBSRegulatoryCriterionVerification {
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
+  private import DE4SDV_MethodContext::EvidenceContract;
   private import ScalarValues::*;
   private import DE4SDV_AEBSNeedsRequirements::Features::AEBS::NeedsRequirements::*;
   private import SAF_Viewpoints::*;
@@ -54,7 +55,7 @@ package DE4SDV_AEBSRegulatoryCriterionVerification {
   part def RegulatoryCriterionBench {
     attribute scenario : RegulatoryCriterionScenarioIdentity;
   }
-  requirement def RegulatoryCriterionEvidenceContract;
+  requirement def RegulatoryCriterionEvidenceContract :> EvidenceContract;
   requirement evidenceContractSourceIdentity : RegulatoryCriterionEvidenceContract {
     subject bench : RegulatoryCriterionBench;
     require constraint statement { language "English" /* The bench shall bind controlled source E/ECE/TRANS/505/Rev.3/Add.151/Rev.2, original SHA-256 dc9cc84498dcae8f0888067ad3967fb5a346e814bc2f19128987a654c8a193de, source metadata, criterion map, evaluator identity, and an explicit applicability disposition. */ }
