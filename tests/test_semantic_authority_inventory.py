@@ -352,6 +352,17 @@ class TestLayers:
         "vocabulary_carrier.py",
     )
 
+    #: Construction-time verifiers (O4 Wave B): runtime modules that verify
+    #: build-time artifacts once at construction, like composition_construction
+    #: does for the o3+definitions sidecar. Only the named imports are allowed;
+    #: the inventory/decisions text check below still applies to them.
+    _CONSTRUCTION_VERIFIER_IMPORTS = {
+        "model_authority_runtime.py": frozenset({
+            "definition_migration",  # verified batch-1 definition pair
+            "relationship_successor_contract",  # successor contract from the model
+        }),
+    }
+
     def test_reviewed_decisions_not_runtime_values(self):
         """The runtime never reads the inventory or the decisions dataset."""
         governance_modules = self._BUILD_TIME_GOVERNANCE_MODULES
@@ -369,13 +380,18 @@ class TestLayers:
             if "semantic-authority-inventory" in text:
                 offenders.append(str(path.relative_to(REPO_ROOT)))
         assert offenders == []
+        for allowed in self._CONSTRUCTION_VERIFIER_IMPORTS.values():
+            assert "authority_inventory" not in allowed
         # No module outside the build-time governance set may import them.
         for path in sorted((REPO_ROOT / "de4sdv").rglob("*.py")):
             if "__pycache__" in path.parts or path.name in governance_modules:
                 continue
             text = path.read_text(encoding="utf-8")
+            allowed = self._CONSTRUCTION_VERIFIER_IMPORTS.get(path.name, frozenset())
             for governance in governance_modules:
                 stem = governance[: -len(".py")]
+                if stem in allowed:
+                    continue
                 assert (
                     f"import {stem}" not in text and f"from .{stem}" not in text
                 ), f"{path}: imports build-time governance module {stem}"

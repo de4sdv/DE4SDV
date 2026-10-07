@@ -73,6 +73,12 @@ entries:
     - ontology_path_token
     retirement_status: pending
     note: Shadow coverage ratchet; classifies the authored-YAML residual explicitly.
+  tests/test_model_authority_runtime.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    retirement_status: not-applicable
   de4sdv/semantic/composition_construction.py:
     role: closure-preparation-machinery
     markers:
