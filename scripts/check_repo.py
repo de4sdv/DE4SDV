@@ -206,6 +206,7 @@ def main() -> int:
     lifecycle_consistency_errors = check_o4_lifecycle_consistency.run_all_checks(root)
     from de4sdv.semantic import (
         definition_projection,
+        definition_projection_batch2,
         external_reference_contract,
         o4_consumers,
         vocabulary_carrier,
@@ -216,6 +217,7 @@ def main() -> int:
         + external_reference_contract.run_check_errors(root)
     )
     definition_admission_errors = definition_projection.run_check_errors(root)
+    definition_batch2_errors = definition_projection_batch2.run_check_errors(root)
     try:
         consumer_ledger_errors = o4_consumers.load_and_check(root)
     except o4_consumers.ConsumerScanError as exc:
@@ -298,6 +300,11 @@ def main() -> int:
         for error in definition_admission_errors:
             print(f"- {error}")
 
+    if definition_batch2_errors:
+        print("Repository check failed. O4 definition-admission batch 2 errors:")
+        for error in definition_batch2_errors:
+            print(f"- {error}")
+
     if consumer_ledger_errors:
         print("Repository check failed. O4 consumer-ledger errors:")
         for error in consumer_ledger_errors:
@@ -325,6 +332,7 @@ def main() -> int:
         or lifecycle_consistency_errors
         or preparation_errors
         or definition_admission_errors
+        or definition_batch2_errors
         or consumer_ledger_errors
     ):
         return 1

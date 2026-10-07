@@ -738,6 +738,13 @@ entries:
     markers:
     - legacy_yaml_authority
     retirement_status: not-applicable
+  tests/test_definition_projection_batch2.py:
+    role: test-reference
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: Locks the batch-2 manifest's reviewed contract fields to the authored ontology until Wave C deletes it; generation never reads the authored ontology.
   tests/test_k_real_serializer_shapes.py:
     role: test-reference
     markers:

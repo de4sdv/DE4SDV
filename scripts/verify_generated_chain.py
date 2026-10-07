@@ -267,6 +267,7 @@ def _expected_inputs(root: Path) -> dict[str, set[str]]:
     from de4sdv.semantic import projection_v1 as v1, projection_o22 as v11
     from de4sdv.semantic import projection_o23 as v12, projection_o2p as plus
     from de4sdv.semantic import definition_projection as definitions
+    from de4sdv.semantic import definition_projection_batch2 as definitions_b2
     from de4sdv.semantic import vocabulary_carrier as carriers
 
     contract = ai.KernelContract.load(root / ai.ONTOLOGY_PATH)
@@ -290,6 +291,10 @@ def _expected_inputs(root: Path) -> dict[str, set[str]]:
     inputs = set(definitions.collect_bound_inputs(root, outputs))
     for suffix in ("projection", "profile"):
         expected[f"docs/method-conformance/o4/definition-{suffix}.json"] = inputs
+    outputs = definitions_b2.build_outputs(root, definitions_b2.load_document(root))
+    inputs = set(definitions_b2.collect_bound_inputs(root, outputs))
+    for relative in (definitions_b2.PROJECTION_PATH, definitions_b2.PROFILE_PATH):
+        expected[relative] = inputs
     document = carriers.load_carriers(root / carriers.CARRIERS_PATH)
     outputs = carriers.build_carrier_outputs(root, document, carriers.load_review(root))
     inputs = set(carriers.collect_bound_inputs(root, document, outputs))
