@@ -1114,9 +1114,9 @@ class TestPreservationAndRuntimeIndependence:
 # 7. Committed artifacts, end-to-end gate behavior, repository wiring
 # ---------------------------------------------------------------------------
 
-# TEMPORARY_STACK_BINDING (O4 Wave A): v1.1 binds the Wave A direct-lane commit.
-# Stage 2 of the post-squash rebind replaces it with the stage-1 squash.
-COMMITTED_SOURCE_REVISION = "3b136b21e5eb6fad3fe489fd1d45940a1eb2caf1"
+# Permanent #334 squash 39870d1 contains the O2+ and definition pairs rebound to
+# the #333 squash. v1.1 binds this permanent revision; v1.2 follows in stage 3.
+COMMITTED_SOURCE_REVISION = "39870d140d26a61430f1d3b82ecedc045d6fe5ca"
 
 
 def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
