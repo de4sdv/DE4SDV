@@ -1,0 +1,1631 @@
+# O4 definition-admission batch 2 - governed admission document.
+#
+# ADMITTED (engineering evidence). The admitted family is DERIVED, not
+# hand-picked (tests, fail-closed, both directions):
+#   * every retained O4 register row (not O3-complete) that no other generated
+#     layer projects (O2 chain, definition batch 1, O2+, W4 carriers);
+#   * every authored-ontology class that is not an O4 register row (successor
+#     and scoped-assurance classes);
+#   * the owner-approved W6 successor predicates hasValidationScenario and
+#     hasRegulatorySource (allocatedTo is a register row), and the deprecated
+#     name validatesFitnessForUse (merged register row with a model retirement
+#     record).
+# Rows whose register entry is gated name, per gate, the governance record that
+# resolved it (approved semantic decisions, ADR 0020, the October 2026 owner
+# record, the W6 transition plan). Gates resolved here unblock ADMISSION
+# (definition/representation generation) only; runtime support targets keep
+# their forward obligations below.
+#
+# Machine-locked properties (generator and tests):
+#   * every model home resolves in its named file (owner block, documentation
+#     selected by name and index, named vocabulary-role comment with its about
+#     targets, or successor retirement record), and documentation homes are
+#     normalized-exact against reviewed_definition;
+#   * reviewed_definition, kernel mappings, ontology relations, relationship
+#     domain/range/strength and serializer mechanics equal the authored
+#     ontology (tests) - these are reviewed contract fields, not model
+#     witnesses, until Wave C deletes the authored ontology;
+#   * successor rows equal the model successor relation records (set equality)
+#     and carry their carrier ends; aliases resolve to exactly one successor
+#     record; the hasRelevantEvidenceContract closure pins each specialize the
+#     kernel EvidenceContract.
+#
+# Boundaries: admission is NOT production activation, NOT authored-YAML
+# retirement and NOT a traversal proof. PLE configuration rows carry no
+# configurator authority (decision-9, ADR 0006). External-content rows carry
+# no content. Deprecated aliases never translate an old signature into a
+# broader successor contract.
+
+schema: de4sdv.o4-definition-admission-batch2/v1
+status: admitted
+warning: >-
+  Admission is bounded to definition/representation generation from the
+  model-resident homes. No traversal proof, no runtime read by the artifact,
+  no authority retirement, no external-content absorption, no configurator
+  authority.
+
+exceptions:
+- identity: IncrementTraceabilityShell
+  accounting: merged
+  reason: >-
+    Merged register row (successor IncrementTraceObligations, admitted in this
+    batch). Its historical documentation stays in DE4SDV_MethodTraces; no
+    projection row is generated for a merged trace shell and its authored row
+    is deleted with the authored ontology in Wave C.
+- identity: derivesNeedFromConcern
+  accounting: removed
+  reason: >-
+    Removed register row (O1 c4: retired without replacement). It has no model
+    home by design; its authored row is deleted with the authored ontology in
+    Wave C.
+
+admitted:
+- identity: AcceptanceCriterion
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: requirement def AcceptanceCriterion
+    index: 0
+  reviewed_definition: A condition used to decide whether a verification result, validation result, evidence
+    artifact, or increment output is acceptable for its stated purpose.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def AcceptanceCriterion
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-6
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d2
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d2
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: AllocatableFunction
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: action def AllocatableFunction
+    index: 0
+  reviewed_definition: Functional responsibility identity for this versioned allocation profile.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: action def AllocatableFunction
+    sub_class_of: Function
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: ApprovedTraceMethod
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+    owner: part def ApprovedTraceMethod
+    index: 0
+  reviewed_definition: Selected approved method identity. Selecting this reference does not establish
+    conformance, approval of a candidate, or an engineering trace.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+      declaration: part def ApprovedTraceMethod
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: ArchitectureDecisionRecord
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W5
+    accounting: retained
+  boundary: external-content
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: part def ArchitectureDecisionRecord
+    name: ontologyDefinition
+    index: 0
+  reviewed_definition: A reviewed architecture or method decision recorded as an ADR in Git that can serve
+    as the semantic origin of a design-input requirement.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def ArchitectureDecisionRecord
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: ArchitectureElement
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: native-grounding
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: ArchitectureElementOntologyDefinition
+    index: 0
+  reviewed_definition: Any model element used to describe system context, function, logical realization,
+    physical/software realization, interface, or behavior.
+  grounding:
+    kernel_mapping:
+      native: part def, port def, and behavior definitions in feature and architecture slices
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-5
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: AssuranceClaim
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: native-grounding
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: package DE4SDV_ScopedAssurance
+    name: AssuranceClaimOntologyDefinition
+    index: 0
+  reviewed_definition: A claim about safety, security, compliance alignment, release readiness, or fitness-for-use
+    that requires argument and evidence before acceptance. Claims are bounded and never imply certification
+    or homologation.
+  grounding:
+    kernel_mapping:
+      native: Claim usages framed by the argumentation-assurance viewpoint
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-3
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: CommonCapability
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: none
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: part def CommonProductLineCapability
+    name: ontologyDefinition
+    index: 0
+  reviewed_definition: A capability or characteristic present in all relevant member products; not a feature
+    unless it distinguishes variants.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def CommonProductLineCapability
+    sub_class_of: null
+    disjoint_with:
+    - Feature
+  gates:
+  - gate: decision-14
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-7
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-7
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: DerivesFromNeed
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: closure
+    accounting: retained
+  boundary: none
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: connection def DerivesFromNeed
+    name: ontologyDefinition
+    index: 0
+  reviewed_definition: 'DE4SDV application connection definition for design-input derivation: the derivedRequirement
+    originates from the stakeholder need. Provenance/traceability semantics only - neither satisfaction
+    nor logical implication between the connected usages is claimed. The typed connection ends (need :
+    StakeholderNeedCandidate, derivedRequirement : RequirementCandidate) carry the predicate''s domain
+    and range in the model itself. The standard Requirement Derivation Domain Library remains pinned but
+    unadopted: its originalImpliesDerived semantics change the claim (upstream adoption gate still applies;
+    no floating upgrade, no upstream contact without authorization).'
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: connection def DerivesFromNeed
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: EvidenceContract
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: requirement def EvidenceContract
+    index: 0
+  reviewed_definition: A requirement usage that defines the bounded observations, acceptance boundary,
+    and retained-evidence obligations for a verification case. An evidence contract is planning vocabulary,
+    not proof that a product requirement is verified.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def EvidenceContract
+    sub_class_of: Requirement
+    disjoint_with: []
+  gates:
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d4
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d4-follow-up
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: EvidenceStatus
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W3
+    accounting: retained
+  boundary: native-grounding
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: package DE4SDV_ScopedAssurance
+    name: EvidenceStatusOntologyDefinition
+    index: 0
+  reviewed_definition: 'Lifecycle status for evidence and verification results. DE4SDV does not define
+    its own status vocabulary: requirement verification status uses the upstream VVStatus enum, and bounded
+    evidence outcomes/dispositions use slice-local enums such as MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition.'
+  grounding:
+    kernel_mapping:
+      external: ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context
+        adapter
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-4
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: EvidenceSupportCitation
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: item def EvidenceSupportCitation
+    index: 0
+  reviewed_definition: supportedByEvidence cites one identified artifact as support for an exact scoped
+    claim, with rationale and known limitations. Neither this citation nor hasEvidence (case-to-artifact
+    association) asserts adequacy, satisfaction, a passing result, or acceptance. Evidence bytes and artifact
+    maturity remain external. Scope identifiers must match without inference.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+      declaration: item def EvidenceSupportCitation
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: Feature
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: none
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: part def ProductLineFeatureCandidate
+    name: ontologyDefinition
+    index: 0
+  reviewed_definition: A distinguishing characteristic expressing variability among member products. In
+    the kernel a feature is a candidate until member-product variability is shown; it must not be accepted
+    as a feature before that.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def ProductLineFeatureCandidate
+    sub_class_of: null
+    disjoint_with:
+    - CommonCapability
+  gates:
+  - gate: decision-14
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-7
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-7
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: FeatureConfiguration
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W5
+    accounting: retained
+  boundary: ple-no-configurator-authority
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: FeatureConfigurationOntologyDefinition
+    index: 0
+  reviewed_definition: A selection of features, common capabilities, and variation choices for a member
+    product or scenario.
+  grounding:
+    kernel_mapping:
+      external: Bill-of-Features records under model-based-product-line-engineering/feature-configurations/
+        resolved against the feature catalogue in model-based-product-line-engineering/feature-models/
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-9
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+  forward_obligations:
+  - any accepted-library-grounded target stays behind the PLE-R, PLE-Q, PLE-S and PLE-A adoption gates
+- identity: Function
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: native-grounding
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: FunctionOntologyDefinition
+    index: 0
+  reviewed_definition: A behavior or transformation expected from the system or product-line architecture.
+  grounding:
+    kernel_mapping:
+      native: SysML v2 action/state/behavior definitions in functional-architecture slices
+    sub_class_of: ArchitectureElement
+    disjoint_with: []
+  gates:
+  - gate: decision-5
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: IncrementTraceObligations
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+    owner: part def IncrementTraceObligations
+    index: 0
+  reviewed_definition: 'Scope declaration of an increment''s trace obligations: the selected approved
+    method, the increment, its declared scope kind, applicable phases and completion claim. Required traces
+    derive from the selected approved method, not from candidate-selected easy checks. The traces themselves
+    are the increment''s native model relationships (owning membership, typing, requirement subject and
+    stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots
+    in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts,
+    preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces
+    block the corresponding claim unless an authorized visible disposition permits it. Unsupported or
+    unavailable evaluation stays UNASSESSED, never synthetic PASS.'
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+      declaration: part def IncrementTraceObligations
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: Interface
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W4
+    accounting: retained
+  boundary: native-grounding
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: InterfaceOntologyDefinition
+    index: 0
+  reviewed_definition: A boundary or interaction point through which items, signals, services, or information
+    are exchanged.
+  grounding:
+    kernel_mapping:
+      native: SysML v2 port def and connection elements
+    sub_class_of: ArchitectureElement
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: LogicalAllocationElement
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: part def LogicalAllocationElement
+    index: 0
+  reviewed_definition: Technology-neutral logical responsibility grouping.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: part def LogicalAllocationElement
+    sub_class_of: LogicalElement
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: LogicalElement
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: native-grounding
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: LogicalElementOntologyDefinition
+    index: 0
+  reviewed_definition: A logical service, component, or responsibility grouping that realizes functions.
+  grounding:
+    kernel_mapping:
+      native: part def elements in logical-architecture slices
+    sub_class_of: ArchitectureElement
+    disjoint_with: []
+  gates:
+  - gate: decision-5
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: MethodEvaluationScope
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
+    owner: part def MethodEvaluationScope
+    index: 0
+  reviewed_definition: An evaluation scope binding increment identity, eligible subject types, and explicit
+    exclusions. Contribution set and evaluation scope are distinct sets; membership in evaluation scope
+    is a reviewed scope decision, not an inferred impact claim.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml
+      declaration: part def MethodEvaluationScope
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-7
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d3
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d3
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: PhysicalAllocationElement
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: part def PhysicalAllocationElement
+    index: 0
+  reviewed_definition: Concrete software, hardware or platform realization element; allocation is not
+    deployment.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: part def PhysicalAllocationElement
+    sub_class_of: PhysicalElement
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: PhysicalElement
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: native-grounding
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: PhysicalElementOntologyDefinition
+    index: 0
+  reviewed_definition: A physical, software, hardware, deployment, or platform element that realizes conceptual
+    elements or functions.
+  grounding:
+    kernel_mapping:
+      native: part def elements in physical/software realization slices
+    sub_class_of: ArchitectureElement
+    disjoint_with: []
+  gates:
+  - gate: decision-5
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: RegulatorySource
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: part def ControlledRegulatorySource
+    index: 0
+  reviewed_definition: Controlled external origin reference that informed requirement engineering. Interpretation,
+    applicability, obligations, required conditions, evidence and authorized compliance assessment are
+    separate.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: part def ControlledRegulatorySource
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: RegulatorySourceAssociation
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: connection def RegulatorySourceAssociation
+    index: 0
+  reviewed_definition: Source provenance only. Does not add a required satisfaction condition or establish
+    applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy
+    was provenance, never a native required constraint.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: connection def RegulatorySourceAssociation
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: RequiredTraceChain
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W6
+    accounting: retained
+  boundary: historical-redesign
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+    owner: package DE4SDV_MethodTraces
+    name: RequiredTraceChainOntologyDefinition
+    index: 0
+  reviewed_definition: 'The ordered trace chain every substantial increment should establish, even if
+    some links are draft: stakeholder concern, need, requirement, feature or common capability, architecture
+    element, logical-to-software signal mapping when a boundary is crossed, physical/software realization,
+    verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing
+    links are recorded as gaps.'
+  grounding:
+    kernel_mapping:
+      external: Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor
+        completion policy
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-8
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
+  - gate: decision-15
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: ScopedEvidenceAdequacyAssessment
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: item def ScopedEvidenceAdequacyAssessment
+    index: 0
+  reviewed_definition: Proportionate evidence-SET assessment for this exact claim, subject, configuration,
+    conditions and agreed criteria. Required before presenting a claim as established or seeking acceptance;
+    not a universal sufficiency verdict on each artifact. Reuse cases, criteria, executions, evidence
+    and gap identities. Coverage, confidence and rigor bases, contrary results, discrepancies, unresolved
+    gaps, assessor, conclusion and reasoning must remain explicit. An adequate set can establish a negative
+    conclusion. supportsClaim records the assessor's scoped conclusion, not checker truth. Accepted exceptions
+    stay visible; neither assessment nor acceptance turns exceptions or generic Completed status into
+    unqualified satisfaction. AcceptanceAttestationReference remains a separate designated-authority decision
+    reference, not the assessor's conclusion or result approval.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+      declaration: item def ScopedEvidenceAdequacyAssessment
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: ScopedVVActivityRecord
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: item def ScopedVVActivityRecord
+    index: 0
+  reviewed_definition: One explicitly scoped verification OR validation activity. Applicable across needs,
+    requirements, designs, production outputs, system elements, integrated systems and artifacts without
+    inheriting requirement attributes. Native need/requirement verificationStatus attachments remain unchanged.
+    Results and evidence are references to retained external records, not a second result/evidence store;
+    native VerdictKind execution values remain distinct from this activity's status. Artifact maturity
+    is not this status. Completed includes necessary result approval, but never infers PASS or designated-authority
+    acceptance. CompletedUnsuccessful could not complete; CompletedFailed completed with technical failure;
+    CompletedPassed completed successfully against the activity basis only, not a broader scoped claim.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+      declaration: item def ScopedVVActivityRecord
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: Stakeholder
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W2
+    accounting: retained
+  boundary: none
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml
+    owner: part def Stakeholder
+    name: ontologyDefinition
+    index: 0
+  reviewed_definition: A role, person, organization, or community with concerns about the system or increment.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml
+      declaration: part def Stakeholder
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-11
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic6
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: TraceLink
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W6
+    accounting: retained
+  boundary: historical-redesign
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+    owner: package DE4SDV_MethodTraces
+    name: TraceLinkOntologyDefinition
+    index: 0
+  reviewed_definition: A relationship connecting source, rationale, requirement, model, evidence, or baseline
+    artifacts.
+  grounding:
+    kernel_mapping:
+      external: Historical pre-Topic-5 string-endpoint record; successor source-reference witnesses require
+        identified owning references, not category strings
+    sub_class_of: null
+    disjoint_with: []
+  gates:
+  - gate: decision-8
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
+  - gate: decision-15
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: ValidationPlanningAssociation
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: connection def ValidationPlanningAssociation
+    index: 0
+  reviewed_definition: One validation planning association. Inverse navigation is the same fact, not execution
+    or a fitness-for-use verdict.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: connection def ValidationPlanningAssociation
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: ValidationPlanningScenario
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: unregistered
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: part def ValidationPlanningScenario
+    index: 0
+  reviewed_definition: Stakeholder fitness-for-use validation planning only; not a native verification
+    case, execution, result or acceptance.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      declaration: part def ValidationPlanningScenario
+    sub_class_of: ValidationScenario
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: ValidationScenario
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: W4
+    accounting: retained
+  boundary: native-grounding
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml
+    owner: package DE4SDV_OperationalContext
+    name: ValidationScenarioOntologyDefinition
+    index: 0
+  reviewed_definition: A scenario used to assess stakeholder fitness for intended use.
+  grounding:
+    kernel_mapping:
+      native: Scenario parts with bounded validation outcomes (for example passBoundedValidation)
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: Baseline
+  semantic_kind: class
+  admission_class: external-reference
+  register:
+    wave: W5
+    accounting: retained
+  boundary: external-content
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml
+    owner: part def DE4SDVEvidenceBaseline
+    name: ontologyDefinition
+    index: 0
+  reviewed_definition: A reviewed and controlled state of model, evidence, configuration, or publication
+    artifacts.
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml
+      declaration: part def DE4SDVEvidenceBaseline
+    sub_class_of: null
+    disjoint_with: []
+  external_reference:
+    accepted_ref: docs/method-conformance/o4/external-reference-acceptance-review.md#Baseline
+  gates: []
+  forward_obligations: []
+- identity: EvidenceArtifact
+  semantic_kind: class
+  admission_class: external-reference
+  register:
+    wave: W5
+    accounting: retained
+  boundary: external-content
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: package DE4SDV_ScopedAssurance
+    name: EvidenceArtifactOntologyDefinition
+    index: 0
+  reviewed_definition: A reviewable artifact that supports a verification, validation, assurance, or release
+    decision.
+  grounding:
+    kernel_mapping:
+      external: Evidence registers and retained-evidence items referenced by verification slices (for
+        example RetainedMiddlewareEvidence) and bench evidence YAML records
+    sub_class_of: null
+    disjoint_with: []
+  external_reference:
+    accepted_ref: docs/method-conformance/o4/external-reference-acceptance-review.md#EvidenceArtifact
+  gates: []
+  forward_obligations: []
+- identity: capturedInBaseline
+  semantic_kind: relationship
+  admission_class: external-reference
+  register:
+    wave: W5
+    accounting: retained
+  boundary: external-content
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml
+    owner: package DE4SDV_OperationalContext
+    name: capturedInBaselineVocabularyRole
+    about:
+    - DE4SDVEvidenceBaseline
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: EvidenceArtifact
+    range: Baseline
+    semantic_strength: null
+  external_reference:
+    accepted_ref: docs/method-conformance/o4/external-reference-acceptance-review.md#capturedInBaseline
+  gates: []
+  forward_obligations: []
+- identity: hasEvidence
+  semantic_kind: relationship
+  admission_class: external-reference
+  register:
+    wave: W5
+    accounting: retained
+  boundary: external-content
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: package DE4SDV_ScopedAssurance
+    name: hasEvidenceVocabularyRole
+    about:
+    - EvidenceArtifactOntologyDefinition
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: VerificationCase
+    range: EvidenceArtifact
+    semantic_strength: external-data-required
+  mechanics:
+    strategy: external
+  external_reference:
+    accepted_ref: docs/method-conformance/o4/external-reference-acceptance-review.md#hasEvidence
+  gates: []
+  forward_obligations: []
+- identity: appliesToMemberProduct
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W5
+    accounting: retained
+  boundary: ple-no-configurator-authority
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: appliesToMemberProductVocabularyRole
+    about:
+    - FeatureConfigurationOntologyDefinition
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: FeatureConfiguration
+    range: MemberProduct
+    semantic_strength: null
+  gates:
+  - gate: decision-9
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+  forward_obligations: []
+- identity: hasAcceptanceCriterion
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W2
+    accounting: retained
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: hasAcceptanceCriterionVocabularyRole
+    about:
+    - AcceptanceCriterion
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: VerificationCase
+    range: AcceptanceCriterion
+    semantic_strength: null
+  gates:
+  - gate: decision-6
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d2
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d2
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+  - owner-approved cardinality is still open; no executable mapping until it is decided
+- identity: hasEvidenceStatus
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W6
+    accounting: retained
+  boundary: historical-redesign
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: package DE4SDV_ScopedAssurance
+    name: hasEvidenceStatusVocabularyRole
+    about:
+    - ScopedVVActivityRecord
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: EvidenceArtifact
+    range: EvidenceStatus
+    semantic_strength: null
+  gates:
+  - gate: decision-4
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: hasStakeholder
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W4
+    accounting: retained
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: hasStakeholderVocabularyRole
+    about:
+    - EngineeringIncrement
+    - Stakeholder
+    about_imports:
+      Stakeholder: textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml
+  reviewed_definition: null
+  relation:
+    domain: EngineeringIncrement
+    range: Stakeholder
+    semantic_strength: null
+  carrier:
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    declaration: connection def HasStakeholder
+  gates: []
+  forward_obligations: []
+- identity: includesCommonCapability
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W5
+    accounting: retained
+  boundary: ple-no-configurator-authority
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: includesCommonCapabilityVocabularyRole
+    about:
+    - FeatureConfigurationOntologyDefinition
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: FeatureConfiguration
+    range: CommonCapability
+    semantic_strength: null
+  gates:
+  - gate: decision-9
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+  forward_obligations: []
+- identity: instantiatesCanonicalArchitecture
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W5
+    accounting: retained
+  boundary: none
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: instantiatesCanonicalArchitectureOntologyDefinition
+    index: 0
+  reviewed_definition: 'Explicit binding from a composite member product''s contained architecture instances
+    (its logical-system and software usages) to the canonical architecture usages whose allocation and
+    evidence records govern them. The modeled dependencies originate from the contained usages, not from
+    the member-product root; the executable mapping must therefore define which elements carry this relationship
+    and how a query walks it before any product-level query reachability is claimed. Vocabulary only for
+    now: no sysml_mapping is declared because a generic dependency traversal cannot distinguish canonical-architecture
+    bindings from ordinary part-to-part dependencies without inventing a naming heuristic. Declaring an
+    executable mapping requires an explicit canonical-usage selector (for example an API-side allowlist
+    of canonical packages), not a name-based filter. The binding does not restate allocations at product
+    level and does not make a composite projection a resolved configured product.'
+  relation:
+    domain: MemberProduct
+    range: ArchitectureElement
+    semantic_strength: null
+  gates:
+  - gate: decision-10
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-8
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-8
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-8
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-8
+  forward_obligations:
+  - a reviewed canonical-usage selector before any reachability claim
+- identity: selectsFeature
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W5
+    accounting: retained
+  boundary: ple-no-configurator-authority
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: selectsFeatureVocabularyRole
+    about:
+    - FeatureConfigurationOntologyDefinition
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: FeatureConfiguration
+    range: Feature
+    semantic_strength: null
+  gates:
+  - gate: decision-9
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+  forward_obligations: []
+- identity: selectsVariant
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W5
+    accounting: retained
+  boundary: ple-no-configurator-authority
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: selectsVariantVocabularyRole
+    about:
+    - FeatureConfigurationOntologyDefinition
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: FeatureConfiguration
+    range: Variant
+    semantic_strength: null
+  gates:
+  - gate: decision-9
+    resolved_by:
+    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+  forward_obligations: []
+- identity: specifiesCommonCapability
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W4
+    accounting: retained
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: specifiesCommonCapabilityVocabularyRole
+    about:
+    - CommonProductLineCapability
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: Requirement
+    range: CommonCapability
+    semantic_strength: null
+  gates: []
+  forward_obligations: []
+- identity: specifiesFeature
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W4
+    accounting: retained
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: specifiesFeatureVocabularyRole
+    about:
+    - ProductLineFeatureCandidate
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: Requirement
+    range: Feature
+    semantic_strength: null
+  gates: []
+  forward_obligations: []
+- identity: supportedByEvidence
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W6
+    accounting: retained
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
+    owner: package DE4SDV_ScopedAssurance
+    name: supportedByEvidenceVocabularyRole
+    about:
+    - EvidenceSupportCitation
+    - ScopedEvidenceAdequacyAssessment
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: AssuranceClaim
+    range: EvidenceArtifact
+    semantic_strength: null
+  gates:
+  - gate: decision-3
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: variesAt
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: W3
+    accounting: retained
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: variesAtVocabularyRole
+    about:
+    - ProductLineFeatureCandidate
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: Feature
+    range: VariationPoint
+    semantic_strength: null
+  gates: []
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+  - native variant-membership witness (a feature usage in a variation's variant membership) before any
+    runtime claim
+- identity: hasRelevantEvidenceContract
+  semantic_kind: relationship
+  admission_class: relationship-runtime
+  register:
+    wave: W2
+    accounting: retained
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: hasRelevantEvidenceContractVocabularyRole
+    about:
+    - EvidenceContract
+    about_imports: {}
+  reviewed_definition: null
+  relation:
+    domain: Requirement
+    range: EvidenceContract
+    semantic_strength: relevance
+  mechanics:
+    strategy: dependency
+    relationship_types:
+    - Dependency
+    direction: incoming
+    source_property: source
+    target_property: target
+    source_types:
+    - RequirementUsage
+  range_discriminator:
+    kind: type-lineage
+    lineage:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: requirement def EvidenceContract
+    closure:
+    - file: textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml
+      declaration: requirement def BicycleEvidenceContract
+    - file: textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml
+      declaration: requirement def DegradedInputEvidenceContract
+    - file: textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml
+      declaration: requirement def NominalEvidenceContractRequirement
+    - file: textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml
+      declaration: requirement def NonActivationEvidenceContract
+    - file: textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml
+      declaration: requirement def OverrideEvidenceContract
+    - file: textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml
+      declaration: requirement def PartialInterventionEvidenceContract
+    - file: textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml
+      declaration: requirement def PedestrianEvidenceContract
+    - file: textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml
+      declaration: requirement def RegulatoryCriterionEvidenceContract
+  gates:
+  - gate: row-blocker
+    resolved_by:
+    - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d4-follow-up
+  forward_obligations:
+  - population test plus live exact-SHA evidence of the eight-contract type closure
+- identity: specifiesFunction
+  semantic_kind: relationship
+  admission_class: relationship-runtime
+  register:
+    wave: W6
+    accounting: retained
+  boundary: none
+  home:
+    form: named-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
+    name: specifiesFunctionOntologyDefinition
+    index: 0
+  reviewed_definition: 'Requirement-to-function relevance: a dependency from a draft requirement candidate
+    to the functional action or flow responsibility that addresses it. Relevance only — not satisfaction,
+    allocation, or verification.'
+  relation:
+    domain: Requirement
+    range: Function
+    semantic_strength: relevance
+  mechanics:
+    strategy: dependency
+    relationship_types:
+    - Dependency
+    direction: outgoing
+    source_property: source
+    target_property: target
+    source_types:
+    - RequirementUsage
+    target_types:
+    - ActionUsage
+    - ActionDefinition
+  gates:
+  - gate: decision-1
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: allocatedTo
+  semantic_kind: relationship
+  admission_class: successor
+  register:
+    wave: W3
+    accounting: retained
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: package DE4SDV_RelationshipSuccessor
+    name: allocatedToVocabularyRole
+    about:
+    - RequirementFunctionAssignment
+    - FunctionLogicalAssignment
+    - LogicalPhysicalAssignment
+    about_imports: {}
+  reviewed_definition: null
+  successor:
+    records:
+    - requirementAllocation
+    - functionAllocation
+    - physicalAllocation
+  gates:
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+  - exact-revision API closure of the typed allocation ends in the exact-SHA privileged run; a failure
+    blocks activation
+- identity: hasRegulatorySource
+  semantic_kind: relationship
+  admission_class: successor
+  register:
+    wave: null
+    accounting: w6-successor
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: package DE4SDV_RelationshipSuccessor
+    name: hasRegulatorySourceVocabularyRole
+    about:
+    - RegulatorySourceAssociation
+    about_imports: {}
+  reviewed_definition: null
+  successor:
+    records:
+    - regulatoryProvenance
+  gates: []
+  forward_obligations: []
+- identity: hasValidationScenario
+  semantic_kind: relationship
+  admission_class: successor
+  register:
+    wave: null
+    accounting: w6-successor
+  boundary: none
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: package DE4SDV_RelationshipSuccessor
+    name: hasValidationScenarioVocabularyRole
+    about:
+    - ValidationPlanningAssociation
+    about_imports: {}
+  reviewed_definition: null
+  successor:
+    records:
+    - validationPlanning
+  gates: []
+  forward_obligations: []
+- identity: constrainedBy
+  semantic_kind: relationship
+  admission_class: deprecated-alias
+  register:
+    wave: W6
+    accounting: retained
+  boundary: none
+  home:
+    form: retirement-record
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: package DE4SDV_RelationshipSuccessor
+    name: oldRegulatoryName
+  reviewed_definition: null
+  relation:
+    domain: Requirement
+    range: RegulatoryConstraint
+    semantic_strength: null
+  alias:
+    successor: hasRegulatorySource
+    successor_carrier: RegulatorySourceAssociation
+    direction: forward
+    answer_mode: documentation-only
+  gates:
+  - gate: decision-1
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+  - gate: decision-2
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic2
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic2
+    - docs/method-conformance/o4/w6-transition-plan.yaml#constrainedBy
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: deployedTo
+  semantic_kind: relationship
+  admission_class: deprecated-alias
+  register:
+    wave: W6
+    accounting: retained
+  boundary: none
+  home:
+    form: retirement-record
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: package DE4SDV_RelationshipSuccessor
+    name: oldDeployment
+  reviewed_definition: null
+  relation:
+    domain: LogicalElement
+    range: PhysicalElement
+    semantic_strength: null
+  alias:
+    successor: allocatedTo
+    successor_carrier: LogicalPhysicalAssignment
+    direction: forward
+    answer_mode: successor-facts
+  gates:
+  - gate: decision-1
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - docs/method-conformance/o4/w6-transition-plan.yaml#deployedTo
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: realizedBy
+  semantic_kind: relationship
+  admission_class: deprecated-alias
+  register:
+    wave: W6
+    accounting: retained
+  boundary: none
+  home:
+    form: retirement-record
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: package DE4SDV_RelationshipSuccessor
+    name: oldRealization
+  reviewed_definition: null
+  relation:
+    domain: Requirement
+    range: ArchitectureElement
+    semantic_strength: allocation
+  alias:
+    successor: allocatedTo
+    successor_carrier: RequirementFunctionAssignment
+    direction: forward
+    answer_mode: successor-facts
+  gates:
+  - gate: decision-1
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - docs/method-conformance/o4/w6-transition-plan.yaml#realizedBy
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: validatedBy
+  semantic_kind: relationship
+  admission_class: deprecated-alias
+  register:
+    wave: W6
+    accounting: retained
+  boundary: none
+  home:
+    form: retirement-record
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: package DE4SDV_RelationshipSuccessor
+    name: oldValidationForward
+  reviewed_definition: null
+  relation:
+    domain: Need
+    range: ValidationScenario
+    semantic_strength: null
+  alias:
+    successor: hasValidationScenario
+    successor_carrier: ValidationPlanningAssociation
+    direction: forward
+    answer_mode: successor-facts
+  gates:
+  - gate: decision-1
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - docs/method-conformance/o4/w6-transition-plan.yaml#validatedBy
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: validatesFitnessForUse
+  semantic_kind: relationship
+  admission_class: deprecated-alias
+  register:
+    wave: null
+    accounting: merged
+  boundary: none
+  home:
+    form: retirement-record
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    owner: package DE4SDV_RelationshipSuccessor
+    name: oldValidationInverse
+  reviewed_definition: null
+  relation:
+    domain: ValidationScenario
+    range: Need
+    semantic_strength: null
+  alias:
+    successor: hasValidationScenario
+    successor_carrier: ValidationPlanningAssociation
+    direction: inverse
+    answer_mode: successor-facts
+  gates:
+  - gate: row-blocker
+    resolved_by:
+    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+  forward_obligations:
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim

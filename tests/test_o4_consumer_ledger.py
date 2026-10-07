@@ -132,6 +132,7 @@ def _passing_gate_mocks():
 
     from de4sdv.semantic import (
         definition_projection,
+        definition_projection_batch2,
         external_reference_contract,
         vocabulary_carrier,
     )
@@ -143,6 +144,9 @@ def _passing_gate_mocks():
             external_reference_contract, "run_check_errors", return_value=[]
         ),
         mock.patch.object(definition_projection, "run_check_errors", return_value=[]),
+        mock.patch.object(
+            definition_projection_batch2, "run_check_errors", return_value=[]
+        ),
         mock.patch.object(check_repo, "find_duplicate_global_packages", return_value={}),
         mock.patch.object(
             check_repo.validate_aebs_executable_bench, "validate_bench", return_value=[]

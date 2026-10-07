@@ -330,15 +330,24 @@ class TestLayers:
     #: consumes preconstructed records and cannot import the extractor.
     #: scoped_assurance.py is an offline supplied-record/source-check validator,
     #: not a runtime query provider or a reader of reviewed decision datasets.
+    #: `definition_projection_batch2.py` is the O4 definition-admission batch-2
+    #: build-time generator module (same pattern as `definition_projection.py`):
+    #: only the generator and the chain verifier import it; adding it here also
+    #: forbids every runtime module from importing it.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "definition_candidate.py",
         "definition_candidate_provider.py",
         "definition_migration.py",
         "composition_construction.py",
+        # O4 Wave B entry-point selection seam: construction-time authority
+        # selection that delegates to composition_construction (never read at
+        # query time; it reads no inventory or decisions data).
+        "entry_authority.py",
         "relationship_successor_contract.py",
         "scoped_assurance.py",
         "definition_projection.py",
+        "definition_projection_batch2.py",
         "projection_o22.py",
         "projection_o23.py",
         "projection_o2p.py",
@@ -346,6 +355,17 @@ class TestLayers:
         "o3_equivalence.py",
         "vocabulary_carrier.py",
     )
+
+    #: Construction-time verifiers (O4 Wave B): runtime modules that verify
+    #: build-time artifacts once at construction, like composition_construction
+    #: does for the o3+definitions sidecar. Only the named imports are allowed;
+    #: the inventory/decisions text check below still applies to them.
+    _CONSTRUCTION_VERIFIER_IMPORTS = {
+        "model_authority_runtime.py": frozenset({
+            "definition_migration",  # verified batch-1 definition pair
+            "relationship_successor_contract",  # successor contract from the model
+        }),
+    }
 
     def test_reviewed_decisions_not_runtime_values(self):
         """The runtime never reads the inventory or the decisions dataset."""
@@ -364,13 +384,18 @@ class TestLayers:
             if "semantic-authority-inventory" in text:
                 offenders.append(str(path.relative_to(REPO_ROOT)))
         assert offenders == []
+        for allowed in self._CONSTRUCTION_VERIFIER_IMPORTS.values():
+            assert "authority_inventory" not in allowed
         # No module outside the build-time governance set may import them.
         for path in sorted((REPO_ROOT / "de4sdv").rglob("*.py")):
             if "__pycache__" in path.parts or path.name in governance_modules:
                 continue
             text = path.read_text(encoding="utf-8")
+            allowed = self._CONSTRUCTION_VERIFIER_IMPORTS.get(path.name, frozenset())
             for governance in governance_modules:
                 stem = governance[: -len(".py")]
+                if stem in allowed:
+                    continue
                 assert (
                     f"import {stem}" not in text and f"from .{stem}" not in text
                 ), f"{path}: imports build-time governance module {stem}"

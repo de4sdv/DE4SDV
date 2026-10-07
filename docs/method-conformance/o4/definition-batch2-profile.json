@@ -1,0 +1,957 @@
+{
+  "schema": "de4sdv.o4-definition-batch2-profile/v1",
+  "status": "admitted",
+  "warning": "no traversal proof, no runtime read by this artifact, no API element identity, no authority retirement; deprecated aliases are documented names only",
+  "binding": {
+    "source_revision": "65dd9b153ffbc98d7d939491f3696d677d75322f",
+    "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality and the recorded content digests.",
+    "artifact_commit": null,
+    "artifact_commit_note": "Unknowable at generation; left explicitly unclaimed.",
+    "generation_software": {
+      "program_inputs": [
+        "de4sdv/semantic/definition_projection_batch2.py",
+        "scripts/generate_definition_projection.py",
+        "de4sdv/semantic/authority_inventory.py",
+        "de4sdv/semantic/projection_o2p.py"
+      ],
+      "note": "The batch-2 module, the shared generator script, and the two shared modules executed at generation time (normalization, digests and revision containment; canonical JSON)."
+    },
+    "semantic_model_revision": {
+      "model_inputs": [
+        "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml"
+      ],
+      "note": "The governed model files read by the generator, contained byte-for-byte in source_revision."
+    },
+    "governance_inputs": {
+      "admission_document": {
+        "path": "docs/method-conformance/o4/definition-admission-batch2.yaml",
+        "digest": "sha256:de0e6f49bf5d77477a67f068a3d8dee614c288a979cf4f2eb9a8e43b154b72dd"
+      },
+      "design_record": {
+        "path": "docs/method-conformance/o4/definition-admission-batch2-design.md",
+        "digest": "sha256:ad8e566dca2b5c990ee846de1df61d2f7156a73636f42bc2c3231e54a8d3403a"
+      },
+      "external_reference_profile": {
+        "path": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "digest": "sha256:3ebff0476f11ec176819012bcd0337e41efb6752f3091f45532ed67b6b34bed7"
+      }
+    },
+    "api_binding": {
+      "status": "unclaimed",
+      "note": "No SysML API element UUID is claimed; profile entries state representation mechanics only."
+    },
+    "bound_inputs": {
+      "de4sdv/semantic/authority_inventory.py": "sha256:6ecd3ee167ebb89f72f4fd21e039d6ee54930889da0714281ece5e882a7e6f6d",
+      "de4sdv/semantic/definition_projection_batch2.py": "sha256:e936b45e2b38348f7398fb93213270c6808c865cace0485a7f5157655e56c36d",
+      "de4sdv/semantic/projection_o2p.py": "sha256:03ed5509e02126cabd2234aa84725c761b42f1b454172fbc4b6a9ef66c4e7817",
+      "docs/method-conformance/o4/definition-admission-batch2-design.md": "sha256:ad8e566dca2b5c990ee846de1df61d2f7156a73636f42bc2c3231e54a8d3403a",
+      "docs/method-conformance/o4/definition-admission-batch2.yaml": "sha256:de0e6f49bf5d77477a67f068a3d8dee614c288a979cf4f2eb9a8e43b154b72dd",
+      "docs/method-conformance/o4/external-reference-profile.yaml": "sha256:3ebff0476f11ec176819012bcd0337e41efb6752f3091f45532ed67b6b34bed7",
+      "scripts/generate_definition_projection.py": "sha256:8a06c0692f1f043454421a7826257b8a2695cfb43b76446fcc172675621c338d",
+      "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml": "sha256:b5cfb9604a1c1b0adcbc08332c8d3fb2b3db2a6d8ca1ee7a9b56ff4cb8e3a2f2",
+      "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml": "sha256:b291c4bddd2b4fe75ddcd174bb172328b22ea0f1687a5961975fa7eda35a41d1",
+      "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml": "sha256:6598cabd353a80e4a2bd977350319cc7e10c938b0ed6bcd352d6037f215107ad",
+      "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml": "sha256:a7258c4f5c43644cb331d85fc46f8897340a02688a35f02735af3ebe8f862002",
+      "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml": "sha256:4102557bd8a7ff32d6243534dfb8868e233cafb30bdd4d04669b13a7a98beb84",
+      "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml": "sha256:35c89ec4a674e3acb82de2d1f7b1b22adbfb295e84c4ce8829148a69b7ad48d3",
+      "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml": "sha256:8be0a0afff343c1e1a6316d251952386e61e0bf436e5f464a43e2aedf590362c",
+      "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml": "sha256:64247cc55f0f2e0d526bab8d3d89e48411e323dc151896e759c2219b864ed370",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml": "sha256:b6e982c94fece36524dc816922029eacbaba6c961b1d1663b123ae598f41a328",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:63c1a3efc36f77027fff2e22aa071ebc3ecdaddf4d23976e8662bcb45fc02654",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml": "sha256:a4b2cba28cc6f29534db455ef47f1e0aed3ded7ccdc690bebf475cf3e732efd7",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9a566d02964af2b2af5d6508601d7623d7c5b06235630dcf1413fa774cba9edb",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:3d669f980fd985c5c0e40682c9ea347b140dbf331b526869101ab73f39aed1ef",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:d1567cc6ba76a92899133979239af11268ef7d0ce2b5787cb8b0f2ceb694fdbb",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml": "sha256:29f2816f277bb91fed28997f2ed07108a5b93fb7b2de22b50637cdc66d53f93a",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml": "sha256:90ea9a644770d519364393387caaa9435c699104656a82a1531eff059bb05ac4"
+    }
+  },
+  "entries": [
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#AcceptanceCriterion",
+      "for_concept": "AcceptanceCriterion",
+      "representation_class": "requirement-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "requirement def AcceptanceCriterion",
+        "api_metaclass": "RequirementDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#AllocatableFunction",
+      "for_concept": "AllocatableFunction",
+      "representation_class": "action-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "action def AllocatableFunction",
+        "api_metaclass": "ActionDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ApprovedTraceMethod",
+      "for_concept": "ApprovedTraceMethod",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+        "owner": "part def ApprovedTraceMethod",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ArchitectureDecisionRecord",
+      "for_concept": "ArchitectureDecisionRecord",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "part def ArchitectureDecisionRecord",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ArchitectureElement",
+      "for_concept": "ArchitectureElement",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#AssuranceClaim",
+      "for_concept": "AssuranceClaim",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "package DE4SDV_ScopedAssurance",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#Baseline",
+      "for_concept": "Baseline",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+        "owner": "part def DE4SDVEvidenceBaseline",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ],
+      "external_reference": {
+        "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#Baseline",
+        "representation_class": "model-resident-boundary-identity"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#CommonCapability",
+      "for_concept": "CommonCapability",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "part def CommonProductLineCapability",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#DerivesFromNeed",
+      "for_concept": "DerivesFromNeed",
+      "representation_class": "connection-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "connection def DerivesFromNeed",
+        "api_metaclass": "ConnectionDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#EvidenceArtifact",
+      "for_concept": "EvidenceArtifact",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "package DE4SDV_ScopedAssurance",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ],
+      "external_reference": {
+        "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#EvidenceArtifact",
+        "representation_class": "external-reference-record"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#EvidenceContract",
+      "for_concept": "EvidenceContract",
+      "representation_class": "requirement-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "requirement def EvidenceContract",
+        "api_metaclass": "RequirementDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#EvidenceStatus",
+      "for_concept": "EvidenceStatus",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "package DE4SDV_ScopedAssurance",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#EvidenceSupportCitation",
+      "for_concept": "EvidenceSupportCitation",
+      "representation_class": "item-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "item def EvidenceSupportCitation",
+        "api_metaclass": "ItemDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#Feature",
+      "for_concept": "Feature",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "part def ProductLineFeatureCandidate",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#FeatureConfiguration",
+      "for_concept": "FeatureConfiguration",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ],
+      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#Function",
+      "for_concept": "Function",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#IncrementTraceObligations",
+      "for_concept": "IncrementTraceObligations",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+        "owner": "part def IncrementTraceObligations",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#Interface",
+      "for_concept": "Interface",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#LogicalAllocationElement",
+      "for_concept": "LogicalAllocationElement",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "part def LogicalAllocationElement",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#LogicalElement",
+      "for_concept": "LogicalElement",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#MethodEvaluationScope",
+      "for_concept": "MethodEvaluationScope",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+        "owner": "part def MethodEvaluationScope",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#PhysicalAllocationElement",
+      "for_concept": "PhysicalAllocationElement",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "part def PhysicalAllocationElement",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#PhysicalElement",
+      "for_concept": "PhysicalElement",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#RegulatorySource",
+      "for_concept": "RegulatorySource",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "part def ControlledRegulatorySource",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#RegulatorySourceAssociation",
+      "for_concept": "RegulatorySourceAssociation",
+      "representation_class": "connection-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "connection def RegulatorySourceAssociation",
+        "api_metaclass": "ConnectionDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#RequiredTraceChain",
+      "for_concept": "RequiredTraceChain",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+        "owner": "package DE4SDV_MethodTraces",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ScopedEvidenceAdequacyAssessment",
+      "for_concept": "ScopedEvidenceAdequacyAssessment",
+      "representation_class": "item-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "item def ScopedEvidenceAdequacyAssessment",
+        "api_metaclass": "ItemDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ScopedVVActivityRecord",
+      "for_concept": "ScopedVVActivityRecord",
+      "representation_class": "item-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "item def ScopedVVActivityRecord",
+        "api_metaclass": "ItemDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#Stakeholder",
+      "for_concept": "Stakeholder",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml",
+        "owner": "part def Stakeholder",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#TraceLink",
+      "for_concept": "TraceLink",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+        "owner": "package DE4SDV_MethodTraces",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ValidationPlanningAssociation",
+      "for_concept": "ValidationPlanningAssociation",
+      "representation_class": "connection-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "connection def ValidationPlanningAssociation",
+        "api_metaclass": "ConnectionDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ValidationPlanningScenario",
+      "for_concept": "ValidationPlanningScenario",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "part def ValidationPlanningScenario",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ValidationScenario",
+      "for_concept": "ValidationScenario",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+        "owner": "package DE4SDV_OperationalContext",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#allocatedTo",
+      "for_concept": "allocatedTo",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "package DE4SDV_RelationshipSuccessor",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "successor_mechanics": [
+        {
+          "record": "requirementAllocation",
+          "mechanism": "native-allocation",
+          "carrier": "connection def RequirementFunctionAssignment",
+          "source_usage": "RequirementUsage",
+          "target_usage": "ActionUsage"
+        },
+        {
+          "record": "functionAllocation",
+          "mechanism": "native-allocation",
+          "carrier": "connection def FunctionLogicalAssignment",
+          "source_usage": "ActionUsage",
+          "target_usage": "PartUsage"
+        },
+        {
+          "record": "physicalAllocation",
+          "mechanism": "native-allocation",
+          "carrier": "connection def LogicalPhysicalAssignment",
+          "source_usage": "PartUsage",
+          "target_usage": "PartUsage"
+        }
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#appliesToMemberProduct",
+      "for_concept": "appliesToMemberProduct",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#capturedInBaseline",
+      "for_concept": "capturedInBaseline",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+        "owner": "package DE4SDV_OperationalContext",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "external_reference": {
+        "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#capturedInBaseline",
+        "representation_class": "external-reference-record"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#constrainedBy",
+      "for_concept": "constrainedBy",
+      "representation_class": "successor-retirement-record",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "package DE4SDV_RelationshipSuccessor",
+        "api_metaclass": "PartUsage"
+      },
+      "witness_forms": [
+        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+      ],
+      "alias_resolution": {
+        "successor": "hasRegulatorySource",
+        "navigation": "hasRegulatorySource",
+        "carrier": "RegulatorySourceAssociation",
+        "answer_mode": "documentation-only"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#deployedTo",
+      "for_concept": "deployedTo",
+      "representation_class": "successor-retirement-record",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "package DE4SDV_RelationshipSuccessor",
+        "api_metaclass": "PartUsage"
+      },
+      "witness_forms": [
+        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+      ],
+      "alias_resolution": {
+        "successor": "allocatedTo",
+        "navigation": "allocatedTo",
+        "carrier": "LogicalPhysicalAssignment",
+        "answer_mode": "successor-facts"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasAcceptanceCriterion",
+      "for_concept": "hasAcceptanceCriterion",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasEvidence",
+      "for_concept": "hasEvidence",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "package DE4SDV_ScopedAssurance",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "serializer_mechanics": {
+        "strategy": "external"
+      },
+      "mechanics_source": "reviewed manifest field equal to the authored mapping (test-locked); Wave C retires the authored copy",
+      "external_reference": {
+        "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#hasEvidence",
+        "representation_class": "external-reference-record"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasEvidenceStatus",
+      "for_concept": "hasEvidenceStatus",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "package DE4SDV_ScopedAssurance",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasRegulatorySource",
+      "for_concept": "hasRegulatorySource",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "package DE4SDV_RelationshipSuccessor",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "successor_mechanics": [
+        {
+          "record": "regulatoryProvenance",
+          "mechanism": "typed-connection",
+          "carrier": "connection def RegulatorySourceAssociation",
+          "source_usage": "RequirementUsage",
+          "target_usage": "PartUsage"
+        }
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasRelevantEvidenceContract",
+      "for_concept": "hasRelevantEvidenceContract",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "serializer_mechanics": {
+        "strategy": "dependency",
+        "relationship_types": [
+          "Dependency"
+        ],
+        "direction": "incoming",
+        "source_property": "source",
+        "target_property": "target",
+        "source_types": [
+          "RequirementUsage"
+        ]
+      },
+      "mechanics_source": "reviewed manifest field equal to the authored mapping (test-locked); Wave C retires the authored copy"
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasStakeholder",
+      "for_concept": "hasStakeholder",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasValidationScenario",
+      "for_concept": "hasValidationScenario",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "package DE4SDV_RelationshipSuccessor",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "successor_mechanics": [
+        {
+          "record": "validationPlanning",
+          "mechanism": "typed-connection",
+          "carrier": "connection def ValidationPlanningAssociation",
+          "source_usage": "RequirementUsage",
+          "target_usage": "PartUsage"
+        }
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#includesCommonCapability",
+      "for_concept": "includesCommonCapability",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#instantiatesCanonicalArchitecture",
+      "for_concept": "instantiatesCanonicalArchitecture",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#realizedBy",
+      "for_concept": "realizedBy",
+      "representation_class": "successor-retirement-record",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "package DE4SDV_RelationshipSuccessor",
+        "api_metaclass": "PartUsage"
+      },
+      "witness_forms": [
+        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+      ],
+      "alias_resolution": {
+        "successor": "allocatedTo",
+        "navigation": "allocatedTo",
+        "carrier": "RequirementFunctionAssignment",
+        "answer_mode": "successor-facts"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#selectsFeature",
+      "for_concept": "selectsFeature",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#selectsVariant",
+      "for_concept": "selectsVariant",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#specifiesCommonCapability",
+      "for_concept": "specifiesCommonCapability",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#specifiesFeature",
+      "for_concept": "specifiesFeature",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#specifiesFunction",
+      "for_concept": "specifiesFunction",
+      "representation_class": "package-owned-definition-documentation",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
+        "api_metaclass": "Documentation"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ],
+      "serializer_mechanics": {
+        "strategy": "dependency",
+        "relationship_types": [
+          "Dependency"
+        ],
+        "direction": "outgoing",
+        "source_property": "source",
+        "target_property": "target",
+        "source_types": [
+          "RequirementUsage"
+        ],
+        "target_types": [
+          "ActionUsage",
+          "ActionDefinition"
+        ]
+      },
+      "mechanics_source": "reviewed manifest field equal to the authored mapping (test-locked); Wave C retires the authored copy"
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#supportedByEvidence",
+      "for_concept": "supportedByEvidence",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "owner": "package DE4SDV_ScopedAssurance",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#validatedBy",
+      "for_concept": "validatedBy",
+      "representation_class": "successor-retirement-record",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "package DE4SDV_RelationshipSuccessor",
+        "api_metaclass": "PartUsage"
+      },
+      "witness_forms": [
+        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+      ],
+      "alias_resolution": {
+        "successor": "hasValidationScenario",
+        "navigation": "hasValidationScenario",
+        "carrier": "ValidationPlanningAssociation",
+        "answer_mode": "successor-facts"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#validatesFitnessForUse",
+      "for_concept": "validatesFitnessForUse",
+      "representation_class": "successor-retirement-record",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "owner": "package DE4SDV_RelationshipSuccessor",
+        "api_metaclass": "PartUsage"
+      },
+      "witness_forms": [
+        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+      ],
+      "alias_resolution": {
+        "successor": "hasValidationScenario",
+        "navigation": "validationScenarioFor",
+        "carrier": "ValidationPlanningAssociation",
+        "answer_mode": "successor-facts"
+      }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#variesAt",
+      "for_concept": "variesAt",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ]
+    }
+  ]
+}

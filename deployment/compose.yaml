@@ -115,6 +115,14 @@ services:
       DE4SDV_SEMANTIC_AUTHORITY: ${DE4SDV_SEMANTIC_AUTHORITY:-legacy}
       DE4SDV_O3_AUTHORITY_BUNDLE: ${DE4SDV_O3_AUTHORITY_BUNDLE:-/run/de4sdv/o3/de4sdv-o3-authority-bundle.json}
       DE4SDV_O3_AUTHORITY_BUNDLE_ID: ${DE4SDV_O3_AUTHORITY_BUNDLE_ID:-}
+      # O4 model-authority selection (DE4SDV_SEMANTIC_AUTHORITY=model). Same
+      # substitution-environment rule as O3; the request is bundle-id-bound
+      # (mab-...) and verified at startup; any mismatch refuses the runtime
+      # (no fallback to O3 or legacy). Rollback is DE4SDV_SEMANTIC_AUTHORITY=o3
+      # with a fresh O3 bundle at the same revision, legacy second.
+      # Procedure: docs/method-conformance/o4/model-authority-activation.md
+      DE4SDV_MODEL_AUTHORITY_BUNDLE: ${DE4SDV_MODEL_AUTHORITY_BUNDLE:-/run/de4sdv/model/de4sdv-model-authority-bundle.json}
+      DE4SDV_MODEL_AUTHORITY_BUNDLE_ID: ${DE4SDV_MODEL_AUTHORITY_BUNDLE_ID:-}
     expose:
       - "8787"
     read_only: true
@@ -134,6 +142,10 @@ services:
       # authoritative. Rollback leaves the file in place: a retained
       # artifact is not active authority.
       - ${DEPLOY_DIR}/artifacts/o3:/run/de4sdv/o3:ro
+      # Model-authority bundle delivery directory: never read unless
+      # `model` is selected; kept outside the checkout like the O3 one. A
+      # rollback leaves the file in place (retained artifact, not authority).
+      - ${DEPLOY_DIR}/artifacts/model:/run/de4sdv/model:ro
       - ask_viewer_cache:/var/cache/de4sdv-viewer
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/ask-status.json', timeout=5)"]

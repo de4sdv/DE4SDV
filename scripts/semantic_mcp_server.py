@@ -3,15 +3,19 @@
 
 Semantic authority is selected explicitly (O3):
 
-    --semantic-authority legacy|o3      DE4SDV_SEMANTIC_AUTHORITY
-    --o3-authority-bundle <path>        DE4SDV_O3_AUTHORITY_BUNDLE
-    --o3-authority-bundle-id <o3b-...>  DE4SDV_O3_AUTHORITY_BUNDLE_ID
+    --semantic-authority legacy|o3|model   DE4SDV_SEMANTIC_AUTHORITY
+    --o3-authority-bundle <path>           DE4SDV_O3_AUTHORITY_BUNDLE
+    --o3-authority-bundle-id <o3b-...>     DE4SDV_O3_AUTHORITY_BUNDLE_ID
+    --model-authority-bundle <path>        DE4SDV_MODEL_AUTHORITY_BUNDLE
+    --model-authority-bundle-id <mab-...>  DE4SDV_MODEL_AUTHORITY_BUNDLE_ID
 
 The default is legacy authority. An explicit O3 request is verified at
 startup (exact revision, revision binding, closed bundle attestation,
 activation eligibility); any failure refuses to start — there is no
-fallback to legacy. See docs/method-conformance/o3/ for the activation and
-rollback procedures.
+fallback to legacy. A ``model`` request (O4 Wave B) is bundle-id-bound the
+same way and never falls back to O3 or legacy. Procedures:
+docs/method-conformance/o3/o3-activation-and-rollback.md and
+docs/method-conformance/o4/model-authority-activation.md.
 """
 
 from __future__ import annotations
@@ -28,7 +32,9 @@ if str(ROOT) not in sys.path:
 from de4sdv.semantic.authority_selection import (  # noqa: E402
     AuthoritySelectionError,
 )
-from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime as build_selected_semantic_runtime
+from de4sdv.semantic.entry_authority import (  # noqa: E402
+    build_entry_semantic_runtime as build_selected_semantic_runtime,
+)
 from de4sdv.semantic.mcp_server import create_mcp_server  # noqa: E402
 from de4sdv.semantic.o3_bundle import O3BundleError  # noqa: E402
 
@@ -50,7 +56,7 @@ def main() -> int:
     parser.add_argument("--api-timeout", type=float, default=600.0)
     parser.add_argument(
         "--semantic-authority",
-        help="explicit semantic authority: legacy (default) or o3",
+        help="explicit semantic authority: legacy (default), o3 or model",
     )
     parser.add_argument(
         "--o3-authority-bundle",
@@ -59,6 +65,14 @@ def main() -> int:
     parser.add_argument(
         "--o3-authority-bundle-id",
         help="exact accepted bundle id (o3b-...) the selection is bound to",
+    )
+    parser.add_argument(
+        "--model-authority-bundle",
+        help="path to the accepted model-authority bundle JSON (model)",
+    )
+    parser.add_argument(
+        "--model-authority-bundle-id",
+        help="exact accepted model-authority bundle id (mab-...)",
     )
     parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
     args = parser.parse_args()
@@ -93,6 +107,8 @@ def main() -> int:
             authority=args.semantic_authority,
             bundle_path=args.o3_authority_bundle,
             bundle_id=args.o3_authority_bundle_id,
+            model_bundle_path=args.model_authority_bundle,
+            model_bundle_id=args.model_authority_bundle_id,
             **({"composition": args.runtime_composition} if args.runtime_composition is not None else {}),
         )
     except (AuthoritySelectionError, O3BundleError) as exc:

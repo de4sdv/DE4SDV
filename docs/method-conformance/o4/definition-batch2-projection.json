@@ -1,0 +1,2281 @@
+{
+  "schema": "de4sdv.o4-definition-batch2-projection/v1",
+  "status": "admitted",
+  "warning": "no traversal proof, no runtime read by this artifact, no API element identity, no authority retirement; deprecated aliases are documented names only",
+  "binding": {
+    "source_revision": "65dd9b153ffbc98d7d939491f3696d677d75322f",
+    "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality and the recorded content digests.",
+    "artifact_commit": null,
+    "artifact_commit_note": "Unknowable at generation; left explicitly unclaimed.",
+    "generation_software": {
+      "program_inputs": [
+        "de4sdv/semantic/definition_projection_batch2.py",
+        "scripts/generate_definition_projection.py",
+        "de4sdv/semantic/authority_inventory.py",
+        "de4sdv/semantic/projection_o2p.py"
+      ],
+      "note": "The batch-2 module, the shared generator script, and the two shared modules executed at generation time (normalization, digests and revision containment; canonical JSON)."
+    },
+    "semantic_model_revision": {
+      "model_inputs": [
+        "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml",
+        "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml"
+      ],
+      "note": "The governed model files read by the generator, contained byte-for-byte in source_revision."
+    },
+    "governance_inputs": {
+      "admission_document": {
+        "path": "docs/method-conformance/o4/definition-admission-batch2.yaml",
+        "digest": "sha256:de0e6f49bf5d77477a67f068a3d8dee614c288a979cf4f2eb9a8e43b154b72dd"
+      },
+      "design_record": {
+        "path": "docs/method-conformance/o4/definition-admission-batch2-design.md",
+        "digest": "sha256:ad8e566dca2b5c990ee846de1df61d2f7156a73636f42bc2c3231e54a8d3403a"
+      },
+      "external_reference_profile": {
+        "path": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "digest": "sha256:3ebff0476f11ec176819012bcd0337e41efb6752f3091f45532ed67b6b34bed7"
+      }
+    },
+    "api_binding": {
+      "status": "unclaimed",
+      "note": "No SysML API element UUID is claimed; profile entries state representation mechanics only."
+    },
+    "bound_inputs": {
+      "de4sdv/semantic/authority_inventory.py": "sha256:6ecd3ee167ebb89f72f4fd21e039d6ee54930889da0714281ece5e882a7e6f6d",
+      "de4sdv/semantic/definition_projection_batch2.py": "sha256:e936b45e2b38348f7398fb93213270c6808c865cace0485a7f5157655e56c36d",
+      "de4sdv/semantic/projection_o2p.py": "sha256:03ed5509e02126cabd2234aa84725c761b42f1b454172fbc4b6a9ef66c4e7817",
+      "docs/method-conformance/o4/definition-admission-batch2-design.md": "sha256:ad8e566dca2b5c990ee846de1df61d2f7156a73636f42bc2c3231e54a8d3403a",
+      "docs/method-conformance/o4/definition-admission-batch2.yaml": "sha256:de0e6f49bf5d77477a67f068a3d8dee614c288a979cf4f2eb9a8e43b154b72dd",
+      "docs/method-conformance/o4/external-reference-profile.yaml": "sha256:3ebff0476f11ec176819012bcd0337e41efb6752f3091f45532ed67b6b34bed7",
+      "scripts/generate_definition_projection.py": "sha256:8a06c0692f1f043454421a7826257b8a2695cfb43b76446fcc172675621c338d",
+      "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml": "sha256:b5cfb9604a1c1b0adcbc08332c8d3fb2b3db2a6d8ca1ee7a9b56ff4cb8e3a2f2",
+      "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml": "sha256:b291c4bddd2b4fe75ddcd174bb172328b22ea0f1687a5961975fa7eda35a41d1",
+      "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml": "sha256:6598cabd353a80e4a2bd977350319cc7e10c938b0ed6bcd352d6037f215107ad",
+      "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml": "sha256:a7258c4f5c43644cb331d85fc46f8897340a02688a35f02735af3ebe8f862002",
+      "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml": "sha256:4102557bd8a7ff32d6243534dfb8868e233cafb30bdd4d04669b13a7a98beb84",
+      "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml": "sha256:35c89ec4a674e3acb82de2d1f7b1b22adbfb295e84c4ce8829148a69b7ad48d3",
+      "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml": "sha256:8be0a0afff343c1e1a6316d251952386e61e0bf436e5f464a43e2aedf590362c",
+      "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml": "sha256:64247cc55f0f2e0d526bab8d3d89e48411e323dc151896e759c2219b864ed370",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml": "sha256:b6e982c94fece36524dc816922029eacbaba6c961b1d1663b123ae598f41a328",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:63c1a3efc36f77027fff2e22aa071ebc3ecdaddf4d23976e8662bcb45fc02654",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml": "sha256:a4b2cba28cc6f29534db455ef47f1e0aed3ded7ccdc690bebf475cf3e732efd7",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9a566d02964af2b2af5d6508601d7623d7c5b06235630dcf1413fa774cba9edb",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:3d669f980fd985c5c0e40682c9ea347b140dbf331b526869101ab73f39aed1ef",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:d1567cc6ba76a92899133979239af11268ef7d0ce2b5787cb8b0f2ceb694fdbb",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml": "sha256:29f2816f277bb91fed28997f2ed07108a5b93fb7b2de22b50637cdc66d53f93a",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml": "sha256:90ea9a644770d519364393387caaa9435c699104656a82a1531eff059bb05ac4"
+    }
+  },
+  "scope": {
+    "admission": "O4 definition-admission batch 2 (definition-admission-batch2.yaml)",
+    "admitted": [
+      "AcceptanceCriterion",
+      "AllocatableFunction",
+      "ApprovedTraceMethod",
+      "ArchitectureDecisionRecord",
+      "ArchitectureElement",
+      "AssuranceClaim",
+      "Baseline",
+      "CommonCapability",
+      "DerivesFromNeed",
+      "EvidenceArtifact",
+      "EvidenceContract",
+      "EvidenceStatus",
+      "EvidenceSupportCitation",
+      "Feature",
+      "FeatureConfiguration",
+      "Function",
+      "IncrementTraceObligations",
+      "Interface",
+      "LogicalAllocationElement",
+      "LogicalElement",
+      "MethodEvaluationScope",
+      "PhysicalAllocationElement",
+      "PhysicalElement",
+      "RegulatorySource",
+      "RegulatorySourceAssociation",
+      "RequiredTraceChain",
+      "ScopedEvidenceAdequacyAssessment",
+      "ScopedVVActivityRecord",
+      "Stakeholder",
+      "TraceLink",
+      "ValidationPlanningAssociation",
+      "ValidationPlanningScenario",
+      "ValidationScenario",
+      "allocatedTo",
+      "appliesToMemberProduct",
+      "capturedInBaseline",
+      "constrainedBy",
+      "deployedTo",
+      "hasAcceptanceCriterion",
+      "hasEvidence",
+      "hasEvidenceStatus",
+      "hasRegulatorySource",
+      "hasRelevantEvidenceContract",
+      "hasStakeholder",
+      "hasValidationScenario",
+      "includesCommonCapability",
+      "instantiatesCanonicalArchitecture",
+      "realizedBy",
+      "selectsFeature",
+      "selectsVariant",
+      "specifiesCommonCapability",
+      "specifiesFeature",
+      "specifiesFunction",
+      "supportedByEvidence",
+      "validatedBy",
+      "validatesFitnessForUse",
+      "variesAt"
+    ],
+    "exceptions": [
+      {
+        "identity": "IncrementTraceabilityShell",
+        "accounting": "merged",
+        "reason": "Merged register row (successor IncrementTraceObligations, admitted in this batch). Its historical documentation stays in DE4SDV_MethodTraces; no projection row is generated for a merged trace shell and its authored row is deleted with the authored ontology in Wave C."
+      },
+      {
+        "identity": "derivesNeedFromConcern",
+        "accounting": "removed",
+        "reason": "Removed register row (O1 c4: retired without replacement). It has no model home by design; its authored row is deleted with the authored ontology in Wave C."
+      }
+    ],
+    "note": "no frozen O3 identity and no identity of another generated layer is admitted; exceptions are owner-visible and never silently fall back"
+  },
+  "rows": [
+    {
+      "identity": "AcceptanceCriterion",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "requirement def AcceptanceCriterion",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def AcceptanceCriterion"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "AllocatableFunction",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Functional responsibility identity for this versioned allocation profile.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "action def AllocatableFunction",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "declaration": "action def AllocatableFunction"
+        },
+        "ontology_relations": {
+          "sub_class_of": "Function",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ApprovedTraceMethod",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Selected approved method identity. Selecting this reference does not establish conformance, approval of a candidate, or an engineering trace.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "owner": "part def ApprovedTraceMethod",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "declaration": "part def ApprovedTraceMethod"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ArchitectureDecisionRecord",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "external-content",
+      "definition": {
+        "documentation": "A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "part def ArchitectureDecisionRecord",
+          "form": "named-doc",
+          "documentation_name": "ontologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def ArchitectureDecisionRecord"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ArchitectureElement",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "native-grounding",
+      "definition": {
+        "documentation": "Any model element used to describe system context, function, logical realization, physical/software realization, interface, or behavior.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "named-doc",
+          "documentation_name": "ArchitectureElementOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_native": "part def, port def, and behavior definitions in feature and architecture slices",
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "AssuranceClaim",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "native-grounding",
+      "definition": {
+        "documentation": "A claim about safety, security, compliance alignment, release readiness, or fitness- for-use that requires argument and evidence before acceptance. Claims are bounded and never imply certification or homologation.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "package DE4SDV_ScopedAssurance",
+          "form": "named-doc",
+          "documentation_name": "AssuranceClaimOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_native": "Claim usages framed by the argumentation-assurance viewpoint",
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Baseline",
+      "semantic_kind": "class",
+      "admission_class": "external-reference",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "external-content",
+      "definition": {
+        "documentation": "A reviewed and controlled state of model, evidence, configuration, or publication artifacts.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+          "owner": "part def DE4SDVEvidenceBaseline",
+          "form": "named-doc",
+          "documentation_name": "ontologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+          "declaration": "part def DE4SDVEvidenceBaseline"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "external",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "CommonCapability",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "A capability or characteristic present in all relevant member products; not a feature unless it distinguishes variants.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "part def CommonProductLineCapability",
+          "form": "named-doc",
+          "documentation_name": "ontologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def CommonProductLineCapability"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": [
+            "Feature"
+          ]
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "DerivesFromNeed",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "closure",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "DE4SDV application connection definition for design-input derivation: the derivedRequirement originates from the stakeholder need. Provenance/traceability semantics only - neither satisfaction nor logical implication between the connected usages is claimed. The typed connection ends (need : StakeholderNeedCandidate, derivedRequirement : RequirementCandidate) carry the predicate's domain and range in the model itself. The standard Requirement Derivation Domain Library remains pinned but unadopted: its originalImpliesDerived semantics change the claim (upstream adoption gate still applies; no floating upgrade, no upstream contact without authorization).",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "connection def DerivesFromNeed",
+          "form": "named-doc",
+          "documentation_name": "ontologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "connection def DerivesFromNeed"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "EvidenceArtifact",
+      "semantic_kind": "class",
+      "admission_class": "external-reference",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "external-content",
+      "definition": {
+        "documentation": "A reviewable artifact that supports a verification, validation, assurance, or release decision.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "package DE4SDV_ScopedAssurance",
+          "form": "named-doc",
+          "documentation_name": "EvidenceArtifactOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_external": "Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records",
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "external",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "EvidenceContract",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "A requirement usage that defines the bounded observations, acceptance boundary, and retained-evidence obligations for a verification case. An evidence contract is planning vocabulary, not proof that a product requirement is verified.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "requirement def EvidenceContract",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "requirement def EvidenceContract"
+        },
+        "ontology_relations": {
+          "sub_class_of": "Requirement",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "EvidenceStatus",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W3",
+      "accounting": "retained",
+      "boundary": "native-grounding",
+      "definition": {
+        "documentation": "Lifecycle status for evidence and verification results. DE4SDV does not define its own status vocabulary: requirement verification status uses the upstream VVStatus enum, and bounded evidence outcomes/dispositions use slice-local enums such as MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "package DE4SDV_ScopedAssurance",
+          "form": "named-doc",
+          "documentation_name": "EvidenceStatusOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_external": "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter",
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "EvidenceSupportCitation",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "supportedByEvidence cites one identified artifact as support for an exact scoped claim, with rationale and known limitations. Neither this citation nor hasEvidence (case-to-artifact association) asserts adequacy, satisfaction, a passing result, or acceptance. Evidence bytes and artifact maturity remain external. Scope identifiers must match without inference.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "item def EvidenceSupportCitation",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "declaration": "item def EvidenceSupportCitation"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Feature",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "A distinguishing characteristic expressing variability among member products. In the kernel a feature is a candidate until member-product variability is shown; it must not be accepted as a feature before that.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "part def ProductLineFeatureCandidate",
+          "form": "named-doc",
+          "documentation_name": "ontologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def ProductLineFeatureCandidate"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": [
+            "CommonCapability"
+          ]
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "FeatureConfiguration",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "ple-no-configurator-authority",
+      "definition": {
+        "documentation": "A selection of features, common capabilities, and variation choices for a member product or scenario.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "named-doc",
+          "documentation_name": "FeatureConfigurationOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_external": "Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/",
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Function",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "native-grounding",
+      "definition": {
+        "documentation": "A behavior or transformation expected from the system or product-line architecture.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "named-doc",
+          "documentation_name": "FunctionOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_native": "SysML v2 action/state/behavior definitions in functional-architecture slices",
+        "ontology_relations": {
+          "sub_class_of": "ArchitectureElement",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "IncrementTraceObligations",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Scope declaration of an increment's trace obligations: the selected approved method, the increment, its declared scope kind, applicable phases and completion claim. Required traces derive from the selected approved method, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the corresponding claim unless an authorized visible disposition permits it. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "owner": "part def IncrementTraceObligations",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "declaration": "part def IncrementTraceObligations"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Interface",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W4",
+      "accounting": "retained",
+      "boundary": "native-grounding",
+      "definition": {
+        "documentation": "A boundary or interaction point through which items, signals, services, or information are exchanged.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "named-doc",
+          "documentation_name": "InterfaceOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_native": "SysML v2 port def and connection elements",
+        "ontology_relations": {
+          "sub_class_of": "ArchitectureElement",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "LogicalAllocationElement",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Technology-neutral logical responsibility grouping.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "part def LogicalAllocationElement",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "declaration": "part def LogicalAllocationElement"
+        },
+        "ontology_relations": {
+          "sub_class_of": "LogicalElement",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "LogicalElement",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "native-grounding",
+      "definition": {
+        "documentation": "A logical service, component, or responsibility grouping that realizes functions.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "named-doc",
+          "documentation_name": "LogicalElementOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_native": "part def elements in logical-architecture slices",
+        "ontology_relations": {
+          "sub_class_of": "ArchitectureElement",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "MethodEvaluationScope",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "An evaluation scope binding increment identity, eligible subject types, and explicit exclusions. Contribution set and evaluation scope are distinct sets; membership in evaluation scope is a reviewed scope decision, not an inferred impact claim.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+          "owner": "part def MethodEvaluationScope",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
+          "declaration": "part def MethodEvaluationScope"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "PhysicalAllocationElement",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Concrete software, hardware or platform realization element; allocation is not deployment.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "part def PhysicalAllocationElement",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "declaration": "part def PhysicalAllocationElement"
+        },
+        "ontology_relations": {
+          "sub_class_of": "PhysicalElement",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "PhysicalElement",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "native-grounding",
+      "definition": {
+        "documentation": "A physical, software, hardware, deployment, or platform element that realizes conceptual elements or functions.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "named-doc",
+          "documentation_name": "PhysicalElementOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_native": "part def elements in physical/software realization slices",
+        "ontology_relations": {
+          "sub_class_of": "ArchitectureElement",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "RegulatorySource",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Controlled external origin reference that informed requirement engineering. Interpretation, applicability, obligations, required conditions, evidence and authorized compliance assessment are separate.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "part def ControlledRegulatorySource",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "declaration": "part def ControlledRegulatorySource"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "RegulatorySourceAssociation",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "connection def RegulatorySourceAssociation",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "declaration": "connection def RegulatorySourceAssociation"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "RequiredTraceChain",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "historical-redesign",
+      "definition": {
+        "documentation": "The ordered trace chain every substantial increment should establish, even if some links are draft: stakeholder concern, need, requirement, feature or common capability, architecture element, logical-to-software signal mapping when a boundary is crossed, physical/software realization, verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing links are recorded as gaps.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "owner": "package DE4SDV_MethodTraces",
+          "form": "named-doc",
+          "documentation_name": "RequiredTraceChainOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_external": "Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor completion policy",
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ScopedEvidenceAdequacyAssessment",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Proportionate evidence-SET assessment for this exact claim, subject, configuration, conditions and agreed criteria. Required before presenting a claim as established or seeking acceptance; not a universal sufficiency verdict on each artifact. Reuse cases, criteria, executions, evidence and gap identities. Coverage, confidence and rigor bases, contrary results, discrepancies, unresolved gaps, assessor, conclusion and reasoning must remain explicit. An adequate set can establish a negative conclusion. supportsClaim records the assessor's scoped conclusion, not checker truth. Accepted exceptions stay visible; neither assessment nor acceptance turns exceptions or generic Completed status into unqualified satisfaction. AcceptanceAttestationReference remains a separate designated-authority decision reference, not the assessor's conclusion or result approval.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "item def ScopedEvidenceAdequacyAssessment",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "declaration": "item def ScopedEvidenceAdequacyAssessment"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ScopedVVActivityRecord",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "One explicitly scoped verification OR validation activity. Applicable across needs, requirements, designs, production outputs, system elements, integrated systems and artifacts without inheriting requirement attributes. Native need/requirement verificationStatus attachments remain unchanged. Results and evidence are references to retained external records, not a second result/evidence store; native VerdictKind execution values remain distinct from this activity's status. Artifact maturity is not this status. Completed includes necessary result approval, but never infers PASS or designated-authority acceptance. CompletedUnsuccessful could not complete; CompletedFailed completed with technical failure; CompletedPassed completed successfully against the activity basis only, not a broader scoped claim.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "item def ScopedVVActivityRecord",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "declaration": "item def ScopedVVActivityRecord"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "Stakeholder",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "A role, person, organization, or community with concerns about the system or increment.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml",
+          "owner": "part def Stakeholder",
+          "form": "named-doc",
+          "documentation_name": "ontologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml",
+          "declaration": "part def Stakeholder"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "TraceLink",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "historical-redesign",
+      "definition": {
+        "documentation": "A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "owner": "package DE4SDV_MethodTraces",
+          "form": "named-doc",
+          "documentation_name": "TraceLinkOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_external": "Historical pre-Topic-5 string-endpoint record; successor source-reference witnesses require identified owning references, not category strings",
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ValidationPlanningAssociation",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "One validation planning association. Inverse navigation is the same fact, not execution or a fitness-for-use verdict.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "connection def ValidationPlanningAssociation",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "declaration": "connection def ValidationPlanningAssociation"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ValidationPlanningScenario",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "unregistered",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Stakeholder fitness-for-use validation planning only; not a native verification case, execution, result or acceptance.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "part def ValidationPlanningScenario",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "declaration": "part def ValidationPlanningScenario"
+        },
+        "ontology_relations": {
+          "sub_class_of": "ValidationScenario",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ValidationScenario",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": "W4",
+      "accounting": "retained",
+      "boundary": "native-grounding",
+      "definition": {
+        "documentation": "A scenario used to assess stakeholder fitness for intended use.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+          "owner": "package DE4SDV_OperationalContext",
+          "form": "named-doc",
+          "documentation_name": "ValidationScenarioOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "grounding": {
+        "kernel_native": "Scenario parts with bounded validation outcomes (for example passBoundedValidation)",
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed manifest fields (test-locked to the authored ontology); file mappings are resolved in the model by this generator"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "allocatedTo",
+      "semantic_kind": "relationship",
+      "admission_class": "successor",
+      "register_wave": "W3",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Successor definition: one canonical allocatedTo predicate. A native AllocationUsage assigns responsibility from its source usage to its target usage for exactly one governed end pair: requirement to function, function to logical element, or logical element to physical element. Endpoint classes come from the ontology kernel mappings of the endpoint lineage, never from usage or allocation names. Allocation proves no satisfaction, execution, deployment, fulfillment or transitivity; it is not a composed requirement-to-architecture realization. The superseded names are realizedBy and deployedTo, and the former Function-to-LogicalElement signature is the second end pair of this version.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "package DE4SDV_RelationshipSuccessor",
+          "form": "vocabulary-role",
+          "comment_name": "allocatedToVocabularyRole",
+          "about": [
+            "RequirementFunctionAssignment",
+            "FunctionLogicalAssignment",
+            "LogicalPhysicalAssignment"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "successor": {
+        "contract": "de4sdv.relationship-successor/v1",
+        "version_supersedes": "Function-to-LogicalElement allocatedTo signature; historical provenance constrainedBy; stronger realizedBy/deployedTo active claims",
+        "end_pairs": [
+          {
+            "record": "requirementAllocation",
+            "carrier": {
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "declaration": "connection def RequirementFunctionAssignment",
+              "ends": [
+                {
+                  "name": "source",
+                  "type": "RequirementCandidate"
+                },
+                {
+                  "name": "target",
+                  "type": "AllocatableFunction"
+                }
+              ]
+            },
+            "mechanism": "native-allocation",
+            "semantic_strength": "allocation",
+            "source_class": "Requirement",
+            "target_class": "Function",
+            "source_usage": "RequirementUsage",
+            "target_usage": "ActionUsage",
+            "inverse_navigation": null
+          },
+          {
+            "record": "functionAllocation",
+            "carrier": {
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "declaration": "connection def FunctionLogicalAssignment",
+              "ends": [
+                {
+                  "name": "source",
+                  "type": "AllocatableFunction"
+                },
+                {
+                  "name": "target",
+                  "type": "LogicalAllocationElement"
+                }
+              ]
+            },
+            "mechanism": "native-allocation",
+            "semantic_strength": "allocation",
+            "source_class": "Function",
+            "target_class": "LogicalElement",
+            "source_usage": "ActionUsage",
+            "target_usage": "PartUsage",
+            "inverse_navigation": null
+          },
+          {
+            "record": "physicalAllocation",
+            "carrier": {
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "declaration": "connection def LogicalPhysicalAssignment",
+              "ends": [
+                {
+                  "name": "source",
+                  "type": "LogicalAllocationElement"
+                },
+                {
+                  "name": "target",
+                  "type": "PhysicalAllocationElement"
+                }
+              ]
+            },
+            "mechanism": "native-allocation",
+            "semantic_strength": "allocation",
+            "source_class": "LogicalElement",
+            "target_class": "PhysicalElement",
+            "source_usage": "PartUsage",
+            "target_usage": "PartUsage",
+            "inverse_navigation": null
+          }
+        ],
+        "inverse_navigation": [],
+        "contract_source": "model successor relation records and carrier ends (generator-extracted)"
+      },
+      "support": "runtime-mapped-candidate",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "appliesToMemberProduct",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "ple-no-configurator-authority",
+      "definition": {
+        "documentation": "Vocabulary role of the reviewed relationship appliesToMemberProduct: domain FeatureConfiguration, range MemberProduct (kernel ProductLineMemberProduct). Vocabulary only. No configurator authority; selection authority stays with the external catalogue (ADR 0006): the Bill-of-Features configuration layer owns the binding. No model relationship, no sysml_mapping, no runtime traversal and no PLEML commitment; existing runtime exclusions are preserved verbatim and are not collapsed into hasSubject.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "vocabulary-role",
+          "comment_name": "appliesToMemberProductVocabularyRole",
+          "about": [
+            "FeatureConfigurationOntologyDefinition"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "FeatureConfiguration"
+        },
+        "range": {
+          "ontology_class": "MemberProduct"
+        },
+        "canonical_direction": "FeatureConfiguration -> MemberProduct",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "capturedInBaseline",
+      "semantic_kind": "relationship",
+      "admission_class": "external-reference",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "external-content",
+      "definition": {
+        "documentation": "External boundary for capturedInBaseline (EvidenceArtifact to Baseline): membership is exact inclusion of the artifact version identity in the identified immutable manifest under de4sdv.baseline-manifest-reference/v1; content external, no authority. A different revision of the same artifact is not included, inclusion never approves evidence, and no traversal is implemented.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+          "owner": "package DE4SDV_OperationalContext",
+          "form": "vocabulary-role",
+          "comment_name": "capturedInBaselineVocabularyRole",
+          "about": [
+            "DE4SDVEvidenceBaseline"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "EvidenceArtifact"
+        },
+        "range": {
+          "ontology_class": "Baseline"
+        },
+        "canonical_direction": "EvidenceArtifact -> Baseline",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "external",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "constrainedBy",
+      "semantic_kind": "relationship",
+      "admission_class": "deprecated-alias",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Historical source provenance, not native required conditions; controlled-source successor is hasRegulatorySource, not an alias.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "package DE4SDV_RelationshipSuccessor",
+          "form": "retirement-record",
+          "record": "oldRegulatoryName"
+        },
+        "documentation_observation": "model-owned-retirement-record"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "Requirement"
+        },
+        "range": {
+          "ontology_class": "RegulatoryConstraint"
+        },
+        "canonical_direction": "Requirement -> RegulatoryConstraint",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "alias": {
+        "deprecated": true,
+        "successor": "hasRegulatorySource",
+        "successor_navigation": "hasRegulatorySource",
+        "successor_carrier": "RegulatorySourceAssociation",
+        "direction": "forward",
+        "answer_mode": "documentation-only",
+        "removal": "Wave C (with the authored ontology)",
+        "rule": "documented deprecated name only: no fact is answered under this name (the model retirement record refuses an alias reading); query the successor"
+      },
+      "support": "deprecated-alias",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "deployedTo",
+      "semantic_kind": "relationship",
+      "admission_class": "deprecated-alias",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Retired stronger active claim; no deployment assertion is invented.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "package DE4SDV_RelationshipSuccessor",
+          "form": "retirement-record",
+          "record": "oldDeployment"
+        },
+        "documentation_observation": "model-owned-retirement-record"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "LogicalElement"
+        },
+        "range": {
+          "ontology_class": "PhysicalElement"
+        },
+        "canonical_direction": "LogicalElement -> PhysicalElement",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "alias": {
+        "deprecated": true,
+        "successor": "allocatedTo",
+        "successor_navigation": "allocatedTo",
+        "successor_carrier": "LogicalPhysicalAssignment",
+        "direction": "forward",
+        "answer_mode": "successor-facts",
+        "removal": "Wave C (with the authored ontology)",
+        "rule": "documented deprecated name: answers are the successor's facts over this carrier with the successor's meaning; the old signature and claim are never translated into the successor"
+      },
+      "support": "deprecated-alias",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "hasAcceptanceCriterion",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "The criterion role in a native verification objective is distinguished by AcceptanceCriterion typing/specialization, not a criterion name. This is a test-verdict criterion, not acceptance under de4sdv.acceptance.maintainer-decision.v1. No cardinality or executable predicate mapping is introduced here.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "vocabulary-role",
+          "comment_name": "hasAcceptanceCriterionVocabularyRole",
+          "about": [
+            "AcceptanceCriterion"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "VerificationCase"
+        },
+        "range": {
+          "ontology_class": "AcceptanceCriterion"
+        },
+        "canonical_direction": "VerificationCase -> AcceptanceCriterion",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "hasEvidence",
+      "semantic_kind": "relationship",
+      "admission_class": "external-reference",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "external-content",
+      "definition": {
+        "documentation": "External boundary for hasEvidence (VerificationCase to EvidenceArtifact): artifact association only, carried by the case's typed de4sdv.evidence-reference/v1 record; content external, no authority. The association exposes no verdict, pass, approval or acceptance and implements no traversal: external data is required and an absent record is never reported as an empty hop. It is not supportedByEvidence.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "package DE4SDV_ScopedAssurance",
+          "form": "vocabulary-role",
+          "comment_name": "hasEvidenceVocabularyRole",
+          "about": [
+            "EvidenceArtifactOntologyDefinition"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "VerificationCase"
+        },
+        "range": {
+          "ontology_class": "EvidenceArtifact"
+        },
+        "canonical_direction": "VerificationCase -> EvidenceArtifact",
+        "semantic_strength": "external-data-required",
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "external",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "hasEvidenceStatus",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "historical-redesign",
+      "definition": {
+        "documentation": "Successor for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus) predicate. Scoped verification and validation activity status is the unchanged adopted VVStatus on ScopedVVActivityRecord status, identified with its subject, configuration, activity, comparison basis and result or evidence references; EvidenceStatus resolves to that pinned VVStatus and to slice-local bounded outcome/disposition enums. No new universal status enum is introduced. Artifact maturity, evidence-set adequacy and authority acceptance stay separate, and Completed never means passed or accepted. Retirement: hasEvidenceStatus takes no new model usage; consumers move to this successor in a reviewed runtime change, and the legacy predicate is then removed with the authored ontology.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "package DE4SDV_ScopedAssurance",
+          "form": "vocabulary-role",
+          "comment_name": "hasEvidenceStatusVocabularyRole",
+          "about": [
+            "ScopedVVActivityRecord"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "EvidenceArtifact"
+        },
+        "range": {
+          "ontology_class": "EvidenceStatus"
+        },
+        "canonical_direction": "EvidenceArtifact -> EvidenceStatus",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "hasRegulatorySource",
+      "semantic_kind": "relationship",
+      "admission_class": "successor",
+      "register_wave": null,
+      "accounting": "w6-successor",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Successor definition: a requirement has a controlled regulatory source, recorded as requirement-source provenance only. Applicability, interpretation, binding requirements or required conditions, fulfillment evidence and authorized compliance assessment remain distinct; provenance neither makes an applicable obligation optional nor proves compliance. Supersedes constrainedBy.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "package DE4SDV_RelationshipSuccessor",
+          "form": "vocabulary-role",
+          "comment_name": "hasRegulatorySourceVocabularyRole",
+          "about": [
+            "RegulatorySourceAssociation"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "successor": {
+        "contract": "de4sdv.relationship-successor/v1",
+        "version_supersedes": "Function-to-LogicalElement allocatedTo signature; historical provenance constrainedBy; stronger realizedBy/deployedTo active claims",
+        "end_pairs": [
+          {
+            "record": "regulatoryProvenance",
+            "carrier": {
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "declaration": "connection def RegulatorySourceAssociation",
+              "ends": [
+                {
+                  "name": "source",
+                  "type": "RequirementCandidate"
+                },
+                {
+                  "name": "target",
+                  "type": "ControlledRegulatorySource"
+                }
+              ]
+            },
+            "mechanism": "typed-connection",
+            "semantic_strength": "source-provenance",
+            "source_class": "Requirement",
+            "target_class": "RegulatorySource",
+            "source_usage": "RequirementUsage",
+            "target_usage": "PartUsage",
+            "inverse_navigation": null
+          }
+        ],
+        "inverse_navigation": [],
+        "contract_source": "model successor relation records and carrier ends (generator-extracted)"
+      },
+      "support": "runtime-mapped-candidate",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "hasRelevantEvidenceContract",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-runtime",
+      "register_wave": "W2",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "The hasRelevantEvidenceContract range is discriminated by type lineage: a target requirement usage is an evidence contract if and only if its definition is in the specialization closure of this kernel EvidenceContract, resolved through the governed kernel mapping, never by a name, prefix or verification-membership heuristic. AcceptanceCriterion typing, native verify memberships and EvidenceContractTraceability candidates do not qualify. Relevance only: no verification, satisfaction, evidence adequacy or acceptance. Vocabulary only at this revision; the runtime predicate keeps its existing dependency mapping until a reviewed consumer change adopts this discriminator.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "vocabulary-role",
+          "comment_name": "hasRelevantEvidenceContractVocabularyRole",
+          "about": [
+            "EvidenceContract"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "Requirement"
+        },
+        "range": {
+          "ontology_class": "EvidenceContract",
+          "discriminator": {
+            "kind": "type-lineage",
+            "lineage": {
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+              "declaration": "requirement def EvidenceContract"
+            },
+            "closure": [
+              {
+                "source_file": "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml",
+                "declaration": "requirement def BicycleEvidenceContract"
+              },
+              {
+                "source_file": "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml",
+                "declaration": "requirement def DegradedInputEvidenceContract"
+              },
+              {
+                "source_file": "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml",
+                "declaration": "requirement def NominalEvidenceContractRequirement"
+              },
+              {
+                "source_file": "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml",
+                "declaration": "requirement def NonActivationEvidenceContract"
+              },
+              {
+                "source_file": "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
+                "declaration": "requirement def OverrideEvidenceContract"
+              },
+              {
+                "source_file": "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml",
+                "declaration": "requirement def PartialInterventionEvidenceContract"
+              },
+              {
+                "source_file": "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml",
+                "declaration": "requirement def PedestrianEvidenceContract"
+              },
+              {
+                "source_file": "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml",
+                "declaration": "requirement def RegulatoryCriterionEvidenceContract"
+              }
+            ],
+            "rule": "a target is in range iff its definition is in the specialization closure of the kernel lineage declaration, resolved through the governed kernel mapping; never by name, prefix or membership heuristic"
+          }
+        },
+        "canonical_direction": "Requirement -> EvidenceContract",
+        "semantic_strength": "relevance",
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "runtime-mapped-candidate",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "hasStakeholder",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W4",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Vocabulary role: EngineeringIncrement -> Stakeholder. Existing native stakeholder membership is preserved; this comment introduces no additional trace slot, executable mapping, participation requirement or acceptance.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "vocabulary-role",
+          "comment_name": "hasStakeholderVocabularyRole",
+          "about": [
+            "EngineeringIncrement",
+            "Stakeholder"
+          ],
+          "about_imports": {
+            "Stakeholder": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml"
+          }
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "EngineeringIncrement"
+        },
+        "range": {
+          "ontology_class": "Stakeholder"
+        },
+        "canonical_direction": "EngineeringIncrement -> Stakeholder",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "carrier": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "connection def HasStakeholder",
+        "ends": [
+          {
+            "name": "increment",
+            "type": "EngineeringIncrement"
+          },
+          {
+            "name": "stakeholderRole",
+            "type": "Stakeholder"
+          }
+        ]
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "hasValidationScenario",
+      "semantic_kind": "relationship",
+      "admission_class": "successor",
+      "register_wave": null,
+      "accounting": "w6-successor",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Successor definition: a stakeholder need has a planned validation scenario. One typed ValidationPlanningAssociation records the planning fact; validationScenarioFor is inverse navigation over the same fact. It records planning only: no execution, result, fitness-for-use verdict, completed validation or stakeholder acceptance. Supersedes validatedBy and merges validatesFitnessForUse.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "package DE4SDV_RelationshipSuccessor",
+          "form": "vocabulary-role",
+          "comment_name": "hasValidationScenarioVocabularyRole",
+          "about": [
+            "ValidationPlanningAssociation"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "successor": {
+        "contract": "de4sdv.relationship-successor/v1",
+        "version_supersedes": "Function-to-LogicalElement allocatedTo signature; historical provenance constrainedBy; stronger realizedBy/deployedTo active claims",
+        "end_pairs": [
+          {
+            "record": "validationPlanning",
+            "carrier": {
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "declaration": "connection def ValidationPlanningAssociation",
+              "ends": [
+                {
+                  "name": "source",
+                  "type": "StakeholderNeedCandidate"
+                },
+                {
+                  "name": "target",
+                  "type": "ValidationPlanningScenario"
+                }
+              ]
+            },
+            "mechanism": "typed-connection",
+            "semantic_strength": "validation-planning",
+            "source_class": "Need",
+            "target_class": "ValidationScenario",
+            "source_usage": "RequirementUsage",
+            "target_usage": "PartUsage",
+            "inverse_navigation": "validationScenarioFor"
+          }
+        ],
+        "inverse_navigation": [
+          "validationScenarioFor"
+        ],
+        "contract_source": "model successor relation records and carrier ends (generator-extracted)"
+      },
+      "support": "runtime-mapped-candidate",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "includesCommonCapability",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "ple-no-configurator-authority",
+      "definition": {
+        "documentation": "Vocabulary role of the reviewed relationship includesCommonCapability: domain FeatureConfiguration, range CommonCapability (kernel CommonProductLineCapability). Vocabulary only. No configurator authority; selection authority stays with the external catalogue (ADR 0006): the Bill-of-Features configuration layer. No model relationship, no sysml_mapping, no runtime traversal and no PLEML commitment.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "vocabulary-role",
+          "comment_name": "includesCommonCapabilityVocabularyRole",
+          "about": [
+            "FeatureConfigurationOntologyDefinition"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "FeatureConfiguration"
+        },
+        "range": {
+          "ontology_class": "CommonCapability"
+        },
+        "canonical_direction": "FeatureConfiguration -> CommonCapability",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "instantiatesCanonicalArchitecture",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Explicit binding from a composite member product's contained architecture instances (its logical-system and software usages) to the canonical architecture usages whose allocation and evidence records govern them. The modeled dependencies originate from the contained usages, not from the member-product root; the executable mapping must therefore define which elements carry this relationship and how a query walks it before any product-level query reachability is claimed. Vocabulary only for now: no sysml_mapping is declared because a generic dependency traversal cannot distinguish canonical-architecture bindings from ordinary part-to-part dependencies without inventing a naming heuristic. Declaring an executable mapping requires an explicit canonical-usage selector (for example an API-side allowlist of canonical packages), not a name-based filter. The binding does not restate allocations at product level and does not make a composite projection a resolved configured product.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "named-doc",
+          "documentation_name": "instantiatesCanonicalArchitectureOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "MemberProduct"
+        },
+        "range": {
+          "ontology_class": "ArchitectureElement"
+        },
+        "canonical_direction": "MemberProduct -> ArchitectureElement",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "realizedBy",
+      "semantic_kind": "relationship",
+      "admission_class": "deprecated-alias",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Retired stronger active claim; native responsibility assignments use allocatedTo without fulfillment.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "package DE4SDV_RelationshipSuccessor",
+          "form": "retirement-record",
+          "record": "oldRealization"
+        },
+        "documentation_observation": "model-owned-retirement-record"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "Requirement"
+        },
+        "range": {
+          "ontology_class": "ArchitectureElement"
+        },
+        "canonical_direction": "Requirement -> ArchitectureElement",
+        "semantic_strength": "allocation",
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "alias": {
+        "deprecated": true,
+        "successor": "allocatedTo",
+        "successor_navigation": "allocatedTo",
+        "successor_carrier": "RequirementFunctionAssignment",
+        "direction": "forward",
+        "answer_mode": "successor-facts",
+        "removal": "Wave C (with the authored ontology)",
+        "rule": "documented deprecated name: answers are the successor's facts over this carrier with the successor's meaning; the old signature and claim are never translated into the successor"
+      },
+      "support": "deprecated-alias",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "selectsFeature",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "ple-no-configurator-authority",
+      "definition": {
+        "documentation": "Vocabulary role of the reviewed relationship selectsFeature: domain FeatureConfiguration, range Feature (kernel ProductLineFeatureCandidate). Vocabulary only. No configurator authority; selection authority stays with the external catalogue (ADR 0006): Bill-of-Features selections evaluated by the configurator, whose behavior and tests remain the operational evidence. No model relationship, no sysml_mapping, no runtime traversal and no PLEML commitment.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "vocabulary-role",
+          "comment_name": "selectsFeatureVocabularyRole",
+          "about": [
+            "FeatureConfigurationOntologyDefinition"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "FeatureConfiguration"
+        },
+        "range": {
+          "ontology_class": "Feature"
+        },
+        "canonical_direction": "FeatureConfiguration -> Feature",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "selectsVariant",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W5",
+      "accounting": "retained",
+      "boundary": "ple-no-configurator-authority",
+      "definition": {
+        "documentation": "Vocabulary role of the reviewed relationship selectsVariant: domain FeatureConfiguration, range Variant (native SysML v2 variant usage; see VariantOntologyDefinition). Vocabulary only. No configurator authority; selection authority stays with the external catalogue (ADR 0006): the operational selection lives in the Bill-of-Features and the generated projection, while native variant usages own the choice space. No new model relationship kind, no sysml_mapping, no runtime traversal and no PLEML commitment; model-native configured products use the native variant-selection construct of ADR 0006.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "vocabulary-role",
+          "comment_name": "selectsVariantVocabularyRole",
+          "about": [
+            "FeatureConfigurationOntologyDefinition"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "FeatureConfiguration"
+        },
+        "range": {
+          "ontology_class": "Variant"
+        },
+        "canonical_direction": "FeatureConfiguration -> Variant",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "specifiesCommonCapability",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W4",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Vocabulary role of the reviewed relationship specifiesCommonCapability: domain Requirement (kernel RequirementCandidate), range CommonCapability (kernel CommonProductLineCapability). Vocabulary only: no runtime traversal, no sysml_mapping, no semantic-support claim and no PLEML dependency. Any future native realization is decided together with specifiesFeature.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "vocabulary-role",
+          "comment_name": "specifiesCommonCapabilityVocabularyRole",
+          "about": [
+            "CommonProductLineCapability"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "Requirement"
+        },
+        "range": {
+          "ontology_class": "CommonCapability"
+        },
+        "canonical_direction": "Requirement -> CommonCapability",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "specifiesFeature",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W4",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Vocabulary role of the reviewed relationship specifiesFeature: domain Requirement (kernel RequirementCandidate), range Feature (kernel ProductLineFeatureCandidate). Vocabulary only: no runtime traversal, no sysml_mapping, no semantic-support claim and no PLEML dependency. A native realization is deferred until feature usages exist in models; any realization is an explicit signature/migration review.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "vocabulary-role",
+          "comment_name": "specifiesFeatureVocabularyRole",
+          "about": [
+            "ProductLineFeatureCandidate"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "Requirement"
+        },
+        "range": {
+          "ontology_class": "Feature"
+        },
+        "canonical_direction": "Requirement -> Feature",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "specifiesFunction",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-runtime",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Requirement-to-function relevance: a dependency from a draft requirement candidate to the functional action or flow responsibility that addresses it. Relevance only \u2014 not satisfaction, allocation, or verification.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
+          "form": "named-doc",
+          "documentation_name": "specifiesFunctionOntologyDefinition",
+          "documentation_index": 0
+        },
+        "documentation_observation": "normalized-exact"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "Requirement"
+        },
+        "range": {
+          "ontology_class": "Function"
+        },
+        "canonical_direction": "Requirement -> Function",
+        "semantic_strength": "relevance",
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "runtime-mapped-candidate",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "supportedByEvidence",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "The supportedByEvidence relation (AssuranceClaim to EvidenceArtifact) is represented by one EvidenceSupportCitation per cited artifact: the exact scoped claim (claim, subject, configuration, conditions), the versioned evidence reference, the rationale and the known limits. This is cited support, distinct from hasEvidence artifact association. A claim is treated as established, or acceptance is sought, only after a ScopedEvidenceAdequacyAssessment of the evidence set for the same exact scope, which reuses the cases, criteria, results, references and gaps it assesses. The designated authority's scoped acceptance stays a separate AcceptanceAttestationReference, with exceptions kept visible. Citation, adequacy and acceptance never imply each other. Vocabulary only at this revision: no runtime traversal is implemented here.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
+          "owner": "package DE4SDV_ScopedAssurance",
+          "form": "vocabulary-role",
+          "comment_name": "supportedByEvidenceVocabularyRole",
+          "about": [
+            "EvidenceSupportCitation",
+            "ScopedEvidenceAdequacyAssessment"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "AssuranceClaim"
+        },
+        "range": {
+          "ontology_class": "EvidenceArtifact"
+        },
+        "canonical_direction": "AssuranceClaim -> EvidenceArtifact",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "validatedBy",
+      "semantic_kind": "relationship",
+      "admission_class": "deprecated-alias",
+      "register_wave": "W6",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Planning successor is hasValidationScenario; no validation result implied.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "package DE4SDV_RelationshipSuccessor",
+          "form": "retirement-record",
+          "record": "oldValidationForward"
+        },
+        "documentation_observation": "model-owned-retirement-record"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "Need"
+        },
+        "range": {
+          "ontology_class": "ValidationScenario"
+        },
+        "canonical_direction": "Need -> ValidationScenario",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "alias": {
+        "deprecated": true,
+        "successor": "hasValidationScenario",
+        "successor_navigation": "hasValidationScenario",
+        "successor_carrier": "ValidationPlanningAssociation",
+        "direction": "forward",
+        "answer_mode": "successor-facts",
+        "removal": "Wave C (with the authored ontology)",
+        "rule": "documented deprecated name: answers are the successor's facts over this carrier with the successor's meaning; the old signature and claim are never translated into the successor"
+      },
+      "support": "deprecated-alias",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "validatesFitnessForUse",
+      "semantic_kind": "relationship",
+      "admission_class": "deprecated-alias",
+      "register_wave": null,
+      "accounting": "merged",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Inverse planning navigation is validationScenarioFor over the same association; not a fitness-for-use verdict.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "owner": "package DE4SDV_RelationshipSuccessor",
+          "form": "retirement-record",
+          "record": "oldValidationInverse"
+        },
+        "documentation_observation": "model-owned-retirement-record"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "ValidationScenario"
+        },
+        "range": {
+          "ontology_class": "Need"
+        },
+        "canonical_direction": "ValidationScenario -> Need",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "alias": {
+        "deprecated": true,
+        "successor": "hasValidationScenario",
+        "successor_navigation": "validationScenarioFor",
+        "successor_carrier": "ValidationPlanningAssociation",
+        "direction": "inverse",
+        "answer_mode": "successor-facts",
+        "removal": "Wave C (with the authored ontology)",
+        "rule": "documented deprecated name: answers are the successor's facts over this carrier with the successor's meaning; the old signature and claim are never translated into the successor"
+      },
+      "support": "deprecated-alias",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "variesAt",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": "W3",
+      "accounting": "retained",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Vocabulary role of the reviewed relationship variesAt: domain Feature (kernel ProductLineFeatureCandidate), range VariationPoint (native SysML v2 variation definition/usage; see VariationPointOntologyDefinition). The identity is kept as navigation vocabulary only. Its model authority is the native variation structure: a realization is a derived fact over native variation/variant membership, and its evidence gate is a feature usage that participates in a variation's variant membership. Until such a usage exists, variesAt stays vocabulary-only: no runtime traversal, no sysml_mapping, no variation-point part taxonomy, no YAML edge mapping and no PLEML dependency.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "vocabulary-role",
+          "comment_name": "variesAtVocabularyRole",
+          "about": [
+            "ProductLineFeatureCandidate"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "Feature"
+        },
+        "range": {
+          "ontology_class": "VariationPoint"
+        },
+        "canonical_direction": "Feature -> VariationPoint",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed manifest fields (test-locked to the authored ontology); not a structural model witness"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    }
+  ]
+}

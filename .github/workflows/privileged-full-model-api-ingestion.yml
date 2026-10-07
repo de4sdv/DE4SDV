@@ -282,6 +282,31 @@ jobs:
             --export /tmp/de4sdv-full-model-export.json \
             --output /tmp/o3/de4sdv-o3-runtime-equivalence-report.json
 
+      - name: Snapshot API database for the model-authority job
+        # O4 Wave B: the model-authority steps run in a SEPARATE job (see
+        # model-authority-evidence below) so this job keeps its own 360-minute
+        # budget. The snapshot carries the exact API state those steps read
+        # back; the second job re-verifies its corpus identity against the
+        # export before using it. Not a deployment input; short retention.
+        run: |
+          mkdir -p /tmp/o4-db
+          docker exec "${{ job.services.postgres.id }}" \
+            pg_dump -U postgres -d sysml2 -Fc -Z 6 > /tmp/o4-db/sysml2.dump
+          sha256sum /tmp/o4-db/sysml2.dump | tee /tmp/o4-db/sysml2.dump.sha256
+          ls -la /tmp/o4-db
+
+      - name: Upload API database snapshot for the model-authority job
+        # Deliberately NOT named full-model-api-ingestion-*: the deploy and
+        # core-evidence workflows select exactly one artifact by that prefix.
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-authority-api-db-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 3
+          path: |
+            /tmp/o4-db/sysml2.dump
+            /tmp/o4-db/sysml2.dump.sha256
+
       - name: Trim API service log for upload
         # The raw API-service log reaches multi-GB per run; reviewers only ever
         # need the tail (where failures surface). Upload a bounded tail so
@@ -323,3 +348,255 @@ jobs:
             /tmp/de4sdv-reimport-correspondence.json
             /tmp/de4sdv-pilot-readback.json
             /tmp/sysml-api.tail.log
+
+  # O4 Wave B model-authority evidence (owner decisions 2026-10-07: 4, 6).
+  #
+  # Separate job, not more steps in ingest-and-validate: that job already
+  # runs 3.4-5 h of its 360-minute cap (import ~24 min, two candidate
+  # imports ~46 min, O3 comparison ~64 min), and the model comparison runs two
+  # O3-sized comparisons (model vs O3, model vs legacy, ~130 min). This job
+  # restores the API database snapshot of the same run (no re-export, no
+  # Syside licence), so its budget is ~3.2 h: restore + API build/start
+  # ~20 min, read-back ~10, population delta ~10, bundle/coverage ~10,
+  # comparison ~130, close ~1. The restored corpus is re-verified against
+  # the export (decision-13 read-back step) before any claim.
+  #
+  # Verdicts: the read-back, comparison and close steps exit non-zero when
+  # their gate fails (reports are still written and uploaded); the
+  # requirement-population delta is measured evidence only (a difference
+  # from the recorded 27/28 is reported, never adjusted, and does not fail
+  # the job). continue-on-error keeps this job from turning the ingestion
+  # run red: the deploy and core-evidence workflows consume ingest-and-
+  # validate and require a successful run. Activation consumes ONLY a
+  # successful model-authority-evidence job whose eligibility artifact says
+  # activation_eligible=true, plus the owner's decision naming the mab id
+  # (docs/method-conformance/o4/model-authority-activation.md).
+  model-authority-evidence:
+    needs: ingest-and-validate
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      needs.ingest-and-validate.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sysml2
+          POSTGRES_PASSWORD: mysecretpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sysml2"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.ref || github.sha }}
+
+      - name: Validate exact-revision checkout
+        run: |
+          SHA="$(git rev-parse HEAD)"
+          REQUESTED="${{ github.event.inputs.ref }}"
+          echo "checked-out revision: $SHA"
+          case "$SHA" in
+            (*[!0-9a-f]*|"") echo "not a lowercase full SHA: $SHA" >&2; exit 1 ;;
+          esac
+          if [ "${#SHA}" != "40" ]; then
+            echo "checked-out revision is not a full 40-character SHA" >&2
+            exit 1
+          fi
+          if [ -n "$REQUESTED" ] && [ "$REQUESTED" != "$SHA" ]; then
+            echo "requested revision $REQUESTED does not match checked-out $SHA" >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+
+      - name: Install Sysand and pinned model dependencies
+        run: |
+          curl -fsSL https://sysand.com/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/sysand" sync
+          python -m pip install --disable-pip-version-check \
+            "PyYAML==6.0.2" "pytest==8.4.2" -r requirements-mcp.txt
+
+      - name: Download same-run ingestion evidence
+        # Restores the exact /tmp paths the O3 closure attestation hashes.
+        uses: actions/download-artifact@v4
+        with:
+          name: full-model-api-ingestion-${{ github.sha }}
+          path: /tmp
+
+      - name: Download same-run API database snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: model-authority-api-db-${{ github.sha }}
+          path: /tmp/o4-db
+
+      - name: Verify inputs are bound to the checked-out revision
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse HEAD)"
+          (cd /tmp/o4-db && sha256sum -c sysml2.dump.sha256)
+          python - "$SHA" <<'PY'
+          import json, sys
+          sha = sys.argv[1]
+          for path, key in (("/tmp/de4sdv-full-model-export.json", "git_commit"),
+                            ("/tmp/de4sdv-full-model-binding.json", "git_commit"),
+                            ("/tmp/o3/de4sdv-o3-candidate-bundle.json", "git_revision")):
+              value = json.load(open(path, encoding="utf-8")).get(key)
+              if value != sha:
+                  raise SystemExit(f"{path} {key}={value!r} != checked-out {sha}")
+          print("same-run inputs bound to", sha)
+          PY
+
+      - name: Restore API database snapshot
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" \
+            pg_restore -U postgres -d sysml2 --no-owner --exit-on-error < /tmp/o4-db/sysml2.dump
+
+      - name: Build pinned Systems Modeling API service
+        run: |
+          git clone --filter=blob:none https://github.com/Systems-Modeling/SysML-v2-API-Services.git /tmp/sysmlv2-api-services
+          git -C /tmp/sysmlv2-api-services checkout 0af711b14bbcea7b240bb0a3a65817ae68302092
+          curl -fsSL -o /tmp/sbt-launch.jar \
+            https://repo1.maven.org/maven2/org/scala-sbt/sbt-launch/1.2.8/sbt-launch-1.2.8.jar
+          (cd /tmp/sysmlv2-api-services && java -Xmx4g -jar /tmp/sbt-launch.jar stage)
+
+      - name: Start pinned Systems Modeling API service on the restored database
+        run: |
+          /tmp/sysmlv2-api-services/target/universal/stage/bin/sysml-v2-api-services \
+            -J-Xmx4g \
+            -Dplay.server.http.port=9000 \
+            -Dplay.evolutions.db.default.autoApply=true \
+            -Dplay.http.secret.key=de4sdv-ci-full-model-ingestion \
+            > /tmp/sysml-api.log 2>&1 &
+          for attempt in $(seq 1 150); do
+            if curl -fsS http://127.0.0.1:9000/projects >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/sysml-api.log
+          exit 1
+
+      - name: Decision-13 live-API read-back of the implied verification anchors
+        # Owner decision 4 (2026-10-07): a failure BLOCKS activation. Also the
+        # restored-database identity check (live element set == export,
+        # element count == semantic report, binding project/commit). Exit 2
+        # = read-back failed (report written; close derives the gate from it).
+        run: |
+          mkdir -p /tmp/o4
+          python scripts/readback_verification_anchors.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --export /tmp/de4sdv-full-model-export.json \
+            --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
+            --git-revision "$(git rev-parse HEAD)" \
+            --output /tmp/o4/de4sdv-o4-verification-anchor-readback.json
+
+      - name: Measure the Wave A Requirement-population delta
+        # Owner decision 6: measured evidence, not an activation gate. Exit 2
+        # (measured, differs from the recorded 27/28) is reported in the
+        # artifact and tolerated; any other non-zero exit fails the step.
+        if: ${{ !cancelled() }}
+        run: |
+          set +e
+          python scripts/measure_requirement_population_delta.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --export /tmp/de4sdv-full-model-export.json \
+            --semantic-authority o3 \
+            --o3-authority-bundle /tmp/o3/de4sdv-o3-candidate-bundle.json \
+            --o3-authority-bundle-id "$(python -c 'import json;print(json.load(open("/tmp/o3/de4sdv-o3-candidate-bundle.json"))["bundle_id"])')" \
+            --git-revision "$(git rev-parse HEAD)" \
+            --output /tmp/o4/de4sdv-o4-requirement-population-delta.json
+          rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then
+            echo "::warning::requirement-population delta differs from the recorded expectation; see the artifact"
+            exit 0
+          fi
+          exit "$rc"
+
+      - name: Build candidate model-authority bundle
+        if: ${{ !cancelled() }}
+        run: |
+          python scripts/run_model_authority_bundle.py bundle \
+            --source-revision "$(git rev-parse HEAD)" \
+            --o3-bundle /tmp/o3/de4sdv-o3-candidate-bundle.json \
+            --out /tmp/o4
+
+      - name: Model-projection coverage report against the candidate bundle
+        if: ${{ !cancelled() }}
+        run: |
+          python scripts/check_model_projection_coverage.py \
+            --json /tmp/o4/de4sdv-o4-model-projection-coverage.json \
+            --bundle /tmp/o4/de4sdv-model-authority-candidate-bundle.json
+
+      - name: Same-revision model vs O3 vs legacy runtime equivalence
+        if: ${{ !cancelled() }}
+        run: |
+          python scripts/run_model_authority_bundle.py compare \
+            --model /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
+            --o3 /tmp/o3/de4sdv-o3-candidate-bundle.json \
+            --out /tmp/o4 \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --export /tmp/de4sdv-full-model-export.json \
+            --git-revision "$(git rev-parse HEAD)"
+
+      - name: Close the model-authority bundle (activation eligibility)
+        # Every gate is derived from its artifact and sha256-bound to it.
+        # Exit 2 = closed but not activation-eligible.
+        if: ${{ !cancelled() }}
+        run: |
+          python scripts/run_model_authority_bundle.py close \
+            --model /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --git-revision "$(git rev-parse HEAD)" \
+            --definition-probe /tmp/o4/de4sdv-o4-definition-migration-probe.json \
+            --coverage /tmp/o4/de4sdv-o4-model-projection-coverage.json \
+            --equivalence /tmp/o4/de4sdv-model-authority-equivalence-report.json \
+            --readback /tmp/o4/de4sdv-o4-verification-anchor-readback.json \
+            --out /tmp/o4
+
+      - name: Trim API service log for upload
+        if: always()
+        run: |
+          if [ -f /tmp/sysml-api.log ]; then
+            tail -c 50000000 /tmp/sysml-api.log > /tmp/o4/sysml-api.tail.log
+          fi
+
+      - name: Upload model-authority evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-authority-evidence-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            /tmp/o4/de4sdv-o4-verification-anchor-readback.json
+            /tmp/o4/de4sdv-o4-requirement-population-delta.json
+            /tmp/o4/de4sdv-model-authority-candidate-bundle.json
+            /tmp/o4/de4sdv-o4-model-projection-coverage.json
+            /tmp/o4/de4sdv-model-authority-equivalence-report.json
+            /tmp/o4/de4sdv-model-authority-o3-vs-model-report.json
+            /tmp/o4/de4sdv-model-authority-legacy-vs-model-report.json
+            /tmp/o4/de4sdv-model-authority-bundle.json
+            /tmp/o4/de4sdv-model-authority-closure-attestation.json
+            /tmp/o4/de4sdv-model-authority-activation-eligibility.json
+            /tmp/o4/sysml-api.tail.log
