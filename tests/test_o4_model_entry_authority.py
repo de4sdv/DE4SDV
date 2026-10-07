@@ -158,7 +158,21 @@ def test_runtime_contract_passed_when_builder_accepts_it(monkeypatch, bundle):
     )
     assert seen == {"api_url": "http://api", "binding_path": Path("b.json"),
                     "expected_git_revision": "c" * 40, "ontology_path": Path("o.yaml"),
-                    "api_timeout": 12.0}
+                    "api_timeout": 12.0, "require_activation_eligible": True}
+
+
+def test_entry_points_require_eligible_bundle_unless_explicitly_opted_out(monkeypatch, bundle):
+    """Serving entry points never accept an unclosed/ineligible model bundle."""
+    seen = []
+
+    def builder(repo_root, bundle_path, expected_id, *, require_activation_eligible=False):
+        seen.append(require_activation_eligible)
+        return FakeRuntime()
+
+    install_fake(monkeypatch, builder)
+    ea.build_entry_semantic_runtime(environ=model_env(bundle))
+    ea.build_entry_semantic_runtime(environ=model_env(bundle), require_activation_eligible=False)
+    assert seen == [True, False]
 
 
 @pytest.mark.parametrize("runtime", [

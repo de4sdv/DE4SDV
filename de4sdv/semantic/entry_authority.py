@@ -55,6 +55,7 @@ RUNTIME_CONTRACT_KEYS = (
     "api_timeout",
     "method_conformance",
     "method_context_provider",
+    "require_activation_eligible",
 )
 
 
@@ -268,6 +269,10 @@ def build_entry_semantic_runtime(
             "cannot be combined with model authority"
         )
     runtime_kwargs = {key: kwargs[key] for key in RUNTIME_CONTRACT_KEYS if key in kwargs}
+    # Entry points serve answers: a model selection there requires the
+    # closed, activation-eligible bundle unless the caller explicitly opts
+    # out (the privileged comparison of a candidate bundle).
+    runtime_kwargs.setdefault("require_activation_eligible", True)
     return build_model_runtime(request, **runtime_kwargs)
 
 
