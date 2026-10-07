@@ -157,7 +157,8 @@ def test_bundle_schema_id_and_components(fx):
     assert mar.verify_model_bundle(bundle, root=ROOT, binding=fx["binding"],
                                    binding_sha256=_sha(fx["binding_path"]), require_closed=True) == []
     components = bundle["components"]
-    assert [r["layer"] for r in components["layers"]] == ["definition", "o2plus", "vocabulary-carrier"]
+    assert [r["layer"] for r in components["layers"]] == [
+        "definition", "o2plus", "vocabulary-carrier", "definition-batch2"]
     for record in components["layers"]:
         for side in ("projection", "profile"):
             assert record[side]["sha256"] == _sha(ROOT / record[side]["path"])
@@ -358,7 +359,7 @@ def _b2_routing(root):
                                register_rows=mar.load_register_rows(ROOT))
 
 
-def test_batch2_layer_is_absent_at_this_base_and_optional():
+def test_batch2_layer_is_loaded_exactly_when_its_pair_is_present():
     records, _ = mar.load_layers(ROOT)
     present = (ROOT / mar.BATCH2_LAYER.projection_path).exists()
     assert ("definition-batch2" in [r["layer"] for r in records]) is present
@@ -670,8 +671,10 @@ def test_coverage_compare_detects_drift_duplicates_and_digest_mismatch():
     baseline = coverage.baseline_from_report(report)
     grown = dict(report, residual=report["residual"] + ["Planted"])
     assert any("new residual" in e for e in coverage.compare(grown, baseline))
-    shrunk = dict(report, residual=report["residual"][1:])
-    assert any("resolved" in e for e in coverage.compare(shrunk, baseline))
+    # The retained residual is empty once batch 2 is admitted, so plant the
+    # resolved entry in the baseline rather than removing one from the report.
+    stale = dict(baseline, residual=list(baseline["residual"]) + ["Planted"])
+    assert any("resolved" in e for e in coverage.compare(report, stale))
     assert coverage.compare(dict(report, duplicates=["X: a and b"]), baseline)
     assert coverage.compare(report, dict(baseline, routing_digest="sha256:" + "0" * 64))
 

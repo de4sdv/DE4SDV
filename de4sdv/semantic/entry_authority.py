@@ -7,8 +7,10 @@ Production surfaces select semantic authority explicitly:
 ``legacy`` and ``o3`` are resolved by the frozen O3 machinery
 (``authority_selection`` is a member of the O3 runtime build, so it is not
 edited: its behavior — and therefore the O3 rollback path — stays
-byte-identical). This module intercepts ONLY ``model`` before that resolver
-runs and delegates every other value unchanged:
+byte-identical). The one canonical router is
+``composition_construction.build_explicit_semantic_runtime``; this module
+resolves and identity-checks a ``model`` request around it and delegates every
+other value unchanged:
 
     DE4SDV_MODEL_AUTHORITY_BUNDLE    = <path to the model-authority bundle JSON>
     DE4SDV_MODEL_AUTHORITY_BUNDLE_ID = mab-<hex>
@@ -20,12 +22,11 @@ refuses startup. There is no fallback from a requested model authority to
 O3 or legacy; rollback is an explicit selector change (``=o3`` with a fresh
 O3 bundle at the same revision, legacy second).
 
-The model-authority runtime itself (``model_authority_runtime``) is imported
-lazily so legacy/O3 startup never depends on it.
+The router imports the model-authority runtime only for a model selection,
+so legacy/O3 startup never depends on it.
 """
 from __future__ import annotations
 
-import inspect
 import os
 import re
 from dataclasses import dataclass, field
@@ -39,14 +40,12 @@ ROOT = Path(__file__).resolve().parents[2]
 MODEL_AUTHORITY = "model"
 MODEL_BUNDLE_PATH_ENV = "DE4SDV_MODEL_AUTHORITY_BUNDLE"
 MODEL_BUNDLE_ID_ENV = "DE4SDV_MODEL_AUTHORITY_BUNDLE_ID"
-MODEL_RUNTIME_MODULE = "de4sdv.semantic.model_authority_runtime"
 
 #: Literal model-authority bundle id token (32 or 64 lowercase hex digits).
 MAB_ID_PATTERN = re.compile(r"mab-(?:[0-9a-f]{32}|[0-9a-f]{64})")
 
-#: Runtime-contract keyword arguments forwarded to the model-authority
-#: builder only when its signature accepts them (the interface contract is
-#: ``build_model_authority_runtime(repo_root, bundle_path, expected_id)``).
+#: Runtime-contract keyword arguments an entry point may forward to the
+#: model-authority runtime through the canonical router.
 RUNTIME_CONTRACT_KEYS = (
     "api_url",
     "binding_path",
@@ -153,27 +152,6 @@ def resolve_model_request(
     return ModelAuthorityRequest(bundle_path=path, bundle_id=str(raw_id))
 
 
-def _load_model_runtime_module():
-    import importlib
-
-    try:
-        return importlib.import_module(MODEL_RUNTIME_MODULE)
-    except ImportError as exc:
-        raise ModelAuthoritySelectionError(
-            f"model-authority runtime is unavailable ({MODEL_RUNTIME_MODULE}): {exc}"
-        ) from exc
-
-
-def _accepted_runtime_kwargs(builder, runtime_kwargs: Mapping[str, Any]) -> dict[str, Any]:
-    try:
-        parameters = inspect.signature(builder).parameters
-    except (TypeError, ValueError):
-        return {}
-    if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
-        return dict(runtime_kwargs)
-    return {key: value for key, value in runtime_kwargs.items() if key in parameters}
-
-
 def require_model_identity(service: Any, request: ModelAuthorityRequest) -> dict[str, Any]:
     """Cross-check the served runtime against the requested bundle id."""
     try:
@@ -203,25 +181,33 @@ def require_model_identity(service: Any, request: ModelAuthorityRequest) -> dict
 
 
 def build_model_runtime(request: ModelAuthorityRequest, **runtime_kwargs: Any):
-    """Build and identity-check the model-authority runtime (fail closed)."""
-    module = _load_model_runtime_module()
-    builder = getattr(module, "build_model_authority_runtime", None)
-    refused = getattr(module, "ModelAuthorityRefused", None)
-    if builder is None:
+    """Build and identity-check the model-authority runtime (fail closed).
+
+    Construction goes through the one canonical router,
+    ``composition_construction.build_explicit_semantic_runtime``; this seam
+    only resolves the request up front and cross-checks the served identity.
+    Activation eligibility is required unless the caller explicitly passes
+    ``require_activation_eligible=False`` (the privileged candidate compare).
+    """
+    unknown = sorted(set(runtime_kwargs) - set(RUNTIME_CONTRACT_KEYS))
+    if unknown:
         raise ModelAuthoritySelectionError(
-            f"{MODEL_RUNTIME_MODULE} does not provide build_model_authority_runtime"
+            f"unsupported model-authority runtime arguments: {unknown}"
         )
-    extra = _accepted_runtime_kwargs(builder, runtime_kwargs)
     try:
-        service = builder(ROOT, request.bundle_path, request.bundle_id, **extra)
+        service, _ = _delegate(
+            authority=MODEL_AUTHORITY,
+            model_bundle_path=request.bundle_path,
+            model_bundle_id=request.bundle_id,
+            environ={},
+            **runtime_kwargs,
+        )
     except ModelAuthoritySelectionError:
         raise
-    except Exception as exc:  # noqa: BLE001 — translate, never fall back
-        if refused is not None and isinstance(exc, refused):
-            raise ModelAuthoritySelectionError(
-                f"model-authority runtime refused: {exc}"
-            ) from exc
-        raise
+    except AuthoritySelectionError as exc:  # includes ModelAuthorityRefused
+        raise ModelAuthoritySelectionError(
+            f"model-authority runtime refused: {exc}"
+        ) from exc
     status = require_model_identity(service, request)
     return service, ModelAuthoritySelection(
         bundle_id=request.bundle_id, bundle_path=request.bundle_path, status=status
@@ -245,8 +231,9 @@ def build_entry_semantic_runtime(
 ) -> tuple[Any, Any]:
     """One construction call for every entry point.
 
-    ``model`` builds the model-authority runtime; any other selector is passed
-    unchanged to the existing O3/legacy/composition construction.
+    ``model`` is resolved and identity-checked here, then built by the same
+    canonical router as every other selector, which receives legacy/o3/
+    composition requests unchanged.
     """
     request = resolve_model_request(
         authority=authority,
@@ -269,10 +256,6 @@ def build_entry_semantic_runtime(
             "cannot be combined with model authority"
         )
     runtime_kwargs = {key: kwargs[key] for key in RUNTIME_CONTRACT_KEYS if key in kwargs}
-    # Entry points serve answers: a model selection there requires the
-    # closed, activation-eligible bundle unless the caller explicitly opts
-    # out (the privileged comparison of a candidate bundle).
-    runtime_kwargs.setdefault("require_activation_eligible", True)
     return build_model_runtime(request, **runtime_kwargs)
 
 

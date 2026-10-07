@@ -1,13 +1,11 @@
 """Wave B entry-point seam for ``DE4SDV_SEMANTIC_AUTHORITY=model``.
 
-Synthetic: the model-authority runtime module is replaced by a fake through
-``sys.modules`` so the seam is tested against the controller-defined
-interface contract, not against any real bundle or privileged evidence.
+Synthetic: the canonical router the seam delegates to is replaced by a fake,
+so the seam is tested for request resolution, delegation and identity
+cross-checks, not against any real bundle or privileged evidence.
 """
 from __future__ import annotations
 
-import sys
-import types
 from pathlib import Path
 
 import pytest
@@ -18,7 +16,6 @@ from de4sdv.semantic.authority_selection import AuthoritySelectionError
 ROOT = Path(__file__).resolve().parents[1]
 MAB_ID = "mab-" + "1" * 32
 OTHER_ID = "mab-" + "2" * 32
-MODULE = "de4sdv.semantic.model_authority_runtime"
 
 
 class FakeRuntime:
@@ -35,18 +32,6 @@ class FakeRuntime:
 
     def authority_status(self):
         return dict(self._status)
-
-
-def install_fake(monkeypatch, builder):
-    module = types.ModuleType(MODULE)
-
-    class ModelAuthorityRefused(ValueError):
-        pass
-
-    module.ModelAuthorityRefused = ModelAuthorityRefused
-    module.build_model_authority_runtime = builder
-    monkeypatch.setitem(sys.modules, MODULE, module)
-    return module
 
 
 @pytest.fixture
@@ -117,22 +102,30 @@ def test_empty_environ_with_explicit_model_needs_explicit_bundle(bundle):
         ea.resolve_model_request(authority="model", environ={})
 
 
-# -- runtime construction ------------------------------------------------------
+# -- runtime construction (through the one canonical router) -------------------
 
 
-def test_model_runtime_built_through_contract_signature(monkeypatch, bundle):
+def install_router(monkeypatch, router):
+    """Replace the canonical router the seam delegates to."""
+    monkeypatch.setattr(ea, "_delegate", router)
+
+
+def test_model_runtime_built_through_the_canonical_router(monkeypatch, bundle):
     calls = []
 
-    def builder(repo_root, bundle_path, expected_id):
-        calls.append((repo_root, bundle_path, expected_id))
-        return FakeRuntime()
+    def router(**kwargs):
+        calls.append(kwargs)
+        return FakeRuntime(), "router-selection"
 
-    install_fake(monkeypatch, builder)
+    install_router(monkeypatch, router)
     service, selection = ea.build_entry_semantic_runtime(
         api_url="http://api", binding_path=Path("b.json"), expected_git_revision="c" * 40,
-        ontology_path=Path("o.yaml"), environ=model_env(bundle),
+        ontology_path=Path("o.yaml"), api_timeout=12.0, environ=model_env(bundle),
     )
-    assert calls == [(ea.ROOT, bundle, MAB_ID)]
+    assert calls == [dict(authority="model", model_bundle_path=bundle, model_bundle_id=MAB_ID,
+                          environ={}, api_url="http://api", binding_path=Path("b.json"),
+                          expected_git_revision="c" * 40, ontology_path=Path("o.yaml"),
+                          api_timeout=12.0)]
     assert isinstance(service, FakeRuntime)
     assert selection.kind == "model" and not selection.is_o3
     provenance = selection.provenance()
@@ -144,35 +137,28 @@ def test_model_runtime_built_through_contract_signature(monkeypatch, bundle):
     assert provenance["source_revision"] == "c" * 40
 
 
-def test_runtime_contract_passed_when_builder_accepts_it(monkeypatch, bundle):
-    seen = {}
-
-    def builder(repo_root, bundle_path, expected_id, **kwargs):
-        seen.update(kwargs)
-        return FakeRuntime()
-
-    install_fake(monkeypatch, builder)
-    ea.build_entry_semantic_runtime(
-        api_url="http://api", binding_path=Path("b.json"), expected_git_revision="c" * 40,
-        ontology_path=Path("o.yaml"), api_timeout=12.0, environ=model_env(bundle),
-    )
-    assert seen == {"api_url": "http://api", "binding_path": Path("b.json"),
-                    "expected_git_revision": "c" * 40, "ontology_path": Path("o.yaml"),
-                    "api_timeout": 12.0, "require_activation_eligible": True}
-
-
-def test_entry_points_require_eligible_bundle_unless_explicitly_opted_out(monkeypatch, bundle):
+def test_eligibility_is_required_by_default_and_opt_out_is_explicit(monkeypatch, bundle):
     """Serving entry points never accept an unclosed/ineligible model bundle."""
+    import inspect
+
+    from de4sdv.semantic import model_authority_runtime as model
+
+    default = inspect.signature(model.build_model_authority_runtime).parameters[
+        "require_activation_eligible"].default
+    assert default is True
     seen = []
-
-    def builder(repo_root, bundle_path, expected_id, *, require_activation_eligible=False):
-        seen.append(require_activation_eligible)
-        return FakeRuntime()
-
-    install_fake(monkeypatch, builder)
+    install_router(monkeypatch, lambda **kw: seen.append(kw) or (FakeRuntime(), None))
     ea.build_entry_semantic_runtime(environ=model_env(bundle))
     ea.build_entry_semantic_runtime(environ=model_env(bundle), require_activation_eligible=False)
-    assert seen == [True, False]
+    assert "require_activation_eligible" not in seen[0]
+    assert seen[1]["require_activation_eligible"] is False
+
+
+def test_unsupported_runtime_arguments_are_refused(monkeypatch, bundle):
+    install_router(monkeypatch, lambda **kw: pytest.fail("must not build"))
+    request = ea.resolve_model_request(environ=model_env(bundle))
+    with pytest.raises(ea.ModelAuthoritySelectionError, match="unsupported"):
+        ea.build_model_runtime(request, production=True)
 
 
 @pytest.mark.parametrize("runtime", [
@@ -181,35 +167,38 @@ def test_entry_points_require_eligible_bundle_unless_explicitly_opted_out(monkey
     FakeRuntime(authority_id="o3:o3b-" + "1" * 32),
 ])
 def test_model_runtime_identity_mismatch_refuses(monkeypatch, bundle, runtime):
-    install_fake(monkeypatch, lambda repo_root, bundle_path, expected_id: runtime)
+    install_router(monkeypatch, lambda **kw: (runtime, None))
     with pytest.raises(ea.ModelAuthoritySelectionError):
         ea.build_entry_semantic_runtime(api_url="u", binding_path=Path("b"),
             expected_git_revision="c" * 40, ontology_path=Path("o"), environ=model_env(bundle))
 
 
 def test_model_refusal_is_translated_never_falls_back(monkeypatch, bundle):
-    delegated = []
-    monkeypatch.setattr(ea, "_delegate", lambda **kwargs: delegated.append(kwargs))
+    from de4sdv.semantic.model_authority_runtime import ModelAuthorityRefused
 
-    def builder(repo_root, bundle_path, expected_id):
-        raise module.ModelAuthorityRefused("bundle digest mismatch")
+    calls = []
 
-    module = install_fake(monkeypatch, builder)
+    def router(**kwargs):
+        calls.append(kwargs["authority"])
+        raise ModelAuthorityRefused("bundle digest mismatch")
+
+    install_router(monkeypatch, router)
     with pytest.raises(ea.ModelAuthoritySelectionError, match="bundle digest mismatch"):
         ea.build_entry_semantic_runtime(api_url="u", binding_path=Path("b"),
             expected_git_revision="c" * 40, ontology_path=Path("o"), environ=model_env(bundle))
-    assert delegated == []
+    assert calls == ["model"]  # one model attempt; no o3/legacy retry
 
 
-def test_missing_model_runtime_module_refuses(monkeypatch, bundle):
-    monkeypatch.setitem(sys.modules, MODULE, None)  # import raises ImportError
-    with pytest.raises(ea.ModelAuthoritySelectionError, match="model-authority runtime"):
-        ea.build_entry_semantic_runtime(api_url="u", binding_path=Path("b"),
-            expected_git_revision="c" * 40, ontology_path=Path("o"), environ=model_env(bundle))
+def test_real_router_refuses_model_arguments_outside_a_model_selection():
+    from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
+
+    with pytest.raises(AuthoritySelectionError, match="require authority='model'"):
+        build_explicit_semantic_runtime(authority="o3", production=True,
+                                        environ={})
 
 
 def test_model_and_composition_are_mutually_exclusive(monkeypatch, bundle):
-    install_fake(monkeypatch, lambda *a: FakeRuntime())
+    install_router(monkeypatch, lambda **kw: pytest.fail("must not build"))
     with pytest.raises(ea.ModelAuthoritySelectionError, match="composition"):
         ea.build_entry_semantic_runtime(composition="o3+definitions", api_url="u",
             binding_path=Path("b"), expected_git_revision="c" * 40,
@@ -241,7 +230,7 @@ def test_non_model_with_composition_passes_composition(monkeypatch):
 
 
 def test_status_for_model_selection_does_not_build(monkeypatch, bundle):
-    install_fake(monkeypatch, lambda *a: pytest.fail("status must not build a runtime"))
+    install_router(monkeypatch, lambda **kw: pytest.fail("status must not build a runtime"))
     block = ea.entry_authority_status(model_env(bundle))
     assert block["kind"] == "model"
     assert block["authority_id"] == f"mab:{MAB_ID}"
