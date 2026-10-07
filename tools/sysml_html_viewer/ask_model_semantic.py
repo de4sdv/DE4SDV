@@ -80,11 +80,11 @@ def semantic_authority_status() -> dict:
         block = dict(_AUTHORITY_SELECTION)
     else:
         try:
-            from de4sdv.semantic.authority_selection import (
-                resolve_authority_selection,
-            )
+            # legacy | o3 | model; the seam never builds a runtime here and
+            # reports an invalid selector instead of raising.
+            from de4sdv.semantic.entry_authority import entry_authority_status
 
-            block = resolve_authority_selection(environ=os.environ).provenance()
+            block = entry_authority_status(os.environ)
         except Exception as exc:  # noqa: BLE001 — status must survive
             block = {
                 "kind": "invalid",
@@ -110,8 +110,9 @@ def _runtime(*, composition=None, bundle_path=None, bundle_id=None):
     """Build the semantic runtime once per process (fail-closed contract).
 
     Authority is selected explicitly through the deployment environment
-    (``DE4SDV_SEMANTIC_AUTHORITY``; default legacy). A requested O3 bundle
-    that fails selection or startup verification raises here — the viewer
+    (``DE4SDV_SEMANTIC_AUTHORITY`` = legacy | o3 | model; default legacy).
+    A requested O3 or model-authority bundle that fails selection or startup
+    verification raises here — the viewer
     serves NO semantic answers in that state and never degrades to legacy
     answers; the failure is surfaced through ``semantic_authority_status()``
     and ``warm_status()``.
@@ -145,10 +146,9 @@ def _runtime(*, composition=None, bundle_path=None, bundle_id=None):
         )
         raise RuntimeError(_SEMANTIC_ERROR)
     try:
-        from de4sdv.semantic.composition_construction import (
-            build_explicit_semantic_runtime as build_selected_semantic_runtime,
-        )
-        _SEMANTIC_RUNTIME, selection = build_selected_semantic_runtime(
+        from de4sdv.semantic import entry_authority
+
+        _SEMANTIC_RUNTIME, selection = entry_authority.build_entry_semantic_runtime(
             api_url=api_url,
             binding_path=Path(binding),
             expected_git_revision=expected,
