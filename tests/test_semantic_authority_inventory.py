@@ -330,6 +330,10 @@ class TestLayers:
     #: consumes preconstructed records and cannot import the extractor.
     #: scoped_assurance.py is an offline supplied-record/source-check validator,
     #: not a runtime query provider or a reader of reviewed decision datasets.
+    #: `definition_projection_batch2.py` is the O4 definition-admission batch-2
+    #: build-time generator module (same pattern as `definition_projection.py`):
+    #: only the generator and the chain verifier import it; adding it here also
+    #: forbids every runtime module from importing it.
     _BUILD_TIME_GOVERNANCE_MODULES = (
         "authority_inventory.py",
         "definition_candidate.py",
@@ -339,6 +343,7 @@ class TestLayers:
         "relationship_successor_contract.py",
         "scoped_assurance.py",
         "definition_projection.py",
+        "definition_projection_batch2.py",
         "projection_o22.py",
         "projection_o23.py",
         "projection_o2p.py",
