@@ -6,10 +6,10 @@ note: Reviewed shadow ratchet for the model-authority coverage gate. Not revisio
   projection change. Wave C makes an empty residual blocking.
 routing_digest: sha256:898a914c79d09cb2b10cc2854132e4bbb78c27365b72ab30f17eb53e4328e40c
 layer_digests:
-  definition: sha256:6694951f1c0cfd711978809f86f8d28f9b03a9221249b3f8cee5d36aab1ad346
+  definition: sha256:ec906e3d5fb454f8b0917966120a822c9096d3dd323370bdc277a13f02866a0c
   o2plus: sha256:546c56d11ebe407f97d6563e5287e20a361cb21dce36853ce7568329af6c012a
   vocabulary-carrier: sha256:235380371f9d63918bb6c2b918142db6ea08d89a436a3ae8b74e7cf163f47390
-  definition-batch2: sha256:f490ad7dbad93eda0dd771c203d3a1566447cdba586d48ab2dfaee7a5a030b14
+  definition-batch2: sha256:5abc1e36771a1f68315b3ac7c30765f700cc5b0eb24723dc77969626e1c84939
   o3: sha256:5e4a98edd69475b47da4928e4b85381c2d1c76afc7f093d42ac7a3f8d50ba978
   successor-contract: sha256:af460355c0bdaefa405ebb20a90315cb46d478a43f046c5df40524e4dd5dd246
 residual: []
