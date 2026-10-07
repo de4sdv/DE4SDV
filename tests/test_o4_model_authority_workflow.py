@@ -40,7 +40,7 @@ def _names(job=JOB):
     return [s.get("name") for s in _job(job)["steps"]]
 
 
-READBACK = "Decision-13 live-API read-back of the implied verification anchors"
+READBACK = "Decision-13 read-back of the implied verification anchors (restored same-run API snapshot)"
 DELTA = "Measure the Wave A Requirement-population delta"
 BUNDLE = "Build candidate model-authority bundle"
 COVERAGE = "Model-projection coverage report against the candidate bundle"

@@ -521,7 +521,7 @@ jobs:
           cat /tmp/sysml-api.log
           exit 1
 
-      - name: Decision-13 live-API read-back of the implied verification anchors
+      - name: Decision-13 read-back of the implied verification anchors (restored same-run API snapshot)
         # Owner decision 4 (2026-10-07): a failure BLOCKS activation. Also the
         # restored-database identity check (live element set == export,
         # element count == semantic report, binding project/commit). Exit 2
@@ -533,6 +533,7 @@ jobs:
             --binding /tmp/de4sdv-full-model-binding.json \
             --export /tmp/de4sdv-full-model-export.json \
             --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
+            --api-source restored-same-run-snapshot \
             --git-revision "$(git rev-parse HEAD)" \
             --output /tmp/o4/de4sdv-o4-verification-anchor-readback.json
 
