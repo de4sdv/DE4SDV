@@ -686,6 +686,35 @@ entries:
     - ontology_dir_token
     - ontology_path_token
     retirement_status: pending
+  scripts/measure_requirement_population_delta.py:
+    role: validation-consumer
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: pending
+    note: O4 Wave B privileged-run measurement (owner decision 6). Passes the authored ontology path to the selected entry runtime (legacy/o3/model); measured evidence, not an activation gate.
+  scripts/run_model_authority_bundle.py:
+    role: closure-preparation-machinery
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: O4 Wave B model-authority bundle/compare/close CLI. The authored ontology path is only the legacy side of the model-vs-O3-vs-legacy comparison; the model bundle itself is built by the model-authority runtime.
+  tests/test_o4_model_authority_deployment.py:
+    role: test-reference
+    markers:
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
+    note: Asserts the authored YAML path stays in the ask-viewer drift gate next to the model-authority inputs.
+  tests/test_o4_model_validation_consumers.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    - kernel_contract_symbol
+    - ontology_dir_token
+    - ontology_path_token
+    retirement_status: not-applicable
   tests/test_c5_integration_closure.py:
     role: test-reference
     markers:

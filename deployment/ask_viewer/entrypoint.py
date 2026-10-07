@@ -16,6 +16,18 @@ _GOVERNED_MODEL_PATHS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
     "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+    # Model-authority inputs (O4 Wave B): the generated projection/profile
+    # pairs and the admission manifests the model-authority bundle binds.
+    # A code-only consumer deploy must not run against drifted authority
+    # inputs; design notes and other documentation stay outside the gate.
+    ":(glob)docs/method-conformance/o2/*.json",
+    ":(glob)docs/method-conformance/o2/*admission*.yaml",
+    ":(glob)docs/method-conformance/o2plus/*.json",
+    ":(glob)docs/method-conformance/o2plus/*admission*.yaml",
+    ":(glob)docs/method-conformance/o4/*projection*.json",
+    ":(glob)docs/method-conformance/o4/*profile*.json",
+    ":(glob)docs/method-conformance/o4/*admission*.yaml",
+    "docs/method-conformance/o4/vocabulary-carriers.yaml",
 )
 
 

@@ -253,6 +253,21 @@ reasoning behind them live in
 ships no accepted bundle, so production remains legacy until a reviewed
 cutover decision.
 
+### Model authority (O4 Wave B)
+
+`DE4SDV_SEMANTIC_AUTHORITY=model` selects a closed, activation-eligible
+model-authority bundle (`DE4SDV_MODEL_AUTHORITY_BUNDLE`,
+`DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-…`), supplied through the same compose
+substitution environment and delivered under
+`/srv/de4sdv/artifacts/model/` (mounted read-only at `/run/de4sdv/model`).
+The request is bundle-id-bound and fail-closed; it never falls back. The
+rollback is `=o3` with a fresh O3 bundle at the same revision, legacy
+second. Activation, the rollback procedure, the production rollback proof
+(activate → rollback → reactivate, three batteries, payloads byte-identical
+minus provenance) and the owner-gated steps live in
+`docs/method-conformance/o4/model-authority-activation.md`. Merging the
+Wave B change activates nothing.
+
 ## Known limitations
 
 - The pilot implementation serializes large result sets server-side; complete
