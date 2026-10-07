@@ -340,6 +340,10 @@ class TestLayers:
         "definition_candidate_provider.py",
         "definition_migration.py",
         "composition_construction.py",
+        # O4 Wave B entry-point selection seam: construction-time authority
+        # selection that delegates to composition_construction (never read at
+        # query time; it reads no inventory or decisions data).
+        "entry_authority.py",
         "relationship_successor_contract.py",
         "scoped_assurance.py",
         "definition_projection.py",
