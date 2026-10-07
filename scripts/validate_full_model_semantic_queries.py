@@ -45,6 +45,55 @@ def _json_text(value: object) -> str:
     return json.dumps(value, sort_keys=True, default=str)
 
 
+def evidence_contract_state(braking: dict[str, Any], authority: str | None) -> str:
+    """Check the hasRelevantEvidenceContract state for the selected authority.
+
+    legacy / o3: the declared EvidenceContract range is blocked at the
+    reviewed revision (c5 correction), so the governed traversal must not
+    claim any evidence-contract edge and the braking requirement must report
+    an explicit evidence gap.
+
+    model (O4 Wave B, owner decision 5): the ``hasRelevantEvidenceContract``
+    discriminator is adopted (range = the EvidenceContract type closure), so
+    the braking requirement must expose at least one resolved
+    evidence-contract edge; a model runtime that still blocks the range is a
+    refusal, not an ordinary absence.
+    """
+    evidence_edges = [
+        edge
+        for edge in braking["edges"]
+        if edge["predicate"] == "hasRelevantEvidenceContract"
+    ]
+    gap_categories = {gap["category"] for gap in braking["gaps"]}
+    if str(authority or "legacy").strip().lower() == "model":
+        if not evidence_edges:
+            raise RuntimeError(
+                "model authority: reqCommandEmergencyBraking exposed no "
+                "hasRelevantEvidenceContract edge although the EvidenceContract "
+                "discriminator is adopted"
+            )
+        return "resolved"
+    # c5 correction: the declared EvidenceContract range is blocked at the
+    # reviewed revision (no machine-resolvable identity discriminator
+    # separates an evidence-contract usage from every other verified
+    # requirement usage), so the governed traversal must not claim any
+    # evidence-contract edge. The raw Dependency witnesses remain model facts
+    # but are not evidence-contract hops; this supersedes the earlier
+    # three-link retention assertion.
+    if evidence_edges:
+        raise RuntimeError(
+            "imported reqCommandEmergencyBraking reported "
+            "hasRelevantEvidenceContract edges while the declared range is "
+            "blocked"
+        )
+    if "evidence" not in gap_categories:
+        raise RuntimeError(
+            "blocked EvidenceContract range was not reported as an explicit "
+            "evidence gap"
+        )
+    return "blocked"
+
+
 def _git_head() -> str:
     return subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
@@ -55,7 +104,14 @@ def run_queries(
     *, api_url: str, binding_path: Path, semantic_report_path: Path,
     authority: str = "legacy", bundle_path: str | Path | None = None,
     bundle_id: str | None = None, composition: str | None = None,
+    model_bundle_path: str | Path | None = None, model_bundle_id: str | None = None,
 ) -> dict[str, Any]:
+    from de4sdv.semantic import entry_authority
+
+    if model_bundle_id is not None and not entry_authority.is_model_bundle_id(model_bundle_id):
+        raise ValueError(
+            "model-authority bundle ID must be a literal mab-<32 or 64 lowercase hex> token"
+        )
     if bundle_id is not None and (
         not isinstance(bundle_id, str)
         or re.fullmatch(r"o3b-[0-9a-f]{32}", bundle_id) is None
@@ -88,11 +144,11 @@ def run_queries(
         raise RuntimeError(
             "semantic report ontology identity does not match the validated binding"
         )
-    from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
-    runtime, _ = build_explicit_semantic_runtime(
+    runtime, selection = entry_authority.build_entry_semantic_runtime(
         api_url=api_url, binding_path=binding_path, expected_git_revision=git_commit,
         ontology_path=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
         authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
+        model_bundle_path=model_bundle_path, model_bundle_id=model_bundle_id,
         composition=composition, environ={},
     )
     binding.require_ontology(runtime.contract.identity)
@@ -133,24 +189,7 @@ def run_queries(
         for result in results
         if result["identifier"] == "reqCommandEmergencyBraking"
     )
-    # c5 correction: the declared EvidenceContract range is blocked at the
-    # reviewed revision (no machine-resolvable identity discriminator
-    # separates an evidence-contract usage from every other verified
-    # requirement usage), so the governed traversal must not claim any
-    # evidence-contract edge. The raw Dependency witnesses remain model facts
-    # but are not evidence-contract hops; this supersedes the earlier
-    # three-link retention assertion.
-    evidence_edges = [
-        edge
-        for edge in braking["edges"]
-        if edge["predicate"] == "hasRelevantEvidenceContract"
-    ]
-    if evidence_edges:
-        raise RuntimeError(
-            "imported reqCommandEmergencyBraking reported "
-            "hasRelevantEvidenceContract edges while the declared range is "
-            "blocked"
-        )
+    evidence_state = evidence_contract_state(braking, authority)
     subject_edges = [
         edge
         for edge in braking["edges"]
@@ -173,11 +212,6 @@ def run_queries(
         raise RuntimeError(
             "native subject membership resolved but was still reported as a gap"
         )
-    if "evidence" not in gap_categories:
-        raise RuntimeError(
-            "blocked EvidenceContract range was not reported as an explicit "
-            "evidence gap"
-        )
     if not verification_edges:
         # The pinned exporter (Syside 0.10.3) does not serialize `verify`
         # statements from AEBS verification objectives as
@@ -192,7 +226,7 @@ def run_queries(
     root_ids = {result["impact"]["root"]["element_id"] for result in results}
     if len(root_ids) != len(results):
         raise RuntimeError("semantic query cases did not resolve to distinct API UUIDs")
-    return {
+    report = {
         "schema": "de4sdv-full-model-semantic-query-coverage/v1",
         "git_commit": git_commit,
         "sysml_project_id": binding.sysml_project_id,
@@ -200,6 +234,11 @@ def run_queries(
         "concern_count": len({case.concern for case in QUERY_CASES}),
         "results": results,
     }
+    if getattr(selection, "kind", None) == "model":
+        # Additive only for the model path: legacy/O3 outputs stay byte-shaped.
+        report["semantic_authority"] = selection.provenance()
+        report["evidence_contract_state"] = evidence_state
+    return report
 
 
 def main() -> int:
@@ -211,6 +250,8 @@ def main() -> int:
     parser.add_argument("--semantic-authority", default="legacy")
     parser.add_argument("--o3-authority-bundle")
     parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--model-authority-bundle")
+    parser.add_argument("--model-authority-bundle-id")
     parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
     args = parser.parse_args()
     result = run_queries(
@@ -219,6 +260,8 @@ def main() -> int:
         semantic_report_path=args.semantic_report,
         authority=args.semantic_authority, bundle_path=args.o3_authority_bundle,
         bundle_id=args.o3_authority_bundle_id, composition=args.runtime_composition,
+        model_bundle_path=args.model_authority_bundle,
+        model_bundle_id=args.model_authority_bundle_id,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

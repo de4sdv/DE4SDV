@@ -28,20 +28,67 @@ def _git_head() -> str:
     ).strip()
 
 
+def selected_contract_identity(
+    *,
+    api_url: str,
+    binding_path: Path,
+    git_commit: str,
+    authority: str | None = None,
+    bundle_path: "str | Path | None" = None,
+    bundle_id: str | None = None,
+    model_bundle_path: "str | Path | None" = None,
+    model_bundle_id: str | None = None,
+):
+    """Ontology compatibility identity of the SELECTED semantic authority.
+
+    The default (legacy) keeps the authored contract load unchanged. An
+    explicit ``o3`` or ``model`` selection builds that runtime through the
+    entry seam (fail closed, no fallback) and takes the contract identity the
+    runtime actually serves, so the scope check binds the same authority the
+    production surfaces would answer from.
+    """
+    value = str(authority or "legacy").strip().lower()
+    if value == "legacy":
+        return KernelContract.load(
+            ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+        ).identity
+    from de4sdv.semantic import entry_authority
+
+    runtime, _ = entry_authority.build_entry_semantic_runtime(
+        api_url=api_url,
+        binding_path=binding_path,
+        expected_git_revision=git_commit,
+        ontology_path=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        authority=value,
+        bundle_path=bundle_path,
+        bundle_id=bundle_id,
+        model_bundle_path=model_bundle_path,
+        model_bundle_id=model_bundle_id,
+        environ={},
+    )
+    return runtime.contract.identity
+
+
 def validate_api_scope(
     *,
     api_url: str,
     binding_path: Path,
     export_path: Path,
+    authority: str | None = None,
+    bundle_path: "str | Path | None" = None,
+    bundle_id: str | None = None,
+    model_bundle_path: "str | Path | None" = None,
+    model_bundle_id: str | None = None,
 ) -> dict[str, Any]:
     git_commit = _git_head()
     binding = RevisionBinding.load(binding_path)
     binding.require_current(git_commit)
 
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
-    binding.require_ontology(contract.identity)
+    binding.require_ontology(selected_contract_identity(
+        api_url=api_url, binding_path=binding_path, git_commit=git_commit,
+        authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
+        model_bundle_path=model_bundle_path, model_bundle_id=model_bundle_id,
+    ))
 
     bundle = BaselineExportBundle.load(export_path)
     if bundle.git_commit != git_commit:
@@ -84,12 +131,23 @@ def main() -> int:
     parser.add_argument("--binding", required=True, type=Path)
     parser.add_argument("--export", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--semantic-authority", default="legacy",
+                        help="legacy (default), o3 or model")
+    parser.add_argument("--o3-authority-bundle")
+    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--model-authority-bundle")
+    parser.add_argument("--model-authority-bundle-id")
     args = parser.parse_args()
 
     report = validate_api_scope(
         api_url=args.api_url,
         binding_path=args.binding,
         export_path=args.export,
+        authority=args.semantic_authority,
+        bundle_path=args.o3_authority_bundle,
+        bundle_id=args.o3_authority_bundle_id,
+        model_bundle_path=args.model_authority_bundle,
+        model_bundle_id=args.model_authority_bundle_id,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
